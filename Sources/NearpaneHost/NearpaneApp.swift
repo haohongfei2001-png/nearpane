@@ -23,6 +23,14 @@ struct NearpaneApp {
                 _ = try LegacyWebObservationProgram.wrapping(ChatGPTWebPageProgram.load())
                 print("Packaged Saytile and Riftlet resources verified.")
                 if args.count > 1 {
+                    if args.count == 4, args[1] == "--native-browser-identity", let pid = Int32(args[3]) {
+                        _ = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        let running = NSRunningApplication.runningApplications(withBundleIdentifier: "com.google.Chrome").filter { !$0.isTerminated }
+                        guard running.count == 1, running[0].processIdentifier == pid, let identity = ChromeProcessIdentity.read(pid: pid)
+                        else { throw CocoaError(.validationMissingMandatoryProperty) }
+                        print(identity.session)
+                        return
+                    }
                     guard args.count == 3, args[1] == "--native-acceptance-prepare" else { exit(2) }
                     let session = try NativeAcceptanceSession(id: args[2], prepare: true)
                     print(session.directory.path)
@@ -72,11 +80,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        var testSession: URL?
         #if canImport(RiftletCore) && canImport(SaytileKit)
-        if let acceptanceSession { support = acceptanceSession.support }
+        if let acceptanceSession { support = acceptanceSession.support; testSession = acceptanceSession.directory }
         #endif
         let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"))
-        let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"))
+        let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession)
         self.modules = modules
         let session = modules.makeHost(store: store)
         host = session

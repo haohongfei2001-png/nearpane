@@ -38,9 +38,9 @@ def write_checkpoint(path, value):
         stream.write("\n")
 
 
-def observe_browser(url, session):
+def observe_browser(url, session, nonce, arm=False):
     check(re.fullmatch(r"https://chatgpt\.com/c/[a-zA-Z0-9-]+", url), "An exact, disposable ChatGPT test conversation URL is required")
-    js = "(" + OBSERVER.read_text() + ")(" + json.dumps(url) + "," + json.dumps("NEARPANE-TEST-" + session) + ")"
+    js = "(" + OBSERVER.read_text() + ")(" + json.dumps(url) + "," + json.dumps("NEARPANE-TEST-" + session) + "," + json.dumps(nonce) + "," + json.dumps(arm) + ")"
     program = """
 on run argv
     if application id "com.google.Chrome" is not running then error "The designated test browser is not running."
@@ -62,7 +62,34 @@ end run"""
     # Persist only digest/counts, never page text, the URL, or message IDs.
     fingerprint = json.dumps([url, sample["timeOrigin"], sample["ids"]], separators=(",", ":"))
     return dict(time=time.time(), page=hashlib.sha256(fingerprint.encode()).hexdigest(), window=window, tab=tab,
-                previews=sample["previews"], busy=sample["busy"])
+                previews=sample["previews"], busy=sample["busy"], timeOrigin=sample["timeOrigin"], session=session, nonce=nonce)
+
+
+def chrome_identity(binary, path, pid):
+    check(pid and pid > 0, "Specify the authorized Chrome PID")
+    require_tool(binary)
+    out = subprocess.run([str(binary), "--verify-bundled-resources", "--native-browser-identity", path.name, str(pid)],
+                         cwd=ROOT, text=True, stdout=subprocess.PIPE, check=True)
+    identity = out.stdout.strip().splitlines()[-1]
+    check(re.fullmatch(rf"chrome-kernel-v1:{pid}:[0-9]+:[0-9]+", identity), "Ambiguous browser process")
+    return identity
+
+
+def allowed_asset(path, asset_id, digest):
+    check(asset_id and str(uuid.UUID(asset_id)) == asset_id and digest and re.fullmatch("[a-f0-9]{64}", digest),
+          "Supply the approved disposable asset UUID and SHA-256")
+    queue = path/"support/Riftlet/queue.sqlite"
+    check(queue.resolve() == queue, "Unexpected queue")
+    with sqlite3.connect(queue.as_uri()+"?mode=ro", uri=True) as db:
+        rows = db.execute("select id,file_name,image_json from assets").fetchall()
+        check(len(rows) == 1 and rows[0][0].lower() == asset_id and db.execute("select count(*) from operations").fetchone()[0] == 0,
+              "The fixture must contain only the approved capture and no attempts")
+    _, name, raw = rows[0]
+    asset = json.loads(raw)
+    media = queue.parent/"media"/name
+    check(Path(name).name == name and media.resolve() == media and asset["id"].lower() == asset_id
+          and asset["fileName"] == name and asset["mediaType"] in ("image/png","image/jpeg")
+          and asset["sha256"] == digest == hashlib.sha256(media.read_bytes()).hexdigest(), "Asset identity mismatch")
 
 
 def longest_idle(events):
@@ -171,6 +198,9 @@ def main():
     parser.add_argument("--session")
     parser.add_argument("--idle-minutes", type=int, default=DEFAULT_IDLE_MINUTES)
     parser.add_argument("--url")
+    parser.add_argument("--browser-pid", type=int)
+    parser.add_argument("--asset-id")
+    parser.add_argument("--asset-sha256")
     parser.add_argument("--verdict", choices=["pass","fail"])
     args = parser.parse_args()
     binary = args.app.resolve() / "Contents/MacOS/NearpaneHost"
@@ -211,15 +241,30 @@ def main():
         check(args.url, "Pass the previously designated test draft URL")
         destination = path/(args.action+".json")
         check(not destination.exists(), "This checkpoint already exists")
+        process = chrome_identity(binary, path, args.browser_pid)
         if args.action == "browser-before":
-            snapshot = observe_browser(args.url, path.name)
+            allowed_asset(path, args.asset_id, args.asset_sha256)
+            nonce = str(uuid.uuid4())
+            snapshot = observe_browser(args.url, path.name, nonce, arm=True)
+            check(chrome_identity(binary, path, args.browser_pid) == process, "Browser restarted during binding")
             check(snapshot["previews"] == 0 and not snapshot["busy"], "The designated draft is not empty of attachments")
+            snapshot["process"] = process
+            binding = dict(session=path.name, nonce=nonce, process=process, window=snapshot["window"], tab=snapshot["tab"],
+                           url=args.url, timeOrigin=snapshot["timeOrigin"], assetID=args.asset_id, sha256=args.asset_sha256,
+                           boundAt=snapshot["time"], expiresAt=snapshot["time"] + 900)
             write_checkpoint(destination, snapshot)
+            write_checkpoint(path/"target-binding.json", binding)
         else:
             check((path/"browser-before.json").is_file(), "Capture the baseline first")
-            first = observe_browser(args.url, path.name)
+            binding = json.loads((path/"target-binding.json").read_text())
+            check(binding["process"] == process and binding["url"] == args.url, "Binding differs")
+            def observe():
+                snapshot = observe_browser(args.url, path.name, binding["nonce"])
+                check(chrome_identity(binary, path, args.browser_pid) == process, "Browser restarted")
+                return dict(snapshot, process=process)
+            first = observe()
             time.sleep(5.1)
-            write_checkpoint(destination, [first, observe_browser(args.url, path.name)])
+            write_checkpoint(destination, [first, observe()])
 
 
 def require_tool(binary):

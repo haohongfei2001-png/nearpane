@@ -98,8 +98,8 @@ public final class TrayModule: HostModule {
     }
 
 
-    public convenience init(existingRoot: URL) {
-        self.init { change, error in try await TrayOwner.existing(root: existingRoot, notify: change, report: error) }
+    public convenience init(existingRoot: URL, testSession: URL? = nil) {
+        self.init { change, error in try await TrayOwner.existing(root: existingRoot, testSession: testSession, notify: change, report: error) }
     }
     init(open: @escaping Open) { self.open = open }
     public func start() throws { active = true }
@@ -198,6 +198,7 @@ public final class TrayModule: HostModule {
               row.status != .missing, row.status != .transferring else { return nil }
         guard mayAttach else { issue = "请先在设置中允许附加到草稿。"; return nil }
         do {
+            try owner.checkAsset(row.image)
             let target = try owner.pinTarget()
             issue = nil
             pressTask = target

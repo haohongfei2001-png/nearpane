@@ -31,6 +31,7 @@ if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then
   done
 else
   resources="$stage/Contents/Resources"
+  cp Resources/AcceptanceTargetGuard.js "$resources/"
   # Native SwiftPM produces flat resource directories and does not attempt to sign
   # File Provider metadata. Construct the layout required by the original .app loaders.
   install_resources() {

@@ -16,6 +16,7 @@ final class TrayOwner {
     let defaultMode: ScreenshotMode
     let root: URL
     let importer: PrivateAssetImporter
+    var checkAsset: (ImportedAsset) throws -> Void = { _ in }
     let pinTarget: () throws -> Task<TargetLease, Error>
     let checkPermission: (Bool, String?) async -> Bool
     private var captureController: InteractiveScreenshotController?
@@ -32,21 +33,30 @@ final class TrayOwner {
     // Other objects/tasks that continue domain work retain this same lock, even after UI disable.
     private let ownership: ApplicationInstanceOwnership?
 
-    static func existing(root: URL, notify: @escaping @MainActor () async -> Void,
+    static func existing(root: URL, testSession: URL? = nil, notify: @escaping @MainActor () async -> Void,
                          report: @escaping @MainActor (String) -> Void) async throws -> TrayOwner {
         let library = try await Task.detached(priority: .userInitiated) { try ExistingLibrary.open(root) }.value
         let prefs = try ScreenshotEntryPreferences.load(from: root.appendingPathComponent("capture-entry-settings.json"))
         let policy = OrdinaryCaptureConfiguration.admission
         guard policy.usesUnifiedProduct, policy.allowsInput else { throw LibraryError.incompatible }
+        let browser = ChromeAppleEventsExecutor()
+        var bound: BoundTestExecutor?
+        if let testSession {
+            guard let url = Bundle.main.url(forResource: "AcceptanceTargetGuard", withExtension: "js") else { throw WebAdapterError.programUnavailable }
+            bound = BoundTestExecutor(directory: testSession, base: browser, guardSource: try String(contentsOf: url, encoding: .utf8))
+        }
+        let executor: any WebClickTargetPinning
+        if let bound { executor = bound } else { executor = browser }
         let adapter = WebAttachmentAdapter(mediaDirectory: root.appendingPathComponent("media"),
-            executor: ChromeAppleEventsExecutor(), program: try ChatGPTWebPageProgram.load(), mode: .ordinaryProduct,
+            executor: executor, program: try ChatGPTWebPageProgram.load(), mode: .ordinaryProduct,
             profile: policy.observationProfile, productStore: library.store, productOrigins: policy.productOrigins)
         let checker = NativeAutomationPermissionChecker()
         let owner = TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
                          captureEntry: prefs.builtInScreenshotEnabled, defaultMode: prefs.defaultMode,
                          ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: { try adapter.targetForClick() },
-                         permission: { ask, session in await checker.check(askUserIfNeeded: ask, expectedSession: session) == .granted },
+                         permission: { ask, session in await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
                          notify: notify, report: report)
+        if let bound { owner.checkAsset = { try bound.checkAsset($0) } }
         // An explicit connection owns the original lock: finish already-journaled local imports
         // before projecting the queue. Never reinterpret an interrupted external transfer as a new click.
         let recovered = try await owner.importer.recover()
