@@ -58,6 +58,7 @@ public final class SnapshotBus {
         while !pending.isEmpty {
             let next = pending.removeFirst()
             for id in Array(subscribers.keys) {
+                guard activeInstances[next.moduleID] == next.instanceID else { break }
                 guard let subscriber = subscribers[id], subscriber.ids.contains(next.moduleID) else { continue }
                 do { try subscriber.receive(next) }
                 catch {
@@ -94,5 +95,11 @@ public final class SnapshotBus {
     public func resetDesktopSession() {
         desktop = nil
         lastStableDesktop = nil
+    }
+
+    func endSession() {
+        resetDesktopSession()
+        pending.removeAll()
+        subscribers.removeAll()
     }
 }

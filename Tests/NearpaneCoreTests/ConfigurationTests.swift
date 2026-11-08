@@ -5,6 +5,24 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct ConfigurationTests {
+    @Test func preVisibilityConfigurationStillLoadsAndOversizedInputIsProtected() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = FileConfigurationStore(url: url)
+        try store.save(.init())
+        var object = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        object["surfaceHidden"] = nil
+        try JSONSerialization.data(withJSONObject: object).write(to: url)
+        #expect(try !store.load().surfaceHidden)
+        let oversized = Data(repeating: 32, count: 200_000)
+        try oversized.write(to: url)
+        let host = HostSession(store: store)
+        await host.start()
+        host.setSurfaceHidden(true)
+        #expect(host.configurationProtected)
+        #expect(try Data(contentsOf: url) == oversized)
+        host.stop()
+    }
     private func temporaryURL() -> URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".build/test-data/\(UUID())/configuration.json")
     }

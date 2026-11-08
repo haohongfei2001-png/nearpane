@@ -21,6 +21,7 @@ public final class MockPermissionBroker: PermissionBroker {
     public private(set) var requests: Set<PermissionKey> = []
     @ObservationIgnored public var onRevocation: ((PermissionKey) -> Void)?
     public init() {}
+    func resetSession() { decisions.removeAll(); requests.removeAll() }
     public func decision(for key: PermissionKey) -> PermissionDecision { decisions[key] ?? .notRequested }
     public func request(_ key: PermissionKey, userInitiated: Bool) -> PermissionDecision {
         if userInitiated { requests.insert(key) }

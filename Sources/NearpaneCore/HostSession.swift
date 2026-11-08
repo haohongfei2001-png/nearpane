@@ -53,6 +53,8 @@ public final class HostSession {
             diagnostics.record(.configurationReadFailed)
         }
         registry.restore(configuration.modules)
+        lastAction = nil
+        configurationSaveFailed = false
         registry.startEnabled()
         isRunning = true
         providerFailed = false
@@ -68,7 +70,8 @@ public final class HostSession {
         desktopTask?.cancel()
         desktopTask = nil
         registry.stopAll()
-        bus.resetDesktopSession()
+        permissions.resetSession()
+        bus.endSession()
         diagnostics.record(.hostStopped)
     }
 
@@ -102,6 +105,12 @@ public final class HostSession {
         guard isRunning else { return }
         configuration.edge = edge
         configuration.preferredDisplayID = displayID
+        save()
+    }
+
+    public func setSurfaceHidden(_ hidden: Bool) {
+        guard isRunning, configuration.surfaceHidden != hidden else { return }
+        configuration.surfaceHidden = hidden
         save()
     }
 

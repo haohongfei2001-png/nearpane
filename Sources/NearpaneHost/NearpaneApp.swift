@@ -21,7 +21,6 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
     private var startupTask: Task<Void, Never>?
-    private var userHidden = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -34,7 +33,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             let controller = EdgeWindowController(host: session)
             surface = controller
             controller.place(screens: SystemScreens.geometry())
-            controller.present()
+            controller.presentIfNeeded()
             installMenu()
             NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
                 name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -64,15 +63,16 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func screensChanged() {
         surface?.place(screens: SystemScreens.geometry())
-        if !userHidden && !SystemScreens.geometry().isEmpty { surface?.present() }
+        surface?.presentIfNeeded()
         // Rebuild the settings list on its next explicit opening.
         if settings?.window?.isVisible == true { updateSettingsContent() }
     }
 
     @objc private func toggleSurface() {
-        userHidden.toggle()
-        if userHidden { surface?.hide() }
-        else { surface?.place(screens: SystemScreens.geometry()); surface?.present() }
+        guard let host else { return }
+        host.setSurfaceHidden(!host.configuration.surfaceHidden)
+        surface?.place(screens: SystemScreens.geometry())
+        surface?.presentIfNeeded()
     }
 
     @objc private func showSettings() {

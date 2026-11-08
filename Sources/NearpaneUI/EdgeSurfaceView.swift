@@ -18,7 +18,7 @@ public struct EdgeSurfaceView: View {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())
                         .onTapGesture { host.handle(.collapse) }
-                        .place(in: SurfaceRect(width: geometry.size.width, height: geometry.size.height))
+                        .place(in: layout.desktop)
                     expandedModule(id).place(in: rect)
                 }
                 if let rail = layout.moduleRail { moduleRail.place(in: rail) }

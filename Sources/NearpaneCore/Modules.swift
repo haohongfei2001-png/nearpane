@@ -102,7 +102,7 @@ public final class ModuleRegistry {
     }
 
     public func restore(_ saved: [ModulePreference]) {
-        let catalog = preferences
+        let catalog = manifests.map { ModulePreference(id: $0.id, enabled: $0.kind == .core) }
         let known = Set(catalog.map(\.id))
         var seen: Set<String> = []
         let restored = saved.filter { known.contains($0.id) && seen.insert($0.id).inserted }
@@ -110,6 +110,7 @@ public final class ModuleRegistry {
         let merged = restored + catalog.filter { !seen.contains($0.id) }
         preferences = coreIDs.compactMap { id in merged.first { $0.id == id } }
             + merged.filter { !coreIDs.contains($0.id) }
+        for pref in preferences { states[pref.id] = pref.enabled ? .available : .disabled }
     }
 
     public var pinnedModules: [ModuleManifest] {

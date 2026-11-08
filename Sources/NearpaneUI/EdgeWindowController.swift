@@ -15,6 +15,7 @@ private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
 @MainActor
 public final class EdgeWindowController: NSWindowController {
     private let host: HostSession
+    public private(set) var hasPlacement = false
     public init(host: HostSession) {
         self.host = host
         let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
@@ -55,14 +56,19 @@ public final class EdgeWindowController: NSWindowController {
     public func place(screens: [ScreenGeometry]) {
         guard let rect = SurfacePlacement.resolve(screens: screens, preferredID: host.configuration.preferredDisplayID,
                                                   edge: host.configuration.edge) else {
+            hasPlacement = false
             window?.orderOut(nil)
             return
         }
         window?.setFrame(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height), display: false)
+        hasPlacement = true
     }
 
     /// Never called by build scripts or tests. User launch is the only automatic presentation path.
-    public func present() { window?.orderFront(nil) }
+    public func presentIfNeeded() {
+        guard host.isRunning, hasPlacement, !host.configuration.surfaceHidden else { hide(); return }
+        if window?.isVisible == false { window?.orderFront(nil) }
+    }
     public func hide() { window?.orderOut(nil) }
 }
 

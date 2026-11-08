@@ -27,7 +27,13 @@ public struct ScreenGeometry: Equatable, Sendable {
 public enum SurfacePlacement {
     /// A missing preferred display falls back without rewriting the preference.
     public static func resolve(screens: [ScreenGeometry], preferredID: String?, edge: SurfaceEdge) -> SurfaceRect? {
-        guard let screen = screens.first(where: { $0.id == preferredID }) ?? screens.first else { return nil }
+        let usable = screens.filter {
+            [$0.frame, $0.visibleFrame].allSatisfy { rect in
+                rect.x.isFinite && rect.y.isFinite && rect.width.isFinite && rect.width > 0 &&
+                rect.height.isFinite && rect.height > 0
+            }
+        }
+        guard let screen = usable.first(where: { $0.id == preferredID }) ?? usable.first else { return nil }
         let safe = screen.visibleFrame
         let width = min(max(0, screen.frame.width / 8), max(0, safe.width))
         return SurfaceRect(x: edge == .left ? safe.x : safe.x + safe.width - width,

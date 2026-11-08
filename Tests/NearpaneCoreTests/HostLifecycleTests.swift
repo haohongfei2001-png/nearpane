@@ -5,6 +5,26 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct HostLifecycleTests {
+    @Test func sameSessionRestartReadsDefaultsAndDropsOldSubscriptionsAndGrants() async throws {
+        let store = MemoryConfigurationStore()
+        let host = HostSession(store: store)
+        await host.start()
+        host.handle(.setEnabled(BuiltinCatalog.calendar, true))
+        let key = PermissionKey(moduleID: BuiltinCatalog.calendar, permission: .calendarRead)
+        host.permissions.setDecision(.granted, for: key)
+        host.handle(.module(BuiltinCatalog.calendar, .refresh))
+        var oldDeliveries = 0
+        _ = host.bus.subscribe(moduleIDs: [BuiltinCatalog.voice]) { _ in oldDeliveries += 1 }
+        host.stop()
+        try store.save(.init())
+        await host.start()
+        #expect(host.registry.states[BuiltinCatalog.calendar] == .disabled)
+        #expect(host.permissions.decision(for: key) == .notRequested)
+        #expect(host.permissions.requests.isEmpty)
+        #expect(host.lastAction == nil)
+        #expect(oldDeliveries == 0)
+        host.stop()
+    }
     @Test func testStartStopAreIdempotentAndRestorePreferencesWithFreshRuntimeIDs() async throws {
         let store = MemoryConfigurationStore()
         let host = HostSession(store: store)

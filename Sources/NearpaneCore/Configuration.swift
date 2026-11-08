@@ -15,10 +15,22 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public var version = schemaVersion
     public var edge: SurfaceEdge = .right
     public var preferredDisplayID: String?
+    /// Missing in early v1 configurations, which always opened visible.
+    public var surfaceHidden: Bool = false
     public var modules: [ModulePreference] = []
     public var fixture: DesktopFixture = .internalScopes3Plus1
 
     public init() {}
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decode(Int.self, forKey: .version)
+        edge = try c.decode(SurfaceEdge.self, forKey: .edge)
+        preferredDisplayID = try c.decodeIfPresent(String.self, forKey: .preferredDisplayID)
+        surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
+        modules = try c.decode([ModulePreference].self, forKey: .modules)
+        fixture = try c.decode(DesktopFixture.self, forKey: .fixture)
+    }
 
     public func validated() throws -> Self {
         guard version == Self.schemaVersion else { throw ConfigurationError.unsupportedVersion }
@@ -44,9 +56,15 @@ public final class FileConfigurationStore: ConfigurationStore {
     public init(url: URL) { self.url = url }
 
     public func load() throws -> HostConfiguration {
-        guard FileManager.default.fileExists(atPath: url.path) else { return HostConfiguration() }
-        let data = try Data(contentsOf: url)
-        guard data.count <= 128 * 1024 else { throw ConfigurationError.invalid }
+        let handle: FileHandle
+        do { handle = try FileHandle(forReadingFrom: url) }
+        catch let error as CocoaError where [.fileNoSuchFile, .fileReadNoSuchFile].contains(error.code) {
+            return HostConfiguration()
+        }
+        defer { try? handle.close() }
+        let limit = 128 * 1024
+        let data = try handle.read(upToCount: limit + 1) ?? Data()
+        guard data.count <= limit else { throw ConfigurationError.invalid }
         return try JSONDecoder().decode(HostConfiguration.self, from: data).validated()
     }
 

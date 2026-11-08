@@ -8,6 +8,31 @@ import NearpaneCore
 @MainActor
 @Suite(.serialized)
 struct HiddenWindowTests {
+    @Test func noUsableDisplayOrRestoredHideNeverOrdersFront() async {
+        _ = NSApplication.shared
+        let store = MemoryConfigurationStore()
+        let host = HostSession(store: store)
+        await host.start()
+        let controller = EdgeWindowController(host: host)
+        let screen = ScreenGeometry(id: "menu", frame: .init(width: 1600, height: 900),
+                                    visibleFrame: .init(y: 30, width: 1600, height: 870))
+        let removed = ScreenGeometry(id: "gone", frame: screen.frame, visibleFrame: .init(width: 0, height: 0))
+        controller.place(screens: [removed])
+        #expect(!controller.hasPlacement)
+        controller.presentIfNeeded()
+        #expect(controller.window?.isVisible == false)
+        host.setSurfaceHidden(true)
+        host.stop()
+        await host.start()
+        #expect(host.configuration.surfaceHidden)
+        controller.place(screens: [removed, screen])
+        #expect(controller.hasPlacement)
+        controller.presentIfNeeded()
+        #expect(controller.window?.frame.width == 200)
+        #expect(controller.window?.isVisible == false)
+        controller.close()
+        host.stop()
+    }
     @Test func testNativePanelConstructsHiddenWithNoTitlebarAndNonactivatingPolicy() async {
         _ = NSApplication.shared
         let host = HostSession(store: MemoryConfigurationStore())
