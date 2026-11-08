@@ -1,0 +1,28 @@
+{
+  "copyReleasePresent": true,
+  "declarations": [
+    {
+      "presentVerbatim": true,
+      "text": "extern int SLSMainConnectionID(void);",
+      "upstreamLine": 9
+    },
+    {
+      "presentVerbatim": true,
+      "text": "extern CFArrayRef SLSCopySpacesForWindows(int cid, int selector, CFArrayRef window_list);",
+      "upstreamLine": 22
+    },
+    {
+      "presentVerbatim": true,
+      "text": "extern CFArrayRef SLSCopyManagedDisplaySpaces(int cid);",
+      "upstreamLine": 60
+    }
+  ],
+  "note": "Archived connector text, not a claim of Apple ABI documentation.",
+  "referenceFiles": {
+    "yabai-extern.h": "ae7b7ada36b8f4e84a5ea63e09705ec0cbab22688b15bb7b71fd497e7fb10c27",
+    "yabai-window.c": "658a9a833b9be2c08148efe659cd6fecd135701b42914d16d89d859b0f5ae6d3"
+  },
+  "revision": "dd845723416f5fe92af49fad5ebab00369e07edd",
+  "selector7Present": true,
+  "sint32ConstructionPresent": true
+}

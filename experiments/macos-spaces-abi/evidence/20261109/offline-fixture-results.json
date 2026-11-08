@@ -1,0 +1,6149 @@
+{
+  "abi": {
+    "cIntBytes": 4,
+    "cfIndexBytes": 8,
+    "cgWindowIDBytes": 4,
+    "pointerBytes": 8,
+    "staticTypeAssertionsCompiled": true,
+    "swiftInt32Bytes": 4,
+    "swiftUInt32Bytes": 4,
+    "uint64Bytes": 8
+  },
+  "cOwnership": {
+    "balanced": true,
+    "inputCreates": 1153,
+    "inputReleases": 1153,
+    "mainCalls": 1110,
+    "managedCalls": 1102,
+    "managedNonnull": 1102,
+    "membershipCalls": 2294,
+    "membershipNonnull": 2288,
+    "numberCreates": 1186,
+    "numberReleases": 1186,
+    "outputReleases": 3390,
+    "rejectedInputs": 9
+  },
+  "connection": {
+    "allEqual": true,
+    "raw": 42,
+    "samples": [
+      [
+        42,
+        42
+      ],
+      [
+        42,
+        42
+      ],
+      [
+        42,
+        42
+      ],
+      [
+        42,
+        42
+      ],
+      [
+        42,
+        42
+      ],
+      [
+        42,
+        42
+      ],
+      [
+        42,
+        42
+      ],
+      [
+        42,
+        42
+      ]
+    ],
+    "stressChanges": 0
+  },
+  "environment": {
+    "architecture": "arm64",
+    "osVersion": "Version 27.0 (Build 26A428)",
+    "thread": "main_only"
+  },
+  "fixtureAllocatorAfterShutdown": {
+    "allocations": 50391,
+    "balanced": true,
+    "deallocations": 50391,
+    "outstandingBlocks": 0,
+    "outstandingBytes": 0,
+    "reallocations": 0,
+    "scope": "only CF objects created with this fixture allocator; excludes Swift runtime and SkyLight"
+  },
+  "guardFixtures": [
+    {
+      "error": 2,
+      "expected": 2,
+      "fixtureCallCountDelta": 0,
+      "name": "null_input",
+      "passed": true
+    },
+    {
+      "error": 2,
+      "expected": 2,
+      "fixtureCallCountDelta": 0,
+      "name": "string_input",
+      "passed": true
+    },
+    {
+      "error": 4,
+      "expected": 4,
+      "fixtureCallCountDelta": 0,
+      "name": "string_element",
+      "passed": true
+    },
+    {
+      "error": 4,
+      "expected": 4,
+      "fixtureCallCountDelta": 0,
+      "name": "boolean_element",
+      "passed": true
+    },
+    {
+      "error": 4,
+      "expected": 4,
+      "fixtureCallCountDelta": 0,
+      "name": "fraction_element",
+      "passed": true
+    },
+    {
+      "error": 5,
+      "expected": 5,
+      "fixtureCallCountDelta": 0,
+      "name": "out_of_range",
+      "passed": true
+    },
+    {
+      "error": 5,
+      "expected": 5,
+      "fixtureCallCountDelta": 0,
+      "name": "above_uint32",
+      "passed": true
+    },
+    {
+      "error": 5,
+      "expected": 5,
+      "fixtureCallCountDelta": 0,
+      "name": "below_sint32",
+      "passed": true
+    },
+    {
+      "error": 6,
+      "expected": 6,
+      "fixtureCallCountDelta": 0,
+      "name": "too_many_ids",
+      "passed": true
+    }
+  ],
+  "interpretation": "Fixture behavior is defined by this test, not evidence of SkyLight semantics.",
+  "invalidIDsAbsentBeforeAndAfter": [
+    {
+      "absent": true,
+      "id": "0",
+      "name": "invalid_zero"
+    },
+    {
+      "absent": true,
+      "id": "4294967295",
+      "name": "invalid_uint32_max"
+    },
+    {
+      "absent": true,
+      "id": "2147483648",
+      "name": "invalid_sign_bit"
+    }
+  ],
+  "inventoryAfter": {
+    "cfKind": "CFArray",
+    "errors": [],
+    "foundationClass": "__NSCFArray",
+    "scopes": [
+      {
+        "cfKind": "CFDictionary",
+        "current": {
+          "cfKind": "CFDictionary",
+          "fields": {
+            "id64": {
+              "cfKind": "CFNumber",
+              "foundationClass": "__NSCFNumber"
+            },
+            "type": {
+              "cfKind": "CFNumber",
+              "foundationClass": "__NSCFNumber"
+            },
+            "uuid": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          },
+          "foundationClass": "__NSCFDictionary",
+          "id64": {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          "spaceID": "4294967313",
+          "type": {
+            "byteSize": 4,
+            "cfKind": "CFNumber",
+            "decimal": "0",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "i",
+            "parse": "exact_uint64",
+            "signed64": "0",
+            "signed64Exact": true,
+            "storageType": 3
+          },
+          "uuidType": {
+            "cfKind": "CFString",
+            "foundationClass": "__NSCFConstantString"
+          }
+        },
+        "displayIdentifier": "synthetic-display",
+        "fields": {
+          "Current Space": {
+            "cfKind": "CFDictionary",
+            "foundationClass": "__NSCFDictionary"
+          },
+          "Display Identifier": {
+            "cfKind": "CFString",
+            "foundationClass": "__NSCFConstantString"
+          },
+          "Spaces": {
+            "cfKind": "CFArray",
+            "foundationClass": "__NSCFArray"
+          }
+        },
+        "foundationClass": "__NSCFDictionary",
+        "spaces": [
+          {
+            "cfKind": "CFDictionary",
+            "fields": {
+              "id64": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "type": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "uuid": {
+                "cfKind": "CFString",
+                "foundationClass": "__NSCFConstantString"
+              }
+            },
+            "foundationClass": "__NSCFDictionary",
+            "id64": {
+              "byteSize": 8,
+              "cfKind": "CFNumber",
+              "decimal": "4294967313",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "q",
+              "parse": "exact_uint64",
+              "signed64": "4294967313",
+              "signed64Exact": true,
+              "storageType": 4
+            },
+            "spaceID": "4294967313",
+            "type": {
+              "byteSize": 4,
+              "cfKind": "CFNumber",
+              "decimal": "0",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "i",
+              "parse": "exact_uint64",
+              "signed64": "0",
+              "signed64Exact": true,
+              "storageType": 3
+            },
+            "uuidType": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          },
+          {
+            "cfKind": "CFDictionary",
+            "fields": {
+              "id64": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "type": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "uuid": {
+                "cfKind": "CFString",
+                "foundationClass": "__NSCFConstantString"
+              }
+            },
+            "foundationClass": "__NSCFDictionary",
+            "id64": {
+              "byteSize": 8,
+              "cfKind": "CFNumber",
+              "decimal": "9007199254740993",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "q",
+              "parse": "exact_uint64",
+              "signed64": "9007199254740993",
+              "signed64Exact": true,
+              "storageType": 4
+            },
+            "spaceID": "9007199254740993",
+            "type": {
+              "byteSize": 4,
+              "cfKind": "CFNumber",
+              "decimal": "0",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "i",
+              "parse": "exact_uint64",
+              "signed64": "0",
+              "signed64Exact": true,
+              "storageType": 3
+            },
+            "uuidType": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          }
+        ],
+        "spacesArrayType": {
+          "cfKind": "CFArray",
+          "foundationClass": "__NSCFArray"
+        }
+      }
+    ],
+    "state": "values"
+  },
+  "inventoryBefore": {
+    "cfKind": "CFArray",
+    "errors": [],
+    "foundationClass": "__NSCFArray",
+    "scopes": [
+      {
+        "cfKind": "CFDictionary",
+        "current": {
+          "cfKind": "CFDictionary",
+          "fields": {
+            "id64": {
+              "cfKind": "CFNumber",
+              "foundationClass": "__NSCFNumber"
+            },
+            "type": {
+              "cfKind": "CFNumber",
+              "foundationClass": "__NSCFNumber"
+            },
+            "uuid": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          },
+          "foundationClass": "__NSCFDictionary",
+          "id64": {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          "spaceID": "4294967313",
+          "type": {
+            "byteSize": 4,
+            "cfKind": "CFNumber",
+            "decimal": "0",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "i",
+            "parse": "exact_uint64",
+            "signed64": "0",
+            "signed64Exact": true,
+            "storageType": 3
+          },
+          "uuidType": {
+            "cfKind": "CFString",
+            "foundationClass": "__NSCFConstantString"
+          }
+        },
+        "displayIdentifier": "synthetic-display",
+        "fields": {
+          "Current Space": {
+            "cfKind": "CFDictionary",
+            "foundationClass": "__NSCFDictionary"
+          },
+          "Display Identifier": {
+            "cfKind": "CFString",
+            "foundationClass": "__NSCFConstantString"
+          },
+          "Spaces": {
+            "cfKind": "CFArray",
+            "foundationClass": "__NSCFArray"
+          }
+        },
+        "foundationClass": "__NSCFDictionary",
+        "spaces": [
+          {
+            "cfKind": "CFDictionary",
+            "fields": {
+              "id64": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "type": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "uuid": {
+                "cfKind": "CFString",
+                "foundationClass": "__NSCFConstantString"
+              }
+            },
+            "foundationClass": "__NSCFDictionary",
+            "id64": {
+              "byteSize": 8,
+              "cfKind": "CFNumber",
+              "decimal": "4294967313",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "q",
+              "parse": "exact_uint64",
+              "signed64": "4294967313",
+              "signed64Exact": true,
+              "storageType": 4
+            },
+            "spaceID": "4294967313",
+            "type": {
+              "byteSize": 4,
+              "cfKind": "CFNumber",
+              "decimal": "0",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "i",
+              "parse": "exact_uint64",
+              "signed64": "0",
+              "signed64Exact": true,
+              "storageType": 3
+            },
+            "uuidType": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          },
+          {
+            "cfKind": "CFDictionary",
+            "fields": {
+              "id64": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "type": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "uuid": {
+                "cfKind": "CFString",
+                "foundationClass": "__NSCFConstantString"
+              }
+            },
+            "foundationClass": "__NSCFDictionary",
+            "id64": {
+              "byteSize": 8,
+              "cfKind": "CFNumber",
+              "decimal": "9007199254740993",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "q",
+              "parse": "exact_uint64",
+              "signed64": "9007199254740993",
+              "signed64Exact": true,
+              "storageType": 4
+            },
+            "spaceID": "9007199254740993",
+            "type": {
+              "byteSize": 4,
+              "cfKind": "CFNumber",
+              "decimal": "0",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "i",
+              "parse": "exact_uint64",
+              "signed64": "0",
+              "signed64Exact": true,
+              "storageType": 3
+            },
+            "uuidType": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          }
+        ],
+        "spacesArrayType": {
+          "cfKind": "CFArray",
+          "foundationClass": "__NSCFArray"
+        }
+      }
+    ],
+    "state": "values"
+  },
+  "inventoryBeforeAndAfterEqual": true,
+  "inventoryCAndSwiftEqual": true,
+  "inventorySwift": {
+    "cfKind": "CFArray",
+    "errors": [],
+    "foundationClass": "__NSCFArray",
+    "scopes": [
+      {
+        "cfKind": "CFDictionary",
+        "current": {
+          "cfKind": "CFDictionary",
+          "fields": {
+            "id64": {
+              "cfKind": "CFNumber",
+              "foundationClass": "__NSCFNumber"
+            },
+            "type": {
+              "cfKind": "CFNumber",
+              "foundationClass": "__NSCFNumber"
+            },
+            "uuid": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          },
+          "foundationClass": "__NSCFDictionary",
+          "id64": {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          "spaceID": "4294967313",
+          "type": {
+            "byteSize": 4,
+            "cfKind": "CFNumber",
+            "decimal": "0",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "i",
+            "parse": "exact_uint64",
+            "signed64": "0",
+            "signed64Exact": true,
+            "storageType": 3
+          },
+          "uuidType": {
+            "cfKind": "CFString",
+            "foundationClass": "__NSCFConstantString"
+          }
+        },
+        "displayIdentifier": "synthetic-display",
+        "fields": {
+          "Current Space": {
+            "cfKind": "CFDictionary",
+            "foundationClass": "__NSCFDictionary"
+          },
+          "Display Identifier": {
+            "cfKind": "CFString",
+            "foundationClass": "__NSCFConstantString"
+          },
+          "Spaces": {
+            "cfKind": "CFArray",
+            "foundationClass": "__NSCFArray"
+          }
+        },
+        "foundationClass": "__NSCFDictionary",
+        "spaces": [
+          {
+            "cfKind": "CFDictionary",
+            "fields": {
+              "id64": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "type": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "uuid": {
+                "cfKind": "CFString",
+                "foundationClass": "__NSCFConstantString"
+              }
+            },
+            "foundationClass": "__NSCFDictionary",
+            "id64": {
+              "byteSize": 8,
+              "cfKind": "CFNumber",
+              "decimal": "4294967313",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "q",
+              "parse": "exact_uint64",
+              "signed64": "4294967313",
+              "signed64Exact": true,
+              "storageType": 4
+            },
+            "spaceID": "4294967313",
+            "type": {
+              "byteSize": 4,
+              "cfKind": "CFNumber",
+              "decimal": "0",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "i",
+              "parse": "exact_uint64",
+              "signed64": "0",
+              "signed64Exact": true,
+              "storageType": 3
+            },
+            "uuidType": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          },
+          {
+            "cfKind": "CFDictionary",
+            "fields": {
+              "id64": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "type": {
+                "cfKind": "CFNumber",
+                "foundationClass": "__NSCFNumber"
+              },
+              "uuid": {
+                "cfKind": "CFString",
+                "foundationClass": "__NSCFConstantString"
+              }
+            },
+            "foundationClass": "__NSCFDictionary",
+            "id64": {
+              "byteSize": 8,
+              "cfKind": "CFNumber",
+              "decimal": "9007199254740993",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "q",
+              "parse": "exact_uint64",
+              "signed64": "9007199254740993",
+              "signed64Exact": true,
+              "storageType": 4
+            },
+            "spaceID": "9007199254740993",
+            "type": {
+              "byteSize": 4,
+              "cfKind": "CFNumber",
+              "decimal": "0",
+              "foundationClass": "__NSCFNumber",
+              "isFloat": false,
+              "objCType": "i",
+              "parse": "exact_uint64",
+              "signed64": "0",
+              "signed64Exact": true,
+              "storageType": 3
+            },
+            "uuidType": {
+              "cfKind": "CFString",
+              "foundationClass": "__NSCFConstantString"
+            }
+          }
+        ],
+        "spacesArrayType": {
+          "cfKind": "CFArray",
+          "foundationClass": "__NSCFArray"
+        }
+      }
+    ],
+    "state": "values"
+  },
+  "lifecycle": {
+    "addressesCleared": true,
+    "callAfterCloseRejected": true,
+    "shutdownStatus": 0
+  },
+  "matrix": [
+    {
+      "c_bridge": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "case": "empty",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "windowIDs": []
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "single_F1",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "single_F2",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "202"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "single_F3",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "303"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "single_F4",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "404"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "pair",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "pair_reversed",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "duplicate_single",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "duplicate_pair",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "all_sampled",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202",
+        "303",
+        "404"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "all_reversed",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "404",
+        "303",
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_zero",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "0"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_uint32_max",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "4294967295"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_sign_bit",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "2147483648"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "known_plus_invalid",
+      "equalAcrossFourPaths": true,
+      "round": 1,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101",
+        "4294967295"
+      ]
+    },
+    {
+      "c_bridge": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "case": "empty",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "windowIDs": []
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "single_F1",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "single_F2",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "202"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "single_F3",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "303"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "single_F4",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "404"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "pair",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "pair_reversed",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "duplicate_single",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "duplicate_pair",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "all_sampled",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202",
+        "303",
+        "404"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "all_reversed",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "404",
+        "303",
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_zero",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "0"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_uint32_max",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "4294967295"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_sign_bit",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "2147483648"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "known_plus_invalid",
+      "equalAcrossFourPaths": true,
+      "round": 2,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101",
+        "4294967295"
+      ]
+    },
+    {
+      "c_bridge": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "case": "empty",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "count": 0,
+        "errors": [],
+        "spaceIDs": [],
+        "state": "null",
+        "uniqueCount": 0
+      },
+      "windowIDs": []
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "single_F1",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "single_F2",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "202"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "single_F3",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "303"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "single_F4",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "404"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "pair",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "pair_reversed",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993",
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "duplicate_single",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "duplicate_pair",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "all_sampled",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "101",
+        "202",
+        "303",
+        "404"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "case": "all_reversed",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "windowIDs": [
+        "404",
+        "303",
+        "202",
+        "101"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_zero",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "0"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_uint32_max",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "4294967295"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "case": "invalid_sign_bit",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "windowIDs": [
+        "2147483648"
+      ]
+    },
+    {
+      "c_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "c_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "case": "known_plus_invalid",
+      "equalAcrossFourPaths": true,
+      "round": 3,
+      "selector": 7,
+      "swift_bridge": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "swift_explicit": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "windowIDs": [
+        "101",
+        "4294967295"
+      ]
+    }
+  ],
+  "matrixInvalidResultCount": 0,
+  "matrixMismatchCount": 0,
+  "mode": "offline_synthetic_CF_fixtures",
+  "pairWindowIDs": [
+    "101",
+    "202"
+  ],
+  "parserFixtures": [
+    {
+      "actual": "0",
+      "expected": "0",
+      "facts": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "0",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "0",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "name": "zero",
+      "passed": true
+    },
+    {
+      "actual": "4294967313",
+      "expected": "4294967313",
+      "facts": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "4294967313",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "4294967313",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "name": "above_uint32",
+      "passed": true
+    },
+    {
+      "actual": "9007199254740993",
+      "expected": "9007199254740993",
+      "facts": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "9007199254740993",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "9007199254740993",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "name": "above_double_exact_range",
+      "passed": true
+    },
+    {
+      "actual": "9223372036854775807",
+      "expected": "9223372036854775807",
+      "facts": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "9223372036854775807",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "9223372036854775807",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "name": "int64_max",
+      "passed": true
+    },
+    {
+      "actual": "18446744073709551615",
+      "expected": "18446744073709551615",
+      "facts": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "18446744073709551615",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "Q",
+        "parse": "exact_uint64",
+        "signed64": "-1",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "name": "uint64_max",
+      "passed": true
+    },
+    {
+      "actual": null,
+      "expected": null,
+      "facts": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "-1",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "rejected_non_unsigned_integer",
+        "signed64": "-1",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "name": "negative",
+      "passed": true
+    },
+    {
+      "actual": null,
+      "expected": null,
+      "facts": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "1.5",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": true,
+        "objCType": "d",
+        "parse": "rejected_non_unsigned_integer",
+        "signed64": "1",
+        "signed64Exact": false,
+        "storageType": 6
+      },
+      "name": "fraction",
+      "passed": true
+    },
+    {
+      "actual": null,
+      "expected": null,
+      "facts": {
+        "cfKind": "CFBoolean",
+        "foundationClass": "__NSCFBoolean",
+        "parse": "not_number"
+      },
+      "name": "boolean",
+      "passed": true
+    },
+    {
+      "actual": null,
+      "expected": null,
+      "facts": {
+        "cfKind": "CFString",
+        "foundationClass": "NSTaggedPointerString",
+        "parse": "not_number"
+      },
+      "name": "numeric_string",
+      "passed": true
+    },
+    {
+      "actual": null,
+      "expected": null,
+      "facts": {
+        "cfKind": "CFNull",
+        "foundationClass": "NSNull",
+        "parse": "not_number"
+      },
+      "name": "null",
+      "passed": true
+    },
+    {
+      "name": "null_vs_empty",
+      "passed": true
+    },
+    {
+      "name": "wrong_top_type",
+      "passed": true
+    },
+    {
+      "name": "bad_membership_element",
+      "passed": true
+    },
+    {
+      "errors": [
+        "scope_0:current:missing_id64"
+      ],
+      "name": "missing_id64",
+      "passed": true
+    },
+    {
+      "errors": [
+        "scope_0:current:invalid_id64",
+        "scope_0:space_0:invalid_id64"
+      ],
+      "name": "wrong_id64_types",
+      "passed": true
+    }
+  ],
+  "probe": "nearpane-p1-abi",
+  "repeated": {
+    "durationSeconds": 0.34491395950317383,
+    "invalidResults": 0,
+    "inventoryChanges": 0,
+    "managedCallsPerIteration": 2,
+    "measuredIterations": 1000,
+    "membershipCallsPerIteration": 4,
+    "memory": [
+      {
+        "iteration": 0,
+        "mallocBlocks": 3194,
+        "mallocBytes": 665680,
+        "residentBytes": 9469952,
+        "status": 0
+      },
+      {
+        "iteration": 100,
+        "mallocBlocks": 3836,
+        "mallocBytes": 699008,
+        "residentBytes": 9519104,
+        "status": 0
+      },
+      {
+        "iteration": 200,
+        "mallocBlocks": 4647,
+        "mallocBytes": 764896,
+        "residentBytes": 9584640,
+        "status": 0
+      },
+      {
+        "iteration": 300,
+        "mallocBlocks": 4648,
+        "mallocBytes": 765424,
+        "residentBytes": 9584640,
+        "status": 0
+      },
+      {
+        "iteration": 400,
+        "mallocBlocks": 5587,
+        "mallocBytes": 815008,
+        "residentBytes": 9633792,
+        "status": 0
+      },
+      {
+        "iteration": 500,
+        "mallocBlocks": 6356,
+        "mallocBytes": 848320,
+        "residentBytes": 9666560,
+        "status": 0
+      },
+      {
+        "iteration": 600,
+        "mallocBlocks": 6869,
+        "mallocBytes": 865216,
+        "residentBytes": 9699328,
+        "status": 0
+      },
+      {
+        "iteration": 700,
+        "mallocBlocks": 6870,
+        "mallocBytes": 865728,
+        "residentBytes": 9699328,
+        "status": 0
+      },
+      {
+        "iteration": 800,
+        "mallocBlocks": 7127,
+        "mallocBytes": 882624,
+        "residentBytes": 9715712,
+        "status": 0
+      },
+      {
+        "iteration": 900,
+        "mallocBlocks": 7128,
+        "mallocBytes": 883200,
+        "residentBytes": 9732096,
+        "status": 0
+      },
+      {
+        "iteration": 1000,
+        "mallocBlocks": 7333,
+        "mallocBytes": 900032,
+        "residentBytes": 9748480,
+        "status": 0
+      }
+    ],
+    "mismatchesAgainstInitial": 0,
+    "warmupIterations": 100
+  },
+  "safety": {
+    "capturedPixels": false,
+    "changedFocus": false,
+    "changedSettings": false,
+    "createdWindows": false,
+    "fixtureBackend": true,
+    "liveBackendCompiled": false,
+    "requestedPermissions": false,
+    "switchedSpaces": false,
+    "windowServerAccess": false
+  },
+  "schemaVersion": 2,
+  "selectedWindowsStillPresent": true,
+  "swiftOwnership": {
+    "allNonnullConsumedOnce": true,
+    "managedNonnull": 1101,
+    "membershipNonnull": 2284,
+    "takeRetainedValueCalls": 3385
+  },
+  "validationPassed": true,
+  "windows": [
+    {
+      "explicitSInt32": {
+        "byteSize": 4,
+        "cfKind": "CFNumber",
+        "decimal": "101",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "i",
+        "parse": "exact_uint64",
+        "signed64": "101",
+        "signed64Exact": true,
+        "storageType": 3
+      },
+      "initialMembership": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "label": "F1",
+      "onscreenAtSelection": false,
+      "originalNSNumber": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "101",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "101",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "windowID": "101"
+    },
+    {
+      "explicitSInt32": {
+        "byteSize": 4,
+        "cfKind": "CFNumber",
+        "decimal": "202",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "i",
+        "parse": "exact_uint64",
+        "signed64": "202",
+        "signed64Exact": true,
+        "storageType": 3
+      },
+      "initialMembership": {
+        "cfKind": "CFArray",
+        "count": 1,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 1
+      },
+      "label": "F2",
+      "onscreenAtSelection": false,
+      "originalNSNumber": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "202",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "202",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "windowID": "202"
+    },
+    {
+      "explicitSInt32": {
+        "byteSize": 4,
+        "cfKind": "CFNumber",
+        "decimal": "303",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "i",
+        "parse": "exact_uint64",
+        "signed64": "303",
+        "signed64Exact": true,
+        "storageType": 3
+      },
+      "initialMembership": {
+        "cfKind": "CFArray",
+        "count": 2,
+        "elements": [
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "4294967313",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "4294967313",
+            "signed64Exact": true,
+            "storageType": 4
+          },
+          {
+            "byteSize": 8,
+            "cfKind": "CFNumber",
+            "decimal": "9007199254740993",
+            "foundationClass": "__NSCFNumber",
+            "isFloat": false,
+            "objCType": "q",
+            "parse": "exact_uint64",
+            "signed64": "9007199254740993",
+            "signed64Exact": true,
+            "storageType": 4
+          }
+        ],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [
+          "4294967313",
+          "9007199254740993"
+        ],
+        "state": "values",
+        "uniqueCount": 2
+      },
+      "label": "F3",
+      "onscreenAtSelection": false,
+      "originalNSNumber": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "303",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "303",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "windowID": "303"
+    },
+    {
+      "explicitSInt32": {
+        "byteSize": 4,
+        "cfKind": "CFNumber",
+        "decimal": "404",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "i",
+        "parse": "exact_uint64",
+        "signed64": "404",
+        "signed64Exact": true,
+        "storageType": 3
+      },
+      "initialMembership": {
+        "cfKind": "CFArray",
+        "count": 0,
+        "elements": [],
+        "errors": [],
+        "foundationClass": "__NSCFArray",
+        "spaceIDs": [],
+        "state": "empty",
+        "uniqueCount": 0
+      },
+      "label": "F4",
+      "onscreenAtSelection": false,
+      "originalNSNumber": {
+        "byteSize": 8,
+        "cfKind": "CFNumber",
+        "decimal": "404",
+        "foundationClass": "__NSCFNumber",
+        "isFloat": false,
+        "objCType": "q",
+        "parse": "exact_uint64",
+        "signed64": "404",
+        "signed64Exact": true,
+        "storageType": 4
+      },
+      "windowID": "404"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "baselineReexecuted": false,
+  "inputs": [
+    {
+      "readFrom": "beb6471fe360004425760a024636e5a63dbe87d1:docs/reviews/P1-TECHNICAL-GATE-REVIEW.md",
+      "requestedPath": "docs/reviews/P1-TECHNICAL-GATE-REVIEW.md",
+      "sha256": "8e33e83a27a921af054b6eec33fe6511c5dba31a07a47b7bf820724dfd1cb0d5"
+    },
+    {
+      "readFrom": "beb6471fe360004425760a024636e5a63dbe87d1:engineering/P1-READONLY-BASELINE-20261109.md",
+      "requestedPath": "docs/engineering/P1-READONLY-BASELINE-20261109.md",
+      "sha256": "bda9a3114224472b932f69bb653d5d2f51a4d63795d3a1b63944227bf34074ac"
+    },
+    {
+      "readFrom": "beb6471fe360004425760a024636e5a63dbe87d1:architecture/MACOS-SPACES-FEASIBILITY.md",
+      "requestedPath": "docs/architecture/MACOS-SPACES-FEASIBILITY.md",
+      "sha256": "6ffed56c0953edd31fb84ed58f871da5ef55f973bbf11f12ea29b45086f1fbab"
+    },
+    {
+      "readFrom": "159dc5b6f1c4d5d511ddf4e4fcac35be2a535f0e:experiments/macos-spaces-readonly/README.md",
+      "requestedPath": "experiments/macos-spaces-readonly/README.md",
+      "sha256": "ccab52f570bb43ff0cf75da0e31d12a165d3ec3659f4f62365e027b283000389"
+    },
+    {
+      "readFrom": "159dc5b6f1c4d5d511ddf4e4fcac35be2a535f0e:experiments/macos-spaces-readonly/spaces-mapping-probe.swift",
+      "requestedPath": "experiments/macos-spaces-readonly/spaces-mapping-probe.swift",
+      "sha256": "8b2734f639325f2ad84125c45de020f9175896d352e2410571b5f3048fdabf2a"
+    },
+    {
+      "readFrom": "159dc5b6f1c4d5d511ddf4e4fcac35be2a535f0e:experiments/macos-spaces-readonly/evidence/p1-readonly-summary.json",
+      "requestedPath": "experiments/macos-spaces-readonly/evidence/p1-readonly-summary.json",
+      "sha256": "88dc5da0a414b9de7709550d1189a807a3920f1883cff8698730c61193a279a3"
+    }
+  ],
+  "note": "Base HEAD had moved two docs and removed the old experiment; read-only git show recovered its source/evidence."
+}

@@ -1,0 +1,313 @@
+{
+  "abi": {
+    "cIntBytes": 4,
+    "cfIndexBytes": 8,
+    "cgWindowIDBytes": 4,
+    "pointerBytes": 8,
+    "staticTypeAssertionsCompiled": true,
+    "swiftInt32Bytes": 4,
+    "swiftUInt32Bytes": 4,
+    "uint64Bytes": 8
+  },
+  "asan": {
+    "allocator": {
+      "allocations": 13581,
+      "balanced": true,
+      "deallocations": 13581,
+      "outstandingBlocks": 0,
+      "outstandingBytes": 0,
+      "reallocations": 0,
+      "scope": "only CF objects created with this fixture allocator; excludes Swift runtime and SkyLight"
+    },
+    "repeated": {
+      "durationSeconds": 0.20907700061798096,
+      "invalidResults": 0,
+      "inventoryChanges": 0,
+      "managedCallsPerIteration": 2,
+      "measuredIterations": 200,
+      "membershipCallsPerIteration": 4,
+      "memory": [
+        {
+          "iteration": 0,
+          "mallocBlocks": 126124,
+          "mallocBytes": 14130443,
+          "residentBytes": 53936128,
+          "status": 0
+        },
+        {
+          "iteration": 100,
+          "mallocBlocks": 248748,
+          "mallocBytes": 27768579,
+          "residentBytes": 77053952,
+          "status": 0
+        },
+        {
+          "iteration": 200,
+          "mallocBlocks": 371351,
+          "mallocBytes": 41405955,
+          "residentBytes": 100139008,
+          "status": 0
+        }
+      ],
+      "mismatchesAgainstInitial": 0,
+      "warmupIterations": 100
+    },
+    "validationPassed": true
+  },
+  "baseHEAD": "beb6471fe360004425760a024636e5a63dbe87d1",
+  "branch": "spike/p1-abi-20261109",
+  "cOwnership": {
+    "balanced": true,
+    "inputCreates": 1153,
+    "inputReleases": 1153,
+    "mainCalls": 1110,
+    "managedCalls": 1102,
+    "managedNonnull": 1102,
+    "membershipCalls": 2294,
+    "membershipNonnull": 2288,
+    "numberCreates": 1186,
+    "numberReleases": 1186,
+    "outputReleases": 3390,
+    "rejectedInputs": 9
+  },
+  "environment": {
+    "architecture": "arm64",
+    "osVersion": "Version 27.0 (Build 26A428)",
+    "thread": "main_only"
+  },
+  "finalOfflineRun": "20261108T171713.345866Z",
+  "fixtureAllocatorAfterShutdown": {
+    "allocations": 50391,
+    "balanced": true,
+    "deallocations": 50391,
+    "outstandingBlocks": 0,
+    "outstandingBytes": 0,
+    "reallocations": 0,
+    "scope": "only CF objects created with this fixture allocator; excludes Swift runtime and SkyLight"
+  },
+  "fixtureMatrix": {
+    "inputCases": 15,
+    "mismatchCount": 0,
+    "pathsPerRow": 4,
+    "rounds": 3,
+    "rows": 45,
+    "selectors": [
+      7
+    ]
+  },
+  "limitations": [
+    "Current execution performed zero live SkyLight calls after the safety correction.",
+    "Historical privileged executions swept selectors 0..7 before the correction; they are disclosed and excluded, not relabeled as unexecuted.",
+    "The first historical privileged run had an input-guard failure: NSNumber(UInt64.max) converted to signed -1; later source fixes are verified with offline fixtures.",
+    "Core Foundation may canonicalize numeric storage; construction type and CFNumberGetType need not match.",
+    "The allocation observer counts only objects using the custom fixture allocator; runtime caches and system framework internals are outside that measurement.",
+    "Live results, process/thread connection semantics, sleep/wake, and private Copy ownership remain unverified within the corrected boundary."
+  ],
+  "repeated": {
+    "durationSeconds": 0.34491395950317383,
+    "invalidResults": 0,
+    "inventoryChanges": 0,
+    "managedCallsPerIteration": 2,
+    "measuredIterations": 1000,
+    "membershipCallsPerIteration": 4,
+    "memory": [
+      {
+        "iteration": 0,
+        "mallocBlocks": 3194,
+        "mallocBytes": 665680,
+        "residentBytes": 9469952,
+        "status": 0
+      },
+      {
+        "iteration": 100,
+        "mallocBlocks": 3836,
+        "mallocBytes": 699008,
+        "residentBytes": 9519104,
+        "status": 0
+      },
+      {
+        "iteration": 200,
+        "mallocBlocks": 4647,
+        "mallocBytes": 764896,
+        "residentBytes": 9584640,
+        "status": 0
+      },
+      {
+        "iteration": 300,
+        "mallocBlocks": 4648,
+        "mallocBytes": 765424,
+        "residentBytes": 9584640,
+        "status": 0
+      },
+      {
+        "iteration": 400,
+        "mallocBlocks": 5587,
+        "mallocBytes": 815008,
+        "residentBytes": 9633792,
+        "status": 0
+      },
+      {
+        "iteration": 500,
+        "mallocBlocks": 6356,
+        "mallocBytes": 848320,
+        "residentBytes": 9666560,
+        "status": 0
+      },
+      {
+        "iteration": 600,
+        "mallocBlocks": 6869,
+        "mallocBytes": 865216,
+        "residentBytes": 9699328,
+        "status": 0
+      },
+      {
+        "iteration": 700,
+        "mallocBlocks": 6870,
+        "mallocBytes": 865728,
+        "residentBytes": 9699328,
+        "status": 0
+      },
+      {
+        "iteration": 800,
+        "mallocBlocks": 7127,
+        "mallocBytes": 882624,
+        "residentBytes": 9715712,
+        "status": 0
+      },
+      {
+        "iteration": 900,
+        "mallocBlocks": 7128,
+        "mallocBytes": 883200,
+        "residentBytes": 9732096,
+        "status": 0
+      },
+      {
+        "iteration": 1000,
+        "mallocBlocks": 7333,
+        "mallocBytes": 900032,
+        "residentBytes": 9748480,
+        "status": 0
+      }
+    ],
+    "mismatchesAgainstInitial": 0,
+    "warmupIterations": 100
+  },
+  "safety": {
+    "capturedPixels": false,
+    "changedFocus": false,
+    "changedSettings": false,
+    "createdWindows": false,
+    "fixtureBackend": true,
+    "liveBackendCompiled": false,
+    "requestedPermissions": false,
+    "switchedSpaces": false,
+    "windowServerAccess": false
+  },
+  "scope": "P1-A static/offline completion under corrected sandbox and selector boundary; live gate remains open",
+  "staticSafety": {
+    "cCallFixedAt7": true,
+    "liveBackendDisabledByDefault": true,
+    "noPublicWindowMetadataCalls": true,
+    "noSelectorSweepOrNegativeCall": true,
+    "onlyFixtureInitializerInCLI": true,
+    "swiftCallFixedAt7": true
+  },
+  "swiftOwnership": {
+    "allNonnullConsumedOnce": true,
+    "managedNonnull": 1101,
+    "membershipNonnull": 2284,
+    "takeRetainedValueCalls": 3385
+  },
+  "tests": [
+    {
+      "evidence": "Default executable imports no dlopen/dlsym/dlclose, SLS symbols, or window-list metadata function; no Host changes.",
+      "item": "helper_isolation",
+      "status": "PASS"
+    },
+    {
+      "evidence": "Three declarations match pinned yabai; Clang static width/type assertions and dormant-path syntax check passed.",
+      "item": "pinned_declarations_and_static_abi",
+      "status": "PASS"
+    },
+    {
+      "evidence": "45 fixture rows x four call/encoding paths; zero mismatches. Not real windows.",
+      "item": "c_swift_ffi_and_sint32_bridge_fixtures",
+      "status": "PASS"
+    },
+    {
+      "evidence": "15 input cases, three rounds; both SInt32 and NSNumber encodings.",
+      "item": "empty_single_multiple_duplicate_invalid_fixture_inputs",
+      "status": "PASS"
+    },
+    {
+      "evidence": "Both call sites hard-code 0x7; no selector parameter, sweep, alternate-selector test, or CLI live mode.",
+      "item": "selector_source_restriction",
+      "status": "PASS"
+    },
+    {
+      "evidence": "15 parser fixtures, including wrong types, missing fields, 2^32+17, 2^53+1, Int64.max and UInt64.max.",
+      "item": "cf_types_null_empty_and_uint64_fixtures",
+      "status": "PASS"
+    },
+    {
+      "evidence": "Nine malformed/out-of-range inputs rejected before the fixture backend; includes the UInt64.max signed-wrap regression.",
+      "item": "input_guards",
+      "status": "PASS"
+    },
+    {
+      "evidence": "Six injected loader/symbol/managed/membership errors; managed failures stop before membership; all acquired C objects released.",
+      "item": "fault_injection",
+      "status": "PASS"
+    },
+    {
+      "evidence": "Manual releases balance; retained Swift returns consumed once; custom CF allocator reports zero outstanding allocations after shutdown.",
+      "item": "copy_consumption_and_fixture_cf_deallocation",
+      "status": "PASS"
+    },
+    {
+      "evidence": "100 warmup + 1000 measured iterations; four membership and two managed fixture calls each; no result drift.",
+      "item": "repeated_fixture_calls",
+      "status": "PASS"
+    },
+    {
+      "evidence": "200 measured iterations; exit 0 and empty stderr. ASan leak detection disabled; not a whole-process leak scan.",
+      "item": "address_sanitizer_fixtures",
+      "status": "PASS"
+    },
+    {
+      "evidence": "leaks exited 255: task port denied by current sandbox. Preserved and not retried; allocation observer covers only controlled CF objects.",
+      "item": "whole_process_leak_scan",
+      "status": "NOT TESTED"
+    },
+    {
+      "evidence": "Initial sandbox managed query returned NULL and no usable window sample; membership calls 0. No privileged retry allowed under corrected scope.",
+      "item": "live_selector7_bridge_and_input_differentials",
+      "status": "NOT TESTED"
+    },
+    {
+      "evidence": "Fixtures and static signatures cannot prove the private implementation contract. Prior privileged evidence excluded from corrected gate.",
+      "item": "live_return_schema_uint64_and_copy_contract",
+      "status": "NOT TESTED"
+    },
+    {
+      "evidence": "No permitted live comparison. Synthetic multi-ID rules are test fixtures and imply no undocumented selector semantics.",
+      "item": "live_selector_semantics_dedup_and_ordering",
+      "status": "NOT TESTED"
+    },
+    {
+      "evidence": "No session disturbance, forced invalidation, thread sweep, sleep/wake or WindowServer restart.",
+      "item": "live_connection_thread_session_sleep_wake",
+      "status": "NOT TESTED"
+    },
+    {
+      "evidence": "Only macOS 27.0 / 26A428 / arm64 environment recorded; no private ABI stability claim.",
+      "item": "cross_build_private_api_stability",
+      "status": "NOT TESTED"
+    },
+    {
+      "evidence": "All private run manifests verified, including initial failure and both pre-correction privileged runs; only fixture data exported.",
+      "item": "evidence_preservation",
+      "status": "PASS"
+    }
+  ]
+}

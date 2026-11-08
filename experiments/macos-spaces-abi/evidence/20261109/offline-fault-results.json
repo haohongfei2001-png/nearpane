@@ -1,0 +1,162 @@
+{
+  "managed-malformed": {
+    "cOwnership": {
+      "balanced": true,
+      "inputCreates": 0,
+      "inputReleases": 0,
+      "mainCalls": 10,
+      "managedCalls": 1,
+      "managedNonnull": 1,
+      "membershipCalls": 0,
+      "membershipNonnull": 0,
+      "numberCreates": 0,
+      "numberReleases": 0,
+      "outputReleases": 1,
+      "rejectedInputs": 0
+    },
+    "error": "invalid(\"managed_prerequisite_failed_before_membership:invalid_fields\")",
+    "fixtureAllocatorAfterShutdown": {
+      "allocations": 4,
+      "balanced": true,
+      "deallocations": 4,
+      "outstandingBlocks": 0,
+      "outstandingBytes": 0,
+      "reallocations": 0,
+      "scope": "only CF objects created with this fixture allocator; excludes Swift runtime and SkyLight"
+    },
+    "mode": "offline_synthetic_CF_fixtures",
+    "shutdown": 0,
+    "state": "helper_error"
+  },
+  "managed-null": {
+    "cOwnership": {
+      "balanced": true,
+      "inputCreates": 0,
+      "inputReleases": 0,
+      "mainCalls": 10,
+      "managedCalls": 1,
+      "managedNonnull": 0,
+      "membershipCalls": 0,
+      "membershipNonnull": 0,
+      "numberCreates": 0,
+      "numberReleases": 0,
+      "outputReleases": 0,
+      "rejectedInputs": 0
+    },
+    "error": "invalid(\"managed_prerequisite_failed_before_membership:null\")",
+    "fixtureAllocatorAfterShutdown": {
+      "allocations": 0,
+      "balanced": true,
+      "deallocations": 0,
+      "outstandingBlocks": 0,
+      "outstandingBytes": 0,
+      "reallocations": 0,
+      "scope": "only CF objects created with this fixture allocator; excludes Swift runtime and SkyLight"
+    },
+    "mode": "offline_synthetic_CF_fixtures",
+    "shutdown": 0,
+    "state": "helper_error"
+  },
+  "membership-null": {
+    "cOwnership": {
+      "balanced": true,
+      "inputCreates": 4,
+      "inputReleases": 4,
+      "mainCalls": 10,
+      "managedCalls": 1,
+      "managedNonnull": 1,
+      "membershipCalls": 4,
+      "membershipNonnull": 0,
+      "numberCreates": 4,
+      "numberReleases": 4,
+      "outputReleases": 1,
+      "rejectedInputs": 0
+    },
+    "error": "invalid(\"fixture_membership_prerequisite_failed:null\")",
+    "fixtureAllocatorAfterShutdown": {
+      "allocations": 42,
+      "balanced": true,
+      "deallocations": 42,
+      "outstandingBlocks": 0,
+      "outstandingBytes": 0,
+      "reallocations": 0,
+      "scope": "only CF objects created with this fixture allocator; excludes Swift runtime and SkyLight"
+    },
+    "mode": "offline_synthetic_CF_fixtures",
+    "shutdown": 0,
+    "state": "helper_error"
+  },
+  "membership-wrong-type": {
+    "cOwnership": {
+      "balanced": true,
+      "inputCreates": 4,
+      "inputReleases": 4,
+      "mainCalls": 10,
+      "managedCalls": 1,
+      "managedNonnull": 1,
+      "membershipCalls": 4,
+      "membershipNonnull": 4,
+      "numberCreates": 4,
+      "numberReleases": 4,
+      "outputReleases": 5,
+      "rejectedInputs": 0
+    },
+    "error": "invalid(\"fixture_membership_prerequisite_failed:invalid_top_type\")",
+    "fixtureAllocatorAfterShutdown": {
+      "allocations": 46,
+      "balanced": true,
+      "deallocations": 46,
+      "outstandingBlocks": 0,
+      "outstandingBytes": 0,
+      "reallocations": 0,
+      "scope": "only CF objects created with this fixture allocator; excludes Swift runtime and SkyLight"
+    },
+    "mode": "offline_synthetic_CF_fixtures",
+    "shutdown": 0,
+    "state": "helper_error"
+  },
+  "missing-library": {
+    "cOwnership": {
+      "balanced": true,
+      "inputCreates": 0,
+      "inputReleases": 0,
+      "mainCalls": 0,
+      "managedCalls": 0,
+      "managedNonnull": 0,
+      "membershipCalls": 0,
+      "membershipNonnull": 0,
+      "numberCreates": 0,
+      "numberReleases": 0,
+      "outputReleases": 0,
+      "rejectedInputs": 0
+    },
+    "code": 2,
+    "expectedFault": true,
+    "message": "injected library failure; no dlopen",
+    "mode": "offline_synthetic_CF_fixtures",
+    "shutdown": 0,
+    "state": "initialization_error"
+  },
+  "missing-symbol": {
+    "cOwnership": {
+      "balanced": true,
+      "inputCreates": 0,
+      "inputReleases": 0,
+      "mainCalls": 0,
+      "managedCalls": 0,
+      "managedNonnull": 0,
+      "membershipCalls": 0,
+      "membershipNonnull": 0,
+      "numberCreates": 0,
+      "numberReleases": 0,
+      "outputReleases": 0,
+      "rejectedInputs": 0
+    },
+    "code": 3,
+    "expectedFault": true,
+    "message": "injected symbol failure; no dlopen",
+    "mode": "offline_synthetic_CF_fixtures",
+    "shutdown": 0,
+    "state": "initialization_error"
+  }
+}
