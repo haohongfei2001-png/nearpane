@@ -20,6 +20,12 @@ Nearpane observes and enhances the native macOS desktop. It does not replace Spa
 - [Product Definition](docs/PRODUCT_DEFINITION.md) — product positioning, three-layer architecture, core capabilities, configurable modules, principles, and boundaries.
 - [Visual Authority](docs/design/NEARPANE-VISUAL-AUTHORITY.md) — the approved side-panel visual direction, default proportions, Space mapping, and real-window geometry rules.
 
+## Approved visual reference
+
+![Nearpane visual authority](docs/design/assets/nearpane-visual-authority.webp)
+
+This is the approved overall visual-direction reference. The exact side-rail proportions, module boundaries, Space mapping, window-frame scaling, and interaction/acceptance rules are specified in the [Visual Authority document](docs/design/NEARPANE-VISUAL-AUTHORITY.md). If incidental geometry in the illustrative image differs from the written rules, the written geometry specification takes precedence.
+
 The default visual baseline remains a narrow edge surface (approximately one-eighth of the screen width), without a title, logo, or product-name header. Saytile and Riftlet occupy the upper tool area; the lower area presents real macOS Spaces. User-configurable modules are part of the product architecture, while their detailed placement and overflow behavior require a separate design decision and must not silently compromise the approved baseline.
 
 ## Project status
