@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# No app launch and no visible window. SwiftPM caches stay in this worktree.
+# CLT 6.4 ships Testing as a framework. Its native SwiftPM engine needs the explicit
+# framework/plugin paths; it builds a CLI test runner instead of signing XCTest bundles.
+developer_dir="$(xcode-select -p)"
+toolchain_bin="$(dirname "$(xcrun --find swiftc)")"
+testing_frameworks="$developer_dir/Library/Developer/Frameworks"
+testing_flags=()
+if [ -d "$testing_frameworks/Testing.framework" ]; then
+  testing_flags=(-Xswiftc -F -Xswiftc "$testing_frameworks"
+    -Xlinker -F -Xlinker "$testing_frameworks"
+    -Xlinker -rpath -Xlinker "$testing_frameworks"
+    -Xswiftc -external-plugin-path
+    -Xswiftc "$toolchain_bin/../lib/swift/host/plugins/testing#$toolchain_bin/swift-plugin-server")
+fi
+swift test --build-system native --disable-xctest --enable-swift-testing --disable-sandbox \
+  --scratch-path .build/native --cache-path .build/cache --config-path .build/config \
+  --security-path .build/security "${testing_flags[@]}" "$@"

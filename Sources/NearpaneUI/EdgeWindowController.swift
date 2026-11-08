@@ -1,0 +1,86 @@
+import AppKit
+import SwiftUI
+import NearpaneCore
+
+public final class EdgePanel: NSPanel {
+    public override var canBecomeKey: Bool { true }
+    public override var canBecomeMain: Bool { false }
+}
+
+private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
+    // P2 contains buttons and read-only samples, no editor that needs keyboard focus.
+    override var needsPanelToBecomeKey: Bool { false }
+}
+
+@MainActor
+public final class EdgeWindowController: NSWindowController {
+    private let host: HostSession
+    public init(host: HostSession) {
+        self.host = host
+        let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
+                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        panel.title = ""
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.level = .floating
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.isReleasedWhenClosed = false
+        panel.isMovable = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        let material = NSVisualEffectView()
+        material.material = .sidebar
+        material.blendingMode = .behindWindow
+        material.state = .active
+        let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host))
+        content.translatesAutoresizingMaskIntoConstraints = false
+        material.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: material.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: material.trailingAnchor),
+            content.topAnchor.constraint(equalTo: material.topAnchor),
+            content.bottomAnchor.constraint(equalTo: material.bottomAnchor)
+        ])
+        panel.contentView = material
+        super.init(window: panel)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+
+    public func place(screens: [ScreenGeometry]) {
+        guard let rect = SurfacePlacement.resolve(screens: screens, preferredID: host.configuration.preferredDisplayID,
+                                                  edge: host.configuration.edge) else {
+            window?.orderOut(nil)
+            return
+        }
+        window?.setFrame(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height), display: false)
+    }
+
+    /// Never called by build scripts or tests. User launch is the only automatic presentation path.
+    public func present() { window?.orderFront(nil) }
+    public func hide() { window?.orderOut(nil) }
+}
+
+@MainActor
+public enum SystemScreens {
+    public static func geometry() -> [ScreenGeometry] {
+        // NSScreen.screens[0] is the menu-bar display, independent of the user's current key window.
+        NSScreen.screens.map { screen in
+            let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+            let id: String
+            if let number, let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() {
+                id = CFUUIDCreateString(nil, uuid) as String
+            } else { id = "unidentified-display" }
+            return ScreenGeometry(id: id, frame: rect(screen.frame), visibleFrame: rect(screen.visibleFrame))
+        }
+    }
+
+    private static func rect(_ rect: NSRect) -> SurfaceRect {
+        SurfaceRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height)
+    }
+}
