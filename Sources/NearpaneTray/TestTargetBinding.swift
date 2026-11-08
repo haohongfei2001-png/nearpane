@@ -1,5 +1,4 @@
 import AppKit
-import CryptoKit
 import RiftletCore
 import RiftletAdapters
 
@@ -46,6 +45,18 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
     }
 }
 
+struct TestInputClaim: Codable {
+    let session, nonce: String
+    let invocationID: UUID
+    let claimedAt: Double
+    let identity: ObservationIdentity
+    func permitsObservation(_ observed: ObservationIdentity?, binding: TestTargetBinding) -> Bool {
+        session == binding.session && nonce == binding.nonce && observed == identity
+            && binding.accepts(identity.target) && identity.assetID.uuidString.lowercased() == binding.assetID
+            && identity.assetSHA256 == binding.sha256 && identity.attempt == 1
+    }
+}
+
 /// Ordinary product clicks use ChromeAppleEventsExecutor directly. This wrapper is installed only for a marked fixture.
 @MainActor final class BoundTestExecutor: WebClickTargetPinning {
     let directory: URL
@@ -65,10 +76,11 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
         bound = value
         return value
     }
+    var hasClaim: Bool { FileManager.default.fileExists(atPath: directory.appendingPathComponent("input-claim.json").path) }
     func checkAsset(_ image: ImportedAsset) throws {
         let b = try binding()
         guard image.id.uuidString.lowercased() == b.assetID, image.sha256 == b.sha256,
-              !FileManager.default.fileExists(atPath: directory.appendingPathComponent("input-claim.json").path) else {
+              !hasClaim else {
             throw WebAdapterError.invalidRequest
         }
     }
@@ -85,7 +97,16 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
     }
     func execute(_ command: WebBridgeCommand, program: WebPageProgram) async throws -> Data {
         let b = try binding()
-        guard let target = command.target, target == pinned, b.accepts(target) else { throw WebAdapterError.invalidTarget }
+        guard let target = command.target, b.accepts(target) else { throw WebAdapterError.invalidTarget }
+        if command.action == .observe, hasClaim {
+            let file = directory.appendingPathComponent("input-claim.json")
+            guard file.resolvingSymlinksInPath().path == file.path,
+                  try JSONDecoder().decode(TestInputClaim.self, from: Data(contentsOf: file)).permitsObservation(command.identity, binding: b)
+            else { throw WebAdapterError.invalidTarget }
+        } else {
+            guard target == pinned else { throw WebAdapterError.invalidTarget }
+            if hasClaim && [.begin,.chunk,.commit].contains(command.action) { throw WebAdapterError.invalidRequest }
+        }
         if let id = command.identity {
             guard id.target == target, id.assetID.uuidString.lowercased() == b.assetID, id.assetSHA256 == b.sha256, id.attempt == 1
             else { throw WebAdapterError.invalidRequest }
@@ -94,8 +115,8 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
         if command.action == .commit {
             guard let id = command.identity, let invocation = command.invocationID else { throw WebAdapterError.invalidRequest }
             // Persist once, before submission, even if Chrome's reply is lost. No second commit on reconnect.
-            struct Claim: Encodable { let session, nonce: String; let invocationID: UUID; let claimedAt: Double; let identity: ObservationIdentity }
-            let evidence = Claim(session: b.session, nonce: b.nonce, invocationID: invocation, claimedAt: Date().timeIntervalSince1970, identity: id)
+            let evidence = TestInputClaim(session: b.session, nonce: b.nonce, invocationID: invocation,
+                                          claimedAt: Date().timeIntervalSince1970, identity: id)
             try JSONEncoder().encode(evidence).write(to: directory.appendingPathComponent("input-claim.json"), options: .withoutOverwriting)
         }
         return try await base.execute(command, program: guarded)

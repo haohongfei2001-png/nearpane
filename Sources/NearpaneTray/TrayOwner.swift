@@ -16,6 +16,7 @@ final class TrayOwner {
     let defaultMode: ScreenshotMode
     let root: URL
     let importer: PrivateAssetImporter
+    var mayObserveTestClaim: () -> Bool = { false }
     var checkAsset: (ImportedAsset) throws -> Void = { _ in }
     let pinTarget: () throws -> Task<TargetLease, Error>
     let checkPermission: (Bool, String?) async -> Bool
@@ -59,6 +60,7 @@ final class TrayOwner {
                          permission: { ask, session in await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
                          notify: notify, report: report)
         if let bound {
+            owner.mayObserveTestClaim = { bound.hasClaim }
             owner.checkAsset = { try bound.checkAsset($0) }
             owner.hasCapturePermission = { CGPreflightScreenCaptureAccess() }
         }

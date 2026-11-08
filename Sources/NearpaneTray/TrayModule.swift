@@ -171,6 +171,7 @@ public final class TrayModule: HostModule {
         let allowed = await owner.checkPermission(true, nil)
         guard self.owner === owner else { return }
         mayAttach = allowed
+        if allowed && owner.mayObserveTestClaim() { scheduleObservation(owner) }
         issue = allowed ? nil : "尚未获得当前浏览器的草稿附加权限。"
     }
     public func surfaceHidden(_ value: Bool) {
