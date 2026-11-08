@@ -16,7 +16,7 @@ public final class EmbeddedModules {
     public init(support: URL, testSession: URL? = nil) {
         #if canImport(NearpaneVoice)
         tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession)
-        voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true))
+        voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true), requireExistingPermissions: testSession != nil)
         #endif
     }
 

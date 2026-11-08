@@ -24,7 +24,7 @@ def digest(path):
 def verify(app, lock, sandbox):
     contents = app / "Contents"
     plist = plistlib.loads((contents/"Info.plist").read_bytes())
-    if plist["LSMinimumSystemVersion"] != "26.0" or plist["NearpaneNativeAcceptanceSchema"] != 1:
+    if plist["LSMinimumSystemVersion"] != "26.0" or plist["NearpaneNativeAcceptanceSchema"] != 2:
         raise ValueError("Unexpected full package metadata")
     binary = contents / "MacOS" / plist["CFBundleExecutable"]
     load = subprocess.check_output(["/usr/bin/otool","-l",str(binary)],text=True)

@@ -32,8 +32,10 @@ protocol VoiceInput: AnyObject {
 private final class DomainInput: VoiceInput {
     let audio: AudioController
     var observation: AnyCancellable?
-    init(store: SaytileStore, changed: @escaping (CaptureState, Float, String?) -> Void) {
+    private let requireExistingPermissions: Bool
+    init(store: SaytileStore, requireExistingPermissions: Bool, changed: @escaping (CaptureState, Float, String?) -> Void) {
         // Never load the standalone app's defaults, credentials, direct input target or cloud consents.
+        self.requireExistingPermissions = requireExistingPermissions
         audio = AudioController(store: store, recognitionConfiguration: RecognitionConfiguration())
         observation = Publishers.CombineLatest3(audio.$state, audio.$level, audio.$issue).sink {
             changed($0, $1, $2)
@@ -44,7 +46,7 @@ private final class DomainInput: VoiceInput {
         let availability = await AppleSpeechService.availability()
         guard availability.installed else { throw AudioFailure.message(availability.message) }
         try Task.checkCancellation()
-        await audio.start()
+        await audio.start(requestPermission: !requireExistingPermissions)
     }
     func pause() async { await audio.pause() }
     func retry(_ id: UUID) async { await audio.retry(recordingID: id) }
@@ -79,7 +81,7 @@ public final class VoiceModule: HostModule {
     private(set) var issue: String?
     public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
 
-    public convenience init(directory: URL) {
+    public convenience init(directory: URL, requireExistingPermissions: Bool = false) {
         self.init(openStore: {
             let parent = directory.deletingLastPathComponent()
             if (try? parent.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
@@ -87,7 +89,7 @@ public final class VoiceModule: HostModule {
             }
             return try SaytileStore(directory: directory)
         },
-                  makeInput: { DomainInput(store: $0, changed: $1) })
+                  makeInput: { DomainInput(store: $0, requireExistingPermissions: requireExistingPermissions, changed: $1) })
     }
     init(openStore: @escaping () throws -> SaytileStore, makeInput: @escaping MakeInput) {
         self.openStore = openStore; self.makeInput = makeInput
@@ -259,6 +261,7 @@ public final class VoiceModule: HostModule {
     // Preserve typing in Saytile's own edit-draft table, in UI order. Never publish it as recognized text.
     func stageDraft(_ id: UUID, text: String) {
         guard active, let store else { return }
+        acceptanceEvent?("userEdit")
         let previous = draftWrite, epoch = generation
         draftWrite = Task { [weak self] in
             await previous?.value

@@ -163,6 +163,78 @@ class NativeAcceptanceTests(unittest.TestCase):
                 finally:
                     f.db.close()
 
+    def test_focus_scenarios_require_their_own_action_and_bounds(self):
+        se = native.se
+        def stream(kind,second,**state):
+            return dict(event(second,pid=11,foreground=22,editorFocused=False,**state),kind=kind)
+        def assess(scene,rows):
+            points = [dict(run="run",time=e["time"],state=e["state"]) for e in (rows[0],rows[-1])]
+            return se.focus_verdict(scene,points,rows,10)
+        idle = [stream("sample",t) for t in (0,5,10)]
+        self.assertEqual(assess("idle",idle),"PASS")
+        self.assertNotEqual(assess("button",idle),"PASS")
+        button = [idle[0],stream("trayButton",5),idle[-1]]
+        self.assertEqual(assess("button",button),"PASS")
+        button[1]["state"]["foreground"] = 33
+        self.assertEqual(assess("button",button),"FAIL")
+        edit = [idle[0],stream("editorClick",1),stream("userEdit",2,key=True),idle[-1]]
+        edit[2]["state"]["editorFocused"] = True
+        self.assertEqual(assess("edit",edit),"PASS")
+        self.assertEqual(assess("edit",[idle[0],edit[2],idle[-1]]),"FAIL")
+        hidden = stream("sample",5,visible=False)
+        self.assertEqual(assess("hide",[idle[0],hidden]),"PASS")
+        self.assertEqual(assess("restore",[hidden,idle[-1]]),"PASS")
+        self.assertNotEqual(assess("hide",idle),"PASS")
+        self.assertNotEqual(se.focus_verdict("idle",[],idle,10),"PASS")
+
+    def test_real_waitpid_and_durable_restart_evidence_without_launching_an_app(self):
+        import sys
+        se = native.se
+        with tempfile.TemporaryDirectory(dir=native.ROOT/"build") as tmp:
+            p = Path(tmp)
+            queue = p/"support/Riftlet/queue.sqlite"
+            queue.parent.mkdir(parents=True)
+            with sqlite3.connect(queue) as db:
+                db.executescript("create table assets(id,image_json,status,visibility,visibility_revision,sort_at,sequence);"
+                                 "create table operations(id,asset_id,attempt,target_key,phase,receipt_json,sequence);"
+                                 "create table upload_starts(operation_id,receipt_json); create table checkpoints(key,value);")
+            voice = p/"support/Nearpane/Voice/Saytile.sqlite"
+            voice.parent.mkdir(parents=True)
+            (p/"summary.key").write_bytes(bytes(range(32)))
+            with sqlite3.connect(voice) as db:
+                db.executescript("create table recordings(id,created_at,recognition_state,is_recording,active_attempt,preferred_revision,deleted);"
+                                 "create table revisions(id,recording_id,origin,attempt,created_at,text); create table editing_drafts(recording_id,text);"
+                                 "insert into editing_drafts values('old','synthetic private text');")
+            # A real, harmless child exits. Its own tiny fixture stream stands in for AppKit.
+            child = r"""import os,json,time,pathlib
+p=pathlib.Path('.'); run='events-'+os.environ['NEARPANE_ACCEPTANCE_RUN']
+state=dict(pid=os.getpid(),voice='paused',trayConnected=False,mayAttach=False,collecting=False,micAuthorization=3,speechAuthorization=3)
+with (p/(run+'.jsonl')).open('w') as f:
+ for kind in ['opened','drained']:
+  f.write(json.dumps(dict(kind=kind,time=time.time(),state=state))+'\n'); f.flush(); time.sleep(.22)
+"""
+            for _ in range(2):
+                se.supervise(p,[sys.executable,"-c",child],p)
+            streams={x.stem:se.events(x) for x in p.glob("events-*.jsonl")}
+            old,new = sorted((json.loads(x.read_text()) for x in p.glob("startup-*.json")),key=lambda r:r["started"])
+            self.assertNotEqual(se.restart_verdict(p,streams),"PASS")
+            checkpoint = dict(session=p.name,run=old["run"],time=old["openedAt"],state=streams[old["run"]][0]["state"],durable=old["startup"])
+            file=p/("before-exit-"+old["run"]+".json")
+            se.put(file,checkpoint)
+            self.assertEqual(se.restart_verdict(p,streams),"PASS")
+            for field in ("voiceSHA256","assetOrder","unresolved","attempts","starts","inputClaim"):
+                altered=copy.deepcopy(checkpoint)
+                altered["durable"][field]="changed"
+                file.write_text(json.dumps(altered))
+                self.assertNotEqual(se.restart_verdict(p,streams),"PASS",field)
+            file.write_text(json.dumps(checkpoint))
+            streams[new["run"]][0]["state"]["mayAttach"]=True
+            self.assertNotEqual(se.restart_verdict(p,streams),"PASS")
+            streams[new["run"]][0]["state"]["mayAttach"]=False
+            (p/(old["run"].replace("events-","process-")+".json")).unlink()
+            self.assertNotEqual(se.restart_verdict(p,streams),"PASS")
+            self.assertNotIn("synthetic private text",json.dumps(se.durable(p)))
+
 
 if __name__ == "__main__":
     (native.ROOT/"build").mkdir(exist_ok=True)

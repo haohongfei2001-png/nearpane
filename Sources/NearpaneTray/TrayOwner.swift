@@ -23,6 +23,7 @@ final class TrayOwner {
     let magnetEnabled: Bool
     var arrived: ((TrayArrival) -> Void)?
     var exposureChanged: (Bool) -> Void = { _ in }
+    private var hasCapturePermission: () -> Bool = { true }
     private let makeSystemCapture: @MainActor () -> any SystemCaptureProcess
     private var systemCapture: SystemCaptureJob?
     private(set) var cancelled = false
@@ -57,7 +58,10 @@ final class TrayOwner {
                          ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: { try adapter.targetForClick() },
                          permission: { ask, session in await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
                          notify: notify, report: report)
-        if let bound { owner.checkAsset = { try bound.checkAsset($0) } }
+        if let bound {
+            owner.checkAsset = { try bound.checkAsset($0) }
+            owner.hasCapturePermission = { CGPreflightScreenCaptureAccess() }
+        }
         // An explicit connection owns the original lock: finish already-journaled local imports
         // before projecting the queue. Never reinterpret an interrupted external transfer as a new click.
         let recovered = try await owner.importer.recover()
@@ -131,6 +135,7 @@ final class TrayOwner {
 
     func capture(_ action: TrayCapture) {
         guard !cancelled, captureEntry, systemCapture == nil else { return }
+        guard hasCapturePermission() else { report("本次验收需要已授权的屏幕捕获权限。"); return }
         let output = root.appendingPathComponent("captures", isDirectory: true)
         if action == .system {
             guard captureController?.isActive != true else { return }

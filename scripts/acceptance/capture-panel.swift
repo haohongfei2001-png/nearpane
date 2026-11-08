@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
               let running = NSRunningApplication(processIdentifier: pid),
               running.bundleIdentifier == "com.holdsnow.nearpane.host",
               running.executableURL?.resolvingSymlinksInPath().path == args[2] else { throw CocoaError(.fileReadNoPermission) }
+        guard CGPreflightScreenCaptureAccess() else { throw CocoaError(.fileReadNoPermission) }
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
         guard let window = content.windows.first(where: { $0.windowID == number && $0.owningApplication?.processID == pid }),
               !running.isTerminated else { throw CocoaError(.fileNoSuchFile) }

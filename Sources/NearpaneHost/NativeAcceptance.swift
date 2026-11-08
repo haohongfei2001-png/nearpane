@@ -1,5 +1,7 @@
 #if canImport(RiftletCore) && canImport(SaytileKit)
 import AppKit
+import AVFoundation
+import Speech
 import CryptoKit
 import NearpaneCore
 import NearpaneUI
@@ -31,7 +33,7 @@ struct NativeAcceptanceSession {
         directory = parent.appendingPathComponent(id)
         let markerURL = directory.appendingPathComponent("session.json")
         let bytes = try Data(contentsOf: executable, options: .mappedIfSafe)
-        let marker = Marker(version: 1, session: uuid, executableSHA256: SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined())
+        let marker = Marker(version: 2, session: uuid, executableSHA256: SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined())
         if prepare {
             try fm.createDirectory(at: parent, withIntermediateDirectories: true)
             guard parent.resolvingSymlinksInPath().path == parent.path, mkdir(directory.path, 0o700) == 0 else {
@@ -57,11 +59,14 @@ struct NativeAcceptanceSession {
 @MainActor final class NativeAcceptanceProbe {
     private let sink: FileHandle
     private var timer: Timer?
+    private var localMouse: Any?
+    private var activation: NSObjectProtocol?
     private var notifications: [NSObjectProtocol] = []
     private var last: State?
     private var lastTime = -Double.infinity
     private struct State: Encodable, Equatable {
-        let visible, key, active, layoutMatches, hasTranscript, trayConnected, voiceEnabled: Bool
+        let visible, key, active, layoutMatches, hasTranscript, trayConnected, voiceEnabled, editorFocused, mayAttach, collecting: Bool
+        let foreground, micAuthorization, speechAuthorization: Int
         let voice: String
         let recordings: [UUID]
         let trayCount: Int
@@ -74,7 +79,9 @@ struct NativeAcceptanceSession {
         let state: State
     }
     init(session: NativeAcceptanceSession, host: HostSession, modules: EmbeddedModules, surface: EdgeWindowController) throws {
-        let url = session.directory.appendingPathComponent("events-" + UUID().uuidString.lowercased() + ".jsonl")
+        guard let run = ProcessInfo.processInfo.environment["NEARPANE_ACCEPTANCE_RUN"],
+              UUID(uuidString: run)?.uuidString.lowercased() == run else { throw CocoaError(.fileReadInvalidFileName) }
+        let url = session.directory.appendingPathComponent("events-" + run + ".jsonl")
         try Data().write(to: url, options: .withoutOverwriting)
         sink = try FileHandle(forWritingTo: url)
         let sample: @MainActor (String) -> Void = { [weak self, weak host, weak modules, weak surface] kind in
@@ -95,10 +102,27 @@ struct NativeAcceptanceSession {
             let fingerprint = SHA256.hash(data: Data(ids.map(\.uuidString).joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined()
             self.record(kind, State(visible: window.isVisible, key: window.isKeyWindow, active: NSApp.isActive, layoutMatches: layoutMatches,
                 hasTranscript: !modules.voice.transcript.isEmpty, trayConnected: modules.tray.connected, voiceEnabled: modules.voice.active,
+                editorFocused: (window.firstResponder as? NSTextView)?.isEditable == true,
+                mayAttach: modules.tray.mayAttach, collecting: modules.tray.collectionEnabled,
+                foreground: Int(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0),
+                micAuthorization: AVCaptureDevice.authorizationStatus(for: .audio).rawValue,
+                speechAuthorization: SFSpeechRecognizer.authorizationStatus().rawValue,
                 voice: voice, recordings: modules.voice.openRecordingIDs, trayCount: ids.count, trayIDs: fingerprint,
                 pid: Int(ProcessInfo.processInfo.processIdentifier), windowID: window.windowNumber))
         }
         modules.voice.acceptanceEvent = sample
+        modules.tray.acceptanceEvent = sample
+        localMouse = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            MainActor.assumeIsolated {
+                if let panel = surface.window, event.window === panel, let content = panel.contentView {
+                    let hit = content.hitTest(content.convert(event.locationInWindow, from: nil))
+                    sample((hit as? NSTextView)?.isEditable == true ? "editorClick" : "panelClick")
+                }
+            }
+            return event
+        }
+        activation = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main) { _ in MainActor.assumeIsolated { sample("foregroundChanged") } }
         sample("opened")
         for (name, object, kind) in [(NSWindow.didBecomeKeyNotification, surface.window as AnyObject?, "panelBecameKey"),
                                      (NSApplication.didBecomeActiveNotification, NSApp as AnyObject?, "appActivated")] {
@@ -123,6 +147,8 @@ struct NativeAcceptanceSession {
     }
     func finish() {
         timer?.invalidate()
+        if let localMouse { NSEvent.removeMonitor(localMouse) }
+        if let activation { NSWorkspace.shared.notificationCenter.removeObserver(activation) }
         notifications.forEach(NotificationCenter.default.removeObserver)
         if let last { record("drained", last) }
         try? sink.close()

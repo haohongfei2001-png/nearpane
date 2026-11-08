@@ -184,7 +184,8 @@ public final class TrayModule: HostModule {
         pointer.cancel(); pressTask?.cancel(); pressTask = nil; owner?.cancelPresses()
     }
     public func collapseMenu() { expanded = false }
-    func toggleMenu() { if connected && captureEntry { cancelArrival(); expanded.toggle() } }
+    @ObservationIgnored public var acceptanceEvent: ((String) -> Void)?
+    func toggleMenu() { if connected && captureEntry { cancelArrival(); expanded.toggle(); acceptanceEvent?("trayButton") } }
     func capture(_ action: TrayCapture) {
         guard active, !hidden, expanded, captureEntry else { return }
         owner?.capture(action)

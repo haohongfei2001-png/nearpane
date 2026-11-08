@@ -17,6 +17,7 @@ SESSIONS = ROOT / "build/native-acceptance"
 OBSERVER = ROOT / "scripts/acceptance/draft-observation.js"
 sys.path.insert(0, str(ROOT/"scripts/acceptance"))
 import voice_evidence
+import session_evidence as se
 
 DEFAULT_IDLE_MINUTES = 60
 
@@ -41,25 +42,14 @@ def write_checkpoint(path, value):
         stream.write("\n")
 
 
-def observe_browser(url, session, nonce, arm=False):
+def observe_browser(path, url, session, nonce, pid, window, tab, arm=False):
     check(re.fullmatch(r"https://chatgpt\.com/c/[a-zA-Z0-9-]+", url), "An exact, disposable ChatGPT test conversation URL is required")
     js = "(" + OBSERVER.read_text() + ")(" + json.dumps(url) + "," + json.dumps("NEARPANE-TEST-" + session) + "," + json.dumps(nonce) + "," + json.dumps(arm) + ")"
-    program = """
-on run argv
-    if application id "com.google.Chrome" is not running then error "The designated test browser is not running."
-    tell application id "com.google.Chrome"
-        if (count of windows) = 0 then error "No test window."
-        set w to front window
-        set t to active tab of w
-        if (URL of t) is not (item 1 of argv) then error "Different tab."
-        set snapshot to execute t javascript (item 2 of argv)
-        return (id of w as text) & linefeed & (id of t as text) & linefeed & snapshot
-    end tell
-end run"""
-    out = subprocess.run(["/usr/bin/osascript", "-l", "AppleScript", "-", url, "JSON.stringify(" + js + ")"],
-                         input=program, text=True, capture_output=True, timeout=20)
-    check(out.returncode == 0, "The test tab could not be observed. No browser change was requested.")
-    window, tab, data = out.stdout.strip().split("\n", 2)
+    check(all(re.fullmatch(r"[1-9][0-9]*", v or "") for v in (window,tab)), "Specify the authorized window and tab IDs")
+    out = subprocess.run([str(path/"observe-draft"),str(pid),window,tab],input="JSON.stringify("+js+")",
+                         text=True,capture_output=True,timeout=20)
+    check(out.returncode == 0,"The approved PID/window/tab could not be observed with existing permission")
+    data = out.stdout.strip()
     sample = json.loads(data)
     check(isinstance(sample, dict), "The unique test marker, composer and existing user-turn identities could not be verified")
     # Persist only digest/counts, never page text, the URL, or message IDs.
@@ -177,7 +167,8 @@ def transfer_verdict(path, images, operations, starts, policy):
 
 def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
     check(idle_minutes > 0, "Positive residence time required")
-    streams = [[json.loads(row) for row in p.read_text().splitlines()] for p in sorted(path.glob("events-*.jsonl"))]
+    by_run = {p.stem:se.events(p) for p in sorted(path.glob("events-*.jsonl"))}
+    streams = list(by_run.values())
     samples = [e for stream in streams for e in stream]
     speech = "PENDING"
     independent = False
@@ -185,7 +176,7 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
     if all(p.is_file() for p in speech_files):
         points = [json.loads(p.read_text()) for p in speech_files]
         if all(p["session"] == path.name and p["run"] == points[0]["run"] for p in points):
-            series = dict(zip((p.stem for p in sorted(path.glob("events-*.jsonl"))), streams)).get(points[0]["run"],[])
+            series = by_run.get(points[0]["run"],[])
             speech,independent = voice_evidence.verdict(series,points)
     transitions = [observed_transitions(stream) for stream in streams]
     queue = path / "support/Riftlet/queue.sqlite"
@@ -200,21 +191,20 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
         assets, starts = len(images), len(receipts)
     finally:
         db.close()
-    completed = [e for e in samples if e["kind"] == "drained"]
-    restarts = sorted((s for s in streams if s), key=lambda seq: seq[0]["time"])
-    restarted = any(a[-1]["kind"] == "drained" and a[-1]["time"] <= b[0]["time"] and b[0]["kind"] == "opened"
-                    and b[0]["state"]["voice"] == "paused" and not b[0]["state"]["trayConnected"]
-                    for a,b in zip(restarts, restarts[1:]))
     gates = {
         "visibleGeometry": any(e["state"]["visible"] and e["state"]["layoutMatches"] for e in samples),
-        "idleFocus": any(longest_idle(s) >= idle_minutes * 60 for s in streams),
         "speechReturnsToStandby": speech == "PASS",
         "trayAndVoiceTogether": independent,
         "sameQueueAfterDisconnect": any(t[2] for t in transitions),
-        "drainedExitAndFreshRestart": bool(completed and restarted),
         "oneCaptureOneAttempt": False,
     }
     states = {k: "PASS" if v else "PENDING" for k,v in gates.items()}
+    for scene in se.SCENES:
+        files = [path/("focus-"+scene+"-"+edge+".json") for edge in ("start","end")]
+        bounds = [json.loads(p.read_text()) for p in files] if all(p.is_file() for p in files) else []
+        valid = bounds and all(b["session"] == path.name for b in bounds)
+        states[scene+"Focus"] = se.focus_verdict(scene,bounds if valid else [],by_run.get(bounds[0]["run"],[]) if bounds else [],idle_minutes*60)
+    states["drainedExitAndFreshRestart"] = se.restart_verdict(path,by_run)
     pauses = [voice_evidence.pause_result(stream) for stream in streams]
     states["userPauseOnly"] = "FAIL" if "FAIL" in pauses else "PASS" if "PASS" in pauses else "PENDING"
     states["speechReturnsToStandby"] = "FAIL" if "FAIL" in pauses else speech
@@ -234,20 +224,29 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
         states["specifiedDraftNoSend"] = verdict
         if verdict == "PASS":
             states["oneCaptureOneAttempt"] = verdict
-    return dict(session=path.name, launches=len(streams), assets=assets, operations=len(ops), uploadStarts=starts,
+    manifest = path/"manifest.json"
+    statuses = list(states.values())
+    overall = "FAIL" if "FAIL" in statuses else "PASS" if all(v == "PASS" for v in statuses) and manifest.exists() else "PENDING"
+    checkpoints = {p.name:se.digest(p.read_bytes()) for p in sorted(path.glob("*.json")) if not p.name.startswith("report-")}
+    errors = [p.name for p in sorted(path.glob("error-*.json"))]
+    return dict(overall=overall, checkpoints=checkpoints, errors=errors, manifestSHA256=checkpoints.get("manifest.json"),
+                session=path.name, launches=len(streams), assets=assets, operations=len(ops), uploadStarts=starts,
                 idleTargetMinutes=idle_minutes, longestObservedIdleSeconds=max(map(longest_idle,streams),default=0), checks=states)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["prepare","report","launch","capture-panel","review-visual","browser-before","browser-after","speech-before","speech-during","speech-after"])
+    parser.add_argument("action", choices=["prepare","report","launch","capture-panel","review-visual","browser-before","browser-after","speech-before","speech-during","speech-after","focus-start","focus-end","before-exit"])
     parser.add_argument("--app", type=Path, default=ROOT / "build/release/Nearpane.app")
     parser.add_argument("--session")
     parser.add_argument("--idle-minutes", type=int, default=DEFAULT_IDLE_MINUTES)
     parser.add_argument("--url")
     parser.add_argument("--browser-pid", type=int)
+    parser.add_argument("--browser-window")
+    parser.add_argument("--browser-tab")
     parser.add_argument("--asset-id")
     parser.add_argument("--asset-sha256")
+    parser.add_argument("--scene", choices=se.SCENES)
     parser.add_argument("--verdict", choices=["pass","fail"])
     args = parser.parse_args()
     binary = args.app.resolve() / "Contents/MacOS/NearpaneHost"
@@ -260,23 +259,41 @@ def main():
         with (path/"summary.key").open("xb") as secret:
             secret.write(os.urandom(32))
         # Compile only. The panel helper never executes during preparation.
-        subprocess.run(["/usr/bin/xcrun","swiftc","-parse-as-library","-target",os.uname().machine+"-apple-macos26.0",
-                        "-module-cache-path",str(path/"compiler-cache"),str(ROOT/"scripts/acceptance/capture-panel.swift"),"-o",str(path/"capture-panel")], check=True)
+        for helper in ("capture-panel","observe-draft"):
+            subprocess.run(["/usr/bin/xcrun","swiftc","-parse-as-library","-target",os.uname().machine+"-apple-macos26.0",
+                            "-module-cache-path",str(path/"compiler-cache"),str(ROOT/("scripts/acceptance/"+helper+".swift")),
+                            "-o",str(path/helper)], check=True)
+        write_checkpoint(path/"manifest.json",se.manifest(ROOT,path,binary))
         print(json.dumps(report(path,args.idle_minutes), ensure_ascii=False, indent=2))
         return
     path = folder(args.session or "")
+    manifest = json.loads((path/"manifest.json").read_text())
+    check(manifest["session"] == path.name and manifest["appSHA256"] == se.digest(binary.read_bytes()),"Test executable changed")
+    for name,expected in manifest["scripts"].items():
+        check(se.digest((ROOT/name).read_bytes()) == expected,"Acceptance script changed")
     if args.action == "report":
         marker = json.loads((path/"session.json").read_text())
         def admitted(evidence):
             require_tool(binary)
             check(hashlib.sha256(binary.read_bytes()).hexdigest() == marker["executableSHA256"], "Unexpected policy executable")
             return product_receipt_policy(binary, evidence)
-        print(json.dumps(report(path,args.idle_minutes,admitted), ensure_ascii=False, indent=2))
+        result = report(path,args.idle_minutes,admitted)
+        write_checkpoint(path/("report-"+str(uuid.uuid4())+".json"),result)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
     elif args.action == "launch":
         require_tool(binary)
         marker = json.loads((path/"session.json").read_text())
         check(hashlib.sha256(binary.read_bytes()).hexdigest() == marker["executableSHA256"], "Different build from this session")
-        subprocess.run([str(binary),"--native-acceptance-session",path.name], cwd=ROOT, check=True)
+        se.supervise(path,[str(binary),"--native-acceptance-session",path.name],ROOT)
+    elif args.action in ("focus-start","focus-end"):
+        check(args.scene,"Specify the intended focus scenario")
+        edge = args.action.split("-")[1]
+        if edge == "end": check((path/("focus-"+args.scene+"-start.json")).is_file(),"Missing focus start")
+        write_checkpoint(path/("focus-"+args.scene+"-"+edge+".json"),se.current_point(path))
+    elif args.action == "before-exit":
+        point = se.current_point(path)
+        point["durable"] = se.durable(path)
+        write_checkpoint(path/("before-exit-"+point["run"]+".json"),point)
     elif args.action.startswith("speech-"):
         write_checkpoint(path/(args.action+".json"), voice_evidence.point(path,args.action.split("-")[1]))
     elif args.action == "capture-panel":
@@ -286,6 +303,7 @@ def main():
               "No recent visible panel in this session")
         marker = json.loads((path/"session.json").read_text())
         check(hashlib.sha256(binary.read_bytes()).hexdigest() == marker["executableSHA256"], "Unexpected package")
+        check(se.code_subject(path/"capture-panel") == manifest["subjects"]["panelHelper"],"Panel helper changed")
         subprocess.run([str(path/"capture-panel"),str(event["state"]["pid"]),str(event["state"]["windowID"]),
                         str(binary),str(path/"panel.png")], check=True)
     elif args.action == "review-visual":
@@ -297,11 +315,18 @@ def main():
         check(args.url, "Pass the previously designated test draft URL")
         destination = path/(args.action+".json")
         check(not destination.exists(), "This checkpoint already exists")
+        check(se.code_subject(path/"observe-draft") == manifest["subjects"]["browserObserver"],"Browser observer changed")
         process = chrome_identity(binary, path, args.browser_pid)
+        subject = se.code_subject(se.process_path(args.browser_pid))
+        check(subject["bundleID"] == "com.google.Chrome", "Unexpected target application")
+        if args.action == "browser-before":
+            write_checkpoint(path/"browser-subject.json",dict(process=process,subject=subject))
+        else:
+            check(json.loads((path/"browser-subject.json").read_text()) == dict(process=process,subject=subject),"Browser code or lifetime changed")
         if args.action == "browser-before":
             allowed_asset(path, args.asset_id, args.asset_sha256)
             nonce = str(uuid.uuid4())
-            snapshot = observe_browser(args.url, path.name, nonce, arm=True)
+            snapshot = observe_browser(path,args.url,path.name,nonce,args.browser_pid,args.browser_window,args.browser_tab,arm=True)
             check(chrome_identity(binary, path, args.browser_pid) == process, "Browser restarted during binding")
             check(snapshot["previews"] == 0 and not snapshot["busy"], "The designated draft is not empty of attachments")
             snapshot["process"] = process
@@ -315,7 +340,7 @@ def main():
             binding = json.loads((path/"target-binding.json").read_text())
             check(binding["process"] == process and binding["url"] == args.url, "Binding differs")
             def observe():
-                snapshot = observe_browser(args.url, path.name, binding["nonce"])
+                snapshot = observe_browser(path,args.url,path.name,binding["nonce"],args.browser_pid,binding["window"],binding["tab"])
                 check(chrome_identity(binary, path, args.browser_pid) == process, "Browser restarted")
                 return dict(snapshot, process=process)
             first = observe()
@@ -328,11 +353,16 @@ def require_tool(binary):
     plist = binary.parents[1]/"Info.plist"
     with plist.open("rb") as source:
         metadata = plistlib.load(source)
-    check(metadata.get("NearpaneNativeAcceptanceSchema") == 1, "Choose an integrated package with native acceptance schema 1")
+    check(metadata.get("NearpaneNativeAcceptanceSchema") == 2, "Choose an integrated package with native acceptance schema 2")
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (OSError, ValueError, KeyError, sqlite3.Error, subprocess.SubprocessError) as error:
+    except (OSError, ValueError, KeyError, IndexError, TypeError, sqlite3.Error, subprocess.SubprocessError) as error:
+        if "--session" in sys.argv:
+            try:
+                target = folder(sys.argv[sys.argv.index("--session")+1])
+                write_checkpoint(target/("error-"+str(uuid.uuid4())+".json"),dict(action=sys.argv[1],time=time.time(),kind=type(error).__name__))
+            except (OSError,ValueError,IndexError,KeyError): pass
         sys.exit(f"Native acceptance: {error}")
