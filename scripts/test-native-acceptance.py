@@ -140,6 +140,7 @@ class NativeAcceptanceTests(unittest.TestCase):
         cases = {
             "unknown plus START and preview": lambda f:f.db.execute("update operations set phase='unknown'"),
             "failed plus preview": lambda f:f.db.execute("update operations set phase='failed'"),
+            "incomplete receipt": lambda f:f.db.execute("update operations set receipt_json='{}'"),
             "missing completion": lambda f:f.db.execute("update operations set receipt_json=NULL"),
             "foreign preview": lambda f:f.right[0].update(previewNames=["riftlet-other.png"]),
             "unidentified blob": lambda f:f.right[0].update(previewNames=[None]),
@@ -198,12 +199,24 @@ class NativeAcceptanceTests(unittest.TestCase):
                 db.executescript("create table assets(id,image_json,status,visibility,visibility_revision,sort_at,sequence);"
                                  "create table operations(id,asset_id,attempt,target_key,phase,receipt_json,sequence);"
                                  "create table upload_starts(operation_id,receipt_json); create table checkpoints(key,value);")
+            media = queue.parent/"media"
+            media.mkdir()
+            (media/"fixture.png").write_bytes(b"test image")
+            img = json.dumps(dict(fileName="fixture.png",sha256=se.digest(b"test image")))
+            with sqlite3.connect(queue) as db:
+                db.execute("insert into assets values('asset',?,'unknown','swallowed',1,1,1)",(img,))
+                db.execute("insert into operations values('op','asset',1,'draft','unknown','{}',1)")
+                db.execute("insert into upload_starts values('op','{}')")
+                db.execute("insert into checkpoints values('transfer-dispatch-call-v1:op','test-call')")
+            se.put(p/"input-claim.json",{"operationID":"op"})
             voice = p/"support/Nearpane/Voice/Saytile.sqlite"
             voice.parent.mkdir(parents=True)
             (p/"summary.key").write_bytes(bytes(range(32)))
             with sqlite3.connect(voice) as db:
                 db.executescript("create table recordings(id,created_at,recognition_state,is_recording,active_attempt,preferred_revision,deleted);"
                                  "create table revisions(id,recording_id,origin,attempt,created_at,text); create table editing_drafts(recording_id,text);"
+                                 "insert into recordings values('old',1,'completed',0,NULL,'revision',0);"
+                                 "insert into revisions values('revision','old','final','attempt',2,'synthetic phrase');"
                                  "insert into editing_drafts values('old','synthetic private text');")
             # A real, harmless child exits. Its own tiny fixture stream stands in for AppKit.
             child = r"""import os,json,time,pathlib

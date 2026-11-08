@@ -34,6 +34,8 @@ def verify(app, lock, sandbox):
     if "Packaged Saytile and Riftlet resources verified." not in result:
         raise ValueError("Missing full packaged resource verification")
     root = contents / "Resources"
+    if digest(root/"AcceptanceTargetGuard.js") != digest(ROOT/"Resources/AcceptanceTargetGuard.js"):
+        raise ValueError("Unexpected acceptance guard in packaged resources")
     for name,pin in lock["domains"].items():
         provenance = json.loads((root/"Upstream"/name/"source.json").read_text())
         if provenance != {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}:
@@ -59,6 +61,8 @@ def main():
     parser.add_argument("--deny-cache", action="append", type=Path, default=[])
     args = parser.parse_args()
     deny = [ROOT/".build", ROOT.parent/"saytile", ROOT.parent/"Riftlet", *args.deny_cache]
+    support = Path.home()/"Library/Application Support"
+    deny.extend(support/name for name in ("Nearpane","Saytile","Riftlet"))
     params = []
     for index,path in enumerate(deny):
         params.extend(["-D", f"C{index}={path.resolve()}"])

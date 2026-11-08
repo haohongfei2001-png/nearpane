@@ -45,7 +45,7 @@ python3 - "$run/logs" <<'PYCOUNT'
 import re,sys
 from pathlib import Path
 root=Path(sys.argv[1])
-for name,minimum in (("foundation",49),("integrated",67)):
+for name,minimum in (("foundation",49),("integrated",73)):
     log=(root/(name+".log")).read_text()
     summary=re.search(r"Test run with (\d+) tests in \d+ suites passed",log)
     if not summary or int(summary[1]) < minimum or re.search(r"Test .* skipped",log):
@@ -56,6 +56,7 @@ PYCOUNT
 for configuration in debug release; do
   isolated "$offline" "$configuration" env NEARPANE_OFFLINE=1 scripts/build-app.sh "$configuration"
 done
+isolated "$offline" receipt-policy env NEARPANE_RECEIPT_TEST_BINARY="$run/products/debug/Nearpane.app/Contents/MacOS/NearpaneHost" python3 -B scripts/test-native-acceptance.py
 scripts/verify-packages.py --deny-cache "$build_root" "$run"/products/{debug,release}/Nearpane.app >"$run/logs/packages.log"
 /usr/bin/shasum -a 256 "$run"/logs/*.log "$run"/products/{debug,release}/Nearpane.app/Contents/MacOS/NearpaneHost >"$run/SHA256SUMS"
 /usr/bin/grep 'Test run with' "$run"/logs/{foundation,integrated}.log

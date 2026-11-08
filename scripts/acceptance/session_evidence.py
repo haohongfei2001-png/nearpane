@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import platform
 import re
 import sqlite3
 import subprocess
@@ -43,9 +44,20 @@ def code_subject(exe):
     requirement = next((l.strip() for l in lines if "designated =>" in l),None)
     bundle = next((p for p in exe.parents if p.suffix == ".app"),None)
     plist = plistlib.loads((bundle/"Contents/Info.plist").read_bytes()) if bundle else {}
-    return dict(code=fields, requirement=requirement, sha256=digest(exe.read_bytes()),
-                version=plist.get("CFBundleShortVersionString") or subprocess.check_output(["/usr/bin/sw_vers","-buildVersion"],text=True).strip(),
-                build=plist.get("CFBundleVersion"), bundleID=plist.get("CFBundleIdentifier"))
+    sha = digest(exe.read_bytes())
+    os_build = subprocess.check_output(["/usr/bin/sw_vers","-buildVersion"],text=True).strip()
+    version = plist.get("CFBundleShortVersionString")
+    source = "bundle"
+    if not version:
+        if exe.name in ("capture-panel","observe-draft"):
+            version,source = "schema-2+"+sha[:12],"compiled acceptance helper"
+        elif exe == Path(sys.executable).resolve():
+            version,source = platform.python_version(),"Python interpreter"
+        else:
+            version,source = os_build,"host OS build; executable separately identified by CDHash"
+    return dict(code=fields, requirement=requirement, sha256=sha, version=version, versionSource=source,
+                osBuild=os_build, build=plist.get("CFBundleVersion"), bundleID=plist.get("CFBundleIdentifier"))
+
 
 
 def process_path(pid):
@@ -58,26 +70,38 @@ def process_path(pid):
 
 def observe_launcher():
     # Only ancestors of this launcher. Never enumerate or inspect users' other apps/windows.
+    import ctypes
+    libproc = ctypes.CDLL("/usr/lib/libproc.dylib")
     pid = os.getppid()
     for _ in range(12):
         if pid <= 1: break
-        exe = process_path(pid)
+        # PROC_PIDTBSDINFO: verify pbi_pid before following pbi_ppid. The sandbox may hide an ancestor.
+        info = (ctypes.c_uint32 * 128)()
+        size = libproc.proc_pidinfo(pid,3,ctypes.c_uint64(0),ctypes.byref(info),ctypes.sizeof(info))
+        if size < 20 or info[3] != pid: return None
+        try: exe = process_path(pid)
+        except ValueError: return None
         if any(p.suffix == ".app" for p in exe.parents):
             return code_subject(exe)
-        pid = int(subprocess.check_output(["/bin/ps","-p",str(pid),"-o","ppid="],text=True).strip() or 0)
+        pid = info[4]
     return None
+
+
+def resources_hash(binary):
+    resources = binary.parents[1]/"Resources"
+    inventory = {p.relative_to(resources).as_posix():digest(p.read_bytes()) for p in sorted(resources.rglob("*"))
+                 if p.is_file() and p.name != ".DS_Store"}
+    require(all(resources in p.resolve().parents for p in resources.rglob("*") if p.is_file()), "Unexpected resource link")
+    return fingerprint(inventory)
 
 
 def manifest(root,path,binary):
     scripts = ["scripts/native-acceptance.py","scripts/acceptance/draft-observation.js","scripts/acceptance/capture-panel.swift","scripts/acceptance/observe-draft.swift",
-               "scripts/acceptance/session_evidence.py","scripts/acceptance/voice_evidence.py","Resources/AcceptanceTargetGuard.js"]
-    resources = binary.parents[1]/"Resources"
-    inventory = {p.relative_to(resources).as_posix():digest(p.read_bytes()) for p in sorted(resources.rglob("*"))
-                 if p.is_file() and p.name != ".DS_Store"}
+               "scripts/acceptance/session_evidence.py","scripts/acceptance/voice_evidence.py","Resources/AcceptanceTargetGuard.js","Sources/NearpaneTray/AcceptanceBrowserRoute.swift"]
     subjects = dict(host=code_subject(binary),panelHelper=code_subject(path/"capture-panel"),
                     browserObserver=code_subject(path/"observe-draft"),systemScreenshot=code_subject("/usr/sbin/screencapture"),
                     launcher=code_subject(sys.executable),responsibleAncestor=observe_launcher())
-    return dict(schema=2,session=path.name,appSHA256=subjects["host"]["sha256"],resourcesSHA256=fingerprint(inventory),
+    return dict(schema=2,session=path.name,appSHA256=subjects["host"]["sha256"],resourcesSHA256=resources_hash(binary),
                 domainLockSHA256=digest((root/"Dependencies/domains.lock.json").read_bytes()),scripts={s:digest((root/s).read_bytes()) for s in scripts},
                 subjects=subjects, observerLanguage="PID-addressed Apple Events + JavaScript", tcc="not queried; responsible process determined by macOS")
 
@@ -97,11 +121,13 @@ def durable(path):
         img = json.loads(raw)
         f = library/"media"/img["fileName"]
         require(f.parent == library/"media" and f.resolve() == f, "Invalid fixture media")
-        media.append(digest(f.read_bytes()) if f.is_file() else None)
+        media.append(f.is_file() and digest(f.read_bytes()) == img["sha256"])
     voice_file = path/"support/Nearpane/Voice/Saytile.sqlite"
     voice = voice_evidence.snapshot(path) if voice_file.exists() else None
     claim = path/"input-claim.json"
     return dict(voiceSHA256=fingerprint(voice),voiceAvailable=voice is not None,
+                voiceRecords=len(voice["records"]) if voice else 0, voiceRevisions=len(voice["revisions"]) if voice else 0,
+                intactMedia=all(media),
                 assetOrder=[r[0] for r in assets],assetSHA256=fingerprint([assets,media]),
                 operationsSHA256=fingerprint(ops),unresolved=[r[0] for r in ops if r[4] not in ("failed","succeeded")],
                 attempts=len(calls),dispatchSHA256=fingerprint(calls),starts=len(starts),startSHA256=fingerprint(starts),
@@ -187,6 +213,9 @@ def supervise(path,command,cwd):
 
 def restart_verdict(path, streams):
     runs = sorted((json.loads(p.read_text()) for p in path.glob("startup-*.json")),key=lambda v:v["started"])
+    exits = [json.loads(p.read_text()) for p in path.glob("process-*.json")]
+    if any(e["exitCode"] != 0 for e in exits): return "FAIL"
+    if any(not e.get("startup") for e in exits): return "INCONCLUSIVE"
     if len(runs) < 2: return "PENDING"
     statuses = []
     for old,new in zip(runs,runs[1:]):
@@ -201,9 +230,11 @@ def restart_verdict(path, streams):
               and old["pid"] == exit_info["pid"] == checkpoint["state"]["pid"] and all(e["state"]["pid"] == old["pid"] for e in a)
               and all(e["state"]["pid"] == new["pid"] for e in b) and old["run"] != new["run"]
               and a[0]["kind"]=="opened" and a[-1]["kind"]=="drained" and b[0]["kind"]=="opened" and exit_info["exitCode"]==0
-              and checkpoint["time"] <= a[-1]["time"] <= exit_info["exited"] <= new["started"] <= b[0]["time"] <= new["openedAt"]
+              and old["started"] <= a[0]["time"] <= checkpoint["time"] <= a[-1]["time"] <= exit_info["exited"] <= new["started"] <= b[0]["time"] <= new["openedAt"]
               and checkpoint["durable"] == exit_info["postExit"] == new["prelaunch"] == new["startup"]
-              and new["startup"]["voiceAvailable"] and initial["voice"]=="paused" and not initial["trayConnected"]
+              and new["startup"]["voiceRecords"] > 0 and new["startup"]["voiceRevisions"] > 0
+              and len(new["startup"]["assetOrder"]) == new["startup"]["attempts"] == new["startup"]["starts"] == 1
+              and new["startup"]["inputClaim"] and new["startup"]["intactMedia"] and initial["voice"]=="paused" and not initial["trayConnected"]
               and not initial["mayAttach"] and not initial["collecting"]
               and all(initial.get(k) is not None and initial[k] == checkpoint["state"].get(k) for k in ("micAuthorization","speechAuthorization")))
         statuses.append("PASS" if ok else "FAIL")

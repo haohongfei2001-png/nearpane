@@ -19,6 +19,11 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
             throw WebAdapterError.invalidTarget
         }
     }
+    @MainActor func requireSelectedRoute() throws {
+        let parts = process.split(separator: ":")
+        guard parts.count == 4, let pid = Int32(parts[1]), ChromeProcessIdentity.read(pid: pid)?.session == process,
+              try AcceptanceBrowserRoute(pid: pid, window: window, tab: tab).selected() else { throw WebAdapterError.invalidTarget }
+    }
     func accepts(_ target: TargetLease) -> Bool {
         target.adapterID == "chatgpt-web" && target.surface == .webChat && target.applicationID == "com.google.Chrome" &&
         target.sessionID == process && target.windowID == window && target.tabID == tab &&
@@ -86,6 +91,7 @@ struct TestInputClaim: Codable {
     }
     func targetForClick(program: WebPageProgram) throws -> Task<TargetLease, Error> {
         let b = try binding()
+        try b.requireSelectedRoute()
         let task = try base.targetForClick(program: b.program(program, guardSource: guardSource))
         return Task {
             let target = try await task.value
@@ -112,6 +118,7 @@ struct TestInputClaim: Codable {
             else { throw WebAdapterError.invalidRequest }
         }
         let guarded = try b.program(program, guardSource: guardSource)
+        if [.begin,.commit].contains(command.action) { try b.requireSelectedRoute() }
         if command.action == .commit {
             guard let id = command.identity, let invocation = command.invocationID else { throw WebAdapterError.invalidRequest }
             // Persist once, before submission, even if Chrome's reply is lost. No second commit on reconnect.

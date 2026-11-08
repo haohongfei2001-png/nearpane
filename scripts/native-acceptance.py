@@ -32,7 +32,9 @@ def folder(session):
     path = SESSIONS / session
     check(path.resolve() == path and path.is_dir(), "Unknown fixture directory")
     marker = path / "session.json"
-    check(not marker.is_symlink() and json.loads(marker.read_text())["session"].lower() == session, "Fixture identity mismatch")
+    check(not marker.is_symlink(), "Unexpected fixture marker")
+    meta = json.loads(marker.read_text())
+    check(meta.get("version") == 2 and meta["session"].lower() == session, "A schema-2 fixture is required")
     return path
 
 
@@ -178,7 +180,10 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
         points = [json.loads(p.read_text()) for p in speech_files]
         if all(p["session"] == path.name and p["run"] == points[0]["run"] for p in points):
             series = by_run.get(points[0]["run"],[])
-            speech,independent = voice_evidence.verdict(series,points)
+            try:
+                speech,independent = voice_evidence.verdict(series,points)
+            except (KeyError, IndexError, TypeError, ValueError):
+                speech,independent = "INCONCLUSIVE",False
     transitions = [observed_transitions(stream) for stream in streams]
     queue = path / "support/Riftlet/queue.sqlite"
     check(queue.resolve() == queue, "Fixture queue path mismatch")
@@ -221,14 +226,25 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
         states["oneCaptureOneAttempt"] = "FAIL"
     before, after = path/"browser-before.json", path/"browser-after.json"
     if before.exists() and after.exists():
-        verdict = transfer_verdict(path, images, ops, receipts, policy)
+        try:
+            verdict = transfer_verdict(path, images, ops, receipts, policy)
+        except (KeyError, IndexError, TypeError, ValueError):
+            verdict = "INCONCLUSIVE"
         states["specifiedDraftNoSend"] = verdict
         if verdict == "PASS":
             states["oneCaptureOneAttempt"] = verdict
     manifest = path/"manifest.json"
+    subject_file, binding_file = path/"browser-subject.json", path/"target-binding.json"
+    states["permissionSubjects"] = "PENDING"
+    if manifest.is_file() and subject_file.is_file() and binding_file.is_file():
+        subjects = json.loads(manifest.read_text()).get("subjects",{})
+        browser = json.loads(subject_file.read_text())
+        matching = browser.get("process") == json.loads(binding_file.read_text()).get("process")
+        observed = [subjects.get(k) for k in ("host","panelHelper","browserObserver","launcher","systemScreenshot")] + [browser.get("subject")]
+        states["permissionSubjects"] = "PASS" if matching and all(s and s.get("code",{}).get("CDHash") and s.get("version") for s in observed) else "INCONCLUSIVE"
     statuses = list(states.values())
     overall = "FAIL" if "FAIL" in statuses else "PASS" if all(v == "PASS" for v in statuses) and manifest.exists() else "PENDING"
-    checkpoints = {p.name:se.digest(p.read_bytes()) for p in sorted(path.glob("*.json")) if not p.name.startswith("report-")}
+    checkpoints = {p.name:se.digest(p.read_bytes()) for p in sorted([*path.glob("*.json"),*path.glob("events-*.jsonl")]) if not p.name.startswith("report-")}
     errors = [p.name for p in sorted(path.glob("error-*.json"))]
     return dict(overall=overall, checkpoints=checkpoints, errors=errors, manifestSHA256=checkpoints.get("manifest.json"),
                 session=path.name, launches=len(streams), assets=assets, operations=len(ops), uploadStarts=starts,
@@ -263,6 +279,7 @@ def main():
         for helper in ("capture-panel","observe-draft"):
             subprocess.run(["/usr/bin/xcrun","swiftc","-parse-as-library","-target",os.uname().machine+"-apple-macos26.0",
                             "-module-cache-path",str(path/"compiler-cache"),str(ROOT/("scripts/acceptance/"+helper+".swift")),
+                            *([str(ROOT/"Sources/NearpaneTray/AcceptanceBrowserRoute.swift")] if helper == "observe-draft" else []),
                             "-o",str(path/helper)], check=True)
         write_checkpoint(path/"manifest.json",se.manifest(ROOT,path,binary))
         print(json.dumps(report(path,args.idle_minutes), ensure_ascii=False, indent=2))
@@ -270,6 +287,7 @@ def main():
     path = folder(args.session or "")
     manifest = json.loads((path/"manifest.json").read_text())
     check(manifest["session"] == path.name and manifest["appSHA256"] == se.digest(binary.read_bytes()),"Test executable changed")
+    check(se.resources_hash(binary) == manifest["resourcesSHA256"], "Test resources changed")
     for name,expected in manifest["scripts"].items():
         check(se.digest((ROOT/name).read_bytes()) == expected,"Acceptance script changed")
     if args.action == "report":
