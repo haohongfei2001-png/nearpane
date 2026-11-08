@@ -15,7 +15,7 @@ struct TestTargetBindingTests {
         #expect(throws: WebAdapterError.self) { try binding.check(session: UUID().uuidString, now: 101) }
         let original = try ChatGPTWebPageProgram.load()
         let result = try binding.program(original, guardSource: "function(){ throw Error('TARGET_INVALID'); }")
-        #expect(result.functionSource.contains("nearpaneCheck(true);\n      Reflect.apply(setter, input, [transfer.files])"))
+        #expect(result.functionSource.contains("nearpaneCheck(true, op.binding);\n      Reflect.apply(setter, input, [transfer.files])"))
         #expect(!original.functionSource.contains("nearpaneCheck"))
         #expect(throws: WebAdapterError.self) {
             try binding.program(WebPageProgram(sourceID: "changed", functionSource: "function(){}"), guardSource: "function(){}")

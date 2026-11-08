@@ -33,12 +33,14 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
         let json = String(decoding: try encoder.encode(self), as: UTF8.self)
         var source = original.functionSource
         let entry = "  const KEY = '__riftletIndependentFileInput20261104';"
+        let chosen = "    const parts = composer();"
         let setter = "      Reflect.apply(setter, input, [transfer.files]);"
         guard !guardSource.isEmpty, source.components(separatedBy: entry).count == 2,
-              source.components(separatedBy: setter).count == 2 else { throw WebAdapterError.programUnavailable }
-        let gate = "const nearpaneCheck = handoff => (" + guardSource + ")(" + json + ",command,native,handoff);"
+              source.components(separatedBy: chosen).count == 2, source.components(separatedBy: setter).count == 2 else { throw WebAdapterError.programUnavailable }
+        let gate = "const nearpaneCheck = (handoff, parts) => (" + guardSource + ")(" + json + ",command,native,handoff,parts);"
         source = source.replacingOccurrences(of: entry, with: gate + "\nif (!['observe','discard'].includes(command.action)) nearpaneCheck(false);\n" + entry)
-        source = source.replacingOccurrences(of: setter, with: "      nearpaneCheck(true);\n" + setter)
+        source = source.replacingOccurrences(of: chosen, with: chosen + "\n    nearpaneCheck(false, parts);")
+        source = source.replacingOccurrences(of: setter, with: "      nearpaneCheck(true, op.binding);\n" + setter)
         return WebPageProgram(sourceID: original.sourceID, functionSource: source,
                               maximumChunkBytes: original.maximumChunkBytes, inputDiscoveryTimeout: original.inputDiscoveryTimeout)
     }

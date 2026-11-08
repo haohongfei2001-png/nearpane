@@ -1,5 +1,5 @@
 // Only browser-before arms a document-local listener in the explicitly authorized disposable editor.
-function observeTestDraft(expectedURL, marker, nonce, arm) {
+function observeTestDraft(expectedURL, marker, b, arm) {
   if (location.href !== expectedURL || document.visibilityState !== 'visible' || !document.hasFocus()) return null;
   const editors = [...document.querySelectorAll('[contenteditable="true"],textarea')]
     .filter(e => e.getClientRects().length && (e.value || e.innerText || '').trim() === marker);
@@ -13,9 +13,10 @@ function observeTestDraft(expectedURL, marker, nonce, arm) {
   const previews = [...composer.querySelectorAll('[data-file-name], img[src^="blob:"], img[src^="data:image/"]')]
     .filter(visible)
     .filter(e => !e.parentElement.closest('[data-file-name]'));
-  const editor = editors[0], eventType = 'nearpane-test-' + nonce;
+  const editor = editors[0];
+  const eventType = ['nearpane-test',b.session,b.nonce,b.process,b.window,b.tab,b.assetID,b.sha256,b.boundAt,b.expiresAt].join('|');
   if (arm) {
-    if (previews.length || !/^[a-f0-9-]{36}$/.test(nonce)) return null;
+    if (previews.length || !/^[a-f0-9-]{36}$/.test(b.nonce)) return null;
     const root = document.documentElement, entry = globalThis.navigation?.currentEntry?.key;
     let live = true;
     const invalidate = () => { live = false; };

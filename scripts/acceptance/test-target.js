@@ -16,10 +16,10 @@ function fixture() {
   const cmd = {action:'commit',identity:{assetID:b.assetID,assetSHA256:b.sha256,attempt:1}};
   const c = vm.createContext({document, location:{href:b.url}, performance:{timeOrigin:100}, window:new EventTarget(), Event});
   vm.runInContext(read('draft-observation.js')+'\n'+read('../../Resources/AcceptanceTargetGuard.js'), c);
-  assert.ok(c.observeTestDraft(b.url,editor.innerText,nonce,true));
-  const x = {document, c, editor, form, b, native, cmd, inputs:0};
+  assert.ok(c.observeTestDraft(b.url,editor.innerText,b,true));
+  const x = {document, c, editor, form, b, native, cmd, parts:{editor,form}, inputs:0};
   x.press = () => c.nearpaneBoundDraft(b, {action:'captureTarget'}, native, false);
-  x.commit = () => { c.nearpaneBoundDraft(b,cmd,native,true); x.inputs++; };
+  x.commit = () => { c.nearpaneBoundDraft(b,cmd,native,true,x.parts); x.inputs++; };
   return x;
 }
 test('armed original reaches the setter once in the fixture', () => {
@@ -37,6 +37,10 @@ for (const [name, change] of Object.entries({
   'expired session': x => { x.b.expiresAt=1; },
   'different session': x => { x.b.session=nonce; },
   'away then back': x => { x.c.window.dispatchEvent(new Event('pagehide')); },
+  'same page different actual composer': x => { x.parts.editor = new EventTarget(); },
+  'same editor different selected form': x => { x.parts.form = {}; },
+  'binding file replaced with new asset': x => { x.cmd.identity.assetID = x.b.assetID = nonce; },
+  'binding expiry extended': x => { x.b.expiresAt += 50; },
   'second attempt': x => { x.cmd.identity.attempt=2; },
 })) test(name, () => {
   const x=fixture(); x.press(); change(x);

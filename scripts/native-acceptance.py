@@ -42,9 +42,10 @@ def write_checkpoint(path, value):
         stream.write("\n")
 
 
-def observe_browser(path, url, session, nonce, pid, window, tab, arm=False):
+def observe_browser(path, binding, pid, arm=False):
+    url,session,nonce,window,tab = (binding[k] for k in ("url","session","nonce","window","tab"))
     check(re.fullmatch(r"https://chatgpt\.com/c/[a-zA-Z0-9-]+", url), "An exact, disposable ChatGPT test conversation URL is required")
-    js = "(" + OBSERVER.read_text() + ")(" + json.dumps(url) + "," + json.dumps("NEARPANE-TEST-" + session) + "," + json.dumps(nonce) + "," + json.dumps(arm) + ")"
+    js = "(" + OBSERVER.read_text() + ")(" + json.dumps(url) + "," + json.dumps("NEARPANE-TEST-" + session) + "," + json.dumps(binding) + "," + json.dumps(arm) + ")"
     check(all(re.fullmatch(r"[1-9][0-9]*", v or "") for v in (window,tab)), "Specify the authorized window and tab IDs")
     out = subprocess.run([str(path/"observe-draft"),str(pid),window,tab],input="JSON.stringify("+js+")",
                          text=True,capture_output=True,timeout=20)
@@ -150,7 +151,7 @@ def transfer_verdict(path, images, operations, starts, policy):
             and target.get("surface") == "webChat" and all(target.get(k) for k in ("documentID","composerID","draftGeneration"))
             and [target.get(k) for k in ("sessionID","windowID","tabID")] == [b[k] for k in ("process","window","tab")]
             and before["previews"] == 0 and before.get("previewNames") == [] and not before["busy"] and len(after) == 2
-            and b["boundAt"] == before["time"] <= op["created_at"] <= claim["claimedAt"] <= start["started_at"] <= op["updated_at"] <= after[0]["time"]
+            and b["boundAt"] <= before["time"] <= op["created_at"] <= claim["claimedAt"] <= start["started_at"] <= op["updated_at"] <= after[0]["time"]
             and claim["claimedAt"] <= b["expiresAt"] and after[1]["time"] - after[0]["time"] >= 5
             and all(s.get(k) == b[k] for s in [before,*after] for k in ("session","nonce","process","window","tab","timeOrigin"))
             and all(s["page"] == before["page"] and s["previews"] == 1 and not s["busy"] for s in after)):
@@ -325,14 +326,14 @@ def main():
             check(json.loads((path/"browser-subject.json").read_text()) == dict(process=process,subject=subject),"Browser code or lifetime changed")
         if args.action == "browser-before":
             allowed_asset(path, args.asset_id, args.asset_sha256)
-            nonce = str(uuid.uuid4())
-            snapshot = observe_browser(path,args.url,path.name,nonce,args.browser_pid,args.browser_window,args.browser_tab,arm=True)
+            now = int(time.time())
+            binding = dict(session=path.name,nonce=str(uuid.uuid4()),process=process,window=args.browser_window,tab=args.browser_tab,
+                           url=args.url,assetID=args.asset_id,sha256=args.asset_sha256,boundAt=now,expiresAt=now+900)
+            snapshot = observe_browser(path,binding,args.browser_pid,arm=True)
             check(chrome_identity(binary, path, args.browser_pid) == process, "Browser restarted during binding")
             check(snapshot["previews"] == 0 and not snapshot["busy"], "The designated draft is not empty of attachments")
             snapshot["process"] = process
-            binding = dict(session=path.name, nonce=nonce, process=process, window=snapshot["window"], tab=snapshot["tab"],
-                           url=args.url, timeOrigin=snapshot["timeOrigin"], assetID=args.asset_id, sha256=args.asset_sha256,
-                           boundAt=snapshot["time"], expiresAt=snapshot["time"] + 900)
+            binding["timeOrigin"] = snapshot["timeOrigin"]
             write_checkpoint(destination, snapshot)
             write_checkpoint(path/"target-binding.json", binding)
         else:
@@ -340,7 +341,7 @@ def main():
             binding = json.loads((path/"target-binding.json").read_text())
             check(binding["process"] == process and binding["url"] == args.url, "Binding differs")
             def observe():
-                snapshot = observe_browser(path,args.url,path.name,binding["nonce"],args.browser_pid,binding["window"],binding["tab"])
+                snapshot = observe_browser(path,binding,args.browser_pid)
                 check(chrome_identity(binary, path, args.browser_pid) == process, "Browser restarted")
                 return dict(snapshot, process=process)
             first = observe()
