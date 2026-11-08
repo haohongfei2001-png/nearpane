@@ -10,6 +10,7 @@
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>26.0</string>
     <key>NSMicrophoneUsageDescription</key><string>按下收音按钮后，Saytile 使用麦克风生成你的连续文字。</string>
+    <key>NSSpeechRecognitionUsageDescription</key><string>在你开启收音后，Saytile 使用本机语音识别生成并修订文字。</string>
     <key>NSAppleEventsUsageDescription</key><string>在你点击截图后，Riftlet 向已确认的浏览器草稿附加截图，不发送消息。</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>

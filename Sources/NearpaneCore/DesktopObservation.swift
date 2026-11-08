@@ -112,6 +112,15 @@ public protocol DesktopObservationProvider {
     func snapshot() async throws -> DesktopSnapshot
 }
 
+/// The ordinary Host has no admitted Space inventory yet. Do not turn "unknown" into
+/// a successful empty desktop or a set of sample displays.
+@MainActor
+public struct UnavailableDesktopProvider: DesktopObservationProvider {
+    public init() {}
+    public var capabilities: DesktopCapabilities { .init(observation: .unsupported) }
+    public func snapshot() async throws -> DesktopSnapshot { throw DesktopActionError.unsupported }
+}
+
 public struct DesktopTarget: Equatable, Sendable {
     public let sessionID: UUID
     public let revision: UInt64

@@ -39,11 +39,18 @@ final class TrayOwner {
             executor: ChromeAppleEventsExecutor(), program: try ChatGPTWebPageProgram.load(), mode: .ordinaryProduct,
             profile: policy.observationProfile, productStore: library.store, productOrigins: policy.productOrigins)
         let checker = NativeAutomationPermissionChecker()
-        return TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
+        let owner = TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
                          captureEntry: prefs.builtInScreenshotEnabled, defaultMode: prefs.defaultMode,
                          ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: { try adapter.targetForClick() },
                          permission: { ask, session in await checker.check(askUserIfNeeded: ask, expectedSession: session) == .granted },
                          notify: notify, report: report)
+        // An explicit connection owns the original lock: finish already-journaled local imports
+        // before projecting the queue. Never reinterpret an interrupted external transfer as a new click.
+        let recovered = try await owner.importer.recover()
+        if !recovered.invalid.isEmpty || !recovered.missing.isEmpty {
+            report("部分截图缺失或无法校验，已保留原记录。")
+        }
+        return owner
     }
 
     init(store: QueueStore, root: URL, adapter: any AttachmentAdapter, policy: ReceiptPolicy,

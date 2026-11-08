@@ -1,0 +1,88 @@
+Nearpane · actual file changes by stage
+A = added; M = modified; paths relative to repository root. build/ and .build/ are excluded.
+
+A · b63b0b7026dc15d24d4515528b363d6fd96118a8 fix(host): respect display availability and isolate restarted sessions
+M	Sources/NearpaneCore/Configuration.swift
+M	Sources/NearpaneCore/HostSession.swift
+M	Sources/NearpaneCore/InteractionRouter.swift
+M	Sources/NearpaneCore/Layout.swift
+M	Sources/NearpaneCore/Modules.swift
+M	Sources/NearpaneCore/SnapshotBus.swift
+M	Sources/NearpaneHost/NearpaneApp.swift
+M	Sources/NearpaneUI/EdgeSurfaceView.swift
+M	Sources/NearpaneUI/EdgeWindowController.swift
+M	Tests/NearpaneCoreTests/ConfigurationTests.swift
+M	Tests/NearpaneCoreTests/HostLifecycleTests.swift
+M	Tests/NearpaneUITests/HiddenWindowTests.swift
+A	engineering/verification/A-host-closeout.md
+
+B · fac8319e01c7ce592aa521f78c61460258b8f871 feat(voice): embed the pinned Saytile domain and continuous transcript
+M	Package.swift
+M	Resources/Info.plist
+M	Sources/NearpaneCore/HostSession.swift
+M	Sources/NearpaneCore/Modules.swift
+M	Sources/NearpaneHost/NearpaneApp.swift
+M	Sources/NearpaneUI/EdgeSurfaceView.swift
+M	Sources/NearpaneUI/EdgeWindowController.swift
+A	Sources/NearpaneUI/EmbeddedModules.swift
+M	Sources/NearpaneUI/SettingsView.swift
+A	Sources/NearpaneVoice/VoiceCaptureGlyph.swift
+A	Sources/NearpaneVoice/VoiceModule.swift
+A	Sources/NearpaneVoice/VoiceSurface.swift
+A	Tests/NearpaneVoiceTests/VoiceTests.swift
+A	engineering/verification/B-saytile.md
+M	scripts/build-app.sh
+A	scripts/prepare-domains.py
+M	scripts/test.sh
+
+C · 4498ed25b7bd1edb291d1c8318f2f616fc2bc8e3 feat(tray): embed Riftlet capture, queue and draft attachment in the Host
+M	Package.swift
+M	Resources/Info.plist
+M	Sources/NearpaneCore/Modules.swift
+M	Sources/NearpaneHost/NearpaneApp.swift
+A	Sources/NearpaneTray/ExistingLibrary.swift
+A	Sources/NearpaneTray/TrayArrival.swift
+A	Sources/NearpaneTray/TrayCollection.swift
+A	Sources/NearpaneTray/TrayLayout.swift
+A	Sources/NearpaneTray/TrayModule.swift
+A	Sources/NearpaneTray/TrayOwner.swift
+A	Sources/NearpaneTray/TraySurface.swift
+A	Sources/NearpaneTray/Upstream/ApplicationInstanceOwnership.swift
+A	Sources/NearpaneTray/Upstream/ArrivalMotionPreferences.swift
+A	Sources/NearpaneTray/Upstream/AutomationPermission.swift
+A	Sources/NearpaneTray/Upstream/OrdinaryCaptureConfiguration.swift
+A	Sources/NearpaneTray/Upstream/ScreenshotEntryPreferences.swift
+A	Sources/NearpaneTray/Upstream/SelectionAuthority.swift
+A	Sources/NearpaneTray/Upstream/ThumbnailCache.swift
+M	Sources/NearpaneUI/EdgeSurfaceView.swift
+M	Sources/NearpaneUI/EdgeWindowController.swift
+M	Sources/NearpaneUI/EmbeddedModules.swift
+M	Sources/NearpaneUI/SettingsView.swift
+A	Tests/NearpaneTrayTests/DomainTests.swift
+A	Tests/NearpaneTrayTests/TrayTests.swift
+A	engineering/verification/C-riftlet.md
+M	scripts/build-app.sh
+M	scripts/prepare-domains.py
+
+D · test(host): verify the integrated panel and packaged domains (parent 4498ed25b7bd1edb291d1c8318f2f616fc2bc8e3)
+M	Package.swift
+M	README.md
+M	Resources/Info.plist
+M	Sources/NearpaneCore/DesktopObservation.swift
+M	Sources/NearpaneCore/HostSession.swift
+M	Sources/NearpaneCore/Modules.swift
+M	Sources/NearpaneHost/NearpaneApp.swift
+M	Sources/NearpaneTray/TrayModule.swift
+M	Sources/NearpaneTray/TrayOwner.swift
+M	Sources/NearpaneUI/EdgeSurfaceView.swift
+M	Sources/NearpaneUI/EmbeddedModules.swift
+M	Sources/NearpaneUI/SettingsView.swift
+M	Sources/NearpaneVoice/VoiceModule.swift
+M	Sources/NearpaneVoice/VoiceSurface.swift
+M	Tests/NearpaneTrayTests/DomainTests.swift
+A	Tests/NearpaneUITests/IntegratedHostTests.swift
+M	Tests/NearpaneVoiceTests/VoiceTests.swift
+A	engineering/verification/D-acceptance.md
+A	engineering/verification/changes.txt
+M	scripts/build-app.sh
+M	scripts/test.sh

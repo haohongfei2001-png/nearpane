@@ -2,10 +2,34 @@ import AppKit
 import SwiftUI
 import NearpaneCore
 import NearpaneUI
+#if canImport(SaytileKit) && canImport(RiftletAdapters)
+import SaytileKit
+import RiftletAdapters
+#endif
 
 @main
 struct NearpaneApp {
     @MainActor static func main() {
+        if CommandLine.arguments.dropFirst().first == "--verify-bundled-resources" {
+            guard Bundle.main.bundleURL.pathExtension == "app" else {
+                FileHandle.standardError.write(Data("Resource check requires a packaged app.\n".utf8))
+                exit(1)
+            }
+            #if canImport(SaytileKit) && canImport(RiftletAdapters)
+            do {
+                // Read and validate packaged files. No GUI, store, target, device or transport is created.
+                _ = try CloudConnectionVerifier.bundledSample()
+                _ = try LegacyWebObservationProgram.wrapping(ChatGPTWebPageProgram.load())
+                print("Packaged Saytile and Riftlet resources verified.")
+            } catch {
+                FileHandle.standardError.write(Data("Packaged domain resource verification failed.\n".utf8))
+                exit(1)
+            }
+            #else
+            print("Foundation-only resource check; no embedded domains.")
+            #endif
+            return
+        }
         let application = NSApplication.shared
         let delegate = HostAppDelegate()
         application.delegate = delegate
@@ -28,7 +52,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"))
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"))
         self.modules = modules
-        let session = HostSession(store: store, coreFactories: modules.factories)
+        let session = modules.makeHost(store: store)
         host = session
         startupTask = Task { [weak self] in
             await session.start()

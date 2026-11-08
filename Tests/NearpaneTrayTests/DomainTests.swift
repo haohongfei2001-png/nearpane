@@ -4,7 +4,7 @@ import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 import RiftletCore
-import RiftletCapture
+@testable import RiftletCapture
 @testable import NearpaneTray
 
 private func root() -> URL {
@@ -130,6 +130,67 @@ struct TrayDomainTests {
         await adapter.configure(.verifiedReady, valid: false)
         await module.finishPress(second)
         #expect(await adapter.appends == 0 && module.rows.map(\.id) == [record.id])
+        module.stop()
+    }
+
+    @Test func hideAndShowWhileDraftResolutionIsPendingCannotReplayTheClick() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let media = dir.appendingPathComponent("media")
+        try FileManager.default.createDirectory(at: media, withIntermediateDirectories: true)
+        try Data("fixture".utf8).write(to: media.appendingPathComponent("frame.png"))
+        let row = try await store.importAsset(.init(sourceKey: "frame", fileName: "frame.png", sha256: String(repeating: "a", count: 64),
+            byteCount: 7, pixelWidth: 20, pixelHeight: 10, mediaType: "image/png", origin: .synthetic))
+        let adapter = Transport()
+        var releasePin: CheckedContinuation<Void, Never>?
+        let module = TrayModule { change, error in
+            TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+                pin: { Task { @MainActor in
+                    await withCheckedContinuation { releasePin = $0 }
+                    return try await adapter.captureTarget()
+                } }, permission: { _,_ in true }, notify: change, report: error)
+        }
+        try module.start(); await module.connect(); await module.authorizeAttachments()
+        let press = try #require(module.beginPress(row))
+        var processing = false
+        let finishing = Task { @MainActor in processing = true; await module.finishPress(press) }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while (!processing || releasePin == nil) && ContinuousClock.now < deadline { await Task.yield() }
+        try #require(processing)
+        let gate = try #require(releasePin)
+        module.surfaceHidden(true); module.surfaceHidden(false)
+        gate.resume(); await finishing.value
+        #expect(await adapter.appends == 0)
+        #expect(try await store.asset(id: row.id)?.status == .pending && module.issue == nil)
+        module.stop()
+    }
+
+    @Test func explicitConnectionRecoversAnInterruptedImportOnceWithoutAnyExternalInput() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let lock = try ApplicationInstanceOwnership(root: dir)
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
+        let output = dir.appendingPathComponent("captures")
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let source = output.appendingPathComponent("fixture.png")
+        try makePNG(source)
+        let original = try Data(contentsOf: source)
+        let broken = PrivateAssetImporter(privateRoot: dir, store: store, fault: { context in
+            if context.boundary == .mediaSynced { throw SimulatedImportInterruption(boundary: .mediaSynced) }
+        })
+        await #expect(throws: SimulatedImportInterruption.self) {
+            _ = try await broken.importBuiltInScreenshot(original: source, outputDirectory: output)
+        }
+        #expect(try await store.assets().isEmpty)
+        lock.close()
+        let module = TrayModule(existingRoot: dir)
+        try module.start()
+        #expect(module.rows.isEmpty && !module.connected)
+        await module.connect()
+        let row = try #require(module.rows.first)
+        #expect(module.rows.count == 1 && row.status == .pending && !module.mayAttach)
+        module.disconnect(); await module.connect()
+        #expect(module.rows.map(\.id) == [row.id] && !module.mayAttach)
+        #expect(try Data(contentsOf: source) == original)
         module.stop()
     }
 

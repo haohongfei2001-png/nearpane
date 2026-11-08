@@ -117,15 +117,17 @@ public final class HostSession {
     }
 
     public func selectFixture(_ fixture: DesktopFixture) async {
-        guard isRunning, let mock = provider as? MockDesktopObservationProvider else { return }
+        guard isRunning else { return }
         configuration.fixture = fixture
-        mock.fixture = fixture
         save()
+        guard let mock = provider as? MockDesktopObservationProvider else { return }
+        mock.fixture = fixture
         await refreshDesktop()
     }
 
     public func refreshDesktop() async {
-        guard isRunning, registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }) else { return }
+        guard isRunning, provider.capabilities.observation != .unsupported,
+              registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }) else { return }
         refreshGeneration += 1
         let generation = refreshGeneration
         do {

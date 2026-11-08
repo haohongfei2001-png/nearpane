@@ -10,16 +10,24 @@ public struct VoiceSurface: View {
     @ViewState private var editing: UUID?
     @ViewState private var draft = ""
     @ViewState private var copied = false
+    @ViewState private var settling = false
     public init(_ module: VoiceModule) { self.module = module }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let id = editing {
-                TextEditor(text: $draft).font(.body)
+                TextEditor(text: Binding(get: { draft }, set: { draft = $0; module.stageDraft(id, text: $0) }))
+                    .font(.body).disabled(settling)
                 HStack {
-                    Button("取消") { editing = nil }
-                    Button("保存") { Task { if await module.saveEdit(id, text: draft) { editing = nil } } }
-                }.controlSize(.small)
+                    Button("取消") {
+                        settling = true
+                        Task { if await module.discardDraft(id) { editing = nil }; settling = false }
+                    }
+                    Button("保存") {
+                        settling = true
+                        Task { if await module.saveEdit(id, text: draft) { editing = nil }; settling = false }
+                    }
+                }.controlSize(.small).disabled(settling)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {
@@ -29,7 +37,9 @@ public struct VoiceSurface: View {
                         ForEach(module.rows) { row in
                             if !row.text.isEmpty {
                                 Text(verbatim: row.text).textSelection(.enabled)
-                                    .contextMenu { Button("修改这段文字…") { draft = row.text; editing = row.id } }
+                                    .contextMenu { Button("修改这段文字…") {
+                                        Task { if let text = await module.editText(row.id) { draft = text; editing = row.id } }
+                                    } }
                             }
                             if row.recognitionState == .failed {
                                 Button("重试识别") { Task { await module.retry(row.id) } }

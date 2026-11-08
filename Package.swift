@@ -5,13 +5,14 @@ import PackageDescription
 let full = Context.environment["NEARPANE_FOUNDATION_ONLY"] != "1"
 let saytile = ".build/domain-inputs/2bd114f526013e6ccb422a26e17f4514e9d63836/Sources/"
 let riftlet = ".build/domain-inputs/5c0e3da8ae2339910321fa9211dc6c5d6d6a3a7d/Sources/"
-let voice: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray"] : []
+let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray"] : []
+let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
 var targets: [Target] = [
     .target(name: "NearpaneCore"),
-    .target(name: "NearpaneUI", dependencies: ["NearpaneCore"] + voice),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"]),
+    .target(name: "NearpaneUI", dependencies: ["NearpaneCore"] + domains),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["SaytileKit", "RiftletAdapters"] : [])),
     .testTarget(name: "NearpaneCoreTests", dependencies: ["NearpaneCore"]),
-    .testTarget(name: "NearpaneUITests", dependencies: ["NearpaneUI", "NearpaneCore"] + voice)
+    .testTarget(name: "NearpaneUITests", dependencies: ["NearpaneUI", "NearpaneCore"] + domains + fixtureDomains)
 ]
 if full {
     targets += [

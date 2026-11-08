@@ -37,7 +37,7 @@ public enum BuiltinCatalog {
     public static let manifests: [ModuleManifest] = [
         .init(id: voice, name: "Saytile", symbol: "mic", kind: .core, actions: [:]),
         .init(id: screenshots, name: "Riftlet", symbol: "photo", kind: .core, actions: [:]),
-        .init(id: desktop, name: "Desktop mock", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
+        .init(id: desktop, name: "Spaces", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
         .init(id: notes, name: "Notes sample", symbol: "note.text"),
         .init(id: clock, name: "Clock sample", symbol: "clock"),
         .init(id: "com.holdsnow.nearpane.tasks-sample", name: "Tasks sample", symbol: "checklist"),
@@ -203,6 +203,11 @@ public final class ModuleRegistry {
     }
 
     public func permissionRevoked(_ id: String) { if runtimes[id] != nil { fail(id) } }
+
+    public func reportFailure(_ id: String, from runtime: any HostModule) {
+        guard runtimes[id] === runtime else { return }
+        fail(id)
+    }
 
     public func stopAll() {
         collapse()

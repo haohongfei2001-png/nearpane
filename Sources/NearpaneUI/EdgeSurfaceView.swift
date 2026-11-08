@@ -28,6 +28,9 @@ public struct EdgeSurfaceView: View {
                 }
                 if let rail = layout.moduleRail { moduleRail.place(in: rail) }
             }
+            // Offset children don't contribute their offsets to a ZStack's measured size.
+            // Clip at the whole panel, not at the height of its largest individual region.
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             .clipped()
             #if canImport(NearpaneTray)
             .simultaneousGesture(SpatialTapGesture().onEnded { event in
@@ -76,46 +79,12 @@ public struct EdgeSurfaceView: View {
     }
 
     private var desktop: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                if !enabled(BuiltinCatalog.desktop) {
-                    Text("Desktop mock disabled.")
-                } else {
-                    Label("Synthetic data", systemImage: "rectangle.dashed").font(.caption)
-                    Text("Spaces Preview is not connected.").font(.callout)
-                    if let latest = host.bus.desktop {
-                        TimelineView(.periodic(from: .now, by: 5)) { context in
-                            let freshness = latest.effectiveFreshness(at: context.date)
-                            Text(freshness == .fresh ? "Mock snapshot" : (freshness == .stale ? "Stale snapshot · actions unavailable" : "Updating · last stable sample retained"))
-                                .font(.caption2).foregroundStyle(.secondary)
-                        }
-                        let shown = latest.freshness == .transient ? (host.bus.lastStableDesktop ?? latest) : latest
-                        ForEach(shown.displays) { display in
-                            VStack(alignment: .leading, spacing: 7) {
-                                Image(systemName: display.rotationDegrees == 90 ? "rectangle.portrait" : "display")
-                                Text("Synthetic display").font(.caption)
-                                Text("\(Int(display.frame.width)) × \(Int(display.frame.height)) · \(display.rotationDegrees)°")
-                                    .font(.caption2).monospacedDigit()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(10)
-                            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
-                        }
-                        Text("User-facing Spaces: unknown").font(.caption)
-                        Text("Display samples are not Space rows. Switching and window activation are unavailable.")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-                    if host.providerFailed {
-                        Text("Mock provider unavailable. Retained data is not current.").font(.caption).foregroundStyle(.orange)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            // The control layer overlays this view; this gutter only prevents metadata from being obscured.
-            .padding(.bottom, 32)
-        }
-        .overlay(alignment: .top) { Divider().opacity(0.4) }
-        .accessibilityIdentifier("desktop-reserved-region")
+        Text(enabled(BuiltinCatalog.desktop) ? "空间归属尚未确认" : "空间预览已停用")
+            .font(.caption).foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(alignment: .top) { Divider().opacity(0.4) }
+            .accessibilityHint("空间切换和窗口激活不可用。")
+            .accessibilityIdentifier("desktop-reserved-region")
     }
 
     private var moduleRail: some View {

@@ -1,34 +1,33 @@
-# Nearpane Host Foundation
+# Nearpane
 
-P2 native macOS Host for [issue #4](https://github.com/haohongfei2001-png/nearpane/issues/4). This stage supplies the Host and **synthetic providers only**. Spaces Preview is **not implemented or validated**. Saytile and Riftlet are unconnected surface placeholders.
+原生 macOS 常驻侧栏。一个非激活的 AppKit 面板承载 Saytile 连续文字、Riftlet 截图托盘和预留的 Spaces 区域。当前工程已通过离线集成验收；真实桌面、麦克风、浏览器草稿和云端服务未做现场验收。
 
-Requirements: macOS 14+, Swift 6 toolchain (Xcode Command Line Tools is sufficient). The recorded test environment is macOS 27.0 / build 26A428, Apple Silicon, Swift 6.4. Other macOS versions and Intel are not validated. There are no external package dependencies.
+| 模块 | 当前行为 |
+| --- | --- |
+| Saytile | 在同一进程使用上游音频控制器、文字修订和编辑草稿库。单控件区分暂停、待命和说话；复制只在点击时发生。默认关闭云端，不读取独立应用的凭据或历史。点击收音前不打开设备。 |
+| Riftlet | 在设置中明确连接已有资料库；复用原队列、媒体、锁和回执，不创建替代队列。原应用占用、库缺失或版本不兼容时拒绝连接。截图入口、两列缩略图、展开/补位和附加都属于同一托盘。目录收录与外部草稿授权独立；不自动发送。|
+| Spaces | 普通界面保留空间区并标记归属未知。设置中的合成诊断不进入生产事件流，不会切换 Space、移动或激活窗口。其他内置可选模块仍是明确标示的样例。 |
 
-```sh
-# Build a native development .app without launching it:
-bash scripts/build-app.sh debug
-# Run core tests and hidden AppKit construction tests; no visible window:
-bash scripts/test.sh
-# Optional optimized build, also without launching:
-bash scripts/build-app.sh release
-```
+侧栏以屏幕宽度的 1/8 贴合可用边缘；语音与截图合计占可用高度的 3/8，其余 5/8 留给空间区。菜单栏提供显示、隐藏、设置和退出。Host 配置、摆放与隐藏意图单独保存。语音内容留在 Nearpane 的 Voice 领域库；截图和未确认的附加操作留在已有的 Riftlet 资料库。退出或停用不会删除领域数据，也不会把权限写进 Host 配置。
 
-Artifacts: `build/debug/Nearpane.app` and `build/release/Nearpane.app`. SwiftPM intermediates and test scratch data stay under `.build/`. Build/test scripts do not open the app, change system permissions, or contact external services. The compiler-generated executable signature is verified before packaging; the development bundle has no distribution signature or notarization. Existing generated bundles are retained in `build/<configuration>/previous.*` when rebuilt.
+## 本地构建与测试
 
-Tests use Swift Testing and SwiftPM's currently supported `native` engine with explicit framework/plugin discovery for Command Line Tools 6.4. That engine emits a deprecation warning; the default `swiftbuild` engine failed here on test-bundle signing and incremental macro discovery. No installed toolchain is changed. Full-bundle signing is deferred: the local File Provider reintroduces Finder metadata after `.app` creation, invalidating a bundle seal ([Apple QA1940](https://developer.apple.com/library/archive/qa/qa1940/_index.html)). This does not change the compiled executable bytes. The app has **not** been launched to establish visible runtime acceptance.
-
-Manual launch is a separate user action, **not performed during this implementation**:
+整合包要求 macOS 26+（SaytileKit 的系统下限）。记录环境为 Apple Silicon、macOS 27.0、Swift 6.4 和 Command Line Tools。其他系统版本和 Intel 未实机验证。构建脚本只从相邻的既有 `saytile` 与 `Riftlet` 仓库读取固定提交的指定源码，并在当前仓库的忽略缓存中逐文件校验 Git blob；不克隆、切换分支或访问网络。固定版本与来源见各阶段收据。
 
 ```sh
-open build/debug/Nearpane.app
+scripts/test.sh
+scripts/build-app.sh debug
+scripts/build-app.sh release
+# 可选：同时在 build/verification/hidden/ 保存隐藏窗口合成图
+NEARPANE_RENDER_FIXTURES=1 scripts/test.sh
+# 原 Host 独立构建（部署下限 14，不含两个领域模块）
+NEARPANE_FOUNDATION_ONLY=1 scripts/build-app.sh debug
 ```
 
-On manual launch, the accessory app places one borderless, nonactivating panel at the right edge of the menu-bar display's visible area. The menu-bar control provides Show / Hide, Settings, and Quit. Only explicitly opening Settings activates the app. Settings supports module enable/disable, pinning and order, screen/edge selection, mock fixtures and simulated permission decisions. No settings control is added to the main surface.
+集成开发包生成在 `build/debug/Nearpane.app` 和 `build/release/Nearpane.app`。打包过程检查可执行文件签名、plist 与资源字节，并通过成品程序的 `--verify-bundled-resources` 调用两个领域原有的资源读取器。这条路径在创建 NSApplication 之前返回，不打开窗口、资料库或连接。开发包未经分发签名或公证；构建不安装或替换应用。
 
-The upper area reserves 3/8 for Saytile and Riftlet; the desktop area reserves 5/8. Optional samples use an independently scrollable control layer and one temporary expanded overlay. Display cards are labeled synthetic and are **not Space rows**. The 3+1 fixture's internal counts appear only in mock diagnostics, alongside the explicit unknown user-facing semantics.
+测试采用 Swift Testing。当前 CLT 的测试签名和宏发现需要 SwiftPM 的 native 测试引擎；该引擎的弃用警告及已知工具链警告保留在本地日志。临时库、构建缓存、原始日志和渲染图均不提交。
 
-On a manual app run, Host preferences are stored atomically at `~/Library/Application Support/Nearpane/host-configuration.json`. Only placement, module preferences and selected fixture are saved. Runtime desktop IDs, snapshots, permission grants and expanded state are not persisted. A corrupt or future-version file is preserved; the session runs with unsaved defaults. Disabling a module never deletes domain data. This stage does not create domain data stores.
+[完整验收与待验证项](engineering/verification/D-acceptance.md) · [A：Host](engineering/verification/A-host-closeout.md) · [B：Saytile](engineering/verification/B-saytile.md) · [C：Riftlet](engineering/verification/C-riftlet.md) · [阶段文件清单](engineering/verification/changes.txt)
 
-Architecture, status matrix, test boundaries and follow-up acceptance: [P2 Host Foundation](engineering/P2-HOST-FOUNDATION.md). Raw receipts and hashes: [P2 verification](engineering/receipts/P2-20261109/README.md).
-
-Product and visual authorities remain [PRODUCT_DEFINITION.md](PRODUCT_DEFINITION.md), [visual authority](design/NEARPANE-VISUAL-AUTHORITY.md), and the [P1 gate review](docs/reviews/P1-TECHNICAL-GATE-REVIEW.md). Their files and the HTML prototype are unchanged by P2.
+[产品定义](PRODUCT_DEFINITION.md) · [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md) · [P1 技术门禁](docs/reviews/P1-TECHNICAL-GATE-REVIEW.md) · [历史 P2 基线](engineering/P2-HOST-FOUNDATION.md)

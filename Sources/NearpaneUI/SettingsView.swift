@@ -117,9 +117,10 @@ public struct SettingsView: View {
                 Picker("Fixture", selection: Binding(get: { host.configuration.fixture }, set: { fixture in
                     Task { await host.selectFixture(fixture) }
                 })) { ForEach(DesktopFixture.allCases) { Text($0.label).tag($0) } }
-                Button("Refresh mock snapshot") { Task { await host.refreshDesktop() } }
-                if let snapshot = host.bus.desktop {
-                    Text("Revision \(snapshot.revision) · \(snapshot.displays.count) synthetic displays")
+                // Presentation-only preview; selecting it does not feed fixtures to the ordinary Host bus.
+                let snapshot = host.configuration.fixture.makeSnapshot()
+                Group {
+                    Text("\(snapshot.displays.count) synthetic displays (diagnostics only)")
                     Text("Internal scope record counts: \(snapshot.scopes.map { String($0.records.count) }.joined(separator: " + "))")
                     Text("User-facing Space semantics: UNKNOWN. Counts above are internal records, not independent desktops.")
                         .font(.caption).foregroundStyle(.secondary)

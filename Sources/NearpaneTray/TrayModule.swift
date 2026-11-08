@@ -20,6 +20,7 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private let open: Open
     @ObservationIgnored private var owner: TrayOwner?
     @ObservationIgnored private var epoch = UUID()
+    @ObservationIgnored private var interaction = UUID()
     @ObservationIgnored private var revision = 0
     @ObservationIgnored private var acceptedRows: [UUID: Int64] = [:]
     @ObservationIgnored private var settle: Task<Void, Never>?
@@ -146,6 +147,7 @@ public final class TrayModule: HostModule {
         if value { cancelInteraction(); cancelArrival() }
     }
     func cancelInteraction() {
+        interaction = UUID()
         pointer.cancel(); pressTask?.cancel(); pressTask = nil; owner?.cancelPresses()
     }
     public func collapseMenu() { expanded = false }
@@ -164,23 +166,24 @@ public final class TrayModule: HostModule {
         guard mayAttach else { issue = "请先在设置中允许附加到草稿。"; return nil }
         do {
             let target = try owner.pinTarget()
+            issue = nil
             pressTask = target
-            return .init(id: row.id, revision: row.visibilityRevision, epoch: epoch, target: target)
+            return .init(id: row.id, revision: row.visibilityRevision, epoch: interaction, target: target)
         } catch { issue = "未能确认目标草稿，截图仍在托盘中。"; return nil }
     }
     func finishPress(_ press: TrayPress) async {
-        guard let owner, press.epoch == epoch else { press.target.cancel(); return }
+        guard let owner, press.epoch == interaction else { press.target.cancel(); return }
         pressTask = nil
         do {
             let selection = try await owner.authority.accept(id: UUID(), assetID: press.id, visibilityRevision: press.revision,
-                target: press.target, isCurrent: { self.active && !self.hidden && self.epoch == press.epoch &&
+                target: press.target, isCurrent: { self.active && !self.hidden && self.interaction == press.epoch &&
                     self.acceptedRows[press.id] == press.revision && self.mayAttach })
             try await owner.transfer.select(selection)
-            guard epoch == press.epoch else { return }
+            guard self.owner === owner else { return }
             await refresh()
             scheduleObservation(owner)
         } catch {
-            guard epoch == press.epoch else { return }
+            guard interaction == press.epoch else { return }
             issue = "未能确认附加；请检查原草稿。截图和原操作均已保留。"
             await refresh()
         }

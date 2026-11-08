@@ -16,6 +16,8 @@ if [ -d "$testing_frameworks/Testing.framework" ]; then
     -Xswiftc -external-plugin-path
     -Xswiftc "$toolchain_bin/../lib/swift/host/plugins/testing#$toolchain_bin/swift-plugin-server")
 fi
+scratch=.build/native
+if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then scratch=.build/native-foundation; fi
 swift test --build-system native --disable-xctest --enable-swift-testing --disable-sandbox \
-  --scratch-path .build/native --cache-path .build/cache --config-path .build/config \
+  --scratch-path "$scratch" --cache-path .build/cache --config-path .build/config \
   --security-path .build/security "${testing_flags[@]}" "$@"

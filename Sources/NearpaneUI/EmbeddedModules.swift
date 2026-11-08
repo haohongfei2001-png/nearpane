@@ -29,6 +29,16 @@ public final class EmbeddedModules {
         return result
     }
 
+    public func makeHost(store: any ConfigurationStore) -> HostSession {
+        let host = HostSession(store: store, provider: UnavailableDesktopProvider(), coreFactories: factories)
+        #if canImport(NearpaneVoice)
+        voice.openingFailed = { [weak host, weak voice] in
+            if let voice { host?.registry.reportFailure(BuiltinCatalog.voice, from: voice) }
+        }
+        #endif
+        return host
+    }
+
     public func setInteractionHidden(_ hidden: Bool) {
         #if canImport(NearpaneTray)
         tray.surfaceHidden(hidden)

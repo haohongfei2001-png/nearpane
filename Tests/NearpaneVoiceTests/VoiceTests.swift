@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import AppKit
-import SaytileKit
+@testable import SaytileKit
 @testable import NearpaneVoice
 
 @MainActor
@@ -89,6 +89,27 @@ struct VoiceTests {
         #expect(restored.transcript == expected)
         #expect(restored.control.state == .paused)
         restored.stop(); await restored.waitForTransition()
+    }
+
+    @Test func originalLocalIngressPublishesARevisionToTheIdleHostWithoutPollingOrAudio() async throws {
+        let dir = directory(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        let module = VoiceModule(openStore: { store }, makeInput: { _, callback in
+            Issue.record("A domain revision should not open the microphone.")
+            return ScriptedInput(callback)
+        })
+        try module.start(); await module.waitForTransition()
+        let row = try await store.createRecording()
+        let ticket = try await store.beginRecognition(recordingID: row.id)
+        let ingress = LocalCandidateIngress(store: store, ticket: ticket)
+        let text = "这段原话。"
+        try await ingress.receive(.init(text: text, stableUTF16Length: text.utf16.count, audioEndSeconds: 1.2,
+                                       language: "zh", isComplete: true))
+        try await ingress.finish()
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while module.transcript != text && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(module.transcript == text && module.rows.count == 1 && module.control.state == .paused)
+        module.stop(); await module.waitForTransition()
     }
 
     @Test func offlineConfigurationRetainsOneLanguageExpertAndOneTextCore() throws {
