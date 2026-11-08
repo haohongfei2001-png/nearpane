@@ -30,7 +30,7 @@ NEARPANE_FOUNDATION_ONLY=1 scripts/build-app.sh debug
 
 测试采用 Swift Testing。开发包同样使用 SwiftPM 的 native 引擎，避免 File Provider 元数据导致资源包在增量构建中重签失败。该引擎在 Swift 6.4 中有弃用警告。迁移到后续工具链时需复核。全部原始日志、临时库和构建缓存均在忽略目录。
 
-[P3.5 工程收据与运行边界](engineering/verification/P3.5-closeout.md) · [原生体验验收与授权范围](engineering/verification/P3.5-native-acceptance.md)
+[P3.6 工程准入、现场操作与权限](engineering/verification/P3.6-preflight-closeout.md) · [P3.5 工程收据与运行边界](engineering/verification/P3.5-closeout.md) · [P3.5 验收准备记录](engineering/verification/P3.5-native-acceptance.md)
 
 [完整验收与待验证项](engineering/verification/D-acceptance.md) · [A：Host](engineering/verification/A-host-closeout.md) · [B：Saytile](engineering/verification/B-saytile.md) · [C：Riftlet](engineering/verification/C-riftlet.md) · [阶段文件清单](engineering/verification/changes.txt)
 
