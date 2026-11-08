@@ -24,7 +24,7 @@ struct ConfigurationTests {
         host.stop()
     }
     private func temporaryURL() -> URL {
-        URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".build/test-data/\(UUID())/configuration.json")
+        URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data").appendingPathComponent("\(UUID())/configuration.json")
     }
 
     @Test func testMissingConfigurationUsesSafeDefaultsWithoutWriting() async throws {

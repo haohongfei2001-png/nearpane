@@ -10,7 +10,8 @@ import RiftletAdapters
 @main
 struct NearpaneApp {
     @MainActor static func main() {
-        if CommandLine.arguments.dropFirst().first == "--verify-bundled-resources" {
+        let args = Array(CommandLine.arguments.dropFirst())
+        if args.first == "--verify-bundled-resources" {
             guard Bundle.main.bundleURL.pathExtension == "app" else {
                 FileHandle.standardError.write(Data("Resource check requires a packaged app.\n".utf8))
                 exit(1)
@@ -21,8 +22,13 @@ struct NearpaneApp {
                 _ = try CloudConnectionVerifier.bundledSample()
                 _ = try LegacyWebObservationProgram.wrapping(ChatGPTWebPageProgram.load())
                 print("Packaged Saytile and Riftlet resources verified.")
+                if args.count > 1 {
+                    guard args.count == 3, args[1] == "--native-acceptance-prepare" else { exit(2) }
+                    let session = try NativeAcceptanceSession(id: args[2], prepare: true)
+                    print(session.directory.path)
+                }
             } catch {
-                FileHandle.standardError.write(Data("Packaged domain resource verification failed.\n".utf8))
+                FileHandle.standardError.write(Data("Unable to verify packaged resources or prepare the requested fixture.\n".utf8))
                 exit(1)
             }
             #else
@@ -30,8 +36,21 @@ struct NearpaneApp {
             #endif
             return
         }
-        let application = NSApplication.shared
         let delegate = HostAppDelegate()
+        if let command = args.first, command.hasPrefix("--native-acceptance") {
+            #if canImport(RiftletCore) && canImport(SaytileKit)
+            guard args.count == 2, command == "--native-acceptance-session" else { exit(2) }
+            do {
+                delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
+            } catch {
+                FileHandle.standardError.write(Data("Invalid or inaccessible isolated acceptance session.\n".utf8))
+                exit(1)
+            }
+            #else
+            exit(2)
+            #endif
+        }
+        let application = NSApplication.shared
         application.delegate = delegate
         application.setActivationPolicy(.accessory)
         withExtendedLifetime(delegate) { application.run() }
@@ -40,6 +59,10 @@ struct NearpaneApp {
 
 @MainActor
 final class HostAppDelegate: NSObject, NSApplicationDelegate {
+    #if canImport(RiftletCore) && canImport(SaytileKit)
+    var acceptanceSession: NativeAcceptanceSession?
+    private var acceptanceProbe: NativeAcceptanceProbe?
+    #endif
     private var host: HostSession?
     private var modules: EmbeddedModules?
     private var surface: EdgeWindowController?
@@ -48,7 +71,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var startupTask: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        if let acceptanceSession { support = acceptanceSession.support }
+        #endif
         let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"))
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"))
         self.modules = modules
@@ -60,6 +86,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             let controller = EdgeWindowController(host: session, modules: modules)
             surface = controller
             controller.place(screens: SystemScreens.geometry())
+            #if canImport(RiftletCore) && canImport(SaytileKit)
+            if let acceptanceSession {
+                do { acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules, surface: controller) }
+                catch { NSApp.terminate(nil); return }
+            }
+            #endif
             controller.presentIfNeeded()
             installMenu()
             NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
@@ -71,7 +103,13 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         startupTask?.cancel()
         host?.stop()
         guard let modules else { return .terminateNow }
-        Task { await modules.finishStopping(); sender.reply(toApplicationShouldTerminate: true) }
+        Task {
+            await modules.finishStopping()
+            #if canImport(RiftletCore) && canImport(SaytileKit)
+            acceptanceProbe?.finish()
+            #endif
+            sender.reply(toApplicationShouldTerminate: true)
+        }
         return .terminateLater
     }
 

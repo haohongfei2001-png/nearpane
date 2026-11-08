@@ -26,8 +26,10 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var settle: Task<Void, Never>?
     @ObservationIgnored private var observe: Task<Void, Never>?
     @ObservationIgnored private var pressTask: Task<TargetLease, Error>?
+    @ObservationIgnored private var resolvingPresses: [UUID: Task<TargetLease, Error>] = [:]
     @ObservationIgnored var pointer = PointerSelectionGate()
     private(set) var rows: [AssetRecord] = []
+    public var visibleIDs: [UUID] { rows.map(\.id) }
     private(set) var swallowing = Set<UUID>()
     private(set) var expanded = false
     public private(set) var active = false
@@ -61,6 +63,8 @@ public final class TrayModule: HostModule {
     @ObservationIgnored public var exposureChanged: ((Bool) -> Void)?
     @ObservationIgnored private var collection: TrayCollection?
     @ObservationIgnored private var collectionDrain: Task<Void, Never>?
+    @ObservationIgnored private var connectionTask: Task<Void, Never>?
+    @ObservationIgnored private var ownerDrain: Task<Void, Never>?
     public private(set) var collectionEnabled = false
 
     public func collect(from selected: URL) async { await collect(from: selected, provider: SystemCaptureLocationProvider()) }
@@ -87,7 +91,11 @@ public final class TrayModule: HostModule {
         let pin = owner, previous = collectionDrain
         collectionDrain = Task { await previous?.value; await current.binding.stop(); withExtendedLifetime(pin) {} }
     }
-    public func finishStopping() async { await collectionDrain?.value }
+    public func finishStopping() async {
+        await connectionTask?.value
+        await collectionDrain?.value
+        await ownerDrain?.value
+    }
 
 
     public convenience init(existingRoot: URL) {
@@ -105,7 +113,20 @@ public final class TrayModule: HostModule {
         guard active, !connecting, owner == nil else { return }
         connecting = true; issue = nil
         let entry = epoch
-        defer { if epoch == entry { connecting = false } }
+        let previous = connectionTask, closingCollection = collectionDrain, closingOwner = ownerDrain
+        let task = Task { [weak self] in
+            await previous?.value
+            await closingCollection?.value
+            await closingOwner?.value
+            guard let self, active, epoch == entry else { return }
+            await openConnection(entry)
+        }
+        connectionTask = task
+        await task.value
+        if epoch == entry { connecting = false; connectionTask = nil }
+    }
+
+    private func openConnection(_ entry: UUID) async {
         do {
             let value = try await open({ [weak self] in
                 guard let self, epoch == entry else { return }; await refresh()
@@ -129,9 +150,19 @@ public final class TrayModule: HostModule {
         } catch { if epoch == entry { issue = (error as? LibraryError)?.localizedDescription ?? "无法连接此资料库。原文件已保留。" } }
     }
     public func disconnect() {
-        stopCollecting(); cancelArrival(); flight?.close(); flight = nil; epoch = UUID(); cancelInteraction(); owner?.close(); owner = nil
+        stopCollecting(); cancelArrival(); flight?.close(); flight = nil; epoch = UUID(); cancelInteraction()
+        let observing = observe
+        observing?.cancel(); observe = nil
+        if let owner {
+            owner.close()
+            if owner.hasPendingWork || observing != nil {
+                let previous = ownerDrain
+                ownerDrain = Task { await previous?.value; await observing?.value; await owner.finishWork() }
+            }
+        }
+        owner = nil
         exposureChanged?(false)
-        settle?.cancel(); settle = nil; observe?.cancel(); observe = nil
+        settle?.cancel(); settle = nil
         rows = []; acceptedRows = [:]; swallowing = []; expanded = false
         captureEntry = false; mayAttach = false; connected = false; connecting = false; issue = nil
     }
@@ -148,6 +179,8 @@ public final class TrayModule: HostModule {
     }
     func cancelInteraction() {
         interaction = UUID()
+        for task in resolvingPresses.values { task.cancel() }
+        resolvingPresses.removeAll()
         pointer.cancel(); pressTask?.cancel(); pressTask = nil; owner?.cancelPresses()
     }
     public func collapseMenu() { expanded = false }
@@ -174,11 +207,16 @@ public final class TrayModule: HostModule {
     func finishPress(_ press: TrayPress) async {
         guard let owner, press.epoch == interaction else { press.target.cancel(); return }
         pressTask = nil
+        let click = UUID()
+        resolvingPresses[click] = press.target
+        defer { resolvingPresses[click] = nil }
         do {
-            let selection = try await owner.authority.accept(id: UUID(), assetID: press.id, visibilityRevision: press.revision,
-                target: press.target, isCurrent: { self.active && !self.hidden && self.interaction == press.epoch &&
-                    self.acceptedRows[press.id] == press.revision && self.mayAttach })
-            try await owner.transfer.select(selection)
+            try await owner.performWork {
+                let selection = try await owner.authority.accept(id: click, assetID: press.id, visibilityRevision: press.revision,
+                    target: press.target, isCurrent: { self.active && !self.hidden && self.interaction == press.epoch &&
+                        self.acceptedRows[press.id] == press.revision && self.mayAttach })
+                try await owner.transfer.select(selection)
+            }
             guard self.owner === owner else { return }
             await refresh()
             scheduleObservation(owner)
@@ -197,7 +235,9 @@ public final class TrayModule: HostModule {
                 guard let self, owner === value, mayAttach else { return }
                 do {
                     guard !(try await value.store.unresolvedOperations()).isEmpty else { return }
-                    try await value.transfer.observePending { target in await value.checkPermission(false, target.sessionID) }
+                    try await value.performWork {
+                        try await value.transfer.observePending { target in await value.checkPermission(false, target.sessionID) }
+                    }
                     await refresh()
                 } catch { if owner === value { issue = "无法确认原操作的状态。" }; return }
             }

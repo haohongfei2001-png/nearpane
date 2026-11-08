@@ -1,20 +1,32 @@
 // swift-tools-version: 6.0
 import PackageDescription
+import Foundation
 
-// scripts/test.sh and build-app.sh resolve only the pinned library inputs in this checkout's cache.
+// The wrappers authenticate the pinned inputs before SwiftPM reads them.
 let full = Context.environment["NEARPANE_FOUNDATION_ONLY"] != "1"
-let saytile = ".build/domain-inputs/2bd114f526013e6ccb422a26e17f4514e9d63836/Sources/"
-let riftlet = ".build/domain-inputs/5c0e3da8ae2339910321fa9211dc6c5d6d6a3a7d/Sources/"
+struct DomainPin: Decodable {
+    let commit: String
+    let treeSHA256: String
+    var key: String { commit + "-" + treeSHA256 }
+}
+struct DomainLock: Decodable { let domains: [String: DomainPin] }
 let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
 var targets: [Target] = [
     .target(name: "NearpaneCore"),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["SaytileKit", "RiftletAdapters"] : [])),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["SaytileKit", "RiftletAdapters", "RiftletCore"] : [])),
     .testTarget(name: "NearpaneCoreTests", dependencies: ["NearpaneCore"]),
     .testTarget(name: "NearpaneUITests", dependencies: ["NearpaneUI", "NearpaneCore"] + domains + fixtureDomains)
 ]
 if full {
+    let manifest = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    let lock = try JSONDecoder().decode(DomainLock.self, from: Data(contentsOf: manifest.appendingPathComponent("Dependencies/domains.lock.json")))
+    guard let speech = lock.domains["saytile"], let tray = lock.domains["riftlet"] else { fatalError("Incomplete domain lock") }
+    let run = Context.environment["NEARPANE_RUN_ID"] ?? ""
+    let cache = (run.isEmpty ? ".build" : "build/standalone." + run + "/cache") + "/domain-cache-v1/"
+    let saytile = cache + speech.key + "/Sources/"
+    let riftlet = cache + tray.key + "/Sources/"
     targets += [
         .systemLibrary(name: "CSQLite", path: saytile + "CSQLite"),
         .target(name: "CAudio", path: saytile + "CAudio",
@@ -31,6 +43,7 @@ if full {
         .target(name: "RiftletUI", dependencies: ["RiftletCore"], path: riftlet + "RiftletUI",
                 exclude: ["ThumbnailCache.swift"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "NearpaneTray", dependencies: ["NearpaneCore", "RiftletCore", "RiftletCapture", "RiftletAdapters", "RiftletUI", "CSQLite"],
+                path: cache + "tray-" + tray.key, sources: ["Host", "Upstream"],
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "NearpaneTrayTests", dependencies: ["NearpaneTray", "RiftletCore", "RiftletCapture"]),
         .target(name: "NearpaneVoice", dependencies: ["NearpaneCore", "SaytileKit"]),

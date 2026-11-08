@@ -12,12 +12,14 @@
 
 ## 本地构建与测试
 
-整合包要求 macOS 26+（SaytileKit 的系统下限）。记录环境为 Apple Silicon、macOS 27.0、Swift 6.4 和 Command Line Tools。其他系统版本和 Intel 未实机验证。构建脚本只从相邻的既有 `saytile` 与 `Riftlet` 仓库读取固定提交的指定源码，并在当前仓库的忽略缓存中逐文件校验 Git blob；不克隆、切换分支或访问网络。固定版本与来源见各阶段收据。
+整合包要求 macOS 26+、Swift 工具链和 Python 3。验证环境为 Apple Silicon、macOS 27.0、Swift 6.4 和 Command Line Tools。单独检出 Nearpane 后直接运行下列脚本，首次全量构建会自动从 GitHub 获取两个固定提交的选定文件。此后的构建可用 `NEARPANE_OFFLINE=1` 从校验过的缓存运行。[依赖锁、来源、许可证与升级方法](Dependencies/README.md)
 
 ```sh
 scripts/test.sh
 scripts/build-app.sh debug
 scripts/build-app.sh release
+# 从空缓存验证单仓库构建，保留独立日志及两个开发包
+scripts/verify-standalone.sh
 # 可选：同时在 build/verification/hidden/ 保存隐藏窗口合成图
 NEARPANE_RENDER_FIXTURES=1 scripts/test.sh
 # 原 Host 独立构建（部署下限 14，不含两个领域模块）
@@ -26,7 +28,9 @@ NEARPANE_FOUNDATION_ONLY=1 scripts/build-app.sh debug
 
 集成开发包生成在 `build/debug/Nearpane.app` 和 `build/release/Nearpane.app`。打包过程检查可执行文件签名、plist 与资源字节，并通过成品程序的 `--verify-bundled-resources` 调用两个领域原有的资源读取器。这条路径在创建 NSApplication 之前返回，不打开窗口、资料库或连接。开发包未经分发签名或公证；构建不安装或替换应用。
 
-测试采用 Swift Testing。当前 CLT 的测试签名和宏发现需要 SwiftPM 的 native 测试引擎；该引擎的弃用警告及已知工具链警告保留在本地日志。临时库、构建缓存、原始日志和渲染图均不提交。
+测试采用 Swift Testing。开发包同样使用 SwiftPM 的 native 引擎，避免 File Provider 元数据导致资源包在增量构建中重签失败。该引擎在 Swift 6.4 中有弃用警告。迁移到后续工具链时需复核。全部原始日志、临时库和构建缓存均在忽略目录。
+
+[P3.5 工程收据与运行边界](engineering/verification/P3.5-closeout.md) · [原生体验验收与授权范围](engineering/verification/P3.5-native-acceptance.md)
 
 [完整验收与待验证项](engineering/verification/D-acceptance.md) · [A：Host](engineering/verification/A-host-closeout.md) · [B：Saytile](engineering/verification/B-saytile.md) · [C：Riftlet](engineering/verification/C-riftlet.md) · [阶段文件清单](engineering/verification/changes.txt)
 

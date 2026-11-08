@@ -9,7 +9,7 @@ import RiftletCore
 
 private func root() -> URL {
     URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        .appendingPathComponent(".build/test-data/tray-" + UUID().uuidString, isDirectory: true)
+        .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data").appendingPathComponent("tray-" + UUID().uuidString, isDirectory: true)
 }
 
 private func makePNG(_ original: URL) throws {
@@ -206,6 +206,79 @@ struct TrayDomainTests {
         held.close()
         #expect(throws: LibraryError.incompatible) { try ExistingLibrary.open(dir) }
         #expect(try Data(contentsOf: db) == original)
+    }
+
+    @Test func independentProcessHoldingTheRiftletLockIsRejectedBeforeAnyProductionFormatWrite() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let first = try ApplicationInstanceOwnership(root: dir)
+        let database = dir.appendingPathComponent("queue.sqlite")
+        _ = try QueueStore(databaseURL: database)
+        first.close()
+        let before = try Data(contentsOf: database)
+        let process = Process(), input = Pipe(), signal = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        process.arguments = ["-I", "-c", """
+            import fcntl, select, sys
+            with open(sys.argv[1], "r+b") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                print("1", flush=True)
+                select.select([sys.stdin], [], [], 15)
+            """, dir.appendingPathComponent("instance.lock").path]
+        process.standardInput = input; process.standardOutput = signal
+        try process.run()
+        defer { if process.isRunning { process.terminate() } }
+        try #require(try signal.fileHandleForReading.read(upToCount: 1) == Data("1".utf8))
+        let module = TrayModule(existingRoot: dir)
+        try module.start(); await module.connect()
+        #expect(!module.connected && module.issue == LibraryError.busy.localizedDescription)
+        #expect(try Data(contentsOf: database) == before)
+        try input.fileHandleForWriting.close(); process.waitUntilExit()
+        await module.connect()
+        #expect(module.connected && module.rows.isEmpty && !module.mayAttach)
+        module.disconnect(); await module.finishStopping()
+        let nextOwner = try ApplicationInstanceOwnership(root: dir)
+        nextOwner.close(); module.stop()
+    }
+
+    @Test func reopenWaitsForAnEarlierConnectionAndItsAdmittedWorkToReleaseOwnership() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        var openGate: CheckedContinuation<Void, Never>?
+        var workGate: CheckedContinuation<Void, Never>?
+        var opens = 0
+        weak var lastOwner: TrayOwner?
+        let adapter = Transport()
+        let module = TrayModule { change, error in
+            opens += 1
+            if opens == 1 { await withCheckedContinuation { openGate = $0 } }
+            let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: false,
+                                  pin: { Task { try await adapter.captureTarget() } }, permission: { _, _ in false },
+                                  notify: change, report: error)
+            lastOwner = owner
+            return owner
+        }
+        try module.start()
+        let first = Task { await module.connect() }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while openGate == nil && ContinuousClock.now < deadline { await Task.yield() }
+        let releaseOpening = try #require(openGate)
+        module.disconnect()
+        let next = Task { await module.connect() }
+        await Task.yield()
+        #expect(opens == 1)
+        releaseOpening.resume(); await first.value; await next.value
+        try #require(opens == 2 && module.connected)
+        let owner = try #require(lastOwner)
+        let admitted = Task { try await owner.performWork { await withCheckedContinuation { workGate = $0 } } }
+        while workGate == nil && ContinuousClock.now < deadline { await Task.yield() }
+        let releaseWork = try #require(workGate)
+        module.stop()
+        var drained = false
+        let stopping = Task { await module.finishStopping(); drained = true }
+        await Task.yield()
+        #expect(!drained && !module.connected)
+        releaseWork.resume(); try await admitted.value; await stopping.value
+        #expect(drained)
     }
 
     @Test func actualFolderWatcherImportsOnlyTaggedNewScreenshotIntoTheOriginalStore() async throws {

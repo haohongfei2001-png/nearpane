@@ -24,6 +24,9 @@ final class TrayOwner {
     var exposureChanged: (Bool) -> Void = { _ in }
     private var systemCapture: Process?
     private(set) var cancelled = false
+    private var workCount = 0
+    private var drainWaiters: [CheckedContinuation<Void, Never>] = []
+    var hasPendingWork: Bool { workCount > 0 }
     let notify: @MainActor () async -> Void
     let report: @MainActor (String) -> Void
     // Other objects/tasks that continue domain work retain this same lock, even after UI disable.
@@ -80,7 +83,30 @@ final class TrayOwner {
 
     func cancelPresses() {
         let ids = authority.cancel()
-        if !ids.isEmpty { Task { try? await transfer.cancelAcceptedSelections(ids: ids, reason: "Tray interaction ended") } }
+        guard !ids.isEmpty else { return }
+        workCount += 1
+        Task {
+            defer { endWork() }
+            try? await transfer.cancelAcceptedSelections(ids: ids, reason: "Tray interaction ended")
+        }
+    }
+    // Keep the existing lock until imports, previously admitted inputs and their journal writes settle.
+    func performWork<T>(_ operation: () async throws -> T) async throws -> T {
+        guard !cancelled else { throw CancellationError() }
+        workCount += 1
+        defer { endWork() }
+        return try await operation()
+    }
+    private func endWork() {
+        workCount -= 1
+        guard workCount == 0 else { return }
+        let waiters = drainWaiters
+        drainWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+    func finishWork() async {
+        guard hasPendingWork else { return }
+        await withCheckedContinuation { drainWaiters.append($0) }
     }
     func close() {
         cancelled = true; cancelPresses()
@@ -131,7 +157,9 @@ final class TrayOwner {
     private func importCapture(_ url: URL, directory: URL, source: RiftArrivalSource? = nil) async {
         guard !cancelled else { return }
         do {
-            let row = try await importer.importBuiltInScreenshot(original: url, outputDirectory: directory)
+            let row = try await performWork {
+                try await importer.importBuiltInScreenshot(original: url, outputDirectory: directory)
+            }
             if !cancelled, magnetEnabled, let source {
                 arrived?(.init(id: row.id, ready: ProcessInfo.processInfo.systemUptime, source: .selected(source)))
             }

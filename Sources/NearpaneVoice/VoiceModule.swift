@@ -69,7 +69,7 @@ public final class VoiceModule: HostModule {
     private var limit = 60
     public private(set) var active = false
     private(set) var busy = false
-    private(set) var capture: CaptureState = .paused
+    public private(set) var capture: CaptureState = .paused
     private(set) var control = PanelCapturePresentation(.paused, 0)
     private(set) var rows: [Recording] = []
     private(set) var hasEarlier = false
@@ -77,7 +77,13 @@ public final class VoiceModule: HostModule {
     public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
 
     public convenience init(directory: URL) {
-        self.init(openStore: { try SaytileStore(directory: directory) },
+        self.init(openStore: {
+            let parent = directory.deletingLastPathComponent()
+            if (try? parent.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
+                throw CocoaError(.fileReadNoPermission)
+            }
+            return try SaytileStore(directory: directory)
+        },
                   makeInput: { DomainInput(store: $0, changed: $1) })
     }
     init(openStore: @escaping () throws -> SaytileStore, makeInput: @escaping MakeInput) {

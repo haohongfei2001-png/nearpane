@@ -20,7 +20,7 @@ final class ScriptedInput: VoiceInput {
 struct VoiceTests {
     func directory() -> URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent(".build/test-data/voice-" + UUID().uuidString)
+            .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data").appendingPathComponent("voice-" + UUID().uuidString)
     }
 
     @Test func captureButtonFollowsDomainIncludingSilenceAndLateEvents() async throws {

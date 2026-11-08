@@ -1,1 +1,0 @@
-../../../.build/domain-inputs/5c0e3da8ae2339910321fa9211dc6c5d6d6a3a7d/Sources/RiftletApp/ScreenshotEntryPreferences.swift

@@ -19,7 +19,7 @@ struct IntegratedHostTests {
     private let draft = "下次继续编辑的草稿"
     private func fixtureRoot() -> URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent(".build/test-data/unified-" + UUID().uuidString, isDirectory: true)
+            .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data").appendingPathComponent("unified-" + UUID().uuidString, isDirectory: true)
     }
     private func seedVoice(_ support: URL) async throws -> UUID {
         let store = try SaytileStore(directory: support.appendingPathComponent("Voice"))
@@ -115,6 +115,34 @@ struct IntegratedHostTests {
         await reopened.tray.connect()
         #expect(reopened.tray.rows.map(\.id) == queue && !reopened.tray.mayAttach && !reopened.tray.collectionEnabled)
         next.stop(); await reopened.finishStopping()
+    }
+
+    @Test func standaloneVoiceTextAndDefaultsStayOutsideTheHostStore() async throws {
+        let root = fixtureRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let support = root.appendingPathComponent("Nearpane")
+        let standalone = root.appendingPathComponent("Saytile")
+        let other = try SaytileStore(directory: standalone)
+        let unrelated = try await other.createRecording()
+        _ = try await other.saveEdit(recordingID: unrelated.id, text: "独立测试库专属文字")
+        try await other.close()
+        let preferences = standalone.appendingPathComponent("recognition-settings.json")
+        let original = Data(#"{"cloudEnabled":true,"testFixture":true}"#.utf8)
+        try original.write(to: preferences)
+        let domains = EmbeddedModules(support: support), host = domains.makeHost(store: MemoryConfigurationStore())
+        await host.start(); await domains.voice.waitForTransition()
+        #expect(domains.voice.active && domains.voice.transcript.isEmpty && domains.voice.capture == .paused)
+        host.stop(); await domains.finishStopping()
+        let reopened = try SaytileStore(directory: standalone)
+        #expect(try await reopened.recording(id: unrelated.id)?.text == "独立测试库专属文字")
+        #expect(try Data(contentsOf: preferences) == original)
+        try await reopened.close()
+        let alias = root.appendingPathComponent("redirected-support")
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: standalone)
+        let redirected = EmbeddedModules(support: alias), failed = redirected.makeHost(store: MemoryConfigurationStore())
+        await failed.start()
+        #expect(failed.registry.states[BuiltinCatalog.voice] == .degraded)
+        #expect(!FileManager.default.fileExists(atPath: standalone.appendingPathComponent("Voice").path))
+        failed.stop(); await redirected.finishStopping()
     }
 
     @Test func failingVoiceStoreCanRetryWithoutTakingDownConnectedTray() async throws {
