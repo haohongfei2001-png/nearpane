@@ -23,7 +23,7 @@ public struct SettingsView: View {
     private var modules: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Core adapters are placeholders. Optional entries are bundled lifecycle samples.")
+                Text("Optional entries are bundled samples. Voice capture starts only when you press its control.")
                     .font(.callout).foregroundStyle(.secondary)
                 ForEach(host.registry.preferences, id: \.id) { pref in
                     if let manifest = host.registry.manifests.first(where: { $0.id == pref.id }) {
@@ -43,7 +43,7 @@ public struct SettingsView: View {
                             HStack {
                                 Text(host.registry.states[pref.id]?.rawValue ?? "available").font(.caption).foregroundStyle(.secondary)
                                 if host.registry.states[pref.id] == .degraded {
-                                    Button("Restart sample") { host.handle(.setEnabled(pref.id, true)) }
+                                    Button("Restart module") { host.handle(.setEnabled(pref.id, true)) }
                                 }
                             }
                         }
@@ -114,7 +114,7 @@ public struct SettingsView: View {
                 ForEach(Array(host.diagnostics.records.suffix(6).enumerated()), id: \.offset) { _, record in
                     Text(record.code.rawValue).font(.caption2).foregroundStyle(.secondary)
                 }
-                Text("Spaces Preview: NOT IMPLEMENTED / NOT VALIDATED. First-party integrations and all real desktop actions are unavailable.")
+                Text("Space membership is unknown. Switching Spaces and activating windows are unavailable.")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(16)
         }

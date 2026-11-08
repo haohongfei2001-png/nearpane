@@ -8,7 +8,7 @@ public final class EdgePanel: NSPanel {
 }
 
 private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
-    // P2 contains buttons and read-only samples, no editor that needs keyboard focus.
+    // Button clicks do not become key. An explicitly clicked native text editor can opt in.
     override var needsPanelToBecomeKey: Bool { false }
 }
 
@@ -16,7 +16,7 @@ private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
 public final class EdgeWindowController: NSWindowController {
     private let host: HostSession
     public private(set) var hasPlacement = false
-    public init(host: HostSession) {
+    public init(host: HostSession, modules: EmbeddedModules? = nil) {
         self.host = host
         let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
                               styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
@@ -37,7 +37,7 @@ public final class EdgeWindowController: NSWindowController {
         material.material = .sidebar
         material.blendingMode = .behindWindow
         material.state = .active
-        let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host))
+        let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules))
         content.translatesAutoresizingMaskIntoConstraints = false
         material.addSubview(content)
         NSLayoutConstraint.activate([

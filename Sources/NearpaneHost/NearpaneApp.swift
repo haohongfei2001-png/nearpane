@@ -17,6 +17,7 @@ struct NearpaneApp {
 @MainActor
 final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var host: HostSession?
+    private var modules: EmbeddedModules?
     private var surface: EdgeWindowController?
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
@@ -25,12 +26,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"))
-        let session = HostSession(store: store)
+        let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"))
+        self.modules = modules
+        let session = HostSession(store: store, coreFactories: modules.factories)
         host = session
         startupTask = Task { [weak self] in
             await session.start()
             guard !Task.isCancelled, let self else { return }
-            let controller = EdgeWindowController(host: session)
+            let controller = EdgeWindowController(host: session, modules: modules)
             surface = controller
             controller.place(screens: SystemScreens.geometry())
             controller.presentIfNeeded()
@@ -38,6 +41,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
                 name: NSApplication.didChangeScreenParametersNotification, object: nil)
         }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        startupTask?.cancel()
+        host?.stop()
+        guard let modules else { return .terminateNow }
+        Task { await modules.finishStopping(); sender.reply(toApplicationShouldTerminate: true) }
+        return .terminateLater
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -1,9 +1,13 @@
 import SwiftUI
 import NearpaneCore
+#if canImport(NearpaneVoice)
+import NearpaneVoice
+#endif
 
 public struct EdgeSurfaceView: View {
     private let host: HostSession
-    public init(host: HostSession) { self.host = host }
+    private let modules: EmbeddedModules?
+    public init(host: HostSession, modules: EmbeddedModules? = nil) { self.host = host; self.modules = modules }
 
     public var body: some View {
         GeometryReader { geometry in
@@ -32,21 +36,19 @@ public struct EdgeSurfaceView: View {
         host.registry.preferences.first(where: { $0.id == id })?.enabled == true
     }
 
-    private var voice: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(enabled(BuiltinCatalog.voice) ? "Voice adapter not connected." : "Voice module disabled.")
-                .font(.callout).foregroundStyle(.secondary)
-            Spacer(minLength: 0)
-            HStack {
-                Image(systemName: "mic.slash").accessibilityLabel("Voice capture unavailable")
-                Spacer()
-                Image(systemName: "doc.on.doc").foregroundStyle(.tertiary)
-                    .accessibilityLabel("Copy unavailable")
-            }.foregroundStyle(.secondary)
-        }
-        .padding(14)
-        .background(.white.opacity(0.12))
-        .accessibilityElement(children: .combine)
+    @ViewBuilder private var voice: some View {
+        #if canImport(NearpaneVoice)
+        if let voice = modules?.voice, host.registry.states[BuiltinCatalog.voice] == .resident {
+            VoiceSurface(voice)
+        } else { unavailableVoice }
+        #else
+        unavailableVoice
+        #endif
+    }
+
+    private var unavailableVoice: some View {
+        Text(enabled(BuiltinCatalog.voice) ? "语音模块暂不可用" : "语音模块已停用")
+            .font(.caption).foregroundStyle(.secondary).padding(8)
     }
 
     private var screenshots: some View {

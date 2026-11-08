@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 scripts/prepare-domains.py
 # No app launch and no visible window. SwiftPM caches stay in this worktree.
 # CLT 6.4 ships Testing as a framework. Its native SwiftPM engine needs the explicit
 # framework/plugin paths; it builds a CLI test runner instead of signing XCTest bundles.

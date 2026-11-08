@@ -19,7 +19,8 @@ public final class HostSession {
     @ObservationIgnored private var refreshGeneration: UInt64 = 0
     @ObservationIgnored private var desktopTask: Task<Void, Never>?
 
-    public init(store: any ConfigurationStore, provider: (any DesktopObservationProvider)? = nil) {
+    public init(store: any ConfigurationStore, provider: (any DesktopObservationProvider)? = nil,
+                coreFactories: [String: @MainActor () -> any HostModule] = [:]) {
         let diagnostics = Diagnostics()
         let bus = SnapshotBus(diagnostics: diagnostics)
         let registry = ModuleRegistry(bus: bus, diagnostics: diagnostics)
@@ -36,7 +37,8 @@ public final class HostSession {
             // Static catalog registration failures are programmer errors caught by the catalog tests.
             do {
                 try registry.register(manifest) {
-                    SampleModule(message: manifest.kind == .core ? "Domain adapter not connected." : "Synthetic module content. No account or data source is connected.")
+                    if manifest.kind == .core, let factory = coreFactories[manifest.id] { return factory() }
+                    return SampleModule(message: manifest.kind == .core ? "Domain adapter not connected." : "Synthetic module content. No account or data source is connected.")
                 }
             } catch { diagnostics.record(.moduleFailed, moduleID: manifest.id) }
         }
