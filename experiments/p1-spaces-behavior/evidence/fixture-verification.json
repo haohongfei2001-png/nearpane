@@ -1,0 +1,27 @@
+{
+  "behavioralTesting": "NOT TESTED",
+  "binarySHA256": "a870201703691b5b2d9480e047b54ebe2d7218afd4d5033d5ff6366609adaced",
+  "checks": [
+    "help_has_no_sampling",
+    "CLI_validation",
+    "0700_0600_permissions",
+    "complete_ordered_session",
+    "marker_invalidation",
+    "topology_invalidation",
+    "stable_and_transient",
+    "unknown_preservation",
+    "identity_and_note_redaction",
+    "fingerprint_unlinkability",
+    "no_overwrite"
+  ],
+  "events": 15,
+  "rawSHA256": "85f5df8af030fd7f5b55c160672c83d75150505c49ff0a02a0d36ff6181da59f",
+  "result": "PASS",
+  "samples": 12,
+  "sanitizedSHA256": "4cdbd9cdfc37a8f8bb3b72ba8132c9e4649d74bb0f8b7323ef1c319dff16ec93",
+  "schemaVersion": 1,
+  "source": "synthetic_fixture",
+  "stableIncompleteSamples": 1,
+  "stableSamples": 3,
+  "transientSamples": 8
+}

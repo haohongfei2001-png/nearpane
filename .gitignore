@@ -1,0 +1,7 @@
+# Local build products and private observation evidence must never be committed.
+.build/
+.swiftpm/
+.private-evidence/
+*.raw.jsonl
+raw.jsonl
+__pycache__/

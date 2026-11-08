@@ -1,0 +1,44 @@
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite ObservationTests started.
+◇ Test testParserPreservesMissingCurrentAndMalformedSpaceRecords() started.
+◇ Test testConfigurationCannotAllowOneSampleStability() started.
+◇ Test testUnavailableInventoryAndMissingDisplayScopeCannotBeComplete() started.
+◇ Test testTopologyFingerprintCoversArrangementScaleAndMirror() started.
+◇ Test testNullEmptyMalformedAnd64BitIDsStayDistinct() started.
+◇ Test testTopologyChangeInvalidatesStableAndRestartsEpoch() started.
+◇ Test testSanitizerRemovesIdentitiesNotesAndRawFingerprints() started.
+◇ Test testGapsOutOfOrderAndSlowSamplesInvalidate() started.
+◇ Test testMissingOrOutsideCurrentSpaceRemainsUnknown() started.
+◇ Test testRequiresRepeatedIdenticalSamplesDespiteDifferentTimestamps() started.
+◇ Test testZOrderAndOSBuildArePartOfStateFingerprint() started.
+◇ Test testMarkersInvalidateAndNeverSupplyObservedState() started.
+◇ Test testMarkerInputFragmentationOversizeAndIncompleteEOF() started.
+◇ Test testUnknownScopeIsNeverMappedToMainDisplay() started.
+◇ Test testPrivateLogPermissionsNoOverwriteSymlinkAndOutputCap() started.
+◇ Test testWindowOnscreenMembershipGeometryAndZOrderChangesResetStability() started.
+◇ Test testAlternatingCurrentSpacesNeverBecomeStable() started.
+◇ Test testIntraSampleChangesNeverContributeToStability() started.
+◇ Test testEveryUnknownMembershipCategoryStaysUnknown() started.
+✔ Test testParserPreservesMissingCurrentAndMalformedSpaceRecords() passed after 0.025 seconds.
+✔ Test testConfigurationCannotAllowOneSampleStability() passed after 0.026 seconds.
+✔ Test testNullEmptyMalformedAnd64BitIDsStayDistinct() passed after 0.026 seconds.
+✔ Test testTopologyFingerprintCoversArrangementScaleAndMirror() passed after 0.026 seconds.
+✔ Test testMarkerInputFragmentationOversizeAndIncompleteEOF() passed after 0.026 seconds.
+✔ Test testSanitizerRemovesIdentitiesNotesAndRawFingerprints() passed after 0.026 seconds.
+✔ Test testUnknownScopeIsNeverMappedToMainDisplay() passed after 0.026 seconds.
+✔ Test testUnavailableInventoryAndMissingDisplayScopeCannotBeComplete() passed after 0.026 seconds.
+✔ Test testRequiresRepeatedIdenticalSamplesDespiteDifferentTimestamps() passed after 0.026 seconds.
+✔ Test testPrivateLogPermissionsNoOverwriteSymlinkAndOutputCap() passed after 0.026 seconds.
+✔ Test testMarkersInvalidateAndNeverSupplyObservedState() passed after 0.029 seconds.
+✔ Test testTopologyChangeInvalidatesStableAndRestartsEpoch() passed after 0.030 seconds.
+✔ Test testZOrderAndOSBuildArePartOfStateFingerprint() passed after 0.031 seconds.
+✔ Test testGapsOutOfOrderAndSlowSamplesInvalidate() passed after 0.033 seconds.
+✔ Test testIntraSampleChangesNeverContributeToStability() passed after 0.036 seconds.
+✔ Test testMissingOrOutsideCurrentSpaceRemainsUnknown() passed after 0.039 seconds.
+✔ Test testAlternatingCurrentSpacesNeverBecomeStable() passed after 0.046 seconds.
+✔ Test testEveryUnknownMembershipCategoryStaysUnknown() passed after 0.067 seconds.
+✔ Test testWindowOnscreenMembershipGeometryAndZOrderChangesResetStability() passed after 0.070 seconds.
+✔ Suite ObservationTests passed after 0.070 seconds.
+✔ Test run with 19 tests in 1 suite passed after 0.071 seconds.
