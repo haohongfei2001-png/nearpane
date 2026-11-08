@@ -4,15 +4,47 @@ import NearpaneCore
 
 public struct SettingsView: View {
     private let host: HostSession
+    private let domains: EmbeddedModules?
     private let screens: [ScreenGeometry]
     private let placementChanged: () -> Void
-    public init(host: HostSession, screens: [ScreenGeometry], placementChanged: @escaping () -> Void) {
-        self.host = host; self.screens = screens; self.placementChanged = placementChanged
+    public init(host: HostSession, screens: [ScreenGeometry], domains: EmbeddedModules? = nil, placementChanged: @escaping () -> Void) {
+        self.domains = domains; self.host = host; self.screens = screens; self.placementChanged = placementChanged
     }
 
     public var body: some View {
         TabView {
             modules.tabItem { Text("Modules") }
+            #if canImport(NearpaneTray)
+            if let tray = domains?.tray {
+                Form {
+                    Text("使用已有的 Riftlet 资料库。连接期间由 Nearpane 独占；断开后原库仍由 Riftlet 使用。")
+                    if tray.connected {
+                        if tray.collectionEnabled {
+                            Button("停止收录系统截图") { tray.stopCollecting() }
+                        } else {
+                            Button("选择当前系统截图目录并收录…") {
+                                let picker = NSOpenPanel()
+                                picker.canChooseDirectories = true; picker.canChooseFiles = false
+                                picker.canCreateDirectories = false; picker.allowsMultipleSelection = false
+                                picker.begin { response in
+                                    if response == .OK, let url = picker.url { Task { await tray.collect(from: url) } }
+                                }
+                            }
+                        }
+                        Button("断开资料库") { tray.disconnect() }
+                        Button(tray.mayAttach ? "重新检查草稿附加权限" : "允许附加到当前浏览器草稿…") {
+                            Task { await tray.authorizeAttachments() }
+                        }
+                        Text("点击微图只会附加到可确认的草稿；消息始终由你发送。")
+                    } else {
+                        Button(tray.connecting ? "正在连接…" : "连接已有 Riftlet 资料库") {
+                            Task { await tray.connect() }
+                        }.disabled(!tray.active || tray.connecting)
+                    }
+                    if let issue = tray.issue { Text(issue).foregroundStyle(.secondary) }
+                }.padding().tabItem { Text("Riftlet") }
+            }
+            #endif
             appearance.tabItem { Text("Placement") }
             mockSettings.tabItem { Text("Mock & diagnostics") }
         }

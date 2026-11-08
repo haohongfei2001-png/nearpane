@@ -1,0 +1,202 @@
+import Foundation
+import Testing
+import CoreGraphics
+import ImageIO
+import UniformTypeIdentifiers
+import RiftletCore
+import RiftletCapture
+@testable import NearpaneTray
+
+private func root() -> URL {
+    URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        .appendingPathComponent(".build/test-data/tray-" + UUID().uuidString, isDirectory: true)
+}
+
+private func makePNG(_ original: URL) throws {
+    let ctx = try #require(CGContext(data: nil, width: 40, height: 17, bitsPerComponent: 8, bytesPerRow: 0,
+                     space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
+    ctx.setFillColor(CGColor(gray: 0.4, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: 40, height: 17))
+    let writer = try #require(CGImageDestinationCreateWithURL(original as CFURL, UTType.png.identifier as CFString, 1, nil))
+    CGImageDestinationAddImage(writer, try #require(ctx.makeImage()), nil)
+    try #require(CGImageDestinationFinalize(writer))
+}
+
+private actor Location: CaptureLocationProviding {
+    let url: URL
+    init(_ url: URL) { self.url = url }
+    func currentDirectory() async throws -> URL { url }
+    func start(onChange: @escaping @Sendable () async -> Void) async throws {}
+    func stop() async {}
+}
+
+private actor Transport: AttachmentAdapter {
+    nonisolated let id = "simulation"
+    let target = TargetLease(adapterID: "simulation", surface: .simulation, applicationID: "fixture",
+                             sessionID: "test", windowID: "1", documentID: "one", composerID: "one", draftGeneration: "1")
+    var accepted = true
+    var outcome: ReceiptOutcome = .unknown
+    var appends = 0
+    var observations = 0
+    func configure(_ state: ReceiptOutcome, valid: Bool = true) { outcome = state; accepted = valid }
+    func captureTarget() async throws -> TargetLease { target }
+    func validate(_ value: TargetLease) async throws -> Bool { accepted && value == target }
+    func append(_ request: TransferRequest) async throws -> TransferReceipt {
+        appends += 1; return receipt(request)
+    }
+    func reconcile(_ request: TransferRequest) async throws -> TransferReceipt {
+        observations += 1; return receipt(request)
+    }
+    private func receipt(_ r: TransferRequest) -> TransferReceipt {
+        .init(operationID: r.operation.id, assetID: r.asset.id, attempt: r.operation.attempt, assetSHA256: r.asset.sha256,
+              target: r.operation.target, outcome: outcome, profileID: "simulation-v1", attachmentID: r.operation.id.uuidString,
+              positiveReady: outcome == .verifiedReady, belongsToOriginalDraft: true, hasError: outcome == .definitiveFailure,
+              isUploading: outcome == .uploadStarted, safeToRetry: outcome == .definitiveFailure,
+              uploadStartEvidence: outcome == .uploadStarted ? .init(profileID: "simulation-upload-start-v1",
+                  signal: .correlatedProgress, evidenceID: "fixture-start", inputCount: 1) : nil)
+    }
+}
+
+@MainActor @Suite(.serialized)
+struct TrayDomainTests {
+    @Test func oneStoreOwnsUnknownReconciliationRevivalRetryAndPositiveSwallow() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let image = ImportedAsset(sourceKey: "fixture", fileName: "fixture.png", sha256: String(repeating: "a", count: 64),
+                                  byteCount: 7, pixelWidth: 160, pixelHeight: 90, mediaType: "image/png", origin: .synthetic)
+        let media = dir.appendingPathComponent("media", isDirectory: true)
+        try FileManager.default.createDirectory(at: media, withIntermediateDirectories: true)
+        try Data("fixture".utf8).write(to: media.appendingPathComponent(image.fileName))
+        _ = try await store.importAsset(image)
+        let adapter = Transport()
+        let module = TrayModule { change, error in
+            TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+                      pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in true },
+                      notify: change, report: error)
+        }
+        try module.start()
+        await module.connect()
+        #expect(module.connected && !module.mayAttach)
+        #expect(module.beginPress(try #require(module.rows.first)) == nil)
+        await module.authorizeAttachments()
+        func click() async throws {
+            let first = try #require(module.rows.first)
+            let press = try #require(module.beginPress(first))
+            await module.finishPress(press)
+        }
+        try await click()
+        #expect(try await store.asset(id: image.id)?.status == .unknown)
+        #expect(module.rows.map(\.id) == [image.id] && module.swallowing.isEmpty)
+        let old = try #require(try await store.asset(id: image.id)?.activeOperationID)
+        try await click()
+        #expect(await adapter.appends == 1)
+        #expect(await adapter.observations > 0)
+        await adapter.configure(.definitiveFailure)
+        try await click()
+        #expect(try await store.operation(id: old)?.phase == .failed)
+        #expect(try await store.asset(id: image.id)?.status == .failed && module.rows.count == 1)
+        await adapter.configure(.uploadStarted)
+        try await click()
+        #expect(await adapter.appends == 2)
+        #expect(try await store.asset(id: image.id)?.visibilityReason == .uploadStarted)
+        #expect(module.swallowing == [image.id])
+        try await Task.sleep(for: .milliseconds(180))
+        #expect(module.rows.isEmpty)
+        #expect(try await store.history().count == 1)
+        #expect(try await store.asset(id: image.id)?.status != .used)
+        module.disconnect()
+        await module.connect()
+        #expect(module.rows.isEmpty && !module.mayAttach)
+        #expect(await adapter.appends == 2)
+        module.stop()
+    }
+
+    @Test func staleDraftAndCancelledPressNeverInput() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let record = try await store.importAsset(.init(sourceKey: "change", fileName: "x.png", sha256: String(repeating: "f", count: 64),
+            byteCount: 1, pixelWidth: 16, pixelHeight: 9, mediaType: "image/png", origin: .synthetic))
+        let adapter = Transport()
+        let module = TrayModule { change, error in
+            TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: false,
+                      pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in true }, notify: change, report: error)
+        }
+        try module.start(); await module.connect(); await module.authorizeAttachments()
+        let press = try #require(module.beginPress(record))
+        module.surfaceHidden(true); await module.finishPress(press)
+        #expect(await adapter.appends == 0)
+        module.surfaceHidden(false)
+        let second = try #require(module.beginPress(record))
+        await adapter.configure(.verifiedReady, valid: false)
+        await module.finishPress(second)
+        #expect(await adapter.appends == 0 && module.rows.map(\.id) == [record.id])
+        module.stop()
+    }
+
+    @Test func existingLibraryRejectsMissingBusyAndWrongFormatWithoutCreatingAQueue() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(throws: LibraryError.self) { try ExistingLibrary.open(dir) }
+        #expect(!FileManager.default.fileExists(atPath: dir.path))
+        let held = try ApplicationInstanceOwnership(root: dir)
+        let db = dir.appendingPathComponent("queue.sqlite")
+        let original = Data("not a database".utf8)
+        try original.write(to: db)
+        #expect(throws: LibraryError.busy) { try ExistingLibrary.open(dir) }
+        held.close()
+        #expect(throws: LibraryError.incompatible) { try ExistingLibrary.open(dir) }
+        #expect(try Data(contentsOf: db) == original)
+    }
+
+    @Test func actualFolderWatcherImportsOnlyTaggedNewScreenshotIntoTheOriginalStore() async throws {
+        let base = root(); defer { try? FileManager.default.removeItem(at: base) }
+        let dir = base.appendingPathComponent("library"), source = base.appendingPathComponent("source")
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
+        let module = TrayModule { change, error in
+            TrayOwner(store: store, root: dir, adapter: UnavailableAdapter(), policy: .init(), captureEntry: true,
+                      pin: { throw LibraryError.incompatible }, permission: { _,_ in false }, notify: change, report: error)
+        }
+        try module.start(); await module.connect()
+        await module.collect(from: source, provider: Location(base.appendingPathComponent("not-authorized")))
+        #expect(!module.collectionEnabled)
+        await module.collect(from: source, provider: Location(source))
+        try #require(module.collectionEnabled)
+        try makePNG(source.appendingPathComponent("ordinary.png"))
+        let file = source.appendingPathComponent("generated.png")
+        try makePNG(file)
+        let metadata = try PropertyListSerialization.data(fromPropertyList: true, format: .binary, options: 0)
+        try #require(metadata.withUnsafeBytes { setxattr(file.path, "com.apple.metadata:kMDItemIsScreenCapture", $0.baseAddress, $0.count, 0, 0) } == 0)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(6))
+        while module.rows.isEmpty, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
+        #expect(module.rows.map(\.image.origin) == [.systemScreenshot])
+        #expect(try await store.assets().map(\.id) == module.rows.map(\.id))
+        module.stop(); await module.finishStopping()
+    }
+
+    @Test func realImporterAndThumbnailUseSameExistingLibraryAndPreserveMediaAcrossReconnect() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let lock = try ApplicationInstanceOwnership(root: dir)
+        let db = dir.appendingPathComponent("queue.sqlite")
+        _ = try QueueStore(databaseURL: db) // initialize ONLY the test fixture, never the app path
+        lock.close()
+        let owner = try await TrayOwner.existing(root: dir, notify: {}, report: { _ in })
+        let output = dir.appendingPathComponent("captures", isDirectory: true)
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let original = output.appendingPathComponent("synthetic.png")
+        try makePNG(original)
+        let image = try await owner.importer.importBuiltInScreenshot(original: original, outputDirectory: output)
+        #expect(image.image.origin == .applicationScreenshot)
+        #expect(try await owner.store.assets().map(\.id) == [image.id])
+        let rendered: CGImage? = await withCheckedContinuation { continuation in
+            owner.thumbnails.image(for: image.image, maxPixelSize: 80) { continuation.resume(returning: $0) }
+        }
+        #expect(rendered != nil && image.image.pixelWidth == 40 && image.image.pixelHeight == 17)
+        let media = dir.appendingPathComponent("media").appendingPathComponent(image.image.fileName)
+        #expect(try Data(contentsOf: media) == Data(contentsOf: original))
+        #expect(throws: LibraryError.busy) { try ExistingLibrary.open(dir) }
+        owner.close()
+        // Reopening a read/write handle on the very same DB sees the same ID, not a mirrored Host record.
+        let same = try QueueStore(databaseURL: db)
+        #expect(try await same.assets().map(\.id) == [image.id])
+    }
+}

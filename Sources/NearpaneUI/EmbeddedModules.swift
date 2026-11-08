@@ -2,6 +2,7 @@ import Foundation
 import NearpaneCore
 #if canImport(NearpaneVoice)
 import NearpaneVoice
+import NearpaneTray
 #endif
 
 /// One object per domain, shared by the registry and the surface. Content never enters the Host bus.
@@ -9,10 +10,12 @@ import NearpaneVoice
 public final class EmbeddedModules {
     #if canImport(NearpaneVoice)
     public let voice: VoiceModule
+    public let tray: TrayModule
     #endif
 
     public init(support: URL) {
         #if canImport(NearpaneVoice)
+        tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true))
         voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true))
         #endif
     }
@@ -20,14 +23,22 @@ public final class EmbeddedModules {
     public var factories: [String: @MainActor () -> any HostModule] {
         var result: [String: @MainActor () -> any HostModule] = [:]
         #if canImport(NearpaneVoice)
+        result[BuiltinCatalog.screenshots] = { [tray] in tray }
         result[BuiltinCatalog.voice] = { [voice] in voice }
         #endif
         return result
     }
 
+    public func setInteractionHidden(_ hidden: Bool) {
+        #if canImport(NearpaneTray)
+        tray.surfaceHidden(hidden)
+        #endif
+    }
+
     public func finishStopping() async {
         #if canImport(NearpaneVoice)
         await voice.waitForTransition()
+        await tray.finishStopping()
         #endif
     }
 }

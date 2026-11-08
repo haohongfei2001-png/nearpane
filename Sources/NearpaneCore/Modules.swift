@@ -36,7 +36,7 @@ public enum BuiltinCatalog {
     public static let calendar = "com.holdsnow.nearpane.calendar-sample"
     public static let manifests: [ModuleManifest] = [
         .init(id: voice, name: "Saytile", symbol: "mic", kind: .core, actions: [:]),
-        .init(id: screenshots, name: "Riftlet placeholder", symbol: "photo", kind: .core, actions: [:]),
+        .init(id: screenshots, name: "Riftlet", symbol: "photo", kind: .core, actions: [:]),
         .init(id: desktop, name: "Desktop mock", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
         .init(id: notes, name: "Notes sample", symbol: "note.text"),
         .init(id: clock, name: "Clock sample", symbol: "clock"),

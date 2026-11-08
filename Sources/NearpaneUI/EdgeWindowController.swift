@@ -15,9 +15,11 @@ private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
 @MainActor
 public final class EdgeWindowController: NSWindowController {
     private let host: HostSession
+    private let modules: EmbeddedModules?
+    private var captureSuppressed = false
     public private(set) var hasPlacement = false
     public init(host: HostSession, modules: EmbeddedModules? = nil) {
-        self.host = host
+        self.host = host; self.modules = modules
         let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
                               styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         panel.title = ""
@@ -48,6 +50,13 @@ public final class EdgeWindowController: NSWindowController {
         ])
         panel.contentView = material
         super.init(window: panel)
+        #if canImport(NearpaneTray)
+        modules?.tray.exposureChanged = { [weak self] hidden in
+            guard let self, captureSuppressed != hidden else { return }
+            captureSuppressed = hidden
+            presentIfNeeded()
+        }
+        #endif
     }
 
     @available(*, unavailable)
@@ -57,7 +66,7 @@ public final class EdgeWindowController: NSWindowController {
         guard let rect = SurfacePlacement.resolve(screens: screens, preferredID: host.configuration.preferredDisplayID,
                                                   edge: host.configuration.edge) else {
             hasPlacement = false
-            window?.orderOut(nil)
+            hide()
             return
         }
         window?.setFrame(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height), display: false)
@@ -66,10 +75,11 @@ public final class EdgeWindowController: NSWindowController {
 
     /// Never called by build scripts or tests. User launch is the only automatic presentation path.
     public func presentIfNeeded() {
-        guard host.isRunning, hasPlacement, !host.configuration.surfaceHidden else { hide(); return }
+        guard host.isRunning, hasPlacement, !captureSuppressed, !host.configuration.surfaceHidden else { hide(); return }
+        modules?.setInteractionHidden(false)
         if window?.isVisible == false { window?.orderFront(nil) }
     }
-    public func hide() { window?.orderOut(nil) }
+    public func hide() { modules?.setInteractionHidden(true); window?.orderOut(nil) }
 }
 
 @MainActor

@@ -104,7 +104,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateSettingsContent() {
         guard let host else { return }
-        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host: host, screens: SystemScreens.geometry()) { [weak self] in
+        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host: host, screens: SystemScreens.geometry(), domains: modules) { [weak self] in
             self?.surface?.place(screens: SystemScreens.geometry())
         })
     }

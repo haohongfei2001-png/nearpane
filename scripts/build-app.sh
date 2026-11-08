@@ -25,6 +25,11 @@ if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then
 else
   resources="$stage/Contents/Resources"
   cp -R "$binary_dir/Nearpane_SaytileKit.bundle" "$resources/"
+  cp -R "$binary_dir/Nearpane_RiftletAdapters.bundle" "$resources/"
+  for program in chatgpt-web-20261027.js legacy-web-observe.js; do
+    asset="Nearpane_RiftletAdapters.bundle/Contents/Resources/$program"
+    cmp "$binary_dir/$asset" "$resources/$asset"
+  done
   pcm="Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"
   cmp "$binary_dir/$pcm" "$resources/$pcm"
   cp .build/domain-inputs/2bd114f526013e6ccb422a26e17f4514e9d63836/Sources/CAudio/WEBRTC-LICENSE.txt "$resources/"

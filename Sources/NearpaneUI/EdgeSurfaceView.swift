@@ -2,6 +2,7 @@ import SwiftUI
 import NearpaneCore
 #if canImport(NearpaneVoice)
 import NearpaneVoice
+import NearpaneTray
 #endif
 
 public struct EdgeSurfaceView: View {
@@ -28,6 +29,14 @@ public struct EdgeSurfaceView: View {
                 if let rail = layout.moduleRail { moduleRail.place(in: rail) }
             }
             .clipped()
+            #if canImport(NearpaneTray)
+            .simultaneousGesture(SpatialTapGesture().onEnded { event in
+                let r = layout.screenshots
+                if !CGRect(x: r.x, y: r.y, width: r.width, height: r.height).contains(event.location) {
+                    modules?.tray.collapseMenu()
+                }
+            })
+            #endif
         }
         .tint(.indigo)
     }
@@ -51,21 +60,19 @@ public struct EdgeSurfaceView: View {
             .font(.caption).foregroundStyle(.secondary).padding(8)
     }
 
-    private var screenshots: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(enabled(BuiltinCatalog.screenshots) ? "Screenshot adapter not connected." : "Screenshot module disabled.")
-                .font(.caption).foregroundStyle(.secondary)
-            HStack(spacing: 6) {
-                ForEach(0..<3) { _ in
-                    RoundedRectangle(cornerRadius: 5).strokeBorder(.secondary.opacity(0.18))
-                        .overlay(Image(systemName: "photo").foregroundStyle(.tertiary))
-                        .aspectRatio(1.5, contentMode: .fit)
-                }
-            }.accessibilityHidden(true)
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .overlay(alignment: .top) { Divider().opacity(0.4) }
+    @ViewBuilder private var screenshots: some View {
+        #if canImport(NearpaneTray)
+        if let tray = modules?.tray, host.registry.states[BuiltinCatalog.screenshots] == .resident {
+            TraySurface(tray, left: host.configuration.edge == .left)
+        } else { unavailableTray }
+        #else
+        unavailableTray
+        #endif
+    }
+
+    private var unavailableTray: some View {
+        Text(enabled(BuiltinCatalog.screenshots) ? "截图托盘暂不可用" : "截图模块已停用")
+            .font(.caption).foregroundStyle(.secondary).padding(8)
     }
 
     private var desktop: some View {
