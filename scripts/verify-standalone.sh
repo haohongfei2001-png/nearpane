@@ -33,7 +33,10 @@ for path in sys.argv[1:]:
     else: raise SystemExit("Isolation failed: "+path)
 PY
 isolated "$offline" resolver-tests python3 -B scripts/test-dependencies.py
-isolated "$offline" evidence-tests python3 -B scripts/test-native-acceptance.py
+isolated "$offline" target-tests node --test scripts/acceptance/test-target.js
+# The original evidence suite is independent of domain sources. The full suite below
+# also builds recognition fixtures from the verified Saytile DDL, available after bootstrap.
+isolated "$offline" evidence-tests python3 -B scripts/test-native-acceptance.py NativeAcceptanceTests
 isolated "$offline" foundation env NEARPANE_FOUNDATION_ONLY=1 NEARPANE_OFFLINE=1 scripts/test.sh
 test ! -e "$build_root/domain-cache-v1"
 isolated "$profile" bootstrap python3 scripts/prepare-domains.py
@@ -45,7 +48,7 @@ python3 - "$run/logs" <<'PYCOUNT'
 import re,sys
 from pathlib import Path
 root=Path(sys.argv[1])
-for name,minimum in (("foundation",49),("integrated",73)):
+for name,minimum in (("foundation",49),("integrated",74)):
     log=(root/(name+".log")).read_text()
     summary=re.search(r"Test run with (\d+) tests in \d+ suites passed",log)
     if not summary or int(summary[1]) < minimum or re.search(r"Test .* skipped",log):

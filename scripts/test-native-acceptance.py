@@ -4,6 +4,8 @@ import importlib.util
 import json
 import copy
 import os
+import hashlib
+import runpy
 import uuid
 from pathlib import Path
 import sqlite3
@@ -75,6 +77,122 @@ class TransferFixture:
         return native.report(self.path, policy=policy)["checks"]
 
 
+class RecognitionAttemptTests(unittest.TestCase):
+    """Three read-only snapshots of a disposable DB created from the locked domain DDL."""
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(dir=native.ROOT/"build")
+        self.addCleanup(tmp.cleanup)
+        self.path = Path(tmp.name)/str(uuid.uuid4())
+        file = self.path/"support/Nearpane/Voice/Saytile.sqlite"
+        file.parent.mkdir(parents=True)
+        (self.path/"summary.key").write_bytes(bytes(range(32)))
+        resolver = runpy.run_path(str(native.ROOT/"scripts/prepare-domains.py"))
+        pin = json.loads(resolver["LOCK"].read_text())["domains"]["saytile"]
+        store = "Sources/SaytileKit/Store.swift"
+        src = (resolver["cache_root"]()/resolver["key"](pin)/store).read_bytes()
+        self.assertEqual(hashlib.sha256(src).hexdigest(),pin["files"][store])
+        ddl = src.decode().split('private static let schema = """',1)[1].split('"""',1)[0]
+        self.db = sqlite3.connect(file)
+        self.addCleanup(self.db.close)
+        self.db.executescript("PRAGMA foreign_keys=ON;" + ddl)
+        self.r,self.a,self.b,self.old = (str(uuid.uuid4()).upper() for _ in range(4))
+        self.series = [event(1),event(2,voice="speaking",recordings=[self.r]),event(3.9)]
+        self.sql("INSERT INTO recordings(id,created_at,sample_rate,is_recording) VALUES(?,0,16000,0)",self.old)
+        self.before = self.snap(1)
+        self.sql("INSERT INTO recordings(id,created_at,sample_rate,recognition_state,active_attempt) VALUES(?,1.2,16000,'running',?)",self.r,self.a)
+
+    def sql(self, statement, *args):
+        self.db.execute(statement,args)
+
+    def snap(self, t):
+        self.db.commit()
+        data = native.voice_evidence.snapshot(self.path)
+        self.assertNotIn("synthetic words",json.dumps(data))
+        return dict(session=self.path.name,run="events-fixture",time=t,**data)
+
+    def session(self, ticket, t, recording=None):
+        self.sql("INSERT INTO fusion_sessions(id,recording_id,audio_epoch,mode,state,created_at) VALUES(?,?,1,'highestQuality','running',?)",
+                 ticket,recording or self.r,t)
+
+    def terminal(self, ticket, state, t):
+        self.sql("UPDATE fusion_sessions SET state=? WHERE id=?",state,ticket)
+        self.sql("INSERT INTO fusion_session_terminals(recognition_id,state,occurred_at) VALUES(?,?,?)",ticket,state,t)
+
+    def revision(self, ticket, t, origin="final", text="synthetic words"):
+        rev = str(uuid.uuid4()).upper()
+        self.sql("INSERT INTO revisions(id,recording_id,text,origin,created_at,attempt) VALUES(?,?,?,?,?,?)",rev,self.r,text,origin,t,ticket)
+        self.sql("UPDATE recordings SET preferred_revision=? WHERE id=?",rev,self.r)
+
+    def speaking(self, ticket):
+        self.during = dict(self.snap(2),recording=self.r,attempt=ticket)
+
+    def finish(self):
+        self.sql("UPDATE recordings SET recognition_state='completed',active_attempt=NULL,is_recording=0 WHERE id=?",self.r)
+        points = [self.before,self.during,self.snap(4)]
+        return native.voice_evidence.verdict(self.series,points)[0]
+
+    def retry(self, *, new_final):
+        self.session(self.a,1.5)
+        self.speaking(self.a)
+        self.revision(self.a,2.2)
+        self.terminal(self.a,"failed",2.4)
+        self.sql("UPDATE recordings SET active_attempt=? WHERE id=?",self.b,self.r)
+        self.session(self.b,2.5)
+        if new_final:
+            self.revision(self.b,3)  # even byte-for-byte identical words cannot validate A
+        self.terminal(self.b,"completed",3.5)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_a_failed_b_completed_with_retained_a_final(self):
+        self.retry(new_final=True)
+
+    def test_b_reuses_a_words_without_new_final(self):
+        self.retry(new_final=False)
+
+    def test_observed_b_cannot_borrow_prior_a_final(self):
+        self.session(self.a,1.4); self.revision(self.a,1.5); self.terminal(self.a,"failed",1.6)
+        self.sql("UPDATE recordings SET active_attempt=? WHERE id=?",self.b,self.r)
+        self.session(self.b,1.7); self.speaking(self.b); self.terminal(self.b,"completed",3.5)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_missing_attempt_terminal(self):
+        self.session(self.a,1.5); self.speaking(self.a); self.revision(self.a,2.5)
+        self.sql("UPDATE fusion_sessions SET state='completed' WHERE id=?",self.a)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_terminal_belongs_to_different_session(self):
+        self.session(self.a,1.5); self.speaking(self.a); self.revision(self.a,2.5)
+        self.sql("UPDATE fusion_sessions SET state='completed' WHERE id=?",self.a)
+        self.session(self.b,2.8); self.terminal(self.b,"completed",3.5)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_session_belongs_to_different_recording(self):
+        self.session(self.a,1.5,recording=self.old); self.speaking(self.a); self.revision(self.a,2.5); self.terminal(self.a,"completed",3.5)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_other_checkpoint_run_cannot_supply_evidence(self):
+        self.session(self.a,1.5); self.speaking(self.a); self.during["run"] = "events-other"
+        self.revision(self.a,2.5); self.terminal(self.a,"completed",3.5)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_terminal_outside_observation_interval(self):
+        self.session(self.a,1.5); self.speaking(self.a); self.revision(self.a,2.5); self.terminal(self.a,"completed",4.1)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_final_after_own_terminal(self):
+        self.session(self.a,1.5); self.speaking(self.a); self.terminal(self.a,"completed",2.3); self.revision(self.a,2.5)
+        self.assertEqual(self.finish(),"INCONCLUSIVE")
+
+    def test_own_completion_survives_user_selected_edit(self):
+        self.session(self.a,1.5); self.speaking(self.a); self.revision(self.a,2.5); self.terminal(self.a,"completed",3.2)
+        self.revision(None,3.7,origin="userEdit",text="different synthetic words")
+        self.assertEqual(self.finish(),"PASS")
+
+    def test_local_session_materializes_on_first_result_after_speaking_point(self):
+        self.speaking(self.a); self.session(self.a,2.3); self.revision(self.a,2.5); self.terminal(self.a,"completed",3.2)
+        self.assertEqual(self.finish(),"PASS")
+
+
 class NativeAcceptanceTests(unittest.TestCase):
     def test_idle_requires_observed_continuity_and_focus(self):
         sample = [event(t) for t in range(0, 901, 5)]
@@ -92,11 +210,14 @@ class NativeAcceptanceTests(unittest.TestCase):
         self.assertEqual(native.observed_transitions(series,points), (False, False, False))
 
     def speech_fixture(self):
-        old = dict(records={"old":{"open":False}}, revisions={"old-rev":{"digest":"old-text"}})
+        scope = dict(session="fixture",run="events-fixture")
+        old = dict(scope,records={"old":{"open":False}}, revisions={"old-rev":{"digest":"old-text"}},sessions={},terminals={})
         recording = dict(open=True,state="running",attempt="attempt",created=1.5)
         revision = dict(recording="new",attempt="attempt",origin="final",nonempty=True,created=3)
-        during = dict(time=2,recording="new",attempt="attempt",records={"new":recording})
-        after = dict(time=4,records={**old["records"],"new":dict(recording,open=False,state="completed")},
+        fusion = dict(recording="new",state="running",created=1.6)
+        during = dict(scope,time=2,recording="new",attempt="attempt",records={"new":recording},sessions={"attempt":fusion},terminals={})
+        after = dict(scope,time=4,records={**old["records"],"new":dict(recording,open=False,state="completed",attempt=None)},
+                     sessions={"attempt":dict(fusion,state="completed")},terminals={"attempt":dict(state="completed",time=3.3)},
                      revisions={**old["revisions"],"new-rev":revision})
         return [event(1),event(2,voice="speaking",recordings=["new"]),event(3.5)], [dict(old,time=1),during,after]
 
@@ -215,6 +336,7 @@ class NativeAcceptanceTests(unittest.TestCase):
             with sqlite3.connect(voice) as db:
                 db.executescript("create table recordings(id,created_at,recognition_state,is_recording,active_attempt,preferred_revision,deleted);"
                                  "create table revisions(id,recording_id,origin,attempt,created_at,text); create table editing_drafts(recording_id,text);"
+                                 "create table fusion_sessions(id,recording_id,state,created_at); create table fusion_session_terminals(recognition_id,state,occurred_at);"
                                  "insert into recordings values('old',1,'completed',0,NULL,'revision',0);"
                                  "insert into revisions values('revision','old','final','attempt',2,'synthetic phrase');"
                                  "insert into editing_drafts values('old','synthetic private text');")

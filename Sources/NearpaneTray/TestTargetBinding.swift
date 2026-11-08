@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import RiftletCore
 import RiftletAdapters
 
@@ -31,20 +32,64 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
     }
 
     func program(_ original: WebPageProgram, guardSource: String) throws -> WebPageProgram {
-        // Fail closed on a changed upstream input implementation, including duplicated anchors.
+        // The digest covers *all* paths in the reviewed source, including future unanchored side effects.
+        let digest = SHA256.hash(data: Data(original.functionSource.utf8)).map { String(format: "%02x", $0) }.joined()
+        guard digest == "0daf3f2763e340503b8c957c4ef35a619417c5e486ac48fccbcae3f657ff9a09",
+              !guardSource.isEmpty else { throw WebAdapterError.programUnavailable }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let json = String(decoding: try encoder.encode(self), as: UTF8.self)
         var source = original.functionSource
+        func replace(_ anchor: String, _ replacement: String) throws {
+            guard source.components(separatedBy: anchor).count == 2 else { throw WebAdapterError.programUnavailable }
+            source = source.replacingOccurrences(of: anchor, with: replacement)
+        }
+
         let entry = "  const KEY = '__riftletIndependentFileInput20261104';"
+        let gate = "const nearpaneCheck = (...args) => (" + guardSource + ")(" + json + ",command,native,...args);"
         let chosen = "    const parts = composer();"
-        let setter = "      Reflect.apply(setter, input, [transfer.files]);"
-        guard !guardSource.isEmpty, source.components(separatedBy: entry).count == 2,
-              source.components(separatedBy: chosen).count == 2, source.components(separatedBy: setter).count == 2 else { throw WebAdapterError.programUnavailable }
-        let gate = "const nearpaneCheck = (handoff, parts) => (" + guardSource + ")(" + json + ",command,native,handoff,parts);"
-        source = source.replacingOccurrences(of: entry, with: gate + "\nif (!['observe','discard'].includes(command.action)) nearpaneCheck(false);\n" + entry)
-        source = source.replacingOccurrences(of: chosen, with: chosen + "\n    nearpaneCheck(false, parts);")
-        source = source.replacingOccurrences(of: setter, with: "      nearpaneCheck(true, op.binding);\n" + setter)
+        try replace(chosen, chosen + "\n    nearpaneCheck(false, parts);")
+
+        let prepare = "  let file, transfer, setter;"
+        try replace(prepare, """
+          const receiver = nearpaneCheck(true, op.binding, () => op.discoveryDeadline,
+            (input, own) => !usableInput(input) || otherOwner(input, op.binding, own));
+        """ + "\n" + prepare)
+        try replace("const run = () => {", "const run = () => receiver.monitor(() => {")
+        try replace("return discoverThroughEntry(op, entries, execute, retire);\n  };",
+                    "return discoverThroughEntry(op, entries, execute, retire);\n  });")
+        try replace("const entries = entryControls(op.binding);", "const entries = receiver.bind(entryControls(op.binding));")
+        try replace("entries = entryControls(binding);", "entries = receiver.entries(entryControls(binding));")
+        let activate = "const activated = await activate(next);"
+        let refused = "return retire('targetInvalidBeforeInput', 'picker', 'targetChanged');"
+        try replace(activate, "if (!receiver.activate(next)) " + refused + "\n          " + activate)
+        try replace("try { return callback(control); }", "try { return receiver.fire(control, callback); }")
+        let owned = "const owned = insideControl ||"
+        try replace(owned, "if (!receiver.capture(input)) return false;\n      " + owned)
+        let fallback = "if (!intercept(this, method)) return Reflect.apply(original, this, args);"
+        try replace(fallback, """
+                if (!intercept(this, method)) {
+                  if (this.type === 'file') { receiver.refuse(); return; }
+                  return Reflect.apply(original, this, args);
+                }
+        """)
+        try replace("if (!event.defaultPrevented && capture(node, 'event')) event.preventDefault();",
+                    "if (!event.defaultPrevented) { if (!capture(node, 'event')) receiver.refuse(); event.preventDefault(); }")
+        let ended = "const ended = Date.now() >= deadline;"
+        try replace(ended, "if (receiver.denied) " + refused + "\n        " + ended)
+        let confirm = "op.binding.input = input;"
+        try replace(confirm, "if (!receiver.choose(input, invoked)) " + refused + "\n    " + confirm)
+        let count = "op.inputCount = 1; op.inputSequence = tick(); op.inputTime = performance.now();"
+        // Only internal bookkeeping separates this last proof from the native setter. If it fails,
+        // the domain still reports zero inputs. Once entered, a rejected event must remain UNKNOWN.
+        try replace(count, "const inputTime = performance.now();\n      if (!receiver.ready(input)) " + refused +
+                    "\n      op.inputCount = 1; op.inputSequence = tick(); op.inputTime = inputTime;")
+        for effect in ["input.dispatchEvent(new Event('input', {bubbles: true, composed: true}));",
+                       "input.dispatchEvent(new Event('change', {bubbles: true}));"] {
+            try replace(effect, "receiver.require(input);\n      " + effect)
+        }
+        // Install our source last so none of the upstream anchors can match inside the guard.
+        try replace(entry, gate + "\nif (!['observe','discard'].includes(command.action)) nearpaneCheck(false);\n" + entry)
         return WebPageProgram(sourceID: original.sourceID, functionSource: source,
                               maximumChunkBytes: original.maximumChunkBytes, inputDiscoveryTimeout: original.inputDiscoveryTimeout)
     }
