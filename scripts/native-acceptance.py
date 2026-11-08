@@ -15,6 +15,9 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 SESSIONS = ROOT / "build/native-acceptance"
 OBSERVER = ROOT / "scripts/acceptance/draft-observation.js"
+sys.path.insert(0, str(ROOT/"scripts/acceptance"))
+import voice_evidence
+
 DEFAULT_IDLE_MINUTES = 60
 
 
@@ -109,22 +112,12 @@ def longest_idle(events):
     return longest
 
 
-def observed_transitions(events):
-    speaking = None
-    disconnected = None
-    connected = None
-    speech = independent = restored = False
+def observed_transitions(events, points=None):
+    disconnected = connected = None
+    restored = False
+    speech, independent = voice_evidence.verdict(events,points)
     for event in events:
         s = event["state"]
-        if s["voice"] == "speaking":
-            if speaking is None:
-                speaking = s["trayIDs"] if s["trayConnected"] and s["trayCount"] else ""
-        elif s["voice"] == "standby" and speaking is not None and s["hasTranscript"]:
-            speech = True
-            independent |= bool(speaking and s["trayConnected"] and s["trayIDs"] == speaking)
-            speaking = None
-        elif s["voice"] != "standby":
-            speaking = None
         if s["trayConnected"]:
             if disconnected and s["trayCount"] and s["trayIDs"] == disconnected:
                 restored = True
@@ -132,7 +125,7 @@ def observed_transitions(events):
             connected = s["trayIDs"] if s["trayCount"] else None
         elif connected:
             disconnected, connected = connected, None
-    return speech, independent, restored
+    return speech == "PASS", independent, restored
 
 
 def product_receipt_policy(binary, evidence):
@@ -186,6 +179,14 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
     check(idle_minutes > 0, "Positive residence time required")
     streams = [[json.loads(row) for row in p.read_text().splitlines()] for p in sorted(path.glob("events-*.jsonl"))]
     samples = [e for stream in streams for e in stream]
+    speech = "PENDING"
+    independent = False
+    speech_files = [path/("speech-"+stage+".json") for stage in ("before","during","after")]
+    if all(p.is_file() for p in speech_files):
+        points = [json.loads(p.read_text()) for p in speech_files]
+        if all(p["session"] == path.name and p["run"] == points[0]["run"] for p in points):
+            series = dict(zip((p.stem for p in sorted(path.glob("events-*.jsonl"))), streams)).get(points[0]["run"],[])
+            speech,independent = voice_evidence.verdict(series,points)
     transitions = [observed_transitions(stream) for stream in streams]
     queue = path / "support/Riftlet/queue.sqlite"
     check(queue.resolve() == queue, "Fixture queue path mismatch")
@@ -207,13 +208,16 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
     gates = {
         "visibleGeometry": any(e["state"]["visible"] and e["state"]["layoutMatches"] for e in samples),
         "idleFocus": any(longest_idle(s) >= idle_minutes * 60 for s in streams),
-        "speechReturnsToStandby": any(t[0] for t in transitions),
-        "trayAndVoiceTogether": any(t[1] for t in transitions),
+        "speechReturnsToStandby": speech == "PASS",
+        "trayAndVoiceTogether": independent,
         "sameQueueAfterDisconnect": any(t[2] for t in transitions),
         "drainedExitAndFreshRestart": bool(completed and restarted),
         "oneCaptureOneAttempt": False,
     }
     states = {k: "PASS" if v else "PENDING" for k,v in gates.items()}
+    pauses = [voice_evidence.pause_result(stream) for stream in streams]
+    states["userPauseOnly"] = "FAIL" if "FAIL" in pauses else "PASS" if "PASS" in pauses else "PENDING"
+    states["speechReturnsToStandby"] = "FAIL" if "FAIL" in pauses else speech
     states["visibleAppearance"] = "REQUIRES_AUTHORIZED_VISUAL_REVIEW"
     review = path / "visual-review.json"
     if review.is_file():
@@ -236,7 +240,7 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["prepare","report","launch","capture-panel","review-visual","browser-before","browser-after"])
+    parser.add_argument("action", choices=["prepare","report","launch","capture-panel","review-visual","browser-before","browser-after","speech-before","speech-during","speech-after"])
     parser.add_argument("--app", type=Path, default=ROOT / "build/release/Nearpane.app")
     parser.add_argument("--session")
     parser.add_argument("--idle-minutes", type=int, default=DEFAULT_IDLE_MINUTES)
@@ -253,6 +257,8 @@ def main():
         require_tool(binary)
         subprocess.run([str(binary),"--verify-bundled-resources","--native-acceptance-prepare",session], cwd=ROOT, check=True)
         path = folder(session)
+        with (path/"summary.key").open("xb") as secret:
+            secret.write(os.urandom(32))
         # Compile only. The panel helper never executes during preparation.
         subprocess.run(["/usr/bin/xcrun","swiftc","-parse-as-library","-target",os.uname().machine+"-apple-macos26.0",
                         "-module-cache-path",str(path/"compiler-cache"),str(ROOT/"scripts/acceptance/capture-panel.swift"),"-o",str(path/"capture-panel")], check=True)
@@ -271,6 +277,8 @@ def main():
         marker = json.loads((path/"session.json").read_text())
         check(hashlib.sha256(binary.read_bytes()).hexdigest() == marker["executableSHA256"], "Different build from this session")
         subprocess.run([str(binary),"--native-acceptance-session",path.name], cwd=ROOT, check=True)
+    elif args.action.startswith("speech-"):
+        write_checkpoint(path/(args.action+".json"), voice_evidence.point(path,args.action.split("-")[1]))
     elif args.action == "capture-panel":
         latest = max(path.glob("events-*.jsonl"), key=lambda p: p.stat().st_mtime)
         event = json.loads(latest.read_text().splitlines()[-1])

@@ -63,6 +63,7 @@ struct NativeAcceptanceSession {
     private struct State: Encodable, Equatable {
         let visible, key, active, layoutMatches, hasTranscript, trayConnected, voiceEnabled: Bool
         let voice: String
+        let recordings: [UUID]
         let trayCount: Int
         let trayIDs: String
         let pid, windowID: Int
@@ -94,9 +95,10 @@ struct NativeAcceptanceSession {
             let fingerprint = SHA256.hash(data: Data(ids.map(\.uuidString).joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined()
             self.record(kind, State(visible: window.isVisible, key: window.isKeyWindow, active: NSApp.isActive, layoutMatches: layoutMatches,
                 hasTranscript: !modules.voice.transcript.isEmpty, trayConnected: modules.tray.connected, voiceEnabled: modules.voice.active,
-                voice: voice, trayCount: ids.count, trayIDs: fingerprint,
+                voice: voice, recordings: modules.voice.openRecordingIDs, trayCount: ids.count, trayIDs: fingerprint,
                 pid: Int(ProcessInfo.processInfo.processIdentifier), windowID: window.windowNumber))
         }
+        modules.voice.acceptanceEvent = sample
         sample("opened")
         for (name, object, kind) in [(NSWindow.didBecomeKeyNotification, surface.window as AnyObject?, "panelBecameKey"),
                                      (NSApplication.didBecomeActiveNotification, NSApp as AnyObject?, "appActivated")] {

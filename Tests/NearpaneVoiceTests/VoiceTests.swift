@@ -122,3 +122,30 @@ struct VoiceTests {
         }
     }
 }
+
+extension VoiceTests {
+    @Test func acceptanceRecordsOnlyExplicitPauseAndTheDomainsOpenRecording() async throws {
+        let dir = directory(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        var input: ScriptedInput?, events: [String] = []
+        let module = VoiceModule(openStore: { store }, makeInput: { _, update in
+            let device = ScriptedInput(update); input = device; return device
+        })
+        module.acceptanceEvent = { events.append($0) }
+        try module.start(); await module.waitForTransition(); await module.toggle()
+        let recording = try await store.createRecording()
+        let ticket = try await store.beginRecognition(recordingID: recording.id)
+        input?.update(.speaking, 0.3, nil)
+        await module.refresh()
+        #expect(module.openRecordingIDs == [recording.id])
+        _ = try await store.applyRecognition(ticket: ticket,text: "Synthetic result",isFinal: true)
+        try await store.finishRecording(id: recording.id); try await store.finishRecognition(ticket: ticket)
+        input?.update(.listening, 0, nil); await module.refresh()
+        #expect(module.openRecordingIDs.isEmpty && module.control.state == .standby)
+        #expect(try await store.latestFinalRevision(recordingID: recording.id)?.recordingID == recording.id)
+        #expect(!events.contains("userPause"))
+        await module.toggle()
+        #expect(events.suffix(2) == ["userPause","captureState"])
+        module.stop(); await module.waitForTransition()
+    }
+}

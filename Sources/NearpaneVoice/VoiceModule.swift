@@ -63,6 +63,9 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private var draftWrite: Task<Void, Never>?
     @ObservationIgnored private var revisionObserver: NSObjectProtocol?
     @ObservationIgnored private var notifiedRefresh: Task<Void, Never>?
+    // Observed only in a dedicated acceptance session; text never leaves the domain.
+    @ObservationIgnored public var acceptanceEvent: ((String) -> Void)?
+    public var openRecordingIDs: [UUID] { rows.filter(\.isRecording).map(\.id) }
     @ObservationIgnored public var openingFailed: (() -> Void)?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var refreshID = 0
@@ -165,6 +168,7 @@ public final class VoiceModule: HostModule {
             guard let self, active, generation == epoch else { return }
             let changed = capture != state
             capture = state
+            if changed { acceptanceEvent?("captureState") }
             if changed && state == .speaking { trackRevisions() }
             control = .init(state, level)
             if case let .interrupted(reason) = state { issue = reason } else if let error { issue = error }
@@ -183,8 +187,8 @@ public final class VoiceModule: HostModule {
         issue = nil
         do {
             let device = try currentInput()
-            if capture.isRunning { await device.pause() }
-            else { try await device.start() }
+            if capture.isRunning { acceptanceEvent?("userPause"); await device.pause() }
+            else { acceptanceEvent?("userStart"); try await device.start() }
             guard active, generation == epoch else { return }
             trackRevisions(); await refresh()
         } catch { if generation == epoch { issue = error.localizedDescription } }
@@ -225,7 +229,7 @@ public final class VoiceModule: HostModule {
             let count = try await store.panelRecordingCount(createdSince: .distantPast, includingIDs: [])
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
-            if ordered != rows { rows = ordered }
+            if ordered != rows { rows = ordered; acceptanceEvent?("voiceRows") }
             hasEarlier = count > result.count
         } catch { if generation == epoch { issue = "暂时无法读取文字；保留上次内容。" } }
     }

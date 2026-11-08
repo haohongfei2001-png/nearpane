@@ -84,11 +84,43 @@ class NativeAcceptanceTests(unittest.TestCase):
         self.assertLess(native.longest_idle(sample), 900)
 
     def test_return_to_standby_and_restored_ids(self):
-        series = [event(1,voice="speaking"),event(2),event(3,trayConnected=False,trayCount=0),event(4)]
-        self.assertEqual(native.observed_transitions(series), (True, True, True))
-        series[1]["state"]["voice"] = "paused"
-        series[3]["state"]["trayIDs"] = "changed"
-        self.assertEqual(native.observed_transitions(series), (False, False, False))
+        series, points = self.speech_fixture()
+        series.extend([event(5,trayConnected=False,trayCount=0),event(6)])
+        self.assertEqual(native.observed_transitions(series,points), (True, True, True))
+        series[2]["state"]["voice"] = "paused"
+        series[-1]["state"]["trayIDs"] = "changed"
+        self.assertEqual(native.observed_transitions(series,points), (False, False, False))
+
+    def speech_fixture(self):
+        old = dict(records={"old":{"open":False}}, revisions={"old-rev":{"digest":"old-text"}})
+        recording = dict(open=True,state="running",attempt="attempt",created=1.5)
+        revision = dict(recording="new",attempt="attempt",origin="final",nonempty=True,created=3)
+        during = dict(time=2,recording="new",attempt="attempt",records={"new":recording})
+        after = dict(time=4,records={**old["records"],"new":dict(recording,open=False,state="completed")},
+                     revisions={**old["revisions"],"new-rev":revision})
+        return [event(1),event(2,voice="speaking",recordings=["new"]),event(3.5)], [dict(old,time=1),during,after]
+
+    def test_speech_requires_this_completed_recognition_and_explicit_pause(self):
+        for case in ("old text","failed","partial","another recording","manual edit","no standby","auto pause","other attempt","no active ID"):
+            with self.subTest(case=case):
+                events,points = self.speech_fixture()
+                rev = points[2]["revisions"]["new-rev"]
+                if case == "old text": del points[2]["revisions"]["new-rev"]
+                if case == "failed": points[2]["records"]["new"]["state"] = "failed"
+                if case == "partial": rev["origin"] = "partial"
+                if case == "another recording": rev["recording"] = "old"
+                if case == "manual edit": rev["origin"] = "userEdit"
+                if case == "no standby": events[-1]["state"]["voice"] = "speaking"
+                if case == "auto pause": events.insert(2,event(2.2,voice="paused"))
+                if case == "other attempt": rev["attempt"] = "different"
+                if case == "no active ID": events[1]["state"]["recordings"] = []
+                self.assertNotEqual(native.voice_evidence.verdict(events,points)[0],"PASS")
+        events = [event(1),dict(event(2),kind="userPause"),event(3,voice="paused")]
+        self.assertEqual(native.voice_evidence.pause_result(events),"PASS")
+        self.assertEqual(native.voice_evidence.pause_result([events[0],events[2]]),"FAIL")
+        events,points = self.speech_fixture()
+        points[2]["records"]["new"]["preferred"] = "manual"
+        self.assertEqual(native.voice_evidence.verdict(events,points)[0],"PASS")
 
     def test_no_send_needs_the_same_target_one_receipt_and_unchanged_user_turns(self):
         with tempfile.TemporaryDirectory(dir=native.ROOT/"build") as tmp:
