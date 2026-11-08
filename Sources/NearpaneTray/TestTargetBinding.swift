@@ -90,10 +90,10 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
         }
         let guarded = try b.program(program, guardSource: guardSource)
         if command.action == .commit {
-            guard let id = command.identity else { throw WebAdapterError.invalidRequest }
+            guard let id = command.identity, let invocation = command.invocationID else { throw WebAdapterError.invalidRequest }
             // Persist once, before submission, even if Chrome's reply is lost. No second commit on reconnect.
-            struct Claim: Encodable { let session, nonce: String; let identity: ObservationIdentity }
-            let evidence = Claim(session: b.session, nonce: b.nonce, identity: id)
+            struct Claim: Encodable { let session, nonce: String; let invocationID: UUID; let claimedAt: Double; let identity: ObservationIdentity }
+            let evidence = Claim(session: b.session, nonce: b.nonce, invocationID: invocation, claimedAt: Date().timeIntervalSince1970, identity: id)
             try JSONEncoder().encode(evidence).write(to: directory.appendingPathComponent("input-claim.json"), options: .withoutOverwriting)
         }
         return try await base.execute(command, program: guarded)

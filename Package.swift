@@ -15,7 +15,7 @@ let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "
 var targets: [Target] = [
     .target(name: "NearpaneCore"),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["SaytileKit", "RiftletAdapters", "RiftletCore"] : [])),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore"] : [])),
     .testTarget(name: "NearpaneCoreTests", dependencies: ["NearpaneCore"]),
     .testTarget(name: "NearpaneUITests", dependencies: ["NearpaneUI", "NearpaneCore"] + domains + fixtureDomains)
 ]

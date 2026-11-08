@@ -62,7 +62,7 @@ end run"""
     # Persist only digest/counts, never page text, the URL, or message IDs.
     fingerprint = json.dumps([url, sample["timeOrigin"], sample["ids"]], separators=(",", ":"))
     return dict(time=time.time(), page=hashlib.sha256(fingerprint.encode()).hexdigest(), window=window, tab=tab,
-                previews=sample["previews"], busy=sample["busy"], timeOrigin=sample["timeOrigin"], session=session, nonce=nonce)
+                previews=sample["previews"], previewNames=sample["previewNames"], busy=sample["busy"], timeOrigin=sample["timeOrigin"], session=session, nonce=nonce)
 
 
 def chrome_identity(binary, path, pid):
@@ -135,7 +135,54 @@ def observed_transitions(events):
     return speech, independent, restored
 
 
-def report(path, idle_minutes=DEFAULT_IDLE_MINUTES):
+def product_receipt_policy(binary, evidence):
+    result = subprocess.run([str(binary), "--verify-bundled-resources", "--native-receipt-policy"],
+                            input=json.dumps(evidence), text=True, capture_output=True, timeout=10)
+    return result.returncode == 0 and result.stdout.splitlines()[-1:] == ["Domain receipt admitted."]
+
+
+def transfer_verdict(path, images, operations, starts, policy):
+    def read(name):
+        return json.loads((path/name).read_text())
+    if max(len(images),len(operations),len(starts)) > 1:
+        return "FAIL"
+    if not all([images, operations, starts]) or not all((path/name).is_file() for name in ("target-binding.json","input-claim.json")):
+        return "PENDING"
+    row, op, start = images[0], operations[0], starts[0]
+    if op["phase"] in ("failed","compensated"):
+        return "FAIL"
+    if op["phase"] != "succeeded" or row["status"] != "used" or not op["receipt_json"] or not start["receipt_json"]:
+        return "INCONCLUSIVE"
+    b, claim = read("target-binding.json"), read("input-claim.json")
+    before, after = read("browser-before.json"), read("browser-after.json")
+    image, target = json.loads(row["image_json"]), json.loads(op["target_json"])
+    first, final = json.loads(start["receipt_json"]), json.loads(op["receipt_json"])
+    identity = dict(operationID=op["id"], assetID=row["id"], attempt=1, target=target, assetSHA256=image["sha256"])
+    def matches(receipt):
+        return all(receipt.get(k) == v for k,v in identity.items())
+    if not (path.name == b["session"] == claim["session"] and b["nonce"] == claim["nonce"] and matches(claim["identity"])
+            and op["attempt"] == 1 and row["id"] == op["asset_id"] == image["id"] and row["id"].lower() == b["assetID"]
+            and image["sha256"] == b["sha256"] and start["operation_id"] == op["id"] and matches(first) and matches(final)
+            and target.get("applicationID") == "com.google.Chrome" and target.get("adapterID") == "chatgpt-web"
+            and target.get("surface") == "webChat" and all(target.get(k) for k in ("documentID","composerID","draftGeneration"))
+            and [target.get(k) for k in ("sessionID","windowID","tabID")] == [b[k] for k in ("process","window","tab")]
+            and before["previews"] == 0 and before.get("previewNames") == [] and not before["busy"] and len(after) == 2
+            and b["boundAt"] == before["time"] <= op["created_at"] <= claim["claimedAt"] <= start["started_at"] <= op["updated_at"] <= after[0]["time"]
+            and claim["claimedAt"] <= b["expiresAt"] and after[1]["time"] - after[0]["time"] >= 5
+            and all(s.get(k) == b[k] for s in [before,*after] for k in ("session","nonce","process","window","tab","timeOrigin"))
+            and all(s["page"] == before["page"] and s["previews"] == 1 and not s["busy"] for s in after)):
+        return "FAIL"
+    ext = {"image/png":"png","image/jpeg":"jpg"}.get(image["mediaType"])
+    expected = "riftlet-" + op["id"].lower() + "." + str(ext)
+    if not ext or any(s.get("previewNames") != [expected] for s in after):
+        return "INCONCLUSIVE"
+    payload = dict(asset=image, start=first, final=final, invocationID=claim["invocationID"])
+    if not policy or not policy(payload):
+        return "INCONCLUSIVE"
+    return "PASS"
+
+
+def report(path, idle_minutes=DEFAULT_IDLE_MINUTES, policy=None):
     check(idle_minutes > 0, "Positive residence time required")
     streams = [[json.loads(row) for row in p.read_text().splitlines()] for p in sorted(path.glob("events-*.jsonl"))]
     samples = [e for stream in streams for e in stream]
@@ -144,10 +191,12 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES):
     check(queue.resolve() == queue, "Fixture queue path mismatch")
     db = sqlite3.connect(queue.as_uri() + "?mode=ro", uri=True)
     try:
-        assets, = db.execute("select count(*) from assets").fetchone()
-        ops = list(db.execute("select asset_id,attempt,target_json,phase,created_at from operations"))
-        receipts = list(db.execute("select s.started_at from upload_starts s join operations o on o.id=s.operation_id"))
-        starts = len(receipts)
+        db.row_factory = sqlite3.Row
+        db.execute("begin")
+        images = [dict(r) for r in db.execute("select id,image_json,status from assets")]
+        ops = [dict(r) for r in db.execute("select id,asset_id,attempt,target_json,phase,created_at,updated_at,receipt_json from operations")]
+        receipts = [dict(r) for r in db.execute("select operation_id,receipt_json,started_at from upload_starts")]
+        assets, starts = len(images), len(receipts)
     finally:
         db.close()
     completed = [e for e in samples if e["kind"] == "drained"]
@@ -162,7 +211,7 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES):
         "trayAndVoiceTogether": any(t[1] for t in transitions),
         "sameQueueAfterDisconnect": any(t[2] for t in transitions),
         "drainedExitAndFreshRestart": bool(completed and restarted),
-        "oneCaptureOneAttempt": assets == len(ops) == starts == 1 and ops[0][1] == 1,
+        "oneCaptureOneAttempt": False,
     }
     states = {k: "PASS" if v else "PENDING" for k,v in gates.items()}
     states["visibleAppearance"] = "REQUIRES_AUTHORIZED_VISUAL_REVIEW"
@@ -173,20 +222,14 @@ def report(path, idle_minutes=DEFAULT_IDLE_MINUTES):
         same = image.is_file() and hashlib.sha256(image.read_bytes()).hexdigest() == decision["imageSHA256"]
         states["visibleAppearance"] = "PASS" if same and gates["visibleGeometry"] and decision["matchesReference"] else "FAIL"
     states["specifiedDraftNoSend"] = "PENDING"
-    if assets > 1 or len(ops) > 1:
+    if max(assets, len(ops), starts) > 1:
         states["oneCaptureOneAttempt"] = "FAIL"
     before, after = path/"browser-before.json", path/"browser-after.json"
     if before.exists() and after.exists():
-        left, right = json.loads(before.read_text()), json.loads(after.read_text())
-        target = json.loads(ops[0][2]) if len(ops) == 1 else {}
-        exact = (gates["oneCaptureOneAttempt"] and ops[0][3] not in ("failed","compensated") and
-                 target.get("adapterID") == "chatgpt-web" and target.get("applicationID") == "com.google.Chrome" and str(target.get("tabID")) == left["tab"]
-                 and str(target.get("windowID")) == left["window"] and left["previews"] == 0 and not left["busy"]
-                 and len(right) == 2 and left["time"] <= ops[0][4] <= receipts[0][0] <= right[0]["time"]
-                 and right[1]["time"] - right[0]["time"] >= 5
-                 and all(s["time"] > left["time"] and s["page"] == left["page"] and s["tab"] == left["tab"]
-                         and s["window"] == left["window"] and s["previews"] == 1 and not s["busy"] for s in right))
-        states["specifiedDraftNoSend"] = "PASS" if exact else "FAIL"
+        verdict = transfer_verdict(path, images, ops, receipts, policy)
+        states["specifiedDraftNoSend"] = verdict
+        if verdict == "PASS":
+            states["oneCaptureOneAttempt"] = verdict
     return dict(session=path.name, launches=len(streams), assets=assets, operations=len(ops), uploadStarts=starts,
                 idleTargetMinutes=idle_minutes, longestObservedIdleSeconds=max(map(longest_idle,streams),default=0), checks=states)
 
@@ -217,7 +260,12 @@ def main():
         return
     path = folder(args.session or "")
     if args.action == "report":
-        print(json.dumps(report(path,args.idle_minutes), ensure_ascii=False, indent=2))
+        marker = json.loads((path/"session.json").read_text())
+        def admitted(evidence):
+            require_tool(binary)
+            check(hashlib.sha256(binary.read_bytes()).hexdigest() == marker["executableSHA256"], "Unexpected policy executable")
+            return product_receipt_policy(binary, evidence)
+        print(json.dumps(report(path,args.idle_minutes,admitted), ensure_ascii=False, indent=2))
     elif args.action == "launch":
         require_tool(binary)
         marker = json.loads((path/"session.json").read_text())

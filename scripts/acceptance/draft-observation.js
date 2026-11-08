@@ -30,6 +30,14 @@ function observeTestDraft(expectedURL, marker, nonce, arm) {
     });
   }
   if (editor.dispatchEvent(new Event(eventType, {cancelable:true}))) return null;
-  return {timeOrigin: performance.timeOrigin, ids, previews: previews.length,
+  // Persist only the operation-generated upload basename. Unknown cards remain unproved.
+  const previewNames = previews.map(node => {
+    const names = [node, ...node.querySelectorAll('[data-file-name],img[alt],[title]')]
+      .flatMap(n => ['data-file-name','alt','title','aria-label'].map(k => n.getAttribute(k)))
+      .filter(x => typeof x === 'string' && /^riftlet-[0-9a-f-]{36}\.(png|jpg)$/i.test(x));
+    const unique = [...new Set(names.map(x => x.toLowerCase()))];
+    return unique.length === 1 ? unique[0] : null;
+  });
+  return {previewNames, timeOrigin: performance.timeOrigin, ids, previews: previews.length,
     busy: [...composer.querySelectorAll('[role="progressbar"],progress,[aria-busy="true"],[role="alert"]')].some(visible)};
 }

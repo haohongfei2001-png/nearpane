@@ -5,6 +5,7 @@ import NearpaneUI
 #if canImport(SaytileKit) && canImport(RiftletAdapters)
 import SaytileKit
 import RiftletAdapters
+import NearpaneTray
 #endif
 
 @main
@@ -23,6 +24,12 @@ struct NearpaneApp {
                 _ = try LegacyWebObservationProgram.wrapping(ChatGPTWebPageProgram.load())
                 print("Packaged Saytile and Riftlet resources verified.")
                 if args.count > 1 {
+                    if args == ["--verify-bundled-resources", "--native-receipt-policy"] {
+                        let data = FileHandle.standardInput.readData(ofLength: 1_048_577)
+                        guard data.count <= 1_048_576, try TestReceiptPolicy.admits(data) else { exit(3) }
+                        print("Domain receipt admitted.")
+                        return
+                    }
                     if args.count == 4, args[1] == "--native-browser-identity", let pid = Int32(args[3]) {
                         _ = try NativeAcceptanceSession(id: args[2], prepare: false)
                         let running = NSRunningApplication.runningApplications(withBundleIdentifier: "com.google.Chrome").filter { !$0.isTerminated }
