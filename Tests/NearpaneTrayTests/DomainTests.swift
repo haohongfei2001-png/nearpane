@@ -334,3 +334,92 @@ struct TrayDomainTests {
         #expect(try await same.assets().map(\.id) == [image.id])
     }
 }
+
+@MainActor private final class SyntheticCaptureChild: SystemCaptureProcess {
+    var shouldFail = false
+    var output: URL?
+    var ended: (@MainActor @Sendable (Int32) async -> Void)?
+    var terminations = 0
+    func start(output: URL, ended: @escaping @MainActor @Sendable (Int32) async -> Void) throws {
+        if shouldFail { throw CocoaError(.fileWriteUnknown) }
+        self.output = output; self.ended = ended
+    }
+    func terminate() { terminations += 1 } // The test controls when the OS callback actually arrives.
+}
+
+extension TrayDomainTests {
+    @Test func captureLaunchFailureAndUserCancellationReleaseExactlyOneJob() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
+        let child = SyntheticCaptureChild(), adapter = Transport()
+        var reports = 0
+        let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in false },
+            notify: {}, report: { _ in reports += 1 })
+        child.shouldFail = true
+        owner.capture(.system)
+        #expect(!owner.hasPendingWork && reports == 1)
+        child.shouldFail = false
+        owner.capture(.system)
+        #expect(owner.hasPendingWork)
+        let end = try #require(child.ended)
+        await end(1); await end(1)
+        await owner.finishWork()
+        #expect(!owner.hasPendingWork && reports == 2 && child.terminations == 0)
+        #expect(try await store.assets().isEmpty)
+    }
+
+    @Test func successfulChildDrainsOnlyAfterDelayedImportCallbackAndIgnoresDuplicateExit() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
+        let child = SyntheticCaptureChild(), adapter = Transport()
+        var finish: CheckedContinuation<Void,Never>?
+        var notifications = 0, drained = false
+        let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in false },
+            notify: { notifications += 1; await withCheckedContinuation { finish = $0 } }, report: { _ in })
+        owner.capture(.system)
+        try makePNG(try #require(child.output))
+        let end = try #require(child.ended)
+        let waiter = Task { await owner.finishWork(); drained = true }
+        let callback = Task { await end(0) }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while finish == nil && ContinuousClock.now < deadline { await Task.yield() }
+        let release = try #require(finish)
+        owner.close(); await end(0)
+        #expect(owner.hasPendingWork && !drained && child.terminations == 0 && notifications == 1)
+        release.resume(); await callback.value; await waiter.value
+        #expect(drained && !owner.hasPendingWork)
+        #expect(try await store.assets().count == 1)
+    }
+
+    @Test func disconnectAndImmediateReconnectWaitForTheActualChildExit() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
+        let child = SyntheticCaptureChild(), adapter = Transport()
+        var opens = 0, drained = false
+        weak var current: TrayOwner?
+        let module = TrayModule { change,error in
+            opens += 1
+            let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+                ownership: try ApplicationInstanceOwnership(root: dir), makeSystemCapture: { child },
+                pin: { throw CancellationError() }, permission: { _,_ in false }, notify: change, report: error)
+            current = owner; return owner
+        }
+        try module.start(); await module.connect(); current?.capture(.system)
+        let end = try #require(child.ended)
+        try makePNG(try #require(child.output))
+        module.disconnect()
+        let waiter = Task { await module.finishStopping(); drained = true }
+        let reconnect = Task { await module.connect() }
+        for _ in 0..<10 { await Task.yield() }
+        #expect(!drained && opens == 1 && child.terminations == 1 && !module.connected)
+        #expect(throws: LibraryError.busy) { try ExistingLibrary.open(dir) }
+        child.ended = nil
+        await end(0); await waiter.value; await reconnect.value
+        #expect(drained && opens == 2 && module.connected)
+        await end(0)
+        #expect(try await store.assets().isEmpty)
+        module.stop(); await module.finishStopping()
+    }
+}

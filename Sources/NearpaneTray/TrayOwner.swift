@@ -23,7 +23,8 @@ final class TrayOwner {
     let magnetEnabled: Bool
     var arrived: ((TrayArrival) -> Void)?
     var exposureChanged: (Bool) -> Void = { _ in }
-    private var systemCapture: Process?
+    private let makeSystemCapture: @MainActor () -> any SystemCaptureProcess
+    private var systemCapture: SystemCaptureJob?
     private(set) var cancelled = false
     private var workCount = 0
     private var drainWaiters: [CheckedContinuation<Void, Never>] = []
@@ -68,10 +69,12 @@ final class TrayOwner {
 
     init(store: QueueStore, root: URL, adapter: any AttachmentAdapter, policy: ReceiptPolicy,
          captureEntry: Bool, defaultMode: ScreenshotMode = .window, ownership: ApplicationInstanceOwnership? = nil, magnetEnabled: Bool = false,
+         makeSystemCapture: @escaping @MainActor () -> any SystemCaptureProcess = { MacSystemCaptureProcess() },
          pin: @escaping () throws -> Task<TargetLease, Error>, permission: @escaping (Bool, String?) async -> Bool,
          notify: @escaping @MainActor () async -> Void, report: @escaping @MainActor (String) -> Void) {
         self.store = store; self.root = root; self.ownership = ownership; self.captureEntry = captureEntry
         self.defaultMode = defaultMode; self.pinTarget = pin; self.checkPermission = permission
+        self.makeSystemCapture = makeSystemCapture
         self.magnetEnabled = magnetEnabled
         self.notify = notify; self.report = report
         let authority = SelectionAuthority()
@@ -119,9 +122,10 @@ final class TrayOwner {
         await withCheckedContinuation { drainWaiters.append($0) }
     }
     func close() {
+        guard !cancelled else { return }
         cancelled = true; cancelPresses()
         captureController?.setEnabled(false); captureController = nil
-        if let systemCapture, systemCapture.isRunning { systemCapture.terminate() }
+        if let job = systemCapture, !job.completing { job.process.terminate() }
         exposureChanged(false); thumbnails.clear()
     }
 
@@ -135,20 +139,31 @@ final class TrayOwner {
                 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true,
                                                          attributes: [.posixPermissions: 0o700])
                 let target = output.appendingPathComponent("." + UUID().uuidString + ".png")
-                let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-                // System's own interactive selection; neither a global hotkey nor a screenshot-setting change.
-                p.arguments = ["-i", "-t", "png", target.path]
-                p.terminationHandler = { process in Task { @MainActor [self] in
-                    self.systemCapture = nil
-                    self.exposureChanged(false)
-                    guard !self.cancelled else { return }
-                    guard process.terminationStatus == 0, FileManager.default.fileExists(atPath: target.path) else {
-                        self.report("未取得截图，队列保持不变。"); return
+                let job = SystemCaptureJob(makeSystemCapture())
+                job.owner = self
+                systemCapture = job
+                workCount += 1
+                do {
+                    try job.process.start(output: target) { [weak self, weak job] status in
+                        guard let self, let job, self.systemCapture === job, !job.completing else { return }
+                        job.completing = true
+                        defer { self.systemCapture = nil; job.owner = nil; self.endWork() }
+                        guard !self.cancelled else { return }
+                        self.exposureChanged(false)
+                        guard status == 0, FileManager.default.fileExists(atPath: target.path) else {
+                            self.report("未取得截图，队列保持不变。")
+                            return
+                        }
+                        await self.importCapture(target, directory: output)
                     }
-                    await self.importCapture(target, directory: output)
-                } }
-                systemCapture = p; exposureChanged(true); try p.run()
-            } catch { systemCapture = nil; exposureChanged(false); report("无法启动系统截图。") }
+                    exposureChanged(true)
+                } catch {
+                    job.owner = nil
+                    systemCapture = nil
+                    endWork()
+                    throw error
+                }
+            } catch { exposureChanged(false); report("无法启动系统截图。") }
         } else {
             let controller = captureController ?? InteractiveScreenshotController(outputDirectory: output)
             captureController = controller
