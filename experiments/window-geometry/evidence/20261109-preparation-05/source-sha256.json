@@ -1,0 +1,10 @@
+{
+  ".gitignore": "bc905aec81574a626cf9589e2bad703a7868919bd10e105b2336e5e51e95963b",
+  "Package.swift": "51ef36c1118ff228177324e6369a15041d6d877692748bffd74cdfdfa13a269b",
+  "Sources/ReadOnlyWindowMetadata/ReadOnlyWindowObserver.swift": "908cc6f93eb396ffac898a53216c5bed352f941a7accdff6b37addccbffceaee",
+  "Sources/WindowGeometryCore/Geometry.swift": "de4e428ad7a59e96c94afbdca0dd99e6c5b47951f3bb17f64faaf289e8a2ce25",
+  "Sources/WindowGeometryCore/WindowIdentity.swift": "ce2d9ce3b1467a59e050050c461d0e62667d72ff07f80f2d5a2e7dbc59add3b8",
+  "Tests/WindowGeometryCoreTests/GeometryTests.swift": "03d67ce202bae516dd681e2dfca0178a00013fae07557d89e5d5de00efd0429d",
+  "Tests/WindowGeometryCoreTests/IdentityTests.swift": "f9247fc741784f592e16b7403f0c2fdfa6bf73a1bc59028a2e2794a86137409a",
+  "scripts/verify.py": "5c59608932d64c2ff434e61a1cc0aaa74302ea1720f57f9c1f14e98e271120de"
+}

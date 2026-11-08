@@ -1,0 +1,112 @@
+[0/1] Planning build
+Building for debugging...
+[0/3] Write swift-version--1AB21518FC5DEDBE.txt
+[2/6] Compiling WindowGeometryCore Geometry.swift
+[3/6] Emitting module WindowGeometryCore
+[4/6] Compiling WindowGeometryCore WindowIdentity.swift
+[5/11] Compiling WindowGeometryCoreTests IdentityTests.swift
+[6/11] Compiling WindowGeometryCoreTests GeometryTests.swift
+[7/11] Emitting module WindowGeometryCoreTests
+[8/13] Emitting module NearpaneWindowGeometryPreparationPackageTests
+[9/13] Compiling NearpaneWindowGeometryPreparationPackageTests runner.swift
+[9/13] Write Objects.LinkFileList
+[10/13] Linking NearpaneWindowGeometryPreparationPackageTests
+[12/13] Emitting module ReadOnlyWindowMetadata
+[13/13] Compiling ReadOnlyWindowMetadata ReadOnlyWindowObserver.swift
+Build complete! (32.75s)
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite GeometryTests started.
+◇ Suite IdentityTests started.
+◇ Test testPrimaryAndNegativeOriginsHaveIndependentGoldenCoordinates() started.
+◇ Test testHalfOpenHitTestGivesOneOwnerAtSeam() started.
+◇ Test testBackingScaleDoesNotScaleGlobalOrigin() started.
+◇ Test testInvalidUnitsScaleAndNonfiniteGeometryAreRejected() started.
+◇ Test testDeterministicSyntheticRoundTripMetrics() started.
+◇ Test testStaleIdentityBlocksPreviewHitRatherThanClickingThrough() started.
+◇ Test testSameTitleAndFrameMultipleAXCandidatesAreAmbiguous() started.
+◇ Test testThreeDisplaysNegativeOriginsAndGapsPreserveUncoveredArea() started.
+◇ Test testWorkAreaClipsWithoutChangingDesktopOrigin() started.
+◇ Test testUniqueMatchIncludesLifecycleCGAXRevisionAndConfidence() started.
+◇ Test testPrimaryOriginNeedNotBeZeroInSuppliedCoordinateContract() started.
+◇ Test testTitleMismatchIsNotOverriddenByExactGeometryOrIdentifier() started.
+◇ Test testClosedTargetIsNotReplacedWithAnotherWindow() started.
+◇ Test testVisibleFragmentsAreNonoverlappingAndConserveArea() started.
+◇ Test testAbsentAXIdentifierDoesNotPreventCorroboratedMatch() started.
+◇ Test testMirrorsDuplicateIDsAndInconsistentTopologyFailClosed() started.
+◇ Test testUnresolvedOccluderBlocksClickThroughAndTiesAreAmbiguous() started.
+◇ Test testQuarterTurnGoldenPointsPreventDoubleRotationAndMirroring() started.
+◇ Test testDifferentAppsWithSameTitleAndFrameRemainDistinct() started.
+◇ Test testQuarterTurnGoldenRectanglesUseAllCorners() started.
+◇ Test testPreviewLetterboxAndCommonScaleGoldenCoordinates() started.
+◇ Test testOverlapUsesZOrderAndExposedRegion() started.
+◇ Test testOldRevisionCannotBeReboundEvenWithIdenticalIDsAndMetadata() started.
+◇ Test testCrossDisplayRectIsClippedAndUsesEachScale() started.
+◇ Test testCGIDReuseWithNewAXObjectIsRejected() started.
+◇ Test testMissingProcessLifecycleAndPIDMismatchAreRejected() started.
+◇ Test testFrameTitleAndAXIdentifierDriftRequireNewTarget() started.
+◇ Test testPartialTransientSlowAndClockInvalidSnapshotsAreRejected() started.
+◇ Test testSameRevisionWithRewrittenCaptureTimesIsRejected() started.
+◇ Test testOneAXCandidateSharedByTwoCGWindowsIsAmbiguous() started.
+◇ Test testToleranceBoundaryAndInvalidTolerances() started.
+◇ Test testDuplicateAXIdentifiersAreNotAssumedUnique() started.
+◇ Test testFormerlyUniqueTargetBecomingAmbiguousIsRejected() started.
+◇ Test testSourceBuildCannotBeUnknownOrChanged() started.
+◇ Test testSameAppMultipleWindowsMatchWithoutUsingArrayOrder() started.
+◇ Test testMissingEmptyOrRedactedTitlesKeepGeometryOnlyConfidence() started.
+◇ Test testMinimizedHiddenUnknownVisibilityAndNonstandardWindowsAreNotTargets() started.
+◇ Test testObserverRestartAndTopologyChangeInvalidateTargets() started.
+◇ Test testExpiryUsesStartTimeAndDoesNotRenewOnValidation() started.
+◇ Test testGreedyUniqueAssignmentIsNotAccepted() started.
+◇ Test testDuplicateCGIDsOrAXTokensAreAmbiguous() started.
+◇ Test testPIDReuseWithSameCGIDIsRejected() started.
+◇ Test testZeroIDInvalidFrameAndNonwindowRoleCannotMatch() started.
+✔ Test testSameTitleAndFrameMultipleAXCandidatesAreAmbiguous() passed after 0.005 seconds.
+✔ Test testPrimaryOriginNeedNotBeZeroInSuppliedCoordinateContract() passed after 0.007 seconds.
+✔ Test testStaleIdentityBlocksPreviewHitRatherThanClickingThrough() passed after 0.007 seconds.
+✔ Test testTitleMismatchIsNotOverriddenByExactGeometryOrIdentifier() passed after 0.007 seconds.
+✔ Test testThreeDisplaysNegativeOriginsAndGapsPreserveUncoveredArea() passed after 0.007 seconds.
+✔ Test testClosedTargetIsNotReplacedWithAnotherWindow() passed after 0.007 seconds.
+✔ Test testAbsentAXIdentifierDoesNotPreventCorroboratedMatch() passed after 0.007 seconds.
+✔ Test testMirrorsDuplicateIDsAndInconsistentTopologyFailClosed() passed after 0.007 seconds.
+✔ Test testVisibleFragmentsAreNonoverlappingAndConserveArea() passed after 0.007 seconds.
+✔ Test teswarning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+tUnresolvedOccluderBlocksClickThroughAndTiesAreAmbiguous() passed after 0.007 seconds.
+✔ Test testQuarterTurnGoldenPointsPreventDoubleRotationAndMirroring() passed after 0.007 seconds.
+✔ Test testQuarterTurnGoldenRectanglesUseAllCorners() passed after 0.007 seconds.
+✔ Test testPreviewLetterboxAndCommonScaleGoldenCoordinates() passed after 0.007 seconds.
+✔ Test testOverlapUsesZOrderAndExposedRegion() passed after 0.007 seconds.
+✔ Test testOldRevisionCannotBeReboundEvenWithIdenticalIDsAndMetadata() passed after 0.007 seconds.
+✔ Test testCGIDReuseWithNewAXObjectIsRejected() passed after 0.007 seconds.
+✔ Test testCrossDisplayRectIsClippedAndUsesEachScale() passed after 0.007 seconds.
+✔ Test testBackingScaleDoesNotScaleGlobalOrigin() passed after 0.007 seconds.
+✔ Test testHalfOpenHitTestGivesOneOwnerAtSeam() passed after 0.007 seconds.
+✔ Test testSameRevisionWithRewrittenCaptureTimesIsRejected() passed after 0.007 seconds.
+✔ Test testOneAXCandidateSharedByTwoCGWindowsIsAmbiguous() passed after 0.007 seconds.
+✔ Test testFrameTitleAndAXIdentifierDriftRequireNewTarget() passed after 0.007 seconds.
+✔ Test testToleranceBoundaryAndInvalidTolerances() passed after 0.007 seconds.
+✔ Test testPartialTransientSlowAndClockInvalidSnapshotsAreRejected() passed after 0.007 seconds.
+✔ Test testDuplicateAXIdentifiersAreNotAssumedUnique() passed after 0.007 seconds.
+✔ Test testFormerlyUniqueTargetBecomingAmbiguousIsRejected() passed after 0.007 seconds.
+✔ Test testSourceBuildCannotBeUnknownOrChanged() passed after 0.007 seconds.
+✔ Test testDifferentAppsWithSameTitleAndFrameRemainDistinct() passed after 0.007 seconds.
+✔ Test testInvalidUnitsScaleAndNonfiniteGeometryAreRejected() passed after 0.008 seconds.
+✔ Test testExpiryUsesStartTimeAndDoesNotRenewOnValidation() passed after 0.007 seconds.
+✔ Test testGreedyUniqueAssignmentIsNotAccepted() passed after 0.007 seconds.
+✔ Test testDuplicateCGIDsOrAXTokensAreAmbiguous() passed after 0.007 seconds.
+✔ Test testPIDReuseWithSameCGIDIsRejected() passed after 0.007 seconds.
+✔ Test testObserverRestartAndTopologyChangeInvalidateTargets() passed after 0.007 seconds.
+✔ Test testZeroIDInvalidFrameAndNonwindowRoleCannotMatch() passed after 0.007 seconds.
+✔ Test testMissingProcessLifecycleAndPIDMismatchAreRejected() passed after 0.007 seconds.
+✔ Test testSameAppMultipleWindowsMatchWithoutUsingArrayOrder() passed after 0.007 seconds.
+✔ Test testMissingEmptyOrRedactedTitlesKeepGeometryOnlyConfidence() passed after 0.007 seconds.
+✔ Test testMinimizedHiddenUnknownVisibilityAndNonstandardWindowsAreNotTargets() passed after 0.008 seconds.
+✔ Test testPrimaryAndNegativeOriginsHaveIndependentGoldenCoordinates() passed after 0.005 seconds.
+✔ Test testUniqueMatchIncludesLifecycleCGAXRevisionAndConfidence() passed after 0.005 seconds.
+✔ Suite IdentityTests passed after 0.008 seconds.
+✔ Test testWorkAreaClipsWithoutChangingDesktopOrigin() passed after 0.006 seconds.
+GEOMETRY_METRICS {"activation":"NOT_TESTED","errorSamples":144000,"liveCalibration":"NOT_TESTED","maxLogicalPointError":6.5369931689929217e-13,"p50LogicalPointError":5.6843418860808015e-14,"p95LogicalPointError":2.2737367544323206e-13,"rectangleCases":36000,"rmsLogicalPointError":1.1712459398501669e-13,"rotationDegrees":[0,90,180,270],"scales":[1,1.25,2],"seedHex":"4e45415250414e45","source":"deterministic-synthetic-only","syntheticThresholdPoints":1.0000000000000001e-09}
+✔ Test testDeterministicSyntheticRoundTripMetrics() passed after 2.995 seconds.
+✔ Suite GeometryTests passed after 2.996 seconds.
+✔ Test run with 43 tests in 2 suites passed after 2.996 seconds.

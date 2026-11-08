@@ -1,0 +1,547 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 153]
+[Planning deferred tasks]
+[3 / 36]
+[4 / 37] WindowGeometryCore
+[13 / 92]
+[15 / 92]
+[17 / 92]
+[20 / 92]
+[22 / 92]
+[23 / 92]
+[24 / 92]
+[27 / 92]
+[28 / 92]
+[30 / 92]
+[31 / 92]
+[33 / 92]
+[36 / 92]
+[37 / 92]
+[38 / 92]
+[39 / 92]
+[46 / 92]
+[47 / 92]
+[51 / 92]
+[52 / 92]
+[54 / 92]
+[55 / 92]
+[56 / 92]
+[59 / 92] WindowGeometryCore
+[63 / 88] WindowGeometryCore
+[65 / 88] ReadOnlyWindowMetadata
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Package.swift: WindowGeometryCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[76 / 139]
+[80 / 139]
+[83 / 139] WindowGeometryCore
+[88 / 139]
+[89 / 139]
+[90 / 139]
+[94 / 139]
+[96 / 139] WindowGeometryCore-product
+[96 / 139]
+[99 / 139] WindowGeometryCoreTests-product
+[100 / 145]
+[102 / 145]
+[104 / 145]
+[106 / 145]
+[110 / 145]
+[114 / 145]
+error: SwiftCompile normal arm64 failed with a nonzero exit code. Command line:     cd /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments
+    
+[117 / 145]
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:17:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 15 |     }
+ 16 | 
+ 17 |     @Test func testPrimaryAndNegativeOriginsHaveIndependentGoldenCoordinates() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 18 |         let primary = try display()
+ 19 |         assertPoint(try primary.appKitToCG(Point(100, 800)), Point(100, 100))
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:26:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 24 |     }
+ 25 | 
+ 26 |     @Test func testPrimaryOriginNeedNotBeZeroInSuppliedCoordinateContract() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 27 |         let transform = try DisplayCoordinateTransform(displayID: "offset",
+ 28 |             appKitFrame: Rect(40, -20, 1440, 900), cgBounds: Rect(8, 12, 1440, 900), backingScale: 1, rotation: .zero)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:33:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 31 |     }
+ 32 | 
+ 33 |     @Test func testQuarterTurnGoldenPointsPreventDoubleRotationAndMirroring() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 34 |         let expected: [QuarterTurn: Point] = [.zero: Point(40, 60), .clockwise90: Point(60, 160),
+ 35 |                                             .half: Point(160, 340), .clockwise270: Point(340, 40)]
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:46:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 44 |     }
+ 45 | 
+ 46 |     @Test func testQuarterTurnGoldenRectanglesUseAllCorners() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 47 |         let expected: [QuarterTurn: Rect] = [.zero: Rect(40, 60, 80, 120),
+ 48 |             .clockwise90: Rect(60, 80, 120, 80), .half: Rect(80, 220, 80, 120),
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:58:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 56 |     }
+ 57 | 
+ 58 |     @Test func testBackingScaleDoesNotScaleGlobalOrigin() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 59 |         for scale in [1.0, 1.25, 2.0] {
+ 60 |             let d = try display("right", cg: Rect(1440, -200, 900, 1440), scale: scale, rotation: .clockwise90)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:66:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 64 |     }
+ 65 | 
+ 66 |     @Test func testCrossDisplayRectIsClippedAndUsesEachScale() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 67 |         let desktop = try DesktopGeometry(displays: [display(),
+ 68 |             display("right", cg: Rect(1440, 0, 900, 1440), scale: 1, rotation: .clockwise90)], primaryID: "primary")
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:81:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 79 |     }
+ 80 | 
+ 81 |     @Test func testThreeDisplaysNegativeOriginsAndGapsPreserveUncoveredArea() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 82 |         let desktop = try DesktopGeometry(displays: [display(),
+ 83 |             display("left", cg: Rect(-1000, -300, 900, 1440), scale: 1),
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:93:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 91 |     }
+ 92 | 
+ 93 |     @Test func testMirrorsDuplicateIDsAndInconsistentTopologyFailClosed() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 94 |         #expect(throws: (any Error).self) { try DesktopGeometry(displays: [display(), display("mirror")], primaryID: "primary") }
+ 95 |         #expect(throws: (any Error).self) { try DesktopGeometry(displays: [display(), display()], primaryID: "primary") }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:103:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+101 |     }
+102 | 
+103 |     @Test func testInvalidUnitsScaleAndNonfiniteGeometryAreRejected() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+104 |         #expect(throws: (any Error).self) { try DisplayCoordinateTransform(displayID: "x", appKitFrame: Rect(0, 0, 100, 100),
+105 |             cgBounds: Rect(0, 0, 200, 200), backingScale: 2, rotation: .zero) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:116:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+114 |     }
+115 | 
+116 |     @Test func testPreviewLetterboxAndCommonScaleGoldenCoordinates() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+117 |         let preview = try PreviewTransform(source: Rect(-1000, -500, 2000, 1000), viewport: Rect(10, 20, 400, 400))
+118 |         #expect(preview.content == Rect(10, 120, 400, 200))
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:128:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+126 |     }
+127 | 
+128 |     @Test func testHalfOpenHitTestGivesOneOwnerAtSeam() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+129 |         let regions = [HitRegion(key: "left", bounds: Rect(-100, 0, 100, 100), frontToBackIndex: 1, identityEligible: true),
+130 |                        HitRegion(key: "right", bounds: Rect(0, 0, 100, 100), frontToBackIndex: 0, identityEligible: true)]
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:137:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+135 |     }
+136 | 
+137 |     @Test func testOverlapUsesZOrderAndExposedRegion() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+138 |         let regions = [HitRegion(key: "back", bounds: Rect(0, 0, 100, 100), frontToBackIndex: 8, identityEligible: true),
+139 |                        HitRegion(key: "front", bounds: Rect(40, 40, 100, 100), frontToBackIndex: 2, identityEligible: true)]
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:146:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+144 |     }
+145 | 
+146 |     @Test func testUnresolvedOccluderBlocksClickThroughAndTiesAreAmbiguous() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+147 |         let back = HitRegion(key: "back", bounds: Rect(0, 0, 100, 100), frontToBackIndex: 1, identityEligible: true)
+148 |         let blocked = HitRegion(key: "unknown", bounds: Rect(20, 20, 100, 100), frontToBackIndex: 0, identityEligible: false)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:156:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+154 |     }
+155 | 
+156 |     @Test func testVisibleFragmentsAreNonoverlappingAndConserveArea() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+157 |         let source = Rect(0, 0, 100, 100), covers = [Rect(20, 20, 40, 40), Rect(40, 40, 40, 40)]
+158 |         let pieces = try HitTesting.visibleFragments(of: source, occluders: covers)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:167:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+165 |     }
+166 | 
+167 |     @Test func testDeterministicSyntheticRoundTripMetrics() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+168 |         var seed: UInt64 = 0x4e45415250414e45
+169 |         func unit() -> Double {
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:38:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 36 |     }
+ 37 | 
+ 38 |     @Test func testUniqueMatchIncludesLifecycleCGAXRevisionAndConfidence() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 39 |         let s = snapshot(), target = try issue(s)
+ 40 |         #expect(target.cg.process == process)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:49:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 47 |     }
+ 48 | 
+ 49 |     @Test func testAbsentAXIdentifierDoesNotPreventCorroboratedMatch() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 50 |         let target = try issue(snapshot(ax: [ax(identifier: nil)]))
+ 51 |         #expect(target.ax.identifier == nil)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:55:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 53 |     }
+ 54 | 
+ 55 |     @Test func testSameAppMultipleWindowsMatchWithoutUsingArrayOrder() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 56 |         let second = Rect(100, 80, 400, 300), token2 = UUID()
+ 57 |         let cg = [cg(), cg(id: 8, title: "fixture-b", frame: second)]
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:64:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 62 |     }
+ 63 | 
+ 64 |     @Test func testDifferentAppsWithSameTitleAndFrameRemainDistinct() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 65 |         let other = ProcessIdentity(pid: 99, launchEpochMicroseconds: 4)
+ 66 |         let matches = WindowMatcher.matches(cg: [cg(), cg(id: 8, process: other)],
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:71:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 69 |     }
+ 70 | 
+ 71 |     @Test func testSameTitleAndFrameMultipleAXCandidatesAreAmbiguous() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 72 |         let s = snapshot(ax: [ax(), ax(token: UUID())])
+ 73 |         #expect(WindowMatcher.matches(cg: s.cg, ax: s.ax)[0].confidence == .ambiguous)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:77:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 75 |     }
+ 76 | 
+ 77 |     @Test func testOneAXCandidateSharedByTwoCGWindowsIsAmbiguous() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 78 |         let s = snapshot(cg: [cg(), cg(id: 8)])
+ 79 |         #expect(WindowMatcher.matches(cg: s.cg, ax: s.ax).allSatisfy { $0.confidence == .ambiguous })
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:83:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 81 |     }
+ 82 | 
+ 83 |     @Test func testGreedyUniqueAssignmentIsNotAccepted() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 84 |         // A fits both AX windows; B only fits the first. Do not infer an assignment.
+ 85 |         let cg = [cg(frame: Rect(0, 0, 100, 100)), cg(id: 8, frame: Rect(-2, 0, 100, 100))]
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:90:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 88 |     }
+ 89 | 
+ 90 |     @Test func testMissingEmptyOrRedactedTitlesKeepGeometryOnlyConfidence() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 91 |         for title: String? in [nil, ""] {
+ 92 |             let s = snapshot(cg: [cg(title: title)])
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:99:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 97 |     }
+ 98 | 
+ 99 |     @Test func testTitleMismatchIsNotOverriddenByExactGeometryOrIdentifier() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+100 |         let s = snapshot(ax: [ax(title: "different")])
+101 |         #expect(WindowMatcher.matches(cg: s.cg, ax: s.ax)[0].confidence == .unknown)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:105:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+103 |     }
+104 | 
+105 |     @Test func testDuplicateAXIdentifiersAreNotAssumedUnique() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+106 |         let second = Rect(100, 100, 100, 100)
+107 |         let matches = WindowMatcher.matches(cg: [cg(), cg(id: 8, title: "b", frame: second)],
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:113:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+111 |     }
+112 | 
+113 |     @Test func testDuplicateCGIDsOrAXTokensAreAmbiguous() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+114 |         rejection(.ambiguous) { _ = try issue(snapshot(cg: [cg(), cg()])) }
+115 |         let matches = WindowMatcher.matches(cg: [cg()], ax: [ax(), ax(title: "unrelated")])
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:119:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+117 |     }
+118 | 
+119 |     @Test func testMissingProcessLifecycleAndPIDMismatchAreRejected() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+120 |         let unknown = ProcessIdentity(pid: 42, launchEpochMicroseconds: nil)
+121 |         rejection(.missingLifecycle) { _ = try issue(snapshot(cg: [cg(process: unknown)], ax: [ax(process: unknown)])) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:126:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+124 |     }
+125 | 
+126 |     @Test func testToleranceBoundaryAndInvalidTolerances() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+127 |         let atLimit = ax(frame: Rect(-498, 78, 402, 298))
+128 |         #expect(WindowMatcher.matches(cg: [cg()], ax: [atLimit])[0].confidence == .corroboratedMetadata)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:136:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+134 |     }
+135 | 
+136 |     @Test func testZeroIDInvalidFrameAndNonwindowRoleCannotMatch() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+137 |         #expect(WindowMatcher.matches(cg: [cg(id: 0)], ax: [ax()])[0].confidence == .unknown)
+138 |         #expect(WindowMatcher.matches(cg: [cg(frame: Rect(0, 0, 0, 0))], ax: [ax()])[0].confidence == .unknown)
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:144:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+142 |     }
+143 | 
+144 |     @Test func testOldRevisionCannotBeReboundEvenWithIdenticalIDsAndMetadata() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+145 |         let target = try issue(snapshot())
+146 |         rejection(.revisionChanged) { try TargetResolver.validate(target, in: snapshot(revision: 2), now: 10.2) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:150:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+148 |     }
+149 | 
+150 |     @Test func testObserverRestartAndTopologyChangeInvalidateTargets() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+151 |         let target = try issue(snapshot())
+152 |         rejection(.sessionChanged) { try TargetResolver.validate(target, in: snapshot(session: UUID()), now: 10.2) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:156:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+154 |     }
+155 | 
+156 |     @Test func testPIDReuseWithSameCGIDIsRejected() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+157 |         let target = try issue(snapshot()), restarted = ProcessIdentity(pid: 42, launchEpochMicroseconds: 1_700_000_000_000_001)
+158 |         rejection(.processChanged) {
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:163:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+161 |     }
+162 | 
+163 |     @Test func testCGIDReuseWithNewAXObjectIsRejected() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+164 |         let target = try issue(snapshot())
+165 |         rejection(.axElementChanged) { try TargetResolver.validate(target, in: snapshot(ax: [ax(token: UUID())]), now: 10.2) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:168:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+166 |     }
+167 | 
+168 |     @Test func testClosedTargetIsNotReplacedWithAnotherWindow() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+169 |         let target = try issue(snapshot())
+170 |         rejection(.notFound) { try TargetResolver.validate(target, in: snapshot(cg: [], ax: []), now: 10.2) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:174:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+172 |     }
+173 | 
+174 |     @Test func testFrameTitleAndAXIdentifierDriftRequireNewTarget() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+175 |         let target = try issue(snapshot()), moved = Rect(-490, 80, 400, 300)
+176 |         let changed = [snapshot(cg: [cg(frame: moved)], ax: [ax(frame: moved)]),
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:182:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+180 |     }
+181 | 
+182 |     @Test func testFormerlyUniqueTargetBecomingAmbiguousIsRejected() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+183 |         let target = try issue(snapshot())
+184 |         rejection(.ambiguous) {
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:189:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+187 |     }
+188 | 
+189 |     @Test func testExpiryUsesStartTimeAndDoesNotRenewOnValidation() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+190 |         let s = snapshot(), target = try issue(s)
+191 |         #expect(throws: Never.self) { try TargetResolver.validate(target, in: s, now: 10.5) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:196:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+194 |     }
+195 | 
+196 |     @Test func testPartialTransientSlowAndClockInvalidSnapshotsAreRejected() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+197 |         let invalid = [snapshot(consistent: false), snapshot(complete: false), snapshot(begin: 9.8, end: 10.1),
+198 |                        snapshot(begin: 10.1, end: 10), snapshot(begin: .nan), snapshot(begin: -1),
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:207:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+205 |     }
+206 | 
+207 |     @Test func testSameRevisionWithRewrittenCaptureTimesIsRejected() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+208 |         let target = try issue(snapshot())
+209 |         rejection(.invalidSnapshot) { try TargetResolver.validate(target, in: snapshot(end: 10.15), now: 10.2) }
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:212:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+210 |     }
+211 | 
+212 |     @Test func testMinimizedHiddenUnknownVisibilityAndNonstandardWindowsAreNotTargets() {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+213 |         let disallowed = [snapshot(cg: [cg(onscreen: false)]), snapshot(cg: [cg(onscreen: nil)]),
+214 |                           snapshot(cg: [cg(layer: 3)]), snapshot(ax: [ax(minimized: true)]),
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift:220:16: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+218 |     }
+219 | 
+220 |     @Test func testStaleIdentityBlocksPreviewHitRatherThanClickingThrough() throws {
+    |                `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+221 |         let s = snapshot(), target = try issue(s)
+222 |         let eligible = (try? TargetResolver.validate(target, in: s, now: 11)) != nil
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+Failed frontend command:
+/Library/Developer/CommandLineTools/usr/bin/swift-frontend -frontend -emit-module -experimental-skip-non-inlinable-function-bodies-without-types /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/DerivedSources/test_entry_point.swift /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/IdentityTests.swift -target arm64-apple-macos13.0 -module-can-import-version Testing 2084 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libObservationMacros.dylib\#\#ObservationMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#\#SwiftMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk -I /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Products/Debug -Isystem /Library/Developer/CommandLineTools/Developer/usr/lib -F /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Products/Debug/PackageFrameworks -F /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Products/Debug -F /Library/Developer/CommandLineTools/Library/Developer/Frameworks -F /Library/Developer/CommandLineTools/Developer/Library/Frameworks -module-cache-path /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -warnings-as-errors -warnings-as-errors -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/ModuleCache.noindex/Session.modulevalidation -disable-sandbox -Xcc -working-directory -Xcc /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments -enable-anonymous-context-mangled-names -file-compilation-dir /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/SDKStatCaches.noindex/macosx27.0-26A425-a0facfad118c1a7a18f0aad9463f6549ffd68ff603bdaacc80b00cb8898de72d.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Products/Debug/include -Xcc -I/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/DerivedSources/arm64 -Xcc -I/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name WindowGeometryCoreTests -package-name window_geometry -const-gather-protocols-file /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Library/Developer/CommandLineTools/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -emit-module-doc-path /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests.swiftdoc -emit-module-source-info-path /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests.swiftsourceinfo -serialize-diagnostics-path /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests-primary-emit-module.dia -emit-dependencies-path /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests-primary-emit-module.d -parse-as-library -o /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests.swiftmodule -emit-abi-descriptor-path /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/Objects-normal/arm64/WindowGeometryCoreTests.abi.json
+error: Build failed
+error: fatalError

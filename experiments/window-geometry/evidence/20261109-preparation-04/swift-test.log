@@ -1,0 +1,31 @@
+Building for debugging...
+[0/8] /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/arm64-apple-macosx/debug/NearpaneWindowGeometryPreparationPackageTests.derived/runner.swift
+[1/8] Write sources
+[5/8] Write swift-version--1AB21518FC5DEDBE.txt
+[7/11] Emitting module WindowGeometryCore
+[8/11] Compiling WindowGeometryCore WindowIdentity.swift
+[9/11] Compiling WindowGeometryCore Geometry.swift
+[10/16] Compiling WindowGeometryCoreTests IdentityTests.swift
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:2:8: error: no such module 'Testing'
+  1 | import Foundation
+  2 | import Testing
+    |        `- error: no such module 'Testing'
+  3 | @testable import WindowGeometryCore
+  4 | 
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[11/16] Emitting module WindowGeometryCoreTests
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:2:8: error: no such module 'Testing'
+  1 | import Foundation
+  2 | import Testing
+    |        `- error: no such module 'Testing'
+  3 | @testable import WindowGeometryCore
+  4 | 
+[12/16] Compiling WindowGeometryCoreTests GeometryTests.swift
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Tests/WindowGeometryCoreTests/GeometryTests.swift:2:8: error: no such module 'Testing'
+  1 | import Foundation
+  2 | import Testing
+    |        `- error: no such module 'Testing'
+  3 | @testable import WindowGeometryCore
+  4 | 
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+error: fatalError

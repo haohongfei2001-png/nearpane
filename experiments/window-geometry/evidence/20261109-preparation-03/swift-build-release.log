@@ -1,0 +1,8 @@
+Building for production...
+[Computing dependencies]
+[3 / 8] WindowGeometryCore
+[4 / 9] WindowGeometryCore
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Package.swift: WindowGeometryCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[12 / 20] ReadOnlyWindowMetadata
+[14 / 21] ReadOnlyWindowMetadata
+Build complete! (13.77秒)

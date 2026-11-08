@@ -1,0 +1,5 @@
+{
+  "forbiddenCallPattern": "AXUIElementPerformAction|AXUIElementSetAttributeValue|AXIsProcessTrustedWithOptions|AXMakeProcessTrusted|CGRequestScreenCaptureAccess|CGWindowListCreateImage|ScreenCaptureKit|SkyLight|SLSCopy|CGSSet|NSApplication\\.shared|\\.activate\\s*\\(|makeKeyAndOrderFront|orderFront|setFrame\\s*\\(",
+  "violations": [],
+  "scope": "Sources/*.swift textual guard; not semantic or live verification"
+}

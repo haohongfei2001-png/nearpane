@@ -1,0 +1,30 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 153]
+[Planning deferred tasks]
+[3 / 37] WindowGeometryCore
+[4 / 37] WindowGeometryCore
+[7 / 40] WindowGeometryCore
+[12 / 37] WindowGeometryCore
+[14 / 37] ReadOnlyWindowMetadata
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Package.swift: WindowGeometryCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[24 / 52]
+[28 / 56]
+[28 / 56] WindowGeometryCoreTests-product
+[28 / 56]
+[30 / 56] WindowGeometryCoreTests-product
+[35 / 56]
+[36 / 56]
+[37 / 56] WindowGeometryCoreTests-product
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Package.swift: WindowGeometryCoreTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Package.swift: WindowGeometryCoreTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/Package.swift: WindowGeometryCoreTests-product: ld: warning: building for macOS-13.0, but linking with dylib '@rpath/Testing.framework/Versions/A/Testing' which was built for newer version 14.0
+[39 / 56] WindowGeometryCoreTests-product
+/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Products/Debug/WindowGeometryCoreTests.xctest: resource fork, Finder information, or similar detritus not allowed
+error: CodeSign /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Products/Debug/WindowGeometryCoreTests.xctest failed with a nonzero exit code. Command line:     cd /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry
+    
+    Signing Identity:     "-"
+    
+    /usr/bin/codesign --force --sign - --entitlements /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Intermediates.noindex/NearpaneWindowGeometryPreparation.build/Debug/WindowGeometryCoreTests-p.build/WindowGeometryCoreTests.xctest.xcent --timestamp\=none --generate-entitlement-der /Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/out/Products/Debug/WindowGeometryCoreTests.xctest
+error: Build failed
+error: fatalError

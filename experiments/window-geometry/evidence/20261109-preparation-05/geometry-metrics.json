@@ -1,0 +1,24 @@
+{
+  "activation": "NOT_TESTED",
+  "errorSamples": 144000,
+  "liveCalibration": "NOT_TESTED",
+  "maxLogicalPointError": 6.536993168992922e-13,
+  "p50LogicalPointError": 5.684341886080802e-14,
+  "p95LogicalPointError": 2.2737367544323206e-13,
+  "rectangleCases": 36000,
+  "rmsLogicalPointError": 1.171245939850167e-13,
+  "rotationDegrees": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "scales": [
+    1,
+    1.25,
+    2
+  ],
+  "seedHex": "4e45415250414e45",
+  "source": "deterministic-synthetic-only",
+  "syntheticThresholdPoints": 1e-09
+}

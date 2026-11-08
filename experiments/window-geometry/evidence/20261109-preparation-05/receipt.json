@@ -1,0 +1,160 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/sw_vers"
+      ],
+      "cwd": "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+      "exitCode": 0,
+      "label": "environment",
+      "log": "evidence/20261109-preparation-05/environment.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/uname",
+        "-m"
+      ],
+      "cwd": "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+      "exitCode": 0,
+      "label": "architecture",
+      "log": "evidence/20261109-preparation-05/architecture.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/xcrun",
+        "swift",
+        "--version"
+      ],
+      "cwd": "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+      "exitCode": 0,
+      "label": "swift-version",
+      "log": "evidence/20261109-preparation-05/swift-version.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/xcrun",
+        "--find",
+        "swiftc"
+      ],
+      "cwd": "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+      "exitCode": 0,
+      "label": "swift-compiler-path",
+      "log": "evidence/20261109-preparation-05/swift-compiler-path.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+      "exitCode": 0,
+      "label": "input-head",
+      "log": "evidence/20261109-preparation-05/input-head.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/xcrun",
+        "swift",
+        "test",
+        "--disable-sandbox",
+        "--build-system",
+        "native",
+        "--package-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+        "--scratch-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build",
+        "--cache-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/package-cache",
+        "--config-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/configuration",
+        "--security-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/security",
+        "-Xswiftc",
+        "-warnings-as-errors",
+        "--disable-xctest",
+        "--enable-swift-testing",
+        "-Xswiftc",
+        "-load-plugin-library",
+        "-Xswiftc",
+        "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib",
+        "-Xswiftc",
+        "-F",
+        "-Xswiftc",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-Xlinker",
+        "-F",
+        "-Xlinker",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-Xlinker",
+        "-rpath",
+        "-Xlinker",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-Xlinker",
+        "-rpath",
+        "-Xlinker",
+        "/Library/Developer/CommandLineTools/Library/Developer/usr/lib"
+      ],
+      "cwd": "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+      "exitCode": 0,
+      "label": "swift-test",
+      "log": "evidence/20261109-preparation-05/swift-test.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/xcrun",
+        "swift",
+        "build",
+        "--disable-sandbox",
+        "--build-system",
+        "native",
+        "--package-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+        "--scratch-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build",
+        "--cache-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/package-cache",
+        "--config-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/configuration",
+        "--security-path",
+        "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry/.build/security",
+        "-Xswiftc",
+        "-warnings-as-errors",
+        "-c",
+        "release"
+      ],
+      "cwd": "/Users/hhf/Documents/GitHub/nearpane-p1-window-geometry/experiments/window-geometry",
+      "exitCode": 0,
+      "label": "swift-build-release",
+      "log": "evidence/20261109-preparation-05/swift-build-release.log"
+    }
+  ],
+  "finishedUTC": "2026-11-08T17:21:39.542529+00:00",
+  "inputGitHEAD": "beb6471fe360004425760a024636e5a63dbe87d1",
+  "matrix": {
+    "SpacesSwitching": "NOT_TESTED",
+    "activation": "NOT_TESTED",
+    "liveAXCGMatching": "NOT_TESTED",
+    "liveGeometryCalibration": "NOT_TESTED",
+    "pureGeometryAndIdentity": "PASS",
+    "releaseBuild": "PASS",
+    "staticBoundary": "PASS",
+    "visibleTestWindowFixture": "NOT_BUILT_NOT_LAUNCHED"
+  },
+  "note": "Input HEAD plus source-sha256.json identifies the tested uncommitted payload.",
+  "releaseArtifactsSHA256": {
+    ".build/arm64-apple-macosx/release/Modules/ReadOnlyWindowMetadata.swiftmodule": "30f1210b0df4d13cc2f7e69cedad7775782d793fe20460a8f71f857223797376",
+    ".build/arm64-apple-macosx/release/Modules/WindowGeometryCore.swiftmodule": "7d785a17a5a614fb12e05ce7c6a268e2dcf562ee844baf819318cf986699a2ed",
+    ".build/arm64-apple-macosx/release/ReadOnlyWindowMetadata.build/ReadOnlyWindowObserver.swift.o": "d9cf4bccb1bb276cd329dee0e29225f9923f03bbe267b7508ddcfc39ff56ee03",
+    ".build/arm64-apple-macosx/release/WindowGeometryCore.build/Geometry.swift.o": "d3db03fd6b1802bb294feab38b9425f3cbbf7d2cef38062eb3a21fc5bfcf5598",
+    ".build/arm64-apple-macosx/release/WindowGeometryCore.build/WindowIdentity.swift.o": "b5682476039f43eefdd7c4b1c69f3678c18c35014e7c7280221db906b092815b"
+  },
+  "schema": 1,
+  "sourceUnchangedDuringVerification": true,
+  "startedUTC": "2026-11-08T17:21:00.384951+00:00",
+  "status": "PASS",
+  "tests": {
+    "executed": 43,
+    "failures": 0
+  }
+}
