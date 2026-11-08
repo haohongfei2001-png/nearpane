@@ -48,7 +48,7 @@ SkyLight 的 SLSCopyManagedDisplaySpaces / CGSCopyManagedDisplaySpaces 等私有
 | SLSCopySpacesForWindows 等私有成员查询 | C：私有 API | 在受控版本验证窗口与内部 Space ID 的关联 | 不得把返回值未经验证直接映射为用户可见 Space 身份 |
 | AppleScript / Mission Control UI 操作 | B/C：行为/自动化依赖 | 经用户授权后的有限切换/激活实验 | 不可视为稳定的任意 Space API |
 
-**历史证据说明：** 上一轮执行记录确认曾编写并运行只读 SkyLight 探测程序，且曾发现公开独立 Spaces 设置与私有接口分组并不完全一致。但当前未取得完整原始探测 JSON、系统构建号对应的原始结果文件和可复核的窗口样本。因此，该发现作为历史观察保留，标记为 **OBSERVED-HISTORICAL / RAW-RECEIPT-NOT-RECOVERED**；不得升级为本轮已复测结论。
+**历史证据说明（2026-11-08）：** 上一轮执行记录确认曾编写并运行只读 SkyLight 探测程序，但该次完整原始 JSON 未恢复。因此，2026-11-08 的具体结果仍标记为 **OBSERVED-HISTORICAL / RAW-RECEIPT-NOT-RECOVERED**，不作为本轮实测证据。2026-11-09 的新一轮真实只读基线见第 8 节及 `docs/engineering/P1-READONLY-BASELINE-20261109.md`。
 
 ## 4. 产品与工程裁决
 
@@ -137,3 +137,22 @@ Space ID 仅作为短期运行时身份，不作为持久化用户数据或跨�
 ---
 
 **状态摘要：** 技术方向已裁决；历史不一致观察保留但原始收据未恢复；跨版本可靠性、完整 Space inventory 和切换行为仍需后续实机验证。
+
+
+## 8. P1 live read-only baseline — 2026-11-09
+
+本轮在 macOS 27.0（Build 26A428，ARM64）执行两次真实只读探测。脱敏汇总位于 `experiments/macos-spaces-readonly/evidence/p1-readonly-summary.json`。
+
+核心观察：
+
+- `NSScreen.screensHaveSeparateSpaces` 为 false；
+- 公开 API 检测到 2 个活动显示器；
+- SkyLight 返回 2 个 managed display scopes，两个 scope 均通过显示器 UUID 匹配到公开显示器；
+- 两个 scope 的 Space 记录数分别为 3 与 1，两次采样保持一致；
+- 两次采样中，当前可见且 bounds 为正面积的 layer-zero 窗口均全部取得非空 membership；
+- 全部 layer-zero 窗口中只有部分记录返回非空 membership，剩余记录保持 unknown；
+- 第二显示器存在 90° 旋转，AppKit frame 与 CoreGraphics bounds 的原点不同，必须使用显式坐标变换。
+
+**解释边界：** 该结果证明私有 scope 可在该系统构建上与公开显示器 UUID 对应，但不证明 3+1 条记录是 4 个独立的用户 Spaces。共享 Spaces 的切换语义、窗口跨显示器行为和写操作尚未验证。不能将 scope 直接当作用户可见 Space 列表，也不能将其记录数简单相加。
+
+本轮没有采集像素、切换 Space、改变窗口焦点或请求新权限。Space type 保留 raw 数值，不推断 `type=4` 的语义。P1 仍为 IN PROGRESS。

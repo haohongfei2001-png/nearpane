@@ -1,6 +1,6 @@
 # Nearpane — 工程实施路线与交付门槛
 
-**状态：实施规划 · 非执行授权 · 0.1 · 2026-11-08**
+**状态：实施规划 · 非执行授权 · 0.1 · 2026-11-09**
 
 ## 1. 交付策略
 
@@ -52,6 +52,14 @@
 - 不请求无关权限，不采集窗口像素作为默认步骤；
 - 原始证据和 SHA-256 随每次测试归档；
 - 若 Space mapping 不可靠，先发布受限模式，不阻断 Saytile / Riftlet 和其他模块。
+
+### P1 执行状态 — 2026-11-09
+
+**当前状态：IN PROGRESS。** 已完成单台 Mac / 单个 macOS build 的只读基线探测，详见 `docs/engineering/P1-READONLY-BASELINE-20261109.md`。
+
+已验证的范围仅包括公开显示器拓扑、显示器 UUID 对应、该构建上的 SkyLight 只读 Space inventory、当前可见窗口 membership 和坐标系差异。
+
+尚未验证 Space 切换、窗口激活、separate-Spaces 开启配置、显示器插拔、镜像、Stage Manager、全屏过渡及跨版本兼容性。**P1 退出门槛尚未满足；P2 不因只读基线完成而自动获准。**
 
 ## 5. P2 — Host Foundation
 
