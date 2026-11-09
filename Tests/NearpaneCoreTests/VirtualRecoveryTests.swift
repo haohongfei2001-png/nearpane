@@ -144,7 +144,11 @@ struct VirtualRecoveryTests {
             let dir = URL(fileURLWithPath: path)
             let (r, world) = try fixture(dir)
             let owner = try VirtualWorkspaceExperiment(directory: dir)
-            world.afterReplace = { kill(getpid(), SIGKILL) }
+            world.afterReplace = {
+                // Stop at the exact post-write/pre-receipt boundary until the parent kills this child.
+                try Data(String(getpid()).utf8).write(to: dir.appendingPathComponent("parked.marker"), options: .atomic)
+                while true { _ = pause() }
+            }
             try owner.begin(r, on: world)
             Issue.record("synthetic writer survived SIGKILL")
             return
@@ -168,12 +172,31 @@ struct VirtualRecoveryTests {
         child.standardOutput = log
         child.standardError = log
         try child.run()
+        defer {
+            if child.isRunning {
+                _ = kill(child.processIdentifier, SIGKILL)
+                child.waitUntilExit()
+            }
+        }
+        let marker = dir.appendingPathComponent("parked.marker")
+        let deadline = ProcessInfo.processInfo.systemUptime + 8
+        while child.isRunning && !FileManager.default.fileExists(atPath: marker.path)
+            && ProcessInfo.processInfo.systemUptime < deadline
+        {
+            usleep(10_000)
+        }
+        let writer = try String(contentsOf: marker, encoding: .utf8)
+        try #require(writer == String(child.processIdentifier) && child.isRunning)
+        let frozen = try FixtureWindows(dir).load()
+        try JSONEncoder().encode(frozen).write(to: dir.appendingPathComponent("parked-before-kill.json"))
+        try #require(kill(child.processIdentifier, SIGKILL) == 0)
         child.waitUntilExit()
         #expect(child.terminationReason == .uncaughtSignal && child.terminationStatus == SIGKILL)
         let reopened = try VirtualWorkspaceExperiment(directory: dir)
         let world = FixtureWindows(dir)
         let r = try #require(try reopened.pending())
-        #expect(try world.load() == [r.changes[0].target, r.changes[1].original])
+        #expect(frozen == [r.changes[0].target, r.changes[1].original])
+        #expect(try world.load() == frozen)
         try reopened.restore(on: world)
         #expect(try world.load() == r.changes.map(\.original))
         #expect(try reopened.pending() == nil)
