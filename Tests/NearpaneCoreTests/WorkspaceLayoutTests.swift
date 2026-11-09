@@ -77,9 +77,25 @@ struct WorkspaceLayoutTests {
                 fallbackEdge: .left)
         }
         let baseline = try work()
-        for _ in [PanelContent.full, .compact, .voiceOnly, .trayOnly, .spacesOnly, .hidden] {
+        var presentation = MultiDisplayPresentationCoordinator()
+        var planner = WorkAreaLayoutPlanner()
+        let screen = ScreenGeometry(id: "portrait", frame: baseline.screen, visibleFrame: baseline.screen)
+        let layout = try ManagedWindowTiler(workspace: .virtual(UUID())).adding(member(1), in: baseline.ordinary)
+        #expect(try planner.update(area: baseline, layout: layout)?.count == 1)
+        for (expected, voice, tray, spaces, hidden) in [
+            (PanelContent.full, true, true, true, false), (.compact, true, true, false, false),
+            (.voiceOnly, true, false, false, false), (.trayOnly, false, true, false, false),
+            (.spacesOnly, false, false, true, false),
+            (.hidden, true, true, true, true),
+        ] {
             settings.measures[.textSize] = .init(21)
+            let content = presentation.resolve(
+                screens: [screen], preferred: "portrait", settings: ["portrait": settings],
+                demand: ["portrait": .init(spaces: 2, complete: true)], hidden: hidden, voice: voice, tray: tray,
+                spacesEnabled: spaces, uptime: 3)
+            #expect(content.map(\.content) == [expected])
             #expect(try work() == baseline)
+            #expect(try planner.update(area: work(), layout: layout) == nil)
         }
         #expect(baseline.frame(nativeFullscreen: false).width == 700)
         #expect(baseline.frame(nativeFullscreen: true).width == 800)

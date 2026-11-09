@@ -11,9 +11,18 @@ public struct WorkspacePreferences: Codable, Equatable, Sendable {
     public init() {}
     public func excluded(_ id: ManagedWindowID, bundle: String?) throws -> Bool {
         if let specific = windows[id] { return specific == .exclude }
-        if excludedApps.isEmpty { return false }
-        guard let bundle, !bundle.isEmpty else { throw WorkspaceFailure.identity }
-        return excludedApps.contains(bundle)
+        if !excludedApps.isEmpty {
+            guard let bundle, !bundle.isEmpty else { throw WorkspaceFailure.identity }
+            if excludedApps.contains(bundle) { return true }
+        }
+        // An AX token can change between readers. Neither silently re-admit a possibly excluded
+        // window nor transfer its rule to a replacement solely because CG reused its number.
+        if windows.contains(where: { key, rule in
+            rule == .exclude && key.pid == id.pid && key.launch == id.launch && key.number == id.number
+        }) {
+            throw WorkspaceFailure.identity
+        }
+        return false
     }
 }
 

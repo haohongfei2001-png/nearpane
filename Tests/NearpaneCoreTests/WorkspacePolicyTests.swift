@@ -67,6 +67,13 @@ struct WorkspacePolicyTests {
         #expect(throws: WorkspaceFailure.unmanaged) { try check(.sheet) }
         #expect(throws: WorkspaceFailure.unmanaged) { try check(.nativeFullscreen) }
         let reread = try JSONDecoder().decode(WorkspacePreferences.self, from: JSONEncoder().encode(prefs))
+        var windowOnly = WorkspacePreferences()
+        windowOnly.windows[m.id] = .exclude
+        #expect(throws: WorkspaceFailure.identity) {
+            try windowOnly.excluded(WorkspaceLayoutTests().member(1).id, bundle: "fixture.app")
+        }
+        let relaunched = ManagedWindowID(pid: m.id.pid, launch: m.id.launch + 1, number: m.id.number, element: UUID())
+        #expect(try !windowOnly.excluded(relaunched, bundle: "fixture.app"))
         #expect(try !reread.excluded(m.id, bundle: "fixture.app"))
         #expect(try reread.excluded(WorkspaceLayoutTests().member(1).id, bundle: "fixture.app"))
         #expect(throws: WorkspaceFailure.identity) { try reread.excluded(WorkspaceLayoutTests().member(2).id, bundle: nil) }
