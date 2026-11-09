@@ -30,6 +30,11 @@ def verify(app, lock, sandbox):
     load = subprocess.check_output(["/usr/bin/otool","-l",str(binary)],text=True)
     if not re.search(r"cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform (?:1|MACOS)\s+minos 26\.0\b",load):
         raise ValueError("Unexpected Mach-O deployment target")
+    helper = contents / "Helpers/NearpaneDesktopReader"
+    if helper.resolve() != helper or digest(helper) != plist.get("NearpaneDesktopReaderSHA256"):
+        raise ValueError("Unexpected desktop reader identity")
+    if subprocess.check_output(sandbox + [str(helper), "--self-check"], text=True).strip() != "Nearpane desktop reader 1":
+        raise ValueError("Desktop reader protocol unavailable")
     result = subprocess.check_output(sandbox + [str(binary), "--verify-bundled-resources"],text=True)
     if "Packaged Saytile and Riftlet resources verified." not in result:
         raise ValueError("Missing full packaged resource verification")

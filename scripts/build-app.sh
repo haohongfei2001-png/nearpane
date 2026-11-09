@@ -7,7 +7,7 @@ configuration="${1:-debug}"
 case "$configuration" in debug|release) ;; *) echo "Usage: $0 [debug|release]" >&2; exit 2 ;; esac
 scratch="$build_root/app-native"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then scratch="$build_root/foundation-app-native"; fi
-swift build --build-system native -c "$configuration" --product NearpaneHost --disable-sandbox \
+swift build --build-system native -c "$configuration" --disable-sandbox \
   --scratch-path "$scratch" --cache-path "$build_root/cache" --config-path "$build_root/config" --security-path "$build_root/security"
 binary_dir="$(swift build --build-system native -c "$configuration" --show-bin-path --disable-sandbox \
   --scratch-path "$scratch" --cache-path "$build_root/cache" --config-path "$build_root/config" --security-path "$build_root/security")"
@@ -24,6 +24,13 @@ stage="$staging_dir/Nearpane.app"
 mkdir -p "$stage/Contents/MacOS" "$stage/Contents/Resources"
 cp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 cp Resources/Info.plist "$stage/Contents/Info.plist"
+# The optional private getter symbols live only in this disposable, separately verified executable.
+reader="$binary_dir/NearpaneDesktopReader"
+/usr/bin/codesign --verify --strict "$reader"
+mkdir -p "$stage/Contents/Helpers"
+install -m 755 "$reader" "$stage/Contents/Helpers/NearpaneDesktopReader"
+/usr/bin/plutil -insert NearpaneDesktopReaderSHA256 -string "$(shasum -a 256 "$reader" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
+"$stage/Contents/Helpers/NearpaneDesktopReader" --self-check
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then
   /usr/bin/plutil -replace LSMinimumSystemVersion -string 14.0 "$stage/Contents/Info.plist"
   for usage in NearpaneNativeAcceptanceSchema NSMicrophoneUsageDescription NSSpeechRecognitionUsageDescription NSAppleEventsUsageDescription; do

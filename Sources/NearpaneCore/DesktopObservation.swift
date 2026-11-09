@@ -1,9 +1,9 @@
 import Foundation
 
 public enum SnapshotFreshness: String, Codable, Sendable { case fresh, stale, transient }
-public enum IdentityConfidence: String, Codable, Sendable { case synthetic, unknown }
-public enum UserSpaceSemantics: String, Codable, Sendable { case unknown }
-public enum ObservationSupport: String, Codable, Sendable { case mockOnly, degraded, unsupported }
+public enum IdentityConfidence: String, Codable, Sendable { case synthetic, unknown, geometryOnly, corroboratedMetadata, ambiguous }
+public enum UserSpaceSemantics: String, Codable, Sendable { case unknown, witnessedCurrent }
+public enum ObservationSupport: String, Codable, Sendable { case mockOnly, degraded, unsupported, readOnly }
 
 public struct DesktopCapabilities: Codable, Equatable, Sendable {
     public var observation: ObservationSupport = .mockOnly
@@ -19,7 +19,7 @@ public struct DesktopCapabilities: Codable, Equatable, Sendable {
         observation = try values.decode(ObservationSupport.self, forKey: .observation)
         guard try !values.decode(Bool.self, forKey: .spaceSwitching),
               try !values.decode(Bool.self, forKey: .windowActivation) else {
-            throw DecodingError.dataCorruptedError(forKey: .observation, in: values, debugDescription: "P2 supports observation fixtures only")
+            throw DecodingError.dataCorruptedError(forKey: .observation, in: values, debugDescription: "Desktop observation cannot enable actions")
         }
         spaceSwitching = false; windowActivation = false
     }
@@ -30,18 +30,25 @@ public struct DisplayObservation: Codable, Equatable, Identifiable, Sendable {
     public let frame: SurfaceRect
     public let rotationDegrees: Int
     public let backingScale: Double
+    /// Usable frame in display-local top-left points; the snapshot frame is global Quartz for native reads.
+    public var usable: SurfaceRect?
+    public init(id: String, frame: SurfaceRect, rotationDegrees: Int, backingScale: Double, usable: SurfaceRect? = nil) {
+        self.id = id; self.frame = frame; self.rotationDegrees = rotationDegrees; self.backingScale = backingScale; self.usable = usable
+    }
 }
 
 public struct SpaceRecord: Codable, Equatable, Identifiable, Sendable {
-    /// Session-local synthetic identity. Never a configuration key or a user-facing desktop number.
+    /// Session-local record identity. Never a configuration key or a user-facing desktop number.
     public let id: String
     public let isCurrent: Bool
+    public init(id: String, isCurrent: Bool) { self.id = id; self.isCurrent = isCurrent }
 }
 
 public struct ManagedDisplayScope: Codable, Equatable, Identifiable, Sendable {
     public let id: String
     public let displayID: String
     public let records: [SpaceRecord]
+    public init(id: String, displayID: String, records: [SpaceRecord]) { self.id = id; self.displayID = displayID; self.records = records }
 }
 
 public enum WindowMembership: Codable, Equatable, Sendable {
@@ -56,6 +63,12 @@ public struct WindowObservation: Codable, Equatable, Identifiable, Sendable {
     public let bounds: SurfaceRect
     public let membership: WindowMembership
     public let confidence: IdentityConfidence
+    public var metadata: ObservedWindowMetadata?
+    public init(id: String, displayID: String, bounds: SurfaceRect, membership: WindowMembership,
+                confidence: IdentityConfidence, metadata: ObservedWindowMetadata? = nil) {
+        self.id = id; self.displayID = displayID; self.bounds = bounds; self.membership = membership
+        self.confidence = confidence; self.metadata = metadata
+    }
 }
 
 public struct DesktopSnapshot: Codable, Equatable, Sendable {
@@ -75,6 +88,7 @@ public struct DesktopSnapshot: Codable, Equatable, Sendable {
     public var displays: [DisplayObservation]
     public var scopes: [ManagedDisplayScope]
     public var windows: [WindowObservation]
+    public var native: DesktopReadEvidence? = nil
 
     public func effectiveFreshness(at now: Date, maxAge: TimeInterval = 10) -> SnapshotFreshness {
         if freshness == .transient || !topologyConsistent { return .transient }
@@ -87,7 +101,8 @@ public struct DesktopSnapshot: Codable, Equatable, Sendable {
         let scopeIDs = Set(scopes.map(\.id))
         let recordIDs = scopes.flatMap(\.records).map(\.id)
         let records = Set(recordIDs)
-        return revision > 0 && sampledFrom <= sampledTo && !source.isEmpty && !sourceBuild.isEmpty
+        return (native?.validates(self) ?? (capabilities.observation != .readOnly && userSpaceSemantics == .unknown))
+            && revision > 0 && sampledFrom <= sampledTo && !source.isEmpty && !sourceBuild.isEmpty
             && !topologyFingerprint.isEmpty && !displays.isEmpty
             && displayIDs.count == displays.count && scopeIDs.count == scopes.count
             && recordIDs.count == records.count && Set(windows.map(\.id)).count == windows.count
@@ -112,8 +127,16 @@ public protocol DesktopObservationProvider {
     func snapshot() async throws -> DesktopSnapshot
 }
 
-/// The ordinary Host has no admitted Space inventory yet. Do not turn "unknown" into
-/// a successful empty desktop or a set of sample displays.
+@MainActor
+public protocol LiveDesktopObservationProvider: DesktopObservationProvider {
+    func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot
+}
+
+public extension LiveDesktopObservationProvider {
+    func snapshot() async throws -> DesktopSnapshot { try await snapshot(experimentalSpaces: false) }
+}
+
+/// Used when the read-only reader is unavailable or a test has not opted into real observation.
 @MainActor
 public struct UnavailableDesktopProvider: DesktopObservationProvider {
     public init() {}

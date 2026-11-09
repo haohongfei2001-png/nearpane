@@ -13,9 +13,14 @@ struct DomainLock: Decodable { let domains: [String: DomainPin] }
 let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
 var targets: [Target] = [
-    .target(name: "NearpaneCore"),
-    .target(name: "NearpaneUI", dependencies: ["NearpaneCore"] + domains),
+    .target(name: "WindowGeometryCore"),
+    .target(name: "CReadOnlySpaces"),
+    .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
+    .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
+    .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore"] + domains),
     .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore"] : [])),
+    .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
+    .testTarget(name: "NearpaneDesktopReaderTests", dependencies: ["NearpaneDesktopReader", "NearpaneCore"]),
     .testTarget(name: "NearpaneCoreTests", dependencies: ["NearpaneCore"]),
     .testTarget(name: "NearpaneUITests", dependencies: ["NearpaneUI", "NearpaneCore"] + domains + fixtureDomains)
 ]
@@ -52,5 +57,6 @@ if full {
 }
 let package = Package(name: "Nearpane", platforms: [.macOS(full ? "26.0" : "14.0")],
                       products: [.library(name: "NearpaneCore", targets: ["NearpaneCore"]),
-                                 .executable(name: "NearpaneHost", targets: ["NearpaneHost"])],
+                                 .executable(name: "NearpaneHost", targets: ["NearpaneHost"]),
+                                 .executable(name: "NearpaneDesktopReader", targets: ["NearpaneDesktopReader"])],
                       targets: targets, swiftLanguageModes: [.v6])
