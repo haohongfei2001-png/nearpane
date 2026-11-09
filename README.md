@@ -34,4 +34,4 @@ These documents define the intended product. They do not claim that the describe
 
 ## 官网 / Official website
 
-The official Nearpane website lives in [`website/`](website/). It preserves the user-selected R2 visual baseline (「整个桌面。一侧掌握。」). Static site, separately deployable on Vercel with root directory `website`. Production domain: `nearpane.com` (DNS activation subject to verification).
+The official Nearpane website lives in [`website/`](website/). It preserves the user-selected R2 visual baseline (「整个桌面。一侧掌握。」). Static site hosted by GitHub Pages using `website/` as the published artifact. Custom domain: `nearpane.com` (DNS activation subject to verification).
