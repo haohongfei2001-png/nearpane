@@ -102,8 +102,17 @@ struct WorkspaceDisplaySettings: View {
                         updated.measures[key] = value
                         save(updated)
                     }.id("\(screen.id)-\(key.rawValue)-\(String(describing:settings.measures[key]))")
+                    if primary == screen.id, let panel = settings.panel(on: screen, fallbackEdge: host.configuration.edge) {
+                        let h = panel.height
+                        let total = [DisplayMetric.voiceHeight, .trayHeight, .spacesHeight].map { settings.points($0, in: h) }.reduce(0, +) + 2 * settings.points(.sectionGap, in: h)
+                        if total > h + 0.01 {
+                            let actual = settings.contentHeights(h, content: .full, voice: true, tray: true)
+                            Text("分区合计超过面板高度，当前等比适配。实际高度为文字 \(actual.voice, specifier: "%.1f")、托盘 \(actual.tray, specifier: "%.1f")、空间 \(actual.spaces, specifier: "%.1f") pt。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                     if key == .reservedWidth {
-                        Text(primary == screen.id ? "默认随主面板宽度。隐藏界面时仍保留，真实窗口避让等待实机验证。" : "驻留式在隐藏时仍保留边界；浮窗式始终无预留。").font(
+                        Text(primary == screen.id ? "默认随主面板宽度。隐藏界面时仍保留，窗口避让仅开放给体验中的自建示例窗。" : "驻留式在隐藏时仍保留边界；浮窗式始终无预留。").font(
                             .caption)
                     }
                 }.padding()

@@ -43,7 +43,7 @@ do {
             try emit(try confirmExit(directory))
         } else if verb == "recover" || verb == "recover-denied" {
             try emit(try Experiment(directory, acceptsAX: verb != "recover-denied").recover())
-        } else if ["canary", "canary-and-hold", "docked", "floating", "reserve", "custom-pair", "original", "park", "switch", "switch-and-hold"].contains(verb) {
+        } else if ["canary", "canary-and-hold", "docked", "floating", "reserve", "custom-pair", "candidate-layout", "candidate-pair", "candidate-exit", "original", "park", "switch", "switch-and-hold"].contains(verb) {
             try emit(try Experiment(directory).begin(verb))
         } else { throw Refusal("unknown controller command") }
     } else {

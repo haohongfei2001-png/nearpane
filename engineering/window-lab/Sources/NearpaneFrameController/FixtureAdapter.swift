@@ -100,6 +100,22 @@ struct Observation: Codable {
         var yes = DarwinBoolean(false)
         guard let value, AXUIElementIsAttributeSettable(window, key, &yes) == .success, yes.boolValue
         else { throw Refusal("AX attribute no longer settable") }
+        if directory.deletingLastPathComponent().lastPathComponent == "WorkRect" {
+            let request: CandidateLayout = try readJSON(directory, "candidate.json")
+            let profile = directory.deletingLastPathComponent().deletingLastPathComponent()
+            let live: HostConfiguration = try readJSON(profile, "Nearpane/host-configuration.json")
+            let config = try live.validated()
+            let expected = request.configuration
+            func area(_ c: HostConfiguration) throws -> SurfaceRect {
+                let s = run.screens
+                return try DesktopWorkArea(display: s.secondary, screen: s.frame, usable: s.usable,
+                    primary: c.preferredDisplayID == s.secondary, settings: c.displays[s.secondary] ?? .init(), fallbackEdge: c.edge).ordinary
+            }
+            try require(try area(config) == area(expected), "candidate WorkRect changed before input")
+            for member in ticket.members {
+                try require(try !config.workspaces.excluded(member.id, bundle: "org.nearpane.lab.NearpaneFixtureWindows"), "candidate exclusion changed before input")
+            }
+        }
         struct Attempt: Codable { let session: UUID, revision: Int, member: Member, before: SurfaceRect, requested: SurfaceRect }
         try writeJSON(Attempt(session: run.session, revision: ticket.revision, member: m, before: old, requested: next),
                       directory, "attempt-" + UUID().uuidString + ".json")

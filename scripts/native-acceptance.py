@@ -265,10 +265,13 @@ def main():
     parser.add_argument("--asset-id")
     parser.add_argument("--asset-sha256")
     parser.add_argument("--scene", choices=se.SCENES)
+    parser.add_argument("--empty-draft", action="store_true", help="Prepare a candidate profile without example assets for the single-asset browser gate")
     parser.add_argument("--desktop-fixture", action="store_true", help="Observe two owned windows on the secondary display, then enable the isolated read-only experiment")
     parser.add_argument("--secondary-only", action="store_true", help="Launch a passive panel on the sole secondary display, without a status menu")
     parser.add_argument("--verdict", choices=["pass","fail"])
     args = parser.parse_args()
+    if args.empty_draft and args.action != "prepare":
+        parser.error("--empty-draft applies to prepare")
     if args.desktop_fixture and not args.secondary_only:
         parser.error("--desktop-fixture requires --secondary-only")
     if args.secondary_only and args.action != "launch":
@@ -278,7 +281,8 @@ def main():
         session = str(uuid.uuid4())
         # Refuse an older app which would interpret an unfamiliar CLI switch as an ordinary GUI launch.
         require_tool(binary)
-        subprocess.run([str(binary),"--verify-bundled-resources","--native-acceptance-prepare",session], cwd=ROOT, check=True)
+        mode = "--native-acceptance-prepare-draft" if args.empty_draft else "--native-acceptance-prepare"
+        subprocess.run([str(binary),"--verify-bundled-resources",mode,session], cwd=ROOT, check=True)
         path = folder(session)
         with (path/"summary.key").open("xb") as secret:
             secret.write(os.urandom(32))

@@ -26,6 +26,7 @@ final class TrayOwner {
     var exposureChanged: (Bool) -> Void = { _ in }
     private var hasCapturePermission: () -> Bool = { true }
     private let makeSystemCapture: @MainActor () -> any SystemCaptureProcess
+    var reviewCaptureWindow: (@MainActor () throws -> UInt32)?
     private var systemCapture: SystemCaptureJob?
     private(set) var cancelled = false
     private var workCount = 0
@@ -36,7 +37,7 @@ final class TrayOwner {
     // Other objects/tasks that continue domain work retain this same lock, even after UI disable.
     private let ownership: ApplicationInstanceOwnership?
 
-    static func existing(root: URL, testSession: URL? = nil, notify: @escaping @MainActor () async -> Void,
+    static func existing(root: URL, testSession: URL? = nil, localOnly: Bool = false, notify: @escaping @MainActor () async -> Void,
                          report: @escaping @MainActor (String) -> Void) async throws -> TrayOwner {
         let library = try await Task.detached(priority: .userInitiated) { try ExistingLibrary.open(root) }.value
         let prefs = try ScreenshotEntryPreferences.load(from: root.appendingPathComponent("capture-entry-settings.json"))
@@ -56,8 +57,8 @@ final class TrayOwner {
         let checker = NativeAutomationPermissionChecker()
         let owner = TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
                          captureEntry: prefs.builtInScreenshotEnabled, defaultMode: prefs.defaultMode,
-                         ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: { try adapter.targetForClick() },
-                         permission: { ask, session in await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
+                         ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: { guard !localOnly else { throw WebAdapterError.invalidTarget }; return try adapter.targetForClick() },
+                         permission: { ask, session in guard !localOnly else { return false }; return await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
                          notify: notify, report: report)
         if let bound {
             owner.mayObserveTestClaim = { bound.hasClaim }
@@ -137,6 +138,7 @@ final class TrayOwner {
 
     func capture(_ action: TrayCapture) {
         guard !cancelled, captureEntry, systemCapture == nil else { return }
+        guard reviewCaptureWindow == nil || action == .system else { report("副屏验收仅允许已登记的系统截图目标。"); return }
         guard hasCapturePermission() else { report("本次验收需要已授权的屏幕捕获权限。"); return }
         let output = root.appendingPathComponent("captures", isDirectory: true)
         if action == .system {
@@ -147,7 +149,7 @@ final class TrayOwner {
                                                          attributes: [.posixPermissions: 0o700])
                 // screencapture refuses dot-prefixed output names, even on a successful selection.
                 let target = output.appendingPathComponent(UUID().uuidString + ".png")
-                let job = SystemCaptureJob(makeSystemCapture())
+                let job = SystemCaptureJob(reviewCaptureWindow.map { MacSystemCaptureProcess(ownedWindow: $0) } ?? makeSystemCapture())
                 job.owner = self
                 systemCapture = job
                 workCount += 1

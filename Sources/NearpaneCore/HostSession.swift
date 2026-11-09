@@ -115,6 +115,11 @@ public final class HostSession {
         next.displays[id] = value
         persistSettings(next)
     }
+    public func setCandidateTrayConnected(_ connected: Bool) {
+        var next = configuration
+        next.candidateTrayConnected = connected
+        persistSettings(next)
+    }
     public func setWorkspacePreferences(_ value: WorkspacePreferences) {
         var next = configuration; next.workspaces = value
         persistSettings(next)

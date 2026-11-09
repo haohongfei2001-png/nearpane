@@ -11,7 +11,8 @@ import UniformTypeIdentifiers
 
     @MainActor static func owns(_ running: NSRunningApplication, executable: URL) -> Bool {
         let bundle = executable.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let expectedID = "com.holdsnow.nearpane.host"
+        guard let expectedID = Bundle(url: bundle)?.bundleIdentifier,
+              ["com.holdsnow.nearpane.host", "com.holdsnow.nearpane.candidate"].contains(expectedID) else { return false }
         var path = [UInt8](repeating: 0, count: 4 * Int(MAXPATHLEN))
         let size = proc_pidpath(running.processIdentifier, &path, UInt32(path.count))
         guard size > 0, !running.isTerminated,

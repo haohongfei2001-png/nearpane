@@ -43,8 +43,20 @@ struct NearpaneApp {
                         print(identity.session)
                         return
                     }
-                    guard args.count == 3, args[1] == "--native-acceptance-prepare" else { exit(2) }
+                    guard args.count == 3 else { exit(2) }
+                    let blank = CandidateProfile.selected && args[1] == "--native-acceptance-prepare-draft"
+                    guard blank || args[1] == "--native-acceptance-prepare" else { exit(2) }
                     let session = try NativeAcceptanceSession(id: args[2], prepare: true)
+                    if CandidateProfile.selected {
+                        Task {
+                            do {
+                                _ = try await CandidateProfile.prepare(in: session.directory, acceptance: true, includeExamples: !blank)
+                                print(session.directory.path)
+                                exit(0)
+                            } catch { FileHandle.standardError.write(Data("Candidate initialization: \(error)\n".utf8)); exit(3) }
+                        }
+                        dispatchMain()
+                    }
                     print(session.directory.path)
                 }
             } catch {
@@ -119,13 +131,40 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             }
             RunLoop.main.add(timer, forMode: .common)
         }
+        startupTask = Task { [weak self] in
+            await self?.openHost()
+        }
+    }
+
+    private func openHost() async {
         var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         var testSession: URL?
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession { support = acceptanceSession.support; testSession = acceptanceSession.directory }
+        if CandidateProfile.selected {
+            do { support = try await CandidateProfile.prepare(in: acceptanceSession?.directory ?? support, acceptance: acceptanceSession != nil) }
+            catch {
+                if acceptanceSession == nil { NSApp.presentError(error) }
+                else { FileHandle.standardError.write(Data("Candidate profile initialization failed: \(error)\n".utf8)) }
+                NSApp.terminate(nil)
+                return
+            }
+        }
         #endif
+        guard !Task.isCancelled else { return }
         let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"))
-        let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession)
+        #if canImport(SaytileKit)
+        let candidate = CandidateProfile.selected
+        #else
+        let candidate = false
+        #endif
+        // A browser-before binding in an explicit interactive acceptance session is the only
+        // candidate route that can ask the domain to verify an asset and acquire a target.
+        let boundDraft = passiveDisplayID == nil && testSession.map {
+            FileManager.default.fileExists(atPath: $0.appendingPathComponent("target-binding.json").path)
+        } == true
+        let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
+                                      candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
         let provider: any DesktopObservationProvider
         if testSession == nil { provider = NativeDesktopProvider.packaged() }
@@ -134,6 +173,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             if requestsDesktopFixture, let acceptanceSession, let passiveDisplayID {
                 do { desktopFixture = try DesktopAcceptanceFixture(session: acceptanceSession, displayID: passiveDisplayID) }
                 catch { NSApp.terminate(nil); return }
+                if candidate {
+                    modules.tray.reviewCaptureWindow = { [weak self] in
+                        guard let fixture = self?.desktopFixture else { throw CocoaError(.featureUnsupported) }
+                        return try fixture.captureWindow()
+                    }
+                }
                 provider = NativeDesktopProvider.packaged(fixtureWindows: { [weak self] in self?.desktopFixture?.windows ?? [] })
             } else { provider = UnavailableDesktopProvider() }
             #else
@@ -142,42 +187,40 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
         let session = modules.makeHost(store: store, provider: provider)
         host = session
-        startupTask = Task { [weak self] in
-            await session.start()
-            guard !Task.isCancelled, let self else { return }
-            #if canImport(RiftletCore) && canImport(SaytileKit)
-            if passiveDisplayID != nil, acceptanceSession != nil {
-                // Show the explicitly scoped fixture's gallery without opening Settings on the user's desktop.
-                await modules.tray.connect()
-                guard !Task.isCancelled else { return }
-            }
-            #endif
-            let controller = EdgeWindowController(host: session, modules: modules)
-            surface = controller
-            if passiveDisplayID != nil { controller.window?.ignoresMouseEvents = true }
-            controller.place(screens: placementScreens())
-            #if canImport(RiftletCore) && canImport(SaytileKit)
-            if let acceptanceSession {
-                desktopFixture?.observe(session)
-                do {
-                    acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules,
-                        surface: controller, screens: { [weak self] in self?.placementScreens() ?? [] })
-                }
-                catch { NSApp.terminate(nil); return }
-            }
-            #endif
-            panels = DisplayPanels(host:session,primary:controller)
-            session.presentationChanged = { [weak self] in self?.updatePanels() }
-            updatePanels()
-            if passiveDisplayID == nil { installMenu() }
-            for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.screensDidWakeNotification,
-                         NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
-                         NSWorkspace.sessionDidBecomeActiveNotification] {
-                NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
-            }
-            NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
-                name: NSApplication.didChangeScreenParametersNotification, object: nil)
+        await session.start()
+        guard !Task.isCancelled else { return }
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        if (passiveDisplayID != nil && acceptanceSession != nil) || (candidate && acceptanceSession == nil && session.configuration.candidateTrayConnected) {
+            // Show the explicitly scoped fixture's gallery without opening Settings on the user's desktop.
+            await modules.tray.connect()
+            guard !Task.isCancelled else { return }
         }
+        #endif
+        let controller = EdgeWindowController(host: session, modules: modules)
+        surface = controller
+        if passiveDisplayID != nil { controller.window?.ignoresMouseEvents = true }
+        controller.place(screens: placementScreens())
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        if let acceptanceSession {
+            desktopFixture?.observe(session)
+            do {
+                acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules,
+                    surface: controller, screens: { [weak self] in self?.placementScreens() ?? [] })
+            }
+            catch { NSApp.terminate(nil); return }
+        }
+        #endif
+        panels = DisplayPanels(host:session,primary:controller)
+        session.presentationChanged = { [weak self] in self?.updatePanels() }
+        updatePanels()
+        if passiveDisplayID == nil { installMenu() }
+        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.screensDidWakeNotification,
+                     NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
+                     NSWorkspace.sessionDidBecomeActiveNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
+        }
+        NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
+            name: NSApplication.didChangeScreenParametersNotification, object: nil)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -263,7 +306,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                                   styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: true)
             window.title = "Nearpane Settings"
             window.isReleasedWhenClosed = false
-            window.center()
+            if let screen = surface?.window?.screen {
+                let f = screen.visibleFrame
+                window.setFrameOrigin(NSPoint(x: f.midX - window.frame.width / 2, y: f.midY - window.frame.height / 2))
+            } else { window.center() }
             settings = NSWindowController(window: window)
         }
         updateSettingsContent()

@@ -21,11 +21,11 @@ public struct SettingsView: View {
             #if canImport(NearpaneTray)
             if let tray = domains?.tray {
                 Form {
-                    Text("使用已有的 Riftlet 资料库。连接期间由 Nearpane 独占；断开后原库仍由 Riftlet 使用。")
+                    Text(domains?.candidate == true ? "个人 Alpha · 独立资料库，初始五图为合成示例。" : "使用已有的 Riftlet 资料库。连接期间由 Nearpane 独占；断开后原库仍由 Riftlet 使用。")
                     if tray.connected {
                         if tray.collectionEnabled {
                             Button("停止收录系统截图") { tray.stopCollecting() }
-                        } else {
+                        } else if domains?.candidate != true {
                             Button("选择当前系统截图目录并收录…") {
                                 let picker = NSOpenPanel()
                                 picker.canChooseDirectories = true; picker.canChooseFiles = false
@@ -35,14 +35,22 @@ public struct SettingsView: View {
                                 }
                             }
                         }
-                        Button("断开资料库") { tray.disconnect() }
-                        Button(tray.mayAttach ? "重新检查草稿附加权限" : "允许附加到当前浏览器草稿…") {
-                            Task { await tray.authorizeAttachments() }
+                        Button("断开资料库") {
+                            tray.disconnect()
+                            if domains?.candidate == true { host.setCandidateTrayConnected(false) }
                         }
-                        Text("点击微图只会附加到可确认的草稿；消息始终由你发送。")
+                        if !tray.localOnly {
+                            Button(tray.mayAttach ? "重新检查草稿附加权限" : "允许附加到当前浏览器草稿…") {
+                                Task { await tray.authorizeAttachments() }
+                            }
+                            Text("点击微图只会附加到可确认的草稿；消息始终由你发送。")
+                        } else { Text("草稿附加等待专用测试会话。") }
                     } else {
                         Button(tray.connecting ? "正在连接…" : "连接已有 Riftlet 资料库") {
-                            Task { await tray.connect() }
+                            Task {
+                                await tray.connect()
+                                if domains?.candidate == true && tray.connected { host.setCandidateTrayConnected(true) }
+                            }
                         }.disabled(!tray.active || tray.connecting)
                     }
                     if let issue = tray.issue { Text(issue).foregroundStyle(.secondary) }
@@ -52,8 +60,9 @@ public struct SettingsView: View {
             appearance.tabItem { Text("显示器") }
             WorkspaceDisplaySettings(host:host,screens:screens,request:requestSecondary,dismiss:dismissSpaces).tabItem { Text("尺寸与呈现") }
             WorkspacePolicySettings(host:host).tabItem { Text("窗口规则") }
+            if let lab = domains?.workRect { CandidateWorkRectView(session: lab).tabItem { Text("平铺体验") } }
             desktopOptions.tabItem { Text("空间观察") }
-            mockSettings.tabItem { Text("Mock & diagnostics") }
+            if domains?.candidate != true { mockSettings.tabItem { Text("Mock & diagnostics") } }
         }
         .padding(16)
         .frame(width: 600, height: 540)
@@ -65,7 +74,7 @@ public struct SettingsView: View {
                 Text("Native Spaces").tag(WorkspaceMode.native)
                 Text("Nearpane Virtual Workspaces · 等待实机恢复验证").tag(WorkspaceMode.virtual).disabled(true)
             }
-            Text("Native 可观察系统空间；真实切换、跨空间移窗和平铺等待专项验收。").font(.caption)
+            Text("Native 只读预览。系统空间切换、跨空间移窗和 Virtual 停放均关闭。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
             Toggle("只读桌面预览", isOn: Binding(get: { enabled }, set: { host.handle(.setEnabled(BuiltinCatalog.desktop, $0)) }))
             Toggle("实验性 Space 归属读取", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },

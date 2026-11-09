@@ -19,8 +19,20 @@ import NearpaneCore
         self.primary = primary
         primary.usePointer(pointer)
     }
-    public func request(_ display: String) { coordinator.request(display) }
-    public func dismiss(_ display: String) { coordinator.dismiss(display) }
+    public func request(_ display: String) {
+        coordinator.request(display)
+        setDismissed(false, on: display)
+    }
+    public func dismiss(_ display: String) {
+        coordinator.dismiss(display)
+        setDismissed(true, on: display)
+    }
+    private func setDismissed(_ value: Bool, on display: String) {
+        var settings = host.configuration.displays[display] ?? .init()
+        guard settings.spacesDismissed != value else { return }
+        settings.spacesDismissed = value
+        host.setDisplaySettings(settings, id: display)
+    }
     public func setSuspended(_ value: Bool) { suspended = value }
     public func update(screens: [ScreenGeometry]) {
         let now = Date()

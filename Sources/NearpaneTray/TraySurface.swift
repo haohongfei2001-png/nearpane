@@ -53,6 +53,7 @@ public struct TraySurface: View {
                                         }.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
                                     }
                                     .accessibilityLabel(action.label).help(action.label)
+                                    .accessibilityAction(named: "收起截图方式") { module.collapseMenu() }
                                 }
                             }
                             .buttonStyle(.plain).frame(height:layout.menu?.height)
@@ -148,7 +149,14 @@ private struct ThumbnailHit: NSViewRepresentable {
                 DispatchQueue.main.async { module.presentArrival(row, view: view, left: left, image: image) }
             }
         }
-        view.setAccessibilityElement(true); view.setAccessibilityRole(.button)
+        view.setAccessibilityElement(true)
+        if module.localOnly {
+            view.setAccessibilityRole(.image)
+            view.setAccessibilityLabel("截图 " + String(row.sequence))
+            view.toolTip = nil
+            return
+        }
+        view.setAccessibilityRole(.button)
         let action = row.status == .failed ? "重试附加" : row.status == .unknown ? "核对原操作" : "附加到草稿"
         view.setAccessibilityLabel(action + "，截图 " + String(row.sequence))
         view.toolTip = action
@@ -162,7 +170,7 @@ private struct ThumbnailHit: NSViewRepresentable {
         override var needsPanelToBecomeKey: Bool { false }
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
         override func mouseDown(with event: NSEvent) {
-            guard let row, let module, let window,
+            guard let row, let module, !module.localOnly, let window,
                   module.pointer.begin(assetID: row.id, screenPoint: window.convertPoint(toScreen: event.locationInWindow),
                     timestamp: event.timestamp, clickCount: event.clickCount, doubleClickInterval: NSEvent.doubleClickInterval,
                     acceptsSelection: true) else { return }

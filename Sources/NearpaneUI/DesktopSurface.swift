@@ -40,7 +40,7 @@ struct DesktopSurface: View {
                                         rowViewport:.init(width:size.size.width,height:canvasHeight)) {
                                         drawing(preview)
                                             .overlay {
-                                                if let display { WorkspacePointerSurface(host:host,preview:preview,sample:snapshot,display:display) }
+                                                if snapshot.capabilities.spaceSwitching, let display { WorkspacePointerSurface(host:host,preview:preview,sample:snapshot,display:display) }
                                             }
                                             .frame(width:size.size.width,height:canvasHeight)
                                     }

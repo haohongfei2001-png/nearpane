@@ -35,6 +35,9 @@ public final class TrayModule: HostModule {
     public private(set) var active = false
     public private(set) var connected = false
     public private(set) var connecting = false
+    public private(set) var localOnly = false
+    /// Only supplied by the marked secondary review with its own retained NSWindow.
+    public var reviewCaptureWindow: (@MainActor () throws -> UInt32)?
     public private(set) var mayAttach = false
     public private(set) var captureEntry = false
     public private(set) var issue: String?
@@ -105,8 +108,9 @@ public final class TrayModule: HostModule {
     }
 
 
-    public convenience init(existingRoot: URL, testSession: URL? = nil) {
-        self.init { change, error in try await TrayOwner.existing(root: existingRoot, testSession: testSession, notify: change, report: error) }
+    public convenience init(existingRoot: URL, testSession: URL? = nil, localOnly: Bool = false) {
+        self.init { change, error in try await TrayOwner.existing(root: existingRoot, testSession: testSession, localOnly: localOnly, notify: change, report: error) }
+        self.localOnly = localOnly
     }
     init(open: @escaping Open) { self.open = open }
     public func start() throws { active = true }
@@ -148,6 +152,7 @@ public final class TrayModule: HostModule {
             value.exposureChanged = { [weak self] hidden in
                 guard let self, self.epoch == entry else { return }; self.exposureChanged?(hidden)
             }
+            value.reviewCaptureWindow = reviewCaptureWindow
             owner = value; connected = true; captureEntry = value.captureEntry
             // Current default is the rightmost system key; relative shortcuts follow the domain's preferred mode.
             let preferred = TrayCapture.allCases.first { $0.mode == value.defaultMode }
@@ -174,7 +179,7 @@ public final class TrayModule: HostModule {
         captureEntry = false; mayAttach = false; connected = false; connecting = false; issue = nil
     }
     public func authorizeAttachments() async {
-        guard let owner else { return }
+        guard !localOnly, let owner else { return }
         let allowed = await owner.checkPermission(true, nil)
         guard self.owner === owner else { return }
         mayAttach = allowed

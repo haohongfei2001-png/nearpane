@@ -12,8 +12,10 @@ struct ConfigurationTests {
         try store.save(.init())
         var object = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         object["surfaceHidden"] = nil
+        object["candidateTrayConnected"] = nil
         try JSONSerialization.data(withJSONObject: object).write(to: url)
         #expect(try !store.load().surfaceHidden)
+        #expect(try store.load().candidateTrayConnected)
         let oversized = Data(repeating: 32, count: 200_000)
         try oversized.write(to: url)
         let host = HostSession(store: store)
@@ -23,6 +25,30 @@ struct ConfigurationTests {
         #expect(try Data(contentsOf: url) == oversized)
         host.stop()
     }
+    @Test func restartKeepsExplicitTrayDisconnectAndSpaceDismissal() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = FileConfigurationStore(url: url)
+        let host = HostSession(store: store)
+        await host.start()
+        var secondary = DisplaySettings()
+        secondary.policy = .pinned
+        secondary.spacesDismissed = true
+        host.setDisplaySettings(secondary, id: "secondary")
+        host.setCandidateTrayConnected(false)
+        host.stop()
+
+        let config = try store.load()
+        var panels = MultiDisplayPresentationCoordinator()
+        let rect = SurfaceRect(width: 900, height: 700)
+        let screens = ["resident", "secondary"].map { ScreenGeometry(id: $0, frame: rect, visibleFrame: rect) }
+        let plans = panels.resolve(screens: screens, preferred: "resident", settings: config.displays,
+                                   demand: ["secondary": .init(windows: 4, complete: true)], hidden: false,
+                                   voice: true, tray: true, spacesEnabled: true, uptime: 1)
+        #expect(!config.candidateTrayConnected)
+        #expect(plans.first(where: { $0.id == "secondary" })?.content == .hidden)
+    }
+
     private func temporaryURL() -> URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data").appendingPathComponent("\(UUID())/configuration.json")
     }

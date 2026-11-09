@@ -40,6 +40,20 @@ private final class PassiveWorkWindow: NSWindow {
         for w in windows { w.orderFrontRegardless() }
     }
 
+    func captureWindow() throws -> UInt32 {
+        guard let screen = approvedScreen, let window = windows.first, window.isVisible,
+              window.screen === screen, window.isOnActiveSpace, window.isOpaque,
+              let number = UInt32(exactly: window.windowNumber), number > 0,
+              let row = (CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String: Any]])?.first,
+              row[kCGWindowOwnerPID as String] as? Int32 == getpid(), row[kCGWindowIsOnscreen as String] as? Bool == true,
+              row[kCGWindowNumber as String] as? UInt32 == number,
+              let bits = row[kCGWindowBounds as String] as? NSDictionary, let cg = CGRect(dictionaryRepresentation: bits),
+              let display = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
+              CGDisplayBounds(display.uint32Value).contains(cg), !cg.intersects(CGDisplayBounds(CGMainDisplayID()))
+        else { throw CocoaError(.featureUnsupported) }
+        return number
+    }
+
     private var approvedScreen: NSScreen? {
         guard NSScreen.screens.count == 2, let primary = NSScreen.screens.first, let screen = NSScreen.screens.last,
               primary.frame.intersection(screen.frame).isEmpty,

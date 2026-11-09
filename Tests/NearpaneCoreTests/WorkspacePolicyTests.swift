@@ -126,6 +126,8 @@ struct WorkspacePolicyTests {
         #expect(plans() == [.full, .spacesOnly])
         presentation.dismiss("s")
         #expect(plans() == [.full, .hidden] && plans() == [.full, .hidden])
+        settings.measures[.textSize] = Measure(16)
+        #expect(plans() == [.full, .hidden])
         presentation.dismiss("p")
         #expect(plans() == [.compact, .hidden])
         presentation.request("s")

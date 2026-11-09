@@ -17,6 +17,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public var preferredDisplayID: String?
     /// Missing in early v1 configurations, which always opened visible.
     public var surfaceHidden: Bool = false
+    public var candidateTrayConnected = true
     public var experimentalSpaceObservation = false
     public var workspaces = WorkspacePreferences()
     public var displays: [String: DisplaySettings] = [:]
@@ -30,6 +31,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         version = try c.decode(Int.self, forKey: .version)
         edge = try c.decode(SurfaceEdge.self, forKey: .edge)
         preferredDisplayID = try c.decodeIfPresent(String.self, forKey: .preferredDisplayID)
+        candidateTrayConnected = try c.decodeIfPresent(Bool.self, forKey: .candidateTrayConnected) ?? true
         surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
         experimentalSpaceObservation = try c.decodeIfPresent(Bool.self, forKey: .experimentalSpaceObservation) ?? false
         workspaces = try c.decodeIfPresent(WorkspacePreferences.self,forKey:.workspaces) ?? .init()

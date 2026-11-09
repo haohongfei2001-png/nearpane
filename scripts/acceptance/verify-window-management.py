@@ -52,7 +52,7 @@ def frames(rows):
 
 
 class Trial:
-    def __init__(self, out):
+    def __init__(self, out, apps=APPS):
         self.dir = Path(tempfile.mkdtemp(prefix="device-", dir=out))
         self.owner = None
         self.sequence = self.count = self.enrollments = self.generation = 0
@@ -60,7 +60,7 @@ class Trial:
         self.phase = "preflight"
         self.executables = {}
         for name in ("NearpaneFrameController", "NearpaneFixtureWindows"):
-            app = APPS / (name + ".app")
+            app = apps / (name + ".app")
             subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(app)], check=True)
             path = app / "Contents/MacOS" / name
             self.executables[name] = path

@@ -37,10 +37,13 @@ def verify(app, lock, sandbox):
     # codesign treats Contents/MacOS/<CFBundleExecutable> as the enclosing bundle. These development
     # packages seal their exact Mach-O and resource inventory independently (no distribution signature).
     host_image = binary.read_bytes()
-    with tempfile.TemporaryDirectory(prefix="verify-macho-", dir=ROOT/"build") as tmp:
-        standalone = Path(tmp)/binary.name
-        standalone.write_bytes(host_image)
-        subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(standalone)], check=True)
+    if plist["CFBundleIdentifier"] == "com.holdsnow.nearpane.candidate":
+        subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+    else:
+        with tempfile.TemporaryDirectory(prefix="verify-macho-", dir=ROOT/"build") as tmp:
+            standalone = Path(tmp)/binary.name
+            standalone.write_bytes(host_image)
+            subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(standalone)], check=True)
     subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(helper)], check=True)
     for exe in (binary, helper):
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):

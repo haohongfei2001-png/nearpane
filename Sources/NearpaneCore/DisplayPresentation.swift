@@ -80,6 +80,7 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
     public var toolAnchor: FloatingToolSurface?
     public var placement: SpacePanelPlacement = .docked
     public var policy: SecondaryPolicy = .onDemand
+    public var spacesDismissed = false
     public var edge: SurfaceEdge?
     public var anchor: PanelAnchor = .top
     public var measures: [DisplayMetric: Measure] = [:]
@@ -89,6 +90,7 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
         floatingPosition = try values.decodeIfPresent(PanelPosition.self, forKey: .floatingPosition)
         toolAnchor = try values.decodeIfPresent(FloatingToolSurface.self, forKey: .toolAnchor)
         placement = try values.decodeIfPresent(SpacePanelPlacement.self, forKey: .placement) ?? .docked
+        spacesDismissed = try values.decodeIfPresent(Bool.self, forKey: .spacesDismissed) ?? false
         policy = try values.decodeIfPresent(SecondaryPolicy.self, forKey: .policy) ?? .onDemand
         edge = try values.decodeIfPresent(SurfaceEdge.self, forKey: .edge)
         anchor = try values.decodeIfPresent(PanelAnchor.self, forKey: .anchor) ?? .top
@@ -163,7 +165,7 @@ public struct MultiDisplayPresentationCoordinator {
         let counts = Dictionary(grouping: usable, by: \.id)
         let ids = usable.map(\.id).filter { counts[$0]?.count == 1 }
         suppressed.formIntersection(ids)
-        for id in ids where (lastSettings[id] ?? .init()) != (settings[id] ?? .init()) { suppressed.remove(id) }
+        for id in ids where (lastSettings[id]?.policy ?? .onDemand) != (settings[id]?.policy ?? .onDemand) { suppressed.remove(id) }
         lastSettings = settings
         requested.formIntersection(ids)
         lastMultiple = lastMultiple.filter { ids.contains($0.key) }
@@ -172,12 +174,13 @@ public struct MultiDisplayPresentationCoordinator {
         return ids.map { id in
             let context = demand[id] ?? .init()
             let isPrimary = id == primary
+            let dismissed = suppressed.contains(id) || settings[id]?.spacesDismissed == true
             var content: PanelContent = .hidden
             if hidden || context.blocked {
                 requested.remove(id)
                 lastMultiple[id] = nil
             } else if isPrimary {
-                let spaces = spacesEnabled && !suppressed.contains(id) && (context.multiple || !context.complete)
+                let spaces = spacesEnabled && !dismissed && (context.multiple || !context.complete)
                 if spaces {
                     content = voice || tray ? .full : .spacesOnly
                 } else if voice && tray {
@@ -187,7 +190,7 @@ public struct MultiDisplayPresentationCoordinator {
                 } else if tray {
                     content = .trayOnly
                 }
-            } else if spacesEnabled && !suppressed.contains(id) {
+            } else if spacesEnabled && !dismissed {
                 if context.multiple { lastMultiple[id] = uptime } else { requested.remove(id) }
                 switch settings[id]?.policy ?? .onDemand {
                 case .onDemand: if requested.contains(id) && context.multiple { content = .spacesOnly }

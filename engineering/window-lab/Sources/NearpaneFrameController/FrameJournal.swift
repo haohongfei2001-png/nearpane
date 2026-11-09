@@ -10,6 +10,12 @@ struct WindowBaseline: Codable {
         actual.member == member && actual.onScreen && actual.cg == confirmed && actual.ax == confirmed
     }
 }
+struct CandidateLayout: Decodable {
+    let configuration: HostConfiguration
+    let ratio: Double
+    let swap: Bool
+    let keepIntent: Bool
+}
 struct FrameChange: Codable {
     let member: Member, original: SurfaceRect, target: SurfaceRect
     var confirmed: SurfaceRect, inFlight: SurfaceRect?
@@ -180,17 +186,41 @@ final class SessionFiles {
         var settings = DisplaySettings()
         settings.placement = action == "floating" ? .floating : .docked
         if action == "reserve" { settings.measures[.reservedWidth] = Measure(20, .percent) }
+        var primary = false, edge = SurfaceEdge.left
+        var pairRatio = 0.62, swap = true, retainIntent = false
+        if action.hasPrefix("candidate-") {
+            let request: CandidateLayout = try readJSON(adapter.directory, "candidate.json")
+            let config = try request.configuration.validated()
+            // The whole group is one transaction. An exclusion refuses it before the WAL or first setter.
+            for member in members {
+                try require(try !config.workspaces.excluded(member.id, bundle: "org.nearpane.lab.NearpaneFixtureWindows"), "excluded test window")
+            }
+            settings = config.displays[screens.secondary] ?? .init()
+            primary = config.preferredDisplayID == screens.secondary
+            edge = config.edge
+            pairRatio = request.ratio
+            swap = request.swap
+            retainIntent = request.keepIntent && members.count == 2
+            try require(pairRatio.isFinite && (0.2...0.8).contains(pairRatio), "pair ratio out of range")
+        }
+        let exiting = action == "candidate-exit"
         let area = try DesktopWorkArea(display: screens.secondary, screen: screens.frame, usable: screens.usable,
-                                       primary: false, settings: settings, fallbackEdge: .left)
+                                       primary: primary, settings: settings, fallbackEdge: edge)
         var layout = state.layout
         for m in layout.members where !members.contains(where: { $0.id == m.id }) { layout = try layout.removing(m.id, in: area.ordinary) }
         for m in members where !layout.members.contains(where: { $0.id == m.id }) { layout = try layout.adding(m.managed, in: area.ordinary) }
-        if action == "custom-pair" {
+        if action == "custom-pair" || action == "candidate-pair" {
             try require(members.count == 2, "custom pair requires two windows")
-            layout = try layout.adjusting(path: [], axis: .columns, ratio: 0.62, in: area.ordinary)
-            layout = try layout.swapping(members[0].id, members[1].id, in: area.ordinary)
+            if action == "candidate-pair" {
+                // Start from a canonical pair so applying the same explicit slot choice is idempotent.
+                layout = try ManagedWindowTiler(workspace: state.layout.workspace).adding(members[0].managed, in: area.ordinary)
+                    .adding(members[1].managed, in: area.ordinary)
+            }
+            layout = try layout.adjusting(path: [], axis: .columns, ratio: pairRatio, in: area.ordinary)
+            if swap { layout = try layout.swapping(members[0].id, members[1].id, in: area.ordinary) }
         }
-        let model = try layout.frames(in: area.ordinary)
+        let modelArea = exiting && retainIntent ? screens.usable : area.ordinary
+        let model = try layout.frames(in: modelArea)
         var moves = [FrameChange]()
         for o in before {
             let target: SurfaceRect
@@ -202,7 +232,7 @@ final class SessionFiles {
                 var trial = o.cg; trial.x += 14; trial.y += 9
                 try require(screens.usable.geometry.intersection(trial.geometry) == trial.geometry, "canary not inside secondary")
                 target = trial
-            } else if action == "original" {
+            } else if action == "original" || (exiting && !retainIntent) {
                 guard let baseline = state.windows.first(where: { $0.member == o.member }) else { throw Refusal("missing original") }
                 target = baseline.initial
             } else {
@@ -242,11 +272,11 @@ final class SessionFiles {
         if park {
             guard let off = moves.first?.target.geometry else { throw Refusal("missing parked window") }
             try require(off.intersection(screens.frame.geometry) == nil && off.intersection(screens.mainFrame.geometry) == nil, "window still visible")
-        } else if !canary && action != "original" {
+        } else if !canary && action != "original" && (!exiting || retainIntent) {
             let all = final.map(\.cg)
-            try require(all.allSatisfy { Self.lattice(area.ordinary).geometry.intersection($0.geometry) == $0.geometry }
+            try require(all.allSatisfy { Self.lattice(modelArea).geometry.intersection($0.geometry) == $0.geometry }
                 && all.enumerated().allSatisfy { i, f in all.dropFirst(i + 1).allSatisfy { f.geometry.intersection($0.geometry) == nil } }
-                && all.reduce(0) { $0 + $1.geometry.area } == Self.lattice(area.ordinary).geometry.area, "layout overlap, gaps or bounds")
+                && all.reduce(0) { $0 + $1.geometry.area } == Self.lattice(modelArea).geometry.area, "layout overlap, gaps or bounds")
             error = final.compactMap { obs in model[obs.member.id].map { $0.geometry.componentError(from: obs.cg.geometry) } }.max()
             try require(error.map { $0 <= 1 } == true, "excess work area error")
         }

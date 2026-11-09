@@ -15,10 +15,14 @@ public final class EmbeddedModules {
     let voicePasteboard: NSPasteboard
     #endif
 
-    public init(support: URL, testSession: URL? = nil) {
+    public let workRect: CandidateWorkRect?
+    public let candidate: Bool
+    public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
+        self.candidate = candidate
+        workRect = candidate && testSession == nil ? CandidateWorkRect(support: support.deletingLastPathComponent()) : nil
         #if canImport(NearpaneVoice)
         voicePasteboard = testSession.map { NSPasteboard(name: .init("com.holdsnow.nearpane.acceptance." + $0.lastPathComponent)) } ?? .general
-        tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession)
+        tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession, localOnly: candidate && !(boundDraft && testSession != nil))
         voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true), requireExistingPermissions: testSession != nil)
         #endif
     }
@@ -49,6 +53,7 @@ public final class EmbeddedModules {
     }
 
     public func finishStopping() async {
+        await workRect?.finish()
         #if canImport(NearpaneVoice)
         await voice.waitForTransition()
         await tray.finishStopping()

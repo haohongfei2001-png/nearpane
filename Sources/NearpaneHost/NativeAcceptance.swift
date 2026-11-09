@@ -63,10 +63,12 @@ struct NativeAcceptanceSession {
             guard parent.resolvingSymlinksInPath().path == parent.path, mkdir(directory.path, 0o700) == 0 else {
                 throw CocoaError(.fileWriteFileExists)
             }
-            let library = support.appendingPathComponent("Riftlet")
-            try fm.createDirectory(at: library, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-            try Data().write(to: library.appendingPathComponent("instance.lock"), options: .withoutOverwriting)
-            _ = try QueueStore(databaseURL: library.appendingPathComponent("queue.sqlite"))
+            if !CandidateProfile.selected {
+                let library = support.appendingPathComponent("Riftlet")
+                try fm.createDirectory(at: library, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                try Data().write(to: library.appendingPathComponent("instance.lock"), options: .withoutOverwriting)
+                _ = try QueueStore(databaseURL: library.appendingPathComponent("queue.sqlite"))
+            }
             try JSONEncoder().encode(marker).write(to: markerURL, options: .withoutOverwriting)
         } else {
             for url in [directory, markerURL, support, support.appendingPathComponent("Nearpane"), support.appendingPathComponent("Riftlet")] {
