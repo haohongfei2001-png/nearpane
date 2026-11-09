@@ -33,6 +33,14 @@ def verify(app, lock, sandbox):
     helper = contents / "Helpers/NearpaneDesktopReader"
     if helper.resolve() != helper or digest(helper) != plist.get("NearpaneDesktopReaderSHA256"):
         raise ValueError("Unexpected desktop reader identity")
+    for exe in (binary, helper):
+        subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(exe)], check=True)
+        if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
+            raise ValueError("Private desktop framework linked directly: " + exe.name)
+    host_image = binary.read_bytes()
+    private_symbols = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces", b"SLSMainConnectionID")
+    if any(symbol in host_image for symbol in private_symbols):
+        raise ValueError("Private desktop entry point in Host")
     if subprocess.check_output(sandbox + [str(helper), "--self-check"], text=True).strip() != "Nearpane desktop reader 1":
         raise ValueError("Desktop reader protocol unavailable")
     result = subprocess.check_output(sandbox + [str(binary), "--verify-bundled-resources"],text=True)

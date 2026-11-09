@@ -26,7 +26,8 @@ import UniformTypeIdentifiers
 
     @MainActor static func capture() async throws {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 4, let pid = Int32(args[0]), pid > 0, let number = UInt32(args[1]), number != 0 else { throw Failure.arguments }
+        let secondaryOnly = args.count == 5 && args.last == "--secondary-only"
+        guard args.count == 4 || secondaryOnly, let pid = Int32(args[0]), pid > 0, let number = UInt32(args[1]), number != 0 else { throw Failure.arguments }
         let executable = URL(fileURLWithPath: args[2]).resolvingSymlinksInPath()
         guard executable.path == args[2],
               let running = NSRunningApplication(processIdentifier: pid),
@@ -35,6 +36,20 @@ import UniformTypeIdentifiers
         // A supervised command-line client needs a WindowServer connection before constructing the filter.
         _ = NSApplication.shared.setActivationPolicy(.prohibited)
         guard !NSScreen.screens.isEmpty else { throw Failure.windowUnavailable }
+        func withinSecondary() -> Bool {
+            guard let screen = NSScreen.screens.last, NSScreen.screens.count == 2,
+                  let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+                  id.uint32Value != CGMainDisplayID(), CGDisplayIsInMirrorSet(id.uint32Value) == 0,
+                  CGDisplayBounds(id.uint32Value).intersection(CGDisplayBounds(CGMainDisplayID())).isEmpty,
+                  let item = (CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String: Any]])?.first,
+                  (item[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid,
+                  (item[kCGWindowNumber as String] as? NSNumber)?.uint32Value == number,
+                  (item[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue == true,
+                  let values = item[kCGWindowBounds as String] as? NSDictionary,
+                  let frame = CGRect(dictionaryRepresentation: values), !frame.isEmpty else { return false }
+            return CGDisplayBounds(id.uint32Value).contains(frame)
+        }
+        guard !secondaryOnly || withinSecondary() else { throw Failure.windowUnavailable }
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
         guard let window = content.windows.first(where: { $0.windowID == number && $0.owningApplication?.processID == pid }),
               !running.isTerminated else { throw Failure.windowUnavailable }
@@ -49,7 +64,7 @@ import UniformTypeIdentifiers
         guard let dest = CGImageDestinationCreateWithData(output, UTType.png.identifier as CFString, 1, nil) else { throw CocoaError(.fileWriteUnknown) }
         CGImageDestinationAddImage(dest, image, nil)
         guard CGImageDestinationFinalize(dest) else { throw Failure.encoding }
-        guard owns(running, executable: executable) else { throw Failure.hostIdentity }
+        guard owns(running, executable: executable), !secondaryOnly || withinSecondary() else { throw Failure.hostIdentity }
         try (output as Data).write(to: URL(fileURLWithPath: args[3]), options: .withoutOverwriting)
     }
 

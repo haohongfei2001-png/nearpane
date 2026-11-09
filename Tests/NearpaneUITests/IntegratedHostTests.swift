@@ -138,6 +138,45 @@ struct IntegratedHostTests {
         host.stop(); await domains.finishStopping()
     }
 
+    @Test func liveReaderChildCannotKeepIsolatedDomainWriterLocksAfterClose() async throws {
+        let fm = FileManager.default, root = fixtureRoot(), support = root.appendingPathComponent("Nearpane")
+        defer { try? fm.removeItem(at: root) }
+        let recording = try await seedVoice(support)
+        _ = try await seedQueue(root)
+        let voiceURL = support.appendingPathComponent("Voice"), trayURL = root.appendingPathComponent("Riftlet")
+        let voice = try SaytileStore(directory: voiceURL), tray = try ApplicationInstanceOwnership(root: trayURL)
+        // Deliberately omit CLOEXEC on a third test-only descriptor. The transport must close it independently.
+        let probe = root.appendingPathComponent("inheritance.lock")
+        let fd = Darwin.open(probe.path, O_CREAT | O_RDWR, 0o600)
+        try #require(fd >= 0)
+        var ownerFD = fd
+        defer { if ownerFD >= 0 { Darwin.close(ownerFD) } }
+        try #require(flock(fd, LOCK_EX | LOCK_NB) == 0)
+        let executable = root.appendingPathComponent("reader")
+        try "#!/bin/sh\necho ready > \"$0.ready\"\nexec /bin/sleep 12\n".write(to: executable, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let req = DesktopReadRequest(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: [], anchors: [], experimentalSpaces: false)
+        let child = Task { try await DesktopReaderProcess.read(executable: executable, request: req, timeout: 10) }
+        defer { child.cancel() }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        let ready = root.appendingPathComponent("reader.ready")
+        while !fm.fileExists(atPath: ready.path) && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+        try #require(fm.fileExists(atPath: ready.path))
+        try await voice.close(); tray.close()
+        Darwin.close(ownerFD); ownerFD = -1
+        let next = Darwin.open(probe.path, O_RDWR | O_CLOEXEC)
+        try #require(next >= 0)
+        defer { Darwin.close(next) }
+        try #require(flock(next, LOCK_EX | LOCK_NB) == 0)
+        for _ in 0..<8 {
+            let reopened = try SaytileStore(directory: voiceURL), connected = try ApplicationInstanceOwnership(root: trayURL)
+            #expect(try await reopened.recording(id: recording)?.id == recording)
+            try await reopened.close(); connected.close()
+        }
+        child.cancel()
+        await #expect(throws: CancellationError.self) { try await child.value }
+    }
+
     @Test func repeatedHostAndDomainShutdownReleaseFixtureDescriptorsAndBothLocks() async throws {
         let root = fixtureRoot()
         defer { try? FileManager.default.removeItem(at: root) }

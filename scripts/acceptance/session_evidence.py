@@ -101,10 +101,23 @@ def resources_hash(binary):
     return fingerprint(inventory)
 
 
+def desktop_reader(binary):
+    contents = binary.parents[1]
+    helper = contents/"Helpers/NearpaneDesktopReader"
+    expected = plistlib.loads((contents/"Info.plist").read_bytes()).get("NearpaneDesktopReaderSHA256")
+    if expected is None and not helper.exists() and not helper.is_symlink():
+        return None
+    require(helper.resolve(strict=True) == helper and digest(helper.read_bytes()) == expected, "Desktop reader seal mismatch")
+    return helper
+
+
 def manifest(root,path,binary):
     subjects = dict(host=code_subject(binary),panelHelper=code_subject(path/"capture-panel"),
                     browserObserver=code_subject(path/"observe-draft"),systemScreenshot=code_subject("/usr/sbin/screencapture"),
                     launcher=code_subject(sys.executable),responsibleAncestor=observe_launcher())
+    reader = desktop_reader(binary)
+    if reader is not None:
+        subjects["desktopReader"] = code_subject(reader)
     return dict(schema=3,session=path.name,appSHA256=subjects["host"]["sha256"],resourcesSHA256=resources_hash(binary),
                 checkoutAtPreparation=subprocess.check_output(["git","rev-parse","HEAD"],cwd=root,text=True).strip(),
                 infoPlistSHA256=digest((binary.parents[1]/"Info.plist").read_bytes()),
@@ -116,6 +129,9 @@ def verify_manifest(root,path,binary,seal):
     require(seal.get("schema") == 3 and seal.get("session") == path.name, "New frozen session required")
     require(digest(binary.read_bytes()) == seal["appSHA256"], "Test executable changed")
     require(digest((binary.parents[1]/"Info.plist").read_bytes()) == seal["infoPlistSHA256"], "Package metadata changed")
+    reader = desktop_reader(binary)
+    reader_sha = seal["subjects"].get("desktopReader", {}).get("sha256")
+    require((digest(reader.read_bytes()) if reader else None) == reader_sha, "Sealed desktop reader changed")
     require(resources_hash(binary) == seal["resourcesSHA256"], "Test resources changed")
     require(digest((root/"Dependencies/domains.lock.json").read_bytes()) == seal["domainLockSHA256"], "Domain lock changed")
     require(set(seal["scripts"]) == set(SEALED_SCRIPTS), "Incomplete script inventory")

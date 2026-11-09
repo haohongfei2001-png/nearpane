@@ -9,6 +9,7 @@ import runpy
 import uuid
 from pathlib import Path
 import sqlite3
+import plistlib
 import tempfile
 import unittest
 from contextlib import closing
@@ -195,6 +196,31 @@ class RecognitionAttemptTests(unittest.TestCase):
 
 
 class NativeAcceptanceTests(unittest.TestCase):
+    def test_packaged_desktop_reader_must_match_seal_and_cannot_be_substituted(self):
+        with tempfile.TemporaryDirectory(dir=native.ROOT/"build") as tmp:
+            contents = Path(tmp)/"Fixture.app/Contents"
+            binary = contents/"MacOS/NearpaneHost"
+            helper = contents/"Helpers/NearpaneDesktopReader"
+            helper.parent.mkdir(parents=True)
+            info = contents/"Info.plist"
+            info.write_bytes(plistlib.dumps({}))
+            self.assertIsNone(native.se.desktop_reader(binary))
+            expected = b"sealed fixture"
+            info.write_bytes(plistlib.dumps({"NearpaneDesktopReaderSHA256": hashlib.sha256(expected).hexdigest()}))
+            with self.assertRaises(FileNotFoundError):
+                native.se.desktop_reader(binary)
+            helper.write_bytes(expected)
+            self.assertEqual(native.se.desktop_reader(binary), helper)
+            helper.write_bytes(b"replaced")
+            with self.assertRaises(ValueError):
+                native.se.desktop_reader(binary)
+            other = Path(tmp)/"outside"
+            other.write_bytes(expected)
+            helper.unlink()
+            helper.symlink_to(other)
+            with self.assertRaises(ValueError):
+                native.se.desktop_reader(binary)
+
     def test_residence_reads_latest_heartbeat_and_preserves_partial_rows(self):
         import residence
         with tempfile.TemporaryFile(mode="w+b") as stream:
@@ -221,16 +247,18 @@ class NativeAcceptanceTests(unittest.TestCase):
             for f in files:
                 f.parent.mkdir(parents=True,exist_ok=True)
                 f.write_bytes(b"original")
+            plist.write_bytes(plistlib.dumps({"CFBundleExecutable": "Host"}))
             sha = se.digest(b"original")
             seal = dict(schema=3,session=path.name,appSHA256=sha,resourcesSHA256=se.resources_hash(binary),
-                        infoPlistSHA256=sha,domainLockSHA256=sha,scripts=dict.fromkeys(se.SEALED_SCRIPTS,sha),
+                        infoPlistSHA256=se.digest(plist.read_bytes()),domainLockSHA256=sha,scripts=dict.fromkeys(se.SEALED_SCRIPTS,sha),
                         subjects={k:dict(sha256=sha) for k in helpers})
             se.verify_manifest(root,path,binary,seal)
             for f in files:
+                original = f.read_bytes()
                 f.write_bytes(b"changed")
                 with self.assertRaises(ValueError,msg=str(f)):
                     se.verify_manifest(root,path,binary,seal)
-                f.write_bytes(b"original")
+                f.write_bytes(original)
             del seal["scripts"]["scripts/acceptance/residence.py"]
             with self.assertRaises(ValueError):
                 se.verify_manifest(root,path,binary,seal)

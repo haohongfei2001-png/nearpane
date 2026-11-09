@@ -265,9 +265,12 @@ def main():
     parser.add_argument("--asset-id")
     parser.add_argument("--asset-sha256")
     parser.add_argument("--scene", choices=se.SCENES)
+    parser.add_argument("--desktop-fixture", action="store_true", help="Observe two owned windows on the secondary display, then enable the isolated read-only experiment")
     parser.add_argument("--secondary-only", action="store_true", help="Launch a passive panel on the sole secondary display, without a status menu")
     parser.add_argument("--verdict", choices=["pass","fail"])
     args = parser.parse_args()
+    if args.desktop_fixture and not args.secondary_only:
+        parser.error("--desktop-fixture requires --secondary-only")
     if args.secondary_only and args.action != "launch":
         parser.error("--secondary-only applies to launch")
     binary = args.app.resolve() / "Contents/MacOS/NearpaneHost"
@@ -305,6 +308,7 @@ def main():
         marker = json.loads((path/"session.json").read_text())
         check(hashlib.sha256(binary.read_bytes()).hexdigest() == marker["executableSHA256"], "Different build from this session")
         mode = "--native-acceptance-secondary" if args.secondary_only else "--native-acceptance-session"
+        if args.desktop_fixture: mode = "--native-acceptance-secondary-desktop"
         se.supervise(path,[str(binary),mode,path.name],ROOT)
     elif args.action in ("focus-start","focus-end"):
         check(args.scene,"Specify the intended focus scenario")
