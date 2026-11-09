@@ -40,15 +40,17 @@ struct Observation: Codable {
               let frame = CGRect(dictionaryRepresentation: fields), rect(frame).isValid else { throw Refusal("missing exact CG owner/window") }
         return .init(member: m, cg: SurfaceRect(rect(frame)), ax: nil, onScreen: row[kCGWindowIsOnscreen as String] as? Bool == true)
     }
-    private func attribute(_ window: AXUIElement, _ key: String) -> CFTypeRef? {
+    func attribute(_ window: AXUIElement, _ key: String) -> CFTypeRef? {
         var value: CFTypeRef?
         return AXUIElementCopyAttributeValue(window, key as CFString, &value) == .success ? value : nil
     }
     func requireAccess() throws {
         try require(acceptsAX && AXIsProcessTrusted(), "Accessibility denied")
     }
-    private func bound(_ m: Member) throws -> (AXUIElement, Observation) {
-        let observation = try cg(m)
+    func element(_ m: Member) throws -> AXUIElement {
+        try freshness()
+        try require(ticket.members.contains(m) && m.id.pid == ticket.owner.pid && m.id.launch == ticket.owner.start
+            && m.identifier == run.session.uuidString + "/" + m.id.element.uuidString, "unregistered window")
         try requireAccess()
         let app = AXUIElementCreateApplication(m.id.pid)
         AXUIElementSetMessagingTimeout(app, 0.35)
@@ -59,6 +61,11 @@ struct Observation: Codable {
         try require(AXUIElementGetPid(w, &pid) == .success && pid == m.id.pid, "AX PID mismatch")
         let role = attribute(w, kAXRoleAttribute) as? String, subrole = attribute(w, kAXSubroleAttribute) as? String
         try require(role == kAXWindowRole && subrole == kAXStandardWindowSubrole, "fixture AX role \(role ?? "missing") / \(subrole ?? "missing")")
+        return w
+    }
+    private func bound(_ m: Member) throws -> (AXUIElement, Observation) {
+        let observation = try cg(m)
+        let w = try element(m)
         // Some ordinary AppKit windows omit AXFullScreen. The owner heartbeat independently checks the
         // concrete NSWindow's style and miniaturization; an affirmative AX state always vetoes writes.
         try require(attribute(w, kAXMinimizedAttribute) as? Bool != true && attribute(w, "AXFullScreen") as? Bool != true,

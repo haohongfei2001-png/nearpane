@@ -92,6 +92,7 @@ package struct Screens: Codable, Equatable {
 package func rect(_ r: CGRect) -> Rect { Rect(r.minX, r.minY, r.width, r.height) }
 
 package struct Run: Codable, Equatable {
+    package var parkingStudy: Bool?
     package let session: UUID, parent: ProcessBirth, screens: Screens, deadline: Double
     @MainActor package static func checked(_ directory: URL) throws -> Self {
         let run: Self = try readJSON(directory, "run.json")

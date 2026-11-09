@@ -4,6 +4,7 @@ import NearpaneCore
 import WindowLab
 
 private struct Preflight: Encodable {
+    let visibilityProtocolVersion = 1
     let trusted: Bool, screens: Screens, parent: ProcessBirth, uptime: Double, controllerID: String?
 }
 do {
@@ -15,7 +16,9 @@ do {
                            uptime: ProcessInfo.processInfo.systemUptime, controllerID: Bundle.main.bundleIdentifier))
     } else if args.count == 2 {
         let verb = args[0], directory = URL(fileURLWithPath: args[1], isDirectory: true)
-        if verb == "inspect" || verb == "observe" {
+        if ["mini-read","mini-A","mini-B","mini-recover","mini-kill-park","mini-kill-restore"].contains(verb) {
+            try emit(try MinimizeStudy(directory).perform(verb))
+        } else if verb == "inspect" || verb == "observe" {
             let a = try FixtureAdapter(directory)
             try emit(try a.ticket.members.map { try verb == "inspect" ? a.cg($0) : a.observe($0) })
         } else if verb == "presentation" {

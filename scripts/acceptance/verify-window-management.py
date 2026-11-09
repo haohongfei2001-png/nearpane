@@ -68,7 +68,7 @@ class Trial:
         save(self.dir / "executables.json", {n: hashlib.sha256(p.read_bytes()).hexdigest() for n, p in self.executables.items()})
 
     def event(self, name, **data):
-        item = dict(name=name, **data)
+        item = dict(name=name, monotonic=time.monotonic(), **data)
         self.events.append(item)
         with (self.dir / "events.jsonl").open("a") as f:
             f.write(json.dumps(item, sort_keys=True) + "\n")
@@ -80,12 +80,30 @@ class Trial:
         stem = self.dir / f"{self.count:03d}-{name}"
         tries = len(list(self.dir.glob("attempt-*.json")))
         args = [self.controller, name] + ([] if name == "preflight" else [self.dir])
+        bracket = getattr(self, "study_focus", False) and self.owner and self.owner.poll() is None
+        def checkpoint():
+            trace = self.dir / f"focus-{self.owner.pid}.jsonl"
+            def latest():
+                if self.owner.poll() is not None:
+                    raise NotVerified("focus observer exited")
+                rows = trace.read_bytes().splitlines() if trace.exists() else []
+                if rows and rows[-1].endswith(b"}"):
+                    r = json.loads(rows[-1])
+                    if r["uptime"] > mark and r["event"] == "sample":
+                        need(r["sameAXFocusedWindow"] and not r["active"] and not any(w["key"] or w["main"] for w in r["windows"]), "unsafe focus")
+                        return r["uptime"]
+            mark = read(self.dir / "owner.json")["uptime"]
+            return until(latest, 2)
+        if bracket:
+            self.event("before", command=name, focus=checkpoint())
         result = subprocess.run(args, capture_output=True, timeout=30)
         stem.with_suffix(".stdout").write_bytes(result.stdout)
         stem.with_suffix(".stderr").write_bytes(result.stderr)
         attempts = len(list(self.dir.glob("attempt-*.json"))) - tries
         detail = result.stderr.decode("utf-8", "replace").strip()
         self.event(name, rc=result.returncode, attempts=attempts, phase=self.phase, detail=detail)
+        if bracket and self.owner.poll() is None:
+            self.event("after", command=name, focus=checkpoint())
         if refuse:
             need(result.returncode != 0 and refuse in detail and attempts == 0, f"{name} refusal not proven: {detail}")
             return
@@ -136,6 +154,10 @@ class Trial:
         pre = self.command("preflight")
         need(pre["controllerID"] == "org.nearpane.lab.NearpaneFrameController" and pre["parent"]["pid"] == os.getpid(), "control subject")
         run = dict(session=str(uuid.uuid4()), parent=pre["parent"], deadline=pre["uptime"] + 480, screens=pre["screens"])
+        self.study_focus = suite == "parking-study"
+        if self.study_focus:
+            need(pre.get("visibilityProtocolVersion") == 1, "frozen study executable required")
+        run["parkingStudy"] = self.study_focus
         save(self.dir / "run.json", run)
         self.start_owner()
         self.phase = "enroll"
@@ -170,6 +192,47 @@ class Trial:
                      and sample["native"]["spaces"] == "observed" and not sample["capabilities"]["spaceSwitching"],
                      "read-only gate sample incomplete")
                 self.event("native-source-observation", confirmedRows=len(sample["native"]["rows"]))
+        if suite == "parking-study":
+            self.phase = "focus-crash"
+            self.crash(initial, onscreen=True)
+            self.command("refuse-minimum", refuse="minimum size")
+            self.panel()
+            self.phase = "first-minimize"
+            baseline = self.command("mini-read")
+            save(self.dir / "mini-baseline.json", baseline)
+            need(all(not w["minimized"] and w["onscreen"] for w in baseline), "visibility baseline")
+            self.command("mini-B")
+            need(self.command("mini-recover") == baseline, "first window failed restoration")
+            self.membership("create", 3)
+            baseline = self.command("mini-read")
+            for group in ("mini-A", "mini-B", "mini-A", "mini-B"):
+                state = self.command(group)
+                need(state[2] == baseline[2], "unmanaged sibling changed")
+            need(self.command("mini-recover") == baseline, "group recovery failed")
+            for verb in ("mini-kill-park","mini-kill-restore"):
+                if verb == "mini-kill-restore":
+                    self.command("mini-B")
+                mark = self.dir / "mini-death.json"
+                mark.unlink(missing_ok=True)
+                with (self.dir / (verb+".stderr")).open("wb") as err:
+                    proc = subprocess.Popen([self.controller,verb,self.dir], stderr=err, stdout=subprocess.DEVNULL)
+                    try:
+                        def ready():
+                            need(proc.poll() is None, "writer exited before checkpoint")
+                            return mark.exists()
+                        until(ready, 6)
+                        need(self.command("mini-read") == read(mark), "visibility death boundary")
+                        proc.kill()
+                        need(proc.wait(timeout=4) == -signal.SIGKILL, "missing process death")
+                        self.event("visibility-SIGKILL", boundary=verb)
+                    finally:
+                        if proc.poll() is None:
+                            proc.terminate()
+                            proc.wait(timeout=4)
+                need(self.command("mini-recover") == baseline, "crash restore failed")
+                attempts = len(list(self.dir.glob("mini-attempt-*.json")))
+                need(self.command("mini-recover") == baseline and attempts == len(list(self.dir.glob("mini-attempt-*.json"))), "duplicate restore")
+            return
         if suite == "canary":
             return
         if suite in ("controls", "panel", "refusals"):
@@ -332,6 +395,12 @@ class Trial:
 
     def finish(self):
         try:
+            visibility = self.dir / "visibility.json"
+            if self.owner and self.owner.poll() is None and visibility.exists() and not read(visibility)["settled"]:
+                try:
+                    self.command("mini-recover")
+                except (NotVerified, subprocess.SubprocessError) as e:
+                    self.event("visibility-recovery-unresolved", reason=str(e))
             journal = self.dir / "journal.json"
             if self.owner and self.owner.poll() is None and journal.exists() and read(journal)["status"] in ("prepared", "recovering", "parked"):
                 try:
@@ -352,7 +421,7 @@ class Trial:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("evidence", type=Path)
-    parser.add_argument("--suite", choices=("canary", "workrect", "controls", "panel", "refusals", "including-parking"), default="workrect")
+    parser.add_argument("--suite", choices=("parking-study","canary", "workrect", "controls", "panel", "refusals", "including-parking"), default="workrect")
     parser.add_argument("--read-gate", action="store_true", help="sample only the first owned window with the bundled read-only reader")
     args = parser.parse_args()
     evidence = args.evidence.resolve()

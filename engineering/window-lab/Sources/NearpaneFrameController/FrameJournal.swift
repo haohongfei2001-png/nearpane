@@ -78,6 +78,8 @@ final class SessionFiles {
     init(_ dir: URL, acceptsAX: Bool = true) throws {
         adapter = try FixtureAdapter(dir, acceptsAX: acceptsAX)
         files = try SessionFiles(dir)
+        let visibility: VisibilityLog? = try files.load("visibility.json")
+        try require(visibility?.settled != false, "visibility recovery pending")
     }
     func observations() throws -> [Observation] { try adapter.ticket.members.map(adapter.observe) }
     func picture(_ action: String, _ journal: FrameJournal? = nil, area: SurfaceRect? = nil, error: Double? = nil) throws -> ActionReceipt {

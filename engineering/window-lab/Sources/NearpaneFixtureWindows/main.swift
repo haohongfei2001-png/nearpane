@@ -7,11 +7,13 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
 @MainActor private final class Owner {
     let directory: URL, run: Run, birth: ProcessBirth
     let originalForeground = NSWorkspace.shared.frontmostApplication?.processIdentifier
+    var focusStudy: FocusStudy?
     var panel: PassivePanel?
     let gate = ReadOnlyGate()
     var windows = [Int: (Member, NSWindow)](), sequence = 0, revision = 0, activations = 0
     init(_ directory: URL) throws {
         self.directory = directory; run = try .checked(directory); birth = try .read(getpid())
+        if run.parkingStudy == true { focusStudy = try FocusStudy(directory) }
     }
     func create(_ index: Int) throws {
         let (map, screen) = try Screens.read()
@@ -20,7 +22,9 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
         let f = CGRect(x: safe.minX + 20 + Double(index * 10), y: safe.minY + 60 + Double(index * 26),
                        width: 240, height: 160).integral
         try require(safe.contains(f), "fixture exceeds secondary")
-        let w = NSWindow(contentRect: f, styleMask: [.titled, .resizable, .closable, .miniaturizable],
+        var style: NSWindow.StyleMask = [.titled, .resizable, .closable, .miniaturizable]
+        if index == 3 && run.parkingStudy == true { style.remove(.miniaturizable) }
+        let w = NSWindow(contentRect: f, styleMask: style,
                               backing: .buffered, defer: true, screen: screen)
         let element = UUID()
         w.isRestorable = false; w.isReleasedWhenClosed = false
@@ -50,6 +54,7 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
     }
     func tick() throws {
         try require(try Run.checked(directory) == run, "session changed")
+        try focusStudy?.sample(windows: windows, panel: panel?.window)
         if FileManager.default.fileExists(atPath: directory.appendingPathComponent("command.json").path) {
             let c: Command = try readJSON(directory, "command.json")
             if c.sequence != sequence {
@@ -75,7 +80,7 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
         }
         let ordered = windows.values.sorted { $0.0.index < $1.0.index }
         try require(ordered.allSatisfy { m, w in w.minSize.width == m.minimum.width && w.minSize.height == m.minimum.height && w.styleMask.contains([.titled, .resizable]) &&
-                    !w.styleMask.contains(.fullScreen) && !w.isMiniaturized && w.level == .normal && w.attachedSheet == nil },
+                    !w.styleMask.contains(.fullScreen) && (!w.isMiniaturized || (run.parkingStudy == true && m.index <= 2)) && w.level == .normal && w.attachedSheet == nil },
                     "fixture ordinary-window attestation failed")
         let primaryTop = NSScreen.screens[0].frame.maxY
         let frames = ordered.map { (_, w) in SurfaceRect(x: w.frame.minX, y: primaryTop - w.frame.maxY,
