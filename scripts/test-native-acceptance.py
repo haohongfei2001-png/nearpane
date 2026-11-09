@@ -358,6 +358,21 @@ class NativeAcceptanceTests(unittest.TestCase):
         for key in ("starts", "attempts"):
             self.assertEqual(native.se.restart_coverage(dict(state,**{key:2})), "FAIL", key)
 
+    def test_completed_edit_must_release_key_and_return_focus_to_the_reference(self):
+        def row(t,kind,**changes):
+            state = dict(pid=11,foreground=22,editorFocused=False)
+            state.update(changes)
+            return dict(event(t,**state),kind=kind)
+        original = [row(0,"sample"),row(1,"editorClick"),row(2,"userEdit",editorFocused=True,key=True),row(3,"sample")]
+        def verdict(rows):
+            edges = [dict(run="fixture",time=r["time"],state=r["state"]) for r in [rows[0],rows[-1]]]
+            return native.se.focus_verdict("edit",edges,rows,3600)
+        self.assertEqual(verdict(original),"PASS")
+        for field,value in (("key",True),("active",True),("editorFocused",True),("foreground",11)):
+            rows = copy.deepcopy(original)
+            rows[-1]["state"][field] = value
+            self.assertEqual(verdict(rows),"FAIL",field)
+
     def test_real_waitpid_and_durable_restart_evidence_without_launching_an_app(self):
         import sys
         se = native.se

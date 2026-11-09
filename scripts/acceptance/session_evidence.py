@@ -192,6 +192,8 @@ def focus_verdict(scene, bounds, stream, idle_seconds):
         else:
             if s["key"] or s["active"] or s["foreground"] != first["foreground"] or e["kind"] in ("appActivated","panelBecameKey"): return "FAIL"
             if scene == "button" and e["kind"] in ("trayButton","userStart","userPause"): acted = True
+    if scene == "edit" and acted and (last["key"] or last["active"] or last["editorFocused"] or last["foreground"] != first["foreground"]):
+        return "FAIL"
     if scene == "edit" or scene == "button": ok = first["visible"] and last["visible"] and acted
     elif scene == "hide": ok = first["visible"] and not last["visible"]
     elif scene == "restore": ok = not first["visible"] and last["visible"]

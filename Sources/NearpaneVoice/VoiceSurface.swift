@@ -11,6 +11,7 @@ public struct VoiceSurface: View {
     @ViewState private var draft = ""
     @ViewState private var copied = false
     @ViewState private var settling = false
+    @ViewState private var releaseEditorFocus: (() -> Void)?
     private let pasteboard: NSPasteboard
     public init(_ module: VoiceModule, pasteboard: NSPasteboard = .general) {
         self.module = module
@@ -22,6 +23,10 @@ public struct VoiceSurface: View {
             if let id = editing {
                 TextEditor(text: Binding(get: { draft }, set: { draft = $0; module.stageDraft(id, text: $0) }))
                     .font(.body).disabled(settling)
+                    .onDisappear {
+                        releaseEditorFocus?()
+                        releaseEditorFocus = nil
+                    }
                 HStack {
                     Button("取消") {
                         settling = true
@@ -40,8 +45,17 @@ public struct VoiceSurface: View {
                         }
                         ForEach(module.rows) { row in
                             if !row.text.isEmpty {
-                                TranscriptLine(text: row.text) {
-                                    Task { if let text = await module.editText(row.id) { draft = text; editing = row.id } }
+                                TranscriptLine(text: row.text) { panel in
+                                    Task {
+                                        guard let text = await module.editText(row.id) else { return }
+                                        releaseEditorFocus = { [weak panel] in
+                                            guard let panel, panel.isKeyWindow, panel.styleMask.contains(.nonactivatingPanel) else { return }
+                                            panel.makeFirstResponder(nil)
+                                            NSApp.deactivate()
+                                        }
+                                        draft = text
+                                        editing = row.id
+                                    }
                                 }
                             }
                             if row.recognitionState == .failed {
@@ -83,7 +97,7 @@ public struct VoiceSurface: View {
 /// AppKit supplies the selection menu for selectable text. Add the row's edit action to that same menu.
 struct TranscriptLine: NSViewRepresentable {
     let text: String
-    let edit: () -> Void
+    let edit: (NSWindow?) -> Void
 
     final class TextView: NSTextView {
         var editLine: (() -> Void)?
@@ -114,7 +128,7 @@ struct TranscriptLine: NSViewRepresentable {
     }
 
     func updateNSView(_ view: TextView, context: Context) {
-        view.editLine = edit
+        view.editLine = { [weak view] in edit(view?.window) }
         if view.string != text { view.string = text }
     }
 

@@ -5,6 +5,16 @@ import NearpaneCore
 public final class EdgePanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
+
+    public override func sendEvent(_ event: NSEvent) {
+        if event.type == .leftMouseDown, !isKeyWindow, let content = contentView,
+           let text = content.hitTest(content.convert(event.locationInWindow, from: nil)) as? NSTextView,
+           text.isEditable {
+            makeKey()
+            makeFirstResponder(text)
+        }
+        super.sendEvent(event)
+    }
 }
 
 private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
