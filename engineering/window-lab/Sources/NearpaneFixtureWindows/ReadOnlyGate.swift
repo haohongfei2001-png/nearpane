@@ -5,6 +5,13 @@ import WindowLab
 
 @MainActor final class ReadOnlyGate {
     private var child: Process?, anchor: ActiveSpaceAnchor?, began: Double = 0
+    // The read-only P4.2 receipt remains usable on its own. The stricter P4.3
+    // origin check uses two independently returned snapshots and never grants a switch.
+    private var prior: (DesktopSnapshot, Member, NSWindow)?
+    private struct OriginResult: Encodable {
+        let previous, current: UInt64
+        let witnessed: WorkspaceID?, reason: String?, permitsSystemInput = false
+    }
     func stop() { if child?.isRunning == true { child?.terminate() } }
     func sample(member: Member, window: NSWindow, sequence: Int, run: Run, directory: URL) throws -> Bool {
         let frame = SurfaceRect(x: window.frame.minX, y: NSScreen.screens[0].frame.maxY - window.frame.maxY,
@@ -22,6 +29,24 @@ import WindowLab
             try require(sample.isStructurallyValid && sample.sessionID == run.session && sample.revision == UInt64(sequence)
                 && sample.windows.allSatisfy { $0.metadata?.pid == getpid() && $0.metadata?.number == member.id.number }
                 && sample.native?.rows.allSatisfy { $0.anchor == current } == true, "out-of-scope native sample")
+            if let (previous, enrolled, held) = prior, enrolled == member, held === window {
+                let id = previous.windows.first.flatMap(ManagedWindowID.init)
+                let result: OriginResult
+                do {
+                    guard let id, id.pid == member.id.pid, id.launch == member.id.launch,
+                          id.number == member.id.number,
+                          window.accessibilityIdentifier() == member.identifier
+                    else { throw WorkspaceFailure.identity }
+                    let origin = try NativeSpacesProvider().stableTestOrigin(
+                        previous: previous, current: sample, session: run.session, display: run.screens.secondary,
+                        enrolled: id, date: Date(), uptime: ProcessInfo.processInfo.systemUptime)
+                    result = OriginResult(previous: previous.revision, current: sample.revision, witnessed: origin, reason: nil)
+                } catch {
+                    result = OriginResult(previous: previous.revision, current: sample.revision, witnessed: nil, reason: String(describing: error))
+                }
+                try writeJSON(result, directory, "origin-check-\(sequence).json")
+            }
+            prior = (sample, member, window)
             self.child = nil; anchor = nil
             return true
         }

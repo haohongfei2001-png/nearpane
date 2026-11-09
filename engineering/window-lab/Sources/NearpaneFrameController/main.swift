@@ -17,7 +17,15 @@ do {
                            uptime: ProcessInfo.processInfo.systemUptime, controllerID: Bundle.main.bundleIdentifier))
     } else if args.count == 2 {
         let verb = args[0], directory = URL(fileURLWithPath: args[1], isDirectory: true)
-        if ["mini-read","mini-recover"].contains(verb) {
+        if verb == "regular-compare" {
+            let study=try RegularStudy(directory)
+            do { try study.trial() }
+            catch {
+                try study.log(["stopped":String(describing:error)])
+                try study.close(); throw error
+            }
+            try study.close()
+        } else if ["mini-read","mini-recover"].contains(verb) {
             try emit(try MinimizeStudy(directory).perform(verb))
         } else if verb == "inspect" || verb == "observe" {
             let a = try FixtureAdapter(directory)

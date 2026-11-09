@@ -36,19 +36,7 @@ struct VisibilityLog: Codable {
     }
     func all() throws -> [VisibilitySample] { try a.ticket.members.map(read) }
     func dock() throws -> SurfaceRect {
-        let apps = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
-        guard apps.count == 1, let pid = apps.first?.processIdentifier else { throw Refusal("Dock owner unknown") }
-        let app = AXUIElementCreateApplication(pid)
-        let lists = (a.attribute(app,kAXChildrenAttribute) as? [AXUIElement])?.filter { a.attribute($0,kAXRoleAttribute) as? String == kAXListRole }
-        guard lists?.count == 1, let list = lists?.first, let p = a.attribute(list,kAXPositionAttribute), let sz = a.attribute(list,kAXSizeAttribute),
-              CFGetTypeID(p)==AXValueGetTypeID(), CFGetTypeID(sz)==AXValueGetTypeID() else { throw Refusal("Dock location unknown") }
-        var xy=CGPoint.zero, size=CGSize.zero
-        guard AXValueGetValue(p as! AXValue,.cgPoint,&xy), AXValueGetValue(sz as! AXValue,.cgSize,&size) else { throw Refusal("invalid Dock frame") }
-        let r=CGRect(origin:xy,size:size), s=a.run.screens.frame, primary=a.run.screens.mainFrame
-        // Restrict this device experiment to the observed left-edge Dock on the outer secondary edge.
-        try require(r.width>0 && r.height>0 && s.x+s.width<=primary.x && r.minX<=s.x && r.maxX>=s.x && r.maxX<s.x+s.width
-            && r.minY>=s.y && r.maxY<=s.y+s.height, "Dock destination not confined to secondary")
-        return SurfaceRect(rect(r))
+        try secondaryDock(a.run.screens)
     }
     func perform(_ verb:String) throws -> [VisibilitySample] {
         let members=a.ticket.members, before=try all()
@@ -95,3 +83,19 @@ struct VisibilityLog: Codable {
         try files.persist(j,path); return final
     }
 }
+
+@MainActor func secondaryDock(_ screens: Screens) throws -> SurfaceRect {
+        let apps = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
+        guard apps.count == 1, let pid = apps.first?.processIdentifier else { throw Refusal("Dock owner unknown") }
+        let app = AXUIElementCreateApplication(pid)
+        let lists = (labAttribute(app,kAXChildrenAttribute) as? [AXUIElement])?.filter { labAttribute($0,kAXRoleAttribute) as? String == kAXListRole }
+        guard lists?.count == 1, let list = lists?.first, let p = labAttribute(list,kAXPositionAttribute), let sz = labAttribute(list,kAXSizeAttribute),
+              CFGetTypeID(p)==AXValueGetTypeID(), CFGetTypeID(sz)==AXValueGetTypeID() else { throw Refusal("Dock location unknown") }
+        var xy=CGPoint.zero, size=CGSize.zero
+        guard AXValueGetValue(p as! AXValue,.cgPoint,&xy), AXValueGetValue(sz as! AXValue,.cgSize,&size) else { throw Refusal("invalid Dock frame") }
+        let r=CGRect(origin:xy,size:size), s=screens.frame, primary=screens.mainFrame
+        // Restrict this device experiment to the observed left-edge Dock on the outer secondary edge.
+        try require(r.width>0 && r.height>0 && s.x+s.width<=primary.x && r.minX<=s.x && r.maxX>=s.x && r.maxX<s.x+s.width
+            && r.minY>=s.y && r.maxY<=s.y+s.height, "Dock destination not confined to secondary")
+        return SurfaceRect(rect(r))
+    }

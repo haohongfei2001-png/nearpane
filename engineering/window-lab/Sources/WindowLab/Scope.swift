@@ -28,7 +28,14 @@ package struct ProcessBirth: Codable, Equatable {
 package func verifyFixtureCode(_ peer: ProcessBirth, supervisor: ProcessBirth) throws {
     let current = try ProcessBirth.read(peer.pid)
     try require(current == peer && peer.parent == supervisor.pid && peer.pid != getpid(), "fixture owner changed")
-    let name = "NearpaneFixtureWindows"
+    try verifySiblingCode(peer, name: "NearpaneFixtureWindows")
+}
+
+// LaunchServices supplies a PID, not a parent-child relationship. Compare the actual
+// new instance to its installed signed sibling and the launch receipt on every action.
+package func verifySiblingCode(_ peer: ProcessBirth, name: String) throws {
+    try require(["NearpaneRegularFixture", "NearpaneFrameController", "NearpaneFixtureWindows"].contains(name)
+                && peer == (try ProcessBirth.read(peer.pid)) && peer.pid != getpid(), "changed sibling incarnation")
     let expected = Bundle.main.bundleURL.deletingLastPathComponent()
         .appendingPathComponent("\(name).app/Contents/MacOS/\(name)").resolvingSymlinksInPath()
     var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)

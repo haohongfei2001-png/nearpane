@@ -12,14 +12,14 @@ apps_dir="$HOME/Library/Caches/org.nearpane.window-lab/P4.2"
 mkdir -p "$apps_dir"
 stage="$(mktemp -d "$apps_dir/.stage.XXXXXX")"
 trap 'rm -rf "$stage"' EXIT
-for name in NearpaneFrameController NearpaneFixtureWindows; do
+for name in NearpaneFrameController NearpaneFixtureWindows NearpaneRegularFixture; do
     app="$stage/$name.app"
     mkdir -p "$app/Contents/MacOS"
     python3 - "$app/Contents/Info.plist" "$name" <<'PY'
 import plistlib, sys
 with open(sys.argv[1], "wb") as f:
     plistlib.dump(dict(CFBundleExecutable=sys.argv[2], CFBundleIdentifier="org.nearpane.lab." + sys.argv[2],
-                       CFBundleName=sys.argv[2], CFBundlePackageType="APPL", LSUIElement=True,
+                       CFBundleName=sys.argv[2], CFBundlePackageType="APPL", LSUIElement=sys.argv[2] != "NearpaneRegularFixture",
                        CFBundleVersion="1", LSMinimumSystemVersion="14.0"), f)
 PY
     install -m 755 "$bin/$name" "$app/Contents/MacOS/$name"
