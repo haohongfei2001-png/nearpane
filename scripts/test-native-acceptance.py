@@ -196,6 +196,39 @@ class RecognitionAttemptTests(unittest.TestCase):
 
 
 class NativeAcceptanceTests(unittest.TestCase):
+    def test_transient_geometry_can_never_attest_a_space_or_pass_the_stable_tolerance(self):
+        measure = runpy.run_path(str(native.ROOT/"scripts/acceptance/verify-desktop-fixture.py"))["check_sample"]
+        expected = dict(x=-80,y=15,width=30,height=20)
+        display = dict(id="secondary",frame=dict(x=-100,y=0,width=100,height=100))
+        evidence = dict(population="markedFixture",spaces="disabled",rows=[])
+        windows = [dict(displayID="secondary",metadata=dict(pid=4,number=i,globalFrame=dict(expected,width=26))) for i in (5,6)]
+        sample = dict(displays=[dict(id="primary"),display],native=evidence,windows=windows,revision=1,freshness="transient")
+        receipt = dict(snapshot=sample,hostActive=False,fixtures=[dict(number=i,expectedCG=expected,key=False) for i in (5,6)])
+        self.assertEqual(measure(receipt,4)["cgErrors"], [4,4])
+        evidence["rows"] = [{}]
+        with self.assertRaises(ValueError):
+            measure(receipt,4)
+        evidence["rows"] = []
+        sample["freshness"] = "fresh"
+        with self.assertRaises(ValueError):
+            measure(receipt,4)
+
+    def test_first_launch_allows_only_creation_of_an_empty_voice_store(self):
+        verify = runpy.run_path(str(native.ROOT/"scripts/acceptance/verify-desktop-fixture.py"))["preserved_domains"]
+        before = dict(voiceAvailable=False, voiceRecords=0, voiceRevisions=0,
+                      voiceSHA256=native.se.fingerprint(None), intactMedia=True, attempts=0, assetOrder=["a","b"])
+        empty = dict(records={}, revisions={}, drafts={}, sessions={}, terminals={})
+        after = dict(before, voiceAvailable=True, voiceSHA256=native.se.fingerprint(empty))
+        self.assertTrue(verify(before,after,after))
+        self.assertTrue(verify(after,after,after))
+        for changes in (dict(voiceSHA256=native.se.fingerprint(dict(empty,drafts={"a":"digest"}))),
+                        dict(voiceRecords=1), dict(attempts=1), dict(assetOrder=["b","a"]), dict(intactMedia=False)):
+            with self.subTest(changes=changes):
+                altered = dict(after, **changes)
+                self.assertFalse(verify(before,altered,altered))
+                self.assertFalse(verify(before,altered,after))
+        self.assertFalse(verify(after,after,before))
+
     def test_packaged_desktop_reader_must_match_seal_and_cannot_be_substituted(self):
         with tempfile.TemporaryDirectory(dir=native.ROOT/"build") as tmp:
             contents = Path(tmp)/"Fixture.app/Contents"

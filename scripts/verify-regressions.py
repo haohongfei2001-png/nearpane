@@ -39,7 +39,7 @@ def verify(directory):
                 passed("Suite " + suite + " passed" in log, suite)
             counts["composed targets"] = node_count(log, 18, "composed targets")
     counts["target guard"] = node_count(read("target-tests"), 17, "target guard")
-    for name, minimum in (("resolver-tests", 5), ("receipt-policy", 25)):
+    for name, minimum in (("resolver-tests", 5), ("receipt-policy", 27)):
         log = read(name)
         summary = re.search(r"^Ran (\d+) tests? in [\d.]+s\s+OK\s*\Z", log, re.MULTILINE)
         passed(summary and int(summary[1]) >= minimum and "ResourceWarning" not in log, name)
