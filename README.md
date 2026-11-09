@@ -8,8 +8,8 @@ The goal is to make the desktop itself a visible, actionable workspace: users ca
 
 ## Product capabilities
 
-- **Persistent desktop work area:** Non-native-fullscreen workspaces always reserve approximately one-eighth of the primary display, even while the Nearpane UI is partially or wholly hidden. Managed ordinary windows stay within the remaining seven-eighths; panels appearing or disappearing never cause ordinary windows to expand into the reserved strip.
-- **Progressive workspace tiling:** Users primarily drag a specific window thumbnail from another workspace onto the target workspace. One window fills WorkRect; two split evenly; three place the previous two stacked in the right half and the newcomer in the left half; four and five progressively subdivide further, up to **eight** managed windows per workspace. A ninth is rejected, never silently hidden or moved. Manual window placement and split ratios are adjustable.
+- **Persistent desktop work area:** Both the primary panel and each secondary Space-only panel default to **Docked**, permanently reserving an independently configured edge area even when the UI is hidden. A secondary panel can be set to **Floating**, in which case it never reserves any area, whether visible or hidden. Ordinary windows never resize solely because a panel appears or disappears.
+- **Progressive workspace tiling:** Users primarily drag specific window thumbnails between workspaces. The approved 1–8-window templates remain unchanged. **Eight is a default overflow threshold, not a hard cap**: new windows preferentially open in a newly created workspace when supported; otherwise the existing space splits further (typically toward 16 or beyond). Settings also offer **Continuous Split**, which never automatically creates a workspace for overflow. Real minimum window sizes and access restrictions remain safety limits.
 - **Space-level navigation:** Choose native macOS Spaces or Nearpane-managed virtual Workspaces. Clicking anywhere on one Space preview row switches that workspace as a whole, not an individual window.
 - **True fullscreen and mini tools:** Real fullscreen hides Spaces and the full panel. User-configured compact status strip opens permitted movable tools (such as voice) only on explicit click; fullscreen exit defaults to the originating workspace, subject to verified OS capabilities.
 - **Saytile voice input:** Keep one continuous, editable, faithfully transcribed text stream within reach.
@@ -18,13 +18,15 @@ The goal is to make the desktop itself a visible, actionable workspace: users ca
 
 Native mode is selected by default on first use, without a forced choice screen; Virtual is a low-frequency Settings option after capability and recovery validation. The product is sold and presented as one Nearpane application, not separate Saytile/Riftlet/Spaces purchases. Native mode observes and enhances macOS Spaces; Virtual mode manages its own logical Workspaces within the existing macOS desktop environment. Virtual Workspaces do not turn into Mission Control Spaces and do not require disabling macOS Spaces or SIP. The main panel is neither a Dock replacement nor a generic widget dashboard.
 
+**Latest decisions (2026-11-09):** User-triggered **Quit** stops window management and safely restores the previously recorded macOS window layout; simply hiding Nearpane does not release Docked reservations. When three managed windows shrink back to two, restore that pair's last saved custom ratio/position; absent a matching saved layout, use 50:50. All this remains **product specification, not a claim of runtime implementation**. The active engineering branch maintains the same ADR-010–013 decisions.
+
 ## Product and design authority
 
 - [Product Definition](docs/PRODUCT_DEFINITION.md) — authoritative positioning, capabilities and dual workspace-mode choice.
 - [Dual-mode decision ADR-010](docs/decisions/ADR-010-DUAL-WORKSPACE-MODES.md) — Native/Virtual scope, mode-switch safety, recovery and independent validation.
 - [Multi-display presentation ADR-011](docs/decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md) — one primary resident panel, independent secondary Space-only panels and per-display sizing, placement, and appearance.
 - [Reserved work area, tiling and fullscreen ADR-012](docs/decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md) — original work-area, fullscreen, focus and unified-product decisions.
-- [Stable work area and eight-window tiling ADR-013](docs/decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md) — latest authority: UI visibility does not change work area, drag thumbnails into workspaces, progressive tiling with an eight-window cap.
+- [Latest stable-work-area and progressive-tiling ADR-013](docs/decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md) — two overflow modes, per-display Docked/Floating occupancy, safe Quit restoration and historical layout restoration when windows are removed.
 - [Visual Authority](docs/design/NEARPANE-VISUAL-AUTHORITY.md) — approved edge-panel visual direction, default proportions, Space mapping, and real-window geometry rules.
 - [Approved visual reference](docs/design/assets/nearpane-visual-authority.webp) — approved visual-direction image.
 

@@ -1,6 +1,6 @@
 # Nearpane — 产品定义与功能规格
 
-**文档状态：** 产品定义基线（Product Definition Baseline；2026-11-09 双空间模式修订）  
+**文档状态：** 正式产品定义权威（2026-11-09；ADR-013 最新增量，工程尚未完全实现）  
 **适用范围：** 产品定位、核心架构、功能边界、模块体系与关键交互原则。  
 **配套规范：** [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)；[双空间模式 ADR-010](decisions/ADR-010-DUAL-WORKSPACE-MODES.md)；[多显示器 ADR-011](decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)；[桌面预留/全屏 ADR-012](decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)；[稳定区域、八窗渐进布局 ADR-013](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)
 
@@ -101,13 +101,13 @@ Nearpane 不应被限定为只有 Saytile、Riftlet 和空间预览的固定组�
 - 原生 Space ID 与虚拟 Workspace ID 不可直接转换或混用；切换模式前必须确认恢复状态、受影响窗口和调度互斥。
 - 系统不可观测或虚拟窗口恢复不可保证时，必须降级或禁止相应操作，不虚构状态。
 
-### 3.2 稳定 WorkRect、窗口拖入空间与最多八窗渐进布局（ADR-013）
+### 3.2 稳定 WorkRect、窗口跨空间拖入与两种扩容策略（ADR-013）
 
 - **非原生全屏**，无论完整侧栏、单独 Saytile、单独 Riftlet、仅空间调度还是界面全部隐藏，主驻留屏均保留用户设置的边缘工作区域（出厂约宽 1/8）。普通可管理窗口始终只能使用剩余约 7/8 的 WorkRect；UI 显示/隐藏**绝不能**导致普通窗口反复拉伸或侵入保留区。改变持久区宽度是独立的设置操作；真正原生全屏才可以占满屏幕。
 - 空间归组主要由用户**拖动其他空间中具体的窗口缩略图进入目标空间行**完成；普通单击整行只切换 Workspace，不激活行内某个窗口。拖拽需要源/目标窗口身份、空间能力、权限和容量验证。
-- 默认按加入顺序渐进布局：1 窗独占 WorkRect；2 窗各占 1/2；3 窗为**前两个上下平分右半区、新加入的第三窗占左半区**；4 窗分成四个 1/4；5 窗为前两个各占 1/8、第五个独占 1/4，其余两个各占 1/4；6—8 窗继续渐进二分。**最多八个窗口**；第九个必须拒绝，不能自行暂存、隐藏、创建空间或替换已存在窗口。
-- 用户拖动真实窗口可以改变方位/槽位，调节分隔比例时其他受影响窗口联动。用户曾修改两窗口布局后加入第三个窗口，先采用上述三窗口默认模板；加入后仍可再次自定义。App 特定偏好和当前空间布局可分别保存。
-- 受管理普通主窗不能重叠、超出 WorkRect 或进入侧栏预留边界；系统弹窗、模态窗口、最小尺寸限制、权限不足等不可控制对象须明确降级。八窗是上限而非屏幕容纳所有第三方应用的保证，无法满足最小尺寸时需提前拒绝。
+- 默认按窗口加入顺序渐进布局：1 窗独占 WorkRect；2 窗各 1/2；3 窗旧 W1/W2 在右半区上下、新 W3 左半区；4 窗四分；5 窗 W1/W2 各 1/8、W5 新占 1/4，其余各 1/4；6—8 窗继续二分。**8 是默认阈值、不是绝对上限。** 设置提供①“超过阈值新建空间”（默认：到第 9 窗优先新建原生/虚拟工作区，新建不支持则继续二分），②“无限分割”（不主动新建，一直按实际最小尺寸允许范围二分）。不能建也不能分时保留真实窗口可访问并报受限，**16 也不是硬上限**。
+- 用户拖动真实窗口可调槽位/分隔比例；两窗改过比例后加第三窗仍采用标准三窗模板。**移除第三窗时，优先恢复剩余两窗曾保存的布局/比例；无匹配历史则左右 50:50**。应用偏好和空间布局均可单独保存，窗口身份需确认。
+- 受管理普通主窗不能重叠、超出 WorkRect 或进入预留区。第三方 App 自行产生的新窗口和用户缩略图拖入采用相同的扩容策略；Native 创建/移窗需单独验证能力，不保证可程序化新建系统 Space。真实窗口最小尺寸/权限不足使新建与分割都失败时标记 overflow/unmanaged，不能秘密隐藏/关闭/移动用户窗口。
 - Space 缩略图按真实执行后的窗口 frame 绘制；不把理想分区当作已成功控制桌面的证据。
 
 详见 [ADR-013](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)。
@@ -115,9 +115,9 @@ Nearpane 不应被限定为只有 Saytile、Riftlet 和空间预览的固定组�
 ### 3.3 多显示器角色、独立尺寸与出现策略（ADR-011）
 
 - 用户指定唯一 Nearpane 主驻留屏（无需等于系统主显示器）。**Saytile 语音板和 Riftlet 截图板只在该屏常驻显示，全局各只有一份领域实例与数据队列**；主屏 Space 区根据实际可切换空间/窗口自动决定是否需要显示：有多个有效空间或当前有多个受管理窗口时不可自动隐藏，单 Space 单窗无其他调度需求时可不显示；语音与截图状态独立。
-- 其他每块显示器至多提供一个**Space-only 空间调度面板**，不复制语音、截图或其他主面板模块；副屏不是新的 Host 实例。
+- 其他每块显示器至多一个仅含 Space-only 空间调度的面板。**副屏默认 Docked（驻留式，持续预留独立尺寸的工作区域；隐藏也不释放），用户可按屏切到 Floating（浮窗式，永不预留，浮窗下允许普通应用）**；不复制 Saytile/Riftlet 或 Host。
 - 副屏默认按需唤出，**绝不自动弹出**；用户可在设置中主动启用“多个有效可切换目标时自动出现”或“固定显示”，原生全屏/演示中默认抑制空间面板。出现规则以可验证、可操作目标为依据，不直接按 CGWindow 原始记录计数，不抢焦点。
-- 主、副屏的面板宽度、高度、边缘位置、垂直位置、空间行尺寸和启停/显示策略**分别配置并保存**。主屏默认全功能形态保留 1/8 宽、工具区约 3/8、空间区约 5/8；只有在无空间调度需求时主屏空间区可省略，主 UI 可相应收缩，但持久 WorkRect 不变。副屏不强制套用 1/8 或 3/8+5/8 比例。
+- 主、副屏分别保存面板宽高、位置、空间行密度、显示时机和**Docked/Floating 占用模式**。Docked 是否预留只看用户持久设置，不随 UI 显隐变化；Floating 无论出现/隐藏都不预留。默认主副屏均 Docked，主屏占用约 1/8，副屏尺寸独立精调；用户显式改占用模式/预留宽度才可重算本屏工作区。
 - 各屏按照真实分辨率、旋转、镜像、可用桌面区域和坐标变换呈现真实窗口几何，不逐窗口拉伸。Native 只显示该屏经确认的系统 Spaces；Virtual 只显示该屏明确管理的逻辑 Workspaces，不能在 separateSpaces=false 时把 SkyLight 的 3+1 scope 记录当作独立用户桌面。
 - 显示器拔插时保留 per-display 偏好，主驻留屏失联则只迁移主表面角色，不重建 Saytile/Riftlet 或切断已进行的任务；副屏面板隐藏不得产生持续高帧率捕获。
 
@@ -149,6 +149,12 @@ Nearpane 的价值来自模块之间的协同，而不仅是把它们放在同�
 - 用户退出全屏时，产品默认**回到进入全屏前的原 Space/Workspace**，由身份校验和系统可行性决定实际可执行路径；可在设置中选择“退出后保持独立空间”，但仅在对应 Native/Virtual 模式验证后启用。原生系统 Space 的创建/保留不保证公开 API 能够实现。
 - 用户可通过显式小状态条打开被允许的录音等轻量浮层。浮层可拖动、记忆上次位置，并以**用户原位置优先、仅必要时最小位移**避让可确认的交互按钮，不持续追随鼠标/焦点。隐藏显示不等于暂停采集。
 - Native/Virtual 模式选择属于低频设置，不在日常侧栏增加切换器。Nearpane 是整体交付和购买的一款产品，不要求分别购买 Saytile/Riftlet/Spaces 模块。
+
+### 3.6 明确退出与窗口布局回退（最新产品决定）
+
+- **Hide / 模块收起**：Nearpane 仍在运行；Docked 主、副屏预留区不变，其他普通应用不因 UI 显隐改变 frame。
+- **Quit / 完整退出 Nearpane**：停止窗口接管，释放各屏保留区域；依据接管前记录的身份、原显示器/Space 与有效 frame，**安全恢复原来的 macOS 窗口布局**。恢复不了的窗口明确报告原因，不能误动 ID 已复用/已被用户更改的其它窗口。
+- **崩溃/重启**：以安全恢复日志处理窗口，不在权限未知时自动移动用户工作窗口；用户确认后可恢复正常管理。
 
 ## 4. 主界面与视觉边界
 
@@ -212,12 +218,12 @@ Nearpane 不应被实现成：
 
 ## 8. 文档权威关系
 
-- 本文件（`docs/PRODUCT_DEFINITION.md`）：产品定位、架构、功能范围和产品边界的权威来源。
-- [`docs/decisions/ADR-010-DUAL-WORKSPACE-MODES.md`](decisions/ADR-010-DUAL-WORKSPACE-MODES.md)：双模式的正式决策，自 2026-11-09 起覆盖此前仅原生 Spaces 的限制。
-- [`docs/decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md`](decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)：唯一主驻留屏与副屏 Space-only 面板、独立尺寸及出现策略的权威规范。
-- [`docs/decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md`](decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)：桌面预留、窗口平铺与原生全屏等基础决定。
-- [`docs/decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md`](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)：后续权威裁决：UI 显隐不释放 WorkRect，拖动窗口缩略图归组、最多八窗、可调槽位/比例、空间区按需组合。覆盖 ADR-012 中相反的早期行为。
-- [`docs/design/NEARPANE-VISUAL-AUTHORITY.md`](design/NEARPANE-VISUAL-AUTHORITY.md)：当前侧栏视觉方向、默认区域比例、Space 展示和窗口几何规则的权威来源。
+- 本文件（`PRODUCT_DEFINITION.md`）：产品定位、架构、功能范围和产品边界的权威来源。
+- [`decisions/ADR-010-DUAL-WORKSPACE-MODES.md`](decisions/ADR-010-DUAL-WORKSPACE-MODES.md)：双模式的正式决策，自 2026-11-09 起覆盖此前仅原生 Spaces 的限制。
+- [`decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md`](decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)：唯一主驻留屏与副屏 Space-only 面板、独立尺寸及出现策略的权威规范。
+- [`decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md`](decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)：桌面预留、窗口平铺与原生全屏等基础决定。
+- [`decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md`](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)：最新权威：主副屏 Docked 持久预留、副屏 Floating 不预留；8 窗是扩容阈值（新建/无限分割两策略），移除窗口恢复历史布局、Quit 恢复原始 macOS 布局。
+- [`design/NEARPANE-VISUAL-AUTHORITY.md`](design/NEARPANE-VISUAL-AUTHORITY.md)：当前侧栏视觉方向、默认区域比例、Space 展示和窗口几何规则的权威来源。
 - Saytile 与 Riftlet 各自仓库中的正式产品定义：其内部识别、截图队列、数据生命周期和既有交互语义的权威来源。
 
 若文档之间出现冲突，不得擅自用实现方便或视觉整齐为由改变用户已确认的产品决定；应先明确冲突并提交新的产品决策。
