@@ -19,6 +19,30 @@ struct NativeAcceptanceSession {
         let executableSHA256: String
     }
 
+    /// Explicit fixture CLI only. Use the same locale, reservation and asset code as the pinned domain.
+    /// No AudioController, TCC request, application window or recognition session is created.
+    func reportChineseAssets(prepare: Bool) async -> Never {
+        let before = await AppleSpeechService.availability()
+        var receipt: [String: Any] = ["session": directory.lastPathComponent, "supported": before.supported,
+                                      "wasInstalled": before.installed, "preparationRequested": prepare]
+        if prepare, before.supported, !before.installed {
+            do { try await AppleSpeechService.prepare() }
+            catch {
+                receipt["errorDomain"] = (error as NSError).domain
+                receipt["errorCode"] = (error as NSError).code
+            }
+        }
+        let after = await AppleSpeechService.availability()
+        receipt["installed"] = after.installed
+        receipt["micAuthorization"] = AVCaptureDevice.authorizationStatus(for: .audio).rawValue
+        receipt["speechAuthorization"] = SFSpeechRecognizer.authorizationStatus().rawValue
+        do {
+            let data = try JSONSerialization.data(withJSONObject: receipt, options: .sortedKeys)
+            try FileHandle.standardOutput.write(contentsOf: data + Data([10]))
+        } catch { exit(3) }
+        exit(prepare && !after.installed ? 3 : 0)
+    }
+
     init(id: String, prepare: Bool) throws {
         guard let uuid = UUID(uuidString: id), id == uuid.uuidString.lowercased(),
               Bundle.main.bundleURL.pathExtension == "app", let executable = Bundle.main.executableURL else {

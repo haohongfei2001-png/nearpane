@@ -24,6 +24,11 @@ struct NearpaneApp {
                 _ = try LegacyWebObservationProgram.wrapping(ChatGPTWebPageProgram.load())
                 print("Packaged Saytile and Riftlet resources verified.")
                 if args.count > 1 {
+                    if args.count == 4, args[1] == "--native-zh-assets", ["status", "prepare"].contains(args[3]) {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        Task { await session.reportChineseAssets(prepare: args[3] == "prepare") }
+                        dispatchMain()
+                    }
                     if args == ["--verify-bundled-resources", "--native-receipt-policy"] {
                         let data = FileHandle.standardInput.readData(ofLength: 1_048_577)
                         guard data.count <= 1_048_576, try TestReceiptPolicy.admits(data) else { exit(3) }
