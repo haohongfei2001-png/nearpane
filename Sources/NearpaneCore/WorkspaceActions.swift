@@ -218,6 +218,11 @@ public struct WorkspaceGestureRouter {
 }
 
 public struct VirtualWorkspacesProvider: WorkspaceActionAdapter {
+    /// Real devices have no accepted single-window parking backend. Isolated model grants stay separate.
+    public func deviceCapabilities(build: String, displayID: String) -> WorkspaceCapabilities {
+        .init(mode: .virtual, build: build, displayID: displayID, actions: [], evidence: .unavailable)
+    }
+
     private let experiment: IsolatedVirtualActions?
     public init() { experiment = nil }
     init(experiment: IsolatedVirtualActions) { self.experiment = experiment }

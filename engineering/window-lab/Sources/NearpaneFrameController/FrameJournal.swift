@@ -172,6 +172,10 @@ final class SessionFiles {
         let switching = action == "switch" || action == "switch-and-hold"
         let park = action == "park" || switching, canary = action == "canary" || action == "canary-and-hold"
         holdBeforeAcknowledgement = action == "canary-and-hold"
+        if park {
+            let grant = VirtualWorkspacesProvider().deviceCapabilities(build: ProcessInfo.processInfo.operatingSystemVersionString, displayID: screens.secondary)
+            try require(grant.permits(.switchRow, isolated: false), "no device-verified Virtual parking mechanism")
+        }
         if switching { try require(members.count == 2, "switch requires exactly two enrolled windows") }
         var settings = DisplaySettings()
         settings.placement = action == "floating" ? .floating : .docked

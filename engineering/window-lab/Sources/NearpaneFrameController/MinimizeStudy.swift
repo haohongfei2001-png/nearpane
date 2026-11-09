@@ -54,20 +54,10 @@ struct VisibilityLog: Codable {
         let members=a.ticket.members, before=try all()
         if verb=="mini-read" { return before }
         let path="visibility.json"
-        let frameLog:FrameJournal? = try files.load("journal.json")
-        try require(frameLog == nil || frameLog?.status == .restored || frameLog?.status == .retained, "frame recovery pending")
-        var j:VisibilityLog
-        if let saved:VisibilityLog = try files.load(path), !saved.settled || verb=="mini-recover" {
-            j=saved
-        } else {
-            try require(before.allSatisfy { !$0.minimized && $0.onscreen && $0.frame != nil }, "initial windows not visible")
-            j = .init(run:a.run.session,transaction:UUID(),peer:a.ticket.owner,revision:a.ticket.revision,original:before,
-                      confirmed:before.map(\.minimized),pendingIndex:nil,pendingValue:nil,settled:false)
-        }
+        try require(verb == "mini-recover", "real Virtual parking is unavailable")
+        guard var j: VisibilityLog = try files.load(path) else { throw Refusal("no admitted visibility transaction") }
         try require(j.run==a.run.session && j.peer==a.ticket.owner && j.revision==a.ticket.revision && j.original.map(\.member)==members
                     && j.confirmed.count==members.count, "visibility journal owner changed")
-        let recovering = verb=="mini-recover"
-        if !recovering { try require(j.pendingIndex==nil, "visibility recovery required") }
         for i in members.indices {
             let b=before[i]
             try require(b.minimized==j.confirmed[i] || (j.pendingIndex==i && j.pendingValue==b.minimized), "window state changed")
@@ -75,7 +65,8 @@ struct VisibilityLog: Codable {
         }
         for i in members.indices {
             let m=members[i], old=before[i].minimized
-            let next = !recovering && ((verb=="mini-B" || verb=="mini-kill-park") ? m.index==1 : m.index==2)
+            let next = j.original[i].minimized
+            try require(!next, "invalid visibility recovery origin")
             if next != old {
                 try require(m.index<=2 && before[i].settable, "minimize unsupported or excluded")
                 let dockFrame = try dock()
@@ -92,20 +83,15 @@ struct VisibilityLog: Codable {
                     usleep(30_000)
                 } while ProcessInfo.processInfo.systemUptime-t<1.8
                 try require(confirmed && rc == .success, "mini setter or independent readback failed")
-                if verb=="mini-kill-park" || (verb=="mini-kill-restore" && !next) {
-                    try files.persist(try all(),"mini-death.json")
-                    while getppid()==a.run.parent.pid && ProcessInfo.processInfo.systemUptime<a.run.deadline { usleep(100_000) }
-                    throw Refusal("death checkpoint expired")
-                }
                 j.confirmed[i]=next; j.pendingIndex=nil; j.pendingValue=nil; try files.persist(j,path)
             }
         }
         let final=try all()
         for i in members.indices {
-            let wanted = !recovering && ((verb=="mini-B" || verb=="mini-kill-park") ? members[i].index==1 : members[i].index==2)
+            let wanted = j.original[i].minimized
             try require(final[i].minimized==wanted && final[i].onscreen != wanted && (wanted || final[i].frame==j.original[i].frame),"group failed verification")
         }
-        j.confirmed=final.map(\.minimized); j.pendingIndex=nil; j.pendingValue=nil; j.settled=recovering
+        j.confirmed=final.map(\.minimized); j.pendingIndex=nil; j.pendingValue=nil; j.settled=true
         try files.persist(j,path); return final
     }
 }

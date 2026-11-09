@@ -5,6 +5,7 @@ import WindowLab
 
 private struct Preflight: Encodable {
     let visibilityProtocolVersion = 1
+    let virtualSwitchAvailable: Bool
     let trusted: Bool, screens: Screens, parent: ProcessBirth, uptime: Double, controllerID: String?
 }
 do {
@@ -12,11 +13,11 @@ do {
     NSApplication.shared.setActivationPolicy(.prohibited)
     let args = Array(CommandLine.arguments.dropFirst())
     if args == ["preflight"] {
-        try emit(Preflight(trusted: AXIsProcessTrusted(), screens: try Screens.read().0, parent: try .read(getppid()),
+        try emit(Preflight(virtualSwitchAvailable: VirtualWorkspacesProvider().deviceCapabilities(build: ProcessInfo.processInfo.operatingSystemVersionString, displayID: try Screens.read().0.secondary).permits(.switchRow, isolated: false), trusted: AXIsProcessTrusted(), screens: try Screens.read().0, parent: try .read(getppid()),
                            uptime: ProcessInfo.processInfo.systemUptime, controllerID: Bundle.main.bundleIdentifier))
     } else if args.count == 2 {
         let verb = args[0], directory = URL(fileURLWithPath: args[1], isDirectory: true)
-        if ["mini-read","mini-A","mini-B","mini-recover","mini-kill-park","mini-kill-restore"].contains(verb) {
+        if ["mini-read","mini-recover"].contains(verb) {
             try emit(try MinimizeStudy(directory).perform(verb))
         } else if verb == "inspect" || verb == "observe" {
             let a = try FixtureAdapter(directory)

@@ -154,9 +154,11 @@ class Trial:
         pre = self.command("preflight")
         need(pre["controllerID"] == "org.nearpane.lab.NearpaneFrameController" and pre["parent"]["pid"] == os.getpid(), "control subject")
         run = dict(session=str(uuid.uuid4()), parent=pre["parent"], deadline=pre["uptime"] + 480, screens=pre["screens"])
-        self.study_focus = suite == "parking-study"
+        self.study_focus = suite == "focus-study"
         if self.study_focus:
-            need(pre.get("visibilityProtocolVersion") == 1, "frozen study executable required")
+            need(pre.get("visibilityProtocolVersion") == 1 and pre.get("virtualSwitchAvailable") is False, "expected focus-only capability")
+        if suite == "including-parking":
+            need(pre.get("virtualSwitchAvailable") is True, "no device-verified Virtual parking mechanism")
         run["parkingStudy"] = self.study_focus
         save(self.dir / "run.json", run)
         self.start_owner()
@@ -192,46 +194,12 @@ class Trial:
                      and sample["native"]["spaces"] == "observed" and not sample["capabilities"]["spaceSwitching"],
                      "read-only gate sample incomplete")
                 self.event("native-source-observation", confirmedRows=len(sample["native"]["rows"]))
-        if suite == "parking-study":
+        if suite == "focus-study":
             self.phase = "focus-crash"
             self.crash(initial, onscreen=True)
             self.command("refuse-minimum", refuse="minimum size")
             self.panel()
-            self.phase = "first-minimize"
-            baseline = self.command("mini-read")
-            save(self.dir / "mini-baseline.json", baseline)
-            need(all(not w["minimized"] and w["onscreen"] for w in baseline), "visibility baseline")
-            self.command("mini-B")
-            need(self.command("mini-recover") == baseline, "first window failed restoration")
-            self.membership("create", 3)
-            baseline = self.command("mini-read")
-            for group in ("mini-A", "mini-B", "mini-A", "mini-B"):
-                state = self.command(group)
-                need(state[2] == baseline[2], "unmanaged sibling changed")
-            need(self.command("mini-recover") == baseline, "group recovery failed")
-            for verb in ("mini-kill-park","mini-kill-restore"):
-                if verb == "mini-kill-restore":
-                    self.command("mini-B")
-                mark = self.dir / "mini-death.json"
-                mark.unlink(missing_ok=True)
-                with (self.dir / (verb+".stderr")).open("wb") as err:
-                    proc = subprocess.Popen([self.controller,verb,self.dir], stderr=err, stdout=subprocess.DEVNULL)
-                    try:
-                        def ready():
-                            need(proc.poll() is None, "writer exited before checkpoint")
-                            return mark.exists()
-                        until(ready, 6)
-                        need(self.command("mini-read") == read(mark), "visibility death boundary")
-                        proc.kill()
-                        need(proc.wait(timeout=4) == -signal.SIGKILL, "missing process death")
-                        self.event("visibility-SIGKILL", boundary=verb)
-                    finally:
-                        if proc.poll() is None:
-                            proc.terminate()
-                            proc.wait(timeout=4)
-                need(self.command("mini-recover") == baseline, "crash restore failed")
-                attempts = len(list(self.dir.glob("mini-attempt-*.json")))
-                need(self.command("mini-recover") == baseline and attempts == len(list(self.dir.glob("mini-attempt-*.json"))), "duplicate restore")
+            self.command("mini-read")
             return
         if suite == "canary":
             return
@@ -421,7 +389,7 @@ class Trial:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("evidence", type=Path)
-    parser.add_argument("--suite", choices=("parking-study","canary", "workrect", "controls", "panel", "refusals", "including-parking"), default="workrect")
+    parser.add_argument("--suite", choices=("focus-study","canary", "workrect", "controls", "panel", "refusals", "including-parking"), default="workrect")
     parser.add_argument("--read-gate", action="store_true", help="sample only the first owned window with the bundled read-only reader")
     args = parser.parse_args()
     evidence = args.evidence.resolve()

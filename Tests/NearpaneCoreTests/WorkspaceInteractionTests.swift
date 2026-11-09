@@ -41,6 +41,15 @@ private final class ModeOwner: WorkspaceModeTransaction {
 }
 
 struct WorkspaceInteractionTests {
+    @Test func syntheticRecoveryDoesNotGrantPhysicalParkingOrSwitching() {
+        let capabilities = VirtualWorkspacesProvider().deviceCapabilities(build: "26A428", displayID: "secondary-fixture")
+        #expect(capabilities.mode == .virtual && capabilities.evidence == .unavailable)
+        for action: WorkspaceAction in [.switchRow, .moveMember, .takeover, .selectMode] {
+            #expect(!capabilities.permits(action, isolated: false))
+            #expect(!capabilities.permits(action, isolated: true))
+        }
+    }
+
     let area = SurfaceRect(width: 900, height: 700)
     let window = WorkspaceLayoutTests().member(1)
     let session = UUID()
