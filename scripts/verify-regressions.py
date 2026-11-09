@@ -26,17 +26,18 @@ def verify(directory):
     def read(name):
         return (directory / (name + ".log")).read_text()
     counts = {}
-    for name, minimum in (("foundation", 49), ("integrated", 80)):
+    for name, minimum in (("foundation", 53), ("integrated", 85)):
         log = read(name)
         matches = re.findall(r"Test run with (\d+) tests in \d+ suites passed", log)
         passed(len(matches) == 1 and int(matches[0]) >= minimum and not re.search(r"Test .* skipped", log), name)
         counts[name] = int(matches[0])
+        passed("Suite SpacePreviewTests passed" in log, name + " fixture geometry")
         if name == "integrated":
-            for suite in ("VoiceTests", "TrayDomainTests", "IntegratedHostTests", "TestTargetBindingTests"):
+            for suite in ("VoiceTests", "PCMPipelineTests", "TrayDomainTests", "IntegratedHostTests", "TestTargetBindingTests"):
                 passed("Suite " + suite + " passed" in log, suite)
             counts["composed targets"] = node_count(log, 18, "composed targets")
     counts["target guard"] = node_count(read("target-tests"), 17, "target guard")
-    for name, minimum in (("resolver-tests", 5), ("receipt-policy", 22)):
+    for name, minimum in (("resolver-tests", 5), ("receipt-policy", 24)):
         log = read(name)
         summary = re.search(r"^Ran (\d+) tests? in [\d.]+s\s+OK\s*\Z", log, re.MULTILINE)
         passed(summary and int(summary[1]) >= minimum and "ResourceWarning" not in log, name)
