@@ -70,6 +70,8 @@ Native Spaces 与 Nearpane Virtual Workspaces 是**低频切换的内部模式**
 - 全屏工具条/浮层及窗口预览需有屏幕共享与锁屏隐私策略；未经用户选择不自动暴露文字流、图片内容或截图缓存。
 - 内置模块只作为同一 Nearpane 产品的可开关功能，不因收费或设置界面将整体产品拆成多个必须购买的 SKU。
 
+**旧原型与历史审查说明：** `docs/prototype/nearpane-interaction-prototype.html` 及早期 P1/P4 合成几何实验保留作为历史证据，不视为新的无重叠平铺、整行点击或全屏状态机验收。视觉素材只作为材质、形式和默认比例参考；如有冲突，以本 ADR 和更新后的产品/交互规范为准。
+
 ## 8. 分阶段工程准入与验收
 
 1. **P0 文档/Mock**：更新 visual、interaction、architecture 和实施路线；用合成区域/窗口验证 1/2/3/4 窗布局、Space 整行点击、全屏转场、浮层位置与设置，不能等同真实 App 测试。

@@ -34,7 +34,7 @@ The design branch contains the complete continuation package:
 - [Overall architecture and Saytile/Riftlet integration](docs/architecture/NEARPANE-ARCHITECTURE.md)
 - [User-configurable module system](docs/architecture/USER-MODULE-SYSTEM.md)
 - [Interaction specification](docs/design/INTERACTION-SPEC.md)
-- [Interactive HTML prototype](docs/prototype/nearpane-interaction-prototype.html)
+- [Historical interactive HTML prototype](docs/prototype/nearpane-interaction-prototype.html) — an earlier synthetic interaction demonstration; **not** current authority for window overlap or per-window preview clicking. ADR-012 supersedes those interactions.
 - [Engineering implementation roadmap](docs/engineering/IMPLEMENTATION-ROADMAP.md)
 - [Delivery and verification manifest](docs/DELIVERY-AND-VERIFICATION.md)
 
