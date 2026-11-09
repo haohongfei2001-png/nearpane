@@ -47,7 +47,7 @@ if full {
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "NearpaneTrayTests", dependencies: ["NearpaneTray", "RiftletCore", "RiftletCapture"]),
         .target(name: "NearpaneVoice", dependencies: ["NearpaneCore", "SaytileKit"]),
-        .testTarget(name: "NearpaneVoiceTests", dependencies: ["NearpaneVoice", "SaytileKit"])
+        .testTarget(name: "NearpaneVoiceTests", dependencies: ["NearpaneVoice", "SaytileKit", "CAudio"])
     ]
 }
 let package = Package(name: "Nearpane", platforms: [.macOS(full ? "26.0" : "14.0")],

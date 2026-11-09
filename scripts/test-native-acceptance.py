@@ -435,6 +435,39 @@ with (p/(run+'.jsonl')).open('w') as f:
             self.assertNotIn("synthetic private text",json.dumps(se.durable(p)))
 
 
+class BrowserProfileTests(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("test_profile", Path(__file__).parent / "acceptance/browser-profile.py")
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.module.ROOT = Path(self.directory.name).resolve()
+        self.session = str(uuid.uuid4())
+        self.parent = self.module.ROOT / "build/native-acceptance" / self.session
+        self.parent.mkdir(mode=0o700, parents=True)
+        (self.parent / "session.json").write_text(json.dumps({"session": self.session.upper()}))
+
+    def test_repeat_prepare_reuses_only_its_own_profile(self):
+        data = self.module.profile(self.session, prepare=True)
+        self.assertEqual(data, self.module.profile(self.session, prepare=True))
+        self.assertEqual(data.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(list(data.iterdir()), [])
+
+    def test_linked_or_incomplete_profile_is_never_adopted(self):
+        folder = self.parent / "chrome-profile"
+        outside = self.module.ROOT / "foreign"
+        outside.mkdir(mode=0o700)
+        folder.symlink_to(outside)
+        with self.assertRaises(ValueError):
+            self.module.profile(self.session, prepare=True)
+        self.assertEqual(list(outside.iterdir()), [])
+        folder.unlink()
+        folder.mkdir(mode=0o700)
+        with self.assertRaises(FileNotFoundError):
+            self.module.profile(self.session, prepare=True)
+
+
 if __name__ == "__main__":
     (native.ROOT/"build").mkdir(exist_ok=True)
     unittest.main()

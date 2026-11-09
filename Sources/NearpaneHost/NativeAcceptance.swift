@@ -78,7 +78,8 @@ struct NativeAcceptanceSession {
         let time, uptime: Double
         let state: State
     }
-    init(session: NativeAcceptanceSession, host: HostSession, modules: EmbeddedModules, surface: EdgeWindowController) throws {
+    init(session: NativeAcceptanceSession, host: HostSession, modules: EmbeddedModules, surface: EdgeWindowController,
+         screens: @escaping @MainActor () -> [ScreenGeometry]) throws {
         guard let run = ProcessInfo.processInfo.environment["NEARPANE_ACCEPTANCE_RUN"],
               UUID(uuidString: run)?.uuidString.lowercased() == run else { throw CocoaError(.fileReadInvalidFileName) }
         let url = session.directory.appendingPathComponent("events-" + run + ".jsonl")
@@ -86,7 +87,7 @@ struct NativeAcceptanceSession {
         sink = try FileHandle(forWritingTo: url)
         let sample: @MainActor (String) -> Void = { [weak self, weak host, weak modules, weak surface] kind in
             guard let self, let host, let modules, let window = surface?.window else { return }
-            let expected = SurfacePlacement.resolve(screens: SystemScreens.geometry(), preferredID: host.configuration.preferredDisplayID,
+            let expected = SurfacePlacement.resolve(screens: screens(), preferredID: host.configuration.preferredDisplayID,
                                                     edge: host.configuration.edge)
             let layoutMatches = expected.map { abs(window.frame.width - $0.width) <= 1 && abs(window.frame.height - $0.height) <= 1
                 && abs(window.frame.minX - $0.x) <= 1 && abs(window.frame.minY - $0.y) <= 1 } ?? false

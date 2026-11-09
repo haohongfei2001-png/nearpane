@@ -265,8 +265,11 @@ def main():
     parser.add_argument("--asset-id")
     parser.add_argument("--asset-sha256")
     parser.add_argument("--scene", choices=se.SCENES)
+    parser.add_argument("--secondary-only", action="store_true", help="Launch a passive panel on the sole secondary display, without a status menu")
     parser.add_argument("--verdict", choices=["pass","fail"])
     args = parser.parse_args()
+    if args.secondary_only and args.action != "launch":
+        parser.error("--secondary-only applies to launch")
     binary = args.app.resolve() / "Contents/MacOS/NearpaneHost"
     if args.action == "prepare":
         session = str(uuid.uuid4())
@@ -301,7 +304,8 @@ def main():
         require_tool(binary)
         marker = json.loads((path/"session.json").read_text())
         check(hashlib.sha256(binary.read_bytes()).hexdigest() == marker["executableSHA256"], "Different build from this session")
-        se.supervise(path,[str(binary),"--native-acceptance-session",path.name],ROOT)
+        mode = "--native-acceptance-secondary" if args.secondary_only else "--native-acceptance-session"
+        se.supervise(path,[str(binary),mode,path.name],ROOT)
     elif args.action in ("focus-start","focus-end"):
         check(args.scene,"Specify the intended focus scenario")
         edge = args.action.split("-")[1]

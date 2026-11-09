@@ -54,9 +54,17 @@ struct NearpaneApp {
         let delegate = HostAppDelegate()
         if let command = args.first, command.hasPrefix("--native-acceptance") {
             #if canImport(RiftletCore) && canImport(SaytileKit)
-            guard args.count == 2, command == "--native-acceptance-session" else { exit(2) }
+            guard args.count == 2 else { exit(2) }
             do {
                 delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
+                switch command {
+                case "--native-acceptance-session": break
+                case "--native-acceptance-secondary":
+                    let secondary = SystemScreens.geometry().dropFirst()
+                    guard secondary.count == 1, let id = secondary.first?.id, UUID(uuidString: id) != nil else { exit(2) }
+                    delegate.passiveDisplayID = id
+                default: exit(2)
+                }
             } catch {
                 FileHandle.standardError.write(Data("Invalid or inaccessible isolated acceptance session.\n".utf8))
                 exit(1)
@@ -84,8 +92,23 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
     private var startupTask: Task<Void, Never>?
+    // A passive material observation must not create a menu, move the pointer, or fall back to the main display.
+    var passiveDisplayID: String?
+
+    private func placementScreens() -> [ScreenGeometry] {
+        let screens = SystemScreens.geometry()
+        guard let passiveDisplayID else { return screens }
+        return screens.dropFirst().filter { $0.id == passiveDisplayID }
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if passiveDisplayID != nil {
+            // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.
+            let timer = Timer(timeInterval: 25, repeats: false) { _ in
+                MainActor.assumeIsolated { NSApp.terminate(nil) }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+        }
         var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         var testSession: URL?
         #if canImport(RiftletCore) && canImport(SaytileKit)
@@ -99,17 +122,28 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         startupTask = Task { [weak self] in
             await session.start()
             guard !Task.isCancelled, let self else { return }
+            #if canImport(RiftletCore) && canImport(SaytileKit)
+            if passiveDisplayID != nil, acceptanceSession != nil {
+                // Show the explicitly scoped fixture's gallery without opening Settings on the user's desktop.
+                await modules.tray.connect()
+                guard !Task.isCancelled else { return }
+            }
+            #endif
             let controller = EdgeWindowController(host: session, modules: modules)
             surface = controller
-            controller.place(screens: SystemScreens.geometry())
+            if passiveDisplayID != nil { controller.window?.ignoresMouseEvents = true }
+            controller.place(screens: placementScreens())
             #if canImport(RiftletCore) && canImport(SaytileKit)
             if let acceptanceSession {
-                do { acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules, surface: controller) }
+                do {
+                    acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules,
+                        surface: controller, screens: { [weak self] in self?.placementScreens() ?? [] })
+                }
                 catch { NSApp.terminate(nil); return }
             }
             #endif
             controller.presentIfNeeded()
-            installMenu()
+            if passiveDisplayID == nil { installMenu() }
             NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
                 name: NSApplication.didChangeScreenParametersNotification, object: nil)
         }
@@ -151,7 +185,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func screensChanged() {
-        surface?.place(screens: SystemScreens.geometry())
+        surface?.place(screens: placementScreens())
         surface?.presentIfNeeded()
         // Rebuild the settings list on its next explicit opening.
         if settings?.window?.isVisible == true { updateSettingsContent() }
