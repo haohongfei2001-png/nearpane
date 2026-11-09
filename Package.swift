@@ -58,5 +58,6 @@ if full {
 let package = Package(name: "Nearpane", platforms: [.macOS(full ? "26.0" : "14.0")],
                       products: [.library(name: "NearpaneCore", targets: ["NearpaneCore"]),
                                  .executable(name: "NearpaneHost", targets: ["NearpaneHost"]),
-                                 .executable(name: "NearpaneDesktopReader", targets: ["NearpaneDesktopReader"])],
+                                 .executable(name: "NearpaneDesktopReader", targets: ["NearpaneDesktopReader"])]
+                         + (full ? [] : [.library(name: "NearpaneUI", targets: ["NearpaneUI"])]),
                       targets: targets, swiftLanguageModes: [.v6])
