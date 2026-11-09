@@ -11,7 +11,7 @@ Nearpane 不是 Saytile 与 Riftlet 的代码合并包，也不是把几个应�
 架构必须同时满足：
 
 - **统一外壳，保留能力自治**：Nearpane 管理桌面表面和模块编排；Saytile、Riftlet 保留其核心领域逻辑。
-- **真实窗口与模式语义优先**：Native 观察系统 Spaces；Virtual 由 Nearpane 管理逻辑 Workspace。两者都需验证窗口身份、当前可见状态和目标几何，不由 UI 猜测或伪造。
+- **真实窗口与模式语义优先**：Native 观察系统 Spaces；Virtual 由 Nearpane 管理逻辑 Workspace。两种模式共用经验证的 WorkRect / ManagedWindowTiler，用**实际执行后的受管理窗口 frame**驱动预览，而不是 UI 假设。
 - **第一方模块深度集成**：语音流与截图队列成为 Nearpane 原生组成部分，而非两个被嵌入的完整独立应用窗口。
 - **模块可组合**：可选模块通过明确契约接入，不让每个新模块侵入主应用核心。
 - **失败隔离**：Spaces、语音、截图或任意可选模块失败时，不得拖垮其他模块或整个桌面表面。
@@ -41,8 +41,12 @@ Nearpane App
 │   │   ├── Workspace Mode Coordinator
 │   │   ├── NativeSpacesProvider / VirtualWorkspacesProvider
 │   │   ├── Display & Window Identity / Geometry
+│   │   ├── DesktopWorkArea / ReservedRegion
+│   │   ├── ManagedWindowTiler & App Layout Profiles
+│   │   ├── FullscreenTransitionCoordinator / Mini Floating Tools
+│   │   ├── CrossDisplayTargetContext & Focus Restoration
 │   │   ├── Snapshot Reconciliation
-│   │   └── Mode-scoped Switch / Activate Capability
+│   │   └── Mode-scoped Space Switch Capability
 │   ├── Saytile Domain Adapter
 │   │   ├── Capture & ASR pipeline (owned by Saytile)
 │   │   ├── Single Transcript State
@@ -151,9 +155,13 @@ Desktop Orchestration 是 Nearpane 自身的核心领域，不属于 Saytile 或
 - Window Observation：窗口几何、所属应用、层级、可见状态及 membership 置信度。
 - Snapshot Reconciliation：将异步系统观察归并为一致快照，检测过期、过渡态和矛盾。
 - WorkspaceModeCoordinator：确保 Native/Virtual 互斥、preflight、事务式模式转换和失败回滚；原生 Space ID 不得与虚拟 Workspace ID 混用。
-- User-triggered Actions：按当前模式切换 Space/Workspace、激活窗口；每个动作必须有明确目标和经验证能力，不能猜测。
+- Space Actions：预览**整行**作为一个 Space/Workspace 切换目标；不在缩略窗形状上设置独立激活动作。桌面真实窗口焦点通过系统行为/跨屏目标协调处理。
+- DesktopWorkArea 与 ManagedWindowTiler：在非全屏完整侧栏存在时生成可用 WorkRect，验证并调整普通主窗口 frame；权限不足/窗口无法缩放时单独标记 unmanaged，不谎报无重叠。
+- FullscreenTransitionCoordinator：记录原 Space/Window/Display，区分真正原生全屏、默认退出恢复原空间与经验证后可用的独立 Space 选项；原生全屏隐藏空间面板。
+- FloatingToolSurface：用户点击小状态条才打开精简工具，支持移动与审慎的 AX/鼠标热点避让，不重新复制 Saytile/Riftlet 领域服务。
+- CrossDisplayTargetContext：维护发起/目标窗口、Space、显示器、快照 revision 与焦点恢复前提，避免跨屏截图附加/文字取用写到错误窗口。
 
-所有窗口 frame 使用统一显示器坐标变换映射到缩略预览。Virtual 非活动窗口临时停放到屏幕外时，预览使用经确认的目标可见 frame，不能将停放位置当作工作区布局。窗口内容捕获是独立可选能力，不是窗口几何映射的必要条件。
+受管理普通窗口的 frame 由 WorkRect 内真实执行的平铺产生，经过重新观察后才允许绘制“成功平铺”的缩略预览；不受管理系统窗单独表示能力缺口。Virtual 非活动窗口临时停放到屏幕外时，预览使用经确认的目标可见 frame。窗口内容捕获是独立可选能力，不是窗口几何映射的必要条件。
 
 ### 6.1 双模式 Workspace 契约（ADR-010）
 
@@ -175,7 +183,7 @@ Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，�
 ### 6.2 多屏呈现与工作区引擎分离（ADR-011）
 
 - **MultiDisplayPresentationCoordinator** 只管理每块显示器的角色（唯一 Primary Residence / 每屏最多一个 Secondary Space-only）、独立宽高、边缘、行密度、启停策略、唤出与焦点、显示器拔插/重连；不是另一套 Workspace 引擎。
-- **WorkspaceModeCoordinator** 仍然全局选择 Native 或 Virtual。各屏 Surface 从同一 Workspace Snapshot 和 Window Identity/Geometry 服务订阅数据，按已验证的 display association 过滤；副屏不私自枚举或执行另一套窗口调度。
+- **WorkspaceModeCoordinator** 仍然全局选择 Native 或 Virtual，属于**低频设置**，首次使用默认 Native 且无强制模式选择向导。各屏 Surface 从同一 Workspace Snapshot 和 Window Identity/Geometry 服务订阅数据，按已验证的 display association 过滤；副屏不私自枚举或执行另一套窗口调度。
 - 唯一主表面承载 Saytile/Riftlet 及用户模块；副屏只具有空间调度界面，使用独立 AppKit presentation window，而非第二个 Host/ASR/截图队列。
 - 主屏完整布局继承默认约 1/8 宽、3/8 工具与 5/8 空间区；用户关闭主屏空间区可收缩高度；副屏单独设置宽高，不应用主屏纵向比例。
 - 副屏默认按需出现，可选多目标自动、固定。不得抢当前 App 焦点；自动策略依经确认的可切换目标和稳定快照，避免重叠窗口/系统临时窗口误触发。
@@ -190,7 +198,20 @@ Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，�
 - 初次使用加载视觉权威给定的默认 preset（主屏宽度约 1/8、分区约 3/8+5/8，以及各领域的确认尺寸）；用户在设置中精确输入、细步进微调并形成 override，不改变 preset 本身。支持预览、应用/取消、逐项/模块/显示器恢复默认。
 - 每个尺寸 override 独立存储并以稳定显示器标识归属；修改一个值不得覆写其他自定义值。表示单位使用 macOS 逻辑 point 与明确的可选百分比，适配显示器缩放、旋转和可用区域；本轮不实施持久化 schema。
 - 布局冲突要以滚动、分页、裁剪策略与明确反馈处理，不能无提示更改其他用户尺寸；界面尺寸受可用安全区域和基础可操作性的合理约束。
-- 真实窗口的形状、相对位置、Space/Workspace 成员不因 UI 尺寸改变；窗口缩略图统一等比变换，Riftlet 图片 Fit，触控热区始终与实际预览内容对应。此类设置只调整呈现，不改变 Saytile/Riftlet 业务状态机。
+- **两类尺寸改动必须区分**：① 调整完整主侧栏/固定副屏预留区实际宽度，会改变 WorkRect，需经权限和真实窗口编排产生新的物理 frame；② 仅调整缩略图、按钮、文字、间距等内部 UI 度量，只改变呈现，**不得**修改实际应用窗口。两者均保持 Space/Workspace 归属与领域数据不变；窗口缩略图等比缩放、Riftlet 图片 Fit。
+
+### 6.4 预留区域与自动平铺契约（ADR-012）
+
+- **DesktopWorkArea**：基于该显示器系统 `visibleFrame` / 安全区、完整 Nearpane 实际可见边界和用户设定的间距计算 WorkRect；非全屏主屏默认扣除约 1/8，余下约 7/8。系统 `NSScreen.visibleFrame` 并不会因为第三方侧栏自动变化，必须由 Nearpane 实际移动/调整受管理窗口；设备 rotation、Dock 状态、主屏变更需重算。
+- **ManagedWindowTiler**：按 `displayIdentity + modeScopedWorkspaceId` 对普通顶层可调整主窗编排。默认 `1=fill, 2=left/right 50:50, 3=50% main + stacked 25%/25%, 4=2x2`；根据应用布局 profile、最小尺寸和用户偏好调整。目标是普通受管理窗口没有互相重叠、不越界、不被完整侧栏遮挡。系统 modal、menu、受保护/不可调整 App 是明确例外，不可假装全系统绝对无重叠。
+- **观察与写分离**：获取权限、确认目标身份/能力、记录可恢复原 frame、执行窗口 resize/move、重读观察并确认成功；未执行或失败的请求必须返回 degraded/unmanaged，不得用理想布局画成已生效。
+- **FullscreenTransitionCoordinator**：系统原生全屏不使用 WorkRect 保留区，默认不显示完整侧栏和 Spaces。退出时尝试回到记录的源 Space/Workspace，并恢复普通平铺；“独立空间保留”是用户可选且需各模式、各系统 build 验证的 capability，不得直接宣称 Native 可以新建原生 Space。
+- **Mini Status Strip / FloatingToolSurface**：仅用户可配置、可主动点击后展现的轻量工具。浮层能拖动、记忆 per-display 位置、尽可能避让下方可确认按钮区域；不可在全屏自动浮出完整工具或抢焦点。隐藏 UI、录音暂停和停止采集分属不同状态。
+- **CrossDisplayTargetContext**：每次截图附加、文字复制/输入建立源/目标 app-window-display-space 与版本化绑定；对用户在操作期间的焦点变更作出尊重，确认后才恢复前台/提交附件，不自动发送。
+- **冲突所有权**：Native/Virtual 模式、外部窗口管理工具和 macOS 系统平铺可能相互写 window frame；同一时刻仅由单一被授权编排者提交动作，冲突时停用写而非循环争抢。
+- **单产品**：Nearpane 面向用户是一款完整产品，不分别出售必须购买的 Saytile、Riftlet 和 Spaces 入口；领域来源可以维持各自工程和数据契约。
+
+此 ADR 在 P1/产品验收通过前不授权对真实用户工作窗口自动试验。
 
 ## 7. 模块系统：Host 与 Module Contract
 
@@ -260,6 +281,7 @@ Nearpane 首版采用 **Built-in Module Registry + Declarative Module Manifest**
 | NP-ADR-009 | 私有 Spaces API 隔离、版本化、可关闭且不可作为唯一依赖 | ACCEPTED（Native） |
 | NP-ADR-010 | 用户可选 Native Spaces / Nearpane Virtual Workspaces；同一时刻单一调度所有者，独立验证与恢复 | ACCEPTED（产品目标；技术未完成） |
 | NP-ADR-011 | 唯一主驻留屏、各副屏 Space-only 面板、独立尺寸与出现策略 | ACCEPTED（产品目标；技术未完成） |
+| NP-ADR-012 | 非全屏完整侧栏预留 WorkRect、普通窗口无重叠平铺、空间整行切换、全屏手动工具浮层、整体产品 | ACCEPTED（产品目标；技术待验证） |
 
 ## 12. 不在本轮实施的内容
 

@@ -15,7 +15,7 @@
 | P1-Virtual（新增） | 验证逻辑 Workspace 调度、窗口停放/恢复和故障边界 | 隔离式 Virtual Spike、恢复收据、冲突/异常矩阵 | 安全启停、强退可恢复、无用户窗口丢失 |
 | P2 Nearpane Host Foundation | 建立模式无关主表面、布局、事件路由、模块注册表与双模式 mock | 独立 Host 工程、统一 Workspace 契约 | 主表面稳定；两模式模拟态隔离且不调用生产写操作 |
 | P3 First-party Integration | 集成 Saytile 与 Riftlet domain adapters | transcript surface、screenshot surface、权限与状态桥 | 不复制领域逻辑；既有产品契约通过 |
-| P4 Desktop Orchestration | 分别实现经验证的 Native Spaces 与 Virtual Workspaces | 各模式独立验收、统一 UI、模式切换与恢复 | 两模式分别通过准入；未通过模式不得开放 |
+| P4 Desktop Orchestration / Window Tiling | 分别实现经验证的 Native / Virtual + 普通 WorkRect 平铺与全屏恢复 | 两模式独立验收、主窗平铺、整行空间点击、可恢复全屏/浮层 | 按实际设备证明无重叠/不越界，未通过能力不得开放 |
 | P5 Built-in Modules | 加入 AI、Notes、Tasks、Calendar、Clock、Weather | 内置模块和设置入口 | 权限隔离、状态、刷新和数据生命周期通过 |
 | P6 Hardening & Distribution | 性能、隐私、稳定性、分发和迁移 | Release Candidate、诊断、签名/公证方案 | 长时间运行和升级/卸载验证通过 |
 
@@ -43,7 +43,9 @@
 - Display topology 与坐标系；
 - Window metadata、窗口 frame、层级、可见状态；
 - Space inventory、display scope、window membership；
-- Space 切换与窗口激活；
+- Space 切换的**整行目标**身份与焦点稳定性；
+- 真实普通顶层窗口的 AX 身份、移动/调整大小可用性、最小宽高边界与 WorkRect 非重叠布局；
+- 真正原生全屏进入/退出、源 Space 身份、全屏 mini tool 的窗口行为与可见性；
 - Accessibility / Screen Recording 权限边界；
 - macOS 版本、镜像、全屏、Stage Manager、显示器插拔等状态。
 
@@ -84,8 +86,11 @@
 - Event / snapshot bus；
 - WorkspaceModeCoordinator 的接口及 Native / Virtual / Mock provider 契约；
 - Native / Virtual 各自独立的模拟工作区身份、窗口状态、错误/恢复 fixtures；
+- DesktopWorkArea / ManagedWindowTiler 合成几何：完整侧栏默认占 1/8，WorkRect 约 7/8，1/2/3/4/5+ 窗、同 App 多窗和不可调整窗口，不重叠不出界；
+- FullscreenTransitionCoordinator：进入全屏隐藏 Spaces/释放 WorkRect、默认回源空间、可选独立空间（未验证标不可用）、小状态条主动展开可移动浮层；
+- CrossDisplayTargetContext：来源/目标 display、原前台 app/window、workspace、revision、取消/完成后的焦点条件；
 - 单屏/双屏/三屏、90° 旋转、镜像、主屏拔插、屏幕重连，以及 separateSpaces=false 的空间归属未知 fixtures；
-- 副屏按需（默认）/多目标自动/固定显示策略及不抢焦点的测试样例；
+- 副屏按需（默认）/多目标自动（需用户在设置中主动打开）/固定显示策略及不抢焦点的测试样例；全屏/演示时空间调度默认隐藏；
 - 故障隔离与诊断。
 
 首个可运行里程碑只要求：
@@ -93,6 +98,7 @@
 - 主屏 Spaces 区可关闭且关闭后高度可收缩；每个副屏面板宽高、位置、Space 行密度独立配置；
 - 用 mock 验证全量可视尺寸的出厂 preset 与 Settings override 契约：主/副屏面板、各模块高度、文字、按钮、截图微图、空间行、间距/内边距与圆角等，且不修改生产 Settings runtime；
 - 验证精确数值输入/细步进、修改单项不覆盖其他自定义尺寸、预览和分级恢复默认、极端尺寸组合下的滚动/安全区域/等比预览。
+- 区分两类尺寸调节：① 完整侧栏边界调整会重新计算 WorkRect 并需要真实窗口编排；② 纯内部预览/控件尺寸改变不得移动系统窗。
 - 合成模块样例可启停、展开和收起；
 - 模块异常不影响 Host；
 - 配置持久化与恢复正确。
@@ -125,12 +131,16 @@
 
 - 先实现只读观察和统一快照；
 - 其次实现 Space 行和真实窗口几何映射；
-- 最后实现用户触发的 Space 切换和窗口激活；
+- 空间预览**整行切换** Native Space 或 Virtual Workspace，不再把缩略图划成逐窗点击目标；
+- 经实际授权与验证的普通主窗平铺：默认单窗填满 WorkRect，双窗左右各半，三窗一半+两层，四窗 2×2；同 App 普通主窗也无重叠；
+- 引入应用级窗口布局 profile（主窗/比例/优先位置），严格落实真实 frame 并在失败时退化标记，不能只画理想示意；
+- 验证 fullscreen enter/exit、默认返回来源空间、可选独立 Space capability gate、全屏隐藏空间调度、状态条手动打开工具浮层；
+- 支持跨屏发起/目标及焦点稳定恢复，不自动发送 Riftlet 附件；
 - 每个动作都要求目标身份、能力状态和快照新鲜度；
 - 私有适配器无法确认目标时禁用对应动作；
 - 不把窗口像素捕获作为 Space 识别的前置依赖。
 
-关键门槛：在单屏、双屏独立 Spaces 开/关、镜像、全屏、Stage Manager、显示器插拔等场景中，Space 和窗口目标不能错配。副屏只能显示该屏可确认的 Native/Virtual 空间与窗口；不可将 3+1 scope 当成四个独立 Spaces。
+关键门槛：在单屏、双屏独立 Spaces 开/关、镜像、全屏、Stage Manager、显示器插拔等场景中，Space 和窗口目标不能错配。**受管理普通主窗不得重叠、出界或侵入完整侧栏预留区，未经系统写权限/真实动作验证不得宣称 PASS。**副屏只能显示该屏可确认的 Native/Virtual 空间与窗口；不可将 3+1 scope 当成四个独立 Spaces。
 
 ## 8. P5 — Built-in Modules
 
@@ -146,7 +156,9 @@ AI Assistant 不应成为 Nearpane 的默认主界面，也不能自动订阅麦
 ## 9. P6 — 产品化与分发
 
 - 长时间驻留的 CPU、内存、能耗和唤醒频率；
-- 副屏按需与多目标自动出现的触发/去抖、焦点不抢占、系统快捷键/热角冲突、独立配置恢复与全屏兼容；
+- 副屏按需与经用户主动启用的多目标自动出现的触发/去抖、焦点不抢占、系统快捷键/热角冲突、独立配置恢复；全屏默认无空间调度；
+- 完整主侧栏占用 WorkRect 与第三方应用窗口的真实 1/2/3/4/5+ 自动平铺、App 偏好、边界约束、系统弹窗/不可调整窗降级和崩溃/卸载恢复；
+- 全屏独立 Space 可用性、退出回来源空间、用户主动打开 mini status strip + 可移动/智能避让浮层、屏幕共享隐私；
 - 多屏窗口预览限流，隐藏副屏不得持续高帧率捕获，Riftlet 主动截图不得明显受阻；
 - 多显示器布局和睡眠/唤醒；
 - 权限撤销、文件访问失效、账户离线；
@@ -171,10 +183,11 @@ AI Assistant 不应成为 Nearpane 的默认主界面，也不能自动订阅麦
 ## 11. 发布门槛
 
 V1 可以分层发布：
-- **Core Surface**：主表面、Saytile、Riftlet 和安全的基础桌面观察。
+- **Core Surface**：单一 Nearpane 产品主表面、Saytile、Riftlet 和安全的基础桌面观察，开发期多仓库不代表必须分开购买。
 - **Native Spaces Preview**：只有在具体 macOS 构建和设备矩阵达到门槛后启用完整预览。
 - **Nearpane Virtual Workspaces**：产品正式目标，完成虚拟调度与强退恢复验证后可单独开放；不得用虚拟模式伪装成原生 Spaces。
 - **Optional Modules**：按模块逐个发布，不要求所有模块同步成熟。
+- **Managed Tiling / Fullscreen**：普通主窗真正避让完整侧栏、无重叠平铺及全屏退出来源空间属于正式产品目标；只有取得真实系统能力、恢复与降级验收后才对用户启用，不能用“静态界面已设计”冒充完成。
 - **Advanced Orchestration**：更深层的 Spaces 控制或第三方扩展独立评估，不作为基础产品运行的前提。
 
-**最终路线：先做一个稳定、模式无关的 Nearpane Host；Native Spaces 和 Nearpane Virtual Workspaces 作为两条独立验证与实施路线逐步交付。双模式是已确认的最终产品目标，但任何未验证功能都不得提前宣布可用。**
+**最终路线：先把稳定、模式无关的 Host 与完整桌面的 WorkRect/平铺/全屏契约对齐；Native 和 Virtual 分别验证，首次使用默认 Native，模式只在设置中低频切换。Nearpane 是一个整体产品，尚未取得系统证据的窗口操作和全屏能力不得提前宣称可用。**

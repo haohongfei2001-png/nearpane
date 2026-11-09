@@ -8,18 +8,21 @@ The goal is to make the desktop itself a visible, actionable workspace: users ca
 
 ## Product capabilities
 
-- **Desktop orchestration:** Choose native macOS Spaces or Nearpane-managed virtual Workspaces. Both preserve truthful window identities, geometry, proportions, positions, and overlap; switching and activation require independently verified capabilities.
+- **Reserved desktop and managed tiling:** The complete Nearpane panel reserves roughly one-eighth of the primary display's available width by default. Managed regular application windows tile without overlap inside the remaining WorkRect: one fills, two split side by side, three use a half-width primary plus two stacked windows, and four use a 2×2 grid. Per-app proportions can be customized; system/unresizable windows require explicit limitations.
+- **Space-level navigation:** Choose native macOS Spaces or Nearpane-managed virtual Workspaces. Clicking anywhere on one Space preview row switches that workspace as a whole, not an individual window.
+- **True fullscreen and mini tools:** Real fullscreen hides Spaces and the full panel. User-configured compact status strip opens permitted movable tools (such as voice) only on explicit click; fullscreen exit defaults to the originating workspace, subject to verified OS capabilities.
 - **Saytile voice input:** Keep one continuous, editable, faithfully transcribed text stream within reach.
 - **Riftlet screenshot tray:** Capture and stage screenshots, then attach them to the intended draft through Riftlet's existing interaction and recovery model. Capturing or attaching never means automatically sending.
 - **Configurable modules:** Let users choose additional always-available tools, including AI assistance, notes, tasks, calendar, clock, weather, and future modules.
 
-Native mode observes and enhances macOS Spaces; Virtual mode manages its own logical Workspaces within the existing macOS desktop environment. Virtual Workspaces do not turn into Mission Control Spaces and do not require disabling macOS Spaces or SIP. The main panel is neither a Dock replacement nor a generic widget dashboard.
+Native mode is selected by default on first use, without a forced choice screen; Virtual is a low-frequency Settings option after capability and recovery validation. The product is sold and presented as one Nearpane application, not separate Saytile/Riftlet/Spaces purchases. Native mode observes and enhances macOS Spaces; Virtual mode manages its own logical Workspaces within the existing macOS desktop environment. Virtual Workspaces do not turn into Mission Control Spaces and do not require disabling macOS Spaces or SIP. The main panel is neither a Dock replacement nor a generic widget dashboard.
 
 ## Product and design authority
 
 - [Product Definition](docs/PRODUCT_DEFINITION.md) — authoritative positioning, capabilities and dual workspace-mode choice.
 - [Dual-mode decision ADR-010](docs/decisions/ADR-010-DUAL-WORKSPACE-MODES.md) — Native/Virtual scope, mode-switch safety, recovery and independent validation.
 - [Multi-display presentation ADR-011](docs/decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md) — one primary resident panel, independent secondary Space-only panels and per-display sizing, placement, and appearance.
+- [Reserved work area, tiling and fullscreen ADR-012](docs/decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md) — whole-space click, default no-overlap desktop tiling, fullscreen mini overlays, safe focus restoration, and the unified product.
 - [Visual Authority](docs/design/NEARPANE-VISUAL-AUTHORITY.md) — approved edge-panel visual direction, default proportions, Space mapping, and real-window geometry rules.
 - [Approved visual reference](docs/design/assets/nearpane-visual-authority.webp) — approved visual-direction image.
 
@@ -35,7 +38,7 @@ The design branch contains the complete continuation package:
 - [Engineering implementation roadmap](docs/engineering/IMPLEMENTATION-ROADMAP.md)
 - [Delivery and verification manifest](docs/DELIVERY-AND-VERIFICATION.md)
 
-The default complete primary panel remains a narrow edge surface (approximately one-eighth of its display width), without a title, logo, or product-name header. All layout dimensions (panel and module sizes, thumbnails, Space rows, typography, controls, spacing, and radii) have approved defaults but are precisely adjustable per display in Settings; the persistent surface has no resize controls. Saytile and Riftlet appear only on one user-selected primary resident display, whose Spaces section can be independently disabled. Secondary displays show only separate, independently sized Space/Workspace panels: on-demand by default, or contextual-auto/pinned if the user chooses. User-configurable modules use compact resident entries and expanded overlays so that adding modules does not silently compress the approved core geometry.
+The default complete primary panel remains a narrow edge surface (approximately one-eighth of its display width), without a title, logo, or product-name header. All layout dimensions (panel and module sizes, thumbnails, Space rows, typography, controls, spacing, and radii) have approved defaults but are precisely adjustable per display in Settings; the persistent surface has no resize controls. Saytile and Riftlet appear only on one user-selected primary resident display, whose Spaces section can be independently disabled. Secondary displays show only separate, independently sized Space/Workspace panels: on-demand by default, or contextual-auto/pinned only if the user opts in. Fullscreen hides space orchestration by default; mini tools are user-invoked floating overlays, while the full-height non-fullscreen panel reserves real space from managed windows. User-configurable modules use compact resident entries and expanded overlays so that adding modules does not silently compress the approved core geometry.
 
 ## Project status
 
