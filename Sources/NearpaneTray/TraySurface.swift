@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import RiftletCore
+import NearpaneCore
 
 private typealias ViewState<T> = State<T>
 
@@ -9,19 +10,22 @@ public struct TraySurface: View {
     let left: Bool
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
     @Namespace private var morph
-    public init(_ module: TrayModule, left: Bool) { self.module = module; self.left = left }
+    let settings: DisplaySettings
+    public init(_ module: TrayModule, left: Bool, settings: DisplaySettings = .init()) {
+        self.module = module; self.left = left; self.settings = settings
+    }
 
     public var body: some View {
-        Group {
+        GeometryReader { outer in
+          Group {
             if module.connected {
                 GeometryReader { g in
                     let layout = TrayLayout(ids: module.rows.map(\.id), size: g.size,
-                                            captureEntry: module.captureEntry, expanded: module.expanded)
-                    let gap = min(4, min(g.size.width, g.size.height) / 8)
-                    let cell = CGSize(width: (g.size.width - gap) / 2, height: (g.size.height - gap) / 2)
-                    VStack(spacing: gap) {
+                                            captureEntry: module.captureEntry, expanded: module.expanded, settings:settings)
+                    let cell = layout.cellSize
+                    VStack(spacing:layout.rowGap) {
                         ScrollView(.vertical) {
-                            LazyVGrid(columns: [GridItem(.fixed(cell.width), spacing: gap), GridItem(.fixed(cell.width))], spacing: gap) {
+                            LazyVGrid(columns:[GridItem(.fixed(cell.width),spacing:layout.columnGap),GridItem(.fixed(cell.width))],spacing:layout.rowGap) {
                                 ForEach(module.rows) { row in
                                     thumbnail(row, cell: cell)
                                 }
@@ -50,7 +54,7 @@ public struct TraySurface: View {
                                     .accessibilityLabel(action.label).help(action.label)
                                 }
                             }
-                            .buttonStyle(.plain).frame(height: cell.height)
+                            .buttonStyle(.plain).frame(height:layout.menu?.height)
                             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
                             .contextMenu { Button("收起截图方式") { module.toggleMenu() } }
                         }
@@ -67,13 +71,15 @@ public struct TraySurface: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .padding(5)
-        .background(.indigo.opacity(0.045), in: RoundedRectangle(cornerRadius: 8))
+        .font(settings.measures[.trayButtonSize].map { .system(size:$0.points(in:outer.size.height)) } ?? .body)
+        .padding(settings.points(.trayPadding,in:outer.size.width))
+        .background(.indigo.opacity(0.045), in: RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:outer.size.width) ?? 8))
         .overlay(alignment: .bottomLeading) {
             if let issue = module.issue {
                 Text(issue).font(.caption2).lineLimit(2).help(issue)
                     .padding(3).background(.regularMaterial).allowsHitTesting(false)
             }
+        }
         }
     }
 

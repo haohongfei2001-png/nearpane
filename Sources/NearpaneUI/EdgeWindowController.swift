@@ -27,6 +27,7 @@ public final class EdgeWindowController: NSWindowController {
     private let host: HostSession
     private let modules: EmbeddedModules?
     private let display = SurfaceDisplay()
+    private var presentationAllowed = true
     private var captureSuppressed = false
     public private(set) var hasPlacement = false
     public init(host: HostSession, modules: EmbeddedModules? = nil) {
@@ -45,7 +46,7 @@ public final class EdgeWindowController: NSWindowController {
         panel.becomesKeyOnlyIfNeeded = true
         panel.isReleasedWhenClosed = false
         panel.isMovable = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenNone, .stationary, .ignoresCycle]
         let material = NSVisualEffectView()
         material.material = .sidebar
         material.blendingMode = .behindWindow
@@ -74,23 +75,40 @@ public final class EdgeWindowController: NSWindowController {
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
     public func place(screens: [ScreenGeometry]) {
-        guard let rect = SurfacePlacement.resolve(screens: screens, preferredID: host.configuration.preferredDisplayID,
-                                                  edge: host.configuration.edge) else {
-            display.id = nil
-            hasPlacement = false
-            hide()
-            return
+        let usable = screens.filter { $0.frame.geometry.isValid && $0.visibleFrame.geometry.isValid }
+        guard let screen = usable.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? usable.first else {
+            hasPlacement = false; display.id = nil; hide(); return
         }
-        window?.setFrame(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height), display: false)
-        display.id = screens.first { screen in
-            screen.frame.geometry.contains(.init(rect.x + rect.width/2, rect.y + rect.height/2))
-        }?.id
+        place(on:screen,primary:screen.id,content:.full)
+    }
+
+    func usePointer(_ registry: WorkspacePointerRegistry) { display.pointer = registry }
+    public func place(on screen: ScreenGeometry, primary: String, content: PanelContent) {
+        let config = host.configuration.displays[screen.id] ?? .init()
+        display.id = screen.id; display.primaryID = primary
+        display.secondary = screen.id != primary; display.content = content
+        presentationAllowed = content != .hidden
+        guard let full = config.panel(on:screen, fallbackEdge:host.configuration.edge) else {
+            hasPlacement = false; hide(); return
+        }
+        let voice = host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled }
+        let tray = host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }
+        let h = config.contentHeights(full.height, content:content,voice:voice,tray:tray)
+        let count = [h.voice,h.tray,h.spaces].filter { $0 > 0 }.count
+        let height = h.voice + h.tray + h.spaces + Double(max(0,count-1)) * h.gap
+        display.referenceHeight = full.height
+        guard let r = config.panel(on:screen, fallbackEdge:host.configuration.edge,
+                                   heightFraction:content == .hidden ? 1 : height / full.height) else {
+            hasPlacement = false; hide(); return
+        }
+        let frame = NSRect(x:r.x, y:r.y, width:r.width, height:r.height)
+        if window?.frame != frame { window?.setFrame(frame, display:false) }
         hasPlacement = true
     }
 
     /// Never called by build scripts or tests. User launch is the only automatic presentation path.
     public func presentIfNeeded() {
-        guard host.isRunning, hasPlacement, !captureSuppressed, !host.configuration.surfaceHidden else { hide(); return }
+        guard host.isRunning, hasPlacement, presentationAllowed, !captureSuppressed, !host.configuration.surfaceHidden else { hide(); return }
         modules?.setInteractionHidden(false)
         if window?.isVisible == false { window?.orderFront(nil) }
     }

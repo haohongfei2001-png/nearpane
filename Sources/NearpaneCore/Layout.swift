@@ -53,20 +53,27 @@ public struct SurfaceLayout: Equatable, Sendable {
 
 public enum LayoutComposer {
     /// Optional modules live in a scrollable control layer, never in the core vertical stack.
-    public static func compose(width: Double, height: Double, pinnedCount: Int, expanded: Bool) -> SurfaceLayout {
+    public static func compose(width: Double, height: Double, pinnedCount: Int, expanded: Bool,
+                               settings: DisplaySettings = .init(), content: PanelContent = .full,
+                               voiceEnabled: Bool = true, trayEnabled: Bool = true, referenceHeight: Double? = nil) -> SurfaceLayout {
         let w = width.isFinite ? max(0, width) : 0
         let h = height.isFinite ? max(0, height) : 0
-        let tools = h * 3 / 8
-        let desktop = SurfaceRect(y: tools, width: w, height: h - tools)
-        let railHeight = min(32, desktop.height)
-        let capacity = max(1, Int(max(0, w - 16) / 32))
+        let sizes = settings.contentHeights(referenceHeight ?? h, content: content, voice: voiceEnabled, tray: trayEnabled)
+        let voice = min(h, sizes.voice)
+        let trayY = min(h, voice + (voice > 0 && sizes.tray > 0 ? sizes.gap : 0))
+        let tray = min(h - trayY, sizes.tray)
+        let tools = min(h, trayY + tray + (trayY + tray > 0 && sizes.spaces > 0 ? sizes.gap : 0))
+        let desktop = SurfaceRect(y: tools, width: w, height: min(h - tools, sizes.spaces))
+        let railHeight = min(settings.points(.railHeight,in:h), desktop.height)
+        let unit = max(1, settings.points(.railButtonWidth,in:w) + 4)
+        let capacity = max(1, Int(max(0, w - 16) / unit))
         return SurfaceLayout(
-            voice: SurfaceRect(width: w, height: tools * 0.6),
-            screenshots: SurfaceRect(y: tools * 0.6, width: w, height: tools * 0.4),
+            voice: SurfaceRect(width:w, height:voice),
+            screenshots: SurfaceRect(y:trayY,width:w,height:tray),
             desktop: desktop,
-            moduleRail: pinnedCount > 0 ? SurfaceRect(y: h - railHeight, width: w, height: railHeight) : nil,
+            moduleRail: pinnedCount > 0 ? SurfaceRect(y: tools + desktop.height - railHeight, width:w, height:railHeight) : nil,
             expanded: expanded ? SurfaceRect(x: min(6, w / 2), y: tools + min(6, desktop.height / 2),
-                                             width: max(0, w - 12), height: max(0, desktop.height * 0.68 - 12)) : nil,
+                                             width:max(0,w - 12),height:max(0, settings.points(.moduleHeight,in:desktop.height) - 12)) : nil,
             railCapacity: capacity,
             overflowCount: max(0, pinnedCount - capacity)
         )

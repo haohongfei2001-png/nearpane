@@ -96,6 +96,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     #endif
     private var host: HostSession?
     private var modules: EmbeddedModules?
+    private var panels: DisplayPanels?
+    private var screenAsleep = false, sessionInactive = false
     private var surface: EdgeWindowController?
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
@@ -164,7 +166,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                 catch { NSApp.terminate(nil); return }
             }
             #endif
-            controller.presentIfNeeded()
+            panels = DisplayPanels(host:session,primary:controller)
+            session.presentationChanged = { [weak self] in self?.updatePanels() }
+            updatePanels()
             if passiveDisplayID == nil { installMenu() }
             for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.screensDidWakeNotification,
                          NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
@@ -194,7 +198,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         startupTask?.cancel()
         host?.stop()
-        surface?.hide()
+        panels?.stop()
         #if canImport(SaytileKit)
         desktopFixture?.stop()
         #endif
@@ -218,6 +222,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func desktopChanged(_ note: Notification) {
         switch note.name {
+        case NSWorkspace.screensDidSleepNotification: screenAsleep = true
+        case NSWorkspace.screensDidWakeNotification: screenAsleep = false
+        case NSWorkspace.sessionDidResignActiveNotification: sessionInactive = true
+        case NSWorkspace.sessionDidBecomeActiveNotification: sessionInactive = false
+        default: break
+        }
+        panels?.setSuspended(screenAsleep || sessionInactive)
+        switch note.name {
         case NSWorkspace.screensDidSleepNotification: host?.setDesktopPause(.screensAsleep, paused: true)
         case NSWorkspace.screensDidWakeNotification: host?.setDesktopPause(.screensAsleep, paused: false)
         case NSWorkspace.sessionDidResignActiveNotification: host?.setDesktopPause(.inactiveSession, paused: true)
@@ -226,10 +238,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func updatePanels() {
+        guard host?.isRunning == true else { return }
+        panels?.update(screens:placementScreens())
+    }
+
     @objc private func screensChanged() {
         host?.invalidateDesktop()
-        surface?.place(screens: placementScreens())
-        surface?.presentIfNeeded()
+        updatePanels()
         // Rebuild the settings list on its next explicit opening.
         if settings?.window?.isVisible == true { updateSettingsContent() }
     }
@@ -237,8 +253,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleSurface() {
         guard let host else { return }
         host.setSurfaceHidden(!host.configuration.surfaceHidden)
-        surface?.place(screens: placementScreens())
-        surface?.presentIfNeeded()
+        updatePanels()
     }
 
     @objc private func showSettings() {
@@ -259,10 +274,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateSettingsContent() {
         guard let host else { return }
-        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host: host, screens: SystemScreens.geometry(), domains: modules) { [weak self] in
-            guard let self else { return }
-            surface?.place(screens: placementScreens())
-        })
+        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,screens:SystemScreens.geometry(),domains:modules,
+            requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
+            placementChanged: { [weak self] in self?.updatePanels() }))
     }
 
     @objc private func quit() { NSApp.terminate(nil) }

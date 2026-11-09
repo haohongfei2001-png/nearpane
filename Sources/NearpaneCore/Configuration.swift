@@ -18,6 +18,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     /// Missing in early v1 configurations, which always opened visible.
     public var surfaceHidden: Bool = false
     public var experimentalSpaceObservation = false
+    public var displays: [String: DisplaySettings] = [:]
     public var modules: [ModulePreference] = []
     public var fixture: DesktopFixture = .internalScopes3Plus1
 
@@ -30,13 +31,16 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         preferredDisplayID = try c.decodeIfPresent(String.self, forKey: .preferredDisplayID)
         surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
         experimentalSpaceObservation = try c.decodeIfPresent(Bool.self, forKey: .experimentalSpaceObservation) ?? false
+        displays = try c.decodeIfPresent([String: DisplaySettings].self, forKey: .displays) ?? [:]
         modules = try c.decode([ModulePreference].self, forKey: .modules)
         fixture = try c.decode(DesktopFixture.self, forKey: .fixture)
     }
 
     public func validated() throws -> Self {
         guard version == Self.schemaVersion else { throw ConfigurationError.unsupportedVersion }
-        guard modules.count <= 100,
+        guard displays.count <= 64, displays.allSatisfy({ key, value in
+            !key.isEmpty && key.count <= 120 && value.measures.values.allSatisfy(\.valid)
+        }), modules.count <= 100,
               Set(modules.map(\.id)).count == modules.count,
               modules.allSatisfy({ !$0.id.isEmpty && $0.id.count <= 120 }),
               (preferredDisplayID?.count ?? 0) <= 120 else { throw ConfigurationError.invalid }

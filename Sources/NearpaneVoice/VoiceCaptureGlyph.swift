@@ -4,6 +4,7 @@ import SwiftUI
 /// is defined here. Every bar height comes from the current measured voice level.
 struct VoiceCaptureGlyph: View {
     let presentation: PanelCapturePresentation
+    var width: Double = 28
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -22,7 +23,7 @@ struct VoiceCaptureGlyph: View {
                    value: presentation.state)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.07),
                    value: presentation.liveVoiceLevel)
-        .frame(width: 28, height: 24)
+        .frame(width:width, height:width * 24 / 28)
         .accessibilityHidden(true)
     }
 }

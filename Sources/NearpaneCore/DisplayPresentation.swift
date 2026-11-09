@@ -29,7 +29,8 @@ public enum DisplayMetric: String, Codable, CaseIterable, Sendable {
         case .moduleHeight: .init(68, .percent)
         case .spaceRowHeight: .init(100, .percent)
         case .textPadding, .buttonGap: .init(8)
-        case .textSize, .copySize, .waveformSize, .iconSize: .init(13)
+        case .textSize, .copySize, .iconSize: .init(13)
+        case .waveformSize: .init(28)
         case .lineGap: .init(2)
         case .voiceButtonWidth, .railHeight: .init(32)
         case .voiceButtonHeight: .init(26)
@@ -138,6 +139,51 @@ public struct MultiDisplayPresentationCoordinator {
                 }
             }
             return .init(id: id, primary: isPrimary, content: content)
+        }
+    }
+}
+
+public extension DisplaySettings {
+    func contentHeights(_ height: Double, content: PanelContent, voice: Bool, tray: Bool) -> (voice: Double, tray: Double, spaces: Double, gap: Double) {
+        let h = max(0, height)
+        let showVoice = voice && [.full,.compact,.voiceOnly].contains(content)
+        let showTray = tray && [.full,.compact,.trayOnly].contains(content)
+        let showSpaces = content == .full || content == .spacesOnly
+        let gaps = max(0, [showVoice,showTray,showSpaces].filter { $0 }.count - 1)
+        let gap = min(points(.sectionGap,in:h), h / Double(max(1,gaps + 1)))
+        let amounts = [showVoice ? points(.voiceHeight,in:h) : 0, showTray ? points(.trayHeight,in:h) : 0,
+                       showSpaces ? (content == .spacesOnly && measures[.spacesHeight] == nil ? h : points(.spacesHeight,in:h)) : 0]
+        let scale = min(1, max(0,h - Double(gaps) * gap) / max(Double.leastNormalMagnitude, amounts.reduce(0,+)))
+        return (amounts[0] * scale, amounts[1] * scale, amounts[2] * scale, gap)
+    }
+}
+
+public extension DisplaySettings {
+    /// Same logical-point bases used by the panel, its sections and the two-column tray.
+    func referenceExtent(for key: DisplayMetric, screen: ScreenGeometry, primary: Bool) -> Double {
+        let safe = screen.visibleFrame
+        let panel = panel(on:screen,fallbackEdge:.right) ?? safe
+        let sizes = contentHeights(panel.height,content:primary ? .full : .spacesOnly,voice:primary,tray:primary)
+        switch key {
+        case .panelWidth,.reservedWidth,.sideInset: return safe.width
+        case .panelHeight,.topInset,.bottomInset,.verticalOffset: return safe.height
+        case .voiceHeight,.trayHeight,.spacesHeight,.sectionGap,.railHeight: return panel.height
+        case .textHeight,.textSize,.lineGap,.voiceButtonHeight,.copySize: return sizes.voice
+        case .columnGap: return max(0,panel.width - 2 * points(.trayPadding,in:panel.width))
+        case .rowGap: return max(0,sizes.tray - 2 * points(.trayPadding,in:panel.width))
+        case .cellWidth:
+            let width = referenceExtent(for:.columnGap,screen:screen,primary:primary)
+            return max(0,width - min(points(.columnGap,in:width),width/8))
+        case .cellHeight,.trayMenuHeight:
+            let height = referenceExtent(for:.rowGap,screen:screen,primary:primary)
+            return max(0,height - min(points(.rowGap,in:height),height/8))
+        case .trayButtonSize: return sizes.tray
+        case .spaceRowHeight,.spaceRowGap:
+            let viewport = min(sizes.spaces,points(.scrollHeight,in:sizes.spaces))
+            return min(viewport,points(.desktopHeight,in:viewport))
+        case .desktopHeight: return min(sizes.spaces,points(.scrollHeight,in:sizes.spaces))
+        case .scrollHeight,.moduleHeight,.labelSize: return sizes.spaces
+        default: return panel.width
         }
     }
 }

@@ -14,23 +14,29 @@ public struct EdgeSurfaceView: View {
         self.host = host; self.modules = modules; self.display = display
     }
 
+    private var settings: DisplaySettings {
+        let id = display?.id ?? host.configuration.preferredDisplayID ?? ""
+        return host.configuration.displays[id] ?? .init()
+    }
     public var body: some View {
         GeometryReader { geometry in
             let layout = LayoutComposer.compose(width: geometry.size.width, height: geometry.size.height,
                                                 pinnedCount: host.registry.pinnedModules.count,
-                                                expanded: host.registry.expandedID != nil)
+                                                expanded: host.registry.expandedID != nil, settings:settings, content:display?.content ?? .full,
+                                                voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
+                                                referenceHeight:display?.referenceHeight)
             ZStack(alignment: .topLeading) {
-                voice.place(in: layout.voice)
-                screenshots.place(in: layout.screenshots)
-                desktop.place(in: layout.desktop)
-                if let rect = layout.expanded, let id = host.registry.expandedID {
+                if layout.voice.height > 0 { voice.place(in:layout.voice) }
+                if layout.screenshots.height > 0 { screenshots.place(in:layout.screenshots) }
+                if layout.desktop.height > 0 { desktop.place(in:layout.desktop) }
+                if display?.secondary != true, let rect = layout.expanded, let id = host.registry.expandedID {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())
                         .onTapGesture { host.handle(.collapse) }
                         .place(in: layout.desktop)
-                    expandedModule(id).place(in: rect)
+                    expandedModule(id,width:geometry.size.width).place(in:rect)
                 }
-                if let rail = layout.moduleRail { moduleRail.place(in: rail) }
+                if display?.secondary != true, let rail = layout.moduleRail { moduleRail(width:geometry.size.width,height:rail.height).place(in:rail) }
             }
             // Offset children don't contribute their offsets to a ZStack's measured size.
             // Clip at the whole panel, not at the height of its largest individual region.
@@ -56,7 +62,7 @@ public struct EdgeSurfaceView: View {
     @ViewBuilder private var voice: some View {
         #if canImport(NearpaneVoice)
         if let modules, host.registry.states[BuiltinCatalog.voice] == .resident {
-            VoiceSurface(modules.voice, pasteboard: modules.voicePasteboard)
+            VoiceSurface(modules.voice, pasteboard: modules.voicePasteboard, settings:settings)
         } else { unavailableVoice }
         #else
         unavailableVoice
@@ -71,7 +77,7 @@ public struct EdgeSurfaceView: View {
     @ViewBuilder private var screenshots: some View {
         #if canImport(NearpaneTray)
         if let tray = modules?.tray, host.registry.states[BuiltinCatalog.screenshots] == .resident {
-            TraySurface(tray, left: host.configuration.edge == .left)
+            TraySurface(tray, left: (settings.edge ?? host.configuration.edge) == .left, settings:settings)
         } else { unavailableTray }
         #else
         unavailableTray
@@ -85,17 +91,21 @@ public struct EdgeSurfaceView: View {
 
     private var desktop: some View {
         DesktopSurface(host: host, displayID: display?.id ?? host.configuration.preferredDisplayID,
-                       enabled: enabled(BuiltinCatalog.desktop))
+                       enabled: enabled(BuiltinCatalog.desktop), display:display, settings:settings)
     }
 
-    private var moduleRail: some View {
+    private func moduleRail(width:Double,height:Double) -> some View {
         ScrollView(.horizontal, showsIndicators: true) {
             HStack(spacing: 4) {
                 ForEach(host.registry.pinnedModules) { module in
                     Button {
                         host.handle(host.registry.expandedID == module.id ? .collapse : .expand(module.id))
                     } label: {
-                        Image(systemName: module.symbol).frame(width: 28, height: 26)
+                        Image(systemName:module.symbol)
+                            .font(settings.measures[.iconSize].map { .system(size:$0.points(in:width)) } ?? .body)
+                            .frame(width:max(settings.points(.railButtonWidth,in:width),settings.points(.hitSize,in:width)),
+                                   height:min(height,max(26,settings.points(.hitSize,in:width))))
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help(module.name)
@@ -107,7 +117,7 @@ public struct EdgeSurfaceView: View {
         .background(.regularMaterial)
     }
 
-    private func expandedModule(_ id: String) -> some View {
+    private func expandedModule(_ id: String,width:Double) -> some View {
         let manifest = host.registry.manifests.first { $0.id == id }
         let projection = host.bus.moduleSnapshots[id]?.snapshot
         return VStack(alignment: .leading, spacing: 12) {
@@ -128,9 +138,9 @@ public struct EdgeSurfaceView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.secondary.opacity(0.2)))
+        .padding(settings.points(.modulePadding,in:width))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:width) ?? 10))
+        .overlay(RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:width) ?? 10).stroke(.secondary.opacity(0.2)))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
     }
 }

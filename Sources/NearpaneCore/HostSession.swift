@@ -5,6 +5,10 @@ public enum DesktopObservationPause: Hashable { case screensAsleep, inactiveSess
 
 @Observable @MainActor
 public final class HostSession {
+    public private(set) var workspaceMode = WorkspaceModeCoordinator()
+    public private(set) var workspaceIssue: WorkspaceFailure?
+    @ObservationIgnored private var workspaceGestures = WorkspaceGestureRouter()
+    @ObservationIgnored public var presentationChanged: (() -> Void)?
     public let diagnostics: Diagnostics
     public let bus: SnapshotBus
     public let registry: ModuleRegistry
@@ -72,6 +76,7 @@ public final class HostSession {
     public func stop() {
         guard isRunning else { return }
         isRunning = false
+        cancelWorkspaceGesture()
         refreshGeneration += 1
         desktopTask?.cancel()
         desktopPauses.removeAll()
@@ -96,11 +101,50 @@ public final class HostSession {
                     if enabled { restartDesktopUpdates() }
                 }
                 persistModulePreferences()
+                presentationChanged?()
             case .setPinned, .move: persistModulePreferences()
             default: break
             }
         }
         return result
+    }
+
+    public func setDisplaySettings(_ value: DisplaySettings, id: String) {
+        guard isRunning, !configurationProtected, configuration.displays[id] != value else { return }
+        var next = configuration
+        next.displays[id] = value
+        do {
+            try store.save(next.validated())
+            configuration = next
+            configurationSaveFailed = false
+            presentationChanged?()
+        } catch {
+            configurationSaveFailed = true
+            diagnostics.record(.configurationWriteFailed)
+        }
+    }
+
+    public func workspaceSnapshot(primary: String?, now: Date, uptime: Double) -> WorkspaceSnapshot? {
+        guard isRunning, !configuration.surfaceHidden, !providerFailed, desktopPauses.isEmpty,
+              let snapshot = bus.desktop, workspaceMode.mode == .native else { return nil }
+        return NativeSpacesProvider().projection(snapshot, preferredDisplay: primary, settings: configuration.displays,
+                                                 edge: configuration.edge, date: now, uptime: uptime)
+    }
+    public func pressWorkspace(_ row: WorkspaceID, window: ManagedWindowID?, x: Double, y: Double, snapshot: WorkspaceSnapshot) {
+        workspaceIssue = nil
+        workspaceGestures.down(row: row, window: window, x: x, y: y, snapshot: snapshot)
+    }
+    public func dragWorkspace(x: Double, y: Double) { workspaceGestures.moved(x: x, y: y) }
+    public func cancelWorkspaceGesture() { workspaceGestures.cancel(); workspaceIssue = nil }
+    public func releaseWorkspace(on row: WorkspaceID?, x: Double, y: Double, primary: String?, now: Date, uptime: Double) {
+        guard let current = workspaceSnapshot(primary: primary, now: now, uptime: uptime) else {
+            cancelWorkspaceGesture(); workspaceIssue = .stale; return
+        }
+        do {
+            _ = try workspaceGestures.release(on: row, x: x, y: y, current: current, uptime: uptime,
+                                              native: NativeSpacesProvider(), virtual: VirtualWorkspacesProvider())
+            invalidateDesktop()
+        } catch { workspaceIssue = error as? WorkspaceFailure ?? .unavailable }
     }
 
     public func setPlacement(edge: SurfaceEdge, displayID: String?) {
@@ -112,6 +156,7 @@ public final class HostSession {
 
     public func setSurfaceHidden(_ hidden: Bool) {
         guard isRunning, configuration.surfaceHidden != hidden else { return }
+        cancelWorkspaceGesture()
         configuration.surfaceHidden = hidden
         if provider is any LiveDesktopObservationProvider { invalidateDesktop() }
         save()
@@ -139,6 +184,8 @@ public final class HostSession {
         refreshGeneration += 1
         desktopTask?.cancel()
         bus.resetDesktopSession()
+        cancelWorkspaceGesture()
+        presentationChanged?()
         restartDesktopUpdates()
     }
 
@@ -182,6 +229,7 @@ public final class HostSession {
             guard isRunning, generation == refreshGeneration else { return }
             providerFailed = !bus.acceptDesktop(snapshot)
             if providerFailed && provider is any LiveDesktopObservationProvider { bus.resetDesktopSession() }
+            presentationChanged?()
         } catch is CancellationError {
             // Cancellation is lifecycle control, not evidence of an empty desktop.
         } catch {
@@ -189,6 +237,7 @@ public final class HostSession {
             providerFailed = true
             if provider is any LiveDesktopObservationProvider { bus.resetDesktopSession() }
             diagnostics.record(.providerFailed)
+            presentationChanged?()
         }
     }
 

@@ -14,6 +14,7 @@ public struct DesktopPreviewWindow: Equatable, Sendable {
 public struct DesktopPreviewRow: Sendable {
     public let displayID: String
     public let kind: DesktopRowKind
+    public let rowFrame: SurfaceRect
     public let desktop: SurfaceRect
     /// Frontmost first. Unknown-membership windows are never attributed to a witnessed Space.
     public let windows: [DesktopPreviewWindow]
@@ -25,17 +26,19 @@ public struct DesktopPreview: Sendable {
     private let snapshot: DesktopSnapshot
     public let rows: [DesktopPreviewRow]
 
-    public init?(snapshot: DesktopSnapshot, displayID: String?, viewport: SurfaceRect, now: Date, uptime: Double) {
+    public init?(snapshot: DesktopSnapshot, displayID: String?, viewport: SurfaceRect, now: Date, uptime: Double,
+                 restrictToDisplay: Bool = false, rowGap: Double = 6) {
         guard snapshot.isStructurallyValid, snapshot.nativeIsFresh(now: now, uptime: uptime), let native = snapshot.native,
               !native.windowLimitReached, viewport.geometry.isValid else { return nil }
         let plans: [(String, DesktopRowKind)]
-        if native.rows.isEmpty {
+        let witnesses = native.rows.filter { !restrictToDisplay || $0.displayID == displayID }
+        if witnesses.isEmpty {
             guard let displayID, snapshot.displays.contains(where: { $0.id == displayID }) else { return nil }
             plans = [(displayID, .visibleDisplay)]
         } else {
-            plans = native.rows.map { ($0.displayID, .witnessedSpace($0.recordID)) }
+            plans = witnesses.map { ($0.displayID, .witnessedSpace($0.recordID)) }
         }
-        let gap = min(6, viewport.height / Double(plans.count * 6))
+        let gap = min(max(0, rowGap), viewport.height / Double(plans.count * 6))
         let height = (viewport.height - Double(plans.count - 1) * gap) / Double(plans.count)
         var result = [DesktopPreviewRow]()
         for (index, plan) in plans.enumerated() {
@@ -60,7 +63,7 @@ public struct DesktopPreview: Sendable {
                                       m.minimized == false && m.fullScreen == false))
                 if belongs { shapes.append(.init(id: w.id, frame: SurfaceRect(geometry), confidence: w.confidence)) }
             }
-            result.append(.init(displayID: display.id, kind: plan.1, desktop: SurfaceRect(map.content),
+            result.append(.init(displayID: display.id, kind: plan.1, rowFrame: SurfaceRect(slot), desktop: SurfaceRect(map.content),
                                 windows: shapes, hasUnassignedWindows: unknown, regions: regions))
         }
         self.snapshot = snapshot; rows = result
@@ -72,5 +75,25 @@ public struct DesktopPreview: Sendable {
         guard current == snapshot, current.nativeIsFresh(now: now, uptime: uptime),
               let row = rows.first(where: { $0.desktop.geometry.contains(p) }) else { return .none }
         return (try? HitTesting.hit(p, regions: row.regions)) ?? .none
+    }
+}
+
+public extension DesktopSnapshot {
+    func presentationDemand(for displayID: String, now: Date, uptime: Double) -> DisplayDemand {
+        guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime), let native, !native.windowLimitReached else { return .init() }
+        let onDisplay = windows.filter { $0.displayID == displayID }
+        if onDisplay.contains(where: { $0.metadata?.fullScreen == true && $0.metadata?.minimized == false }) {
+            return .init(blocked: true)
+        }
+        let records = Set(native.rows.filter { $0.displayID == displayID }.map(\.recordID))
+        let eligible = onDisplay.filter { w in
+            guard ManagedWindowID(w) != nil, case let .known(ids) = w.membership else { return false }
+            return ids.count == 1 && records.contains(ids[0])
+        }
+        // A lone witnessed current record says nothing about the number of other desktops.
+        let inventory = scopes.filter { $0.displayID == displayID }
+        let complete = records.count == 1 && inventory.count == 1 && inventory[0].records.count == 1 &&
+            native.accessibility == .available && onDisplay.count == eligible.count
+        return .init(spaces: records.count, windows: eligible.count, complete: complete)
     }
 }

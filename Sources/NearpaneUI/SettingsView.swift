@@ -6,8 +6,10 @@ public struct SettingsView: View {
     private let host: HostSession
     private let domains: EmbeddedModules?
     private let screens: [ScreenGeometry]
+    private let requestSecondary: (String) -> Void
     private let placementChanged: () -> Void
-    public init(host: HostSession, screens: [ScreenGeometry], domains: EmbeddedModules? = nil, placementChanged: @escaping () -> Void) {
+    public init(host: HostSession, screens: [ScreenGeometry], domains: EmbeddedModules? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+        self.requestSecondary = requestSecondary
         self.domains = domains; self.host = host; self.screens = screens; self.placementChanged = placementChanged
     }
 
@@ -45,7 +47,8 @@ public struct SettingsView: View {
                 }.padding().tabItem { Text("Riftlet") }
             }
             #endif
-            appearance.tabItem { Text("Placement") }
+            appearance.tabItem { Text("显示器") }
+            WorkspaceDisplaySettings(host:host,screens:screens,request:requestSecondary).tabItem { Text("尺寸与呈现") }
             desktopOptions.tabItem { Text("空间观察") }
             mockSettings.tabItem { Text("Mock & diagnostics") }
         }
@@ -55,6 +58,11 @@ public struct SettingsView: View {
 
     private var desktopOptions: some View {
         Form {
+            Picker("工作空间模式", selection:.constant(host.workspaceMode.mode)) {
+                Text("Native Spaces").tag(WorkspaceMode.native)
+                Text("Nearpane Virtual Workspaces · 等待实机恢复验证").tag(WorkspaceMode.virtual).disabled(true)
+            }
+            Text("Native 可观察系统空间；真实切换、跨空间移窗和平铺等待专项验收。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
             Toggle("只读桌面预览", isOn: Binding(get: { enabled }, set: { host.handle(.setEnabled(BuiltinCatalog.desktop, $0)) }))
             Toggle("实验性 Space 归属读取", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
@@ -94,7 +102,7 @@ public struct SettingsView: View {
                         Divider()
                     }
                 }
-                Text("Core order and region sizes remain fixed. Unpinning or disabling does not delete domain data.")
+                Text("模块顺序固定。尺寸可在“尺寸与呈现”调整。")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(8)
         }
@@ -118,7 +126,7 @@ public struct SettingsView: View {
                     Text("Preferred display unavailable (retained)").tag(missing)
                 }
             }
-            Text("Width follows one eighth of the selected screen. Placement uses its visible area. A missing display falls back to the menu-bar display without losing your preference.")
+            Text("主驻留屏默认预留可用宽度的 1/8。拔除首选屏时暂用可用屏，重新连接后恢复选择。")
                 .font(.callout).foregroundStyle(.secondary)
         }.padding(16)
     }
