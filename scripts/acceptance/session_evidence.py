@@ -11,9 +11,15 @@ import subprocess
 import sys
 import time
 import uuid
+from contextlib import closing
 import voice_evidence
 
 SCENES = ("idle","button","edit","hide","restore")
+SEALED_SCRIPTS = ("scripts/native-acceptance.py", "scripts/acceptance/draft-observation.js",
+                  "scripts/acceptance/capture-panel.swift", "scripts/acceptance/observe-draft.swift",
+                  "scripts/acceptance/session_evidence.py", "scripts/acceptance/voice_evidence.py",
+                  "scripts/acceptance/residence.py", "Resources/AcceptanceTargetGuard.js",
+                  "Sources/NearpaneTray/AcceptanceBrowserRoute.swift")
 
 
 def require(ok, message):
@@ -96,21 +102,34 @@ def resources_hash(binary):
 
 
 def manifest(root,path,binary):
-    scripts = ["scripts/native-acceptance.py","scripts/acceptance/draft-observation.js","scripts/acceptance/capture-panel.swift","scripts/acceptance/observe-draft.swift",
-               "scripts/acceptance/session_evidence.py","scripts/acceptance/voice_evidence.py","Resources/AcceptanceTargetGuard.js","Sources/NearpaneTray/AcceptanceBrowserRoute.swift"]
     subjects = dict(host=code_subject(binary),panelHelper=code_subject(path/"capture-panel"),
                     browserObserver=code_subject(path/"observe-draft"),systemScreenshot=code_subject("/usr/sbin/screencapture"),
                     launcher=code_subject(sys.executable),responsibleAncestor=observe_launcher())
-    return dict(schema=2,session=path.name,appSHA256=subjects["host"]["sha256"],resourcesSHA256=resources_hash(binary),
-                domainLockSHA256=digest((root/"Dependencies/domains.lock.json").read_bytes()),scripts={s:digest((root/s).read_bytes()) for s in scripts},
+    return dict(schema=3,session=path.name,appSHA256=subjects["host"]["sha256"],resourcesSHA256=resources_hash(binary),
+                checkoutAtPreparation=subprocess.check_output(["git","rev-parse","HEAD"],cwd=root,text=True).strip(),
+                infoPlistSHA256=digest((binary.parents[1]/"Info.plist").read_bytes()),
+                domainLockSHA256=digest((root/"Dependencies/domains.lock.json").read_bytes()),scripts={s:digest((root/s).read_bytes()) for s in SEALED_SCRIPTS},
                 subjects=subjects, observerLanguage="PID-addressed Apple Events + JavaScript", tcc="not queried; responsible process determined by macOS")
+
+
+def verify_manifest(root,path,binary,seal):
+    require(seal.get("schema") == 3 and seal.get("session") == path.name, "New frozen session required")
+    require(digest(binary.read_bytes()) == seal["appSHA256"], "Test executable changed")
+    require(digest((binary.parents[1]/"Info.plist").read_bytes()) == seal["infoPlistSHA256"], "Package metadata changed")
+    require(resources_hash(binary) == seal["resourcesSHA256"], "Test resources changed")
+    require(digest((root/"Dependencies/domains.lock.json").read_bytes()) == seal["domainLockSHA256"], "Domain lock changed")
+    require(set(seal["scripts"]) == set(SEALED_SCRIPTS), "Incomplete script inventory")
+    for name in SEALED_SCRIPTS:
+        require(digest((root/name).read_bytes()) == seal["scripts"][name], "Acceptance script changed: "+name)
+    for name,key in (("capture-panel","panelHelper"),("observe-draft","browserObserver")):
+        require(digest((path/name).read_bytes()) == seal["subjects"][key]["sha256"], "Acceptance helper changed: "+name)
 
 
 def durable(path):
     library = path/"support/Riftlet"
     file = library/"queue.sqlite"
     require(file.resolve() == file, "Unexpected library path")
-    with sqlite3.connect(file.as_uri()+"?mode=ro",uri=True) as db:
+    with closing(sqlite3.connect(file.as_uri()+"?mode=ro",uri=True)) as db:
         db.execute("begin")
         assets = db.execute("select id,image_json,status,visibility,visibility_revision from assets order by sort_at,sequence").fetchall()
         ops = db.execute("select id,asset_id,attempt,target_key,phase,receipt_json from operations order by sequence").fetchall()
@@ -232,10 +251,16 @@ def restart_verdict(path, streams):
               and a[0]["kind"]=="opened" and a[-1]["kind"]=="drained" and b[0]["kind"]=="opened" and exit_info["exitCode"]==0
               and old["started"] <= a[0]["time"] <= checkpoint["time"] <= a[-1]["time"] <= exit_info["exited"] <= new["started"] <= b[0]["time"] <= new["openedAt"]
               and checkpoint["durable"] == exit_info["postExit"] == new["prelaunch"] == new["startup"]
-              and new["startup"]["voiceRecords"] > 0 and new["startup"]["voiceRevisions"] > 0
-              and len(new["startup"]["assetOrder"]) == new["startup"]["attempts"] == new["startup"]["starts"] == 1
-              and new["startup"]["inputClaim"] and new["startup"]["intactMedia"] and initial["voice"]=="paused" and not initial["trayConnected"]
+              and new["startup"]["intactMedia"] and initial["voice"]=="paused" and not initial["trayConnected"]
               and not initial["mayAttach"] and not initial["collecting"]
               and all(initial.get(k) is not None and initial[k] == checkpoint["state"].get(k) for k in ("micAuthorization","speechAuthorization")))
-        statuses.append("PASS" if ok else "FAIL")
+        statuses.append(restart_coverage(new["startup"]) if ok else "FAIL")
     return "FAIL" if "FAIL" in statuses else "INCONCLUSIVE" if "INCONCLUSIVE" in statuses else "PASS"
+
+
+def restart_coverage(state):
+    if state["attempts"] > 1 or state["starts"] > 1:
+        return "FAIL"
+    challenged = (state["voiceRecords"] > 0 and state["voiceRevisions"] > 0 and len(state["assetOrder"]) == 1
+                  and state["attempts"] == state["starts"] == 1 and state["inputClaim"])
+    return "PASS" if challenged else "INCONCLUSIVE"

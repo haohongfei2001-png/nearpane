@@ -145,7 +145,8 @@ final class TrayOwner {
                 guard output.standardizedFileURL == output.resolvingSymlinksInPath() else { throw LibraryError.incompatible }
                 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true,
                                                          attributes: [.posixPermissions: 0o700])
-                let target = output.appendingPathComponent("." + UUID().uuidString + ".png")
+                // screencapture refuses dot-prefixed output names, even on a successful selection.
+                let target = output.appendingPathComponent(UUID().uuidString + ".png")
                 let job = SystemCaptureJob(makeSystemCapture())
                 job.owner = self
                 systemCapture = job

@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import uuid
+from contextlib import closing
 
 ROOT = Path(__file__).resolve().parents[1]
 SESSIONS = ROOT / "build/native-acceptance"
@@ -76,7 +77,7 @@ def allowed_asset(path, asset_id, digest):
           "Supply the approved disposable asset UUID and SHA-256")
     queue = path/"support/Riftlet/queue.sqlite"
     check(queue.resolve() == queue, "Unexpected queue")
-    with sqlite3.connect(queue.as_uri()+"?mode=ro", uri=True) as db:
+    with closing(sqlite3.connect(queue.as_uri()+"?mode=ro", uri=True)) as db:
         rows = db.execute("select id,file_name,image_json from assets").fetchall()
         check(len(rows) == 1 and rows[0][0].lower() == asset_id and db.execute("select count(*) from operations").fetchone()[0] == 0,
               "The fixture must contain only the approved capture and no attempts")
@@ -286,10 +287,7 @@ def main():
         return
     path = folder(args.session or "")
     manifest = json.loads((path/"manifest.json").read_text())
-    check(manifest["session"] == path.name and manifest["appSHA256"] == se.digest(binary.read_bytes()),"Test executable changed")
-    check(se.resources_hash(binary) == manifest["resourcesSHA256"], "Test resources changed")
-    for name,expected in manifest["scripts"].items():
-        check(se.digest((ROOT/name).read_bytes()) == expected,"Acceptance script changed")
+    se.verify_manifest(ROOT,path,binary,manifest)
     if args.action == "report":
         marker = json.loads((path/"session.json").read_text())
         def admitted(evidence):

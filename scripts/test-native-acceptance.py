@@ -11,6 +11,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 
 spec = importlib.util.spec_from_file_location("native_acceptance", Path(__file__).with_name("native-acceptance.py"))
 native = importlib.util.module_from_spec(spec)
@@ -194,6 +195,46 @@ class RecognitionAttemptTests(unittest.TestCase):
 
 
 class NativeAcceptanceTests(unittest.TestCase):
+    def test_residence_reads_latest_heartbeat_and_preserves_partial_rows(self):
+        import residence
+        with tempfile.TemporaryFile(mode="w+b") as stream:
+            stream.write(b'{"time":1}\n{"time":5}\n{"time":')
+            stream.seek(0)
+            self.assertEqual(residence.latest_event(stream,{}), {"time":5})
+            cursor = stream.tell()
+            stream.seek(0,2)
+            stream.write(b'8}\n')
+            stream.seek(cursor)
+            self.assertEqual(residence.latest_event(stream,{}), {"time":8})
+
+    def test_frozen_inventory_rejects_drift_and_missing_entries(self):
+        se = native.se
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            path = root/"session"
+            binary = root/"test.app/Contents/MacOS/Host"
+            resource = binary.parents[1]/"Resources/r"
+            plist = binary.parents[1]/"Info.plist"
+            lock = root/"Dependencies/domains.lock.json"
+            helpers = {"panelHelper":path/"capture-panel","browserObserver":path/"observe-draft"}
+            files = [binary,resource,plist,lock,*helpers.values(),*(root/n for n in se.SEALED_SCRIPTS)]
+            for f in files:
+                f.parent.mkdir(parents=True,exist_ok=True)
+                f.write_bytes(b"original")
+            sha = se.digest(b"original")
+            seal = dict(schema=3,session=path.name,appSHA256=sha,resourcesSHA256=se.resources_hash(binary),
+                        infoPlistSHA256=sha,domainLockSHA256=sha,scripts=dict.fromkeys(se.SEALED_SCRIPTS,sha),
+                        subjects={k:dict(sha256=sha) for k in helpers})
+            se.verify_manifest(root,path,binary,seal)
+            for f in files:
+                f.write_bytes(b"changed")
+                with self.assertRaises(ValueError,msg=str(f)):
+                    se.verify_manifest(root,path,binary,seal)
+                f.write_bytes(b"original")
+            del seal["scripts"]["scripts/acceptance/residence.py"]
+            with self.assertRaises(ValueError):
+                se.verify_manifest(root,path,binary,seal)
+
     def test_idle_requires_observed_continuity_and_focus(self):
         sample = [event(t) for t in range(0, 901, 5)]
         self.assertEqual(native.longest_idle(sample), 900)
@@ -309,6 +350,14 @@ class NativeAcceptanceTests(unittest.TestCase):
         self.assertNotEqual(assess("hide",idle),"PASS")
         self.assertNotEqual(se.focus_verdict("idle",[],idle,10),"PASS")
 
+    def test_restart_requires_a_challenge_and_rejects_multiple_inputs(self):
+        state = dict(voiceRecords=1,voiceRevisions=1,assetOrder=["one"],attempts=1,starts=1,inputClaim="digest")
+        self.assertEqual(native.se.restart_coverage(state), "PASS")
+        for key, value in (("voiceRevisions",0),("assetOrder",[]),("starts",0),("inputClaim",None)):
+            self.assertEqual(native.se.restart_coverage(dict(state,**{key:value})), "INCONCLUSIVE", key)
+        for key in ("starts", "attempts"):
+            self.assertEqual(native.se.restart_coverage(dict(state,**{key:2})), "FAIL", key)
+
     def test_real_waitpid_and_durable_restart_evidence_without_launching_an_app(self):
         import sys
         se = native.se
@@ -316,7 +365,7 @@ class NativeAcceptanceTests(unittest.TestCase):
             p = Path(tmp)
             queue = p/"support/Riftlet/queue.sqlite"
             queue.parent.mkdir(parents=True)
-            with sqlite3.connect(queue) as db:
+            with closing(sqlite3.connect(queue)) as db, db:
                 db.executescript("create table assets(id,image_json,status,visibility,visibility_revision,sort_at,sequence);"
                                  "create table operations(id,asset_id,attempt,target_key,phase,receipt_json,sequence);"
                                  "create table upload_starts(operation_id,receipt_json); create table checkpoints(key,value);")
@@ -324,7 +373,7 @@ class NativeAcceptanceTests(unittest.TestCase):
             media.mkdir()
             (media/"fixture.png").write_bytes(b"test image")
             img = json.dumps(dict(fileName="fixture.png",sha256=se.digest(b"test image")))
-            with sqlite3.connect(queue) as db:
+            with closing(sqlite3.connect(queue)) as db, db:
                 db.execute("insert into assets values('asset',?,'unknown','swallowed',1,1,1)",(img,))
                 db.execute("insert into operations values('op','asset',1,'draft','unknown','{}',1)")
                 db.execute("insert into upload_starts values('op','{}')")
@@ -333,7 +382,7 @@ class NativeAcceptanceTests(unittest.TestCase):
             voice = p/"support/Nearpane/Voice/Saytile.sqlite"
             voice.parent.mkdir(parents=True)
             (p/"summary.key").write_bytes(bytes(range(32)))
-            with sqlite3.connect(voice) as db:
+            with closing(sqlite3.connect(voice)) as db, db:
                 db.executescript("create table recordings(id,created_at,recognition_state,is_recording,active_attempt,preferred_revision,deleted);"
                                  "create table revisions(id,recording_id,origin,attempt,created_at,text); create table editing_drafts(recording_id,text);"
                                  "create table fusion_sessions(id,recording_id,state,created_at); create table fusion_session_terminals(recognition_id,state,occurred_at);"

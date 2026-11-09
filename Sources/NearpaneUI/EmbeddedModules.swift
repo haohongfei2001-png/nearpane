@@ -3,6 +3,7 @@ import NearpaneCore
 #if canImport(NearpaneVoice)
 import NearpaneVoice
 import NearpaneTray
+import AppKit
 #endif
 
 /// One object per domain, shared by the registry and the surface. Content never enters the Host bus.
@@ -11,10 +12,12 @@ public final class EmbeddedModules {
     #if canImport(NearpaneVoice)
     public let voice: VoiceModule
     public let tray: TrayModule
+    let voicePasteboard: NSPasteboard
     #endif
 
     public init(support: URL, testSession: URL? = nil) {
         #if canImport(NearpaneVoice)
+        voicePasteboard = testSession.map { NSPasteboard(name: .init("com.holdsnow.nearpane.acceptance." + $0.lastPathComponent)) } ?? .general
         tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession)
         voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true), requireExistingPermissions: testSession != nil)
         #endif

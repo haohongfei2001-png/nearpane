@@ -11,7 +11,11 @@ public struct VoiceSurface: View {
     @ViewState private var draft = ""
     @ViewState private var copied = false
     @ViewState private var settling = false
-    public init(_ module: VoiceModule) { self.module = module }
+    private let pasteboard: NSPasteboard
+    public init(_ module: VoiceModule, pasteboard: NSPasteboard = .general) {
+        self.module = module
+        self.pasteboard = pasteboard
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -54,7 +58,7 @@ public struct VoiceSurface: View {
             }
             HStack {
                 Button {
-                    copied = copy(module.transcript, to: .general)
+                    copied = copy(module.transcript, to: pasteboard)
                 } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }
                 .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字")
                 .onChange(of: module.transcript) { copied = false }

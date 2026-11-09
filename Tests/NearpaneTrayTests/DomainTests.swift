@@ -348,6 +348,28 @@ struct TrayDomainTests {
 }
 
 extension TrayDomainTests {
+    @Test func systemCaptureUsesUniqueWritableNamesAndRejectsMissingOutputEvenOnZeroExit() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
+        let child = SyntheticCaptureChild()
+        var reports = 0
+        let owner = TrayOwner(store: store, root: dir, adapter: Transport(), policy: .init(), captureEntry: true,
+            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in false },
+            notify: {}, report: { _ in reports += 1 })
+        var paths = Set<URL>()
+        for _ in 0..<2 {
+            owner.capture(.system)
+            let output = try #require(child.output)
+            #expect(output.deletingLastPathComponent().path == dir.appendingPathComponent("captures").path)
+            #expect(output.pathExtension == "png" && UUID(uuidString: output.deletingPathExtension().lastPathComponent) != nil)
+            #expect(paths.insert(output).inserted)
+            let end = try #require(child.ended)
+            await end(0); await end(0)
+        }
+        #expect(!owner.hasPendingWork && reports == 2)
+        #expect(try await store.assets().isEmpty)
+    }
+
     @Test func captureLaunchFailureAndUserCancellationReleaseExactlyOneJob() async throws {
         let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
         let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
