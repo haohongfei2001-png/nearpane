@@ -13,6 +13,7 @@ import WindowGeometryCore
     typealias Read = @Sendable (DesktopReadRequest) async throws -> DesktopSnapshot
     private let read: Read
     private let anchors: @MainActor () -> [ActiveSpaceAnchor]
+    private let activeNumbers: @MainActor () -> Set<UInt32>
 
     // Constructing a provider performs no system sampling and opens no windows.
     public static func packaged(fixtureWindows: @escaping @MainActor () -> [NSWindow]? = { nil }) -> any DesktopObservationProvider {
@@ -30,8 +31,10 @@ import WindowGeometryCore
     }
 
     init(fixtureWindows: @escaping @MainActor () -> [NSWindow]?, anchors: @escaping @MainActor () -> [ActiveSpaceAnchor],
-         read: @escaping Read) {
-        self.fixtureWindows = fixtureWindows; self.anchors = anchors; self.read = read
+         activeNumbers: @escaping @MainActor () -> Set<UInt32> = {
+             Set((NSWindow.windowNumbers(options: .allApplications) ?? []).compactMap { UInt32(exactly: $0.int64Value) })
+         }, read: @escaping Read) {
+        self.fixtureWindows = fixtureWindows; self.anchors = anchors; self.activeNumbers = activeNumbers; self.read = read
     }
 
     static func currentAnchors(_ windows: [NSWindow]) -> [ActiveSpaceAnchor] {
@@ -65,21 +68,36 @@ import WindowGeometryCore
         }
         let attemptPrivate = experimentalSpaces && privateFailure == nil
         var result: DesktopSnapshot
+        var usedPrivate = attemptPrivate
         do {
             result = try await read(request(attemptPrivate))
         } catch {
             try Task.checkCancellation()
             guard attemptPrivate, current == revision else { throw error }
             privateFailure = .unavailable
+            usedPrivate = false
             result = try await read(request(false))
         }
         try Task.checkCancellation()
-        guard current == revision, result.sessionID == session, result.revision == current, result.isStructurallyValid else { throw ReaderFailure.invalidResponse }
+        guard current == revision, result.sessionID == session, result.revision == current, result.isStructurallyValid,
+              let evidence = result.native, evidence.population == (ids == nil ? .workWindows : .markedFixture),
+              usedPrivate || evidence.spaces == .disabled else { throw ReaderFailure.invalidResponse }
+        if let ids {
+            guard result.windows.allSatisfy({ w in
+                w.metadata.map { $0.pid == getpid() && ids.contains($0.number) } ?? false
+            }) else { throw ReaderFailure.invalidResponse }
+        }
         if attemptPrivate, let status = result.native?.spaces, [.unavailable, .unsupportedBuild].contains(status) { privateFailure = status }
         if experimentalSpaces, let privateFailure { result.native?.spaces = privateFailure }
         if result.native?.rows.isEmpty == false {
             let stillCurrent = anchors()
-            if result.native?.rows.contains(where: { !stillCurrent.contains($0.anchor) }) == true {
+            let active = evidence.rows.contains { $0.anchor.witness == .appKitActiveList } ? activeNumbers() : []
+            if evidence.rows.contains(where: { row in
+                switch row.anchor.witness {
+                case .ownedWindow: return !witnesses.contains(row.anchor) || !stillCurrent.contains(row.anchor)
+                case .appKitActiveList: return ids != nil || !active.contains(row.anchor.number)
+                }
+            }) {
                 result.native?.rows = []; result.userSpaceSemantics = .unknown; result.topologyConsistent = false; result.freshness = .transient
             }
         }

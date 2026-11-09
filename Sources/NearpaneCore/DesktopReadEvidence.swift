@@ -16,22 +16,27 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let launchMicroseconds: UInt64?
     public let element: UUID?
     public let globalFrame: SurfaceRect
+    public let axFrame: SurfaceRect?
     public let frontToBack: Int
     public let minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
-                frontToBack: Int, minimized: Bool?, fullScreen: Bool?) {
+                frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil) {
         self.number = number; self.pid = pid; self.launchMicroseconds = launchMicroseconds; self.element = element
         self.globalFrame = globalFrame; self.frontToBack = frontToBack; self.minimized = minimized; self.fullScreen = fullScreen
+        self.axFrame = axFrame
     }
 }
 
-/// Supplied by the owning AppKit process, for a visible, ordinary, single-display window on its active Space.
+public enum ActiveSpaceWitness: String, Codable, Sendable { case ownedWindow, appKitActiveList }
+
+/// Identifies the independent public AppKit observation used to attest the current record.
 public struct ActiveSpaceAnchor: Equatable, Codable, Sendable {
     public let number: UInt32
     public let displayID: String
     public let globalFrame: SurfaceRect
-    public init(number: UInt32, displayID: String, globalFrame: SurfaceRect) {
-        self.number = number; self.displayID = displayID; self.globalFrame = globalFrame
+    public let witness: ActiveSpaceWitness
+    public init(number: UInt32, displayID: String, globalFrame: SurfaceRect, witness: ActiveSpaceWitness = .ownedWindow) {
+        self.number = number; self.displayID = displayID; self.globalFrame = globalFrame; self.witness = witness
     }
 }
 
@@ -84,7 +89,8 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
               Set(snapshot.windows.compactMap { $0.metadata?.number }).count == snapshot.windows.count,
               snapshot.userSpaceSemantics == (rows.isEmpty ? .unknown : .witnessedCurrent) else { return false }
         if spaces != .observed && (!rows.isEmpty || !snapshot.scopes.isEmpty) { return false }
-        if !snapshot.topologyConsistent && !rows.isEmpty { return false }
+        if !rows.isEmpty && (!snapshot.topologyConsistent || windowLimitReached ||
+            (snapshot.displays.count > 1 && snapshot.separateSpaces != true)) { return false }
         for row in rows {
             guard row.anchor.number > 0, row.displayID == row.anchor.displayID,
                   let display = snapshot.displays.first(where: { $0.id == row.displayID }),
@@ -93,11 +99,24 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
                       scope.id == row.scopeID && scope.displayID == row.displayID &&
                       scope.records.contains { $0.id == row.recordID && $0.isCurrent }
                   }) else { return false }
+            if row.anchor.witness == .appKitActiveList {
+                guard population == .workWindows, snapshot.windows.contains(where: {
+                    $0.metadata?.number == row.anchor.number && $0.metadata?.globalFrame == row.anchor.globalFrame &&
+                    $0.displayID == row.displayID && $0.confidence == .corroboratedMetadata &&
+                    $0.metadata?.fullScreen == false && $0.metadata?.minimized == false &&
+                    $0.membership == .known(recordIDs: [row.recordID])
+                }) else { return false }
+            }
         }
         return snapshot.windows.allSatisfy { w in
             guard let m = w.metadata, m.number > 0, m.pid > 0, m.frontToBack >= 0, m.globalFrame.geometry.isValid,
                   w.confidence != .synthetic else { return false }
-            if w.confidence == .corroboratedMetadata && (m.element == nil || (m.launchMicroseconds ?? 0) == 0) { return false }
+            guard let display = snapshot.displays.first(where: { $0.id == w.displayID }),
+                  m.globalFrame.geometry.intersection(display.frame.geometry) != nil,
+                  w.bounds == SurfaceRect(x: m.globalFrame.x - display.frame.x, y: m.globalFrame.y - display.frame.y,
+                                          width: m.globalFrame.width, height: m.globalFrame.height) else { return false }
+            if let ax = m.axFrame, !ax.geometry.isValid || ax.geometry.componentError(from: m.globalFrame.geometry) > 2 { return false }
+            if w.confidence == .corroboratedMetadata && (m.element == nil || m.axFrame == nil || (m.launchMicroseconds ?? 0) == 0) { return false }
             if case let .known(ids) = w.membership {
                 return spaces == .observed && !ids.isEmpty && Set(ids).count == ids.count
             }

@@ -2,6 +2,7 @@ import Foundation
 import CoreFoundation
 import CReadOnlySpaces
 import NearpaneCore
+import WindowGeometryCore
 
 // P1-B Parsing.swift, with exact integers and a one-to-one scope/display UUID check.
 struct SpaceInventory: Equatable {
@@ -53,6 +54,25 @@ struct SpaceInventory: Equatable {
 struct SpaceBoundary: Equatable {
     let inventory: SpaceInventory?
     let membership: [UInt32: WindowMembership]
+
+    /// Independent active-Space observation plus a unique, stable current membership on the same display.
+    /// Neither scope counts nor the raw type alone identify a user desktop.
+    func confirmedRows(displays: [DisplayObservation], separateSpaces: Bool, complete: Bool,
+                       candidates: [ActiveSpaceAnchor], windows: [CGWindowMetadata], parent: Int32) -> [ObservedSpaceRow] {
+        guard complete, displays.count == 1 || separateSpaces, let inventory else { return [] }
+        return displays.compactMap { display in
+            guard let scope = inventory.scopes.first(where: { $0.displayID == display.id }),
+                  let current = scope.records.first(where: \.isCurrent), inventory.rawTypes[current.id] == 0,
+                  let anchor = candidates.first(where: { a in
+                      a.displayID == display.id && display.frame.geometry.intersection(a.globalFrame.geometry) == a.globalFrame.geometry &&
+                      membership[a.number] == .known(recordIDs: [current.id]) &&
+                      windows.contains { $0.windowID == a.number && $0.process.hasLifecycleEvidence &&
+                          (a.witness == .ownedWindow ? $0.process.pid == parent : $0.process.pid != parent) &&
+                          $0.frame.componentError(from: a.globalFrame.geometry) <= 2 }
+                  }) else { return nil }
+            return ObservedSpaceRow(displayID: display.id, scopeID: scope.id, recordID: current.id, anchor: anchor)
+        }
+    }
     static func read(displays: [DisplayObservation], windowIDs: [UInt32]) -> Self {
         guard let raw = NPReadInventory(), let inventory = SpaceInventory(raw as [AnyObject], displays: displays) else {
             return Self(inventory: nil, membership: [:])

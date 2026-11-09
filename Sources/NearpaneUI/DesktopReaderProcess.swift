@@ -17,7 +17,12 @@ enum DesktopReaderProcess {
         guard snapshot.isStructurallyValid, snapshot.sessionID == request.session, snapshot.revision == request.revision,
               snapshot.native?.population == (request.fixtureWindows == nil ? .workWindows : .markedFixture),
               request.experimentalSpaces || snapshot.native?.spaces == .disabled,
-              snapshot.native?.rows.allSatisfy({ request.anchors.contains($0.anchor) }) == true else { throw ReaderFailure.invalidResponse }
+              snapshot.native?.rows.allSatisfy({ row in
+                  switch row.anchor.witness {
+                  case .ownedWindow: return request.anchors.contains(row.anchor)
+                  case .appKitActiveList: return request.experimentalSpaces && request.fixtureWindows == nil
+                  }
+              }) == true else { throw ReaderFailure.invalidResponse }
         if let fixture = request.fixtureWindows {
             guard snapshot.windows.allSatisfy({ w in
                 w.metadata.map { $0.pid == request.parentPID && fixture.contains($0.number) } == true

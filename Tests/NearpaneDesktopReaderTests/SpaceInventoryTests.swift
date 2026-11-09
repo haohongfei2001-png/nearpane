@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import NearpaneCore
+import WindowGeometryCore
 @testable import NearpaneDesktopReader
 
 struct SpaceInventoryTests {
@@ -25,5 +26,32 @@ struct SpaceInventoryTests {
         #expect(SpaceInventory(scope(records), displays: []) == nil)
         #expect(SpaceInventory(scope(records) + scope(records), displays: displays) == nil)
         #expect(SpaceInventory(scope([["id64": true, "type": 0]]), displays: displays) == nil)
+    }
+}
+
+extension SpaceInventoryTests {
+    @Test func currentSpaceNeedsAnIndependentWitnessAndExactOrderedMembership() throws {
+        let d = displays[0], inventory = try #require(SpaceInventory(scope(records), displays: displays))
+        let frame = SurfaceRect(x: 20, y: 30, width: 80, height: 80)
+        let a = ActiveSpaceAnchor(number: 6, displayID: id, globalFrame: frame)
+        let window = CGWindowMetadata(process: .init(pid: 205, launchEpochMicroseconds: 47), windowID: 6,
+                                      title: nil, frame: frame.geometry)
+        func rows(_ members: WindowMembership, _ witnesses: [ActiveSpaceAnchor], parent: Int32 = 205,
+                  complete: Bool = true, screens: [DisplayObservation]? = nil, independent: Bool = true) -> [ObservedSpaceRow] {
+            SpaceBoundary(inventory: inventory, membership: [6: members]).confirmedRows(displays: screens ?? [d],
+                separateSpaces: independent, complete: complete, candidates: witnesses, windows: [window], parent: parent)
+        }
+        let known = WindowMembership.known(recordIDs: ["5"])
+        #expect(rows(known, [a]).map(\.recordID) == ["5"])
+        #expect(rows(known, []).isEmpty && rows(.unknown, [a]).isEmpty)
+        #expect(rows(.known(recordIDs: ["5","9"]), [a]).isEmpty)
+        #expect(rows(.known(recordIDs: ["9"]), [a]).isEmpty)
+        #expect(rows(known, [a], parent: 206).isEmpty && rows(known, [a], complete: false).isEmpty)
+        #expect(rows(known, [a], screens: [d,d], independent: false).isEmpty)
+        let rebuilt = ActiveSpaceAnchor(number: 7, displayID: id, globalFrame: frame)
+        let moved = ActiveSpaceAnchor(number: 6, displayID: id, globalFrame: .init(x: 30, y: 30, width: 80, height: 80))
+        #expect(rows(known, [rebuilt, moved]).isEmpty)
+        let foreign = ActiveSpaceAnchor(number: 6, displayID: id, globalFrame: frame, witness: .appKitActiveList)
+        #expect(rows(known, [foreign], parent: 206).count == 1 && rows(known, [foreign]).isEmpty)
     }
 }

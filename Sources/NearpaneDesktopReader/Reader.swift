@@ -96,7 +96,16 @@ struct Reader {
         return result
     }
 
+    private func activeNumbers() -> Set<UInt32> {
+        guard request.experimentalSpaces, request.fixtureWindows == nil else { return [] }
+        // The allSpaces flag must stay absent. Only numbers are requested from AppKit.
+        return Set((NSWindow.windowNumbers(options: .allApplications) ?? []).compactMap { UInt32(exactly: $0.int64Value) })
+    }
+
     func sample() throws -> DesktopSnapshot {
+        let console = CGSessionCopyCurrentDictionary() as? [String: Any]
+        guard console?["kCGSSessionOnConsoleKey"] as? Bool == true,
+              console?["CGSSessionScreenIsLocked"] as? Bool != true else { throw DesktopActionError.unsupported }
         let build = clock.operatingSystemVersionString
         let from = Date(), start = clock.systemUptime, before = try Topology(), list = try visible()
         var status: SpaceReadStatus = .disabled
@@ -107,10 +116,12 @@ struct Reader {
             default: status = .unavailable
             }
         }
+        let activeBefore = status == .observed ? activeNumbers() : []
         let ids = list.windows.map(\.windowID)
         let first = status == .observed ? SpaceBoundary.read(displays: before.displays, windowIDs: ids) : nil
         let ax = accessibility(list.windows, deadline: start + 1.25)
         let second = first?.inventory == nil ? nil : SpaceBoundary.read(displays: before.displays, windowIDs: ids)
+        let activeAfter = status == .observed ? activeNumbers() : []
         let again = try visible(), topology = try Topology(), end = clock.systemUptime
         let stable = before == topology && list == again && end-start <= 3
         if status == .observed {
@@ -120,6 +131,7 @@ struct Reader {
         let boundary = status == .observed ? second : nil
         let scopes = boundary?.inventory?.scopes ?? []
         var windows = [WindowObservation]()
+        var candidates = request.anchors.filter { $0.witness == .ownedWindow }
         let elements = ax.values.sorted { $0.key < $1.key }.flatMap(\.value)
         let matches = WindowMatcher.matches(cg: list.windows, ax: elements)
         for (index, entry) in list.windows.enumerated() {
@@ -128,7 +140,8 @@ struct Reader {
             guard let slice = slices.max(by: { $0.fractionOfWindow < $1.fractionOfWindow }),
                   let display = before.displays.first(where: { $0.id == slice.displayID }) else { continue }
             let match = matches[index]
-            let element = match.axCandidateIndices.count == 1 ? elements[match.axCandidateIndices[0]] : nil
+            let unique = match.confidence == .corroboratedMetadata || match.confidence == .geometryOnly
+            let element = unique ? elements[match.axCandidateIndices[0]] : nil
             let confidence: NearpaneCore.IdentityConfidence
             switch match.confidence {
             case .corroboratedMetadata: confidence = .corroboratedMetadata
@@ -139,28 +152,21 @@ struct Reader {
             let data = ObservedWindowMetadata(number: entry.windowID, pid: entry.process.pid,
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: element?.elementToken,
                 globalFrame: SurfaceRect(entry.frame), frontToBack: entry.frontToBackIndex,
-                minimized: element?.minimized, fullScreen: element.flatMap { ax.fullScreen[$0.elementToken] })
+                minimized: element?.minimized, fullScreen: element.flatMap { ax.fullScreen[$0.elementToken] },
+                axFrame: element?.frame.map(SurfaceRect.init))
+            if confidence == .corroboratedMetadata, element?.subrole == "AXStandardWindow",
+               data.fullScreen == false, data.minimized == false, entry.process.pid != request.parentPID,
+               activeBefore.contains(entry.windowID), activeAfter.contains(entry.windowID) {
+                candidates.append(.init(number: entry.windowID, displayID: display.id, globalFrame: data.globalFrame, witness: .appKitActiveList))
+            }
             let local = SurfaceRect(x: entry.frame.x-display.frame.x, y: entry.frame.y-display.frame.y,
                                     width: entry.frame.width, height: entry.frame.height)
             windows.append(.init(id: "\(request.revision)/\(entry.process.pid)/\(entry.windowID)", displayID: display.id,
                                  bounds: local, membership: boundary?.membership[entry.windowID] ?? .unknown,
                                  confidence: confidence, metadata: data))
         }
-        var rows: [ObservedSpaceRow] = []
-        // A linked multi-display Space lacks a verified global grouping on this build.
-        if let boundary, !list.limited, before.displays.count == 1 || before.separateSpaces {
-            for display in before.displays {
-                guard let scope = scopes.first(where: { $0.displayID == display.id }),
-                      let current = scope.records.first(where: \.isCurrent),
-                      let anchor = request.anchors.first(where: { anchor in
-                          anchor.displayID == display.id && display.frame.geometry.intersection(anchor.globalFrame.geometry) == anchor.globalFrame.geometry &&
-                          boundary.membership[anchor.number] == .known(recordIDs: [current.id]) &&
-                          list.windows.contains { $0.windowID == anchor.number && $0.process.pid == request.parentPID &&
-                              $0.process.hasLifecycleEvidence && $0.frame.componentError(from: anchor.globalFrame.geometry) <= 2 }
-                      }) else { continue }
-                rows.append(.init(displayID: display.id, scopeID: scope.id, recordID: current.id, anchor: anchor))
-            }
-        }
+        let rows = boundary?.confirmedRows(displays: before.displays, separateSpaces: before.separateSpaces,
+            complete: stable && !list.limited, candidates: candidates, windows: list.windows, parent: request.parentPID) ?? []
         return .observed(request, from: from, to: Date(), build: build, topology: before.fingerprint, consistent: stable && status != .unstable,
                          separateSpaces: before.separateSpaces, displays: before.displays, scopes: scopes, windows: windows,
                          evidence: .init(population: request.fixtureWindows == nil ? .workWindows : .markedFixture, accessibility: ax.status,
