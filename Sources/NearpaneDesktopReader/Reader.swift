@@ -110,8 +110,22 @@ struct Reader {
 
     func sample() throws -> DesktopSnapshot {
         let console = CGSessionCopyCurrentDictionary() as? [String: Any]
+        #if NEARPANE_ISOLATED_GUI_LAB
+        // This separately compiled test helper can only inspect its parent's one
+        // marked window in a different user's GUI, or perform a scope-only read.
+        var physicalConsole = stat()
+        guard stat("/dev/console", &physicalConsole) == 0, physicalConsole.st_uid != getuid(),
+              console?[kCGSessionUserIDKey as String] as? UInt32 == getuid(),
+              console?[kCGSessionLoginDoneKey as String] as? Bool == true,
+              console?["CGSSessionScreenIsLocked"] as? Bool != true,
+              request.parentPID == getppid(), request.experimentalSpaces,
+              let allowedIDs = request.fixtureWindows, allowedIDs.count <= 1,
+              request.anchors.map(\.number) == allowedIDs, request.anchors.allSatisfy({ $0.witness == .ownedWindow })
+        else { throw DesktopActionError.unsupported }
+        #else
         guard console?["kCGSSessionOnConsoleKey"] as? Bool == true,
               console?["CGSSessionScreenIsLocked"] as? Bool != true else { throw DesktopActionError.unsupported }
+        #endif
         let build = clock.operatingSystemVersionString
         let from = Date(), start = clock.systemUptime, before = try Topology(), list = try visible()
         var status: SpaceReadStatus = .disabled
