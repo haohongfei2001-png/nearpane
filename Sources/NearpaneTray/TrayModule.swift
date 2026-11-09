@@ -57,8 +57,15 @@ public final class TrayModule: HostModule {
             target: window.convertToScreen(view.convert(view.bounds, to: nil)), left: left) else { return }
         let presenter = flight ?? MagnetFlightPresenter()
         flight = presenter
+        let entry = epoch
         if presenter.start(assetID: row.id, image: image, plan: plan, backingScale: screen.backingScaleFactor,
-            elapsedSinceAssetReady: age, onCompletion: { [weak self] _ in self?.flyingID = nil }) { flyingID = row.id }
+            elapsedSinceAssetReady: age, onAnimationObservation: { [weak self] observation in
+                guard let self, epoch == entry, let emit = acceptanceEvent else { return }
+                switch observation.phase {
+                case .started: emit("magnetAnimationStarted")
+                case .stopped: emit(observation.finished == true ? "magnetAnimationFinished" : "magnetAnimationInterrupted")
+                }
+            }, onCompletion: { [weak self] _ in self?.flyingID = nil }) { flyingID = row.id }
     }
     @ObservationIgnored public var exposureChanged: ((Bool) -> Void)?
     @ObservationIgnored private var collection: TrayCollection?

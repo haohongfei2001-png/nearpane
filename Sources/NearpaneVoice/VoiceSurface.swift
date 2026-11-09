@@ -40,10 +40,9 @@ public struct VoiceSurface: View {
                         }
                         ForEach(module.rows) { row in
                             if !row.text.isEmpty {
-                                Text(verbatim: row.text).textSelection(.enabled)
-                                    .contextMenu { Button("修改这段文字…") {
-                                        Task { if let text = await module.editText(row.id) { draft = text; editing = row.id } }
-                                    } }
+                                TranscriptLine(text: row.text) {
+                                    Task { if let text = await module.editText(row.id) { draft = text; editing = row.id } }
+                                }
                             }
                             if row.recognitionState == .failed {
                                 Button("重试识别") { Task { await module.retry(row.id) } }
@@ -78,5 +77,52 @@ public struct VoiceSurface: View {
         guard !text.isEmpty else { return false }
         pasteboard.clearContents()
         return pasteboard.setString(text, forType: .string)
+    }
+}
+
+/// AppKit supplies the selection menu for selectable text. Add the row's edit action to that same menu.
+struct TranscriptLine: NSViewRepresentable {
+    let text: String
+    let edit: () -> Void
+
+    final class TextView: NSTextView {
+        var editLine: (() -> Void)?
+        override var needsPanelToBecomeKey: Bool { false }
+        override func menu(for event: NSEvent) -> NSMenu? {
+            let menu = (super.menu(for: event)?.copy() as? NSMenu) ?? NSMenu()
+            if !menu.items.isEmpty { menu.insertItem(.separator(), at: 0) }
+            let item = NSMenuItem(title: "修改这段文字…", action: #selector(editThisLine), keyEquivalent: "")
+            item.target = self
+            menu.insertItem(item, at: 0)
+            return menu
+        }
+        @objc private func editThisLine() { editLine?() }
+    }
+
+    func makeNSView(context: Context) -> TextView {
+        let view = TextView(frame: .zero)
+        view.isEditable = false
+        view.isSelectable = true
+        view.isRichText = false
+        view.drawsBackground = false
+        view.textContainerInset = .zero
+        view.textContainer?.lineFragmentPadding = 0
+        view.textContainer?.widthTracksTextView = false
+        view.font = .preferredFont(forTextStyle: .body)
+        view.textColor = .labelColor
+        return view
+    }
+
+    func updateNSView(_ view: TextView, context: Context) {
+        view.editLine = edit
+        if view.string != text { view.string = text }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView view: TextView, context: Context) -> CGSize? {
+        guard let width = proposal.width, width.isFinite, width > 0,
+              let container = view.textContainer, let layout = view.layoutManager else { return nil }
+        container.containerSize = CGSize(width: width, height: .greatestFiniteMagnitude)
+        layout.ensureLayout(for: container)
+        return CGSize(width: width, height: ceil(layout.usedRect(for: container).height))
     }
 }

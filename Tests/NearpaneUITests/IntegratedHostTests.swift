@@ -117,6 +117,48 @@ struct IntegratedHostTests {
         next.stop(); await reopened.finishStopping()
     }
 
+    @Test func repeatedHostAndDomainShutdownReleaseFixtureDescriptorsAndBothLocks() async throws {
+        let root = fixtureRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let support = root.appendingPathComponent("Nearpane")
+        let voiceRoot = support.appendingPathComponent("Voice")
+        let trayRoot = root.appendingPathComponent("Riftlet")
+        _ = try await seedVoice(support)
+        let ids = try await seedQueue(root)
+        let domains = EmbeddedModules(support: support)
+        let host = domains.makeHost(store: MemoryConfigurationStore())
+        var initialOrder: [UUID]?
+        func fixtureDescriptorCount() throws -> Int {
+            var path = [UInt8](repeating: 0, count: Int(MAXPATHLEN))
+            let descriptors = try FileManager.default.contentsOfDirectory(atPath: "/dev/fd").compactMap(Int32.init)
+            return descriptors.filter { fd in
+                fcntl(fd, F_GETPATH, &path) == 0 && String(decoding: path.prefix { $0 != 0 }, as: UTF8.self).hasPrefix(root.path + "/")
+            }.count
+        }
+        for _ in 0..<32 {
+            await host.start()
+            await domains.voice.waitForTransition()
+            await domains.tray.connect()
+            let order = domains.tray.rows.map(\.id)
+            if initialOrder == nil { initialOrder = order }
+            #expect(Set(order) == ids && order == initialOrder)
+            #expect(domains.voice.transcript == [firstLine, secondLine].joined(separator: "\n"))
+            #expect(domains.voice.capture == .paused && !domains.tray.mayAttach && !domains.tray.collectionEnabled)
+            #expect(try fixtureDescriptorCount() > 0)
+            #expect(throws: LibraryError.busy) { try ExistingLibrary.open(trayRoot) }
+            host.stop()
+            await domains.finishStopping()
+            #expect(!domains.tray.connected && !domains.voice.active && host.bus.moduleSnapshots.isEmpty)
+            #expect(try fixtureDescriptorCount() == 0)
+            let voice = try SaytileStore(directory: voiceRoot)
+            try await voice.close()
+            try ApplicationInstanceOwnership(root: trayRoot).close()
+        }
+        let diagnostics = try #require(JSONSerialization.jsonObject(with: host.diagnostics.export()) as? [[String:Any]])
+        #expect(diagnostics.count <= host.diagnostics.capacity)
+        #expect(diagnostics.allSatisfy { Set($0.keys).isSubset(of: ["code", "timestamp", "moduleID"]) })
+    }
+
     @Test func standaloneVoiceTextAndDefaultsStayOutsideTheHostStore() async throws {
         let root = fixtureRoot(); defer { try? FileManager.default.removeItem(at: root) }
         let support = root.appendingPathComponent("Nearpane")

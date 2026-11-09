@@ -33,7 +33,7 @@ for path in sys.argv[1:]:
     else: raise SystemExit("Isolation failed: "+path)
 PY
 isolated "$offline" resolver-tests python3 -B scripts/test-dependencies.py
-isolated "$offline" target-tests node --test scripts/acceptance/test-target.js
+isolated "$offline" target-tests node --test --test-reporter=spec scripts/acceptance/test-target.js
 # The original evidence suite is independent of domain sources. The full suite below
 # also builds recognition fixtures from the verified Saytile DDL, available after bootstrap.
 isolated "$offline" evidence-tests python3 -B scripts/test-native-acceptance.py NativeAcceptanceTests
@@ -44,22 +44,11 @@ for domain in saytile Riftlet; do
   /usr/bin/grep -Eq "/$domain@.+GitHub," "$run/logs/bootstrap.log"
 done
 isolated "$offline" integrated env NEARPANE_OFFLINE=1 scripts/test.sh
-python3 - "$run/logs" <<'PYCOUNT'
-import re,sys
-from pathlib import Path
-root=Path(sys.argv[1])
-for name,minimum in (("foundation",49),("integrated",74)):
-    log=(root/(name+".log")).read_text()
-    summary=re.search(r"Test run with (\d+) tests in \d+ suites passed",log)
-    if not summary or int(summary[1]) < minimum or re.search(r"Test .* skipped",log):
-        sys.exit("Incomplete "+name+" suite")
-    if name=="integrated" and not all("Suite "+s+" passed" in log for s in ["VoiceTests","TrayDomainTests","IntegratedHostTests"]):
-        sys.exit("Missing integrated suites")
-PYCOUNT
 for configuration in debug release; do
   isolated "$offline" "$configuration" env NEARPANE_OFFLINE=1 scripts/build-app.sh "$configuration"
 done
 isolated "$offline" receipt-policy env NEARPANE_RECEIPT_TEST_BINARY="$run/products/debug/Nearpane.app/Contents/MacOS/NearpaneHost" python3 -B scripts/test-native-acceptance.py
+python3 scripts/verify-regressions.py "$run/logs"
 scripts/verify-packages.py --deny-cache "$build_root" "$run"/products/{debug,release}/Nearpane.app >"$run/logs/packages.log"
 /usr/bin/shasum -a 256 "$run"/logs/*.log "$run"/products/{debug,release}/Nearpane.app/Contents/MacOS/NearpaneHost >"$run/SHA256SUMS"
 /usr/bin/grep 'Test run with' "$run"/logs/{foundation,integrated}.log

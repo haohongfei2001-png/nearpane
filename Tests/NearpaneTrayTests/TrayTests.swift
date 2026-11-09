@@ -3,6 +3,26 @@ import Testing
 @testable import NearpaneTray
 
 struct TrayLayoutTests {
+    @Test func motionPreferenceProtectsUnreadableBytesAndHonorsReducedMotion() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("Nearpane-motion-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("arrival-motion-settings.json")
+        let missing = ArrivalMotionPreferences(url: file)
+        #expect(missing.selectedMode == nil && missing.mode == .none && !FileManager.default.fileExists(atPath: file.path))
+        let future = Data(#"{"version":99,"mode":"future"}"#.utf8)
+        try future.write(to: file)
+        var preferences = ArrivalMotionPreferences(url: file)
+        #expect(preferences.loadState == .unreadable && preferences.mode == .none)
+        #expect(try Data(contentsOf: file) == future)
+        try preferences.select(.magnet)
+        let explicit = ArrivalMotionPreferences(url: file)
+        #expect(explicit.mode.effective(reduceMotion: false) == .magnet)
+        #expect(explicit.mode.effective(reduceMotion: true) == .none)
+        try preferences.select(.none)
+        #expect(ArrivalMotionPreferences(url: file).mode.effective(reduceMotion: false) == .none)
+    }
+
     @Test func fixedViewportExpansionAndBackfillKeepOriginalIdentities() {
         let s = CGSize(width: 200, height: 100), ids = (0..<8).map { _ in UUID() }
         for count in 0...ids.count {

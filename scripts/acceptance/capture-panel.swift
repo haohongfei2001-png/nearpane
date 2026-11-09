@@ -12,10 +12,10 @@ import UniformTypeIdentifiers
     @MainActor static func owns(_ running: NSRunningApplication, executable: URL) -> Bool {
         let bundle = executable.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let expectedID = "com.holdsnow.nearpane.host"
-        var path = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+        var path = [UInt8](repeating: 0, count: 4 * Int(MAXPATHLEN))
         let size = proc_pidpath(running.processIdentifier, &path, UInt32(path.count))
         guard size > 0, !running.isTerminated,
-              URL(fileURLWithPath: String(cString: path)).resolvingSymlinksInPath().path == executable.path,
+              URL(fileURLWithPath: String(decoding: path.prefix { $0 != 0 }, as: UTF8.self)).resolvingSymlinksInPath().path == executable.path,
               running.executableURL?.resolvingSymlinksInPath().path == executable.path,
               running.bundleURL?.resolvingSymlinksInPath().path == bundle.path,
               let disk = Bundle(url: bundle), disk.bundleIdentifier == expectedID,
@@ -32,6 +32,9 @@ import UniformTypeIdentifiers
               let running = NSRunningApplication(processIdentifier: pid),
               owns(running, executable: executable) else { throw Failure.hostIdentity }
         guard CGPreflightScreenCaptureAccess() else { throw Failure.screenCapturePermission }
+        // A supervised command-line client needs a WindowServer connection before constructing the filter.
+        _ = NSApplication.shared.setActivationPolicy(.prohibited)
+        guard !NSScreen.screens.isEmpty else { throw Failure.windowUnavailable }
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
         guard let window = content.windows.first(where: { $0.windowID == number && $0.owningApplication?.processID == pid }),
               !running.isTerminated else { throw Failure.windowUnavailable }

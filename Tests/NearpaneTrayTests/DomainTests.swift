@@ -133,6 +133,35 @@ struct TrayDomainTests {
         module.stop()
     }
 
+    @Test func revokedAutomationBetweenPressAndTransferRetainsTheQueueWithoutReplay() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let record = try await store.importAsset(.init(sourceKey: "revoked", fileName: "revoked.png",
+            sha256: String(repeating: "e", count: 64), byteCount: 1, pixelWidth: 16, pixelHeight: 9,
+            mediaType: "image/png", origin: .synthetic))
+        let adapter = Transport()
+        var authorized = true, checks = [Bool]()
+        let module = TrayModule { change, error in
+            TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: false,
+                pin: { Task { try await adapter.captureTarget() } },
+                permission: { ask, _ in checks.append(ask); return authorized }, notify: change, report: error)
+        }
+        try module.start()
+        await module.connect()
+        await module.authorizeAttachments()
+        let press = try #require(module.beginPress(record))
+        authorized = false
+        await module.finishPress(press)
+        #expect(checks.first == true && checks.dropFirst().contains(false))
+        #expect(await adapter.appends == 0 && module.visibleIDs == [record.id])
+        module.disconnect()
+        await module.connect()
+        #expect(!module.mayAttach && module.visibleIDs == [record.id])
+        await module.refresh()
+        #expect(await adapter.appends == 0)
+        module.stop(); await module.finishStopping()
+    }
+
     @Test func hideAndShowWhileDraftResolutionIsPendingCannotReplayTheClick() async throws {
         let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
         let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)

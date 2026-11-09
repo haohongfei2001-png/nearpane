@@ -33,6 +33,7 @@ public struct EdgeSurfaceView: View {
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             .clipped()
             #if canImport(NearpaneTray)
+            .contentShape(Rectangle())
             .simultaneousGesture(SpatialTapGesture().onEnded { event in
                 let r = layout.screenshots
                 if !CGRect(x: r.x, y: r.y, width: r.width, height: r.height).contains(event.location) {

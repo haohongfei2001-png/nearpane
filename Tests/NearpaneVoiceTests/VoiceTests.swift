@@ -9,8 +9,12 @@ final class ScriptedInput: VoiceInput {
     let update: (CaptureState, Float, String?) -> Void
     var retried: UUID?
     var closed = false
+    var permissionDenied = false
     init(_ update: @escaping (CaptureState, Float, String?) -> Void) { self.update = update }
-    func start() async throws { update(.listening, 0, nil) }
+    func start() async throws {
+        if permissionDenied { throw CocoaError(.fileReadNoPermission) }
+        update(.listening, 0, nil)
+    }
     func pause() async { update(.paused, 0, nil) }
     func retry(_ id: UUID) async { retried = id }
     func shutdown() async { closed = true }
@@ -124,6 +128,65 @@ struct VoiceTests {
 }
 
 extension VoiceTests {
+    @Test func selectableTranscriptProvidesTheEditActionOnItsActualNativeMenu() throws {
+        let app = NSApplication.shared
+        let window = NSPanel(contentRect: CGRect(x: 0, y: 0, width: 180, height: 80),
+                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let view = TranscriptLine.TextView(frame: window.contentView!.bounds)
+        window.contentView = view
+        view.isEditable = false; view.isSelectable = true
+        view.string = "synthetic selectable transcript"
+        var calls = 0
+        view.editLine = { calls += 1 }
+        let event = try #require(NSEvent.mouseEvent(with: .rightMouseDown, location: .init(x: 12,y: 12),
+            modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
+            eventNumber: 1, clickCount: 1, pressure: 1))
+        for _ in 0..<2 {
+            let menu = try #require(view.menu(for: event))
+            let matches = menu.items.filter { $0.title == "修改这段文字…" }
+            #expect(matches.count == 1)
+            let item = try #require(matches.first)
+            #expect(item.target === view)
+            let action = try #require(item.action)
+            #expect(app.sendAction(action, to: item.target, from: item))
+        }
+        #expect(calls == 2 && !view.isEditable && view.isSelectable)
+        #expect(!window.isVisible && !window.isKeyWindow)
+    }
+
+    @Test func lateInputAndRevisionNotificationsCannotSurviveRepeatedRestarts() async throws {
+        let dir = directory(); defer { try? FileManager.default.removeItem(at: dir) }
+        weak var device: ScriptedInput?
+        var denied = true
+        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) }, makeInput: { _, update in
+            let input = ScriptedInput(update)
+            input.permissionDenied = denied
+            device = input
+            return input
+        })
+        try module.start()
+        for _ in 0..<16 {
+            await module.waitForTransition()
+            await module.toggle()
+            #expect(denied ? module.issue != nil && module.capture == .paused : module.capture == .listening)
+            let old = try #require(device)
+            NotificationCenter.default.post(name: .init("SaytileRecognitionUpdated"), object: nil)
+            module.stop()
+            try module.start()
+            await module.waitForTransition()
+            old.update(.speaking, 1, "retired input")
+            #expect(old.closed && module.capture == .paused && module.issue == nil && module.transcript.isEmpty)
+            denied.toggle()
+        }
+        module.stop(); await module.waitForTransition()
+        #expect(device == nil)
+        let reopened = try SaytileStore(directory: dir)
+        #expect(try await reopened.listRecordings().isEmpty)
+        try await reopened.close()
+    }
+
     @Test func acceptanceRecordsOnlyExplicitPauseAndTheDomainsOpenRecording() async throws {
         let dir = directory(); defer { try? FileManager.default.removeItem(at: dir) }
         let store = try SaytileStore(directory: dir)
