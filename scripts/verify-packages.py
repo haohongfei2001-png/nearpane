@@ -8,6 +8,7 @@ import plistlib
 import re
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 RESOURCE_PATHS = {
@@ -33,11 +34,17 @@ def verify(app, lock, sandbox):
     helper = contents / "Helpers/NearpaneDesktopReader"
     if helper.resolve() != helper or digest(helper) != plist.get("NearpaneDesktopReaderSHA256"):
         raise ValueError("Unexpected desktop reader identity")
+    # codesign treats Contents/MacOS/<CFBundleExecutable> as the enclosing bundle. These development
+    # packages seal their exact Mach-O and resource inventory independently (no distribution signature).
+    host_image = binary.read_bytes()
+    with tempfile.TemporaryDirectory(prefix="verify-macho-", dir=ROOT/"build") as tmp:
+        standalone = Path(tmp)/binary.name
+        standalone.write_bytes(host_image)
+        subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(standalone)], check=True)
+    subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(helper)], check=True)
     for exe in (binary, helper):
-        subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(exe)], check=True)
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
             raise ValueError("Private desktop framework linked directly: " + exe.name)
-    host_image = binary.read_bytes()
     private_symbols = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces", b"SLSMainConnectionID")
     if any(symbol in host_image for symbol in private_symbols):
         raise ValueError("Private desktop entry point in Host")
