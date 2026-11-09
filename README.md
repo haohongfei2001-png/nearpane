@@ -13,7 +13,7 @@
 ## 当前正式产品权威（2026-11-09）
 本工程分支使用本仓库内的 **[PRODUCT_DEFINITION.md](PRODUCT_DEFINITION.md)**、**[视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)** 与 **[交互规范](design/INTERACTION-SPEC.md)** 作为产品实施依据。细化决策见 [ADR-010](decisions/ADR-010-DUAL-WORKSPACE-MODES.md)、[ADR-011](decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)、[ADR-012](decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)、**[ADR-013](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)**。相互冲突时以用户更新、更具体的 **ADR-013** 为准；旧原型、旧测试和早期文档仅保留历史参考地位。
 
-最新不可忽略的行为：**非原生全屏时主/副屏 Docked 均持续预留工作区域，即使 UI 隐藏也不释放；副屏可选 Floating 浮窗，显示或隐藏都不预留。** 窗口通过拖动具体缩略图加入空间，单击空间行仅切换整体；前 1—8 窗默认布局不变。**8 是默认扩容阈值而不是硬上限：第九窗优先新建 Workspace（Native 需技术能力验证），不能安全新建就继续分割；设置也可直接选“无限分割”，16 亦非硬上限。** 第三方应用自己新开的窗口使用相同策略。用户拖动槽位与比例可保存；从三窗返回双窗恢复历史自定义配置，无历史左右平分。Hide Nearpane 仍维持预留，**明确 Quit 才停止管理、释放预留并安全恢复原来的 macOS 窗口布局**。真正原生全屏才能占满屏，录音等浮层由用户主动唤出、原位置优先；Native/Virtual 为低频设置；Saytile/Riftlet 是 Nearpane 整体产品能力。以上是产品权威，非当前代码已实现。
+最新不可忽略的行为：**新普通窗口在 Nearpane 中默认放入新的独立 Workspace**，用户可在设置中改为加入现有空间；这不同于 macOS 普通新窗口的默认归属。**8 窗是独立的溢出阈值**：优先新建 Space/Workspace，不能新建时安全分割，亦可选持续分割；16 不是硬上限。拖走或关闭最后普通窗口后，来源空间真实无成员则清理（Native 删除必须验证实际能力）；支持按 App/Window **排除自动管理**，排除窗口保持原有位置，可能与其它窗口重叠或覆盖 Docked 区域。**用户主动 Hide 空间视图高于多窗口默认显示**，不因旧条件自动重弹；Hide UI 不释放 Docked 区域。**明确 Quit 只撤销 Nearpane 的自动改动、保留用户明确改变的布局意图**，再次启动在已有权限与能力允许时**自动全面接管当前真实窗口**，不要求每次重新确认。非原生全屏的主副屏 Docked 持续预留，副屏 Floating 无论显示/隐藏都不预留；原生全屏独占整屏。以上为产品权威，生产代码未因此自动实现。
 
 **实现与权威分开：** 下述运行状态、P4.0/P4.1 证据描述的是目前代码，不能当作以上新行为已实现。旧 P4 逐窗点击/窗口重叠用例只证明底层识别或几何能力，**不得作为最终产品交互的通过标准**；真正的跨 Space 拖动、窗口移动/平铺、全屏恢复与权限仍需专门验收。生产 `main` 未因本次文档同步改变。
 
