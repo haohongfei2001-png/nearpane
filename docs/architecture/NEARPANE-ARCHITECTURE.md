@@ -24,6 +24,7 @@ Nearpane App
 ├── Desktop Surface & Presentation
 │   ├── Edge Surface / Window Lifecycle
 │   ├── Layout Composer / Density & Overflow
+│   ├── MultiDisplayPresentationCoordinator
 │   ├── Interaction Router
 │   └── Accessibility & Motion
 │
@@ -171,6 +172,18 @@ Virtual 所有写操作须先记录足以恢复的原状态、作用目标和执
 
 Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，不直接依赖 Native 或 Virtual；工作区模式转换不得中止录音、丢弃截图或自动发送。
 
+### 6.2 多屏呈现与工作区引擎分离（ADR-011）
+
+- **MultiDisplayPresentationCoordinator** 只管理每块显示器的角色（唯一 Primary Residence / 每屏最多一个 Secondary Space-only）、独立宽高、边缘、行密度、启停策略、唤出与焦点、显示器拔插/重连；不是另一套 Workspace 引擎。
+- **WorkspaceModeCoordinator** 仍然全局选择 Native 或 Virtual。各屏 Surface 从同一 Workspace Snapshot 和 Window Identity/Geometry 服务订阅数据，按已验证的 display association 过滤；副屏不私自枚举或执行另一套窗口调度。
+- 唯一主表面承载 Saytile/Riftlet 及用户模块；副屏只具有空间调度界面，使用独立 AppKit presentation window，而非第二个 Host/ASR/截图队列。
+- 主屏完整布局继承默认约 1/8 宽、3/8 工具与 5/8 空间区；用户关闭主屏空间区可收缩高度；副屏单独设置宽高，不应用主屏纵向比例。
+- 副屏默认按需出现，可选多目标自动、固定。不得抢当前 App 焦点；自动策略依经确认的可切换目标和稳定快照，避免重叠窗口/系统临时窗口误触发。
+- 主屏断连仅迁移展示角色，保持领域服务不变；副屏断连保留偏好，旋转/镜像后重新计算几何和 Space/Workspace 归属；未验证时安全降级。
+- 后台窗口预览资源应统一限流，副屏隐藏时不执行无必要的高频捕获，不降低 Riftlet 用户主动截图可用性。
+
+本节为设计契约；不在此分支创建新运行时、schema 或修改现有 P2 代码。
+
 ## 7. 模块系统：Host 与 Module Contract
 
 Nearpane 首版采用 **Built-in Module Registry + Declarative Module Manifest**，不直接开放任意第三方代码插件。
@@ -238,6 +251,7 @@ Nearpane 首版采用 **Built-in Module Registry + Declarative Module Manifest**
 | NP-ADR-008 | 可选模块扩展不能挤压或改变冻结的核心视觉比例 | ACCEPTED |
 | NP-ADR-009 | 私有 Spaces API 隔离、版本化、可关闭且不可作为唯一依赖 | ACCEPTED（Native） |
 | NP-ADR-010 | 用户可选 Native Spaces / Nearpane Virtual Workspaces；同一时刻单一调度所有者，独立验证与恢复 | ACCEPTED（产品目标；技术未完成） |
+| NP-ADR-011 | 唯一主驻留屏、各副屏 Space-only 面板、独立尺寸与出现策略 | ACCEPTED（产品目标；技术未完成） |
 
 ## 12. 不在本轮实施的内容
 

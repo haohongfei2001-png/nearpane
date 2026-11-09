@@ -5,7 +5,7 @@
 
 ## 1. 设计目标
 
-用户可以把真正需要长期放在手边的功能加入 Nearpane。模块系统必须让用户拥有组合权，同时保护 Nearpane 原本的核心体验：Saytile、Riftlet 与当前模式的空间编排（Native Spaces 或 Virtual Workspaces）始终有清晰的位置和职责。
+用户可以把真正需要长期放在手边的功能加入 Nearpane。模块系统必须让用户拥有组合权，同时保护 Nearpane 原本的核心体验：Saytile、Riftlet 与当前模式的空间编排（Native Spaces 或 Virtual Workspaces）始终有清晰的位置和职责。按 ADR-011，用户模块和唯一 Saytile/Riftlet 呈现只存在于**主驻留屏**；副屏是纯 Space-only 面板，不复制用户模块和领域实例。
 
 模块系统不是“把任意小组件无限塞进侧栏”。它是一个有约束、可组合、可撤销授权、可隔离故障的常驻能力系统。
 

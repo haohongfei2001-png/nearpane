@@ -19,6 +19,7 @@ Native mode observes and enhances macOS Spaces; Virtual mode manages its own log
 
 - [Product Definition](docs/PRODUCT_DEFINITION.md) — authoritative positioning, capabilities and dual workspace-mode choice.
 - [Dual-mode decision ADR-010](docs/decisions/ADR-010-DUAL-WORKSPACE-MODES.md) — Native/Virtual scope, mode-switch safety, recovery and independent validation.
+- [Multi-display presentation ADR-011](docs/decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md) — one primary resident panel, independent secondary Space-only panels and per-display sizing, placement, and appearance.
 - [Visual Authority](docs/design/NEARPANE-VISUAL-AUTHORITY.md) — approved edge-panel visual direction, default proportions, Space mapping, and real-window geometry rules.
 - [Approved visual reference](docs/design/assets/nearpane-visual-authority.webp) — approved visual-direction image.
 
@@ -34,7 +35,7 @@ The design branch contains the complete continuation package:
 - [Engineering implementation roadmap](docs/engineering/IMPLEMENTATION-ROADMAP.md)
 - [Delivery and verification manifest](docs/DELIVERY-AND-VERIFICATION.md)
 
-The default visual baseline remains a narrow edge surface (approximately one-eighth of the screen width), without a title, logo, or product-name header. Saytile and Riftlet occupy the upper tool area; the lower area presents the selected mode's Spaces or Workspaces. User-configurable modules use compact resident entries and expanded overlays so that adding modules does not silently compress the approved core geometry.
+The default complete primary panel remains a narrow edge surface (approximately one-eighth of its display width), without a title, logo, or product-name header. Saytile and Riftlet appear only on one user-selected primary resident display, whose Spaces section can be independently disabled. Secondary displays show only separate, independently sized Space/Workspace panels: on-demand by default, or contextual-auto/pinned if the user chooses. User-configurable modules use compact resident entries and expanded overlays so that adding modules does not silently compress the approved core geometry.
 
 ## Project status
 

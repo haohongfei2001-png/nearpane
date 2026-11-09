@@ -74,7 +74,9 @@
 ## 5. P2 — Host Foundation
 
 实现边界：
-- 一个主表面窗口及显示器位置管理；
+- 用户指定一块显示器拥有的唯一全功能主表面（Saytile/Riftlet 仅一份）；
+- 每块副显示器独立的 Space-only 呈现窗口（P2 仅 Mock/Fixture）；
+- MultiDisplayPresentationCoordinator 与 WorkspaceModeCoordinator 分离：前者管理 per-display 布局/出现，后者管理全局 Native/Virtual 引擎；
 - Surface layout composer；
 - Module Registry / lifecycle；
 - Interaction Router；
@@ -82,10 +84,13 @@
 - Event / snapshot bus；
 - WorkspaceModeCoordinator 的接口及 Native / Virtual / Mock provider 契约；
 - Native / Virtual 各自独立的模拟工作区身份、窗口状态、错误/恢复 fixtures；
+- 单屏/双屏/三屏、90° 旋转、镜像、主屏拔插、屏幕重连，以及 separateSpaces=false 的空间归属未知 fixtures；
+- 副屏按需（默认）/多目标自动/固定显示策略及不抢焦点的测试样例；
 - 故障隔离与诊断。
 
 首个可运行里程碑只要求：
 - 主表面尺寸、边缘位置、无标题结构稳定；
+- 主屏 Spaces 区可关闭且关闭后高度可收缩；每个副屏面板宽高、位置、Space 行密度独立配置；
 - 合成模块样例可启停、展开和收起；
 - 模块异常不影响 Host；
 - 配置持久化与恢复正确。
@@ -123,7 +128,7 @@
 - 私有适配器无法确认目标时禁用对应动作；
 - 不把窗口像素捕获作为 Space 识别的前置依赖。
 
-关键门槛：在单屏、双屏独立 Spaces 开/关、镜像、全屏、Stage Manager、显示器插拔等场景中，Space 和窗口目标不能错配。
+关键门槛：在单屏、双屏独立 Spaces 开/关、镜像、全屏、Stage Manager、显示器插拔等场景中，Space 和窗口目标不能错配。副屏只能显示该屏可确认的 Native/Virtual 空间与窗口；不可将 3+1 scope 当成四个独立 Spaces。
 
 ## 8. P5 — Built-in Modules
 
@@ -139,6 +144,8 @@ AI Assistant 不应成为 Nearpane 的默认主界面，也不能自动订阅麦
 ## 9. P6 — 产品化与分发
 
 - 长时间驻留的 CPU、内存、能耗和唤醒频率；
+- 副屏按需与多目标自动出现的触发/去抖、焦点不抢占、系统快捷键/热角冲突、独立配置恢复与全屏兼容；
+- 多屏窗口预览限流，隐藏副屏不得持续高帧率捕获，Riftlet 主动截图不得明显受阻；
 - 多显示器布局和睡眠/唤醒；
 - 权限撤销、文件访问失效、账户离线；
 - 崩溃隔离、日志脱敏、诊断导出；
