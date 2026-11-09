@@ -26,7 +26,7 @@ public struct ScreenGeometry: Equatable, Sendable {
 
 public enum SurfacePlacement {
     /// A missing preferred display falls back without rewriting the preference.
-    public static func resolve(screens: [ScreenGeometry], preferredID: String?, edge: SurfaceEdge) -> SurfaceRect? {
+    public static func resolve(screens: [ScreenGeometry], preferredID: String?, edge: SurfaceEdge, settings: [String: DisplaySettings] = [:]) -> SurfaceRect? {
         let usable = screens.filter {
             [$0.frame, $0.visibleFrame].allSatisfy { rect in
                 rect.x.isFinite && rect.y.isFinite && rect.width.isFinite && rect.width > 0 &&
@@ -34,10 +34,7 @@ public enum SurfacePlacement {
             }
         }
         guard let screen = usable.first(where: { $0.id == preferredID }) ?? usable.first else { return nil }
-        let safe = screen.visibleFrame
-        let width = min(max(0, screen.frame.width / 8), max(0, safe.width))
-        return SurfaceRect(x: edge == .left ? safe.x : safe.x + safe.width - width,
-                           y: safe.y, width: width, height: max(0, safe.height))
+        return (settings[screen.id] ?? .init()).panel(on:screen,fallbackEdge:edge)
     }
 }
 

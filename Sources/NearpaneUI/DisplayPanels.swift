@@ -8,37 +8,59 @@ import NearpaneCore
     private var coordinator = MultiDisplayPresentationCoordinator()
     private var secondary = [String: EdgeWindowController]()
     private var suspended = false
-    public init(host: HostSession, primary: EdgeWindowController) {
-        self.host = host; self.primary = primary
+    private let present: (EdgeWindowController) -> Void
+    var secondaryIDs: Set<String> { Set(secondary.keys) }
+    public convenience init(host: HostSession, primary: EdgeWindowController) {
+        self.init(host: host, primary: primary, present: { $0.presentIfNeeded() })
+    }
+    init(host: HostSession, primary: EdgeWindowController, present: @escaping (EdgeWindowController) -> Void) {
+        self.present = present
+        self.host = host
+        self.primary = primary
         primary.usePointer(pointer)
     }
     public func request(_ display: String) { coordinator.request(display) }
+    public func dismiss(_ display: String) { coordinator.dismiss(display) }
     public func setSuspended(_ value: Bool) { suspended = value }
     public func update(screens: [ScreenGeometry]) {
-        let now = Date(), uptime = ProcessInfo.processInfo.systemUptime, prefs = host.registry.preferences
+        let now = Date()
+        let uptime = ProcessInfo.processInfo.systemUptime
+        let prefs = host.registry.preferences
         var demand = [String: DisplayDemand]()
         for screen in screens {
-            demand[screen.id] = host.bus.desktop?.presentationDemand(for:screen.id,now:now,uptime:uptime) ?? .init()
+            demand[screen.id] = host.bus.desktop?.presentationDemand(for: screen.id, now: now, uptime: uptime) ?? .init()
         }
-        let plans = coordinator.resolve(screens:screens,preferred:host.configuration.preferredDisplayID,
-            settings:host.configuration.displays,demand:demand,hidden:host.configuration.surfaceHidden || suspended,
-            voice:prefs.contains { $0.id == BuiltinCatalog.voice && $0.enabled },tray:prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
-            spacesEnabled:prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled },uptime:uptime)
+        let plans = coordinator.resolve(
+            screens: screens, preferred: host.configuration.preferredDisplayID,
+            settings: host.configuration.displays, demand: demand, hidden: host.configuration.surfaceHidden || suspended,
+            voice: prefs.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
+            tray: prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
+            spacesEnabled: prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }, uptime: uptime)
         let ids = Set(plans.filter { !$0.primary && $0.content != .hidden }.map(\.id))
-        for id in Array(secondary.keys) where !ids.contains(id) { secondary.removeValue(forKey:id)?.close() }
-        guard let main = plans.first(where:\.primary) else { primary.place(screens:[]); return }
+        for id in Array(secondary.keys) where !ids.contains(id) { secondary.removeValue(forKey: id)?.close() }
+        guard let main = plans.first(where: \.primary) else {
+            primary.place(screens: [])
+            return
+        }
         for plan in plans where plan.primary || ids.contains(plan.id) {
             guard let screen = screens.first(where: { $0.id == plan.id }) else { continue }
             let controller: EdgeWindowController
-            if plan.primary { controller = primary }
-            else if let panel = secondary[plan.id] { controller = panel }
-            else {
-                controller = EdgeWindowController(host:host)
-                controller.usePointer(pointer); secondary[plan.id] = controller
+            if plan.primary {
+                controller = primary
+            } else if let panel = secondary[plan.id] {
+                controller = panel
+            } else {
+                controller = EdgeWindowController(host: host)
+                controller.usePointer(pointer)
+                secondary[plan.id] = controller
             }
-            controller.place(on:screen,primary:main.id,content:plan.content)
-            controller.presentIfNeeded()
+            controller.place(on: screen, primary: main.id, content: plan.content)
+            present(controller)
         }
     }
-    public func stop() { primary.hide(); for panel in secondary.values { panel.close() }; secondary.removeAll() }
+    public func stop() {
+        primary.hide()
+        for panel in secondary.values { panel.close() }
+        secondary.removeAll()
+    }
 }

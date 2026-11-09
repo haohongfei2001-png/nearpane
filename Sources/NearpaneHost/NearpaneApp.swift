@@ -276,6 +276,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         guard let host else { return }
         settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,screens:SystemScreens.geometry(),domains:modules,
             requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
+            dismissSpaces: { [weak self] id in self?.panels?.dismiss(id); self?.updatePanels() },
             placementChanged: { [weak self] in self?.updatePanels() }))
     }
 

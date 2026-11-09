@@ -110,9 +110,17 @@ public final class HostSession {
     }
 
     public func setDisplaySettings(_ value: DisplaySettings, id: String) {
-        guard isRunning, !configurationProtected, configuration.displays[id] != value else { return }
+        guard configuration.displays[id] != value else { return }
         var next = configuration
         next.displays[id] = value
+        persistSettings(next)
+    }
+    public func setWorkspacePreferences(_ value: WorkspacePreferences) {
+        var next = configuration; next.workspaces = value
+        persistSettings(next)
+    }
+    private func persistSettings(_ next: HostConfiguration) {
+        guard isRunning, !configurationProtected else { return }
         do {
             try store.save(next.validated())
             configuration = next
@@ -128,7 +136,7 @@ public final class HostSession {
         guard isRunning, !configuration.surfaceHidden, !providerFailed, desktopPauses.isEmpty,
               let snapshot = bus.desktop, workspaceMode.mode == .native else { return nil }
         return NativeSpacesProvider().projection(snapshot, preferredDisplay: primary, settings: configuration.displays,
-                                                 edge: configuration.edge, date: now, uptime: uptime)
+                                                 edge:configuration.edge,date:now,uptime:uptime,preferences:configuration.workspaces)
     }
     public func pressWorkspace(_ row: WorkspaceID, window: ManagedWindowID?, x: Double, y: Double, snapshot: WorkspaceSnapshot) {
         workspaceIssue = nil

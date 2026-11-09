@@ -12,7 +12,10 @@ public struct TrayLayout {
     public let contentHeight: CGFloat
     public let imageViewport: CGFloat
 
-    public init(ids: [UUID], size: CGSize, captureEntry: Bool, expanded: Bool, settings: DisplaySettings = .init()) {
+    public init(ids: [UUID], size: CGSize, captureEntry: Bool, expanded: Bool) {
+        self.init(ids:ids,size:size,captureEntry:captureEntry,expanded:expanded,settings:.init())
+    }
+    public init(ids: [UUID], size: CGSize, captureEntry: Bool, expanded: Bool, settings: DisplaySettings) {
         let w = max(0,size.width), h = max(0,size.height)
         columnGap = min(settings.points(.columnGap,in:w),min(w,h)/8)
         rowGap = min(settings.points(.rowGap,in:h),min(w,h)/8)

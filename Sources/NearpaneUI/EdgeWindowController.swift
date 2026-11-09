@@ -6,7 +6,27 @@ public final class EdgePanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
+    var floatBounds: NSRect? { didSet { if floatBounds != oldValue { floatDrag = nil } } }
+    var floatMoved: ((NSPoint) -> Void)?
+    fileprivate var draggingFloating: Bool { floatDrag != nil }
+    fileprivate func cancelFloatingDrag() { floatDrag = nil }
+    private var floatDrag: (origin:NSPoint, pointer:NSPoint)?
     public override func sendEvent(_ event: NSEvent) {
+        if let bounds = floatBounds {
+            if event.type == .leftMouseDown, event.modifierFlags.contains(.option) {
+                floatDrag = (frame.origin,convertPoint(toScreen:event.locationInWindow)); return
+            }
+            if let start = floatDrag, event.type == .leftMouseDragged || event.type == .leftMouseUp {
+                let p = convertPoint(toScreen:event.locationInWindow)
+                let x = min(bounds.maxX-frame.width,max(bounds.minX,start.origin.x+p.x-start.pointer.x))
+                let y = min(bounds.maxY-frame.height,max(bounds.minY,start.origin.y+p.y-start.pointer.y))
+                setFrameOrigin(.init(x:x,y:y))
+                if event.type == .leftMouseUp {
+                    floatDrag = nil; floatMoved?(.init(x:frame.minX-bounds.minX,y:frame.minY-bounds.minY))
+                }
+                return
+            }
+        }
         if event.type == .leftMouseDown, !isKeyWindow, let content = contentView,
            let text = content.hitTest(content.convert(event.locationInWindow, from: nil)) as? NSTextView,
            text.isEditable {
@@ -30,6 +50,8 @@ public final class EdgeWindowController: NSWindowController {
     private var presentationAllowed = true
     private var captureSuppressed = false
     public private(set) var hasPlacement = false
+    public private(set) var requestedFrame: NSRect?
+    private var placedFrame: NSRect?
     public init(host: HostSession, modules: EmbeddedModules? = nil) {
         self.host = host; self.modules = modules
         let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
@@ -87,6 +109,17 @@ public final class EdgeWindowController: NSWindowController {
         let config = host.configuration.displays[screen.id] ?? .init()
         display.id = screen.id; display.primaryID = primary
         display.secondary = screen.id != primary; display.content = content
+        let floating = display.secondary && config.placement == .floating
+        if let panel = window as? EdgePanel {
+            let safe = screen.visibleFrame
+            panel.floatBounds = floating ? NSRect(x:safe.x,y:safe.y,width:safe.width,height:safe.height) : nil
+            panel.floatMoved = { [weak host] point in
+                guard let host else { return }
+                var next = host.configuration.displays[screen.id] ?? .init()
+                next.floatingPosition = .init(x:point.x,y:point.y)
+                host.setDisplaySettings(next,id:screen.id)
+            }
+        }
         presentationAllowed = content != .hidden
         guard let full = config.panel(on:screen, fallbackEdge:host.configuration.edge) else {
             hasPlacement = false; hide(); return
@@ -98,11 +131,17 @@ public final class EdgeWindowController: NSWindowController {
         let height = h.voice + h.tray + h.spaces + Double(max(0,count-1)) * h.gap
         display.referenceHeight = full.height
         guard let r = config.panel(on:screen, fallbackEdge:host.configuration.edge,
-                                   heightFraction:content == .hidden ? 1 : height / full.height) else {
+                                   heightFraction:content == .hidden ? 1 : height / full.height,floating:floating) else {
             hasPlacement = false; hide(); return
         }
         let frame = NSRect(x:r.x, y:r.y, width:r.width, height:r.height)
-        if window?.frame != frame { window?.setFrame(frame, display:false) }
+        // AppKit can round a fractional point when placing an NSPanel. Remember both values:
+        // repeating the same request every observation tick would keep resizing that panel.
+        if (window as? EdgePanel)?.draggingFloating != true && (requestedFrame != frame || window?.frame != placedFrame) {
+            window?.setFrame(frame,display:false)
+            requestedFrame = frame
+            placedFrame = window?.frame
+        }
         hasPlacement = true
     }
 
@@ -112,7 +151,10 @@ public final class EdgeWindowController: NSWindowController {
         modules?.setInteractionHidden(false)
         if window?.isVisible == false { window?.orderFront(nil) }
     }
-    public func hide() { modules?.setInteractionHidden(true); window?.orderOut(nil) }
+    public func hide() {
+        (window as? EdgePanel)?.cancelFloatingDrag()
+        modules?.setInteractionHidden(true); window?.orderOut(nil)
+    }
 }
 
 @MainActor

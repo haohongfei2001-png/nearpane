@@ -18,6 +18,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     /// Missing in early v1 configurations, which always opened visible.
     public var surfaceHidden: Bool = false
     public var experimentalSpaceObservation = false
+    public var workspaces = WorkspacePreferences()
     public var displays: [String: DisplaySettings] = [:]
     public var modules: [ModulePreference] = []
     public var fixture: DesktopFixture = .internalScopes3Plus1
@@ -31,6 +32,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         preferredDisplayID = try c.decodeIfPresent(String.self, forKey: .preferredDisplayID)
         surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
         experimentalSpaceObservation = try c.decodeIfPresent(Bool.self, forKey: .experimentalSpaceObservation) ?? false
+        workspaces = try c.decodeIfPresent(WorkspacePreferences.self,forKey:.workspaces) ?? .init()
         displays = try c.decodeIfPresent([String: DisplaySettings].self, forKey: .displays) ?? [:]
         modules = try c.decode([ModulePreference].self, forKey: .modules)
         fixture = try c.decode(DesktopFixture.self, forKey: .fixture)
@@ -38,8 +40,8 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
 
     public func validated() throws -> Self {
         guard version == Self.schemaVersion else { throw ConfigurationError.unsupportedVersion }
-        guard displays.count <= 64, displays.allSatisfy({ key, value in
-            !key.isEmpty && key.count <= 120 && value.measures.values.allSatisfy(\.valid)
+        guard workspaces.excludedApps.allSatisfy({ !$0.isEmpty && $0.count <= 255 }), displays.count <= 64, displays.allSatisfy({ key, value in
+            !key.isEmpty && key.count <= 120 && value.toolAnchor?.anchor.geometry.isValid != false && value.floatingPosition?.x.isFinite != false && value.floatingPosition?.y.isFinite != false && value.measures.values.allSatisfy(\.valid)
         }), modules.count <= 100,
               Set(modules.map(\.id)).count == modules.count,
               modules.allSatisfy({ !$0.id.isEmpty && $0.id.count <= 120 }),
@@ -79,6 +81,7 @@ public final class FileConfigurationStore: ConfigurationStore {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(value)
+        guard data.count <= 128 * 1024 else { throw ConfigurationError.invalid }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: url, options: .atomic)
     }

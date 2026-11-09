@@ -34,19 +34,20 @@ struct DesktopSurface: View {
                                 let desired = settings.points(.spaceRowHeight,in:available) * Double(rows)
                                 let canvasHeight = max(1,desired)
                                 ScrollView(.vertical) {
-                                    let bounds = SurfaceRect(x:pad,y:pad,width:width-pad*2,height:canvasHeight-pad*2)
+                                    let bounds = SurfaceRect(x:(size.size.width-width)/2+pad,y:pad,width:width-pad*2,height:canvasHeight-pad*2)
                                     if let preview = DesktopPreview(snapshot:snapshot,displayID:displayID,viewport:bounds,now:tick.date,
-                                        uptime:uptime,restrictToDisplay:true,rowGap:settings.points(.spaceRowGap,in:available)) {
+                                        uptime:uptime,restrictToDisplay:true,rowGap:settings.points(.spaceRowGap,in:available),
+                                        rowViewport:.init(width:size.size.width,height:canvasHeight)) {
                                         drawing(preview)
                                             .overlay {
                                                 if let display { WorkspacePointerSurface(host:host,preview:preview,sample:snapshot,display:display) }
                                             }
-                                            .frame(width:width,height:canvasHeight)
+                                            .frame(width:size.size.width,height:canvasHeight)
                                     }
                                 }.frame(height:height)
                             }
                             Text(host.workspaceIssue.map { issue in
-                                issue == .capacity ? issue.rawValue : "当前无法执行工作空间操作"
+                                issue == .minimumSize ? "窗口最小尺寸超出可用区域" : "当前无法执行工作空间操作"
                             } ?? (native.rows.contains(where: { $0.displayID == displayID }) ? "已确认的当前空间" : "此屏可见窗口 · 空间未确认"))
                                 .font(settings.measures[.labelSize].map { .system(size:$0.points(in:display?.referenceHeight ?? 600)) } ?? .caption2).foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)

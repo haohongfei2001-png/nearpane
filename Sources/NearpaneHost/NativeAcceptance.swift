@@ -112,7 +112,7 @@ struct NativeAcceptanceSession {
         let sample: @MainActor (String) -> Void = { [weak self, weak host, weak modules, weak surface] kind in
             guard let self, let host, let modules, let window = surface?.window else { return }
             let expected = SurfacePlacement.resolve(screens: screens(), preferredID: host.configuration.preferredDisplayID,
-                                                    edge: host.configuration.edge)
+                                                    edge:host.configuration.edge,settings:host.configuration.displays)
             let layoutMatches = expected.map { abs(window.frame.width - $0.width) <= 1 && abs(window.frame.height - $0.height) <= 1
                 && abs(window.frame.minX - $0.x) <= 1 && abs(window.frame.minY - $0.y) <= 1 } ?? false
             let voice: String

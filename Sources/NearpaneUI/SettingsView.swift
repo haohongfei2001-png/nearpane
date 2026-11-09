@@ -6,9 +6,11 @@ public struct SettingsView: View {
     private let host: HostSession
     private let domains: EmbeddedModules?
     private let screens: [ScreenGeometry]
+    private let dismissSpaces: (String) -> Void
     private let requestSecondary: (String) -> Void
     private let placementChanged: () -> Void
-    public init(host: HostSession, screens: [ScreenGeometry], domains: EmbeddedModules? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+    public init(host: HostSession, screens: [ScreenGeometry], domains: EmbeddedModules? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+        self.dismissSpaces = dismissSpaces
         self.requestSecondary = requestSecondary
         self.domains = domains; self.host = host; self.screens = screens; self.placementChanged = placementChanged
     }
@@ -48,7 +50,8 @@ public struct SettingsView: View {
             }
             #endif
             appearance.tabItem { Text("显示器") }
-            WorkspaceDisplaySettings(host:host,screens:screens,request:requestSecondary).tabItem { Text("尺寸与呈现") }
+            WorkspaceDisplaySettings(host:host,screens:screens,request:requestSecondary,dismiss:dismissSpaces).tabItem { Text("尺寸与呈现") }
+            WorkspacePolicySettings(host:host).tabItem { Text("窗口规则") }
             desktopOptions.tabItem { Text("空间观察") }
             mockSettings.tabItem { Text("Mock & diagnostics") }
         }

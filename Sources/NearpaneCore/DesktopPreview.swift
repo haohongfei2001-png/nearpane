@@ -27,7 +27,7 @@ public struct DesktopPreview: Sendable {
     public let rows: [DesktopPreviewRow]
 
     public init?(snapshot: DesktopSnapshot, displayID: String?, viewport: SurfaceRect, now: Date, uptime: Double,
-                 restrictToDisplay: Bool = false, rowGap: Double = 6) {
+                 restrictToDisplay: Bool = false, rowGap: Double = 6, rowViewport: SurfaceRect? = nil) {
         guard snapshot.isStructurallyValid, snapshot.nativeIsFresh(now: now, uptime: uptime), let native = snapshot.native,
               !native.windowLimitReached, viewport.geometry.isValid else { return nil }
         let plans: [(String, DesktopRowKind)]
@@ -63,7 +63,12 @@ public struct DesktopPreview: Sendable {
                                       m.minimized == false && m.fullScreen == false))
                 if belongs { shapes.append(.init(id: w.id, frame: SurfaceRect(geometry), confidence: w.confidence)) }
             }
-            result.append(.init(displayID: display.id, kind: plan.1, rowFrame: SurfaceRect(slot), desktop: SurfaceRect(map.content),
+            let rowFrame = rowViewport.map { full in
+                let rowHeight = (full.height - Double(plans.count - 1) * gap) / Double(plans.count)
+                return SurfaceRect(x:full.x,y:full.y + Double(index) * (rowHeight + gap),width:full.width,height:rowHeight)
+            } ?? SurfaceRect(slot)
+            guard rowFrame.geometry.isValid else { return nil }
+            result.append(.init(displayID: display.id, kind: plan.1, rowFrame:rowFrame, desktop: SurfaceRect(map.content),
                                 windows: shapes, hasUnassignedWindows: unknown, regions: regions))
         }
         self.snapshot = snapshot; rows = result

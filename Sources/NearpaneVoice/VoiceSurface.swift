@@ -15,7 +15,8 @@ public struct VoiceSurface: View {
     @ViewState private var releaseEditorFocus: (() -> Void)?
     private let pasteboard: NSPasteboard
     private let settings: DisplaySettings
-    public init(_ module: VoiceModule, pasteboard: NSPasteboard = .general, settings: DisplaySettings = .init()) {
+    public init(_ module: VoiceModule, pasteboard: NSPasteboard = .general) { self.init(module,pasteboard:pasteboard,settings:.init()) }
+    public init(_ module: VoiceModule, pasteboard: NSPasteboard, settings: DisplaySettings) {
         self.settings = settings
         self.module = module
         self.pasteboard = pasteboard

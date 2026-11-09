@@ -48,7 +48,7 @@ for configuration in debug release; do
   isolated "$offline" "$configuration" env NEARPANE_OFFLINE=1 scripts/build-app.sh "$configuration"
 done
 isolated "$offline" receipt-policy env NEARPANE_RECEIPT_TEST_BINARY="$run/products/debug/Nearpane.app/Contents/MacOS/NearpaneHost" python3 -B scripts/test-native-acceptance.py
-python3 scripts/verify-regressions.py "$run/logs"
+python3 scripts/verify-regressions.py --workspaces "$run/logs"
 scripts/verify-packages.py --deny-cache "$build_root" "$run"/products/{debug,release}/Nearpane.app >"$run/logs/packages.log"
 /usr/bin/shasum -a 256 "$run"/logs/*.log "$run"/products/{debug,release}/Nearpane.app/Contents/MacOS/NearpaneHost >"$run/SHA256SUMS"
 /usr/bin/grep 'Test run with' "$run"/logs/{foundation,integrated}.log

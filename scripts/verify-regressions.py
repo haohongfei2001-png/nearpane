@@ -22,7 +22,7 @@ def node_count(log, minimum, label):
     return total
 
 
-def verify(directory):
+def verify(directory, workspaces=False):
     def read(name):
         return (directory / (name + ".log")).read_text()
     counts = {}
@@ -31,6 +31,11 @@ def verify(directory):
         matches = re.findall(r"Test run with (\d+) tests in \d+ suites passed", log)
         passed(len(matches) == 1 and int(matches[0]) >= minimum and not re.search(r"Test .* skipped", log), name)
         counts[name] = int(matches[0])
+        if workspaces:
+            passed(counts[name] >= minimum + 26, name + " workspace regressions")
+            for suite in ("WorkspaceLayoutTests", "WorkspaceInteractionTests", "WorkspacePolicyTests",
+                          "VirtualRecoveryTests", "WorkspaceProjectionTests", "WorkspacePanelTests"):
+                passed("Suite " + suite + " passed" in log, name + " " + suite)
         for suite in ("SpacePreviewTests", "SpaceInventoryTests", "GeometryTests", "IdentityTests",
                       "NativeDesktopPreviewTests", "NativeDesktopProviderTests"):
             passed("Suite " + suite + " passed" in log, name + " " + suite)
@@ -50,8 +55,10 @@ def verify(directory):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("logs", type=Path)
+    parser.add_argument("--workspaces", action="store_true", help="also require the ADR-010–013 implementation suites")
+    args = parser.parse_args()
     try:
-        for suite, number in verify(parser.parse_args().logs).items():
+        for suite, number in verify(args.logs, args.workspaces).items():
             print(f"{suite}: {number} passed")
     except (OSError, ValueError) as error:
         parser.exit(1, str(error) + "\n")

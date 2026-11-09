@@ -11,7 +11,8 @@ public struct TraySurface: View {
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
     @Namespace private var morph
     let settings: DisplaySettings
-    public init(_ module: TrayModule, left: Bool, settings: DisplaySettings = .init()) {
+    public init(_ module: TrayModule, left: Bool) { self.init(module,left:left,settings:.init()) }
+    public init(_ module: TrayModule, left: Bool, settings: DisplaySettings) {
         self.module = module; self.left = left; self.settings = settings
     }
 

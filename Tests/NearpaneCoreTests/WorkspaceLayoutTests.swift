@@ -1,17 +1,20 @@
 import Foundation
 import Testing
+
 @testable import NearpaneCore
 
 struct WorkspaceLayoutTests {
     let area = SurfaceRect(x: -700, y: 17, width: 700, height: 1000)
     func member(_ i: Int) -> ManagedMember {
-        .init(.init(pid: 11, launch: 200, number: UInt32(i), element: UUID()), minimumWidth: 20, minimumHeight: 20, canResize: true)
+        .init(
+            .init(pid: 11, launch: 200, number: UInt32(i), element: UUID()), minimumWidth: 20, minimumHeight: 20,
+            canResize: true)
     }
 
-    @Test func everyAdmissionCoversWorkRectAndNinthPreservesEveryMember() throws {
+    @Test func everyAdmissionCoversWorkRectIncludingNinthThroughSeventeenth() throws {
         var layout = ManagedWindowTiler(workspace: .virtual(UUID()))
         #expect(try layout.frames(in: area).isEmpty)
-        for n in 1...8 {
+        for n in 1...17 {
             layout = try layout.adding(member(n), in: area)
             let frames = try layout.frames(in: area)
             #expect(frames.count == n)
@@ -25,15 +28,17 @@ struct WorkspaceLayoutTests {
             switch n {
             case 1: #expect(shares == [1])
             case 2: #expect(shares == [0.5, 0.5] && ordered[0].x == area.x)
-            case 3: #expect(shares == [0.25,0.25,0.5] && ordered[2].x == area.x && ordered[1].y > ordered[0].y)
+            case 3: #expect(shares == [0.25, 0.25, 0.5] && ordered[2].x == area.x && ordered[1].y > ordered[0].y)
             case 4: #expect(shares == Array(repeating: 0.25, count: 4))
-            case 5: #expect(shares == [0.125,0.125,0.25,0.25,0.25])
+            case 5: #expect(shares == [0.125, 0.125, 0.25, 0.25, 0.25])
             case 8: #expect(shares == Array(repeating: 0.125, count: 8))
+            case 9: #expect(shares[0] == 1.0 / 16 && shares[8] == 1.0 / 16)
+            case 16: #expect(shares == Array(repeating: 1.0 / 16, count: 16))
+            case 17: #expect(shares[0] == 1.0 / 32 && shares[16] == 1.0 / 32)
             default: break
             }
         }
-        #expect(throws: WorkspaceFailure.capacity) { try layout.adding(member(9), in: area) }
-        #expect(layout.members.map(\.id.number) == Array(1...8).map(UInt32.init))
+        #expect(layout.members.map(\.id.number) == Array(1...17).map(UInt32.init))
     }
 
     @Test func userPartitionPersistsButJoiningThirdResetsTemplate() throws {
@@ -44,8 +49,11 @@ struct WorkspaceLayoutTests {
         let saved = try JSONDecoder().decode(ManagedWindowTiler.self, from: JSONEncoder().encode(layout))
         #expect(try saved.frames(in: area)[ids[1].id]?.height == 700)
         layout = try saved.adding(ids[2], in: area)
-        #expect(try layout.frames(in: area)[ids[2].id] == SurfaceRect(x: -700,y: 17,width: 350,height: 1000))
-        #expect(try layout.frames(in: area)[ids[0].id] == SurfaceRect(x: -350,y: 17,width: 350,height: 500))
+        #expect(try layout.frames(in: area)[ids[2].id] == SurfaceRect(x: -700, y: 17, width: 350, height: 1000))
+        #expect(try layout.frames(in: area)[ids[0].id] == SurfaceRect(x: -350, y: 17, width: 350, height: 500))
+        let restored = try layout.removing(ids[2].id, in: area)
+        #expect(try restored.frames(in: area) == saved.frames(in: area))
+        #expect(restored.userAdjusted)
         #expect(try layout.removing(ids[1].id, in: area).members.map(\.id) == [ids[0].id, ids[2].id])
     }
 
@@ -63,11 +71,13 @@ struct WorkspaceLayoutTests {
     @Test func workRectSurvivesEveryPresentationAndInternalEdit() throws {
         var settings = DisplaySettings()
         func work() throws -> DesktopWorkArea {
-            try DesktopWorkArea(display: "portrait", screen: .init(x:-800, y:0,width:800,height:1280),
-                                usable: .init(x:-800,y:17,width:800,height:1240), primary: true, settings: settings, fallbackEdge: .left)
+            try DesktopWorkArea(
+                display: "portrait", screen: .init(x: -800, y: 0, width: 800, height: 1280),
+                usable: .init(x: -800, y: 17, width: 800, height: 1240), primary: true, settings: settings,
+                fallbackEdge: .left)
         }
         let baseline = try work()
-        for _ in [PanelContent.full,.compact,.voiceOnly,.trayOnly,.spacesOnly,.hidden] {
+        for _ in [PanelContent.full, .compact, .voiceOnly, .trayOnly, .spacesOnly, .hidden] {
             settings.measures[.textSize] = .init(21)
             #expect(try work() == baseline)
         }
@@ -78,19 +88,24 @@ struct WorkspaceLayoutTests {
     }
 
     @Test func singleResidenceAndSecondaryPoliciesRemainIndependent() {
-        let screens = ["A","B","C"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
-        var coord = MultiDisplayPresentationCoordinator(), pinned = DisplaySettings(), auto = DisplaySettings()
-        pinned.policy = .pinned; auto.policy = .contextualAuto
+        let screens = ["A", "B", "C"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
+        var coord = MultiDisplayPresentationCoordinator()
+        var pinned = DisplaySettings()
+        var auto = DisplaySettings()
+        pinned.policy = .pinned
+        auto.policy = .contextualAuto
         let multiple = DisplayDemand(spaces: 2, complete: true)
         func plans(_ settings: [String: DisplaySettings], _ d: DisplayDemand) -> [PanelContent] {
-            coord.resolve(screens: screens, preferred: "B", settings: settings, demand: ["A":d, "B":d, "C":d],
-                          hidden: false, voice: true, tray: true, spacesEnabled: true, uptime: 10).map(\.content)
+            coord.resolve(
+                screens: screens, preferred: "B", settings: settings, demand: ["A": d, "B": d, "C": d],
+                hidden: false, voice: true, tray: true, spacesEnabled: true, uptime: 10
+            ).map(\.content)
         }
-        #expect(plans([:],multiple) == [.hidden,.full,.hidden])
+        #expect(plans([:], multiple) == [.hidden, .full, .hidden])
         coord.request("C")
-        #expect(plans(["A":auto],multiple) == [.spacesOnly,.full,.spacesOnly])
+        #expect(plans(["A": auto], multiple) == [.spacesOnly, .full, .spacesOnly])
         coord.dismiss("C")
-        #expect(plans(["C":pinned],.init(spaces:1,windows:1,complete:true)) == [.hidden,.compact,.spacesOnly])
-        #expect(plans(["C":pinned],.init(blocked:true)) == [.hidden,.hidden,.hidden])
+        #expect(plans(["C": pinned], .init(spaces: 1, windows: 1, complete: true)) == [.hidden, .compact, .spacesOnly])
+        #expect(plans(["C": pinned], .init(blocked: true)) == [.hidden, .hidden, .hidden])
     }
 }
