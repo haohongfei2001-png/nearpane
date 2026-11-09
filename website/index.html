@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f9fc">
+  <meta name="description" content="Nearpane 为 Mac 而造。让桌面空间、连续语音、截图暂存与常用工具，在屏幕的一侧自然相连。">
+  <title>Nearpane — 整个桌面。一侧掌握。</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="canonical" href="https://nearpane.com/">
+</head>
+<body>
+  <a class="skip" href="#main">跳转至主要内容</a>
+  <header class="header" id="top">
+    <div class="header-inner">
+      <a href="#top" class="wordmark" aria-label="Nearpane 首页">nearpane<span class="pipe" aria-hidden="true"></span></a>
+      <nav class="main-nav" aria-label="网站导航">
+        <a href="#spaces">桌面与窗口</a>
+        <a href="#capture">表达与取用</a>
+        <a href="#custom">你的组合</a>
+      </nav>
+      <a class="header-link" href="https://github.com/haohongfei2001-png/nearpane" target="_blank" rel="noopener">关注开发进展 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="command">⌘</span> 为 Mac 而造的常驻桌面交互层</p>
+        <h1>整个桌面。<br>一侧掌握<span class="fullstop">。</span></h1>
+        <p class="hero-description">看见各个空间，回到任一窗口。<br>语音、截图和常用工具，也在这一侧。</p>
+        <a class="button button-dark" href="#spaces">看看它如何工作 <span aria-hidden="true">↓</span></a><span class="hero-status"><span class="dot-small"></span> 正在打造 · macOS</span>
+        <p class="hero-footnote"><span class="orange-rule"></span>窗口在变。<br>这一侧，一直在。</p>
+      </div>
+      <div class="hero-media">
+        <div class="hero-machine">
+          <div class="mac-surface">
+            <div class="mac-glow"></div>
+            <div class="mac-status">星期一&nbsp; 09:41</div>
+            <div class="mac-workspace">
+              <div class="code-header"><div class="code-lights"><i></i><i></i><i></i></div><span class="code-filename" id="hero-file-name">Workspace.swift</span><span class="code-actions">⌕ &nbsp; •••</span></div>
+              <div class="code-tabs"><span class="code-tab selected">Workspace.swift</span><span class="code-tab">Geometry.swift</span></div>
+              <div class="editor-shell">
+                <div class="editor-gutter" aria-hidden="true">01<br>02<br>03<br>04<br>05<br>06<br>07<br>08<br>09<br>10<br>11<br>12<br>13<br>14<br>15<br>16</div>
+                <pre class="editor-code" id="hero-editor"><span class="c-comment">// Desktop / Workspace.swift</span>
+
+<span class="c-purple">import</span> AppKit
+
+<span class="c-purple">struct</span> WorkspaceSnapshot {
+    <span class="c-purple">let</span> id: WorkspaceID
+    <span class="c-purple">let</span> windows: [Window]
+    <span class="c-purple">let</span> display: Display
+}
+
+<span class="c-comment">// Keep the original geometry.</span>
+<span class="c-purple">func</span> preview(in bounds: CGRect) {
+    <span class="c-purple">for</span> window <span class="c-purple">in</span> windows {
+        <span class="c-purple">let</span> frame = window.frame
+        render(window, at: frame)
+    }
+}
+
+<span class="c-comment">// One place. The same windows.</span></pre>
+              </div>
+              <div class="code-footer">⌁ &nbsp; Swift &nbsp; UTF-8 <span>Nearpane</span></div>
+            </div>
+            <div class="sidecar" id="sidecar" aria-label="Nearpane 产品演示侧栏">
+              <div class="voice-mini">
+                <p id="voice-copy">先把这次的结果留下来。接下来，对照细节，看看不同参数下的变化。</p>
+                <div class="voice-mini-controls"><button type="button" class="tiny-icon" id="copy-voice" aria-label="复制语音文字">▣</button><button type="button" class="voice-state" id="toggle-voice" aria-label="开始或暂停语音演示"><span class="voice-state-core"></span></button></div>
+              </div>
+              <div class="tray-mini" aria-label="截图暂存演示">
+                <button class="thumb thumb-chart" type="button" data-attachment="chart" aria-label="把图表添加到当前草稿"><svg viewBox="0 0 92 60" aria-hidden="true"><path d="M8 49 L24 42 36 44 51 25 65 21 85 8" fill="none" stroke="#8981d6" stroke-width="2"/><path d="M8 50 L24 44 36 42 51 30 65 29 85 17" fill="none" stroke="#bec6ea" stroke-width="1.6"/></svg></button>
+                <button class="thumb thumb-paper" type="button" data-attachment="paper" aria-label="把文档添加到当前草稿"><span class="paper-lines"><b></b><i></i><i></i><i></i></span></button>
+                <button class="thumb thumb-code" type="button" data-attachment="code" aria-label="把代码截图添加到当前草稿"><span>&lt; / &gt;<br>_ _ _</span></button>
+                <button class="thumb thumb-add" type="button" aria-label="查看截图取用演示" id="tray-action">⌗</button>
+              </div>
+              <div class="space-stack" id="space-stack" aria-label="演示工作空间">
+                <button class="space-row is-selected" data-space="0" type="button" aria-label="切换到研究工作空间" aria-pressed="true"><span class="space-visual mode-study"><i></i><i></i></span></button>
+                <button class="space-row" data-space="1" type="button" aria-label="切换到写作工作空间" aria-pressed="false"><span class="space-visual mode-write"><i></i><i></i></span></button>
+                <button class="space-row" data-space="2" type="button" aria-label="切换到设计工作空间" aria-pressed="false"><span class="space-visual mode-design"><i></i><i></i><i></i></span></button>
+                <button class="space-row" data-space="3" type="button" aria-label="切换到开发工作空间" aria-pressed="false"><span class="space-visual mode-build"><i></i><i></i></span></button>
+              </div>
+            </div>
+          </div>
+          <div class="hero-device-link"><button type="button" id="try-space">↗&nbsp; 试试切换一个空间</button><span id="demo-feedback">点击右侧任一空间预览</span></div>
+        </div>
+        <div class="hero-media-bottom"><span>↑&nbsp; 用手势感受切换</span><a href="#spaces">查看完整桌面 ↗</a></div>
+      </div>
+    </section>
+
+    <section class="stage-dark" id="spaces">
+      <div class="stage-dark-inner">
+        <div class="section-head section-head-dark">
+          <div><p class="kicker">01 / 桌面与空间</p><h2>一眼看全。<br>一步回到。</h2></div>
+          <div class="section-intro">整个工作现场，不再藏在一层层窗口后面。<br>看见它，点一下，就回到那里。</div>
+        </div>
+        <div class="desk-demo" aria-label="完整空间切换演示">
+          <div class="desk-bar"><div class="desk-mac-dots"><i></i><i></i><i></i></div><span>Nearpane · Workspace Preview</span><span>09:41</span></div>
+          <div class="desk-windows" id="desk-windows">
+            <div class="desk-window desk-window-a"><div class="window-top"><span class="traffic"></span><span>研究资料 · 文稿</span></div><div class="paper-editor"><p class="paper-title">从观察到判断</p><p class="paper-meta">2026 / Research Notes</p><p>整理已有结果，继续核对不同条件下的变化。</p><div class="paper-placeholder-chart"><svg viewBox="0 0 430 140" preserveAspectRatio="none"><path d="M0 130 H430 M0 90 H430 M0 50 H430 M0 10 H430" stroke="#e4e6f2"/><path d="M5 118 C55 117 70 83 120 81 S211 72 259 60 S358 42 427 13" stroke="#8c84db" stroke-width="3" fill="none"/><path d="M5 126 C55 124 70 95 120 90 S211 82 259 73 S358 51 427 27" stroke="#b8bdea" stroke-width="2" fill="none"/></svg></div><p class="paper-bottom-note">下一步：与上一组结果对照</p></div></div>
+            <div class="desk-window desk-window-b"><div class="window-top"><span class="traffic"></span><span>讨论 · 回复</span></div><div class="discussion"><p class="discussion-question">哪些变化最值得进一步核对？</p><div class="discussion-answer">先检查右侧的差异，再对照完整结果。把截图放进来，后面继续讨论。</div><div class="discussion-chart"><svg viewBox="0 0 380 150"><path d="M0 140 H380 M0 90 H380 M0 40 H380" stroke="#e5e9f3"/><path d="M8 128 Q80 112 140 81 T280 35 T372 14" fill="none" stroke="#8d86dc" stroke-width="3"/></svg></div><p class="discussion-input">继续输入… <span>◉</span></p></div></div>
+            <div class="desk-sidebar-preview" aria-hidden="true"><div class="dsp-voice"></div><div class="dsp-thumbs"><b></b><b></b></div><div class="dsp-space"><b></b><b></b><b></b></div></div>
+          </div>
+          <div class="desk-bottom"><span>↳&nbsp; 当前工作空间</span><span>同一组窗口 · 同步返回</span></div>
+        </div>
+        <div class="desk-picker" role="group" aria-label="示例工作空间"><button type="button" class="desk-pick selected" data-desk="0">研究与讨论</button><button type="button" class="desk-pick" data-desk="1">阅读与写作</button><button type="button" class="desk-pick" data-desk="2">设计与开发</button></div>
+        <div class="section-bottom"><h3>熟悉的空间，<br>或自己的工作区。</h3><p>原生 Spaces 与 Nearpane Workspaces，两种方式都围绕你的工作展开。窗口的布局、比例和归属，始终由你掌控。</p></div>
+      </div>
+    </section>
+
+    <section class="features" id="capture">
+      <div class="feature-intro"><p class="kicker">02 / 表达与取用</p><h2>一句话，一张图。<br>接着做。</h2><p>想到哪里，说到哪里。看到什么，截下什么。你的表达和画面，始终在手边。</p></div>
+      <div class="feature-row feature-voice">
+        <div class="feature-text"><p class="feature-label">Saytile · 连续表达</p><h3>想到哪儿，<br>说到哪儿。</h3><p>一份连续的文字流，记录思考的来路。说完自然回到待命，下一句可以直接接上。</p><div class="micro-feature"><span class="orange-rule"></span>不替你润稿，只留下你的话。</div></div>
+        <div class="feature-art voice-art"><div class="featured-voice"><p>先把这次的结果留下来。接下来，对照细节，看看不同参数下的变化。<span class="text-caret"></span></p><div class="featured-control"><span>▣</span><i><b></b><b></b><b></b><b></b><b></b></i></div></div><p class="art-caption">一段话还没说完，文字已经在这里。</p></div>
+      </div>
+      <div class="feature-row feature-screenshot">
+        <div class="feature-art capture-art"><div class="capture-floating"><div class="capture-mini-charts"><svg viewBox="0 0 190 110"><path d="M8 99 Q50 91 75 57 T180 16" stroke="#867cce" stroke-width="3" fill="none"/></svg><span class="capture-doc"></span></div><div class="capture-inserted"><span class="attachment-label">已附加到草稿</span><svg viewBox="0 0 150 62"><path d="M5 54 Q40 47 73 32 T145 6" stroke="#9288d7" stroke-width="2.5" fill="none"/></svg></div></div><p class="art-caption">截图暂存 · 点击附加 · 由你决定发送</p></div>
+        <div class="feature-text"><p class="feature-label">Riftlet · 画面取用</p><h3>看见，截下。<br>点一下，取用。</h3><p>参考、对比、反馈，不必在应用间反复寻找。截图先收在旁边，需要时再送进当前输入。</p><div class="micro-feature"><span class="orange-rule"></span>多张暂存，逐张取用。</div></div>
+      </div>
+    </section>
+
+    <section class="compose" id="custom">
+      <div class="compose-inner">
+        <div class="compose-copy"><p class="kicker">03 / 你的组合</p><h2>只留下，<br>对你有用的。</h2><p>空间、声音与画面默认在侧。需要时，你也可以按自己的习惯替换、重排常用模块。</p><div class="module-grid" aria-label="可用模块示例"><span>✧&nbsp; 便签</span><span>◈&nbsp; AI 助手</span><span>▤&nbsp; 待办</span><span>▦&nbsp; 日历</span><span>◷&nbsp; 时钟</span><span>☀&nbsp; 天气</span></div><a class="subtle-link" href="#last">了解完整愿景 <span>↗</span></a></div>
+        <div class="compose-visual"><div class="compose-ghost-left"><div class="compose-top">草稿 · 正在编辑 <span>•••</span></div><p>研究中的问题</p><span>先核对数据，再整理几个有意义的差异。</span><div class="compose-chart"><svg viewBox="0 0 340 130"><path d="M4 118 Q89 111 129 72 T336 15" fill="none" stroke="#a59ce6" stroke-width="2.5"/></svg></div></div><div class="compose-side"><div class="compose-voice-sample">先把比较的结果留下来。<span>●</span></div><div class="compose-mini-images"><i></i><i></i><i></i><i></i></div><div class="compose-small-rows"><i></i><i></i><i></i></div></div></div>
+      </div>
+    </section>
+    <section class="closing" id="last">
+      <div class="closing-top"><p class="kicker"><span class="orange-rule"></span> macOS · Native by design</p><div class="closing-body"><h2>在你工作的地方，<br>随时可用。</h2><div class="closing-action"><a class="button button-dark" href="https://github.com/haohongfei2001-png/nearpane" target="_blank" rel="noopener">关注 Nearpane <span>↗</span></a><p>正在开发中。<br>欢迎关注接下来的进展。</p></div></div></div>
+      <details class="faq"><summary>Nearpane 与 macOS 的调度空间有什么不同？</summary><p>Nearpane 将空间预览、连续语音和截图取用整合在同一处；完整产品将同时支持原生 Spaces 与 Nearpane 工作区。真实系统调度能力仍在研发验证中。</p></details>
+      <details class="faq"><summary>什么时候可以下载？</summary><p>当前还没有公开下载日期。工程进展可以通过 GitHub 项目查看。</p></details>
+      <details class="faq"><summary>这个网页演示会操作我的桌面吗？</summary><p>不会。这是官网中的可交互产品演示，不会读取或更改你电脑上的真实窗口和数据。</p></details>
+      <div class="closing-logo">nearpane<span></span></div>
+      <footer><span>© Nearpane</span><span>为 Mac 而造 · 正在开发</span><a href="#top">回到顶部 ↑</a></footer>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>
