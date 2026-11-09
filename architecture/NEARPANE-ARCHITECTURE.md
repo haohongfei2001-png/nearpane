@@ -182,7 +182,7 @@ Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，�
 
 ### 6.2 多屏呈现与工作区引擎分离（ADR-011）
 
-- **MultiDisplayPresentationCoordinator** 只管理每块显示器的角色（唯一 Primary Residence / 每屏最多一个 Secondary Space-only）、独立宽高、边缘、行密度、启停策略、唤出与焦点、显示器拔插/重连；不是另一套 Workspace 引擎。
+- **MultiDisplayPresentationCoordinator** 依显示器管理一个主驻留屏和各副屏的空间调度形态：副屏**默认 Docked**（持续预留独立 WorkRect，UI 隐藏仍不可被应用侵占），可选 **Floating**（无论显示与否都不预留，允许浮窗覆盖下方应用）。`panelVisiblePolicy` 与 `spacePanelPlacement` 必须为分开的状态维度；切换形态由用户设置显式触发单屏 WorkRect 调整。WorkspaceModeCoordinator 仍只负责 Native/Virtual 全局低频模式选择。
 - **WorkspaceModeCoordinator** 仍然全局选择 Native 或 Virtual，属于**低频设置**，首次使用默认 Native 且无强制模式选择向导。各屏 Surface 从同一 Workspace Snapshot 和 Window Identity/Geometry 服务订阅数据，按已验证的 display association 过滤；副屏不私自枚举或执行另一套窗口调度。
 - 唯一主表面承载 Saytile/Riftlet 及用户模块；副屏只具有空间调度界面，使用独立 AppKit presentation window，而非第二个 Host/ASR/截图队列。
 - 主屏全模块默认约 1/8 宽、3/8 工具与 5/8 空间区；**只有不存在多空间/多普通窗口调度需求时**，空间区可不展示，界面可缩短，但持久 WorkRect 不变；副屏尺寸独立。
@@ -198,12 +198,12 @@ Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，�
 - 初次使用加载视觉权威给定的默认 preset（主屏宽度约 1/8、分区约 3/8+5/8，以及各领域的确认尺寸）；用户在设置中精确输入、细步进微调并形成 override，不改变 preset 本身。支持预览、应用/取消、逐项/模块/显示器恢复默认。
 - 每个尺寸 override 独立存储并以稳定显示器标识归属；修改一个值不得覆写其他自定义值。表示单位使用 macOS 逻辑 point 与明确的可选百分比，适配显示器缩放、旋转和可用区域；本轮不实施持久化 schema。
 - 布局冲突要以滚动、分页、裁剪策略与明确反馈处理，不能无提示更改其他用户尺寸；界面尺寸受可用安全区域和基础可操作性的合理约束。
-- **两类尺寸改动必须区分**：① 调整完整主侧栏/固定副屏预留区实际宽度，会改变 WorkRect，需经权限和真实窗口编排产生新的物理 frame；② 仅调整缩略图、按钮、文字、间距等内部 UI 度量，只改变呈现，**不得**修改实际应用窗口。两者均保持 Space/Workspace 归属与领域数据不变；窗口缩略图等比缩放、Riftlet 图片 Fit。
+- **呈现设置与桌面占用必须分离**：修改显示器 Docked/Floating 形态或驻留保留宽度才改变 WorkRect 并可触发本屏窗口重排；仅调整缩略图/文字/按钮大小和 UI 显隐都不能修改普通应用 frame。所有切换保留用户自定义窗口布局和真实比例，禁用时安全恢复。
 
 ### 6.4 预留区域与自动平铺契约（ADR-012）
 
-- **DesktopWorkArea**：基于该显示器系统 `visibleFrame`/安全区和每屏**持久保存的预留边界**计算 WorkRect；非原生全屏主屏默认扣除约 1/8、余下约 7/8。完整 UI、只显示录音/截图/空间区、或 UI 完全隐藏时 WorkRect **一律不变**；唯有用户明确调整预留宽度、显示器有效边界改变或真正进入/退出原生全屏才更新边界。AppKit 不会替 Nearpane 修改系统 visibleFrame，实际避让需窗口写操作和验证。
-- **ManagedWindowTiler**：按 `displayIdentity + modeScopedWorkspaceId` 和加入序列 W1—W8 管理普通可调整主窗。默认 1 窗独占 WorkRect；2 窗各半；3 窗旧 W1/W2 在右半区上下平分、新 W3 在左半区；4 窗四分；5 窗 W1/W2 各 1/8、W5 1/4、W3/W4 各 1/4；6—8 窗继续渐进二分，**第九窗拒绝**。应用偏好/用户调节和最小尺寸约束必须满足无重叠、无越界；系统 modal/menu/受保护/不可调整 App 作为明确例外。
+- **DesktopWorkArea**：依据该屏 `visibleFrame`、用户独立持久配置的 `spacePanelPlacement` 和 `reservedRegion` 计算 WorkRect。主/副屏 Docked 时即使 UI 完全隐藏也持续预留，副屏 Floating 时无论浮窗显示与否都不扣除区域。只有**用户显式调整占用形态/宽度**、真实成员/显示器变化或进入/退出真正原生全屏才按需重新计算，UI 隐藏不能产生窗口 frame 写操作。
+- **ManagedWindowTiler / OverflowRouter**：按 `displayIdentity + modeScopedWorkspaceId` 以及 W1…Wn 的加入顺序管理普通主窗；**前 8 窗默认模板不变**（1 填满，2 各半，3 旧 W1/W2 右半区上下、新 W3 左半区，4 四分，5 旧 W1/W2 各 1/8、新 W5 占 1/4）。**8 是默认跨空间分流阈值，非硬上限**。设置支持 `overflowPolicy=createWorkspaceAboveThreshold`（默认，超额优先创建新合法 Workspace，若系统不支持则继续分割）和 `overflowPolicy=continuousSplit`（无限分割，不主动新建）；分割能力须遵守窗口实际最小尺寸/权限，16 也是示例而非限制。第三方 App 自行产生新窗采用同一策略，无法处理时保留可访问窗口并明确标记 overflow/unmanaged。
 - **观察与写分离**：获取权限、确认目标身份/能力、记录可恢复原 frame、执行窗口 resize/move、重读观察并确认成功；未执行或失败的请求必须返回 degraded/unmanaged，不得用理想布局画成已生效。
 - **FullscreenTransitionCoordinator**：系统原生全屏不使用 WorkRect 保留区，默认不显示完整侧栏和 Spaces。退出时尝试回到记录的源 Space/Workspace，并恢复普通平铺；“独立空间保留”是用户可选且需各模式、各系统 build 验证的 capability，不得直接宣称 Native 可以新建原生 Space。
 - **Mini Status Strip / FloatingToolSurface**：仅用户可配置、可主动点击后展现的轻量工具。浮层能拖动、记忆 per-display 位置、尽可能避让下方可确认按钮区域；不可在全屏自动浮出完整工具或抢焦点。隐藏 UI、录音暂停和停止采集分属不同状态。
@@ -215,11 +215,17 @@ Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，�
 
 ### 6.5 缩略窗口拖放、空间容量与 Presentational State（ADR-013）
 
-- **WorkspaceWindowDropController**：空间行的 click=切换整个 Space/Workspace；具体窗口缩略图的 drag=拖拽来源窗口，drop 到其他空间行才请求窗口成员迁移。独立手势阈值、目标身份、source membership、OS capabilities、容量（最多八窗）、revision 和回滚检查；UI preview/hover 不执行实际窗口写操作。
+- **WorkspaceWindowDropController**：空间行 click=切换整个 Space/Workspace；具体窗口缩略图 drag/drop=请求迁移成员；目标身份、source membership、OS capabilities、当前 `overflowPolicy`、版本与可恢复日志均须检查。UI hover 不执行窗口写操作。拖入已满默认阈值的空间不直接拒绝，而按模式尝试新建或在本空间继续分割，失败时安全保留来源窗口。
 - **IncrementalTilingLayout**：提供基于 W1—W8 的稳定渐进分区、用户拖动真实窗口换槽位/调分割线的操作与当前空间/应用 profile 持久化。两窗口已自定义时加入 W3，仍先使用 W1/W2 右侧上下、W3 左半区的三窗默认布局；随后允许用户继续调整。
 - **PresentationStateReducer**：输入实际 Space/Workspace 数量、受管理普通窗数量以及 Saytile/Riftlet 的展示需求，输出完整/仅语音/仅截图/仅空间/全部隐藏状态。若当前存在多个有效空间或多普通窗口，空间调度区不自动藏起；单空间单窗则可仅显示使用中的工具模块。**此状态机不得修改 WorkRect 或应用 window frame**。
 - **Fullscreen FloatingToolPlacement**：位置稳定优先，上次用户拖放位置为主锚点，只在可确认按钮/系统安全区实际被遮挡时做最小必要移动；无确认依据时用户自行调整，禁止持续追随鼠标。
 - **系统能力边界**：原生跨 Space 移窗和 Virtual 的窗口接管分别验收。无法保证目标 Space 的真实移动/最小尺寸/八窗容量时拒绝 drop 而不隐式新建 Space 或隐藏旧窗。
+
+### 6.6 持久化布局历史与应用退出恢复（最新产品决定）
+
+- 当前每个 Workspace 的 `layoutHistory` 按**真实参与窗口身份/集合、display、mode**保存用户曾明确调整的比例与槽位。新增第三个窗口仍执行标准三窗模板；三窗减至原来的两窗时，优先恢复与剩余窗口准确匹配的双窗历史，若没有历史，则采用默认 50:50；不允许用另一个同名/同 App 窗口的记录冒充。
+- Nearpane 正常 **Quit** 时停止接受新的窗口编排事件，利用启用管理前记录的真实 App Window、display、Space 和 frame 日志执行尽可能可确认的安全恢复；释放 Docked 保留、恢复原生 macOS 窗口布局。**Hide/收起 UI 不释放也不恢复**。用户在接管后已经关闭/重新创建的窗口必须重新校验身份；部分失败明确报告，不执行猜测式操作。
+- Native 超额新建原生 Space/跨 Space 移动**只在通过相应 build 的实际能力、安全回滚与授权后执行**；不能可靠新建则采用可行的连续分割回退，且不得通过私有接口试错或改 Mission Control。Virtual 由唯一调度引擎创建受控逻辑 Workspace。
 
 ## 7. 模块系统：Host 与 Module Contract
 
@@ -290,7 +296,7 @@ Nearpane 首版采用 **Built-in Module Registry + Declarative Module Manifest**
 | NP-ADR-010 | 用户可选 Native Spaces / Nearpane Virtual Workspaces；同一时刻单一调度所有者，独立验证与恢复 | ACCEPTED（产品目标；技术未完成） |
 | NP-ADR-011 | 唯一主驻留屏、各副屏 Space-only 面板、独立尺寸与出现策略 | ACCEPTED（产品目标；技术未完成） |
 | NP-ADR-012 | 预留 WorkRect、普通窗口平铺、整行切换、全屏浮层、整体产品；窗口成员与 UI 显隐规则由 ADR-013 补充覆盖 | ACCEPTED（产品目标） |
-| NP-ADR-013 | 稳定 WorkRect 不随 UI 隐藏释放、跨空间窗口缩略图拖入、最多八窗渐进平铺、用户调槽位/比例 | ACCEPTED（产品目标；技术待验证） |
+| NP-ADR-013 | 最新容量与空间占用：8 是默认新建阈值、无限分割可选；副屏 Docked 默认保留/Floating 不保留；窗口移除恢复历史，Quit 安全恢复 | ACCEPTED（产品目标，技术须验证） |
 
 ## 12. 不在本轮实施的内容
 
