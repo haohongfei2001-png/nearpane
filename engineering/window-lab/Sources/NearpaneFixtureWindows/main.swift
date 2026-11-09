@@ -80,10 +80,18 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
         let primaryTop = NSScreen.screens[0].frame.maxY
         let frames = ordered.map { (_, w) in SurfaceRect(x: w.frame.minX, y: primaryTop - w.frame.maxY,
                                                          width: w.frame.width, height: w.frame.height) }
-        let badFocus = originalForeground == nil || NSWorkspace.shared.frontmostApplication?.processIdentifier != originalForeground || NSApp.isActive || panel?.window?.isKeyWindow == true || ordered.contains { $0.1.isKeyWindow || $0.1.isMainWindow }
+        let currentForeground = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let foregroundMatches = originalForeground != nil && currentForeground == originalForeground
+        let ownedKeyOrMain = panel?.window?.isKeyWindow == true || ordered.contains { $0.1.isKeyWindow || $0.1.isMainWindow }
+        let badFocus = !foregroundMatches || NSApp.isActive || ownedKeyOrMain
+        if badFocus || activations != 0 {
+            try writeJSON(["foregroundMatches": foregroundMatches, "foregroundKnown": currentForeground != nil,
+                           "fixtureActive": NSApp.isActive, "ownedKeyOrMain": ownedKeyOrMain, "activationNotified": activations != 0],
+                          directory, "focus-stop.json")
+        }
         try writeJSON(OwnerState(session: run.session, owner: birth, revision: revision, command: sequence,
                       members: ordered.map(\.0), frames: frames, keyOrMain: badFocus, activations: activations), directory, "owner.json")
-        try require(!badFocus && activations == 0, "unexpected fixture activation")
+        try require(!badFocus && activations == 0, "focus boundary changed; see focus-stop.json")
     }
 }
 do {

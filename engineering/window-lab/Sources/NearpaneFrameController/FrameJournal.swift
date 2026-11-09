@@ -6,6 +6,9 @@ import WindowLab
 struct WindowBaseline: Codable {
     let member: Member, initial: SurfaceRect
     var confirmed: SurfaceRect
+    func matches(_ actual: Observation) -> Bool {
+        actual.member == member && actual.onScreen && actual.cg == confirmed && actual.ax == confirmed
+    }
 }
 struct FrameChange: Codable {
     let member: Member, original: SurfaceRect, target: SurfaceRect
@@ -136,7 +139,7 @@ final class SessionFiles {
             && Set(j.changes.map(\.member.id)).count == j.changes.count && j.changes.allSatisfy { adapter.ticket.members.contains($0.member) },
             "recovery identity or snapshot revision changed")
     }
-    func state() throws -> WorkspaceState {
+    func state(at baseline: [Observation]) throws -> WorkspaceState {
         let run = adapter.run
         if let j: FrameJournal = try files.load("journal.json") {
             try require([.retained, .restored].contains(j.status), "pending recovery requires inspection")
@@ -146,19 +149,23 @@ final class SessionFiles {
                   layout: .init(workspace: .virtual(run.session)), windows: [])
         try require(state.session == run.session && state.display == run.screens.secondary && state.owner == adapter.ticket.owner,
                     "layout owner changed")
-        for obs in try observations() {
+        for (index, obs) in baseline.enumerated() {
             if let old = state.windows.first(where: { $0.member.id == obs.member.id }) {
-                try require(old.member == obs.member && old.confirmed == obs.cg, "external layout change")
+                try require(old.matches(obs), "external layout change")
             } else {
-                try require(run.screens.usable.geometry.intersection(obs.cg.geometry) == obs.cg.geometry && obs.onScreen,
-                            "unregistered or invisible new fixture")
+                try require(adapter.ticket.frames.indices.contains(index) && adapter.ticket.members[index] == obs.member
+                    && adapter.ticket.frames[index] == obs.cg && obs.cg == obs.ax && obs.onScreen
+                    && run.screens.usable.geometry.intersection(obs.cg.geometry) == obs.cg.geometry,
+                            "new fixture changed since enrollment")
                 state.windows.append(.init(member: obs.member, initial: obs.cg, confirmed: obs.cg))
             }
         }
         return state
     }
     func begin(_ action: String) throws -> ActionReceipt {
-        var state = try state()
+        // Validate and journal the same observation. Reading a new baseline after approval would adopt a competing edit.
+        let before = try observations()
+        var state = try state(at: before)
         let run = adapter.run, screens = run.screens, members = adapter.ticket.members
         let switching = action == "switch" || action == "switch-and-hold"
         let park = action == "park" || switching, canary = action == "canary" || action == "canary-and-hold"
@@ -178,7 +185,6 @@ final class SessionFiles {
             layout = try layout.swapping(members[0].id, members[1].id, in: area.ordinary)
         }
         let model = try layout.frames(in: area.ordinary)
-        let before = try observations()
         var moves = [FrameChange]()
         for o in before {
             let target: SurfaceRect

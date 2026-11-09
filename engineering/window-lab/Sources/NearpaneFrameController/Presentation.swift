@@ -5,7 +5,7 @@ import WindowLab
 // Exercise the same per-display presentation and persistent layout planners used by the Host.
 // The observers remain external to the ordinary windows. This test does not order a Host panel.
 @MainActor func presentation(_ adapter: FixtureAdapter) throws -> [ActionReceipt] {
-    let x = try Experiment(adapter.directory), state = try x.state(), m = adapter.run.screens
+    let x = try Experiment(adapter.directory), observed = try x.observations(), state = try x.state(at: observed), m = adapter.run.screens
     var options = DisplaySettings(); options.policy = .pinned
     let prefs = [m.secondary: options]
     let primary = ScreenGeometry(id: m.main, frame: m.mainFrame, visibleFrame: m.mainFrame)
@@ -13,7 +13,7 @@ import WindowLab
     let area = try DesktopWorkArea(display: m.secondary, screen: m.frame, usable: m.usable, primary: false, settings: options, fallbackEdge: .left)
     var panel = MultiDisplayPresentationCoordinator(), tiler = WorkAreaLayoutPlanner()
     _ = try tiler.update(area: area, layout: state.layout)
-    let before = try x.observations().map(\.cg)
+    let before = observed.map(\.cg)
     var results = [ActionReceipt]()
     for (name, hide, voice, tray) in [("shown",false,true,true), ("hidden",true,true,true), ("restored",false,true,true),
                                         ("voice-collapsed",false,false,true), ("tools-collapsed",false,false,false)] {

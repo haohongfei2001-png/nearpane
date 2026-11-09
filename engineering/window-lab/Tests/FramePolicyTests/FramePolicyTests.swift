@@ -61,6 +61,18 @@ struct FramePolicyTests {
         change.inFlight = next
         #expect(change.permitsRecovery(from: next) && !change.permitsRecovery(from: target))
     }
+    @Test func approvalRequiresTheSameMemberAndBothLiveFrameReadbacks() {
+        let f = SurfaceRect(x: -680, y: 300, width: 240, height: 160)
+        let approved = WindowBaseline(member: member, initial: f, confirmed: f)
+        var changed = f; changed.x += 8
+        let rebuilt = Member(index: member.index, id: .init(pid: member.id.pid, launch: member.id.launch,
+            number: member.id.number, element: UUID()), width: 144, height: 96, session: UUID())
+        #expect(approved.matches(.init(member: member, cg: f, ax: f, onScreen: true)))
+        #expect(!approved.matches(.init(member: member, cg: changed, ax: changed, onScreen: true)))
+        #expect(!approved.matches(.init(member: member, cg: f, ax: changed, onScreen: true)))
+        #expect(!approved.matches(.init(member: rebuilt, cg: f, ax: f, onScreen: true)))
+        #expect(!approved.matches(.init(member: member, cg: f, ax: f, onScreen: false)))
+    }
     @Test func leaseAndDurableRecordsSurviveReopeningAndRejectCorruption() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

@@ -145,6 +145,15 @@ class Trial:
             self.membership("create", 2)
             self.command("inspect")
             raise NotVerified("USER ACTION REQUIRED: Accessibility unavailable to the signed controller")
+        if suite == "controls":
+            ticket_path = self.dir / "ticket.json"
+            original, stale = read(ticket_path), read(ticket_path)
+            stale["frames"][0]["x"] -= 1
+            save(ticket_path, stale)
+            try:
+                self.command("canary", refuse="new fixture changed since enrollment")
+            finally:
+                save(ticket_path, original)
         self.phase = "single-canary"
         initial = frames(self.command("observe"))
         moved = self.command("canary")
@@ -335,6 +344,8 @@ class Trial:
                 self.stop_owner()
             elif self.owner:
                 self.event("fixture-early-exit", rc=self.owner.returncode)
+                if (self.dir / "ticket.json").is_file():
+                    self.event("CG-cleanup-after-stop", **self.command("confirm-exit"))
                 raise NotVerified("fixture stopped early; see fixture stderr")
 
 
