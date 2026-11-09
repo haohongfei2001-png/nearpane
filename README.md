@@ -31,3 +31,7 @@ The default visual baseline remains a narrow edge surface (approximately one-eig
 ## Project status
 
 These documents define the intended product. They do not claim that the described capabilities have all been implemented or validated. Product design, engineering implementation, and real-world macOS validation must be tracked separately.
+
+## 官网 / Official website
+
+The official Nearpane website lives in [`website/`](website/). It preserves the user-selected R2 visual baseline (「整个桌面。一侧掌握。」). Static site, separately deployable on Vercel with root directory `website`. Production domain: `nearpane.com` (DNS activation subject to verification).
