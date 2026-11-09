@@ -6,11 +6,12 @@ enum ReaderFailure: Error { case unavailable, invalidResponse, timeout, outputLi
 
 /// One disposable read. The parent owns waitpid until reap, so cancellation can never signal a recycled PID.
 enum DesktopReaderProcess {
-    static func read(executable: URL, request: DesktopReadRequest, timeout: Double = 3.8) async throws -> DesktopSnapshot {
+    static func read(executable: URL, request: DesktopReadRequest, timeout: Double = 3.8,
+                     didSpawn: (@Sendable (pid_t) -> Void)? = nil) async throws -> DesktopSnapshot {
         let input = try JSONEncoder().encode(request)
         guard input.count <= 8192 else { throw ReaderFailure.invalidResponse }
         let job = Task.detached(priority: .utility) {
-            try collect(executable: executable, argument: input.base64EncodedString(), timeout: timeout)
+            try collect(executable: executable, argument: input.base64EncodedString(), timeout: timeout, didSpawn: didSpawn)
         }
         let bytes = try await withTaskCancellationHandler { try await job.value } onCancel: { job.cancel() }
         let snapshot = try JSONDecoder().decode(DesktopSnapshot.self, from: bytes)
@@ -31,7 +32,7 @@ enum DesktopReaderProcess {
         return snapshot
     }
 
-    private static func collect(executable: URL, argument: String, timeout: Double) throws -> Data {
+    private static func collect(executable: URL, argument: String, timeout: Double, didSpawn: (@Sendable (pid_t) -> Void)?) throws -> Data {
         try Task.checkCancellation()
         var fds = [Int32](repeating: -1, count: 2)
         guard pipe(&fds) == 0 else { throw ReaderFailure.unavailable }
@@ -51,6 +52,7 @@ enum DesktopReaderProcess {
         defer { args.forEach { free($0) }; env.forEach { free($0) } }
         var pid: pid_t = 0
         guard posix_spawn(&pid, executable.path, &actions, &attrs, &args, &env) == 0 else { throw ReaderFailure.unavailable }
+        didSpawn?(pid)
         close(fds[1]); fds[1] = -1
         var status: Int32 = 0, reaped = false, eof = false
         defer {

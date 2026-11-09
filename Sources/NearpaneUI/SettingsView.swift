@@ -46,10 +46,22 @@ public struct SettingsView: View {
             }
             #endif
             appearance.tabItem { Text("Placement") }
+            desktopOptions.tabItem { Text("空间观察") }
             mockSettings.tabItem { Text("Mock & diagnostics") }
         }
         .padding(16)
         .frame(width: 600, height: 540)
+    }
+
+    private var desktopOptions: some View {
+        Form {
+            let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
+            Toggle("只读桌面预览", isOn: Binding(get: { enabled }, set: { host.handle(.setEnabled(BuiltinCatalog.desktop, $0)) }))
+            Toggle("实验性 Space 归属读取", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
+                  set: { host.setExperimentalSpaceObservation($0) })).disabled(!enabled)
+            Text("默认只观察当前可见窗口的几何。实验读取仅用于已核验的系统构建。")
+                .font(.callout).foregroundStyle(.secondary)
+        }.padding(16)
     }
 
     private var modules: some View {

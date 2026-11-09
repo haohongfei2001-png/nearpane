@@ -117,6 +117,27 @@ struct IntegratedHostTests {
         next.stop(); await reopened.finishStopping()
     }
 
+    @Test func desktopReaderFailureDoesNotInterruptRealIsolatedVoiceAndTray() async throws {
+        let root = fixtureRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let support = root.appendingPathComponent("Nearpane"), id = try await seedVoice(support)
+        let expected = try await seedQueue(root)
+        let domains = EmbeddedModules(support: support)
+        let provider = NativeDesktopProvider(fixtureWindows: { nil }, anchors: { [] }) { _ in throw ReaderFailure.unavailable }
+        let host = domains.makeHost(store: MemoryConfigurationStore(), provider: provider)
+        await host.start(); await domains.voice.waitForTransition()
+        await domains.tray.connect()
+        let order = domains.tray.rows.map(\.id)
+        await host.refreshDesktop()
+        #expect(host.providerFailed && host.bus.desktop == nil && Set(order) == expected)
+        #expect(await domains.voice.saveEdit(id, text: "隔离编辑"))
+        host.setExperimentalSpaceObservation(true)
+        await host.refreshDesktop()
+        #expect(domains.voice.transcript.hasPrefix("隔离编辑") && domains.voice.control.state == .paused)
+        #expect(domains.tray.connected && domains.tray.rows.map(\.id) == order && !domains.tray.mayAttach)
+        #expect(host.registry.states[BuiltinCatalog.voice] == .resident && host.registry.states[BuiltinCatalog.screenshots] == .resident)
+        host.stop(); await domains.finishStopping()
+    }
+
     @Test func repeatedHostAndDomainShutdownReleaseFixtureDescriptorsAndBothLocks() async throws {
         let root = fixtureRoot()
         defer { try? FileManager.default.removeItem(at: root) }

@@ -17,6 +17,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public var preferredDisplayID: String?
     /// Missing in early v1 configurations, which always opened visible.
     public var surfaceHidden: Bool = false
+    public var experimentalSpaceObservation = false
     public var modules: [ModulePreference] = []
     public var fixture: DesktopFixture = .internalScopes3Plus1
 
@@ -28,6 +29,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         edge = try c.decode(SurfaceEdge.self, forKey: .edge)
         preferredDisplayID = try c.decodeIfPresent(String.self, forKey: .preferredDisplayID)
         surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
+        experimentalSpaceObservation = try c.decodeIfPresent(Bool.self, forKey: .experimentalSpaceObservation) ?? false
         modules = try c.decode([ModulePreference].self, forKey: .modules)
         fixture = try c.decode(DesktopFixture.self, forKey: .fixture)
     }

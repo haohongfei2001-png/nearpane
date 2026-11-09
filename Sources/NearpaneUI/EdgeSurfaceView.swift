@@ -8,7 +8,11 @@ import NearpaneTray
 public struct EdgeSurfaceView: View {
     private let host: HostSession
     private let modules: EmbeddedModules?
-    public init(host: HostSession, modules: EmbeddedModules? = nil) { self.host = host; self.modules = modules }
+    private let display: SurfaceDisplay?
+    public init(host: HostSession, modules: EmbeddedModules? = nil) { self.host = host; self.modules = modules; display = nil }
+    init(host: HostSession, modules: EmbeddedModules?, display: SurfaceDisplay) {
+        self.host = host; self.modules = modules; self.display = display
+    }
 
     public var body: some View {
         GeometryReader { geometry in
@@ -80,12 +84,8 @@ public struct EdgeSurfaceView: View {
     }
 
     private var desktop: some View {
-        Text(enabled(BuiltinCatalog.desktop) ? "空间归属尚未确认" : "空间预览已停用")
-            .font(.caption).foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay(alignment: .top) { Divider().opacity(0.4) }
-            .accessibilityHint("空间切换和窗口激活不可用。")
-            .accessibilityIdentifier("desktop-reserved-region")
+        DesktopSurface(host: host, displayID: display?.id ?? host.configuration.preferredDisplayID,
+                       enabled: enabled(BuiltinCatalog.desktop))
     }
 
     private var moduleRail: some View {

@@ -26,6 +26,7 @@ private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
 public final class EdgeWindowController: NSWindowController {
     private let host: HostSession
     private let modules: EmbeddedModules?
+    private let display = SurfaceDisplay()
     private var captureSuppressed = false
     public private(set) var hasPlacement = false
     public init(host: HostSession, modules: EmbeddedModules? = nil) {
@@ -49,7 +50,7 @@ public final class EdgeWindowController: NSWindowController {
         material.material = .sidebar
         material.blendingMode = .behindWindow
         material.state = .active
-        let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules))
+        let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules, display: display))
         content.translatesAutoresizingMaskIntoConstraints = false
         material.addSubview(content)
         NSLayoutConstraint.activate([
@@ -75,11 +76,15 @@ public final class EdgeWindowController: NSWindowController {
     public func place(screens: [ScreenGeometry]) {
         guard let rect = SurfacePlacement.resolve(screens: screens, preferredID: host.configuration.preferredDisplayID,
                                                   edge: host.configuration.edge) else {
+            display.id = nil
             hasPlacement = false
             hide()
             return
         }
         window?.setFrame(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height), display: false)
+        display.id = screens.first { screen in
+            screen.frame.geometry.contains(.init(rect.x + rect.width/2, rect.y + rect.height/2))
+        }?.id
         hasPlacement = true
     }
 

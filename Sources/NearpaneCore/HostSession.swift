@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 
+public enum DesktopObservationPause: Hashable { case screensAsleep, inactiveSession }
+
 @Observable @MainActor
 public final class HostSession {
     public let diagnostics: Diagnostics
@@ -18,6 +20,7 @@ public final class HostSession {
     @ObservationIgnored private let provider: any DesktopObservationProvider
     @ObservationIgnored private var refreshGeneration: UInt64 = 0
     @ObservationIgnored private var desktopTask: Task<Void, Never>?
+    @ObservationIgnored private var desktopPauses = Set<DesktopObservationPause>()
 
     public init(store: any ConfigurationStore, provider: (any DesktopObservationProvider)? = nil,
                 coreFactories: [String: @MainActor () -> any HostModule] = [:]) {
@@ -62,7 +65,8 @@ public final class HostSession {
         providerFailed = false
         if let mock = provider as? MockDesktopObservationProvider { mock.fixture = configuration.fixture }
         diagnostics.record(.hostStarted)
-        await refreshDesktop()
+        if provider is any LiveDesktopObservationProvider { restartDesktopUpdates() }
+        else { await refreshDesktop() }
     }
 
     public func stop() {
@@ -70,7 +74,7 @@ public final class HostSession {
         isRunning = false
         refreshGeneration += 1
         desktopTask?.cancel()
-        desktopTask = nil
+        desktopPauses.removeAll()
         registry.stopAll()
         permissions.resetSession()
         bus.endSession()
@@ -88,12 +92,8 @@ public final class HostSession {
                 if id == BuiltinCatalog.desktop {
                     refreshGeneration += 1
                     desktopTask?.cancel()
-                    desktopTask = nil
-                    if enabled {
-                        desktopTask = Task { [weak self] in await self?.refreshDesktop() }
-                    } else {
-                        bus.resetDesktopSession()
-                    }
+                    bus.resetDesktopSession()
+                    if enabled { restartDesktopUpdates() }
                 }
                 persistModulePreferences()
             case .setPinned, .move: persistModulePreferences()
@@ -113,6 +113,7 @@ public final class HostSession {
     public func setSurfaceHidden(_ hidden: Bool) {
         guard isRunning, configuration.surfaceHidden != hidden else { return }
         configuration.surfaceHidden = hidden
+        if provider is any LiveDesktopObservationProvider { invalidateDesktop() }
         save()
     }
 
@@ -125,20 +126,68 @@ public final class HostSession {
         await refreshDesktop()
     }
 
+    public func setExperimentalSpaceObservation(_ enabled: Bool) {
+        guard isRunning, configuration.experimentalSpaceObservation != enabled else { return }
+        configuration.experimentalSpaceObservation = enabled
+        save()
+        invalidateDesktop()
+    }
+
+    /// Discard the prior topology before starting another read. No desktop actions are routed.
+    public func invalidateDesktop() {
+        guard isRunning, provider is any LiveDesktopObservationProvider else { return }
+        refreshGeneration += 1
+        desktopTask?.cancel()
+        bus.resetDesktopSession()
+        restartDesktopUpdates()
+    }
+
+    public func setDesktopPause(_ reason: DesktopObservationPause, paused: Bool) {
+        guard isRunning, provider is any LiveDesktopObservationProvider else { return }
+        let changed = paused ? desktopPauses.insert(reason).inserted : desktopPauses.remove(reason) != nil
+        if changed { invalidateDesktop() }
+    }
+
+    public func waitForDesktopStop() async {
+        if !isRunning { await desktopTask?.value }
+    }
+
+    private func restartDesktopUpdates() {
+        let previous = desktopTask
+        previous?.cancel()
+        let live = provider is any LiveDesktopObservationProvider
+        guard isRunning, desktopPauses.isEmpty, !live || !configuration.surfaceHidden,
+              registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }) else { return }
+        desktopTask = Task { [weak self] in
+            await previous?.value
+            while !Task.isCancelled {
+                await self?.refreshDesktop()
+                guard live, self != nil else { return }
+                do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            }
+        }
+    }
+
     public func refreshDesktop() async {
         guard isRunning, provider.capabilities.observation != .unsupported,
               registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }) else { return }
         refreshGeneration += 1
         let generation = refreshGeneration
         do {
-            let snapshot = try await provider.snapshot()
+            let snapshot: DesktopSnapshot
+            if let live = provider as? any LiveDesktopObservationProvider {
+                guard !configuration.surfaceHidden, desktopPauses.isEmpty else { return }
+                snapshot = try await live.snapshot(experimentalSpaces: configuration.experimentalSpaceObservation)
+            } else { snapshot = try await provider.snapshot() }
             guard isRunning, generation == refreshGeneration else { return }
             providerFailed = !bus.acceptDesktop(snapshot)
+            if providerFailed && provider is any LiveDesktopObservationProvider { bus.resetDesktopSession() }
         } catch is CancellationError {
             // Cancellation is lifecycle control, not evidence of an empty desktop.
         } catch {
             guard isRunning, generation == refreshGeneration else { return }
             providerFailed = true
+            if provider is any LiveDesktopObservationProvider { bus.resetDesktopSession() }
             diagnostics.record(.providerFailed)
         }
     }

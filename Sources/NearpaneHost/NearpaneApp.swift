@@ -59,7 +59,8 @@ struct NearpaneApp {
                 delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
                 switch command {
                 case "--native-acceptance-session": break
-                case "--native-acceptance-secondary":
+                case "--native-acceptance-secondary", "--native-acceptance-secondary-desktop":
+                    delegate.requestsDesktopFixture = command == "--native-acceptance-secondary-desktop"
                     let secondary = SystemScreens.geometry().dropFirst()
                     guard secondary.count == 1, let id = secondary.first?.id, UUID(uuidString: id) != nil else { exit(2) }
                     delegate.passiveDisplayID = id
@@ -84,6 +85,8 @@ struct NearpaneApp {
 final class HostAppDelegate: NSObject, NSApplicationDelegate {
     #if canImport(RiftletCore) && canImport(SaytileKit)
     var acceptanceSession: NativeAcceptanceSession?
+    var requestsDesktopFixture = false
+    private var desktopFixture: DesktopAcceptanceFixture?
     private var acceptanceProbe: NativeAcceptanceProbe?
     #endif
     private var host: HostSession?
@@ -117,7 +120,20 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"))
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession)
         self.modules = modules
-        let session = modules.makeHost(store: store)
+        let provider: any DesktopObservationProvider
+        if testSession == nil { provider = NativeDesktopProvider.packaged() }
+        else {
+            #if canImport(RiftletCore) && canImport(SaytileKit)
+            if requestsDesktopFixture, let acceptanceSession, let passiveDisplayID {
+                do { desktopFixture = try DesktopAcceptanceFixture(session: acceptanceSession, displayID: passiveDisplayID) }
+                catch { NSApp.terminate(nil); return }
+                provider = NativeDesktopProvider.packaged(fixtureWindows: { [weak self] in self?.desktopFixture?.windows ?? [] })
+            } else { provider = UnavailableDesktopProvider() }
+            #else
+            provider = UnavailableDesktopProvider()
+            #endif
+        }
+        let session = modules.makeHost(store: store, provider: provider)
         host = session
         startupTask = Task { [weak self] in
             await session.start()
@@ -135,6 +151,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             controller.place(screens: placementScreens())
             #if canImport(RiftletCore) && canImport(SaytileKit)
             if let acceptanceSession {
+                desktopFixture?.observe(session)
                 do {
                     acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules,
                         surface: controller, screens: { [weak self] in self?.placementScreens() ?? [] })
@@ -144,6 +161,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             #endif
             controller.presentIfNeeded()
             if passiveDisplayID == nil { installMenu() }
+            for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.screensDidWakeNotification,
+                         NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
+                         NSWorkspace.sessionDidBecomeActiveNotification] {
+                NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
+            }
             NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
                 name: NSApplication.didChangeScreenParametersNotification, object: nil)
         }
@@ -155,6 +177,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         guard let modules else { return .terminateNow }
         Task {
             await modules.finishStopping()
+            await host?.waitForDesktopStop()
             #if canImport(RiftletCore) && canImport(SaytileKit)
             acceptanceProbe?.finish()
             #endif
@@ -167,6 +190,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         startupTask?.cancel()
         host?.stop()
         surface?.hide()
+        #if canImport(SaytileKit)
+        desktopFixture?.stop()
+        #endif
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
         if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
     }
@@ -184,7 +211,18 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
     }
 
+    @objc private func desktopChanged(_ note: Notification) {
+        switch note.name {
+        case NSWorkspace.screensDidSleepNotification: host?.setDesktopPause(.screensAsleep, paused: true)
+        case NSWorkspace.screensDidWakeNotification: host?.setDesktopPause(.screensAsleep, paused: false)
+        case NSWorkspace.sessionDidResignActiveNotification: host?.setDesktopPause(.inactiveSession, paused: true)
+        case NSWorkspace.sessionDidBecomeActiveNotification: host?.setDesktopPause(.inactiveSession, paused: false)
+        default: host?.invalidateDesktop()
+        }
+    }
+
     @objc private func screensChanged() {
+        host?.invalidateDesktop()
         surface?.place(screens: placementScreens())
         surface?.presentIfNeeded()
         // Rebuild the settings list on its next explicit opening.
@@ -194,12 +232,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleSurface() {
         guard let host else { return }
         host.setSurfaceHidden(!host.configuration.surfaceHidden)
-        surface?.place(screens: SystemScreens.geometry())
+        surface?.place(screens: placementScreens())
         surface?.presentIfNeeded()
     }
 
     @objc private func showSettings() {
-        guard host != nil else { return }
+        guard host != nil, passiveDisplayID == nil else { return }
         if settings == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 632, height: 572),
                                   styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: true)
@@ -217,7 +255,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private func updateSettingsContent() {
         guard let host else { return }
         settings?.window?.contentView = NSHostingView(rootView: SettingsView(host: host, screens: SystemScreens.geometry(), domains: modules) { [weak self] in
-            self?.surface?.place(screens: SystemScreens.geometry())
+            guard let self else { return }
+            surface?.place(screens: placementScreens())
         })
     }
 
