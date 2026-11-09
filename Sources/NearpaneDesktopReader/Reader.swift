@@ -31,10 +31,16 @@ struct Reader {
     }
 
     private func visible() throws -> List {
-        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        let fixture = request.fixtureWindows.map(Set.init), anchors = Set(request.anchors.map(\.number))
+        let requested = fixture.map { $0.union(anchors) }
+        // Scope-only reads avoid WindowServer descriptions. A single fixture has no z-order ambiguity
+        // and needs only its own description. Ordinary inventory retains the front-to-back system list.
+        if requested?.isEmpty == true { return List() }
+        let only = requested?.count == 1 ? requested?.first : nil
+        let options: CGWindowListOption = only == nil ? [.optionOnScreenOnly, .excludeDesktopElements] : .optionIncludingWindow
+        guard let list = CGWindowListCopyWindowInfo(options, only ?? kCGNullWindowID) as? [[String: Any]]
         else { throw DesktopActionError.unsupported }
         var result = List(), seen = Set<UInt32>(), allowed = [Int32: Bool](), processes = [Int32: ProcessIdentity]()
-        let fixture = request.fixtureWindows.map(Set.init), anchors = Set(request.anchors.map(\.number))
         for row in list {
             guard let pid = (row[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, pid > 0,
                   let number = (row[kCGWindowNumber as String] as? NSNumber)?.uint32Value, number != 0,
