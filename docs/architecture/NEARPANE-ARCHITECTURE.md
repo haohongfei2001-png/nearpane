@@ -217,15 +217,25 @@ Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，�
 
 - **WorkspaceWindowDropController**：空间行 click=切换整个 Space/Workspace；具体窗口缩略图 drag/drop=请求迁移成员；目标身份、source membership、OS capabilities、当前 `overflowPolicy`、版本与可恢复日志均须检查。UI hover 不执行窗口写操作。拖入已满默认阈值的空间不直接拒绝，而按模式尝试新建或在本空间继续分割，失败时安全保留来源窗口。
 - **IncrementalTilingLayout**：提供基于 W1—W8 的稳定渐进分区、用户拖动真实窗口换槽位/调分割线的操作与当前空间/应用 profile 持久化。两窗口已自定义时加入 W3，仍先使用 W1/W2 右侧上下、W3 左半区的三窗默认布局；随后允许用户继续调整。
-- **PresentationStateReducer**：输入实际 Space/Workspace 数量、受管理普通窗数量以及 Saytile/Riftlet 的展示需求，输出完整/仅语音/仅截图/仅空间/全部隐藏状态。若当前存在多个有效空间或多普通窗口，空间调度区不自动藏起；单空间单窗则可仅显示使用中的工具模块。**此状态机不得修改 WorkRect 或应用 window frame**。
+- **PresentationStateReducer**：根据真实 Space/Window/模块状态生成主屏与各副屏呈现，**有多空间/多窗口时默认显示，但显式 UserHide 状态始终压制自动再出现**，直到用户再次唤出/调整设置。此状态机不能修改 WorkRect、窗口 frame 或用户正在使用的目标窗口。
 - **Fullscreen FloatingToolPlacement**：位置稳定优先，上次用户拖放位置为主锚点，只在可确认按钮/系统安全区实际被遮挡时做最小必要移动；无确认依据时用户自行调整，禁止持续追随鼠标。
 - **系统能力边界**：原生跨 Space 移窗和 Virtual 的窗口接管分别验收。无法保证目标 Space 的真实移动/最小尺寸/八窗容量时拒绝 drop 而不隐式新建 Space 或隐藏旧窗。
 
 ### 6.6 持久化布局历史与应用退出恢复（最新产品决定）
 
 - 当前每个 Workspace 的 `layoutHistory` 按**真实参与窗口身份/集合、display、mode**保存用户曾明确调整的比例与槽位。新增第三个窗口仍执行标准三窗模板；三窗减至原来的两窗时，优先恢复与剩余窗口准确匹配的双窗历史，若没有历史，则采用默认 50:50；不允许用另一个同名/同 App 窗口的记录冒充。
-- Nearpane 正常 **Quit** 时停止接受新的窗口编排事件，利用启用管理前记录的真实 App Window、display、Space 和 frame 日志执行尽可能可确认的安全恢复；释放 Docked 保留、恢复原生 macOS 窗口布局。**Hide/收起 UI 不释放也不恢复**。用户在接管后已经关闭/重新创建的窗口必须重新校验身份；部分失败明确报告，不执行猜测式操作。
+- Nearpane 正常 **Quit** 时停止窗口编排、释放 Docked 区域，只撤销自动实施的窗口调整；**用户主动改变的槽位、比例与明确布局意图必须保留**，并映射到退出后 macOS 的真实可用桌面。未覆盖的自动改动根据接管前已确认的窗口/Space/frame 记录回滚，窗口 ID/进程生命期仍需核验。Hide 不释放也不回滚；部分失败明确报告。
 - Native 超额新建原生 Space/跨 Space 移动**只在通过相应 build 的实际能力、安全回滚与授权后执行**；不能可靠新建则采用可行的连续分割回退，且不得通过私有接口试错或改 Mission Control。Virtual 由唯一调度引擎创建受控逻辑 Workspace。
+
+### 6.7 新普通窗口、空空间清理、排除和重启全面接管（ADR-013）
+
+- **NewWindowPlacementCoordinator**：与 `OverflowRouter` 分开。新出现且确认属于普通顶层主窗的窗口使用 `newWindowPlacement: newWorkspace | joinExisting`，**出厂默认 newWorkspace**。显式用户拖放到目标 Space 高于此默认；系统弹窗与原生全屏不使用该规则。先确定真实来源 display/Space、身份及快照，再由 Native/Virtual provider 能力控制创建和迁移；Native 不具备安全创建能力时继续使用新窗口实际所在 Space 并按已有空间平铺策略安全降级。
+- **EmptySourceWorkspaceCollector**：来源 Workspace 的最后一个窗口移走/关闭后，只有全量成员关系经稳定快照确认真正为空，才删除空源 Workspace。Virtual 使用带恢复记录的事务删除；Native 删除真实系统 Space 需额外可信能力、权限、非最后系统 Space 及无未管理/全屏成员的证明；不具备时保留真实空间并记录未完成，而非在 UI 伪造消失。
+- **ManagementExclusionRegistry**：按 App bundle identity 或确切 Window identity 排除；窗口级偏好优先。排除对象不参加平铺、自动空间创建、容量路由、自动窗口移动与 Quit 自动回滚。排除可导致该窗口与预留区/其它窗实际重叠，是明确的用户例外，不能宣称所有窗口无重叠。取消排除时重新验证 Window PID/lifecycle/frame 后才接管。
+- **ManualVisibilityOverride**：用户显式关闭空间调度视图后覆盖该屏 Contextual Auto/基于窗口数的显示判定，不会因为条件仍满足而立刻反弹。只重新唤出/显式更改设置才能恢复；不更改 Docked/Floating 占用、真实窗口管理权或焦点。
+- **SessionTakeoverController**：用户主动再次启动 Nearpane 时，在已有 TCC 授权和真实 Adapter 能力允许下**自动全面接管**当前真实窗口集合和已保存 Workspace/display/App/排除偏好，不要求反复首次向导。先检查上次 Quit/Crash 恢复日志、系统窗口管理工具冲突、窗口身份和系统状态；不通过则只读安全降级并说明，不盲目用旧窗口 ID。
+- **UserIntentLedger**：将用户明确拖动窗口、改变分割比例/槽位与 Nearpane 自动平铺/临时搬移区分记录。Quit/模式切换时保留用户意图、仅撤销自动管理结果；重新启动仍可应用用户偏好，绝不能把用户明示的改变当作需要回滚的自动操作。
+
 
 ## 7. 模块系统：Host 与 Module Contract
 
@@ -296,7 +306,7 @@ Nearpane 首版采用 **Built-in Module Registry + Declarative Module Manifest**
 | NP-ADR-010 | 用户可选 Native Spaces / Nearpane Virtual Workspaces；同一时刻单一调度所有者，独立验证与恢复 | ACCEPTED（产品目标；技术未完成） |
 | NP-ADR-011 | 唯一主驻留屏、各副屏 Space-only 面板、独立尺寸与出现策略 | ACCEPTED（产品目标；技术未完成） |
 | NP-ADR-012 | 预留 WorkRect、普通窗口平铺、整行切换、全屏浮层、整体产品；窗口成员与 UI 显隐规则由 ADR-013 补充覆盖 | ACCEPTED（产品目标） |
-| NP-ADR-013 | 最新容量与空间占用：8 是默认新建阈值、无限分割可选；副屏 Docked 默认保留/Floating 不保留；窗口移除恢复历史，Quit 安全恢复 | ACCEPTED（产品目标，技术须验证） |
+| NP-ADR-013 | 最新产品权威：新普通窗口默认独立 Workspace（可改已有）；8 窗溢出策略单独配置；空来源 Space 安全清理、App/Window 排除、用户手动 Hide 优先；Quit 仅撤销自动改动且保留用户意图，重新启动全面接管 | ACCEPTED（产品目标，技术须验证） |
 
 ## 12. 不在本轮实施的内容
 

@@ -4,7 +4,7 @@
 **日期：2026-11-09**  
 **覆盖范围：** 默认窗口编排、完整/精简界面与空间占用、原生全屏生命周期、空间整行点击、跨屏目标、Native/Virtual 初始模式和整体产品交付。  
 **覆盖旧约束：** 原有“窗口自由重叠及逐窗口点击预览”“桌面侧栏不管理其余应用窗口”“全屏中空间面板仍可自动出现”等冲突表述，以本决策为准。  
-**保留权威：** Saytile/Riftlet 领域语义、ADR-010 双模式、ADR-011 多显示器。**ADR-013 最新修订**：8 窗是默认新建空间阈值而非硬上限；新建不可行则继续分割；副屏默认 Docked 保留区、可改 Floating 无保留；退出 Nearpane 安全恢复系统布局；移除窗口时恢复匹配的历史双窗比例。先前“第九窗一律拒绝”全部作废。  
+**保留权威：** Saytile/Riftlet 领域语义、ADR-010 双模式、ADR-011 多显示器。**ADR-013 最新增量**还明确了新普通窗口默认单开 Space（可在设置改为加入已有）、空来源 Space 安全清理、按 App/Window 排除、人工 Hide 优先、Quit 仅撤销自动改变并保留用户明确布局意图，以及下一次启动自动全面接管。所有旧的相反退出/归组文字作废。  
 **执行边界：** 本轮授权文档与独立工程计划修订；不修改 Nearpane / Saytile / Riftlet 生产运行时或系统设置。
 
 ## 1. 一个产品：默认完整、设置可调
@@ -79,4 +79,4 @@ Native Spaces 与 Nearpane Virtual Workspaces 是**低频切换的内部模式**
 3. **P2/P4 工程对齐**：在现有 Host 代码演进，不重新发明应用或重复审计三个仓库；增加 DesktopWorkArea / ManagedWindowTiler / FullscreenTransitionCoordinator / FloatingToolSurface / CrossDisplayTargetContext 接口，以 ModeCoordinator 和 MultiDisplayPresentationCoordinator 衔接。新旧设计必须显式列出差异后才能认定工程符合最新规范。
 4. **真实验收门槛**：单/双/旋转显示器，Native/Virtual 下 8 窗新建与无法新建时回退分割，持续分割模式，第三方 App 主动打开窗口，各屏 Docked/Floating 独立保留，退出恢复、三窗减双窗历史布局、原生全屏及跨屏拖入，逐项真实验证。
 
-**最终裁决（ADR-013 最新修订）：非原生全屏时主、副屏的 Docked 面板持续预留区，副屏改 Floating 后始终不预留；8 窗默认阈值以上优先创建新工作空间，做不到则继续分割，用户亦可选无限分割；单击整行切换、拖动具体窗口加入空间；退出 Nearpane 安全恢复原有系统布局，移除窗口优先恢复匹配历史。**
+**最终裁决（ADR-013 最新优先）：Docked 主副屏 UI 隐藏仍预留，浮窗不预留；普通新窗默认独立 Workspace，八窗容量另有创建/连续分割策略；来源空间真正空则安全清理；可排除特定 App/Window；手动 Hide 高于自动显示；退出保留用户主动布局、撤销自动改动，再次启动自动全面接管。Native 实际动作取决于独立验证，不伪装完成。**
