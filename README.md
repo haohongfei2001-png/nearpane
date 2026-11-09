@@ -35,7 +35,7 @@ The design branch contains the complete continuation package:
 - [Engineering implementation roadmap](docs/engineering/IMPLEMENTATION-ROADMAP.md)
 - [Delivery and verification manifest](docs/DELIVERY-AND-VERIFICATION.md)
 
-The default complete primary panel remains a narrow edge surface (approximately one-eighth of its display width), without a title, logo, or product-name header. Saytile and Riftlet appear only on one user-selected primary resident display, whose Spaces section can be independently disabled. Secondary displays show only separate, independently sized Space/Workspace panels: on-demand by default, or contextual-auto/pinned if the user chooses. User-configurable modules use compact resident entries and expanded overlays so that adding modules does not silently compress the approved core geometry.
+The default complete primary panel remains a narrow edge surface (approximately one-eighth of its display width), without a title, logo, or product-name header. All layout dimensions (panel and module sizes, thumbnails, Space rows, typography, controls, spacing, and radii) have approved defaults but are precisely adjustable per display in Settings; the persistent surface has no resize controls. Saytile and Riftlet appear only on one user-selected primary resident display, whose Spaces section can be independently disabled. Secondary displays show only separate, independently sized Space/Workspace panels: on-demand by default, or contextual-auto/pinned if the user chooses. User-configurable modules use compact resident entries and expanded overlays so that adding modules does not silently compress the approved core geometry.
 
 ## Project status
 

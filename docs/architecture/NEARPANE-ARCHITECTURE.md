@@ -184,6 +184,14 @@ Saytile、Riftlet 与用户模块只依赖 Host 和明确的跨模块契约，�
 
 本节为设计契约；不在此分支创建新运行时、schema 或修改现有 P2 代码。
 
+### 6.3 精细 Layout Metrics（ADR-011）
+
+- 统一 Layout Composer 管理分层的可编辑尺寸 token：每屏 panel 宽高、边缘偏移；Saytile、Riftlet、Spaces 和可选模块各自的高度与内部区尺寸；文字字号与行距、按钮/图标、缩略图、Space 行高、间距/内边距、圆角及其他可视度量。**禁止仅暴露总体缩放和少量粗档位来替代完整尺寸调整。**
+- 初次使用加载视觉权威给定的默认 preset（主屏宽度约 1/8、分区约 3/8+5/8，以及各领域的确认尺寸）；用户在设置中精确输入、细步进微调并形成 override，不改变 preset 本身。支持预览、应用/取消、逐项/模块/显示器恢复默认。
+- 每个尺寸 override 独立存储并以稳定显示器标识归属；修改一个值不得覆写其他自定义值。表示单位使用 macOS 逻辑 point 与明确的可选百分比，适配显示器缩放、旋转和可用区域；本轮不实施持久化 schema。
+- 布局冲突要以滚动、分页、裁剪策略与明确反馈处理，不能无提示更改其他用户尺寸；界面尺寸受可用安全区域和基础可操作性的合理约束。
+- 真实窗口的形状、相对位置、Space/Workspace 成员不因 UI 尺寸改变；窗口缩略图统一等比变换，Riftlet 图片 Fit，触控热区始终与实际预览内容对应。此类设置只调整呈现，不改变 Saytile/Riftlet 业务状态机。
+
 ## 7. 模块系统：Host 与 Module Contract
 
 Nearpane 首版采用 **Built-in Module Registry + Declarative Module Manifest**，不直接开放任意第三方代码插件。
@@ -248,7 +256,7 @@ Nearpane 首版采用 **Built-in Module Registry + Declarative Module Manifest**
 | NP-ADR-005 | Desktop Orchestration 使用 Spaces Adapter 与 capability report | ACCEPTED |
 | NP-ADR-006 | 首版使用内置模块注册表，不开放任意代码插件 | ACCEPTED |
 | NP-ADR-007 | 跨模块数据只通过显式用户动作与 Action Broker | ACCEPTED |
-| NP-ADR-008 | 可选模块扩展不能挤压或改变冻结的核心视觉比例 | ACCEPTED |
+| NP-ADR-008 | 默认尺寸不随模块变化自动压缩；用户可在设置中精细覆盖所有尺寸 preset | ACCEPTED（按 ADR-011 解释） |
 | NP-ADR-009 | 私有 Spaces API 隔离、版本化、可关闭且不可作为唯一依赖 | ACCEPTED（Native） |
 | NP-ADR-010 | 用户可选 Native Spaces / Nearpane Virtual Workspaces；同一时刻单一调度所有者，独立验证与恢复 | ACCEPTED（产品目标；技术未完成） |
 | NP-ADR-011 | 唯一主驻留屏、各副屏 Space-only 面板、独立尺寸与出现策略 | ACCEPTED（产品目标；技术未完成） |
