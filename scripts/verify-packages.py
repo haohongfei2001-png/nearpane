@@ -37,7 +37,7 @@ def verify(app, lock, sandbox):
     # codesign treats Contents/MacOS/<CFBundleExecutable> as the enclosing bundle. These development
     # packages seal their exact Mach-O and resource inventory independently (no distribution signature).
     host_image = binary.read_bytes()
-    if plist["CFBundleIdentifier"] == "com.holdsnow.nearpane.candidate":
+    if plist["CFBundleIdentifier"] in ("com.holdsnow.nearpane.candidate", "com.holdsnow.nearpane.candidate.p45"):
         subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
     else:
         with tempfile.TemporaryDirectory(prefix="verify-macho-", dir=ROOT/"build") as tmp:

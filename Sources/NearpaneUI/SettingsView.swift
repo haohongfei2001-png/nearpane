@@ -1,6 +1,9 @@
 import AppKit
 import SwiftUI
 import NearpaneCore
+#if canImport(NearpaneVoice)
+import NearpaneVoice
+#endif
 
 public struct SettingsView: View {
     private let host: HostSession
@@ -17,11 +20,14 @@ public struct SettingsView: View {
 
     public var body: some View {
         TabView {
-            modules.tabItem { Text("Modules") }
+            modules.tabItem { Text("模块") }
+            #if canImport(NearpaneVoice)
+            if domains?.candidate == true { VoiceInputSettings().tabItem { Text("语音") } }
+            #endif
             #if canImport(NearpaneTray)
             if let tray = domains?.tray {
                 Form {
-                    Text(domains?.candidate == true ? "个人 Alpha · 独立资料库，初始五图为合成示例。" : "使用已有的 Riftlet 资料库。连接期间由 Nearpane 独占；断开后原库仍由 Riftlet 使用。")
+                    Text(domains?.candidate == true ? "截图保存在此版本的独立托盘，退出后仍可继续使用。" : "使用已有的 Riftlet 资料库。连接期间由 Nearpane 独占；断开后原库仍由 Riftlet 使用。")
                     if tray.connected {
                         if tray.collectionEnabled {
                             Button("停止收录系统截图") { tray.stopCollecting() }
@@ -44,9 +50,9 @@ public struct SettingsView: View {
                                 Task { await tray.authorizeAttachments() }
                             }
                             Text("点击微图只会附加到可确认的草稿；消息始终由你发送。")
-                        } else { Text("草稿附加等待专用测试会话。") }
+                        } else { Text("当前仅收录截图。附加到草稿须使用已绑定的专用测试会话。") }
                     } else {
-                        Button(tray.connecting ? "正在连接…" : "连接已有 Riftlet 资料库") {
+                        Button(tray.connecting ? "正在连接…" : (domains?.candidate == true ? "重新连接此版本托盘" : "连接已有 Riftlet 资料库")) {
                             Task {
                                 await tray.connect()
                                 if domains?.candidate == true && tray.connected { host.setCandidateTrayConnected(true) }
@@ -87,7 +93,7 @@ public struct SettingsView: View {
     private var modules: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Optional entries are bundled samples. Voice capture starts only when you press its control.")
+                Text("按侧栏的播放按钮开始收音，按相同位置暂停。可选模块提供的是内置示例。")
                     .font(.callout).foregroundStyle(.secondary)
                 ForEach(host.registry.preferences, id: \.id) { pref in
                     if let manifest = host.registry.manifests.first(where: { $0.id == pref.id }) {
@@ -96,7 +102,7 @@ public struct SettingsView: View {
                                 Toggle(manifest.name, isOn: Binding(get: { pref.enabled }, set: { host.handle(.setEnabled(pref.id, $0)) }))
                                 Spacer()
                                 if manifest.kind == .builtin {
-                                    Toggle("Pin", isOn: Binding(get: { pref.pinned }, set: { host.handle(.setPinned(pref.id, $0)) }))
+                                    Toggle("固定", isOn: Binding(get: { pref.pinned }, set: { host.handle(.setPinned(pref.id, $0)) }))
                                         .fixedSize()
                                     Button { host.handle(.move(pref.id, -1)) } label: { Image(systemName: "arrow.up") }
                                         .accessibilityLabel("Move \(manifest.name) up")
@@ -107,14 +113,14 @@ public struct SettingsView: View {
                             HStack {
                                 Text(host.registry.states[pref.id]?.rawValue ?? "available").font(.caption).foregroundStyle(.secondary)
                                 if host.registry.states[pref.id] == .degraded {
-                                    Button("Restart module") { host.handle(.setEnabled(pref.id, true)) }
+                                    Button("重新启动模块") { host.handle(.setEnabled(pref.id, true)) }
                                 }
                             }
                         }
                         Divider()
                     }
                 }
-                Text("模块顺序固定。尺寸可在“尺寸与呈现”调整。")
+                Text("语音、托盘和空间的顺序固定。箭头仅调整可选模块。")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(8)
         }
@@ -122,20 +128,20 @@ public struct SettingsView: View {
 
     private var appearance: some View {
         Form {
-            Picker("Edge", selection: Binding(get: { host.configuration.edge }, set: {
+            Picker("默认停靠边缘", selection: Binding(get: { host.configuration.edge }, set: {
                 host.setPlacement(edge: $0, displayID: host.configuration.preferredDisplayID); placementChanged()
             })) {
-                ForEach(SurfaceEdge.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                ForEach(SurfaceEdge.allCases, id: \.self) { Text($0 == .left ? "左侧" : "右侧").tag($0) }
             }
-            Picker("Display", selection: Binding(get: { host.configuration.preferredDisplayID ?? "" }, set: {
+            Picker("主驻留显示器", selection: Binding(get: { host.configuration.preferredDisplayID ?? "" }, set: {
                 host.setPlacement(edge: host.configuration.edge, displayID: $0.isEmpty ? nil : $0); placementChanged()
             })) {
-                Text("Menu-bar display").tag("")
+                Text("跟随菜单栏所在屏幕").tag("")
                 ForEach(Array(screens.enumerated()), id: \.element.id) { index, screen in
-                    Text("Display \(index + 1) · \(Int(screen.frame.width)) × \(Int(screen.frame.height))").tag(screen.id)
+                    Text("显示器 \(index + 1) · \(Int(screen.frame.width)) × \(Int(screen.frame.height))").tag(screen.id)
                 }
                 if let missing = host.configuration.preferredDisplayID, !screens.contains(where: { $0.id == missing }) {
-                    Text("Preferred display unavailable (retained)").tag(missing)
+                    Text("首选显示器暂未连接（已保留选择）").tag(missing)
                 }
             }
             Text("主驻留屏默认预留可用宽度的 1/8。拔除首选屏时暂用可用屏，重新连接后恢复选择。")

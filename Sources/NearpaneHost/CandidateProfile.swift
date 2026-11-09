@@ -11,14 +11,14 @@ import UniformTypeIdentifiers
 /// Used only by the separately identified development candidate. Publish the first-run
 /// directory as one unit so an interrupted seed never duplicates revisions or imports.
 enum CandidateProfile {
-    static let identifier = "com.holdsnow.nearpane.candidate"
+    static let identifier = "com.holdsnow.nearpane.candidate.p45"
     static var selected: Bool { Bundle.main.bundleIdentifier == identifier }
 
-    @MainActor static func prepare(in parent: URL, acceptance: Bool = false, includeExamples: Bool = true) async throws -> URL {
+    @MainActor static func prepare(in parent: URL, acceptance: Bool = false, includeExamples: Bool = false) async throws -> URL {
         let fm = FileManager.default
-        let root = parent.appendingPathComponent(acceptance ? "support" : "Nearpane Alpha")
+        let root = parent.appendingPathComponent(acceptance ? "support" : "Nearpane Alpha P4.5")
         guard root.standardizedFileURL.path == root.resolvingSymlinksInPath().path else { throw CocoaError(.fileReadNoPermission) }
-        let marker = Data("Nearpane P4.4\n".utf8)
+        let marker = Data("Nearpane P4.5\n".utf8)
         if fm.fileExists(atPath: root.path) {
             for name in ["profile.version","Nearpane","Nearpane/Voice","Riftlet","Nearpane/host-configuration.json"] {
                 let url = root.appendingPathComponent(name)
@@ -34,9 +34,10 @@ enum CandidateProfile {
         let library = stage.appendingPathComponent("Riftlet")
         try fm.createDirectory(at: library, withIntermediateDirectories: true)
         try Data().write(to: library.appendingPathComponent("instance.lock"), options: .withoutOverwriting)
-        try await seedGallery(library, includeExamples: includeExamples)
+        let seedExamples = acceptance && includeExamples
+        try await seedGallery(library, includeExamples: seedExamples)
         let voice = try SaytileStore(directory: support.appendingPathComponent("Voice"))
-        if includeExamples {
+        if seedExamples {
             let row = try await voice.createRecording()
             try await voice.finishRecording(id: row.id)
             try await voice.saveEdit(recordingID: row.id, text: "示例手记\n雨停了。沿街的树叶还挂着水珠。")

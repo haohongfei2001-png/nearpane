@@ -17,7 +17,7 @@ Trial, read, save, need = (lab[key] for key in ("Trial", "read", "save", "need")
 def run(support):
     config = support / "Nearpane" / "host-configuration.json"
     output = support / "WorkRect"
-    need(support.resolve() == support and (support / "profile.version").read_text() == "Nearpane P4.4\n", "candidate profile required")
+    need(support.resolve() == support and (support / "profile.version").read_text() == "Nearpane P4.5\n", "candidate profile required")
     output.mkdir(mode=0o700, exist_ok=True)
     trial = Trial(output, here.parent.parent / "Helpers")
     status = {"members": 0, "ready": False}

@@ -50,13 +50,19 @@ public struct VoiceSurface: View {
             } else {
                 ScrollView {
                     VStack(alignment:.leading,spacing:settings.points(.lineGap,in:size.height)) {
+                        if module.rows.allSatisfy({ $0.text.isEmpty && $0.recognitionState != .failed }),
+                           module.capture == .paused, module.issue == nil {
+                            Text("点播放按钮开始收音")
+                                .font(.caption).foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         if module.hasEarlier {
                             Button("较早文字") { Task { await module.loadEarlier() } }.font(.caption2)
                         }
                         ForEach(module.rows) { row in
                             if !row.text.isEmpty {
                                 TranscriptLine(text: row.text, fontSize:fontSize) { panel in
-                                    Task {
+                                    Task { [weak panel] in
                                         guard let text = await module.editText(row.id) else { return }
                                         releaseEditorFocus = { [weak panel] in
                                             guard let panel, panel.isKeyWindow, panel.styleMask.contains(.nonactivatingPanel) else { return }
@@ -83,13 +89,14 @@ public struct VoiceSurface: View {
                 Button {
                     copied = copy(module.transcript, to: pasteboard)
                 } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc").font(settings.measures[.copySize].map { .system(size:$0.points(in:size.height)) } ?? .body) }
-                .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字")
+                .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字").help("复制当前文字")
                 .onChange(of: module.transcript) { copied = false }
                 Spacer()
                 Button { Task { await module.toggle() } } label: {
-                    VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).foregroundStyle(.indigo).frame(minWidth:buttonWidth,minHeight:buttonHeight)
+                    VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).foregroundStyle(.indigo).frame(minWidth:buttonWidth,minHeight:buttonHeight).contentShape(Rectangle())
                 }
                 .disabled(module.busy || !module.active)
+                .help(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
                 .accessibilityLabel(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
                 .accessibilityValue(module.control.state == .standby ? "待命" : module.control.state == .recognizing ? "正在识别" : "暂停")
             }.buttonStyle(.plain)

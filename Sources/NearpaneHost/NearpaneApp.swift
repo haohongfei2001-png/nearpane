@@ -254,7 +254,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: "Nearpane controls")
         let menu = NSMenu()
-        for (title, action) in [("Show / Hide Surface", #selector(toggleSurface)), ("Settings…", #selector(showSettings)), ("Quit Nearpane", #selector(quit))] {
+        for (title, action) in [("显示或隐藏侧栏", #selector(toggleSurface)), ("设置…", #selector(showSettings)), ("退出 Nearpane", #selector(quit))] {
             let entry = NSMenuItem(title: title, action: action, keyEquivalent: "")
             entry.target = self
             menu.addItem(entry)
@@ -304,7 +304,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         if settings == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 632, height: 572),
                                   styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: true)
-            window.title = "Nearpane Settings"
+            window.title = "Nearpane 设置"
             window.isReleasedWhenClosed = false
             if let screen = surface?.window?.screen {
                 let f = screen.visibleFrame

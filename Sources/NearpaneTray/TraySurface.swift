@@ -153,7 +153,7 @@ private struct ThumbnailHit: NSViewRepresentable {
         if module.localOnly {
             view.setAccessibilityRole(.image)
             view.setAccessibilityLabel("截图 " + String(row.sequence))
-            view.toolTip = nil
+            view.toolTip = "已存入托盘。当前仅支持在专用测试草稿中附加。"
             return
         }
         view.setAccessibilityRole(.button)
