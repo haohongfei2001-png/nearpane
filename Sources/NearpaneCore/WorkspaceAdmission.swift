@@ -35,6 +35,11 @@ public struct WorkspaceAdmission: Equatable, Sendable {
 }
 
 public enum WorkspaceAdmissionPlanner {
+    public static func requestsCreation(existingCount: Int, source: AdmissionSource, preferences: WorkspacePreferences) -> Bool {
+        (source == .application && preferences.newWindow == .newWorkspace)
+            || (existingCount >= 8 && preferences.overflow == .newAboveEight)
+    }
+
     public static func plan(
         member: ManagedMember, bundle: String?, role: ObservedWindowRole, source: AdmissionSource,
         target: WorkspaceID, snapshot: WorkspaceSnapshot, preferences: WorkspacePreferences,
@@ -46,9 +51,7 @@ public enum WorkspaceAdmissionPlanner {
         guard let layout = row.layout, layout.workspace == target,
             !layout.members.contains(where: { $0.id == member.id })
         else { throw WorkspaceFailure.membership }
-        let newAtBirth = source == .application && preferences.newWindow == .newWorkspace
-        let overflow = layout.members.count >= 8 && preferences.overflow == .newAboveEight
-        if newAtBirth || overflow {
+        if requestsCreation(existingCount: layout.members.count, source: source, preferences: preferences) {
             let caps = snapshot.grants[row.display]
             if caps?.permits(.createWorkspace, isolated: isolated) == true
                 && caps?.permits(.moveMember, isolated: isolated) == true

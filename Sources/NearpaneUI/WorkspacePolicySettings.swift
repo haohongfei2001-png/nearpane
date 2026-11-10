@@ -60,7 +60,7 @@ struct WorkspacePolicySettings: View {
                         Button("清除此窗规则") { edit { $0.windows[id] = nil } }
                     }
                 }
-                Text("窗口规则优先于应用规则。系统写操作尚未开放。").font(.caption)
+                Text("窗口规则优先于应用规则。自动管理仅向已授权的兼容应用开放。").font(.caption)
             }.padding()
         }
     }

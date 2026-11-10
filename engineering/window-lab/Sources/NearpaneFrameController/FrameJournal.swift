@@ -4,7 +4,8 @@ import NearpaneCore
 import WindowLab
 
 struct WindowBaseline: Codable {
-    let member: Member, initial: SurfaceRect
+    var member: Member
+    let initial: SurfaceRect
     var confirmed: SurfaceRect
     func matches(_ actual: Observation) -> Bool {
         actual.member == member && actual.onScreen && actual.cg == confirmed && actual.ax == confirmed
@@ -42,6 +43,7 @@ struct ActionReceipt: Codable {
     let action: String, session: UUID, snapshotRevision: Int, setters: Int
     let workRect: SurfaceRect?, maxModelError: Double?, journal: FrameJournal?
     let observations: [Observation], steps: [StepReceipt]
+    var creationUnavailableFor: [ManagedWindowID]?
 }
 
 final class SessionFiles {
@@ -80,6 +82,7 @@ final class SessionFiles {
 @MainActor final class Experiment {
     let adapter: FixtureAdapter, files: SessionFiles
     var receipts = [StepReceipt]()
+    private var creationFallback: [ManagedWindowID]?
     private var holdBeforeAcknowledgement = false
     init(_ dir: URL, acceptsAX: Bool = true) throws {
         adapter = try FixtureAdapter(dir, acceptsAX: acceptsAX)
@@ -90,7 +93,7 @@ final class SessionFiles {
     func observations() throws -> [Observation] { try adapter.ticket.members.map(adapter.observe) }
     func picture(_ action: String, _ journal: FrameJournal? = nil, area: SurfaceRect? = nil, error: Double? = nil) throws -> ActionReceipt {
         try ActionReceipt(action: action, session: adapter.run.session, snapshotRevision: adapter.ticket.revision, setters: adapter.setters,
-                          workRect: area, maxModelError: error, journal: journal, observations: observations(), steps: receipts)
+                          workRect: area, maxModelError: error, journal: journal, observations: observations(), steps: receipts, creationUnavailableFor: creationFallback)
     }
     private func apply(_ j: inout FrameJournal, at i: Int, to target: SurfaceRect) throws {
         let member = j.changes[i].member
@@ -104,7 +107,8 @@ final class SessionFiles {
             receipts.append(.init(member: member, before: current, requested: next, after: after))
             if holdBeforeAcknowledgement {
                 try files.persist(try picture("AX-confirmed-before-WAL-ack", j), "kill-witness.json")
-                while getppid() == adapter.run.parent.pid && ProcessInfo.processInfo.systemUptime < adapter.run.deadline { usleep(100_000) }
+                let limit = adapter.run.productManagement == true ? ProcessInfo.processInfo.systemUptime + 7 : adapter.run.deadline
+                while ProcessInfo.processInfo.systemUptime < limit && getppid() > 1 { usleep(50_000) }
                 throw Refusal("kill checkpoint expired")
             }
             j.changes[i].confirmed = after.cg; j.changes[i].inFlight = nil
@@ -115,7 +119,11 @@ final class SessionFiles {
     // Sets a single primitive at a time. The before/after pair spans death between AX and its acknowledgement.
     func recover() throws -> ActionReceipt {
         guard var j: FrameJournal = try files.load("journal.json") else { throw Refusal("missing recovery record") }
-        try validate(j)
+        if adapter.run.productManagement == true {
+            try require(j.session == adapter.run.session && j.owner == adapter.ticket.owner
+                && j.display == adapter.run.screens.secondary && !j.changes.isEmpty
+                && Set(j.changes.map(\.member.id)).count == j.changes.count, "recovery origin changed")
+        } else { try validate(j) }
         try adapter.requireAccess()
         func accessible(_ c: FrameChange) throws -> Bool {
             let o = try adapter.observe(c.member)
@@ -128,14 +136,24 @@ final class SessionFiles {
         try require([.prepared, .parked, .recovering].contains(j.status), "no pending recovery")
         j.status = .recovering; try files.persist(j, "journal.json")
         // If a competing manager or the user changed a window, preserve its current frame and the unsettled journal.
+        var deferred = [UInt32]()
         for i in j.changes.indices.reversed() {
-            let c = j.changes[i], live = try adapter.observe(c.member).cg
+            let c = j.changes[i]
+            if adapter.run.productManagement == true {
+                guard adapter.ticket.members.contains(c.member), let observed = try? adapter.observe(c.member),
+                      observed.onScreen && c.permitsRecovery(from: observed.cg) else {
+                    deferred.append(c.member.id.number)
+                    continue
+                }
+            }
+            let live = try adapter.observe(c.member).cg
             try require(c.permitsRecovery(from: live), "unrecognized frame; retained for inspection")
             if live != c.original { try adapter.writable(c.member) }
             j.changes[i].confirmed = live; j.changes[i].inFlight = nil
             try files.persist(j, "journal.json")
             try apply(&j, at: i, to: c.original)
         }
+        try require(deferred.isEmpty, "已恢复可核对的窗口；其余保留待处理 \(deferred)")
         try require(try j.changes.allSatisfy(accessible), "restored windows not accessible")
         try files.persist(j.priorLayout, "layout.json")
         j.status = .restored; try files.persist(j, "journal.json")
@@ -147,20 +165,30 @@ final class SessionFiles {
             && Set(j.changes.map(\.member.id)).count == j.changes.count && j.changes.allSatisfy { adapter.ticket.members.contains($0.member) },
             "recovery identity or snapshot revision changed")
     }
-    func state(at baseline: [Observation]) throws -> WorkspaceState {
+    func state(at baseline: [Observation], adopting: Bool = false) throws -> WorkspaceState {
         let run = adapter.run
         if let j: FrameJournal = try files.load("journal.json") {
             try require([.retained, .restored].contains(j.status), "pending recovery requires inspection")
         }
         var state: WorkspaceState = try files.load("layout.json") ??
             .init(session: run.session, display: run.screens.secondary, owner: adapter.ticket.owner,
-                  layout: .init(workspace: .virtual(run.session)), windows: [])
+                  layout: .init(workspace: run.productManagement == true ? nil : .virtual(run.session)), windows: [])
         try require(state.session == run.session && state.display == run.screens.secondary && state.owner == adapter.ticket.owner,
                     "layout owner changed")
         for (index, obs) in baseline.enumerated() {
-            if let old = state.windows.first(where: { $0.member.id == obs.member.id }) {
-                try require(old.matches(obs), "external layout change")
+            if let i = state.windows.firstIndex(where: { $0.member.id == obs.member.id }) {
+                if run.productManagement == true {
+                    try require(state.windows[i].member.identifier == obs.member.identifier, "member identity changed")
+                    state.windows[i].member = obs.member
+                }
+                let old = state.windows[i]
+                if adopting && adapter.run.productManagement == true {
+                    try require(obs.member == old.member && obs.ax == obs.cg && obs.onScreen
+                        && obs.cg.geometry.intersection(run.screens.usable.geometry) == obs.cg.geometry, "unsafe user frame")
+                } else { try require(old.matches(obs), "external layout change") }
             } else {
+                try require(!state.windows.contains { $0.member.id.number == obs.member.id.number && $0.member.id != obs.member.id },
+                            "CG window number reused")
                 try require(adapter.ticket.frames.indices.contains(index) && adapter.ticket.members[index] == obs.member
                     && adapter.ticket.frames[index] == obs.cg && obs.cg == obs.ax && obs.onScreen
                     && run.screens.usable.geometry.intersection(obs.cg.geometry) == obs.cg.geometry,
@@ -173,11 +201,19 @@ final class SessionFiles {
     func begin(_ action: String) throws -> ActionReceipt {
         // Validate and journal the same observation. Reading a new baseline after approval would adopt a competing edit.
         let before = try observations()
-        var state = try state(at: before)
+        var state = try state(at: before, adopting: action == "candidate-adopt")
         let run = adapter.run, screens = run.screens, members = adapter.ticket.members
         let switching = action == "switch" || action == "switch-and-hold"
         let park = action == "park" || switching, canary = action == "canary" || action == "canary-and-hold"
         holdBeforeAcknowledgement = action == "canary-and-hold"
+        let acceptance = adapter.directory.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        if run.productManagement == true && action == "candidate-layout"
+            && acceptance.deletingLastPathComponent().lastPathComponent == "native-acceptance"
+            && ProcessInfo.processInfo.environment["NEARPANE_MANAGEMENT_ACCEPTANCE"] == acceptance.lastPathComponent
+            && UUID(uuidString: acceptance.lastPathComponent) != nil {
+            let mark = acceptance.appendingPathComponent("stop-before-ack.once")
+            if unlink(mark.path) == 0 { holdBeforeAcknowledgement = true }
+        }
         if park {
             let grant = VirtualWorkspacesProvider().deviceCapabilities(build: ProcessInfo.processInfo.operatingSystemVersionString, displayID: screens.secondary)
             try require(grant.permits(.switchRow, isolated: false), "no device-verified Virtual parking mechanism")
@@ -187,6 +223,7 @@ final class SessionFiles {
         settings.placement = action == "floating" ? .floating : .docked
         if action == "reserve" { settings.measures[.reservedWidth] = Measure(20, .percent) }
         var primary = false, edge = SurfaceEdge.left
+        var preferences: WorkspacePreferences?
         var pairRatio = 0.62, swap = true, retainIntent = false
         if action.hasPrefix("candidate-") {
             let request: CandidateLayout = try readJSON(adapter.directory, "candidate.json")
@@ -195,6 +232,7 @@ final class SessionFiles {
             for member in members {
                 try require(try !config.workspaces.excluded(member.id, bundle: "org.nearpane.lab.NearpaneFixtureWindows"), "excluded test window")
             }
+            preferences = config.workspaces
             settings = config.displays[screens.secondary] ?? .init()
             primary = config.preferredDisplayID == screens.secondary
             edge = config.edge
@@ -208,16 +246,30 @@ final class SessionFiles {
                                        primary: primary, settings: settings, fallbackEdge: edge)
         var layout = state.layout
         for m in layout.members where !members.contains(where: { $0.id == m.id }) { layout = try layout.removing(m.id, in: area.ordinary) }
-        for m in members where !layout.members.contains(where: { $0.id == m.id }) { layout = try layout.adding(m.managed, in: area.ordinary) }
-        if action == "custom-pair" || action == "candidate-pair" {
+        if run.productManagement == true { creationFallback = [] }
+        for m in members where !layout.members.contains(where: { $0.id == m.id }) {
+            if let preferences, WorkspaceAdmissionPlanner.requestsCreation(existingCount: layout.members.count,
+                                                                           source: .application, preferences: preferences) {
+                creationFallback?.append(m.id)
+            }
+            layout = try layout.adding(m.managed, in: area.ordinary)
+        }
+        if action == "custom-pair" || action == "candidate-pair" || action == "candidate-adopt" {
             try require(members.count == 2, "custom pair requires two windows")
-            if action == "candidate-pair" {
+            if action == "candidate-adopt" {
+                (pairRatio, swap) = try observedPair(before, state: state, area: area.ordinary)
+            }
+            if action.hasPrefix("candidate-") {
                 // Start from a canonical pair so applying the same explicit slot choice is idempotent.
                 layout = try ManagedWindowTiler(workspace: state.layout.workspace).adding(members[0].managed, in: area.ordinary)
                     .adding(members[1].managed, in: area.ordinary)
             }
             layout = try layout.adjusting(path: [], axis: .columns, ratio: pairRatio, in: area.ordinary)
             if swap { layout = try layout.swapping(members[0].id, members[1].id, in: area.ordinary) }
+        }
+        retainIntent = retainIntent || (adapter.run.productManagement == true && layout.userAdjusted)
+        if run.productManagement == true {
+            layout = try layout.refreshingRequirements(members.map(\.managed), in: area.ordinary)
         }
         let modelArea = exiting && retainIntent ? screens.usable : area.ordinary
         let model = try layout.frames(in: modelArea)

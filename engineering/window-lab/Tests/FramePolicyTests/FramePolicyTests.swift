@@ -91,3 +91,20 @@ struct FramePolicyTests {
         #expect(throws: DecodingError.self) { let _: [String: Int]? = try reopened.load("record.json") }
     }
 }
+
+extension FramePolicyTests {
+    @Test func minimumChangeKeepsTheUserPartitionOrRefusesBeforeWrite() throws {
+        let area = SurfaceRect(width: 800, height: 800)
+        let other = ManagedWindowID(pid: 9, launch: 33, number: 29, element: UUID())
+        let second = ManagedMember(other, minimumWidth: 100, minimumHeight: 100, canResize: true)
+        let layout = try ManagedWindowTiler(workspace: nil).adding(member.managed, in: area)
+            .adding(second, in: area).adjusting(path: [], axis: .columns, ratio: 0.6, in: area)
+        let newer = ManagedMember(other, minimumWidth: 320, minimumHeight: 96, canResize: true)
+        let updated = try layout.refreshingRequirements([newer, member.managed], in: area)
+        #expect(updated.partition == layout.partition && updated.userAdjusted && updated.workspace == nil)
+        #expect(throws: WorkspaceFailure.minimumSize) {
+            try layout.refreshingRequirements([member.managed, .init(other, minimumWidth: 321, minimumHeight: 96, canResize: true)], in: area)
+        }
+        #expect(throws: WorkspaceFailure.membership) { try layout.refreshingRequirements([second, second], in: area) }
+    }
+}

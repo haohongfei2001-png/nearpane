@@ -22,12 +22,18 @@ struct Observation: Codable {
         let live: OwnerState = try readJSON(directory, "owner.json")
         let age = ProcessInfo.processInfo.systemUptime - live.uptime
         try require(live.session == run.session && ticket.session == run.session && live.owner == ticket.owner
-            && live.revision == ticket.revision && live.members == ticket.members, "stale enrollment")
-        try require(age >= 0 && age < 2 && !live.keyOrMain && live.activations == 0, "owner inactive or focus guard tripped")
-        try require(!live.members.isEmpty && live.members.count <= 5 && Set(live.members.map(\.id)).count == live.members.count
+            && live.revision == ticket.revision && (run.productManagement == true
+                ? ticket.members.allSatisfy(live.members.contains) : live.members == ticket.members), "stale enrollment")
+        try require(age >= 0 && age < 2 && (run.productManagement == true
+            ? live.keyOrMain == ticket.keyOrMain && live.editing != true : !live.keyOrMain && live.activations == 0), "owner inactive or focus guard tripped")
+        try require(!live.members.isEmpty && live.members.count <= (run.productManagement == true ? 32 : 5) && Set(live.members.map(\.id)).count == live.members.count
             && Set(live.members.map(\.id.number)).count == live.members.count && Set(live.members.map(\.identifier)).count == live.members.count,
                     "ambiguous enrollment")
-        try verifyFixtureCode(live.owner, supervisor: run.parent)
+        if run.productManagement == true {
+            let now = try ProcessBirth.read(live.owner.pid)
+            try require(now.start == live.owner.start && live.owner.parent == run.parent.pid, "owner incarnation changed")
+            try verifySiblingCode(now, name: "NearpaneFixtureWindows")
+        } else { try verifyFixtureCode(live.owner, supervisor: run.parent) }
     }
     func cg(_ m: Member) throws -> Observation {
         try freshness()
@@ -68,7 +74,7 @@ struct Observation: Codable {
         let w = try element(m)
         // Some ordinary AppKit windows omit AXFullScreen. The owner heartbeat independently checks the
         // concrete NSWindow's style and miniaturization; an affirmative AX state always vetoes writes.
-        try require(attribute(w, kAXMinimizedAttribute) as? Bool != true && attribute(w, "AXFullScreen") as? Bool != true,
+        try require(attribute(w, kAXModalAttribute) as? Bool != true && attribute(w, kAXMinimizedAttribute) as? Bool != true && attribute(w, "AXFullScreen") as? Bool != true,
                     "fixture minimized or fullscreen")
         guard let p = attribute(w, kAXPositionAttribute), let s = attribute(w, kAXSizeAttribute),
               CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(s) == AXValueGetTypeID() else { throw Refusal("AX frame values unavailable") }
@@ -117,6 +123,11 @@ struct Observation: Codable {
             }
         }
         struct Attempt: Codable { let session: UUID, revision: Int, member: Member, before: SurfaceRect, requested: SurfaceRect }
+        if run.productManagement == true {
+            try validateManagementGrant(directory, session: run.session, display: run.screens.secondary)
+            try require(before.onScreen, "window left the visible workspace")
+        }
+        let focus = run.productManagement == true ? try ManagementFocus() : nil
         try writeJSON(Attempt(session: run.session, revision: ticket.revision, member: m, before: old, requested: next),
                       directory, "attempt-" + UUID().uuidString + ".json")
         setters += 1
@@ -126,7 +137,7 @@ struct Observation: Codable {
         repeat {
             if let seen = try? observe(m) {
                 last = seen
-                if seen.cg == next && result == .success { return seen }
+                if seen.cg == next && result == .success { try focus?.verify(); return seen }
             }
             usleep(25_000)
         } while ProcessInfo.processInfo.systemUptime < limit

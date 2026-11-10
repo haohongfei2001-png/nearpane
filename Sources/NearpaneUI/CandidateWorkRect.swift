@@ -1,82 +1,113 @@
 import AppKit
+import NearpaneCore
 import SwiftUI
 
-/// The supervisor accepts a closed command vocabulary and enrolls its own child windows.
+/// Owns one serialized manager for the whole Host, independent of panel visibility.
 @MainActor @Observable public final class CandidateWorkRect {
     private let support: URL
     private var process: Process?
     private var input: FileHandle?
     private var monitor: Task<Void, Never>?
-    private(set) var ready = false
-    private(set) var busy = false
+    private(set) var mode = "off"
     private(set) var count = 0
-    private(set) var message = "仅管理本次创建的副屏示例窗。"
-    var running: Bool { process != nil }
-    init(support: URL) { self.support = support }
+    public private(set) var windows = [ManagedWindowID]()
+    private(set) var message = "正在读取管理设置…"
+    private(set) var blocked = false
+    private(set) var trusted = false
 
-    func start() {
+    init(support: URL) { self.support = support }
+    public func start() {
         guard process == nil, let folder = Bundle.main.resourceURL else { return }
         let child = Process(), commands = Pipe(), replies = Pipe()
         child.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        child.arguments = ["-I", "-B", "-u", folder.appendingPathComponent("WorkRect/candidate-workrect.py").path, support.path]
-        child.standardInput = commands
-        child.standardOutput = replies
-        do { try child.run() } catch { message = error.localizedDescription; return }
-        process = child
-        input = commands.fileHandleForWriting
-        busy = true
-        message = "正在核对副屏、辅助功能与控制器身份…"
+        child.arguments = ["-I", "-B", "-u", folder.appendingPathComponent("WorkRect/window-management.py").path, support.path]
+        child.standardInput = commands; child.standardOutput = replies
+        do { try child.run() } catch { message = error.localizedDescription; blocked = true; return }
+        process = child; input = commands.fileHandleForWriting
         monitor = Task {
-            defer { input = nil; process = nil; ready = false; busy = false; count = 0 }
+            struct Reply: Decodable {
+                let mode: String, members: Int, windows: [ManagedWindowID], detail: String, blocked: Bool, trusted: Bool
+            }
             do {
                 for try await line in replies.fileHandleForReading.bytes.lines {
-                    struct Reply: Decodable { let ready: Bool, members: Int, detail: String? }
                     let reply = try JSONDecoder().decode(Reply.self, from: Data(line.utf8))
-                    ready = reply.ready
-                    busy = false
-                    count = reply.members
-                    message = reply.detail ?? "已就绪，可以添加测试窗口。"
+                    mode = reply.mode; count = reply.members; windows = reply.windows
+                    message = reply.detail; blocked = reply.blocked; trusted = reply.trusted
                 }
-            } catch { message = error.localizedDescription }
-            try? input?.close()
+            } catch { message = error.localizedDescription; blocked = true }
+            try? input?.close(); input = nil
             await Task.detached { child.waitUntilExit() }.value
-            if child.terminationStatus != 0 { message = "已停止 · " + message }
+            process = nil
+            if child.terminationStatus != 0 { blocked = true }
         }
     }
-    func send(_ command: String) {
-        guard ready, !busy, let input else { return }
-        do { try input.write(contentsOf: Data((command + "\n").utf8)); busy = true }
-        catch { message = error.localizedDescription }
+    public func send(_ command: String) {
+        if process == nil { start() }
+        guard let input else { return }
+        do { try input.write(contentsOf: Data((command + "\n").utf8)) }
+        catch { message = error.localizedDescription; blocked = true }
     }
-    func end() {
-        try? input?.close()
-        input = nil
-        ready = false
+    public func finish() async {
+        if input != nil { send("quit") }
+        try? input?.close(); input = nil
+        await monitor?.value
     }
-    public func finish() async { end(); await monitor?.value }
 }
 
-struct CandidateWorkRectView: View {
-    let session: CandidateWorkRect
-    @AppStorage("alphaPairPercent") private var percent = 60
-    @AppStorage("alphaPairSwap") private var swap = false
-    var body: some View {
-        Form {
-            Text("副屏测试窗口")
-            if session.running {
+private typealias ViewState<T> = State<T>
+public struct CandidateWorkRectView: View {
+    let session: CandidateWorkRect, host: HostSession
+    @ViewState private var confirm = false
+    @AppStorage("managementPairPercent") private var percent = 60
+    @AppStorage("managementPairSwap") private var swap = false
+
+    public init(session: CandidateWorkRect, host: HostSession) { self.session = session; self.host = host }
+
+    public var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("管理范围为副屏上由 Nearpane 打开的兼容窗口。当前仅核准随附的窗口应用。")
+                Text(session.message).textSelection(.enabled)
+                if session.mode == "off" {
+                    Button("启用自动窗口管理…") { confirm = true }
+                        .alert("允许自动调整副屏兼容窗口？", isPresented: $confirm) {
+                            Button("取消", role: .cancel) {}
+                            Button("允许并启用") { session.send("enable") }
+                        } message: { Text("当前及以后打开的兼容窗口将按工作区域排列。退出时撤销自动布局，保留你保存的分割位置。") }
+                } else {
+                    HStack {
+                        Button(session.mode == "paused" ? "继续管理" : "暂停管理") {
+                            session.send(session.mode == "paused" ? "resume" : "pause")
+                        }
+                        Button("停止并恢复") { session.send("disable") }
+                        if session.blocked { Button("重新核对并恢复") { session.send("retry") } }
+                    }
+                }
+                Text(session.trusted ? "辅助功能已核对 · 当前成员 \(session.count)" : "写入前将核对控制器的辅助功能权限")
+                    .font(.caption)
                 HStack {
-                    Button("添加一窗") { session.send("add") }.disabled(session.count >= 5)
-                    Button("移除末窗") { session.send("remove") }.disabled(session.count <= 1)
-                }.disabled(!session.ready || session.busy)
-                Stepper("左侧比例  \(percent)%", value: $percent, in: 20...80, step: 1)
-                Toggle("交换双窗位置", isOn: $swap)
-                Button("应用双窗布局") { session.send("pair \(Double(percent)/100) \(swap ? "swap" : "original")") }
-                    .disabled(!session.ready || session.busy || session.count != 2)
-                Button("结束并恢复") { session.end() }
-            } else {
-                Button("开始副屏窗口体验") { session.start() }
-            }
-            Text(session.message).font(.caption).textSelection(.enabled)
-        }.padding()
+                    Button("打开兼容应用窗口") { session.send("open") }
+                    if !session.windows.isEmpty { Button("关闭末个兼容窗口") { session.send("close") } }
+                }
+                ForEach(session.windows, id: \.self) { id in
+                    let excluded = (try? host.configuration.workspaces.excluded(id, bundle: "org.nearpane.lab.NearpaneFixtureWindows")) != false
+                    Toggle("管理窗口 \(String(id.number))", isOn: Binding(get: { !excluded }, set: { include in
+                        var prefs = host.configuration.workspaces
+                        prefs.windows[id] = include ? .include : .exclude
+                        host.setWorkspacePreferences(prefs)
+                    }))
+                }
+                if session.mode == "active" && session.count == 2 {
+                    Stepper("左侧比例  \(percent)%", value: $percent, in: 20...80)
+                    Toggle("交换左右槽位", isOn: $swap)
+                    HStack {
+                        Button("应用双窗布局") { session.send("pair \(percent) \(swap ? "swap" : "original")") }
+                        Button("保存窗口上的手动调整") { session.send("adopt") }
+                    }
+                }
+                Text("工作区域位于「尺寸与呈现」。应用排除和新窗口归属位于「窗口规则」。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }.frame(maxWidth: .infinity, alignment: .leading).padding()
+        }
     }
 }

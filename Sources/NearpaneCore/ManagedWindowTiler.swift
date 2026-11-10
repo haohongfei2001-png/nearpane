@@ -88,16 +88,17 @@ public indirect enum SlotPartition: Codable, Equatable, Sendable {
 
 /// Persistent join order and user partition. Every modification validates a copy before publication.
 public struct ManagedWindowTiler: Codable, Equatable, Sendable {
-    public let workspace: WorkspaceID
+    /// Nil denotes a visible display cohort with no admitted system Space identity.
+    public let workspace: WorkspaceID?
     public private(set) var members: [ManagedMember] = []
     public private(set) var partition: SlotPartition?
     private struct CustomPartition: Codable, Equatable, Sendable { let ids: [ManagedWindowID], tree: SlotPartition }
     private var history: [CustomPartition] = []
     public private(set) var userAdjusted = false
-    public init(workspace: WorkspaceID) { self.workspace = workspace }
+    public init(workspace: WorkspaceID?) { self.workspace = workspace }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        workspace = try c.decode(WorkspaceID.self, forKey: .workspace)
+        workspace = try c.decodeIfPresent(WorkspaceID.self, forKey: .workspace)
         members = try c.decode([ManagedMember].self, forKey: .members)
         partition = try c.decodeIfPresent(SlotPartition.self, forKey: .partition)
         history = try c.decodeIfPresent([CustomPartition].self, forKey: .history) ?? []
@@ -145,6 +146,20 @@ public struct ManagedWindowTiler: Codable, Equatable, Sendable {
         next.members.append(member)
         next.partition = Self.template(next.members.count)
         next.userAdjusted = false
+        _ = try next.frames(in: area)
+        return next
+    }
+    /// Size changes keep the user's partition and require a new feasibility check before any write.
+    public func refreshingRequirements(_ current: [ManagedMember], in area: SurfaceRect) throws -> Self {
+        guard Set(current.map(\.id)) == Set(members.map(\.id)), current.count == members.count else {
+            throw WorkspaceFailure.membership
+        }
+        let updated = Dictionary(uniqueKeysWithValues: current.map { ($0.id, $0) })
+        var next = self
+        next.members = try members.map {
+            guard let member = updated[$0.id] else { throw WorkspaceFailure.membership }
+            return member
+        }
         _ = try next.frames(in: area)
         return next
     }

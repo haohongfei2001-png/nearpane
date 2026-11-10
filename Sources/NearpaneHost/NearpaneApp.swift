@@ -104,6 +104,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     var acceptanceSession: NativeAcceptanceSession?
     var requestsDesktopFixture = false
     private var desktopFixture: DesktopAcceptanceFixture?
+    private var managementProbe: NativeManagementAcceptance?
+    private var managementTrial: Bool {
+        guard requestsDesktopFixture, let acceptanceSession else { return false }
+        return ProcessInfo.processInfo.environment["NEARPANE_MANAGEMENT_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent
+    }
     private var acceptanceProbe: NativeAcceptanceProbe?
     #endif
     private var host: HostSession?
@@ -126,7 +131,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if passiveDisplayID != nil {
             // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.
-            let timer = Timer(timeInterval: 25, repeats: false) { _ in
+            var duration = 25.0
+            #if canImport(SaytileKit)
+            if managementTrial { duration = 100 }
+            #endif
+            let timer = Timer(timeInterval: duration, repeats: false) { _ in
                 MainActor.assumeIsolated { NSApp.terminate(nil) }
             }
             RunLoop.main.add(timer, forMode: .common)
@@ -166,6 +175,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
+        modules.workRect?.start()
         let provider: any DesktopObservationProvider
         if testSession == nil { provider = NativeDesktopProvider.packaged() }
         else {
@@ -204,6 +214,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         if let acceptanceSession {
             desktopFixture?.observe(session)
             do {
+                if managementTrial, let display = passiveDisplayID, let manager = modules.workRect {
+                    managementProbe = try NativeManagementAcceptance(session: acceptanceSession, display: display, host: session, manager: manager)
+                }
                 acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules,
                     surface: controller, screens: { [weak self] in self?.placementScreens() ?? [] })
             }
@@ -231,6 +244,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             await modules.finishStopping()
             await host?.waitForDesktopStop()
             #if canImport(RiftletCore) && canImport(SaytileKit)
+            managementProbe?.stop()
             acceptanceProbe?.finish()
             #endif
             sender.reply(toApplicationShouldTerminate: true)

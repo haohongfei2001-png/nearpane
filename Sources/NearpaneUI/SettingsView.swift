@@ -66,7 +66,7 @@ public struct SettingsView: View {
             appearance.tabItem { Text("显示器") }
             WorkspaceDisplaySettings(host:host,screens:screens,request:requestSecondary,dismiss:dismissSpaces).tabItem { Text("尺寸与呈现") }
             WorkspacePolicySettings(host:host).tabItem { Text("窗口规则") }
-            if let lab = domains?.workRect { CandidateWorkRectView(session: lab).tabItem { Text("平铺体验") } }
+            if let lab = domains?.workRect { CandidateWorkRectView(session: lab, host: host).tabItem { Text("窗口管理") } }
             desktopOptions.tabItem { Text("空间观察") }
             if domains?.candidate != true { mockSettings.tabItem { Text("Mock & diagnostics") } }
         }

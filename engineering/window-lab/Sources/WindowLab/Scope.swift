@@ -100,6 +100,7 @@ package func rect(_ r: CGRect) -> Rect { Rect(r.minX, r.minY, r.width, r.height)
 
 package struct Run: Codable, Equatable {
     package var parkingStudy: Bool?
+    package var productManagement: Bool?
     package let session: UUID, parent: ProcessBirth, screens: Screens, deadline: Double
     @MainActor package static func checked(_ directory: URL) throws -> Self {
         let run: Self = try readJSON(directory, "run.json")
@@ -108,8 +109,18 @@ package struct Run: Codable, Equatable {
             && (attr[.ownerAccountID] as? NSNumber)?.uint32Value == getuid() && (attr[.posixPermissions] as? NSNumber)?.intValue == 0o700,
             "unsafe session directory")
         let now = ProcessInfo.processInfo.systemUptime
-        try require(run.parent == (try ProcessBirth.read(getppid())) && run.deadline >= now && run.deadline - now <= 600,
-                    "expired session or changed supervisor")
+        if run.productManagement == true {
+            let root = directory.deletingLastPathComponent()
+            let profile = root.deletingLastPathComponent()
+            let app = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            try require(root.lastPathComponent == "WorkRect" && directory.lastPathComponent == run.session.uuidString.lowercased()
+                && Bundle(url: app)?.bundleIdentifier == "com.holdsnow.nearpane.candidate.p46"
+                && (try String(contentsOf: profile.appendingPathComponent("profile.version"), encoding: .utf8)) == "Nearpane P4.6\n",
+                "invalid installed manager or consent profile")
+        } else {
+            try require(run.parent == (try ProcessBirth.read(getppid())) && run.deadline >= now && run.deadline - now <= 600,
+                        "expired session or changed supervisor")
+        }
         try require(try Screens.read().0 == run.screens, "display or login changed")
         return run
     }
@@ -126,6 +137,7 @@ package struct Member: Codable, Equatable {
 package struct OwnerState: Codable {
     package let session: UUID, owner: ProcessBirth, revision: Int, command: Int, uptime: Double
     package let members: [Member], frames: [SurfaceRect], keyOrMain: Bool, activations: Int
+    package var editing: Bool?, lastResize: UUID?, resizedWindow: ManagedWindowID?, resizedFrame: SurfaceRect?, resizeUptime: Double?, occupied: [Int]?
     package init(session: UUID, owner: ProcessBirth, revision: Int, command: Int, members: [Member],
                  frames: [SurfaceRect], keyOrMain: Bool, activations: Int) {
         self.session = session; self.owner = owner; self.revision = revision; self.command = command

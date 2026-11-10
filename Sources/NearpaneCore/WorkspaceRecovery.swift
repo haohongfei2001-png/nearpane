@@ -85,9 +85,10 @@ public struct WorkAreaLayoutPlanner {
     public mutating func update(area: DesktopWorkArea, layout: ManagedWindowTiler) throws -> [ManagedWindowID: SurfaceRect]?
     {
         let next = Input(area: area.ordinary, layout: layout)
-        guard last[layout.workspace] != next else { return nil }
+        guard let workspace = layout.workspace else { throw WorkspaceFailure.identity }
+        guard last[workspace] != next else { return nil }
         let frames = try layout.frames(in: area.ordinary)
-        last[layout.workspace] = next
+        last[workspace] = next
         return frames
     }
 }

@@ -17,7 +17,21 @@ do {
                            uptime: ProcessInfo.processInfo.systemUptime, controllerID: Bundle.main.bundleIdentifier))
     } else if args.count == 2 {
         let verb = args[0], directory = URL(fileURLWithPath: args[1], isDirectory: true)
-        if verb == "regular-compare" {
+        let run: Run = try readJSON(directory, "run.json")
+        if run.productManagement == true {
+            try require(["product-retired", "inspect", "observe", "recover", "candidate-layout", "candidate-pair", "candidate-adopt", "candidate-exit"].contains(verb),
+                        "unsupported product action")
+            _ = try Run.checked(directory)
+        }
+        if verb == "product-retired", run.productManagement == true {
+            let owner: OwnerState = try readJSON(directory, "owner.json")
+            try require(owner.session == run.session && owner.owner.parent == run.parent.pid, "unknown owner")
+            let gone = kill(owner.owner.pid, 0) != 0 && errno == ESRCH
+            let replacement = try? ProcessBirth.read(owner.owner.pid)
+            try require(gone || replacement.map { $0.start != owner.owner.start } == true,
+                        "the enrolled process is still present or unavailable")
+            try emit(["retired": true])
+        } else if verb == "regular-compare" {
             let study=try RegularStudy(directory)
             do { try study.trial() }
             catch {
@@ -43,7 +57,7 @@ do {
             try emit(try confirmExit(directory))
         } else if verb == "recover" || verb == "recover-denied" {
             try emit(try Experiment(directory, acceptsAX: verb != "recover-denied").recover())
-        } else if ["canary", "canary-and-hold", "docked", "floating", "reserve", "custom-pair", "candidate-layout", "candidate-pair", "candidate-exit", "original", "park", "switch", "switch-and-hold"].contains(verb) {
+        } else if ["canary", "canary-and-hold", "docked", "floating", "reserve", "custom-pair", "candidate-layout", "candidate-pair", "candidate-adopt", "candidate-exit", "original", "park", "switch", "switch-and-hold"].contains(verb) {
             try emit(try Experiment(directory).begin(verb))
         } else { throw Refusal("unknown controller command") }
     } else {
