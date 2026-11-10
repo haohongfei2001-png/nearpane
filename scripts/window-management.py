@@ -62,8 +62,8 @@ def plan_key(owner, config, display):
 
 class Manager:
     def __init__(self, profile, bundle):
-        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.6\n",
-                "无法核对 P4.6 隔离资料")
+        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.7\n",
+                "无法核对 P4.7 隔离资料")
         self.root = profile / "WorkRect"
         self.root.mkdir(mode=0o700, exist_ok=True)
         require(self.root.resolve() == self.root and self.root.stat().st_uid == os.getuid()
@@ -83,7 +83,7 @@ class Manager:
         self.directory = None
         self.pre = None
         self.last = self.pending = None
-        self.error = None
+        self.error = "上次停止时的窗口恢复尚未完成。请重新核对并恢复。" if self.prefs.get("pendingStop") else None
         self.last_status = None
         self.count = 0
         self.seen_resize = None
@@ -195,11 +195,14 @@ class Manager:
         self.count = len(key[2])
         return owner, config, key
 
-    def apply(self, verb):
+    def apply(self, verb, approved=None):
         owner, config, key = self.snapshot()
+        if approved is not None and (key != approved or owner.get("editing")):
+            self.pending = None
+            return False
         if not key[2]:
             self.last = key
-            return
+            return True
         save(self.directory / "ticket.json", dict(owner, members=[m for m, _ in key[2]], frames=[f for _, f in key[2]]))
         save(self.directory / "candidate.json", dict(configuration=config, ratio=self.prefs["ratio"],
              swap=self.prefs["swap"], keepIntent=False))
@@ -213,6 +216,7 @@ class Manager:
         self.last = (*key[:2], pairs, *key[3:])
         self.pending = None
         save(self.directory / "last-result.json", result)
+        return True
 
     def recover(self):
         path = self.directory / "journal.json"
@@ -255,25 +259,42 @@ class Manager:
             explicit = (resize and resize != self.seen_resize and self.count == 2 and len(changed) == 1
                         and changed[0][0]["id"] == owner.get("resizedWindow") and changed[0][1] == owner.get("resizedFrame")
                         and 0 <= time.clock_gettime(time.CLOCK_UPTIME_RAW) - owner.get("resizeUptime", 0) < 2)
-            self.apply("candidate-adopt" if explicit else "candidate-layout")
-            self.seen_resize = resize
+            if self.apply("candidate-adopt" if explicit else "candidate-layout", approved=key):
+                self.seen_resize = resize
         else:
             self.pending = key
 
+    def stop_management(self, intent, retry=False):
+        if self.directory and self.mode != "off":
+            # Publish explicit exit intent before recovery or a new frame transaction. A failed
+            # orderly quit must not look like an unattended crash restart on the next launch.
+            self.prefs["pendingStop"] = intent
+            save(self.settings, self.prefs)
+            self.preflight()
+            self.recover()
+            self.apply("candidate-exit")
+            self.grant("off")
+        if intent == "disable":
+            self.mode = "off"
+        elif retry:
+            self.mode = "paused"
+        self.prefs["mode"] = self.mode
+        self.prefs.pop("pendingStop", None)
+        save(self.settings, self.prefs)
+        self.error = self.pending = self.last = None
+        self.count = 0
+
     def command(self, cmd):
-        if cmd in ("disable", "quit"):
-            if self.directory and self.mode != "off":
-                self.preflight()
-                self.recover()
-                self.apply("candidate-exit")
-                self.grant("off")
+        pending = self.prefs.get("pendingStop")
+        if pending:
             if cmd == "quit":
                 return False
-            self.mode = self.prefs["mode"] = "off"
-            save(self.settings, self.prefs)
-            self.error = self.pending = self.last = None
-            self.count = 0
+            require(cmd in ("retry", "disable") and pending in ("quit", "disable"), "请先处理上次未完成的恢复")
+            self.stop_management("disable" if cmd == "disable" else pending, retry=True)
             return True
+        if cmd in ("disable", "quit"):
+            self.stop_management(cmd)
+            return cmd != "quit"
         if cmd in ("enable", "resume", "retry"):
             require(cmd == "enable" or self.mode != "off", "需要先授权")
             self.preflight()

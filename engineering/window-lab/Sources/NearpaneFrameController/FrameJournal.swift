@@ -20,6 +20,10 @@ struct CandidateLayout: Decodable {
 struct FrameChange: Codable {
     let member: Member, original: SurfaceRect, target: SurfaceRect
     var confirmed: SurfaceRect, inFlight: SurfaceRect?
+    var editToken: UUID?
+    func permitsProductRecovery(from actual: SurfaceRect, currentEdit: UUID?) -> Bool {
+        editToken != nil && editToken == currentEdit && permitsRecovery(from: actual)
+    }
     func permitsRecovery(from actual: SurfaceRect) -> Bool {
         actual == original || actual == confirmed || actual == inFlight
     }
@@ -141,7 +145,7 @@ final class SessionFiles {
             let c = j.changes[i]
             if adapter.run.productManagement == true {
                 guard adapter.ticket.members.contains(c.member), let observed = try? adapter.observe(c.member),
-                      observed.onScreen && c.permitsRecovery(from: observed.cg) else {
+                      observed.onScreen && c.permitsProductRecovery(from: observed.cg, currentEdit: adapter.ticket.editTokens?[c.member.identifier]) else {
                     deferred.append(c.member.id.number)
                     continue
                 }
@@ -297,7 +301,8 @@ final class SessionFiles {
                 previous = step
             }
             try adapter.writable(o.member)
-            moves.append(.init(member: o.member, original: o.cg, target: target, confirmed: o.cg, inFlight: nil))
+            moves.append(.init(member: o.member, original: o.cg, target: target, confirmed: o.cg, inFlight: nil,
+                               editToken: adapter.ticket.editTokens?[o.member.identifier]))
         }
         let groupB = park ? UUID() : run.session
         var journal = FrameJournal(session: run.session, display: screens.secondary, owner: adapter.ticket.owner, transaction: UUID(),

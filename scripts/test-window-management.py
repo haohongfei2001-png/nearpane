@@ -16,7 +16,7 @@ class ProductManagementTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         profile = Path(temp.name).resolve()
-        (profile / "profile.version").write_text("Nearpane P4.6\n")
+        (profile / "profile.version").write_text("Nearpane P4.7\n")
         self.m = wm.Manager(profile, profile)
         self.addCleanup(self.m.lease.close)
         self.id = {"pid": 20, "launch": 32, "number": 3, "element": "one"}
@@ -89,10 +89,52 @@ class ProductManagementTests(unittest.TestCase):
         original = (1, 1, [(self.member, {"x": 1})])
         rebuilt = (1, 2, [(self.member, {"x": 2})])
         self.m.snapshot = Mock(side_effect=[({}, {}, key) for key in (original, rebuilt, rebuilt, rebuilt)])
-        self.m.apply = Mock(side_effect=lambda _: setattr(self.m, "last", rebuilt))
+        self.m.apply = Mock(side_effect=lambda _, approved: setattr(self.m, "last", approved) or True)
         for _ in range(4):
             self.m.tick()
-        self.m.apply.assert_called_once_with("candidate-layout")
+        self.m.apply.assert_called_once_with("candidate-layout", approved=rebuilt)
+
+    def test_replaced_member_after_debounce_gets_no_ticket_or_controller_call(self):
+        self.m.mode = "active"
+        self.m.directory = self.m.root
+        self.m.pre = {"trusted": True}
+        self.m.owner = Mock(return_value=self.owner)
+        first = wm.plan_key(self.owner, self.host, "display")
+        other = dict(self.owner, revision=3, members=[{"id": dict(self.id, element="replacement")}])
+        changed = wm.plan_key(other, self.host, "display")
+        self.m.snapshot = Mock(side_effect=[(self.owner, self.host, first)] * 2 + [(other, self.host, changed)])
+        self.m.control = Mock(side_effect=AssertionError)
+        self.m.tick()
+        self.m.tick()
+        self.m.control.assert_not_called()
+        self.assertFalse((self.m.root / "ticket.json").exists())
+
+    def test_failed_explicit_quit_survives_restart_and_blocks_auto_takeover(self):
+        import uuid
+        self.m.directory = self.m.root / str(uuid.uuid4())
+        self.m.directory.mkdir()
+        wm.save(self.m.directory / "run.json", {"session": self.m.directory.name})
+        self.m.mode = "active"
+        self.m.prefs.update(mode="active", session=self.m.directory.name)
+        self.m.preflight = Mock()
+        self.m.recover = Mock()
+        self.m.apply = Mock(side_effect=ValueError("foreign frame"))
+        with self.assertRaisesRegex(ValueError, "foreign frame"):
+            self.m.command("quit")
+        self.m.lease.close()
+        m = wm.Manager(self.m.root.parent, self.m.root.parent)
+        self.addCleanup(m.lease.close)
+        m.preflight = Mock()
+        m.tick()
+        m.preflight.assert_not_called()
+        self.assertTrue(m.error)
+        with self.assertRaises(ValueError):
+            m.command("resume")
+        m.recover, m.apply, m.grant = Mock(), Mock(), Mock()
+        self.assertTrue(m.command("retry"))
+        m.apply.assert_called_once_with("candidate-exit")
+        self.assertEqual(m.mode, "paused")
+        self.assertNotIn("pendingStop", wm.read(m.settings))
 
     def test_conflict_prevents_periodic_retries(self):
         self.m.mode = "active"

@@ -17,9 +17,14 @@ struct Observation: Codable {
         self.directory = directory; run = try .checked(directory); ticket = try readJSON(directory, "ticket.json")
         try freshness()
     }
-    func freshness() throws {
+    func freshness(_ member: Member? = nil) throws {
         try require(try Run.checked(directory) == run, "session no longer current")
         let live: OwnerState = try readJSON(directory, "owner.json")
+        if run.productManagement == true, let member {
+            guard let token = ticket.editTokens?[member.identifier], live.editTokens?[member.identifier] == token else {
+                throw Refusal("窗口手动调整记录已变化，已停止写入")
+            }
+        }
         let age = ProcessInfo.processInfo.systemUptime - live.uptime
         try require(live.session == run.session && ticket.session == run.session && live.owner == ticket.owner
             && live.revision == ticket.revision && (run.productManagement == true
@@ -36,7 +41,7 @@ struct Observation: Codable {
         } else { try verifyFixtureCode(live.owner, supervisor: run.parent) }
     }
     func cg(_ m: Member) throws -> Observation {
-        try freshness()
+        try freshness(m)
         try require(ticket.members.contains(m) && m.id.pid == ticket.owner.pid && m.id.launch == ticket.owner.start
             && m.identifier == run.session.uuidString + "/" + m.id.element.uuidString, "wrong member incarnation")
         guard let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, m.id.number) as? [[String: Any]], rows.count == 1,
@@ -54,7 +59,7 @@ struct Observation: Codable {
         try require(acceptsAX && AXIsProcessTrusted(), "Accessibility denied")
     }
     func element(_ m: Member) throws -> AXUIElement {
-        try freshness()
+        try freshness(m)
         try require(ticket.members.contains(m) && m.id.pid == ticket.owner.pid && m.id.launch == ticket.owner.start
             && m.identifier == run.session.uuidString + "/" + m.id.element.uuidString, "unregistered window")
         try requireAccess()

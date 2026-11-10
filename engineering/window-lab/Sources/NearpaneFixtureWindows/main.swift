@@ -10,6 +10,7 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
     var focusStudy: FocusStudy?
     var panel: PassivePanel?
     private var lastMembers: [Member] = []
+    private var editTokens = [String: UUID]()
     private var resizeID: UUID?, resizedWindow: ManagedWindowID?
     private var resizedFrame: SurfaceRect?, resizeUptime: Double?
     private var hadProductWindow = false
@@ -21,21 +22,28 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
         if run.productManagement == true {
             try require(run.parent == (try ProcessBirth.read(getppid())), "unregistered owner launch")
             let center = NotificationCenter.default
+            center.addObserver(self, selector: #selector(draggedWindow), name: NSWindow.didMoveNotification, object: nil)
             center.addObserver(self, selector: #selector(endedResize), name: NSWindow.didEndLiveResizeNotification, object: nil)
             center.addObserver(self, selector: #selector(closed), name: NSWindow.willCloseNotification, object: nil)
         }
         if run.parkingStudy == true { focusStudy = try FocusStudy(directory) }
     }
+    @objc private func draggedWindow(_ note: Notification) {
+        guard NSEvent.pressedMouseButtons != 0, let w = note.object as? NSWindow,
+              let member = windows.values.first(where: { $0.1 === w })?.0 else { return }
+        editTokens[member.identifier] = UUID()
+    }
     @objc private func endedResize(_ note: Notification) {
         guard let w = note.object as? NSWindow, let member = windows.values.first(where: { $0.1 === w })?.0 else { return }
         guard let top = NSScreen.screens.first?.frame.maxY else { return }
+        editTokens[member.identifier] = UUID()
         resizeID = UUID(); resizedWindow = member.id
         resizedFrame = .init(x: w.frame.minX, y: top - w.frame.maxY, width: w.frame.width, height: w.frame.height)
         resizeUptime = ProcessInfo.processInfo.systemUptime
     }
     @objc private func closed(_ note: Notification) {
         guard let w = note.object as? NSWindow, let key = windows.first(where: { $0.value.1 === w })?.key else { return }
-        windows.removeValue(forKey: key)
+        if let (member, _) = windows.removeValue(forKey: key) { editTokens.removeValue(forKey: member.identifier) }
     }
     func create(_ index: Int) throws {
         let (map, screen) = try Screens.read()
@@ -72,7 +80,9 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
         guard number > 0, number <= Int(UInt32.max), screen.frame.contains(w.frame), !w.isKeyWindow, !w.isMainWindow
         else { w.close(); throw Refusal("unsafe initial window") }
         let id = ManagedWindowID(pid: birth.pid, launch: birth.start, number: UInt32(number), element: element)
-        windows[index] = (Member(index: index, id: id, width: w.minSize.width, height: w.minSize.height, session: run.session), w)
+        let member = Member(index: index, id: id, width: w.minSize.width, height: w.minSize.height, session: run.session)
+        if run.productManagement == true { editTokens[member.identifier] = UUID() }
+        windows[index] = (member, w)
     }
     @objc private func newCompatibleWindow() {
         guard run.productManagement == true, let i = (1...32).first(where: { windows[$0] == nil }) else { return }
@@ -98,6 +108,7 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
                 case "create": try create(c.index)
                 case "close":
                     guard let (m, w) = windows[c.index], run.productManagement != true || c.expected == m.id else { throw Refusal("fixture missing or replaced") }
+                    editTokens.removeValue(forKey: m.identifier)
                     windows.removeValue(forKey: c.index)
                     w.orderOut(nil); w.close()
                 case "resize-leading":
@@ -156,6 +167,7 @@ private struct Command: Decodable { let sequence: Int, action: String, index: In
         var state = OwnerState(session: run.session, owner: birth, revision: revision, command: sequence,
                                members: ordered.map(\.0), frames: frames, keyOrMain: badFocus, activations: activations)
         if run.productManagement == true {
+            state.editTokens = editTokens
             state.editing = ordered.contains { $0.1.inLiveResize } || NSEvent.pressedMouseButtons != 0
             if !windows.isEmpty { hadProductWindow = true }
             state.resizedFrame = resizedFrame; state.resizeUptime = resizeUptime

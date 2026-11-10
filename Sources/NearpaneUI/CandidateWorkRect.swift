@@ -66,7 +66,7 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("管理范围为副屏上由 Nearpane 打开的兼容窗口。当前仅核准随附的窗口应用。")
+                Text("已核准应用：Nearpane 随附的兼容窗口应用，仅管理在副屏登记的窗口。TextEdit、计算器和预览暂未开放。")
                 Text(session.message).textSelection(.enabled)
                 if session.mode == "off" {
                     Button("启用自动窗口管理…") { confirm = true }
@@ -83,7 +83,7 @@ public struct CandidateWorkRectView: View {
                         if session.blocked { Button("重新核对并恢复") { session.send("retry") } }
                     }
                 }
-                Text(session.trusted ? "辅助功能已核对 · 当前成员 \(session.count)" : "写入前将核对控制器的辅助功能权限")
+                Text(session.trusted ? "辅助功能已核对 · 范围内窗口 \(session.count)" : "写入前将核对控制器的辅助功能权限")
                     .font(.caption)
                 HStack {
                     Button("打开兼容应用窗口") { session.send("open") }

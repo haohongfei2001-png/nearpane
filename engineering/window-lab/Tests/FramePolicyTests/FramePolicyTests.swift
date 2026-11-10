@@ -108,3 +108,18 @@ extension FramePolicyTests {
         #expect(throws: WorkspaceFailure.membership) { try layout.refreshingRequirements([second, second], in: area) }
     }
 }
+
+extension FramePolicyTests {
+    @Test func productRollbackHonorsUserEditsEvenWhenGeometryMatchesTheWAL() {
+        let original = SurfaceRect(width: 300, height: 200)
+        let automatic = SurfaceRect(width: 600, height: 400)
+        let edit = UUID()
+        var change = FrameChange(member: member, original: original, target: automatic, confirmed: original,
+                                 inFlight: automatic, editToken: edit)
+        #expect(change.permitsProductRecovery(from: automatic, currentEdit: edit))
+        #expect(!change.permitsProductRecovery(from: automatic, currentEdit: UUID()))
+        #expect(!change.permitsProductRecovery(from: automatic, currentEdit: nil))
+        change.editToken = nil
+        #expect(!change.permitsProductRecovery(from: automatic, currentEdit: nil))
+    }
+}
