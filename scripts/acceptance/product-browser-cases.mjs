@@ -96,8 +96,10 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
   const id=fixture.assetID || randomUUID();
   const native={applicationID:'com.google.Chrome',sessionID:null,windowID:'1',tabID:'1'};
   const settings={assetID:id,sha256:sha,origin:fixture.origin??'systemScreenshot',
-    width:fixture.width??2,height:fixture.height??2,chromePID};
-  for(const scenario of ['owned-normal','owned','detached','composer-replaced','reload','tab-switch','route-changed','focused-other-editor','modal-over-composer']) {
+    width:fixture.width??2,height:fixture.height??2,chromePID,measureLiveFeedback:fixture.scenario==='composer-replaced'};
+  const scenarios = fixture.scenario ? [fixture.scenario] :
+    ['owned-normal','owned','detached','composer-replaced','reload','tab-switch','route-changed','focused-other-editor','modal-over-composer'];
+  for(const scenario of scenarios) {
     const folder=path.join(run,scenario);
     fs.mkdirSync(path.join(folder,'media'),{recursive:true,mode:0o700});
     fs.writeFileSync(path.join(folder,'media',id.toUpperCase()+'.png'),png,{flag:'wx'});
@@ -183,10 +185,23 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
       for(const v of ['begin','chunk','commit'])assert.equal(actionCounts[v],firstClickCommands[v]);
     }
     const beforeRestart={...actionCounts};
-    const fresh=await drive(compose,[source,folder,'restart'],settings,callDriver);
-    assert.deepEqual(actionCounts,beforeRestart,'restart must never enter a browser command');
-    assert.equal(fresh.status,domain.status);
-    assert.notEqual(fresh.driverPID,domain.driverPID);
+    let fresh;
+    if(settings.measureLiveFeedback) {
+      const samples=domain.liveSamples;
+      assert.ok(samples.length);
+      assert.ok(samples.every(s=>s.operation===domain.operation && s.attempt===1));
+      const initialUnknown=samples.find(s=>s.phase==='unknown' && s.status==='unknown');
+      const liveUnknown=samples.find(s=>s.phase==='unknown' && s.status==='unknown' &&
+        s.uiBeforeRead===s.uiAfterRead && s.uiAfterRead.includes('结果未知'));
+      assert.ok(initialUnknown && liveUnknown,'same-process UI must show the original UNKNOWN within three seconds');
+      assert.ok(liveUnknown.elapsedMS-initialUnknown.elapsedMS<=3000);
+      for(const action of ['arm','captureTarget','begin','chunk','commit']) assert.equal(actionCounts[action],1);
+    } else {
+      fresh=await drive(compose,[source,folder,'restart'],settings,callDriver);
+      assert.deepEqual(actionCounts,beforeRestart,'restart must never enter a browser command');
+      assert.equal(fresh.status,domain.status);
+      assert.notEqual(fresh.driverPID,domain.driverPID);
+    }
     if(other) {
       assert.equal(await evalPage('document.querySelectorAll("form input[type=file]").length',otherSession),1);
       otherSnapshot=await evalPage('readFixture()',otherSession);

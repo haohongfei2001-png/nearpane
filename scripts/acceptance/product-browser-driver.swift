@@ -28,6 +28,37 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
 }
 
 @main struct ProductBrowserDriver {
+    /// Only read the queue and the displayed field. Product callbacks remain responsible for updating the field.
+    @MainActor static func observeUnknown(_ id: UUID, in store: QueueStore, module: TrayModule) async throws -> [[String:Any]] {
+        let start = DispatchTime.now().uptimeNanoseconds
+        var firstUnknown: UInt64?
+        var last: [String:String]?
+        var samples: [[String:Any]] = []
+        while true {
+            let before = module.attachmentFeedback ?? ""
+            guard let row = try await store.asset(id:id), let oid = row.activeOperationID,
+                  let op = try await store.operation(id:oid) else { throw FixtureError("original operation absent") }
+            let after = module.attachmentFeedback ?? ""
+            let time = (DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
+            let state = ["status":row.status.rawValue, "phase":op.phase.rawValue, "uiBeforeRead":before, "uiAfterRead":after]
+            let unknown = row.status == .unknown && op.phase == .unknown
+            if unknown && firstUnknown == nil { firstUnknown = time }
+            if state != last {
+                var sample: [String:Any] = state
+                sample["operation"] = oid.uuidString.lowercased()
+                sample["attempt"] = op.attempt
+                sample["elapsedMS"] = time
+                samples.append(sample)
+                last = state
+            }
+            if let firstUnknown, time - firstUnknown >= 3000 || (unknown && before.contains("结果未知") && before == after) {
+                return samples
+            }
+            guard time < 12000 else { throw FixtureError("original dispatch never reached UNKNOWN") }
+            try await Task.sleep(for:.milliseconds(15))
+        }
+    }
+
     @MainActor static func main() async throws {
         let args = CommandLine.arguments
         guard args.count == 4, let line = readLine(),
@@ -94,6 +125,7 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
             await module.authorizeAttachments()
         }
         guard module.mayAttach else { throw FixtureError("attachment consent") }
+        var liveSamples: [[String:Any]]?
         if args[3] != "restart" {
             guard let row = module.rows.first, row.id == id else { throw FixtureError("missing queue row") }
             if let press = module.beginPress(row) {
@@ -101,13 +133,17 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
             }
             // Current-click input runs independently after the coordinator durably records its intent.
             // Keep the host connected until the original dispatch settles, as a user waiting in the tray would.
-            let deadline = ContinuousClock.now.advanced(by:.seconds(12))
-            while let record = try await store.asset(id:id), record.status == .transferring {
-                if let oid = record.activeOperationID, try await store.uploadStartReceipt(for:oid) != nil { break }
-                guard ContinuousClock.now < deadline else { throw FixtureError("original dispatch never settled") }
-                try await Task.sleep(for:.milliseconds(35))
+            if settings["measureLiveFeedback"] as? Bool == true {
+                liveSamples = try await observeUnknown(id, in:store, module:module)
+            } else {
+                let deadline = ContinuousClock.now.advanced(by:.seconds(12))
+                while let record = try await store.asset(id:id), record.status == .transferring {
+                    if let oid = record.activeOperationID, try await store.uploadStartReceipt(for:oid) != nil { break }
+                    guard ContinuousClock.now < deadline else { throw FixtureError("original dispatch never settled") }
+                    try await Task.sleep(for:.milliseconds(35))
+                }
+                await module.refresh()
             }
-            await module.refresh()
         }
         let issue = module.issue
         let feedback = module.attachmentFeedback
@@ -117,6 +153,7 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
         var final: [String:Any] = ["cmd":"done","status":result?.status.rawValue ?? "missing", "assetID":id.uuidString.lowercased(), "driverPID":getpid()]
         if let issue { final["issue"] = issue }
         if let feedback { final["feedback"] = feedback }
+        if let liveSamples { final["liveSamples"] = liveSamples }
         if let oid = result?.activeOperationID, let op = try await store.operation(id:oid) {
             final["operation"] = oid.uuidString.lowercased()
             final["phase"] = op.phase.rawValue
