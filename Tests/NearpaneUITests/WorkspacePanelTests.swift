@@ -97,6 +97,48 @@ import Testing
         #expect(deadlines == [110, 115, nil, 117, nil])
     }
 
+    @Test func samePointFramesWithChangedRotationOrScaleRetireDragAndFullscreenWitnesses() async throws {
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        let panel = EdgeWindowController(host: host)
+        defer { panel.close(); host.stop() }
+        let view = FullscreenPresentation(host: host, domains: nil)
+        var events = [String]()
+        view.management = { _, state, _ in events.append(state) }
+        let session = UUID()
+        let window = ManagedWindowID(pid: 8, launch: 10, number: 15, element: UUID())
+        let area = SurfaceRect(x: -800, width: 800, height: 1280)
+        let screens = [(0.0, 1.0), (180.0, 1.0), (180.0, 2.0)].map {
+            ScreenGeometry(id: "side", frame: area, visibleFrame: area, rotationDegrees: $0.0, backingScale: $0.1)
+        }
+        var settings = DisplaySettings()
+        settings.placement = .floating
+        settings.measures[.panelWidth] = .init(170)
+        settings.measures[.panelHeight] = .init(400)
+        host.setDisplaySettings(settings, id: "side")
+        let saved = host.configuration
+        let edge = try #require(panel.window)
+        #expect(edge.animationBehavior == .none)
+        var previousMove: ((NSPoint) -> Void)?
+        for (index, screen) in screens.enumerated() {
+            let t = Double(200 + index)
+            view.updateTopology([screen], uptime: t)
+            panel.place(on: screen, primary: "resident", content: .spacesOnly)
+            if let previousMove {
+                previousMove(.init(x: 3, y: 5))
+                #expect(events.last == "unknown")
+            }
+            #expect(host.configuration == saved && panel.requestedFrame?.size == NSSize(width: 170, height: 400))
+            let reading = FullscreenDisplaySample(session: session, revision: UInt64(index + 1), validUntil: t + 12,
+                                                  observation: .native(window: window), beganUptime: t)
+            _ = view.sample(screen: screen, override: reading, now: Date(), uptime: t, suspended: false)
+            #expect(events.last == "hold")
+            previousMove = try #require((panel.window as? EdgePanel)?.floatMoved)
+        }
+        previousMove?(.init(x: 3, y: 5))
+        #expect(host.configuration.displays["side"]?.floatingPosition?.x == 3)
+    }
+
     @Test func reconnectAndRotationRequireAnObservationStartedOnTheNewTopology() {
         let view = FullscreenPresentation(host: HostSession(store: MemoryConfigurationStore()), domains: nil)
         let portrait = SurfaceRect(x: -800, width: 800, height: 1280)

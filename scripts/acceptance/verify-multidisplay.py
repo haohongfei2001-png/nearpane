@@ -60,6 +60,7 @@ def verify(app, sid):
                "Prepare with the isolated five images and edited note")
     env = dict(os.environ, NEARPANE_FULLSCREEN_ACCEPTANCE=sid, NEARPANE_TOPOLOGY_ACCEPTANCE=sid)
     runs = []
+    observations = []
     with (out / "launch.log").open("w") as log:
         proc = sp.Popen([*offline, sys.executable, "-B", str(ROOT / "scripts/native-acceptance.py"), "launch",
                          "--session", sid, "--app", app, "--secondary-only", "--desktop-fixture"],
@@ -85,7 +86,9 @@ def verify(app, sid):
         topology = native = 0
 
         def checkpoint(label, role, edge, tool=False, expanded=False):
+            last_edge = None
             def sample():
+                nonlocal last_edge
                 live()
                 if not evidence.exists():
                     return None
@@ -95,6 +98,20 @@ def verify(app, sid):
                     return None
                 if tool and (row["frame"][2] > 100) != expanded:
                     return None
+                if edge:
+                    probe = json.loads(control(pid, row["edgeWindow"], binary, "read-edge-frame"))
+                    observations.append(dict(checkpoint=label, owner=row["edgeOwnerQuartzFrame"], probe=probe))
+                    se.require(probe["front"] == int(initial_front), "Foreground changed while reading edge")
+                    if (probe.get("ax", probe["cg"]) != probe["cg"] or probe["cg"] != row["edgeCGFrame"]
+                            or probe["cg"] != row["edgeOwnerQuartzFrame"]):
+                        last_edge = None
+                        return None
+                    if not last_edge or (probe["wid"], probe["cg"]) != (last_edge["wid"], last_edge["cg"]):
+                        last_edge = probe
+                        return None
+                    if probe["uptime"] - last_edge["uptime"] < .25:
+                        return None
+                    row["externalEdgeSamples"] = [last_edge, probe]
                 return row
             row = wait_for(sample)
             se.require(row["display"] == side and row["pid"] == pid and not any(row[k] for k in ("key","main","active")),
@@ -150,6 +167,7 @@ def verify(app, sid):
         raise
     finally:
         (out / "checkpoints.json").write_text(json.dumps(runs, indent=2))
+        (out / "edge-observations.json").write_text(json.dumps(observations, indent=2))
         if run and proc.poll() is None:
             (folder / f"fullscreen-finish-{run}").touch()
         se.require(proc.wait(timeout=75) == 0, "Host failed to drain")

@@ -209,8 +209,15 @@ private final class FullscreenBackdrop: NSPanel {
                     diagnostic("edge-outside-secondary-CG", details: ["window":wid,"appKitFrame":frame,"cgBounds":raw]); return
                 }
                 guard entry[kCGWindowIsOnscreen as String] as? Bool == true else { awaitPublication(wid); return }
+                guard let primary = NSScreen.screens.first,
+                      (primary.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value == CGMainDisplayID()
+                else { diagnostic("primary-coordinate-reference-missing"); return }
                 awaitingPublication = nil
                 row["edgeWindow"] = wid
+                row["edgeAppKitFrame"] = frame
+                row["edgeOwnerQuartzFrame"] = [f.minX, primary.frame.maxY - f.maxY, f.width, f.height]
+                row["scale"] = screen.backingScaleFactor
+                row["rotation"] = CGDisplayRotation(n.uint32Value)
                 row["edgeCGFrame"] = [rect.minX, rect.minY, rect.width, rect.height]
             }
         }

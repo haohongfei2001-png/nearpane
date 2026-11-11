@@ -197,7 +197,8 @@ public struct MultiDisplayPresentationCoordinator {
     public static func identifiedScreens(_ screens: [ScreenGeometry]) -> [ScreenGeometry] {
         let records = Dictionary(grouping: screens, by: \.id)
         return screens.filter {
-            !$0.id.isEmpty && $0.id != "unidentified-display" && records[$0.id]?.count == 1 && $0.visibleFrame.geometry.isValid &&
+            !$0.id.isEmpty && $0.id != "unidentified-display" && records[$0.id]?.count == 1 &&
+                $0.rotationDegrees.isFinite && $0.backingScale.isFinite && $0.backingScale > 0 && $0.visibleFrame.geometry.isValid &&
                 $0.frame.geometry.intersection($0.visibleFrame.geometry) == $0.visibleFrame.geometry
         }
     }

@@ -52,7 +52,29 @@ func box(_ e:AXUIElement)->CGRect? {
  return CGRect(origin:p,size:z)
 }
 let root=AXUIElementCreateApplication(pid)
-let matches=(ax(root,"AXWindows") as? [AXUIElement] ?? []).filter{box($0)==rect}
+let ownerWindows = ax(root,"AXWindows") as? [AXUIElement] ?? []
+let matches=ownerWindows.filter{box($0)==rect}
+// The supervised Host supplies its actual EdgePanel window number. Read only this
+// process's window list; never traverse children or invoke an action on an edge.
+if a[3] == "read-edge-frame" {
+    guard let front = NSWorkspace.shared.frontmostApplication?.processIdentifier, front != pid,
+          !app.isActive, matches.count <= 1 else { stop("ambiguous edge or unexpected foreground") }
+    var row: [String:Any] = ["wid":wid, "cg":[rect.minX,rect.minY,rect.width,rect.height],
+                             "front":front, "uptime":ProcessInfo.processInfo.systemUptime]
+    let numbered = ownerWindows.filter { (ax($0,"AXWindowNumber") as? NSNumber)?.uint32Value == wid }
+    guard numbered.count <= 1 else { stop("ambiguous numbered AX window") }
+    let geometric = matches.first { ax($0,"AXWindowNumber") == nil }
+    if let match = numbered.first ?? geometric {
+        var owner: pid_t = 0
+        guard AXUIElementGetPid(match,&owner) == .success, owner == pid,
+              ax(match,"AXRole") as? String == "AXWindow", let ar = box(match)
+        else { stop("unexpected AX edge identity") }
+        row["ax"] = [ar.minX,ar.minY,ar.width,ar.height]
+        row["axEvidence"] = numbered.isEmpty ? "unique geometry in owned process" : "numbered AX window"
+    } else { row["axEvidence"] = "no corresponding AX window exposed" }
+    print(String(decoding:try JSONSerialization.data(withJSONObject:row), as:UTF8.self))
+    exit(0)
+}
 guard matches.count==1 else {stop("no unique secondary panel")}
 var nodes:[AXUIElement]=[],seen=Set<AXUIElement>()
 func visit(_ e:AXUIElement) {

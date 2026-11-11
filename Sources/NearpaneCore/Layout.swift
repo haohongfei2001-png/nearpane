@@ -19,8 +19,13 @@ public struct ScreenGeometry: Equatable, Sendable {
     public let frame: SurfaceRect
     public let visibleFrame: SurfaceRect
 
-    public init(id: String, frame: SurfaceRect, visibleFrame: SurfaceRect) {
+    /// Presentation generation evidence. Layout continues to use the logical-point rectangles.
+    public let rotationDegrees: Double
+    public let backingScale: Double
+
+    public init(id: String, frame: SurfaceRect, visibleFrame: SurfaceRect, rotationDegrees: Double = 0, backingScale: Double = 1) {
         self.id = id; self.frame = frame; self.visibleFrame = visibleFrame
+        self.rotationDegrees = rotationDegrees; self.backingScale = backingScale
     }
 }
 

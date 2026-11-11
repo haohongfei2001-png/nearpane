@@ -72,6 +72,9 @@ public final class EdgeWindowController: NSWindowController {
         self.host = host; self.modules = modules
         let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
                               styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        // WindowServer zoom can temporarily extend a full-height edge panel onto a neighboring screen.
+        // Keep window geometry fixed; domain controls own their internal animations.
+        panel.animationBehavior = .none
         panel.title = ""
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
@@ -332,7 +335,8 @@ public enum SystemScreens {
             let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
             guard let number, let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() else { return nil }
             let id = CFUUIDCreateString(nil, uuid) as String
-            return ScreenGeometry(id: id, frame: rect(screen.frame), visibleFrame: rect(screen.visibleFrame))
+            return ScreenGeometry(id: id, frame: rect(screen.frame), visibleFrame: rect(screen.visibleFrame),
+                                  rotationDegrees: CGDisplayRotation(number.uint32Value), backingScale: screen.backingScaleFactor)
         }
         return identifiedTopology(raw)
     }
