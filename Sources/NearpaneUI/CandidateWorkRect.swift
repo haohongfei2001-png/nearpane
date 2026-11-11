@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Owns one serialized manager for the whole Host, independent of panel visibility.
 @MainActor @Observable public final class CandidateWorkRect {
-    private let support: URL
+    let support: URL
     private var process: Process?
     private var input: FileHandle?
     private var monitor: Task<Void, Never>?
@@ -57,18 +57,26 @@ import SwiftUI
 private typealias ViewState<T> = State<T>
 public struct CandidateWorkRectView: View {
     let session: CandidateWorkRect, host: HostSession
+    private let admissionFixtureOnly: Bool
     @ViewState private var confirm = false
     @AppStorage("managementPairPercent") private var percent = 60
     @AppStorage("managementPairSwap") private var swap = false
 
-    public init(session: CandidateWorkRect, host: HostSession) { self.session = session; self.host = host }
+    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false) {
+        self.session = session
+        self.host = host
+        self.admissionFixtureOnly = admissionFixtureOnly
+    }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("已核准应用：Nearpane 随附的兼容窗口应用，仅管理在副屏登记的窗口。TextEdit、计算器和预览暂未开放。")
+                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly)
+                Divider()
+                Text("自动管理").font(.headline)
+                Text("可写范围仅含随包兼容应用在副屏登记的窗口。").font(.callout)
                 Text(session.message).textSelection(.enabled)
-                if session.mode == "off" {
+                if session.mode == "off" && !session.blocked {
                     Button("启用自动窗口管理…") { confirm = true }
                         .alert("允许自动调整副屏兼容窗口？", isPresented: $confirm) {
                             Button("取消", role: .cancel) {}
@@ -76,14 +84,16 @@ public struct CandidateWorkRectView: View {
                         } message: { Text("当前及以后打开的兼容窗口将按工作区域排列。退出时撤销自动布局，保留你保存的分割位置。") }
                 } else {
                     HStack {
-                        Button(session.mode == "paused" ? "继续管理" : "暂停管理") {
-                            session.send(session.mode == "paused" ? "resume" : "pause")
+                        if session.mode != "off" && !session.blocked {
+                            Button(session.mode == "paused" ? "继续管理" : "暂停管理") {
+                                session.send(session.mode == "paused" ? "resume" : "pause")
+                            }
                         }
                         Button("停止并恢复") { session.send("disable") }
                         if session.blocked { Button("重新核对并恢复") { session.send("retry") } }
                     }
                 }
-                Text(session.trusted ? "辅助功能已核对 · 范围内窗口 \(session.count)" : "写入前将核对控制器的辅助功能权限")
+                Text(session.trusted ? "控制器辅助功能已核对 · 已登记 \(session.windows.count) 扇 · 当前范围 \(session.count) 扇" : "窗口写入需要单独核对随包控制器的辅助功能权限。")
                     .font(.caption)
                 HStack {
                     Button("打开兼容应用窗口") { session.send("open") }

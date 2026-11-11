@@ -202,6 +202,14 @@ struct Reader {
         let arguments = Array(CommandLine.arguments.dropFirst())
         if arguments == ["--self-check"] { print("Nearpane desktop reader 1"); return }
         do {
+            #if !NEARPANE_ISOLATED_GUI_LAB
+            if arguments.count == 2, arguments[0] == "--admission", arguments[1].utf8.count < 16384,
+               let bytes = Data(base64Encoded: arguments[1]) {
+                let request = try JSONDecoder().decode(AdmissionReadRequest.self, from: bytes)
+                FileHandle.standardOutput.write(try JSONEncoder().encode(AdmissionAXRead.observe(request)))
+                return
+            }
+            #endif
             let bytes: Data
             if arguments == ["--read-once"] {
                 bytes = FileHandle.standardInput.readData(ofLength: 8193)

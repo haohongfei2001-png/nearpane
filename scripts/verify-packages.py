@@ -48,9 +48,15 @@ def verify(app, lock, sandbox):
     for exe in (binary, helper):
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
             raise ValueError("Private desktop framework linked directly: " + exe.name)
-    private_symbols = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces", b"SLSMainConnectionID")
+    private_symbols = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces", b"SLSMainConnectionID", b"_AXUIElementGetWindow")
     if any(symbol in host_image for symbol in private_symbols):
         raise ValueError("Private desktop entry point in Host")
+    # The admission observer can read attributes and test their writability. It must
+    # not acquire the setter or AX action entry points of the separate frame controller.
+    imports = subprocess.check_output(["/usr/bin/nm", "-u", str(helper)], text=True).splitlines()
+    banned = {"_AXUIElementSetAttributeValue", "_AXUIElementPerformAction", "_CGEventPost", "_CGEventPostToPid"}
+    if any(line.split() and line.split()[-1] in banned for line in imports):
+        raise ValueError("Desktop reader imports an external input or window-writing API")
     if subprocess.check_output(sandbox + [str(helper), "--self-check"], text=True).strip() != "Nearpane desktop reader 1":
         raise ValueError("Desktop reader protocol unavailable")
     result = subprocess.check_output(sandbox + [str(binary), "--verify-bundled-resources"],text=True)

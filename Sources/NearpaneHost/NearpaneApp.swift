@@ -106,8 +106,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var desktopFixture: DesktopAcceptanceFixture?
     private var managementProbe: NativeManagementAcceptance?
     private var managementTrial: Bool {
-        guard requestsDesktopFixture, let acceptanceSession else { return false }
-        return ProcessInfo.processInfo.environment["NEARPANE_MANAGEMENT_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent
+        guard let acceptanceSession, passiveDisplayID != nil else { return false }
+        let id = acceptanceSession.directory.lastPathComponent
+        let env = ProcessInfo.processInfo.environment
+        // Admission owns its separately registered fixture. It does not need a desktop collector.
+        return env["NEARPANE_MANAGEMENT_ACCEPTANCE"] == id && (requestsDesktopFixture || env["NEARPANE_ADMISSION_ACCEPTANCE"] == id)
     }
     private var acceptanceProbe: NativeAcceptanceProbe?
     #endif

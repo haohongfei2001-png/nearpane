@@ -22,8 +22,10 @@ private final class PassiveManagementPanel: NSPanel {
               SystemScreens.geometry().last?.id == display,
               screen.frame.intersection(NSScreen.screens[0].frame).isEmpty else { throw CocoaError(.featureUnsupported) }
         let sizing = ProcessInfo.processInfo.environment["NEARPANE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
-        let width = sizing ? min(610, screen.visibleFrame.width) : 540
-        let height = sizing ? min(900, screen.visibleFrame.height) : 400
+        let admission = ProcessInfo.processInfo.environment["NEARPANE_ADMISSION_ACCEPTANCE"] == session.directory.lastPathComponent
+        guard !(sizing && admission) else { throw CocoaError(.featureUnsupported) }
+        let width = admission ? min(690, screen.visibleFrame.width) : sizing ? min(610, screen.visibleFrame.width) : 540
+        let height = admission ? min(1080, screen.visibleFrame.height) : sizing ? min(900, screen.visibleFrame.height) : 400
         let rect = CGRect(x: screen.visibleFrame.midX - width / 2, y: screen.visibleFrame.midY - height / 2,
                           width: width, height: height).integral
         guard screen.visibleFrame.contains(rect) else { throw CocoaError(.featureUnsupported) }
@@ -34,7 +36,7 @@ private final class PassiveManagementPanel: NSPanel {
             panel.contentView = NSHostingView(rootView: WorkspaceDisplaySettings(host: host, screens: [target],
                 request: { _ in }, dismiss: { _ in }))
         } else {
-            panel.contentView = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host))
+            panel.contentView = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission))
         }
         panel.setFrame(rect, display: false)
         guard screen.visibleFrame.contains(panel.frame) else { throw CocoaError(.featureUnsupported) }
@@ -51,6 +53,11 @@ private final class PassiveManagementPanel: NSPanel {
                 guard let data = try? Data(contentsOf: directory.appendingPathComponent("management-request.json")),
                       let req = try? JSONDecoder().decode(Request.self, from: data), req.run == epoch, req.sequence == self.sequence + 1 else { return }
                 self.sequence = req.sequence
+                // Rehearsal can create/close only the separately registered synthetic fixtures.
+                // Never grant, enable, retry or invoke the AX frame writer in this mode.
+                if admission && !["open", "close", "exclude-last", "include-last", "hide", "show", "quit"].contains(req.action) {
+                    self.stop(); NSApp.terminate(nil); return
+                }
                 switch req.action {
                 case "enable","disable","pause","resume","retry","open","close","adopt","pair 62 original":
                     manager.send(req.action)

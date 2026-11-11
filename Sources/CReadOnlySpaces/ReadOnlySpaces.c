@@ -56,3 +56,16 @@ CFArrayRef NPReadWindowSpaces(uint32_t window) {
     CFRelease(input);
     return copy;
 }
+
+uint32_t NPReadAXWindowNumber(CFTypeRef element) {
+#if defined(__arm64__)
+    char build[64] = {0};
+    size_t length = sizeof(build);
+    if (sysctlbyname("kern.osversion", build, &length, NULL, 0) || strcmp(build, "26A428")) return 0;
+    typedef int32_t (*ReadNumber)(CFTypeRef, uint32_t *);
+    ReadNumber readNumber = (ReadNumber)dlsym(RTLD_DEFAULT, "_AXUIElementGetWindow");
+    uint32_t number = 0;
+    if (readNumber && readNumber(element, &number) == 0) return number;
+#endif
+    return 0;
+}

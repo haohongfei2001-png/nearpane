@@ -32,7 +32,7 @@ enum DesktopReaderProcess {
         return snapshot
     }
 
-    private static func collect(executable: URL, argument: String, timeout: Double, didSpawn: (@Sendable (pid_t) -> Void)?) throws -> Data {
+    static func collect(executable: URL, mode: String = "--read-encoded", argument: String, timeout: Double, didSpawn: (@Sendable (pid_t) -> Void)? = nil) throws -> Data {
         try Task.checkCancellation()
         var fds = [Int32](repeating: -1, count: 2)
         guard pipe(&fds) == 0 else { throw ReaderFailure.unavailable }
@@ -47,7 +47,7 @@ enum DesktopReaderProcess {
               posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0) == 0,
               posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0) == 0,
               posix_spawn_file_actions_adddup2(&actions, fds[1], STDOUT_FILENO) == 0 else { throw ReaderFailure.unavailable }
-        var args = [executable.path, "--read-encoded", argument].map { strdup($0) } + [nil]
+        var args = [executable.path, mode, argument].map { strdup($0) } + [nil]
         var env = [strdup("PATH=/usr/bin:/bin"), nil]
         defer { args.forEach { free($0) }; env.forEach { free($0) } }
         var pid: pid_t = 0
