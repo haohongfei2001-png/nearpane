@@ -37,7 +37,39 @@ import NearpaneCore
             try await reader.inspect(app, selected: [.init(id: UUID(),number:35,index:1)])
         }
         #expect(reader.safeguards(app).exclusive == nil)
-        #expect(reader.storedLayout(app) == nil)
+        #expect(reader.safeguards(app).storedLayout == nil)
+    }
+
+    @Test func settledHistoryAndRecoveryStatusUseOneObservationEvenWhenEvidenceChanges() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
+        try fm.createDirectory(at:root,withIntermediateDirectories:false)
+        defer { try? fm.removeItem(at:root) }
+        let m = member(id), o = owner([m]), original = SurfaceRect(x:10,y:15,width:180,height:140)
+        let fixture = AdmissionFixture(root:root,dir:root,owner:o,
+            run:.init(session:session,parent:birth,productManagement:true,screens:.init(secondary:"secondary")),
+            prefs:.init(session:session,blockedReason:nil))
+        let layout = try ManagedWindowTiler(workspace:nil).adding(.init(m.id, minimumWidth:120, minimumHeight:80, canResize:true),
+                                                                 in: .init(width:800,height:1000))
+        func fields(_ value: some Encodable) throws -> Any {
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(value))
+        }
+        func write(_ name:String, _ fields:[String:Any]) throws {
+            try JSONSerialization.data(withJSONObject:fields).write(to:root.appendingPathComponent(name),options:.atomic)
+        }
+        let participant: [String:Any] = ["index":1,"id":try fields(m.id),"minimum":try fields(m.minimum),"identifier":m.identifier]
+        let frame: [String:Any] = ["member":participant,"initial":try fields(original),"confirmed":try fields(o.frames[0])]
+        let cohort: [String:Any] = ["owner":try fields(birth),"session":session.uuidString,"display":"secondary"]
+        let change: [String:Any] = ["member":participant,"editToken":try #require(o.editTokens[m.identifier]).uuidString]
+        let journal = cohort.merging(["transaction":UUID().uuidString,"changes":[change],"status":"retained"]) { _,x in x }
+        try write("status.json",["trusted":true,"blocked":false])
+        try write("journal.json",journal)
+        try write("layout.json",cohort.merging(["layout":try fields(layout),"windows":[frame]]) { _,x in x })
+        let before = fixture.safeguards()
+        try write("layout.json",[:])
+        let after = fixture.safeguards()
+        #expect(before.recoveryClear == true && before.storedLayout?.originals[m.id] == original)
+        #expect(after.recoveryClear == false && after.storedLayout == nil)
     }
 
     @Test func aMissingOrUnverifiedJournalCannotAdmitAnExistingLayout() throws {
@@ -55,6 +87,6 @@ import NearpaneCore
         #expect(fixture.safeguards().recoveryClear == false)
         try Data("{}".utf8).write(to:root.appendingPathComponent("journal.json"))
         #expect(fixture.safeguards().recoveryClear == nil)
-        #expect(fixture.storedLayout() == nil)
+        #expect(fixture.safeguards().storedLayout == nil)
     }
 }

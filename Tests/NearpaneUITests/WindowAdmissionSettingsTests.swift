@@ -20,8 +20,7 @@ import Testing
             if let read { return await read(selected) }
             return []
         }
-        func safeguards(_ app: AdmissionApplication) -> (exclusive: Bool?, recoveryClear: Bool?) { (nil, nil) }
-        func storedLayout(_ app: AdmissionApplication) -> (layout: ManagedWindowTiler?, originals: [ManagedWindowID: SurfaceRect])? { nil }
+        func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards { .init(exclusive:nil,recoveryClear:nil) }
     }
 
     @Test func listingAndPickingNeverInspectAndRebuiltChoicesDoNotInheritSelection() async {

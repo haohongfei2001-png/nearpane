@@ -36,7 +36,9 @@ private final class PassiveManagementPanel: NSPanel {
             panel.contentView = NSHostingView(rootView: WorkspaceDisplaySettings(host: host, screens: [target],
                 request: { _ in }, dismiss: { _ in }))
         } else {
-            panel.contentView = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission))
+            let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission))
+            if admission { content.sizingOptions = [] }
+            panel.contentView = content
         }
         panel.setFrame(rect, display: false)
         guard screen.visibleFrame.contains(panel.frame) else { throw CocoaError(.featureUnsupported) }
@@ -49,7 +51,16 @@ private final class PassiveManagementPanel: NSPanel {
                 guard let self else { return }
                 guard NSScreen.screens.count == 2, SystemScreens.geometry().last?.id == display,
                       NSScreen.screens.last?.visibleFrame.contains(self.panel.frame) == true, !self.panel.isKeyWindow, !self.panel.isMainWindow
-                else { self.stop(); NSApp.terminate(nil); return }
+                else {
+                    if admission {
+                        struct Refusal: Encodable { let count: Int, expectedDisplay: Bool, contained: Bool, key: Bool, main: Bool, frame: CGRect }
+                        let proof = Refusal(count: NSScreen.screens.count, expectedDisplay: SystemScreens.geometry().last?.id == display,
+                            contained: NSScreen.screens.last?.visibleFrame.contains(self.panel.frame) == true,
+                            key: self.panel.isKeyWindow, main: self.panel.isMainWindow, frame: self.panel.frame)
+                        try? JSONEncoder().encode(proof).write(to: directory.appendingPathComponent("settings-refusal-" + epoch + ".json"), options: .withoutOverwriting)
+                    }
+                    self.stop(); NSApp.terminate(nil); return
+                }
                 guard let data = try? Data(contentsOf: directory.appendingPathComponent("management-request.json")),
                       let req = try? JSONDecoder().decode(Request.self, from: data), req.run == epoch, req.sequence == self.sequence + 1 else { return }
                 self.sequence = req.sequence

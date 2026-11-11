@@ -112,11 +112,8 @@ private enum AdmissionReadFailure: LocalizedError {
             return AdmissionPair(first: enrich(pair.first,from:before,index:a), second: enrich(pair.second,from:after,index:b))
         }
     }
-    func safeguards(_ app: AdmissionApplication) -> (exclusive: Bool?, recoveryClear: Bool?) {
-        fixture(app)?.safeguards() ?? (nil,nil)
-    }
-    func storedLayout(_ app: AdmissionApplication) -> (layout: ManagedWindowTiler?, originals: [ManagedWindowID:SurfaceRect])? {
-        fixture(app)?.storedLayout()
+    func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards {
+        fixture(app)?.safeguards() ?? .init(exclusive:nil,recoveryClear:nil)
     }
     private func read(_ app: AdmissionApplication, targets: [AdmissionReadRequest.Target]) async throws -> AdmissionReadReply {
         let r = AdmissionReadRequest(parent: getpid(), pid: app.pid, launch: app.launch, bundle: app.bundle, targets: targets)

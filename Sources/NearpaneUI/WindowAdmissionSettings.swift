@@ -8,8 +8,7 @@ private typealias ViewState<T> = State<T>
     func applications() -> [AdmissionApplication]
     func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]
     func inspect(_ app: AdmissionApplication, selected: [AdmissionWindowChoice]) async throws -> [AdmissionPair]
-    func safeguards(_ app: AdmissionApplication) -> (exclusive: Bool?, recoveryClear: Bool?)
-    func storedLayout(_ app: AdmissionApplication) -> (layout: ManagedWindowTiler?, originals: [ManagedWindowID: SurfaceRect])?
+    func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards
 }
 extension WindowAdmissionReader: AdmissionReading {}
 
@@ -109,7 +108,7 @@ extension WindowAdmissionReader: AdmissionReading {}
                 if safety.exclusive == false || exclusive == false { exclusive = false }
                 else if safety.exclusive == nil { exclusive = nil }
                 recovery = recovery && safety.recoveryClear == true
-                if let prior = reader.storedLayout(pick.app) {
+                if let prior = safety.storedLayout {
                     saved = prior.layout
                     originals.merge(prior.originals) { old, _ in old }
                 }

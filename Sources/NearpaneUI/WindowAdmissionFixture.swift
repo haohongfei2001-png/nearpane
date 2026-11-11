@@ -16,6 +16,11 @@ struct AdmissionBirth: Codable, Equatable {
     }
 }
 
+struct AdmissionSafeguards {
+    let exclusive: Bool?, recoveryClear: Bool?
+    var storedLayout: (layout: ManagedWindowTiler?, originals: [ManagedWindowID:SurfaceRect])? = nil
+}
+
 struct AdmissionFixture {
     static let bundle = "org.nearpane.lab.NearpaneFixtureWindows"
 
@@ -34,7 +39,7 @@ struct AdmissionFixture {
     struct Status: Decodable { let blocked: Bool, trusted: Bool }
     struct Journal: Decodable {
         struct Change: Decodable { let member: Member, editToken: UUID? }
-        let status: String, display: String, session: UUID, owner: AdmissionBirth, changes: [Change]
+        let status: String, display: String, session: UUID, transaction: UUID, owner: AdmissionBirth, changes: [Change]
     }
     struct Layout: Decodable {
         struct Entry: Decodable { let member: Member, initial: SurfaceRect, confirmed: SurfaceRect }
@@ -112,26 +117,28 @@ struct AdmissionFixture {
         if flock(fd, LOCK_SH | LOCK_NB) == 0 { return false }
         return errno == EWOULDBLOCK ? true : nil
     }
-    func safeguards() -> (exclusive: Bool?, recoveryClear: Bool?) {
-        guard let status: Status = Self.json(root,"status.json") else { return (nil,nil) }
+    func safeguards() -> AdmissionSafeguards {
+        guard let status: Status = Self.json(root,"status.json") else { return .init(exclusive:nil,recoveryClear:nil) }
         let exclusive: Bool? = status.trusted && writerPresent(root.appendingPathComponent("manager.lock")) == true
             ? writerPresent(dir.appendingPathComponent("writer.lock")).map { !$0 } : nil
-        if prefs.blockedReason != nil || status.blocked { return (exclusive,false) }
+        if prefs.blockedReason != nil || status.blocked { return .init(exclusive:exclusive,recoveryClear:false) }
         var st = stat()
-        if lstat(dir.appendingPathComponent("journal.json").path,&st) != 0 {
-            guard errno == ENOENT else { return (exclusive,nil) }
+        let journalPath = dir.appendingPathComponent("journal.json").path
+        if lstat(journalPath,&st) != 0 {
+            guard errno == ENOENT else { return .init(exclusive:exclusive,recoveryClear:nil) }
             // A surviving layout without its transaction cannot establish an initial frame.
-            return (exclusive,lstat(dir.appendingPathComponent("layout.json").path,&st) == -1 && errno == ENOENT)
+            let fresh = lstat(dir.appendingPathComponent("layout.json").path,&st) == -1 && errno == ENOENT
+                && lstat(journalPath,&st) == -1 && errno == ENOENT
+            return .init(exclusive:exclusive,recoveryClear:fresh)
         }
         guard let j: Journal = Self.json(dir,"journal.json"), j.session == run.session, j.display == run.screens.secondary,
-              j.owner == owner.owner else { return (exclusive,nil) }
-        guard ["retained","restored"].contains(j.status) else { return (exclusive,false) }
-        return (exclusive,checkedLayout(j) != nil)
-    }
-    func storedLayout() -> (layout: ManagedWindowTiler?, originals: [ManagedWindowID:SurfaceRect])? {
-        guard prefs.blockedReason == nil, let status: Status = Self.json(root,"status.json"), !status.blocked,
-              let j: Journal = Self.json(dir,"journal.json"), ["retained","restored"].contains(j.status) else { return nil }
-        return checkedLayout(j)
+              j.owner == owner.owner else { return .init(exclusive:exclusive,recoveryClear:nil) }
+        guard ["retained","restored"].contains(j.status), let layout = checkedLayout(j),
+              let current: Journal = Self.json(dir,"journal.json"), current.transaction == j.transaction,
+              current.session == j.session, current.owner == j.owner, current.status == j.status else {
+            return .init(exclusive:exclusive,recoveryClear:false)
+        }
+        return .init(exclusive:exclusive,recoveryClear:true,storedLayout:layout)
     }
     private func checkedLayout(_ j: Journal) -> (layout: ManagedWindowTiler?, originals: [ManagedWindowID:SurfaceRect])? {
         guard let stored: Layout = Self.json(dir,"layout.json"),
