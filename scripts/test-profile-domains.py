@@ -27,7 +27,9 @@ def fixture(value):
 
 
 def query(path, sql):
-    with contextlib.closing(sqlite3.connect(str(path))) as db:
+    relative = domain.VOICE if path.name == domain.VOICE.name else domain.TRAY
+    profile = path.parents[len(relative.parts) - 1]
+    with domain.snapshot(profile, relative) as db:
         return list(db.execute(sql))
 
 
@@ -89,6 +91,14 @@ class Domains(unittest.TestCase):
         self.assertFalse((self.dest / "Riftlet/capture-bookmark.json").exists())
         self.assertEqual({p.name for p in (self.dest / "Riftlet/imported-attachment-holds").iterdir()},
                          {a[0].lower() for a in assets[:3]})
+
+        (ARGS.output / "queue-fingerprints.json").write_text(json.dumps({
+            "sourceTreeUnchanged": before == fingerprint(self.data),
+            "files": {name: domain.digest(self.dest/"Riftlet/media"/name) for _,name in assets},
+            "orderedIDs": [key for key,_ in assets], "retainedOperations": query(
+                self.dest/domain.TRAY, "SELECT id,asset_id,attempt,phase FROM operations ORDER BY sequence"),
+            "sourceDatabaseSHA256": domain.digest(path), "outputDatabaseSHA256": domain.digest(self.dest/domain.TRAY),
+            "summary": summary}, indent=2) + "\n")
 
     def test_rollback_carries_spent_ids_across_replaced_queue(self):
         assets = query(self.data/domain.TRAY, "SELECT id FROM assets ORDER BY sequence")

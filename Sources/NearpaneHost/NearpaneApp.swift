@@ -12,6 +12,27 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        #if canImport(SaytileKit)
+        if args.first == "--validate-import-configuration" {
+            guard CandidateProfile.selected, args.count == 2 else { exit(2) }
+            let file = URL(fileURLWithPath: args[1])
+            let components = file.pathComponents
+            guard components.count >= 7, Array(components.suffix(3)) == ["generation", "Nearpane", "host-configuration.json"],
+                  components[components.count - 5] == "transactions",
+                  components[components.count - 6] == CandidateProfile.containerName,
+                  UUID(uuidString: components[components.count - 4])?.uuidString.lowercased() == components[components.count - 4] else { exit(2) }
+            do {
+                try ProfileLease.checkPath(file)
+                let attrs = try FileManager.default.attributesOfItem(atPath: file.path)
+                guard attrs[.type] as? FileAttributeType == .typeRegular else { exit(3) }
+                let configuration = try FileConfigurationStore(url: file).load()
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .sortedKeys
+                try FileHandle.standardOutput.write(contentsOf: encoder.encode(configuration))
+                return
+            } catch { exit(3) }
+        }
+        #endif
         if args.first == "--verify-bundled-resources" {
             guard Bundle.main.bundleURL.pathExtension == "app" else {
                 FileHandle.standardError.write(Data("Resource check requires a packaged app.\n".utf8))
@@ -44,13 +65,29 @@ struct NearpaneApp {
                         return
                     }
                     guard args.count == 3 else { exit(2) }
+                    if CandidateProfile.selected, args[1] == "--profile-acceptance-open" {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        Task {
+                            do {
+                                let (lease, generation) = try await CandidateProfile.open(in: session.directory)
+                                let config = try FileConfigurationStore(url: generation.appendingPathComponent("Nearpane/host-configuration.json")).load()
+                                let counts = try CandidateProfile.inspectStores(in: generation, counts: true)
+                                let result: [String: Any] = ["generation": generation.lastPathComponent, "path": generation.path, "counts": counts,
+                                                             "configurationReadable": true, "hidden": config.surfaceHidden]
+                                let data = try JSONSerialization.data(withJSONObject: result, options: .sortedKeys)
+                                try withExtendedLifetime(lease) { try FileHandle.standardOutput.write(contentsOf: data + Data([10])) }
+                                exit(0)
+                            } catch { FileHandle.standardError.write(Data("Isolated profile open failed: \(error)\n".utf8)); exit(3) }
+                        }
+                        dispatchMain()
+                    }
                     let blank = CandidateProfile.selected && args[1] == "--native-acceptance-prepare-draft"
                     guard blank || args[1] == "--native-acceptance-prepare" else { exit(2) }
                     let session = try NativeAcceptanceSession(id: args[2], prepare: true)
                     if CandidateProfile.selected {
                         Task {
                             do {
-                                _ = try await CandidateProfile.prepare(in: session.directory, acceptance: true, includeExamples: !blank)
+                                _ = try await CandidateProfile.prepareFixture(in: session.directory, examples: !blank)
                                 print(session.directory.path)
                                 exit(0)
                             } catch { FileHandle.standardError.write(Data("Candidate initialization: \(error)\n".utf8)); exit(3) }
@@ -101,6 +138,13 @@ struct NearpaneApp {
 @MainActor
 final class HostAppDelegate: NSObject, NSApplicationDelegate {
     #if canImport(RiftletCore) && canImport(SaytileKit)
+    private var profileTrial: Bool {
+        guard CandidateProfile.selected, passiveDisplayID != nil, !requestsDesktopFixture, let acceptanceSession else { return false }
+        return ProcessInfo.processInfo.environment["NEARPANE_PROFILE_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent
+    }
+    private var profileLease: ProfileLease?
+    private var profileOptions: ProfileImportOptions?
+    private var profileSwitch: Task<ProfileReply, Error>?
     var acceptanceSession: NativeAcceptanceSession?
     var requestsDesktopFixture = false
     private var desktopFixture: DesktopAcceptanceFixture?
@@ -141,7 +185,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.
             var duration = 25.0
             #if canImport(SaytileKit)
-            if managementTrial { duration = 100 } else if fullscreenTrial { duration = 65 }
+            if managementTrial || profileTrial { duration = 100 } else if fullscreenTrial { duration = 65 }
             #endif
             let timer = Timer(timeInterval: duration, repeats: false) { _ in
                 MainActor.assumeIsolated { NSApp.terminate(nil) }
@@ -159,7 +203,19 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession { support = acceptanceSession.support; testSession = acceptanceSession.directory }
         if CandidateProfile.selected {
-            do { support = try await CandidateProfile.prepare(in: acceptanceSession?.directory ?? support, acceptance: acceptanceSession != nil) }
+            do {
+                if let acceptanceSession, !profileTrial {
+                    support = try await CandidateProfile.prepareFixture(in: acceptanceSession.directory)
+                } else {
+                    let (lease, active) = try await CandidateProfile.open(in: acceptanceSession?.directory ?? support)
+                    profileLease = lease
+                    support = active
+                    profileOptions = ProfileImportOptions(root: lease.root) { [weak self] action, source, groups, token in
+                        guard let self else { throw CancellationError() }
+                        return try await switchProfile(action, source: source, groups: groups, token: token)
+                    }
+                }
+            }
             catch {
                 if acceptanceSession == nil { NSApp.presentError(error) }
                 else { FileHandle.standardError.write(Data("Candidate profile initialization failed: \(error)\n".utf8)) }
@@ -182,7 +238,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
+        #if canImport(SaytileKit)
+        if !profileTrial { modules.workRect?.start() }
+        #else
         modules.workRect?.start()
+        #endif
         let provider: any DesktopObservationProvider
         if testSession == nil { provider = NativeDesktopProvider.packaged() }
         else {
@@ -211,6 +271,16 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             // Show the explicitly scoped fixture's gallery without opening Settings on the user's desktop.
             await modules.tray.connect()
             guard !Task.isCancelled else { return }
+        }
+        #endif
+        #if canImport(SaytileKit)
+        if profileTrial, let options = profileOptions, let acceptanceSession, let display = passiveDisplayID {
+            // A marked fixture selects the version without opening an AppKit pop-up over the desktop.
+            // Reading this synthetic source still requires the same explicit Preview and Confirm controls.
+            options.version = "P5.2"
+            do { settings = try ProfileAcceptancePanel.present(options: options, session: acceptanceSession, displayID: display) }
+            catch { NSApp.terminate(nil) }
+            return
         }
         #endif
         let controller = EdgeWindowController(host: session, modules: modules)
@@ -284,6 +354,15 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        #if canImport(SaytileKit)
+        if let profileSwitch {
+            Task {
+                _ = await profileSwitch.result
+                sender.reply(toApplicationShouldTerminate: true)
+            }
+            return .terminateLater
+        }
+        #endif
         startupTask?.cancel()
         panels?.stop()
         host?.stop()
@@ -377,12 +456,18 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggleSurface() {
+        #if canImport(SaytileKit)
+        guard profileSwitch == nil else { return }
+        #endif
         guard let host else { return }
         host.setSurfaceHidden(!host.configuration.surfaceHidden)
         updatePanels()
     }
 
     @objc private func showSettings() {
+        #if canImport(SaytileKit)
+        if profileSwitch != nil { settings?.showWindow(nil); return }
+        #endif
         guard host != nil, passiveDisplayID == nil else { return }
         if settings == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 632, height: 572),
@@ -402,12 +487,61 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateSettingsContent() {
+        #if canImport(SaytileKit)
+        guard profileSwitch == nil else { return }
+        let importer = profileOptions.map { AnyView(ProfileImportSettings(options: $0)) }
+        #else
+        let importer: AnyView? = nil
+        #endif
         guard let host else { return }
-        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,screens:SystemScreens.geometry(),domains:modules,
+        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,screens:SystemScreens.geometry(),domains:modules,profileImport:importer,
             requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
             dismissSpaces: { [weak self] id in self?.panels?.dismiss(id); self?.updatePanels() },
             placementChanged: { [weak self] in self?.updatePanels() }))
     }
+
+    #if canImport(SaytileKit)
+    private func switchProfile(_ action: String, source: URL?, groups: [String], token: String) async throws -> ProfileReply {
+        guard profileSwitch == nil, let root = profileLease?.root, let host, let modules else { throw CancellationError() }
+        let operation = Task { @MainActor () throws -> ProfileReply in
+            // Retire every action surface before releasing the global writer lease.
+            panels?.stop()
+            surface?.window?.orderOut(nil)
+            host.stop()
+            settings?.window?.contentView = NSHostingView(rootView: ProgressView("正在保存资料并停止模块…").padding())
+            await modules.finishStopping()
+            await host.waitForDesktopStop()
+            self.host = nil
+            self.modules = nil
+            self.panels = nil
+            self.surface = nil
+            profileLease = nil
+            do {
+                if let source {
+                    let name = source.lastPathComponent
+                    guard name.hasPrefix("Nearpane Alpha ") else { throw CocoaError(.fileReadInvalidFileName) }
+                    try ProfileImportOptions.requireClosed(String(name.dropFirst("Nearpane Alpha ".count)))
+                }
+                let result = try await ProfileHelper.run(action, root: root, source: source, sections: groups, token: token)
+                showSwitchResult(result.message)
+                return result
+            } catch {
+                showSwitchResult(error.localizedDescription)
+                throw error
+            }
+        }
+        profileSwitch = operation
+        return try await operation.value
+    }
+
+    private func showSwitchResult(_ message: String) {
+        settings?.window?.contentView = NSHostingView(rootView: VStack(alignment: .leading, spacing: 12) {
+            Text(message).textSelection(.enabled)
+            Text("请退出后重新打开 Nearpane。启动时会核对上次切换的结果；可在「设置 → 模块」中再次导入或恢复上一份资料。").font(.callout)
+            Button("退出 Nearpane") { NSApp.terminate(nil) }.accessibilityIdentifier("np.profile.quit")
+        }.padding(24))
+    }
+    #endif
 
     @objc private func quit() { NSApp.terminate(nil) }
 }

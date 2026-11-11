@@ -37,7 +37,7 @@ def verify(app, lock, sandbox):
     # codesign treats Contents/MacOS/<CFBundleExecutable> as the enclosing bundle. These development
     # packages seal their exact Mach-O and resource inventory independently (no distribution signature).
     host_image = binary.read_bytes()
-    if plist["CFBundleIdentifier"] in ("com.holdsnow.nearpane.candidate", "com.holdsnow.nearpane.candidate.p45", "com.holdsnow.nearpane.candidate.p46", "com.holdsnow.nearpane.candidate.p47", "com.holdsnow.nearpane.candidate.p48", "com.holdsnow.nearpane.candidate.p481", "com.holdsnow.nearpane.candidate.p49", "com.holdsnow.nearpane.candidate.p50", "com.holdsnow.nearpane.candidate.p51", "com.holdsnow.nearpane.candidate.p52"):
+    if plist["CFBundleIdentifier"] in ("com.holdsnow.nearpane.candidate", "com.holdsnow.nearpane.candidate.p45", "com.holdsnow.nearpane.candidate.p46", "com.holdsnow.nearpane.candidate.p47", "com.holdsnow.nearpane.candidate.p48", "com.holdsnow.nearpane.candidate.p481", "com.holdsnow.nearpane.candidate.p49", "com.holdsnow.nearpane.candidate.p50", "com.holdsnow.nearpane.candidate.p51", "com.holdsnow.nearpane.candidate.p52", "com.holdsnow.nearpane.alpha"):
         subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
     else:
         with tempfile.TemporaryDirectory(prefix="verify-macho-", dir=ROOT/"build") as tmp:
@@ -65,6 +65,11 @@ def verify(app, lock, sandbox):
     root = contents / "Resources"
     if not digest(root/"AcceptanceTargetGuard.js") == digest(ROOT/"Resources/AcceptanceTargetGuard.js") == plist.get("NearpaneDraftGuardSHA256"):
         raise ValueError("Unexpected acceptance guard in packaged resources")
+    if plist["CFBundleIdentifier"] == "com.holdsnow.nearpane.alpha":
+        for name in ("profile-migration.py", "profile_domains.py"):
+            bundled = root / "Profile" / name
+            if bundled.resolve() != bundled or digest(bundled) != digest(ROOT / "scripts" / name):
+                raise ValueError("Unexpected profile migration resource: " + name)
     for name,pin in lock["domains"].items():
         provenance = json.loads((root/"Upstream"/name/"source.json").read_text())
         if provenance != {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}:

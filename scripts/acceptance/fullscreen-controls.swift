@@ -33,7 +33,7 @@ if a == ["preflight"] || a == ["preflight-displays"] {
 guard a.count==4, let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
 let exe=URL(fileURLWithPath:a[2]).resolvingSymlinksInPath()
 guard let app=NSRunningApplication(processIdentifier:pid),app.executableURL?.resolvingSymlinksInPath().path==exe.path,
-      let bundle=app.bundleURL, let id = Bundle(url:bundle)?.bundleIdentifier, ["com.holdsnow.nearpane.candidate.p51","com.holdsnow.nearpane.candidate.p52"].contains(id),
+      let bundle=app.bundleURL, let id = Bundle(url:bundle)?.bundleIdentifier, ["com.holdsnow.nearpane.candidate.p51","com.holdsnow.nearpane.candidate.p52","com.holdsnow.nearpane.alpha"].contains(id),
       Bundle(url:bundle)?.executableURL?.resolvingSymlinksInPath().path==exe.path else {stop("running bundle identity")}
 let sessions=CGSessionCopyCurrentDictionary() as? [String:Any]
 guard sessions?["kCGSSessionOnConsoleKey"] as? Bool==true,sessions?["CGSSessionScreenIsLocked"] as? Bool != true else {stop("console")}

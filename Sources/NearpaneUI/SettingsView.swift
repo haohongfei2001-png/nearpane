@@ -8,11 +8,13 @@ import NearpaneVoice
 public struct SettingsView: View {
     private let host: HostSession
     private let domains: EmbeddedModules?
+    private let profileImport: AnyView?
     private let screens: [ScreenGeometry]
     private let dismissSpaces: (String) -> Void
     private let requestSecondary: (String) -> Void
     private let placementChanged: () -> Void
-    public init(host: HostSession, screens: [ScreenGeometry], domains: EmbeddedModules? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+    public init(host: HostSession, screens: [ScreenGeometry], domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+        self.profileImport = profileImport
         self.dismissSpaces = dismissSpaces
         self.requestSecondary = requestSecondary
         self.domains = domains; self.host = host; self.screens = screens; self.placementChanged = placementChanged
@@ -100,6 +102,7 @@ public struct SettingsView: View {
     private var modules: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if let profileImport { profileImport; Divider() }
                 Text("按侧栏的播放按钮开始收音，按相同位置暂停。可选模块提供的是内置示例。")
                     .font(.callout).foregroundStyle(.secondary)
                 ForEach(host.registry.preferences, id: \.id) { pref in
