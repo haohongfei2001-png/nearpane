@@ -101,7 +101,7 @@ public struct CandidateWorkRectView: View {
                 }
                 ForEach(session.windows, id: \.self) { id in
                     let excluded = (try? host.configuration.workspaces.excluded(id, bundle: "org.nearpane.lab.NearpaneFixtureWindows")) != false
-                    Toggle("管理窗口 \(String(id.number))", isOn: Binding(get: { !excluded }, set: { include in
+                    Toggle("允许纳入管理范围 · 窗口 #\(String(id.number))", isOn: Binding(get: { !excluded }, set: { include in
                         var prefs = host.configuration.workspaces
                         prefs.windows[id] = include ? .include : .exclude
                         host.setWorkspacePreferences(prefs)

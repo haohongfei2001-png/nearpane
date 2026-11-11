@@ -227,13 +227,13 @@ enum AdmissionPlacement: String, CaseIterable {
         HStack {
             if fixtureOnly {
                 ForEach(selection.apps, id: \.pid) { app in
-                    Button("选择兼容应用 · PID \(app.pid)") { Task { await selection.select(app) } }
+                    Button("选择兼容应用 · PID \(String(app.pid))") { Task { await selection.select(app) } }
                         .accessibilityIdentifier("admission-fixture-app")
                 }
             } else {
                 Menu(selection.app.map { "\($0.name) · PID \($0.pid)" } ?? "选择应用…") {
                     ForEach(selection.apps, id: \.pid) { app in
-                        Button("\(app.name) · PID \(app.pid)") { Task { await selection.select(app) } }
+                        Button("\(app.name) · PID \(String(app.pid))") { Task { await selection.select(app) } }
                     }
                 }.fixedSize().accessibilityIdentifier("admission-app")
             }
@@ -341,7 +341,7 @@ private struct AdmissionResultView: View {
             }
             ForEach(result.current.keys.sorted { ($0.pid, $0.number) < ($1.pid, $1.number) }, id: \.self) { id in
                 VStack(alignment: .leading, spacing: 2) {
-                    if let frame = result.current[id] { Text("窗口 #\(id.number)   当前 " + bounds(frame)) }
+                    if let frame = result.current[id] { Text("窗口 #\(String(id.number))   当前 " + bounds(frame)) }
                     if let target = result.proposed[id] { Text("预计 " + bounds(target)) }
                     if let exit = result.exitFrames[id] { Text("退出预计 " + bounds(exit)) }
                     if let minimum = samples.first(where: { $0.id == id })?.minimum {

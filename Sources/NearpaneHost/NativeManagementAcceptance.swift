@@ -24,7 +24,12 @@ private final class PassiveManagementPanel: NSPanel {
         let sizing = ProcessInfo.processInfo.environment["NEARPANE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
         let admission = ProcessInfo.processInfo.environment["NEARPANE_ADMISSION_ACCEPTANCE"] == session.directory.lastPathComponent
         guard !(sizing && admission) else { throw CocoaError(.featureUnsupported) }
-        let width = admission ? min(690, screen.visibleFrame.width) : sizing ? min(610, screen.visibleFrame.width) : 540
+        // On this rotated display the OS can move a newly ordered panel inward (the live
+        // witness was x=-681 for a 690 pt window). Leave space at both edges and
+        // keep the continuous, independent containment check after ordering.
+        let safeAdmissionWidth = min(580, screen.visibleFrame.width - 2 * 100)
+        guard !admission || safeAdmissionWidth >= 480 else { throw CocoaError(.featureUnsupported) }
+        let width = admission ? safeAdmissionWidth : sizing ? min(610, screen.visibleFrame.width) : 540
         let height = admission ? min(1080, screen.visibleFrame.height) : sizing ? min(900, screen.visibleFrame.height) : 400
         let rect = CGRect(x: screen.visibleFrame.midX - width / 2, y: screen.visibleFrame.midY - height / 2,
                           width: width, height: height).integral
