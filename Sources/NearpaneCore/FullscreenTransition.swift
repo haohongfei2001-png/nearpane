@@ -191,6 +191,7 @@ public struct FloatingToolSurface: Codable, Equatable, Sendable {
 /// AX element tokens belong to a reader invocation. Continuity across samples is used
 /// only to keep a tool visible; the window controller needs its own fresh action ticket.
 public struct FullscreenDisplaySample: Sendable {
+    public let beganUptime: Double?
     public let session: UUID
     public let revision: UInt64
     public let validUntil: Double
@@ -198,7 +199,8 @@ public struct FullscreenDisplaySample: Sendable {
     /// Members positively associated with the current ordinary Space in this sample.
     public let ordinaryMembers: Set<ManagedWindowID>
     public init(session: UUID, revision: UInt64, validUntil: Double, observation: DesktopFullscreenObservation,
-                ordinaryMembers: Set<ManagedWindowID> = []) {
+                ordinaryMembers: Set<ManagedWindowID> = [], beganUptime: Double? = nil) {
+        self.beganUptime = beganUptime
         self.ordinaryMembers = ordinaryMembers
         self.session = session; self.revision = revision; self.validUntil = validUntil; self.observation = observation
     }

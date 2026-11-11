@@ -1,11 +1,11 @@
-// Operates only on marked controls in an exact, secondary-only P5.1 candidate window.
+// Operates only on marked controls in an exact, secondary-only candidate window.
 import AppKit
 import ApplicationServices
 import Darwin
 func stop(_ s:String)->Never {FileHandle.standardError.write(Data((s+"\n").utf8));exit(2)}
 _ = NSApplication.shared.setActivationPolicy(.prohibited)
 let a=Array(CommandLine.arguments.dropFirst())
-if a == ["preflight"] {
+if a == ["preflight"] || a == ["preflight-displays"] {
     let state = CGSessionCopyCurrentDictionary() as? [String:Any]
     guard state?["kCGSSessionOnConsoleKey"] as? Bool == true,
           state?["CGSSessionScreenIsLocked"] as? Bool != true, AXIsProcessTrusted(),
@@ -21,13 +21,19 @@ if a == ["preflight"] {
     guard first != nil, first != getpid(), NSWorkspace.shared.frontmostApplication?.processIdentifier == first else {
         stop("foreground in transition")
     }
+    if a == ["preflight-displays"] {
+        guard let main = CGDisplayCreateUUIDFromDisplayID(CGMainDisplayID())?.takeRetainedValue() else { stop("primary identity") }
+        print(CFUUIDCreateString(nil, main) as String)
+        guard let first else { stop("foreground unavailable") }
+        print(first)
+    }
     print(CFUUIDCreateString(nil,uuid) as String)
     exit(0)
 }
 guard a.count==4, let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
 let exe=URL(fileURLWithPath:a[2]).resolvingSymlinksInPath()
 guard let app=NSRunningApplication(processIdentifier:pid),app.executableURL?.resolvingSymlinksInPath().path==exe.path,
-      let bundle=app.bundleURL, Bundle(url:bundle)?.bundleIdentifier=="com.holdsnow.nearpane.candidate.p51",
+      let bundle=app.bundleURL, let id = Bundle(url:bundle)?.bundleIdentifier, ["com.holdsnow.nearpane.candidate.p51","com.holdsnow.nearpane.candidate.p52"].contains(id),
       Bundle(url:bundle)?.executableURL?.resolvingSymlinksInPath().path==exe.path else {stop("running bundle identity")}
 let sessions=CGSessionCopyCurrentDictionary() as? [String:Any]
 guard sessions?["kCGSSessionOnConsoleKey"] as? Bool==true,sessions?["CGSSessionScreenIsLocked"] as? Bool != true else {stop("console")}

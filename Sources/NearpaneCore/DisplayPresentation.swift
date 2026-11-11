@@ -193,14 +193,21 @@ public struct MultiDisplayPresentationCoordinator {
         suppressed.insert(id)
         requested.remove(id)
     }
+    /// An invalid second record with the same UUID still makes that identity ambiguous.
+    public static func identifiedScreens(_ screens: [ScreenGeometry]) -> [ScreenGeometry] {
+        let records = Dictionary(grouping: screens, by: \.id)
+        return screens.filter {
+            !$0.id.isEmpty && $0.id != "unidentified-display" && records[$0.id]?.count == 1 && $0.visibleFrame.geometry.isValid &&
+                $0.frame.geometry.intersection($0.visibleFrame.geometry) == $0.visibleFrame.geometry
+        }
+    }
+
     public mutating func resolve(
         screens: [ScreenGeometry], preferred: String?, settings: [String: DisplaySettings],
         demand: [String: DisplayDemand], hidden: Bool, voice: Bool, tray: Bool,
         spacesEnabled: Bool, uptime: Double
     ) -> [DisplaySurfacePlan] {
-        let usable = screens.filter { $0.frame.geometry.isValid && $0.visibleFrame.geometry.isValid && !$0.id.isEmpty }
-        let counts = Dictionary(grouping: usable, by: \.id)
-        let ids = usable.map(\.id).filter { counts[$0]?.count == 1 }
+        let ids = Self.identifiedScreens(screens).map(\.id)
         suppressed.formIntersection(ids)
         for id in ids where (lastSettings[id]?.policy ?? .onDemand) != (settings[id]?.policy ?? .onDemand) { suppressed.remove(id) }
         lastSettings = settings

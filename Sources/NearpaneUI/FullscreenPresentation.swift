@@ -12,6 +12,9 @@ import NearpaneCore
     private var visibilityLease = UUID()
     var refresh: (() -> Void)?
     var management: ((String, String, Double?) -> Void)?
+    var topologyChanged: ((Set<String>) -> Void)?
+    private var topology: [String: ScreenGeometry]?
+    private var changedAt = [String: Double]()
     private var lastManagement = [String: String]()
     init(host: HostSession, domains: EmbeddedModules?) {
         self.host = host
@@ -21,7 +24,7 @@ import NearpaneCore
     func sample(screen: ScreenGeometry, override: FullscreenDisplaySample?, now: Date, uptime: Double, suspended: Bool = false) -> Bool {
         let id = screen.id
         var state = transitions[id] ?? .init()
-        let measured = suspended ? nil : override ?? host.bus.desktop.flatMap { desktop -> FullscreenDisplaySample? in
+        let reading = suspended ? nil : override ?? host.bus.desktop.flatMap { desktop -> FullscreenDisplaySample? in
             guard let native = desktop.native, native.population == .workWindows else { return nil }
             let observation = desktop.fullscreenObservation(for: id, now: now, uptime: uptime)
             var members = Set<ManagedWindowID>()
@@ -33,7 +36,13 @@ import NearpaneCore
                 })
             }
             return .init(session: desktop.sessionID, revision: desktop.revision, validUntil: native.beganUptime + 12,
-                         observation: observation, ordinaryMembers: members)
+                         observation: observation, ordinaryMembers: members, beganUptime: native.beganUptime)
+        }
+        let measured = reading.flatMap { sample -> FullscreenDisplaySample? in
+            if let cutoff = changedAt[id] {
+                guard let began = sample.beganUptime, began >= cutoff, began <= uptime else { return nil }
+            }
+            return sample
         }
         let accepted = state.observe(measured, uptime: uptime)
         transitions[id] = state
@@ -64,7 +73,21 @@ import NearpaneCore
         return state.phase == .native
     }
 
-    func retain(displays: Set<String>) {
+    func updateTopology(_ screens: [ScreenGeometry], uptime: Double) {
+        let current = Dictionary(uniqueKeysWithValues: screens.map { ($0.id, $0) })
+        guard current != topology else { return }
+        let displays = Set(current.keys)
+        if topology.map({ Set($0.keys) }) != displays { topologyChanged?(displays) }
+        changedAt = changedAt.filter { displays.contains($0.key) }
+        if let previous = topology {
+            for screen in screens where previous[screen.id] != screen {
+                changedAt[screen.id] = uptime
+                transitions[screen.id]?.invalidatePresentation()
+                revokeManagementWitness(on: screen.id)
+                if visibleOn == screen.id { hide() }
+            }
+        }
+        topology = current
         for id in transitions.keys where !displays.contains(id) {
             revokeManagementWitness(on: id)
             host.reportFullscreen(nil, on: id)

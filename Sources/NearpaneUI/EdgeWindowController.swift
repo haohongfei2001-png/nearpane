@@ -63,6 +63,7 @@ public final class EdgeWindowController: NSWindowController {
     private var foldedView: FoldedHostingView?
     private var closeExpansion: NSButton?
     private var placement: (screen: ScreenGeometry, primary: String, content: PanelContent)?
+    private var placementGeneration: UInt64 = 0
     private var savedPanelWidth: Measure?, savedPanelHeight: Measure?
     private var folded = false
     private var interactionHidden: Bool?
@@ -114,15 +115,47 @@ public final class EdgeWindowController: NSWindowController {
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
     public func place(screens: [ScreenGeometry]) {
-        let usable = screens.filter { $0.frame.geometry.isValid && $0.visibleFrame.geometry.isValid }
+        let usable = MultiDisplayPresentationCoordinator.identifiedScreens(screens)
         guard let screen = usable.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? usable.first else {
-            hasPlacement = false; placement = nil; temporarilyExpanded = false; display.id = nil; hide(); return
+            removePlacement(); return
         }
         place(on:screen,primary:screen.id,content:.full)
     }
 
+    func removePlacement() {
+        guard placement != nil || window?.isVisible == true else {
+            updateInteraction(hidden: true)
+            return
+        }
+        endPlacementInteractions()
+        if window?.isVisible == true { window?.orderOut(nil) }
+        hasPlacement = false
+        temporarilyExpanded = false
+        placement = nil
+        display.content = .hidden
+        display.id = nil
+    }
+
+    private func endPlacementInteractions() {
+        placementGeneration += 1
+        if let panel = window as? EdgePanel {
+            panel.cancelFloatingDrag()
+            panel.floatBounds = nil
+            panel.floatMoved = nil
+            if panel.isKeyWindow {
+                panel.makeFirstResponder(nil)
+                panel.orderOut(nil)
+            }
+        }
+        host.cancelWorkspaceGesture()
+        updateInteraction(hidden: true)
+    }
+
     func usePointer(_ registry: WorkspacePointerRegistry) { display.pointer = registry }
     public func place(on screen: ScreenGeometry, primary: String, content: PanelContent) {
+        if let placement, placement.screen != screen || placement.primary != primary {
+            endPlacementInteractions()
+        }
         let config = host.configuration.displays[screen.id] ?? .init()
         if display.id != screen.id || display.primaryID != primary || content == .hidden
             || savedPanelWidth != config.measures[.panelWidth] || savedPanelHeight != config.measures[.panelHeight] {
@@ -193,8 +226,12 @@ public final class EdgeWindowController: NSWindowController {
         if let panel = window as? EdgePanel {
             let safe = screen.visibleFrame
             panel.floatBounds = floating && !temporarilyExpanded ? NSRect(x:safe.x,y:safe.y,width:safe.width,height:safe.height) : nil
-            panel.floatMoved = { [weak host] point in
-                guard let host else { return }
+            let generation = placementGeneration
+            panel.floatMoved = { [weak self] point in
+                guard let self, generation == placementGeneration, hasPlacement, !temporarilyExpanded,
+                      host.isRunning, !host.configuration.surfaceHidden, !captureSuppressed,
+                      placement?.screen == screen, screen.id != primary,
+                      host.configuration.displays[screen.id]?.placement == .floating else { return }
                 var next = host.configuration.displays[screen.id] ?? .init()
                 next.floatingPosition = .init(x:point.x,y:point.y)
                 host.setDisplaySettings(next,id:screen.id)
@@ -282,7 +319,8 @@ public final class EdgeWindowController: NSWindowController {
     }
     public func hide() {
         (window as? EdgePanel)?.cancelFloatingDrag()
-        updateInteraction(hidden: true); window?.orderOut(nil)
+        updateInteraction(hidden: true)
+        if window?.isVisible == true { window?.orderOut(nil) }
     }
 }
 
@@ -290,14 +328,21 @@ public final class EdgeWindowController: NSWindowController {
 public enum SystemScreens {
     public static func geometry() -> [ScreenGeometry] {
         // NSScreen.screens[0] is the menu-bar display, independent of the user's current key window.
-        NSScreen.screens.map { screen in
+        let raw: [ScreenGeometry?] = NSScreen.screens.map { screen in
             let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
-            let id: String
-            if let number, let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() {
-                id = CFUUIDCreateString(nil, uuid) as String
-            } else { id = "unidentified-display" }
+            guard let number, let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() else { return nil }
+            let id = CFUUIDCreateString(nil, uuid) as String
             return ScreenGeometry(id: id, frame: rect(screen.frame), visibleFrame: rect(screen.visibleFrame))
         }
+        return identifiedTopology(raw)
+    }
+
+    /// AppKit→Quartz coordinates depend on the original menu-bar screen's frame.
+    /// Never promote the next display into that position when the first identity is missing.
+    static func identifiedTopology(_ raw: [ScreenGeometry?]) -> [ScreenGeometry] {
+        guard let first = raw.first ?? nil else { return [] }
+        let screens = MultiDisplayPresentationCoordinator.identifiedScreens(raw.compactMap { $0 })
+        return screens.first?.id == first.id ? screens : []
     }
 
     private static func rect(_ rect: NSRect) -> SurfaceRect {

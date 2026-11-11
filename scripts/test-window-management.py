@@ -17,7 +17,7 @@ class ProductManagementTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         profile = Path(temp.name).resolve()
-        (profile / "profile.version").write_text("Nearpane P5.1\n")
+        (profile / "profile.version").write_text("Nearpane P5.2\n")
         self.m = wm.Manager(profile, profile)
         self.addCleanup(self.m.lease.close)
         self.id = {"pid": 20, "launch": 32, "number": 3, "element": "one"}
@@ -349,6 +349,36 @@ class ProductManagementTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "全屏期间"):
             self.m.apply("candidate-layout")
         self.m.snapshot.assert_not_called()
+
+    def test_detached_displays_release_volatile_evidence_and_ignore_late_events(self):
+        primary = str(wm.uuid.uuid4()).upper()
+        self.m.command("topology " + primary)
+        for _ in range(64):
+            secondary = str(wm.uuid.uuid4()).upper()
+            self.m.command(f"topology {primary} {secondary}")
+            self.assertTrue(self.m.display_blocked(secondary))
+            self.send_presentation("ordinary", secondary)
+            self.assertFalse(self.m.display_blocked(secondary))
+            self.m.command("presentation hold " + secondary)
+            self.m.command("topology " + primary)
+            self.send_presentation("ordinary", secondary)
+            self.assertTrue(self.m.display_blocked(secondary))
+        self.assertEqual(self.m.fullscreen_displays, set())
+        self.assertEqual(self.m.return_evidence, {})
+
+    def test_reconnect_cannot_discharge_a_managed_fullscreen_transaction(self):
+        display, _ = self.held_fullscreen()
+        self.m.command("topology " + display)
+        original = self.m.prefs["fullscreenHold"].copy()
+        self.m.command("topology")
+        self.send_presentation("returned", display)
+        self.m.command("topology " + display)
+        self.m.command("presentation unknown " + display)
+        self.assertTrue(self.m.display_blocked(display))
+        with self.assertRaisesRegex(ValueError, "尚未证实"):
+            self.m.command("retry")
+        self.assertEqual(wm.read(self.m.settings)["fullscreenHold"], original)
+        self.m.control.assert_not_called()
 
     def test_disable_before_first_layout_never_opens_an_exit_frame_transaction(self):
         display = "A4B0E968-D7AC-46DA-A770-7E4356006069"

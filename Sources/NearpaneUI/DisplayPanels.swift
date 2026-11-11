@@ -17,6 +17,9 @@ import NearpaneCore
     public var managementChanged: ((String, String, Double?) -> Void)? {
         didSet { fullscreen.management = managementChanged }
     }
+    public var topologyChanged: ((Set<String>) -> Void)? {
+        didSet { fullscreen.topologyChanged = topologyChanged }
+    }
     private let present: (EdgeWindowController) -> Void
     var secondaryIDs: Set<String> { Set(secondary.keys) }
     public convenience init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil) {
@@ -52,36 +55,47 @@ import NearpaneCore
         for screen in screens {
             demand[screen.id] = host.bus.desktop?.presentationDemand(for: screen.id, now: now, uptime: uptime) ?? .init()
         }
-        fullscreen.retain(displays: Set(screens.map(\.id)))
-        let suppressed = Set(screens.compactMap { screen in
-            fullscreen.sample(screen: screen, override: fixtureFullscreen?(screen.id), now: now, uptime: uptime,
-                              suspended: suspended) ? screen.id : nil
-        })
         let ordinary = coordinator.resolve(
             screens: screens, preferred: host.configuration.preferredDisplayID,
             settings: host.configuration.displays, demand: demand, hidden: host.configuration.surfaceHidden || suspended,
             voice: prefs.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
             tray: prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
             spacesEnabled: prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }, uptime: uptime)
+        let ids = Set(ordinary.map(\.id))
+        let identified = screens.filter { ids.contains($0.id) }
+        fullscreen.updateTopology(identified, uptime: uptime)
+        let suppressed = Set(identified.compactMap { screen in
+            let witness = fixtureFullscreen?(screen.id)
+            return fullscreen.sample(screen: screen, override: witness, now: now, uptime: ProcessInfo.processInfo.systemUptime,
+                                     suspended: suspended) ? screen.id : nil
+        })
         let plans = ordinary.map { plan in
             suppressed.contains(plan.id) ? DisplaySurfacePlan(id: plan.id, primary: plan.primary, content: .hidden) : plan
         }
         host.updatePanelContents(Dictionary(uniqueKeysWithValues: plans.map { ($0.id, $0.content) }))
         // Resolve roles in the real topology even when an isolated trial may present on only one display.
         let visiblePlans = plans.filter { displayID == nil || $0.id == displayID }
-        let ids = Set(visiblePlans.filter { !$0.primary && $0.content != .hidden }.map(\.id))
-        for id in Array(secondary.keys) where !ids.contains(id) { secondary.removeValue(forKey: id)?.close() }
+        let spacesPlans = visiblePlans.filter { !$0.primary && $0.content != .hidden }
+        let spaceIDs = Set(spacesPlans.map(\.id))
+        for id in Array(secondary.keys) where !spaceIDs.contains(id) {
+            let panel = secondary.removeValue(forKey: id)
+            panel?.removePlacement()
+            panel?.close()
+        }
         guard let main = plans.first(where: \.primary) else {
-            primary.place(screens: []); fullscreen.hide()
+            primary.removePlacement(); fullscreen.hide()
             return
         }
-        if let displayID, main.id != displayID { primary.place(screens: []) }
-        for plan in visiblePlans where plan.primary || ids.contains(plan.id) {
-            guard let screen = screens.first(where: { $0.id == plan.id }) else { continue }
+        // Withdraw or move the unique domain panel before its old display presents a Space-only panel.
+        if visiblePlans.contains(main), main.content != .hidden,
+           let screen = identified.first(where: { $0.id == main.id }) {
+            primary.place(on: screen, primary: main.id, content: main.content)
+            present(primary)
+        } else { primary.removePlacement() }
+        for plan in spacesPlans {
+            guard let screen = identified.first(where: { $0.id == plan.id }) else { continue }
             let controller: EdgeWindowController
-            if plan.primary {
-                controller = primary
-            } else if let panel = secondary[plan.id] {
+            if let panel = secondary[plan.id] {
                 controller = panel
             } else {
                 controller = EdgeWindowController(host: host)
@@ -100,8 +114,8 @@ import NearpaneCore
     public func stop() {
         fullscreen.hide()
         host.updatePanelContents([:])
-        primary.hide()
-        for panel in secondary.values { panel.close() }
+        primary.removePlacement()
+        for panel in secondary.values { panel.removePlacement(); panel.close() }
         secondary.removeAll()
     }
 }

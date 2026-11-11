@@ -233,6 +233,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let panels = DisplayPanels(host: session, primary: controller, domains: modules)
         self.panels = panels
         panels.refresh = { [weak self] in self?.updatePanels() }
+        panels.topologyChanged = { [weak modules] displays in
+            let ids = displays.compactMap { UUID(uuidString: $0)?.uuidString }.sorted()
+            modules?.workRect?.send((["topology"] + ids).joined(separator: " "))
+        }
         panels.managementChanged = { [weak modules] id, state, deadline in
             guard UUID(uuidString: id) != nil else { return }
             let expiry = deadline.map { " " + String($0) } ?? ""
@@ -244,6 +248,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                 let fixture = try FullscreenAcceptanceFixture(session: acceptanceSession, displayID: display,
                     ownedWindow: { try desktopFixture.fixtureWindowNumber() }, refresh: { [weak self] in self?.updatePanels() })
                 fullscreenFixture = fixture
+                if ProcessInfo.processInfo.environment["NEARPANE_TOPOLOGY_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent {
+                    fixture.topologyHost = session
+                }
                 let sessionID = UUID()
                 var revision: UInt64 = 0
                 panels.fixtureFullscreen = { [weak fixture] id in
@@ -253,8 +260,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                     else if fixture.native { reading = fixture.witness.map { .native(window: $0) } ?? .unknown }
                     else { reading = .ordinary(workspace: nil) }
                     revision += 1
-                    return .init(session: sessionID, revision: revision, validUntil: ProcessInfo.processInfo.systemUptime + 12,
-                                 observation: reading)
+                    let begun = ProcessInfo.processInfo.systemUptime
+                    return .init(session: sessionID, revision: revision, validUntil: begun + 12,
+                                 observation: reading, beganUptime: begun)
                 }
             } catch { NSApp.terminate(nil); return }
         }
@@ -353,7 +361,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                   screens.first?.id != passiveDisplayID,
                   screens[0].frame.geometry.intersection(screens[1].frame.geometry) == nil
             else { panels?.update(screens: []); return }
-            panels?.update(screens: screens, presentingOnly: passiveDisplayID)
+            let projected = fullscreenFixture?.omitsPrimary == true ? [screens[1]] : screens
+            panels?.update(screens: projected, presentingOnly: passiveDisplayID)
             return
         }
         #endif

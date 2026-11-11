@@ -5,12 +5,82 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct WorkspacePanelTests {
+    @Test func unidentifiedMenuDisplayCannotPromoteAPortraitScreenIntoTheQuartzOrigin() {
+        let f = SurfaceRect(width: 1600, height: 900)
+        let g = SurfaceRect(x: -800, y: -320, width: 800, height: 1280)
+        let primary = ScreenGeometry(id: "menu", frame: f, visibleFrame: f)
+        let side = ScreenGeometry(id: "side", frame: g, visibleFrame: g)
+        let invalid = ScreenGeometry(id: "menu", frame: f, visibleFrame: g)
+        #expect(SystemScreens.identifiedTopology([nil, side]).isEmpty)
+        #expect(SystemScreens.identifiedTopology([invalid, side]).isEmpty)
+        #expect(SystemScreens.identifiedTopology([primary, side, primary]).isEmpty)
+        #expect(SystemScreens.identifiedTopology([primary, nil, side]) == [primary, side])
+    }
+
+    @Test func ambiguousDisplayCannotContributeAPresentationWitnessOrBecomeResident() async {
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        let main = EdgeWindowController(host: host)
+        let panels = DisplayPanels(host: host, primary: main, present: { _ in })
+        defer { panels.stop(); main.close(); host.stop() }
+        let r = SurfaceRect(width: 1000, height: 800)
+        let good = ScreenGeometry(id: "primary", frame: r, visibleFrame: r)
+        let bad = ScreenGeometry(id: "duplicate", frame: r, visibleFrame: .init(width: 0, height: 0))
+        let other = ScreenGeometry(id: "duplicate", frame: r, visibleFrame: r)
+        host.setPlacement(edge: .right, displayID: "duplicate")
+        var observed = [String]()
+        panels.fixtureFullscreen = { id in observed.append(id); return nil }
+        let unknown = ScreenGeometry(id: "unidentified-display", frame: r, visibleFrame: r)
+        panels.update(screens: [bad, other, unknown, good])
+        #expect(observed == ["primary"])
+        #expect(host.panelContents.keys.sorted() == ["primary"] && main.hasPlacement)
+        #expect(host.configuration.preferredDisplayID == "duplicate")
+    }
+
+    @Test func disconnectReclaimsFloatingCallbacksAndReusesTheResidentController() async throws {
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        let main = EdgeWindowController(host: host)
+        var presented = [EdgeWindowController]()
+        let panels = DisplayPanels(host: host, primary: main, present: { presented.append($0) })
+        defer { panels.stop(); main.close(); host.stop() }
+        let f = SurfaceRect(width: 1600, height: 900)
+        let g = SurfaceRect(x: -800, width: 800, height: 1280)
+        let a = ScreenGeometry(id: "a", frame: f, visibleFrame: f)
+        let b = ScreenGeometry(id: "b", frame: g, visibleFrame: g)
+        var settings = DisplaySettings()
+        settings.policy = .pinned
+        settings.placement = .floating
+        settings.measures[.panelWidth] = .init(150)
+        host.setDisplaySettings(settings, id: b.id)
+        host.setPlacement(edge: .right, displayID: a.id)
+        let saved = host.configuration, states = host.registry.states
+        panels.update(screens: [a,b])
+        let old = try #require(presented.first { $0 !== main })
+        let staleMove = try #require((old.window as? EdgePanel)?.floatMoved)
+        let primaryWindow = main.window
+        panels.update(screens: [b])
+        staleMove(.init(x: 5, y: 6))
+        #expect(host.configuration == saved && !old.hasPlacement && main.requestedFrame?.width == 150)
+        presented.removeAll()
+        panels.update(screens: [b,a])
+        #expect(presented.first === main && panels.secondaryIDs == ["b"])
+        #expect(main.window === primaryWindow && main.requestedFrame?.width == 200)
+        #expect(host.configuration == saved && host.registry.states == states)
+        host.setSurfaceHidden(true)
+        presented.removeAll()
+        for _ in 0..<10 { panels.update(screens: [b,a]) }
+        #expect(presented.isEmpty && !main.hasPlacement && panels.secondaryIDs.isEmpty)
+        #expect(!old.window!.isVisible && main.window === primaryWindow)
+    }
+
     @Test func onlyFreshLiveDisplaySamplesCanRenewAManagementReturnWitness() {
         let view = FullscreenPresentation(host: HostSession(store: MemoryConfigurationStore()), domains: nil)
         let frame = SurfaceRect(width: 900, height: 700)
         let screen = ScreenGeometry(id: "secondary", frame: frame, visibleFrame: frame)
         let session = UUID()
         var events = [String](), deadlines = [Double?]()
+        view.updateTopology([screen], uptime: 100)
         view.management = { _, state, deadline in events.append(state); deadlines.append(deadline) }
         func feed(_ revision: UInt64, end: Double, suspended: Bool = false) {
             let reading = FullscreenDisplaySample(session: session, revision: revision, validUntil: end,
@@ -22,9 +92,37 @@ import Testing
         feed(2, end: 115)
         feed(3, end: 116, suspended: true)
         feed(4, end: 117)
-        view.retain(displays: [])
+        view.updateTopology([], uptime: 106)
         #expect(events == ["ordinary", "ordinary", "unknown", "ordinary", "unknown"])
         #expect(deadlines == [110, 115, nil, 117, nil])
+    }
+
+    @Test func reconnectAndRotationRequireAnObservationStartedOnTheNewTopology() {
+        let view = FullscreenPresentation(host: HostSession(store: MemoryConfigurationStore()), domains: nil)
+        let portrait = SurfaceRect(x: -800, width: 800, height: 1280)
+        let wide = SurfaceRect(x: -1280, width: 1280, height: 800)
+        let a = ScreenGeometry(id: "stable-display", frame: portrait, visibleFrame: portrait)
+        let b = ScreenGeometry(id: a.id, frame: wide, visibleFrame: wide)
+        let session = UUID(), window = ManagedWindowID(pid: 11, launch: 22, number: 33, element: UUID())
+        var events = [String]()
+        view.management = { _, state, _ in events.append(state) }
+        func feed(_ screen: ScreenGeometry, _ revision: UInt64, began: Double, ordinary: Bool = false) {
+            let sample = FullscreenDisplaySample(session: session, revision: revision, validUntil: began + 12,
+                observation: ordinary ? .ordinary(workspace: nil) : .native(window: window), beganUptime: began)
+            _ = view.sample(screen: screen, override: sample, now: Date(), uptime: 105)
+        }
+        view.updateTopology([a], uptime: 100)
+        feed(a, 1, began: 100)
+        view.updateTopology([b], uptime: 102)
+        feed(b, 2, began: 101, ordinary: true)
+        #expect(events == ["hold", "unknown"])
+        feed(b, 3, began: 103, ordinary: true)
+        view.updateTopology([], uptime: 103)
+        view.updateTopology([b], uptime: 104)
+        feed(b, 4, began: 103)
+        #expect(events.last == "unknown")
+        feed(b, 5, began: 105)
+        #expect(events.last == "hold")
     }
 
     @Test func twoHiddenControllersShareHostAndOnlyPrimaryOwnsDomains() async {

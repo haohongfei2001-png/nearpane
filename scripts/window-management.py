@@ -80,7 +80,7 @@ def plan_key(owner, config, display, usable_width):
 
 class Manager:
     def __init__(self, profile, bundle):
-        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P5.1\n",
+        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P5.2\n",
                 "无法核对候选版本的隔离资料")
         self.root = profile / "WorkRect"
         self.root.mkdir(mode=0o700, exist_ok=True)
@@ -105,6 +105,7 @@ class Manager:
             "上次停止时的窗口恢复尚未完成。请重新核对并恢复。" if self.prefs.get("pendingStop") else None)
         self.last_status = None
         self.fullscreen_displays = set()
+        self.attached_displays = None
         self.return_evidence = {}
         self.count = 0
         self.seen_resize = None
@@ -130,6 +131,8 @@ class Manager:
         self.pre = self.control("preflight")
         require(self.pre["parent"]["pid"] == os.getpid(), "控制器身份变化")
         require(self.pre["trusted"], "辅助功能未授权给已安装的窗口控制器")
+        require(self.attached_displays is None or self.pre["screens"]["secondary"] in self.attached_displays,
+                "已授权的显示器当前无法确认")
         if self.mode != "off":
             require(self.prefs.get("display") == self.pre["screens"]["secondary"], "已授权的显示器变化")
         if self.directory:
@@ -173,7 +176,7 @@ class Manager:
     def open_window(self):
         if self.pre is None:
             self.preflight()
-        require(self.pre["screens"]["secondary"] not in self.fullscreen_displays, "全屏期间不能创建兼容窗口")
+        require(not self.display_blocked(self.pre["screens"]["secondary"]), "全屏期间或显示器未确认时不能创建兼容窗口")
         if self.directory:
             owner = self.owner(optional=True)
             if owner and time.clock_gettime(time.CLOCK_UPTIME_RAW) - owner["uptime"] >= 2:
@@ -247,7 +250,7 @@ class Manager:
             save(self.directory / "ticket.json", dict(request, members=[m for m, _ in confirmed], frames=[f for _, f in confirmed]))
 
     def apply(self, verb, approved=None):
-        require(not self.prefs.get("fullscreenHold") and self.prefs.get("display") not in self.fullscreen_displays,
+        require(not self.prefs.get("fullscreenHold") and not self.display_blocked(self.prefs.get("display")),
                 "全屏期间禁止窗口写入")
         owner, config, key = self.snapshot()
         if approved is not None and (key != approved or owner.get("editing")):
@@ -274,6 +277,7 @@ class Manager:
     def recover(self):
         path = self.directory / "journal.json"
         if path.exists() and read(path)["status"] not in ("retained", "restored"):
+            require(not self.display_blocked(self.prefs.get("display")), "窗口恢复等待原显示器和普通桌面见证")
             owner, config, key = self.snapshot()
             require(key[2], "恢复等待原窗口和权限")
             self.issue_ticket(owner, key, recovery=True)
@@ -321,7 +325,23 @@ class Manager:
         remaining = deadline - time.clock_gettime(time.CLOCK_UPTIME_RAW)
         require(0 < remaining <= FULLSCREEN_EVIDENCE_LIFETIME, "普通桌面见证已过期或时效无效")
 
+    def display_blocked(self, display):
+        return display in self.fullscreen_displays or (self.attached_displays is not None and display not in self.attached_displays)
+
+    def update_topology(self, displays):
+        if self.attached_displays == displays:
+            return
+        if self.attached_displays is not None:
+            # A reattached UUID needs a fresh presentation before it can authorize work.
+            self.fullscreen_displays.update(displays - self.attached_displays)
+        self.attached_displays = displays
+        self.fullscreen_displays.intersection_update(displays)
+        self.return_evidence = {k: v for k, v in self.return_evidence.items() if k in displays}
+        self.pre = self.pending = None
+
     def fullscreen_event(self, display, event, deadline):
+        if self.attached_displays is not None and display not in self.attached_displays:
+            return
         # Unknown or invalid observations invalidate an earlier return, even if
         # the earlier independent window check failed with time remaining.
         self.return_evidence.pop(display, None)
@@ -395,7 +415,7 @@ class Manager:
 
     def tick(self):
         if (not self.directory or self.mode != "active" or self.error or self.prefs.get("fullscreenHold")
-                or self.prefs.get("display") in self.fullscreen_displays):
+                or self.display_blocked(self.prefs.get("display"))):
             return
         if self.pre is None:
             self.preflight()
@@ -450,6 +470,9 @@ class Manager:
         self.count = 0
 
     def command(self, cmd):
+        if cmd == "topology" or cmd.startswith("topology "):
+            self.update_topology({str(uuid.UUID(value)).upper() for value in cmd.split()[1:]})
+            return True
         if cmd.startswith("presentation "):
             fields = cmd.split()
             require(len(fields) in (3, 4), "全屏状态消息格式无效")

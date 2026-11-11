@@ -1,5 +1,6 @@
 #if canImport(SaytileKit)
 import AppKit
+import NearpaneUI
 import NearpaneCore
 
 private final class FullscreenBackdrop: NSPanel {
@@ -23,13 +24,17 @@ private final class FullscreenBackdrop: NSPanel {
     private var previous: Data?
     private var backdrop: NSWindow?
     private var sampleIndex = 0
+    private var topologyStep = 0
+    private var awaitingPublication: (number: UInt32, deadline: TimeInterval)?
+    private(set) var omitsPrimary = false
+    var topologyHost: HostSession?
 
     init(session: NativeAcceptanceSession, displayID: String,
          ownedWindow: @escaping @MainActor () throws -> UInt32,
          refresh: @escaping @MainActor () -> Void) throws {
         let env = ProcessInfo.processInfo.environment
         guard env["NEARPANE_FULLSCREEN_ACCEPTANCE"] == session.directory.lastPathComponent,
-              Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.candidate.p51",
+              CandidateProfile.selected,
               let run = env["NEARPANE_ACCEPTANCE_RUN"], UUID(uuidString: run)?.uuidString.lowercased() == run,
               let front = NSWorkspace.shared.frontmostApplication?.processIdentifier, front != getpid() else {
             throw CocoaError(.fileReadNoPermission)
@@ -82,16 +87,47 @@ private final class FullscreenBackdrop: NSPanel {
     }
 
     var safe: Bool {
+        safetyFailure == nil
+    }
+
+    private var safetyFailure: String? {
         let state = CGSessionCopyCurrentDictionary() as? [String: Any]
-        return state?["kCGSSessionOnConsoleKey"] as? Bool == true
-            && state?["CGSSessionScreenIsLocked"] as? Bool != true
-            && NSWorkspace.shared.frontmostApplication?.processIdentifier == originalFront
-            && !NSApp.isActive && NSApp.keyWindow == nil && NSApp.mainWindow == nil
-            && (try? ownedWindow()) == identity.number
+        guard state?["kCGSSessionOnConsoleKey"] as? Bool == true else { return "console-inactive" }
+        guard state?["CGSSessionScreenIsLocked"] as? Bool != true else { return "locked" }
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == originalFront else { return "foreground-changed" }
+        guard !NSApp.isActive, NSApp.keyWindow == nil, NSApp.mainWindow == nil else { return "host-focus-changed" }
+        guard (try? ownedWindow()) == identity.number else { return "owned-secondary-witness-unavailable" }
+        return nil
+    }
+
+    private func diagnostic(_ reason: String, details: [String: Any] = [:], waiting: Bool = false) {
+        var facts = details
+        facts["reason"] = reason
+        facts["topologyStep"] = topologyStep
+        facts["fullscreenStep"] = sequence
+        facts["pid"] = getpid()
+        facts["frontPID"] = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1
+        facts["expectedFront"] = originalFront
+        facts["uptime"] = ProcessInfo.processInfo.systemUptime
+        let prefix = waiting ? "publication-wait" : "fixture-stop"
+        if let data = try? JSONSerialization.data(withJSONObject: facts, options: .sortedKeys) {
+            try? data.write(to: directory.appendingPathComponent("\(prefix)-\(run).json"), options: .atomic)
+        }
+        if !waiting { stop(); NSApp.terminate(nil) }
+    }
+
+    private func awaitPublication(_ wid: UInt32) {
+        let now = ProcessInfo.processInfo.systemUptime
+        if awaitingPublication == nil {
+            awaitingPublication = (wid, now + 1.25)
+            diagnostic("awaiting-visible-CG-record", details: ["window":wid], waiting: true)
+        } else if awaitingPublication?.number != wid || now >= (awaitingPublication?.deadline ?? 0) {
+            diagnostic("window-not-published-stably", details: ["window":wid])
+        }
     }
 
     private func tick() {
-        guard safe else { stop(); NSApp.terminate(nil); return }
+        if let failure = safetyFailure { diagnostic(failure); return }
         if FileManager.default.fileExists(atPath: directory.appendingPathComponent("fullscreen-finish-" + run).path) {
             stop()
             NSApp.terminate(nil)
@@ -103,13 +139,29 @@ private final class FullscreenBackdrop: NSPanel {
         if FileManager.default.fileExists(atPath: file.path) {
             guard next <= 6, file.resolvingSymlinksInPath().path == file.path,
                   let command = try? String(contentsOf: file, encoding: .utf8),
-                  command == (native ? "ordinary" : "native") else { stop(); NSApp.terminate(nil); return }
+                  command == (native ? "ordinary" : "native") else { diagnostic("invalid-fullscreen-command"); return }
             sequence = next
             native.toggle()
             refresh()
         }
+        if let topologyHost {
+            let commands = ["disconnect", "reconnect", "disconnect", "hide", "show", "reconnect"]
+            let request = directory.appendingPathComponent("topology-\(run)-\(topologyStep + 1)")
+            if FileManager.default.fileExists(atPath: request.path) {
+                guard topologyStep < commands.count, request.resolvingSymlinksInPath().path == request.path,
+                      let action = try? String(contentsOf: request, encoding: .utf8),
+                      action == commands[topologyStep] else { diagnostic("invalid-topology-command"); return }
+                topologyStep += 1
+                switch action {
+                case "disconnect": omitsPrimary = true
+                case "reconnect": omitsPrimary = false
+                default: topologyHost.setSurfaceHidden(action == "hide")
+                }
+                refresh()
+            }
+        }
         let tools = NSApp.windows.filter { $0.identifier?.rawValue == "np.fullscreen.panel" && $0.isVisible }
-        guard tools.count <= 1 else { stop(); NSApp.terminate(nil); return }
+        guard tools.count <= 1 else { diagnostic("duplicate-tool-panel"); return }
         var row: [String: Any] = ["source":"synthetic native classification; actual AppKit windows",
                                   "pid":getpid(),"step":sequence,"native":native,"frontPID":originalFront,
                                   "key":NSApp.keyWindow != nil,"main":NSApp.mainWindow != nil,"active":NSApp.isActive,
@@ -119,11 +171,47 @@ private final class FullscreenBackdrop: NSPanel {
                   let id = CGDisplayCreateUUIDFromDisplayID(n.uint32Value)?.takeRetainedValue(),
                   CFUUIDCreateString(nil,id) as String == displayID, n.uint32Value != CGMainDisplayID(),
                   w.screen?.frame.contains(w.frame) == true, backdrop?.isVisible == true,
-                  backdrop?.frame.contains(w.frame) == true else { stop(); NSApp.terminate(nil); return }
+                  backdrop?.frame.contains(w.frame) == true else { diagnostic("tool-outside-secondary-backdrop"); return }
             row["tool"] = w.windowNumber
             row["frame"] = [w.frame.minX,w.frame.minY,w.frame.width,w.frame.height]
             if FileManager.default.fileExists(atPath: directory.appendingPathComponent("fullscreen-render-" + run).path) {
-                do { try captureOwnView(w) } catch { stop(); NSApp.terminate(nil); return }
+                do { try captureOwnView(w) } catch { diagnostic("tool-render-failed"); return }
+            }
+        }
+        if let topologyHost {
+            let edges = NSApp.windows.compactMap { $0 as? EdgePanel }.filter(\.isVisible)
+            guard edges.count <= 1 else { diagnostic("duplicate-visible-edge", details: ["count":edges.count]); return }
+            row["topologyStep"] = topologyStep
+            row["role"] = topologyHost.panelContents[displayID].map { String(describing: $0) } ?? "absent"
+            row["edgeWindow"] = 0
+            if let edge = edges.first {
+                let f = edge.frame
+                let frame = [f.minX, f.minY, f.width, f.height]
+                guard let screen = edge.screen, let n = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
+                      let uuid = CGDisplayCreateUUIDFromDisplayID(n.uint32Value)?.takeRetainedValue(),
+                      CFUUIDCreateString(nil, uuid) as String == displayID, n.uint32Value != CGMainDisplayID(),
+                      !f.isEmpty, screen.frame.contains(f) else {
+                    diagnostic("edge-outside-secondary-AppKit", details: ["frame":frame]); return
+                }
+                guard let wid = UInt32(exactly: edge.windowNumber), wid > 0 else {
+                    diagnostic("invalid-edge-window-number", details: ["number":edge.windowNumber]); return
+                }
+                let entries = CGWindowListCopyWindowInfo(.optionIncludingWindow, wid) as? [[String:Any]]
+                guard let entry = entries?.first else { awaitPublication(wid); return }
+                guard entries?.count == 1, entry[kCGWindowNumber as String] as? UInt32 == wid,
+                      entry[kCGWindowOwnerPID as String] as? Int32 == getpid() else {
+                    diagnostic("edge-CG-identity", details: ["window":wid]); return
+                }
+                guard let bounds = entry[kCGWindowBounds as String] as? NSDictionary,
+                      let rect = CGRect(dictionaryRepresentation: bounds), !rect.isEmpty,
+                      CGDisplayBounds(n.uint32Value).contains(rect), rect.intersection(CGDisplayBounds(CGMainDisplayID())).isEmpty else {
+                    let raw = entry[kCGWindowBounds as String] as? [String: Any] ?? [:]
+                    diagnostic("edge-outside-secondary-CG", details: ["window":wid,"appKitFrame":frame,"cgBounds":raw]); return
+                }
+                guard entry[kCGWindowIsOnscreen as String] as? Bool == true else { awaitPublication(wid); return }
+                awaitingPublication = nil
+                row["edgeWindow"] = wid
+                row["edgeCGFrame"] = [rect.minX, rect.minY, rect.width, rect.height]
             }
         }
         do {
@@ -132,7 +220,7 @@ private final class FullscreenBackdrop: NSPanel {
                 try data.write(to: directory.appendingPathComponent("fullscreen-\(run).json"), options: .atomic)
                 previous = data
             }
-        } catch { stop(); NSApp.terminate(nil) }
+        } catch { diagnostic("fixture-receipt-write-failed") }
     }
 
     /// Capture the content of the actually presented test window even when macOS protects

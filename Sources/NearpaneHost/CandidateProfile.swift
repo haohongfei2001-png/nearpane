@@ -11,14 +11,14 @@ import UniformTypeIdentifiers
 /// Used only by the separately identified development candidate. Publish the first-run
 /// directory as one unit so an interrupted seed never duplicates revisions or imports.
 enum CandidateProfile {
-    static let identifier = "com.holdsnow.nearpane.candidate.p51"
+    static let identifier = "com.holdsnow.nearpane.candidate.p52"
     static var selected: Bool { Bundle.main.bundleIdentifier == identifier }
 
     @MainActor static func prepare(in parent: URL, acceptance: Bool = false, includeExamples: Bool = false) async throws -> URL {
         let fm = FileManager.default
-        let root = parent.appendingPathComponent(acceptance ? "support" : "Nearpane Alpha P5.1")
+        let root = parent.appendingPathComponent(acceptance ? "support" : "Nearpane Alpha P5.2")
         guard root.standardizedFileURL.path == root.resolvingSymlinksInPath().path else { throw CocoaError(.fileReadNoPermission) }
-        let marker = Data("Nearpane P5.1\n".utf8)
+        let marker = Data("Nearpane P5.2\n".utf8)
         if fm.fileExists(atPath: root.path) {
             for name in ["profile.version","Nearpane","Nearpane/Voice","Riftlet","Nearpane/host-configuration.json"] {
                 let url = root.appendingPathComponent(name)

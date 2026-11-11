@@ -123,6 +123,7 @@ private struct ToolPresentation: Equatable {
     }
 
     public func hide() {
+        guard state != nil else { return }
         generation = UUID()
         window?.orderOut(nil)
         window?.contentView = nil
