@@ -164,6 +164,9 @@ struct Reader {
             let match = matches[index]
             let unique = match.confidence == .corroboratedMetadata || match.confidence == .geometryOnly
             let element = unique ? elements[match.axCandidateIndices[0]] : nil
+            let standardNumber = element?.standardWindowNumber.flatMap { n in
+                elements.filter { $0.process == entry.process && $0.standardWindowNumber == n }.count == 1 ? n : nil
+            }
             let confidence: NearpaneCore.IdentityConfidence
             switch match.confidence {
             case .corroboratedMetadata: confidence = .corroboratedMetadata
@@ -175,7 +178,8 @@ struct Reader {
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: element?.elementToken,
                 globalFrame: SurfaceRect(entry.frame), frontToBack: entry.frontToBackIndex,
                 minimized: element?.minimized, fullScreen: element.flatMap { ax.fullScreen[$0.elementToken] },
-                axFrame: element?.frame.map(SurfaceRect.init), isOnscreen: entry.isOnscreen)
+                axFrame: element?.frame.map(SurfaceRect.init), isOnscreen: entry.isOnscreen,
+                axStandardWindowNumber: standardNumber)
             if confidence == .corroboratedMetadata, data.presentation == .confirmed, element?.subrole == "AXStandardWindow",
                data.fullScreen == false, data.minimized == false, entry.process.pid != request.parentPID,
                activeBefore.contains(entry.windowID), activeAfter.contains(entry.windowID) {

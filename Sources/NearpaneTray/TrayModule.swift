@@ -282,6 +282,12 @@ public final class TrayModule: HostModule {
         guard active, !hidden, expanded, captureEntry else { return }
         owner?.capture(action)
     }
+    /// An explicitly opened compact tool uses the same source, process barrier and import queue.
+    /// The ordinary tray can remain suppressed throughout the full-screen interaction.
+    public func captureFromFullscreen() {
+        guard active, connected, captureEntry, CGPreflightScreenCaptureAccess() else { return }
+        owner?.capture(.system)
+    }
     func thumbnail(_ row: AssetRecord, pixels: Int, completion: @escaping (CGImage?) -> Void) {
         guard let owner else { completion(nil); return }
         owner.thumbnails.image(for: row.image, maxPixelSize: pixels, completion: completion)

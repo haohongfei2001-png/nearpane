@@ -105,6 +105,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     var requestsDesktopFixture = false
     private var desktopFixture: DesktopAcceptanceFixture?
     private var managementProbe: NativeManagementAcceptance?
+    private var fullscreenFixture: FullscreenAcceptanceFixture?
+    private var fullscreenTrial: Bool {
+        guard requestsDesktopFixture, passiveDisplayID != nil, let acceptanceSession else { return false }
+        return ProcessInfo.processInfo.environment["NEARPANE_FULLSCREEN_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent
+    }
     private var managementTrial: Bool {
         guard let acceptanceSession, passiveDisplayID != nil else { return false }
         let id = acceptanceSession.directory.lastPathComponent
@@ -117,7 +122,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var host: HostSession?
     private var modules: EmbeddedModules?
     private var panels: DisplayPanels?
-    private var screenAsleep = false, sessionInactive = false
+    private var screenAsleep = false, sessionInactive = false, screenLocked = false
     private var surface: EdgeWindowController?
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
@@ -136,7 +141,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.
             var duration = 25.0
             #if canImport(SaytileKit)
-            if managementTrial { duration = 100 }
+            if managementTrial { duration = 100 } else if fullscreenTrial { duration = 65 }
             #endif
             let timer = Timer(timeInterval: duration, repeats: false) { _ in
                 MainActor.assumeIsolated { NSApp.terminate(nil) }
@@ -214,7 +219,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         controller.place(screens: placementScreens())
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession {
-            desktopFixture?.observe(session)
+            if !fullscreenTrial { desktopFixture?.observe(session) }
             do {
                 if managementTrial, let display = passiveDisplayID, let manager = modules.workRect {
                     managementProbe = try NativeManagementAcceptance(session: acceptanceSession, display: display, host: session, manager: manager)
@@ -225,14 +230,46 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             catch { NSApp.terminate(nil); return }
         }
         #endif
-        panels = DisplayPanels(host:session,primary:controller)
+        let panels = DisplayPanels(host: session, primary: controller, domains: modules)
+        self.panels = panels
+        panels.refresh = { [weak self] in self?.updatePanels() }
+        panels.managementChanged = { [weak modules] id, state, deadline in
+            guard UUID(uuidString: id) != nil else { return }
+            let expiry = deadline.map { " " + String($0) } ?? ""
+            modules?.workRect?.send("presentation " + state + " " + id + expiry)
+        }
+        #if canImport(SaytileKit)
+        if fullscreenTrial, let acceptanceSession, let display = passiveDisplayID, let desktopFixture {
+            do {
+                let fixture = try FullscreenAcceptanceFixture(session: acceptanceSession, displayID: display,
+                    ownedWindow: { try desktopFixture.fixtureWindowNumber() }, refresh: { [weak self] in self?.updatePanels() })
+                fullscreenFixture = fixture
+                let sessionID = UUID()
+                var revision: UInt64 = 0
+                panels.fixtureFullscreen = { [weak fixture] id in
+                    guard id == display, let fixture else { return nil }
+                    let reading: DesktopFullscreenObservation
+                    if !fixture.safe { reading = .unknown }
+                    else if fixture.native { reading = fixture.witness.map { .native(window: $0) } ?? .unknown }
+                    else { reading = .ordinary(workspace: nil) }
+                    revision += 1
+                    return .init(session: sessionID, revision: revision, validUntil: ProcessInfo.processInfo.systemUptime + 12,
+                                 observation: reading)
+                }
+            } catch { NSApp.terminate(nil); return }
+        }
+        #endif
         session.presentationChanged = { [weak self] in self?.updatePanels() }
         updatePanels()
         if passiveDisplayID == nil { installMenu() }
-        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.screensDidWakeNotification,
+        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification, NSWorkspace.screensDidWakeNotification,
                      NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
                      NSWorkspace.sessionDidBecomeActiveNotification] {
             NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
+        }
+        let distributed = DistributedNotificationCenter.default()
+        for name in ["com.apple.screenIsLocked", "com.apple.screenIsUnlocked"] {
+            distributed.addObserver(self, selector: #selector(lockChanged(_:)), name: .init(name), object: nil)
         }
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -240,12 +277,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         startupTask?.cancel()
+        panels?.stop()
         host?.stop()
         guard let modules else { return .terminateNow }
         Task {
             await modules.finishStopping()
             await host?.waitForDesktopStop()
             #if canImport(RiftletCore) && canImport(SaytileKit)
+            fullscreenFixture?.stop()
             managementProbe?.stop()
             acceptanceProbe?.finish()
             #endif
@@ -261,6 +300,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         #if canImport(SaytileKit)
         desktopFixture?.stop()
         #endif
+        DistributedNotificationCenter.default().removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
         if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
@@ -279,6 +319,13 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
     }
 
+    @objc private func lockChanged(_ note: Notification) {
+        screenLocked = note.name.rawValue == "com.apple.screenIsLocked"
+        panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
+        host?.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
+        updatePanels()
+    }
+
     @objc private func desktopChanged(_ note: Notification) {
         switch note.name {
         case NSWorkspace.screensDidSleepNotification: screenAsleep = true
@@ -287,12 +334,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         case NSWorkspace.sessionDidBecomeActiveNotification: sessionInactive = false
         default: break
         }
-        panels?.setSuspended(screenAsleep || sessionInactive)
+        panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
         switch note.name {
         case NSWorkspace.screensDidSleepNotification: host?.setDesktopPause(.screensAsleep, paused: true)
         case NSWorkspace.screensDidWakeNotification: host?.setDesktopPause(.screensAsleep, paused: false)
         case NSWorkspace.sessionDidResignActiveNotification: host?.setDesktopPause(.inactiveSession, paused: true)
-        case NSWorkspace.sessionDidBecomeActiveNotification: host?.setDesktopPause(.inactiveSession, paused: false)
+        case NSWorkspace.sessionDidBecomeActiveNotification: host?.setDesktopPause(.inactiveSession, paused: screenLocked)
         default: host?.invalidateDesktop()
         }
     }

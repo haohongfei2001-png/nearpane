@@ -36,6 +36,9 @@ public struct WorkspaceDisplaySettings: View {
                         if let applied = draft.settings(over: latest, on: screen), applied != latest { save(applied) }
                     }
                     .id([screen.id, String(describing: settings.measures[.panelWidth]), String(describing: settings.measures[.panelHeight])])
+                    if primary == screen.id {
+                        FullscreenToolPreferencesView(host: host, display: screen.id)
+                    }
                     if primary != screen.id {
                         Picker(
                             "空间面板",

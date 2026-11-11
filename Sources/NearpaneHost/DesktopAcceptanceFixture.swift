@@ -41,7 +41,13 @@ private final class PassiveWorkWindow: NSWindow {
     }
 
     func captureWindow() throws -> UInt32 {
-        guard CGPreflightScreenCaptureAccess(), let screen = approvedScreen, let window = windows.first, window.isVisible,
+        guard CGPreflightScreenCaptureAccess() else { throw CocoaError(.fileReadNoPermission) }
+        return try fixtureWindowNumber()
+    }
+
+    /// Observation of our own window needs no screenshot permission. Only captureWindow admits capture.
+    func fixtureWindowNumber() throws -> UInt32 {
+        guard let screen = approvedScreen, let window = windows.first, window.isVisible,
               window.screen === screen, window.isOnActiveSpace, window.isOpaque,
               let number = UInt32(exactly: window.windowNumber), number > 0,
               let row = (CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String: Any]])?.first,

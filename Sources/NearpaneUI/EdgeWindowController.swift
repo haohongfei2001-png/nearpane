@@ -52,7 +52,8 @@ public final class EdgeWindowController: NSWindowController {
     private let modules: EmbeddedModules?
     private let display = SurfaceDisplay()
     private var presentationAllowed = true
-    private var captureSuppressed = false
+    private(set) var captureSuppressed = false
+    var exposureDidChange: (() -> Void)?
     public private(set) var hasPlacement = false
     public private(set) var requestedFrame: NSRect?
     private var placedFrame: NSRect?
@@ -104,7 +105,7 @@ public final class EdgeWindowController: NSWindowController {
         modules?.tray.exposureChanged = { [weak self] hidden in
             guard let self, captureSuppressed != hidden else { return }
             captureSuppressed = hidden
-            presentIfNeeded()
+            if let exposureDidChange { exposureDidChange() } else { presentIfNeeded() }
         }
         #endif
     }

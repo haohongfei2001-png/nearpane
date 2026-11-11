@@ -22,7 +22,7 @@ struct PanelCapturePresentation: Equatable {
 
 @MainActor
 protocol VoiceInput: AnyObject {
-    func start() async throws
+    func start(requestPermission: Bool) async throws
     func pause() async
     func retry(_ id: UUID) async
     func shutdown() async
@@ -41,12 +41,12 @@ private final class DomainInput: VoiceInput {
             changed($0, $1, $2)
         }
     }
-    func start() async throws {
+    func start(requestPermission: Bool) async throws {
         // Do not trigger engine asset installation as a side effect of trying the voice button.
         let availability = await AppleSpeechService.availability()
         guard availability.installed else { throw AudioFailure.message(availability.message) }
         try Task.checkCancellation()
-        await audio.start(requestPermission: !requireExistingPermissions)
+        await audio.start(requestPermission: requestPermission && !requireExistingPermissions)
     }
     func pause() async { await audio.pause() }
     func retry(_ id: UUID) async { await audio.retry(recordingID: id) }
@@ -59,6 +59,8 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private let openStore: () throws -> SaytileStore
     @ObservationIgnored private let makeInput: MakeInput
     @ObservationIgnored private var store: SaytileStore?
+    @ObservationIgnored private var panelReads = 0
+    @ObservationIgnored private var waitingForPanelReads: CheckedContinuation<Void, Never>?
     @ObservationIgnored private var input: (any VoiceInput)?
     @ObservationIgnored private var transition: Task<Void, Never>?
     @ObservationIgnored private var updates: Task<Void, Never>?
@@ -144,6 +146,7 @@ public final class VoiceModule: HostModule {
         active = false; generation += 1; updates?.cancel(); updates = nil
         if let revisionObserver { NotificationCenter.default.removeObserver(revisionObserver); self.revisionObserver = nil }
         notifiedRefresh?.cancel(); notifiedRefresh = nil
+        let closingGeneration = generation
         let previous = transition, oldInput = input, oldStore = store, writes = draftWrite
         draftWrite = nil
         input = nil; store = nil; rows = []; capture = .paused; control = .init(.paused, 0)
@@ -152,8 +155,11 @@ public final class VoiceModule: HostModule {
             await previous?.value
             await oldInput?.shutdown()
             await writes?.value
+            // Cancelling a view refresh does not cancel an already admitted SQLite read.
+            // Keep the old store open across all awaits until that reader has left.
+            if panelReads != 0 { await withCheckedContinuation { waitingForPanelReads = $0 } }
             do { try await oldStore?.close() }
-            catch { self.issue = "语音资料库未能正常关闭。" }
+            catch { if generation == closingGeneration { issue = "语音资料库未能正常关闭。" } }
         }
     }
     public func suspend() { stop() }
@@ -179,7 +185,7 @@ public final class VoiceModule: HostModule {
         return input
     }
 
-    func toggle() async {
+    func toggle(requestPermission: Bool = true) async {
         guard active, !busy else { return }
         busy = true
         let epoch = generation
@@ -190,7 +196,7 @@ public final class VoiceModule: HostModule {
         do {
             let device = try currentInput()
             if capture.isRunning { acceptanceEvent?("userPause"); await device.pause() }
-            else { acceptanceEvent?("userStart"); try await device.start() }
+            else { acceptanceEvent?("userStart"); try await device.start(requestPermission: requestPermission) }
             guard active, generation == epoch else { return }
             trackRevisions(); await refresh()
         } catch { if generation == epoch { issue = error.localizedDescription } }
@@ -213,22 +219,40 @@ public final class VoiceModule: HostModule {
             }
         }
     }
+    /// The first page and the count must share ownership of the same open store.
+    /// A restart waits on the previous transition before opening the new store.
+    func withPanelRead<T>(_ operation: (SaytileStore) async throws -> T) async throws -> T {
+        guard active, let store else { throw CancellationError() }
+        panelReads += 1
+        defer {
+            panelReads -= 1
+            if panelReads == 0 {
+                waitingForPanelReads?.resume()
+                waitingForPanelReads = nil
+            }
+        }
+        return try await operation(store)
+    }
+
     public func refresh() async {
-        guard active, let store else { return }
+        guard active, store != nil else { return }
         let epoch = generation
         refreshID += 1
         let request = refreshID
         do {
             let requested = limit
-            var result: [Recording] = []
-            while result.count < requested {
-                let batch = min(1_000, requested - result.count)
-                let page = try await store.listPanelRecordings(createdSince: .distantPast, includingIDs: [],
-                                                              limit: batch, offset: result.count)
-                result += page
-                if page.count < batch { break }
+            let (result, count) = try await withPanelRead { store in
+                var result: [Recording] = []
+                while result.count < requested {
+                    let batch = min(1_000, requested - result.count)
+                    let page = try await store.listPanelRecordings(createdSince: .distantPast, includingIDs: [],
+                                                                  limit: batch, offset: result.count)
+                    result += page
+                    if page.count < batch { break }
+                }
+                let count = try await store.panelRecordingCount(createdSince: .distantPast, includingIDs: [])
+                return (result, count)
             }
-            let count = try await store.panelRecordingCount(createdSince: .distantPast, includingIDs: [])
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
             if ordered != rows { rows = ordered; acceptanceEvent?("voiceRows") }

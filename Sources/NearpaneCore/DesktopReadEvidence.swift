@@ -27,6 +27,8 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let element: UUID?
     public let globalFrame: SurfaceRect
     public let axFrame: SurfaceRect?
+    /// Returned by the unique, twice-read standard AX window. May be absent in an older sample.
+    public let axStandardWindowNumber: UInt32?
     public let isOnscreen: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
@@ -34,10 +36,11 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let frontToBack: Int
     public let minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
-                frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil) {
+                frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
+                axStandardWindowNumber: UInt32? = nil) {
         self.number = number; self.pid = pid; self.launchMicroseconds = launchMicroseconds; self.element = element
         self.globalFrame = globalFrame; self.frontToBack = frontToBack; self.minimized = minimized; self.fullScreen = fullScreen
-        self.axFrame = axFrame; self.isOnscreen = isOnscreen
+        self.axFrame = axFrame; self.isOnscreen = isOnscreen; self.axStandardWindowNumber = axStandardWindowNumber
     }
 }
 

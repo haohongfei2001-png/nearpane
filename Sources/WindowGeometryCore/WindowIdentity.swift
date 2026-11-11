@@ -47,12 +47,15 @@ public struct AXWindowMetadata: Equatable, Sendable {
     public let subrole: String?
     public let frame: Rect?
     public let minimized: Bool?
+    /// Positive AX window-number read for a standard window, independent of title/position matching.
+    public let standardWindowNumber: UInt32?
     public init(process: ProcessIdentity, elementToken: UUID, identifier: String?, title: String?,
                 role: String? = "AXWindow", subrole: String? = "AXStandardWindow",
-                frame: Rect?, minimized: Bool? = false) {
+                frame: Rect?, minimized: Bool? = false, standardWindowNumber: UInt32? = nil) {
         self.process = process; self.elementToken = elementToken; self.identifier = identifier
         self.title = title; self.role = role; self.subrole = subrole
         self.frame = frame; self.minimized = minimized
+        self.standardWindowNumber = standardWindowNumber
     }
 }
 

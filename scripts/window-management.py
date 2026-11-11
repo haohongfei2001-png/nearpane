@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Host-owned event loop for the single admitted, signed secondary-display application."""
+import hashlib
 import fcntl
 import json
 import os
@@ -12,6 +13,7 @@ import time
 import uuid
 
 APP_ID = "org.nearpane.lab.NearpaneFixtureWindows"
+FULLSCREEN_EVIDENCE_LIFETIME = 12.0
 
 
 def read(path):
@@ -78,7 +80,7 @@ def plan_key(owner, config, display, usable_width):
 
 class Manager:
     def __init__(self, profile, bundle):
-        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P5.0\n",
+        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P5.1\n",
                 "无法核对候选版本的隔离资料")
         self.root = profile / "WorkRect"
         self.root.mkdir(mode=0o700, exist_ok=True)
@@ -102,6 +104,8 @@ class Manager:
         self.error = self.prefs.get("blockedReason") or (
             "上次停止时的窗口恢复尚未完成。请重新核对并恢复。" if self.prefs.get("pendingStop") else None)
         self.last_status = None
+        self.fullscreen_displays = set()
+        self.return_evidence = {}
         self.count = 0
         self.seen_resize = None
         self.recovery_note = ""
@@ -141,6 +145,8 @@ class Manager:
         value = dict(mode=self.mode, members=self.count, windows=windows, detail=self.error or message or
                      {"off": "尚未授权", "active": "正在观察已授权应用", "paused": "已暂停，保留当前布局"}[self.mode],
                      blocked=bool(self.error), trusted=self.pre and self.pre["trusted"] or False)
+        if self.prefs.get("fullscreenHold") and not self.error:
+            value["detail"] = "全屏期间已挂起窗口写入，等待核对返回布局。"
         if self.recovery_note:
             value["detail"] += " · " + self.recovery_note
         if value != self.last_status:
@@ -167,6 +173,7 @@ class Manager:
     def open_window(self):
         if self.pre is None:
             self.preflight()
+        require(self.pre["screens"]["secondary"] not in self.fullscreen_displays, "全屏期间不能创建兼容窗口")
         if self.directory:
             owner = self.owner(optional=True)
             if owner and time.clock_gettime(time.CLOCK_UPTIME_RAW) - owner["uptime"] >= 2:
@@ -219,7 +226,7 @@ class Manager:
         self.count = len(key[2])
         return owner, config, key
 
-    def issue_ticket(self, owner, key, *, recovery=False):
+    def issue_ticket(self, owner, key, *, recovery=False, read_only=False):
         pairs = key[2]
         request = dict(owner, members=[m for m, _ in pairs], frames=[f for _, f in pairs])
         save(self.directory / "presentation-request.json", request)
@@ -236,9 +243,12 @@ class Manager:
         require(current_key == key and not current.get("editing") and current.get("editTokens") == owner.get("editTokens")
                 and current["keyOrMain"] == owner["keyOrMain"], "窗口在呈现核对后发生变化")
         require(0 <= time.clock_gettime(time.CLOCK_UPTIME_RAW) - proof["beganUptime"] <= 3, "窗口呈现观测已过期")
-        save(self.directory / "ticket.json", dict(request, members=[m for m, _ in confirmed], frames=[f for _, f in confirmed]))
+        if not read_only:
+            save(self.directory / "ticket.json", dict(request, members=[m for m, _ in confirmed], frames=[f for _, f in confirmed]))
 
     def apply(self, verb, approved=None):
+        require(not self.prefs.get("fullscreenHold") and self.prefs.get("display") not in self.fullscreen_displays,
+                "全屏期间禁止窗口写入")
         owner, config, key = self.snapshot()
         if approved is not None and (key != approved or owner.get("editing")):
             self.pending = None
@@ -285,8 +295,107 @@ class Manager:
             if self.pre:
                 self.grant("paused")
 
+    @staticmethod
+    def layout_digest(key):
+        return hashlib.sha256(json.dumps(key, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    def untouched_session(self):
+        # A session that only enrolled a fixture/collected observations has no frame to
+        # undo. Tickets, WAL, results, layout, recovery or unexpected files invalidate
+        # this proof. Never infer "untouched" just from a missing journal.
+        directory = self.directory
+        if not directory or directory.name != self.prefs.get("session") or not (directory / "run.json").is_file():
+            return False
+        run = read(directory / "run.json")
+        if run.get("productManagement") is not True or run.get("session") != directory.name or run != self.run:
+            return False
+        enrollment = {"run.json", "owner.log", "owner.json", "command.json", "grant.json",
+                      "presentation-request.json", "presentation-result.json"}
+        if not all(p.name in enrollment and p.is_file() and not p.is_symlink() for p in directory.iterdir()):
+            return False
+        grant = directory / "grant.json"
+        return not grant.exists() or read(grant).get("mode") in ("off", "paused")
+
+    @staticmethod
+    def check_witness_deadline(deadline):
+        remaining = deadline - time.clock_gettime(time.CLOCK_UPTIME_RAW)
+        require(0 < remaining <= FULLSCREEN_EVIDENCE_LIFETIME, "普通桌面见证已过期或时效无效")
+
+    def fullscreen_event(self, display, event, deadline):
+        # Unknown or invalid observations invalidate an earlier return, even if
+        # the earlier independent window check failed with time remaining.
+        self.return_evidence.pop(display, None)
+        if event == "unknown":
+            return
+        if event == "hold":
+            self.fullscreen_displays.add(display)
+        else:
+            require(deadline is not None, "普通桌面见证缺少有效期")
+            deadline = float(deadline)
+            self.check_witness_deadline(deadline)
+            self.return_evidence[display] = (event, deadline)
+        if self.mode == "off" or self.prefs.get("display") != display or not self.directory:
+            if event != "hold":
+                self.fullscreen_displays.discard(display)
+            return
+        hold = self.prefs.get("fullscreenHold")
+        if event == "hold":
+            if not hold:
+                self.prefs["fullscreenHold"] = dict(display=display, session=self.directory.name,
+                    members=self.layout_digest((self.last[0], self.last[2])) if self.last is not None else None,
+                    workArea=list(self.last[3:]) if self.last is not None else None,
+                    untouched=(not self.last or not self.last[2]) and self.untouched_session())
+                save(self.settings, self.prefs)
+                if self.pre:
+                    self.grant("paused")
+            self.pending = None
+        elif hold:
+            if not self.prefs.get("blockedReason"):
+                self.check_fullscreen_return()
+        else:
+            self.fullscreen_displays.discard(display)
+
+    def check_fullscreen_return(self):
+        hold = self.prefs["fullscreenHold"]
+        witness = self.return_evidence.get(hold["display"])
+        require(witness is not None, "尚未证实普通桌面，保留全屏前的恢复记录")
+        event, deadline = witness
+        self.check_witness_deadline(deadline)
+        untouched = hold.get("untouched") and self.untouched_session()
+        require(event == "returned" or untouched, "未能证实返回原空间及窗口，已保留原布局，请重新核对")
+        self.preflight()
+        require(self.directory and hold["session"] == self.directory.name and hold["display"] == self.prefs["display"],
+                "返回的显示器或窗口会话已经变化")
+        if untouched:
+            self.snapshot()  # authenticate the live owner, session, display and committed configuration
+            require(self.untouched_session(), "会话已接纳窗口事务，需重新核对")
+            self.check_witness_deadline(deadline)
+            self.last = self.pending = None
+            self.prefs.pop("fullscreenHold")
+            save(self.settings, self.prefs)
+            self.fullscreen_displays.discard(hold["display"])
+            self.recovery_note = "已核对原会话未执行窗口事务，无需恢复窗口"
+            return
+        journal = self.directory / "journal.json"
+        require(journal.exists() and read(journal)["status"] in ("restored", "retained"),
+                "全屏前的窗口事务尚未确认")
+        owner, _, key = self.snapshot()
+        require(key[2] and not owner.get("editing") and self.layout_digest((key[0], key[2])) == hold["members"],
+                "窗口身份或手动布局已改变，原布局不再适用")
+        self.issue_ticket(owner, key, read_only=True)
+        self.check_witness_deadline(deadline)
+        # Re-read the latest WorkRect from the committed configuration. Only a real
+        # change to that boundary may schedule the existing debounced transaction.
+        self.last = key if list(key[3:]) == hold["workArea"] else None
+        self.pending = None
+        self.prefs.pop("fullscreenHold")
+        save(self.settings, self.prefs)
+        self.fullscreen_displays.discard(hold["display"])
+        self.recovery_note = "已核对当前 WorkRect、窗口位置和恢复记录"
+
     def tick(self):
-        if not self.directory or self.mode != "active" or self.error:
+        if (not self.directory or self.mode != "active" or self.error or self.prefs.get("fullscreenHold")
+                or self.prefs.get("display") in self.fullscreen_displays):
             return
         if self.pre is None:
             self.preflight()
@@ -325,8 +434,9 @@ class Manager:
             self.prefs["pendingStop"] = intent
             save(self.settings, self.prefs)
             self.preflight()
-            self.recover()
-            self.apply("candidate-exit")
+            if not self.untouched_session():
+                self.recover()
+                self.apply("candidate-exit")
             self.grant("off")
         if intent == "disable":
             self.mode = "off"
@@ -340,6 +450,27 @@ class Manager:
         self.count = 0
 
     def command(self, cmd):
+        if cmd.startswith("presentation "):
+            fields = cmd.split()
+            require(len(fields) in (3, 4), "全屏状态消息格式无效")
+            _, state, display = fields[:3]
+            require(state in ("hold", "unknown", "ordinary", "returned"), "未知全屏状态")
+            self.fullscreen_event(str(uuid.UUID(display)).upper(), state, fields[3] if len(fields) == 4 else None)
+            return True
+        if self.prefs.get("fullscreenHold") and cmd != "pause":
+            require(cmd in ("quit", "disable", "retry"), "全屏窗口管理已挂起")
+            try:
+                self.check_fullscreen_return()
+            except (ValueError, OSError, subprocess.SubprocessError, KeyError):
+                if cmd in ("quit", "disable"):
+                    self.prefs["pendingStop"] = cmd
+                    save(self.settings, self.prefs)
+                raise
+            if cmd == "retry" and not self.prefs.get("pendingStop"):
+                self.prefs.pop("blockedReason", None)
+                save(self.settings, self.prefs)
+                self.error = None
+                return True
         pending = self.prefs.get("pendingStop")
         if pending:
             if cmd == "quit":
@@ -355,6 +486,8 @@ class Manager:
         if cmd in ("enable", "resume", "retry"):
             require(cmd == "enable" or self.mode != "off", "需要先授权")
             self.preflight()
+            require(not self.fullscreen_displays or self.pre["screens"]["secondary"] not in self.fullscreen_displays,
+                    "全屏期间不能启用普通窗口平铺")
             if self.directory:
                 self.recover()
             self.prefs["display"] = self.pre["screens"]["secondary"]
@@ -394,19 +527,30 @@ class Manager:
 
     def loop(self):
         self.status()
+        pending_input = b""
         while True:
             command = None
             try:
-                ready, _, _ = select.select([sys.stdin], [], [], .30)
-                if ready:
-                    line = sys.stdin.readline()
-                    if not line:  # Unexpected Host death. Leave the WAL and live app for the next Host.
+                # A TextIOWrapper may read two display notifications at once; select()
+                # cannot see the second buffered line. Drain complete commands before ticking.
+                if b"\n" not in pending_input:
+                    ready, _, _ = select.select([sys.stdin], [], [], .30)
+                    if not ready:
+                        if not pending_input:
+                            self.tick()
+                            self.status()
+                        continue
+                    chunk = os.read(sys.stdin.fileno(), 8192)
+                    if not chunk:  # Unexpected Host death. Leave the WAL for the next Host.
                         return
-                    command = line.strip()
-                    if not self.command(command):
-                        return
-                else:
-                    self.tick()
+                    pending_input += chunk
+                    if b"\n" not in pending_input:
+                        require(len(pending_input) <= 4096, "窗口命令过长")
+                        continue
+                line, _, pending_input = pending_input.partition(b"\n")
+                command = line.decode("ascii").strip()
+                if not self.command(command):
+                    return
                 self.status()
             except (ValueError, OSError, subprocess.SubprocessError, KeyError) as error:
                 self.suspend_on_error(error)

@@ -9,6 +9,12 @@ public final class HostSession {
     public private(set) var workspaceIssue: WorkspaceFailure?
     @ObservationIgnored private var workspaceGestures = WorkspaceGestureRouter()
     @ObservationIgnored public var presentationChanged: (() -> Void)?
+    /// Latest display-local fullscreen finding for Settings. No window identity or contents are persisted.
+    public private(set) var fullscreenStatus: [String: String] = [:]
+    public func reportFullscreen(_ message: String?, on display: String) {
+        guard fullscreenStatus[display] != message else { return }
+        fullscreenStatus[display] = message
+    }
     public let diagnostics: Diagnostics
     public let bus: SnapshotBus
     public let registry: ModuleRegistry
@@ -79,6 +85,7 @@ public final class HostSession {
         guard isRunning else { return }
         isRunning = false
         panelContents = [:]
+        fullscreenStatus.removeAll()
         cancelWorkspaceGesture()
         refreshGeneration += 1
         desktopTask?.cancel()

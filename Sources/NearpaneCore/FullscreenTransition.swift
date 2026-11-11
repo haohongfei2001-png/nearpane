@@ -9,7 +9,108 @@ public struct FullscreenTransitionCoordinator {
     public private(set) var phase: FullscreenPhase = .ordinary
     public private(set) var origin: FullscreenOrigin?
     public private(set) var toolsOpen = false
+    public private(set) var displayedWindow: ManagedWindowID?
+    public private(set) var returnEvidence: FullscreenReturnEvidence = .none
+    public private(set) var selectionGeneration = UUID()
+    private var readSession: UUID?
+    private var lastRevision: UInt64?
+    private var validUntil = 0.0
+    private var lastOrdinary: WorkspaceID?
+    private var ordinaryMembers = Set<ManagedWindowID>()
+    private var ordinaryDeadline = 0.0
+    private var lastNative: ManagedWindowID?
+    private var enteredFrom: WorkspaceID?
+    private func sameWindow(_ a: ManagedWindowID?, _ b: ManagedWindowID) -> Bool {
+        a?.pid == b.pid && a?.launch == b.launch && a?.number == b.number
+    }
+
     public init() {}
+
+    public func permitsTool(at uptime: Double) -> Bool {
+        phase == .native && displayedWindow != nil && uptime.isFinite && uptime < validUntil
+    }
+
+    private mutating func clearToolSelection() {
+        if displayedWindow != nil || toolsOpen { selectionGeneration = UUID() }
+        displayedWindow = nil
+        validUntil = 0
+        hideTools()
+    }
+
+    /// Lock, loss of permission, a change of displays or a gap in observation ends
+    /// the chain of witnesses. Keep a known fullscreen display suppressed until
+    /// a fresh ordinary sample. Never carry its recovery evidence across that gap.
+    public mutating func invalidatePresentation() {
+        clearToolSelection()
+        enteredFrom = nil
+        lastNative = nil
+        lastOrdinary = nil
+        ordinaryMembers.removeAll()
+        ordinaryDeadline = 0
+        returnEvidence = .none
+    }
+
+    /// True only for a newly accepted ordinary/native sample. A caller forwarding
+    /// management notifications must never derive one from a superseded sample.
+    @discardableResult
+    public mutating func observe(_ sample: FullscreenDisplaySample?, uptime: Double) -> Bool {
+        guard uptime.isFinite, uptime >= 0, let sample else { invalidatePresentation(); return false }
+        if let readSession, readSession != sample.session { return false }
+        if (displayedWindow != nil && uptime >= validUntil) || (lastOrdinary != nil && uptime >= ordinaryDeadline) {
+            invalidatePresentation()
+        }
+        guard sample.revision > (lastRevision ?? 0) else { return false }
+        readSession = sample.session
+        lastRevision = sample.revision
+        guard sample.validUntil.isFinite, uptime < sample.validUntil else { invalidatePresentation(); return false }
+
+        switch sample.observation {
+        case .unknown:
+            invalidatePresentation()
+            return false
+        case let .native(window):
+            // UI can remain in the same position on this display across fresh
+            // reads. PID/birth/number continuity is never authority to restore.
+            let continuingPresentation = sameWindow(displayedWindow, window)
+            if phase != .native {
+                enteredFrom = ordinaryDeadline > uptime && ordinaryMembers.contains(window) ? lastOrdinary : nil
+                lastOrdinary = nil
+                ordinaryMembers.removeAll()
+                phase = .native
+                returnEvidence = .none
+            } else if lastNative != window {
+                // Also covers a restarted AX reader whose tokens cannot be compared.
+                enteredFrom = nil
+            }
+            if !continuingPresentation { selectionGeneration = UUID(); hideTools() }
+            lastNative = window
+            displayedWindow = window
+            validUntil = sample.validUntil
+        case let .ordinary(workspace):
+            let previous = lastNative
+            clearToolSelection()
+            let witnessed: WorkspaceID?
+            if case let .native(session, _, _) = workspace, session == sample.session {
+                witnessed = workspace
+            } else {
+                witnessed = nil
+            }
+            if phase == .native {
+                let sameMember = previous.map(sample.ordinaryMembers.contains) == true
+                returnEvidence = sameMember && enteredFrom != nil && witnessed == enteredFrom ? .witnessedSource : .unconfirmedSource
+                phase = .ordinary
+            } else {
+                // A return is a transition receipt, not repeated evidence on future ticks.
+                returnEvidence = .none
+            }
+            enteredFrom = nil
+            lastNative = nil
+            lastOrdinary = witnessed
+            ordinaryMembers = sample.ordinaryMembers
+            ordinaryDeadline = sample.validUntil
+        }
+        return true
+    }
     public mutating func enter(
         _ from: FullscreenOrigin, verifiedNative: Bool, separate: Bool,
         capabilities: WorkspaceCapabilities, source: WorkspaceSnapshot, uptime: Double, isolated: Bool = false
@@ -28,7 +129,9 @@ public struct FullscreenTransitionCoordinator {
         phase = .native
         toolsOpen = false
     }
-    public mutating func clickStatusStrip() { if phase == .native { toolsOpen = true } }
+    public mutating func clickStatusStrip() {
+        if phase == .native && (displayedWindow != nil || origin != nil) { toolsOpen = true }
+    }
     public mutating func hideTools() { toolsOpen = false }
     public mutating func exit(observedWindow: ManagedWindowID) throws -> FullscreenOrigin {
         guard phase == .native, let origin, origin.window == observedWindow else { throw WorkspaceFailure.identity }
@@ -82,4 +185,25 @@ public struct FloatingToolSurface: Codable, Equatable, Sendable {
         }
         return result
     }
+}
+
+/// A presentation witness never grants system window or Workspace write permission.
+/// AX element tokens belong to a reader invocation. Continuity across samples is used
+/// only to keep a tool visible; the window controller needs its own fresh action ticket.
+public struct FullscreenDisplaySample: Sendable {
+    public let session: UUID
+    public let revision: UInt64
+    public let validUntil: Double
+    public let observation: DesktopFullscreenObservation
+    /// Members positively associated with the current ordinary Space in this sample.
+    public let ordinaryMembers: Set<ManagedWindowID>
+    public init(session: UUID, revision: UInt64, validUntil: Double, observation: DesktopFullscreenObservation,
+                ordinaryMembers: Set<ManagedWindowID> = []) {
+        self.ordinaryMembers = ordinaryMembers
+        self.session = session; self.revision = revision; self.validUntil = validUntil; self.observation = observation
+    }
+}
+
+public enum FullscreenReturnEvidence: Equatable, Sendable {
+    case none, witnessedSource, unconfirmedSource
 }

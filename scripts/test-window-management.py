@@ -17,7 +17,7 @@ class ProductManagementTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         profile = Path(temp.name).resolve()
-        (profile / "profile.version").write_text("Nearpane P5.0\n")
+        (profile / "profile.version").write_text("Nearpane P5.1\n")
         self.m = wm.Manager(profile, profile)
         self.addCleanup(self.m.lease.close)
         self.id = {"pid": 20, "launch": 32, "number": 3, "element": "one"}
@@ -228,6 +228,200 @@ class ProductManagementTests(unittest.TestCase):
     def observation(self):
         return dict(member=self.member, onScreen=True, cg=self.full_frame, ax=self.full_frame)
 
+    def send_presentation(self, state, display, lifetime=12):
+        deadline = wm.time.clock_gettime(wm.time.CLOCK_UPTIME_RAW) + lifetime
+        return self.m.command(f"presentation {state} {display} {deadline!r}")
+
+    def held_fullscreen(self):
+        key = self.presentation_setup()
+        display = "A4B0E968-D7AC-46DA-A770-7E4356006069"
+        self.m.mode = self.m.prefs["mode"] = "active"
+        self.m.prefs["display"] = display
+        self.m.preflight = Mock()
+        self.m.control = Mock(return_value=self.proof(self.observation()))
+        self.m.last = key
+        wm.save(self.m.directory / "journal.json", dict(status="retained"))
+        self.m.command("presentation hold " + display)
+        return display, key
+
+    def test_verified_return_reads_actual_layout_without_new_action_ticket(self):
+        display, key = self.held_fullscreen()
+        self.assertIn("fullscreenHold", wm.read(self.m.settings))
+        self.m.tick()
+        self.m.snapshot.assert_not_called()
+        self.send_presentation("returned", display)
+        self.assertNotIn("fullscreenHold", wm.read(self.m.settings))
+        self.assertEqual(self.m.last, key)
+        self.assertEqual(self.m.control.call_args_list, [call("product-presentation")])
+        self.assertFalse((self.m.directory / "ticket.json").exists())
+
+    def test_unproven_return_and_changed_window_preserve_journal(self):
+        display, key = self.held_fullscreen()
+        with self.assertRaisesRegex(ValueError, "返回原空间"):
+            self.send_presentation("ordinary", display)
+        changed = (key[0], key[1], [(self.member, self.small_frame)], *key[3:])
+        self.m.snapshot.return_value = (self.owner, self.host, changed)
+        with self.assertRaisesRegex(ValueError, "手动布局"):
+            self.send_presentation("returned", display)
+        with self.assertRaisesRegex(ValueError, "手动布局"):
+            self.m.command("retry")
+        self.assertIn("fullscreenHold", wm.read(self.m.settings))
+        self.assertEqual(wm.read(self.m.directory / "journal.json"), dict(status="retained"))
+        self.m.control.assert_not_called()
+
+    def test_fullscreen_quit_and_crash_do_not_replay_restore(self):
+        display, _ = self.held_fullscreen()
+        self.m.return_evidence.clear()  # A new process has no fresh ordinary observation.
+        with self.assertRaisesRegex(ValueError, "尚未证实"):
+            self.m.command("quit")
+        self.assertEqual(wm.read(self.m.settings)["pendingStop"], "quit")
+        self.assertIn("fullscreenHold", wm.read(self.m.settings))
+        self.m.tick()
+        self.m.control.assert_not_called()
+
+    def test_ordinary_cannot_release_managed_group_through_retry_disable_or_quit(self):
+        display, _ = self.held_fullscreen()
+        with self.assertRaisesRegex(ValueError, "返回原空间"):
+            self.send_presentation("ordinary", display)
+        for command in ("retry", "disable", "quit"):
+            with self.subTest(command=command), self.assertRaisesRegex(ValueError, "返回原空间"):
+                self.m.command(command)
+        self.assertIn("fullscreenHold", wm.read(self.m.settings))
+        self.m.control.assert_not_called()
+        self.assertFalse((self.m.directory / "ticket.json").exists())
+
+    def test_missing_or_invalid_heartbeat_revokes_previous_usable_return(self):
+        display, _ = self.held_fullscreen()
+        self.m.suspend_on_error(ValueError("等待手动核对"))
+        for invalid in ["unknown", "returned", "returned nan", "returned inf", "returned expired", "ordinary future"]:
+            self.send_presentation("returned", display)
+            state, *suffix = invalid.split()
+            if state == "unknown":
+                self.m.command(f"presentation unknown {display}")
+            else:
+                with self.assertRaises(ValueError):
+                    if suffix in (["expired"], ["future"]):
+                        self.send_presentation(state, display, lifetime=60 if suffix == ["future"] else -1)
+                    else:
+                        self.m.command(" ".join(["presentation", state, display, *suffix]))
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "尚未证实"):
+                self.m.command("retry")
+            self.assertIn("fullscreenHold", wm.read(self.m.settings))
+        self.m.control.assert_not_called()
+
+    def test_return_expires_while_waiting_for_retry_or_for_independent_readback(self):
+        display, _ = self.held_fullscreen()
+        self.m.suspend_on_error(ValueError("等待手动核对"))
+        now = wm.time.clock_gettime(wm.time.CLOCK_UPTIME_RAW)
+        with patch.object(wm.time, "clock_gettime", return_value=now):
+            self.send_presentation("returned", display)
+        with patch.object(wm.time, "clock_gettime", return_value=now + 12):
+            with self.assertRaisesRegex(ValueError, "过期"):
+                self.m.command("retry")
+        self.m.control.assert_not_called()
+        with patch.object(wm.time, "clock_gettime", return_value=now):
+            self.send_presentation("returned", display)
+        def readback(_):
+            proof = self.proof(self.observation())
+            proof["beganUptime"] = now + 11
+            clock.return_value = now + 12.1
+            return proof
+        self.m.control.side_effect = readback
+        with patch.object(wm.time, "clock_gettime", return_value=now + 11.9) as clock:
+            with self.assertRaisesRegex(ValueError, "过期"):
+                self.m.command("retry")
+        self.assertIn("fullscreenHold", wm.read(self.m.settings))
+        self.assertFalse((self.m.directory / "ticket.json").exists())
+
+    def test_known_hold_before_window_registration_blocks_creation_poll_and_apply(self):
+        display = "A4B0E968-D7AC-46DA-A770-7E4356006069"
+        self.m.mode = self.m.prefs["mode"] = "active"
+        self.m.prefs["display"] = display
+        self.m.pre = {"screens": {"secondary": display}}
+        self.m.command("presentation hold " + display)
+        self.m.command("presentation unknown " + display)
+        with self.assertRaisesRegex(ValueError, "全屏期间"):
+            self.m.command("open")
+        self.assertIsNone(self.m.directory)
+        self.m.directory = self.m.root
+        self.m.snapshot = Mock(side_effect=AssertionError)
+        self.m.tick()
+        with self.assertRaisesRegex(ValueError, "全屏期间"):
+            self.m.apply("candidate-layout")
+        self.m.snapshot.assert_not_called()
+
+    def test_disable_before_first_layout_never_opens_an_exit_frame_transaction(self):
+        display = "A4B0E968-D7AC-46DA-A770-7E4356006069"
+        self.presentation_setup()
+        self.m.mode = self.m.prefs["mode"] = "active"
+        self.m.prefs.update(display=display, session=self.m.directory.name)
+        self.m.run = dict(productManagement=True, session=self.m.directory.name)
+        wm.save(self.m.directory / "run.json", self.m.run)
+        self.m.preflight = Mock()
+        self.m.apply = Mock(side_effect=AssertionError)
+        self.m.command("presentation hold " + display)
+        self.assertTrue(wm.read(self.m.settings)["fullscreenHold"]["untouched"])
+        with self.assertRaisesRegex(ValueError, "尚未证实"):
+            self.m.command("disable")
+        with self.assertRaisesRegex(ValueError, "过期"):
+            self.send_presentation("ordinary", display, lifetime=-1)
+        with self.assertRaisesRegex(ValueError, "尚未证实"):
+            self.m.command("disable")
+        self.send_presentation("ordinary", display)
+        self.assertTrue(self.m.command("disable"))
+        prefs = wm.read(self.m.settings)
+        self.assertEqual(prefs["mode"], "off")
+        self.assertNotIn("fullscreenHold", prefs)
+        self.assertNotIn("pendingStop", prefs)
+        self.m.snapshot.assert_called_once()
+        self.m.apply.assert_not_called()
+
+    def test_unknown_baseline_with_prior_or_intervening_transaction_keeps_hold(self):
+        display = "A4B0E968-D7AC-46DA-A770-7E4356006069"
+        self.presentation_setup()
+        self.m.mode = self.m.prefs["mode"] = "active"
+        self.m.prefs.update(display=display, session=self.m.directory.name)
+        self.m.run = dict(productManagement=True, session=self.m.directory.name)
+        wm.save(self.m.directory / "run.json", self.m.run)
+        self.m.preflight = Mock()
+        self.m.control = Mock(side_effect=AssertionError)
+        for receipt in ["ticket.json", "last-result.json", "last-recovery.json", "layout.json", "journal.json"]:
+            with self.subTest(receipt=receipt):
+                self.m.command("presentation hold " + display)
+                evidence = self.m.directory / receipt
+                wm.save(evidence, dict(status="prepared"))
+                with self.assertRaises(ValueError):
+                    self.send_presentation("returned", display)
+                with self.assertRaises(ValueError):
+                    self.m.command("retry")
+                self.assertIn("fullscreenHold", wm.read(self.m.settings))
+                self.assertEqual(wm.read(evidence), dict(status="prepared"))
+                evidence.unlink()
+        self.m.control.assert_not_called()
+
+    def test_coalesced_primary_and_secondary_notifications_precede_any_tick(self):
+        reader, writer = wm.os.pipe()
+        self.addCleanup(wm.os.close, writer)
+        commands = []
+        def handle(cmd):
+            commands.append(cmd)
+            return cmd != "quit"
+        self.m.command = handle
+        self.m.status = Mock()
+        self.m.tick = Mock(side_effect=AssertionError("layout tick interleaved with queued display notices"))
+        wm.os.write(writer, b"presentation ordinary primary\npresentation hold secondary\nquit\n")
+        with wm.os.fdopen(reader, "r") as source, patch.object(wm.sys, "stdin", source):
+            self.m.loop()
+        self.assertEqual(commands, ["presentation ordinary primary", "presentation hold secondary", "quit"])
+
+    def test_only_committed_workrect_change_can_schedule_relayout_after_return(self):
+        display, key = self.held_fullscreen()
+        self.m.snapshot.return_value = (self.owner, self.host, (*key[:4], key[4] + 10))
+        self.send_presentation("returned", display)
+        self.assertIsNone(self.m.last)
+        self.assertIsNone(self.m.pending)
+        self.assertFalse((self.m.directory / "ticket.json").exists())
+
     def test_unconfirmed_presentation_preserves_wal_baseline_and_issues_no_ticket(self):
         self.presentation_setup()
         layout = self.m.directory / "layout.json"
@@ -296,8 +490,10 @@ class ProductManagementTests(unittest.TestCase):
             yield idle
             yield idle
             yield command  # EOF
-        with patch.object(wm.select, "select", side_effect=events()), patch.object(wm.sys, "stdin", io.StringIO("retry\n")), \
-                patch.object(wm.sys, "stdout", io.StringIO()):
+        with tempfile.TemporaryFile() as source, patch.object(wm.select, "select", side_effect=events()), \
+                patch.object(wm.sys, "stdin", source), patch.object(wm.sys, "stdout", io.StringIO()):
+            source.write(b"retry\n")
+            source.seek(0)
             self.m.loop()
         self.assertEqual(calls, ["product-presentation", "product-presentation", "candidate-layout"])
         self.assertEqual(self.m.grant.call_args_list, [call("paused"), call("active")])

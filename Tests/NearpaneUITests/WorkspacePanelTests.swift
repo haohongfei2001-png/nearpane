@@ -5,6 +5,28 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct WorkspacePanelTests {
+    @Test func onlyFreshLiveDisplaySamplesCanRenewAManagementReturnWitness() {
+        let view = FullscreenPresentation(host: HostSession(store: MemoryConfigurationStore()), domains: nil)
+        let frame = SurfaceRect(width: 900, height: 700)
+        let screen = ScreenGeometry(id: "secondary", frame: frame, visibleFrame: frame)
+        let session = UUID()
+        var events = [String](), deadlines = [Double?]()
+        view.management = { _, state, deadline in events.append(state); deadlines.append(deadline) }
+        func feed(_ revision: UInt64, end: Double, suspended: Bool = false) {
+            let reading = FullscreenDisplaySample(session: session, revision: revision, validUntil: end,
+                                                   observation: .ordinary(workspace: nil))
+            _ = view.sample(screen: screen, override: reading, now: Date(), uptime: 105, suspended: suspended)
+        }
+        feed(1, end: 110)
+        feed(1, end: 111) // an ordinary redraw must not extend the lease
+        feed(2, end: 115)
+        feed(3, end: 116, suspended: true)
+        feed(4, end: 117)
+        view.retain(displays: [])
+        #expect(events == ["ordinary", "ordinary", "unknown", "ordinary", "unknown"])
+        #expect(deadlines == [110, 115, nil, 117, nil])
+    }
+
     @Test func twoHiddenControllersShareHostAndOnlyPrimaryOwnsDomains() async {
         _ = NSApplication.shared
         let host = HostSession(store: MemoryConfigurationStore())

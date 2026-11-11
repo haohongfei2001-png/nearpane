@@ -64,8 +64,9 @@ final class AXMetadataReader {
             let role = value(element, kAXRoleAttribute as CFString, deadline: deadline, issues: &issues) as? String
             let subrole = value(element, kAXSubroleAttribute as CFString, deadline: deadline, issues: &issues) as? String
             let minimized = (value(element, kAXMinimizedAttribute as CFString, deadline: deadline, issues: &issues) as? NSNumber)?.boolValue
-            if let full = value(element, "AXFullScreen" as CFString, deadline: deadline, issues: &issues) as? NSNumber {
-                fullScreen[token] = full.boolValue
+            if let full = value(element, "AXFullScreen" as CFString, deadline: deadline, issues: &issues),
+               CFGetTypeID(full) == CFBooleanGetTypeID(), let flag = full as? Bool {
+                fullScreen[token] = flag
             }
             let position = value(element, kAXPositionAttribute as CFString, deadline: deadline, issues: &issues)
             let size = value(element, kAXSizeAttribute as CFString, deadline: deadline, issues: &issues)
@@ -82,8 +83,10 @@ final class AXMetadataReader {
             if rect == nil || role == nil {
                 issues.append(MetadataIssue(field: "AXWindow", code: "missingRequiredMetadata"))
             }
+            let standard = role == kAXWindowRole && subrole == kAXStandardWindowSubrole && fullScreen[token] != nil
             result.append(AXWindowMetadata(process: process, elementToken: token, identifier: nil,
-                                           title: title, role: role, subrole: subrole, frame: rect, minimized: minimized))
+                                           title: title, role: role, subrole: subrole, frame: rect, minimized: minimized,
+                                           standardWindowNumber: standard ? AdmissionAXRead.windowNumber(element) : nil))
         }
         return result
     }

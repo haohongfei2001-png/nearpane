@@ -13,7 +13,7 @@ enum AdmissionAXRead {
         return AXUIElementCopyAttributeValue(e, key as CFString, &v) == .success ? v : nil
     }
 
-    private static func windowNumber(_ element: AXUIElement) -> UInt32? {
+    static func windowNumber(_ element: AXUIElement) -> UInt32? {
         if let value = value(element, "AXWindowNumber") as? NSNumber,
            let n = UInt32(exactly: value.int64Value), n > 0 { return n }
         let n = NPReadAXWindowNumber(element)

@@ -87,6 +87,7 @@ public struct PanelPosition: Codable, Equatable, Sendable {
 }
 public struct DisplaySettings: Codable, Equatable, Sendable {
     public var floatingPosition: PanelPosition?
+    public var fullscreenTools = FullscreenToolSettings()
     public var toolAnchor: FloatingToolSurface?
     public var placement: SpacePanelPlacement = .docked
     public var policy: SecondaryPolicy = .onDemand
@@ -98,6 +99,7 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         floatingPosition = try values.decodeIfPresent(PanelPosition.self, forKey: .floatingPosition)
+        fullscreenTools = try values.decodeIfPresent(FullscreenToolSettings.self, forKey: .fullscreenTools) ?? .init()
         toolAnchor = try values.decodeIfPresent(FloatingToolSurface.self, forKey: .toolAnchor)
         placement = try values.decodeIfPresent(SpacePanelPlacement.self, forKey: .placement) ?? .docked
         spacesDismissed = try values.decodeIfPresent(Bool.self, forKey: .spacesDismissed) ?? false
@@ -172,6 +174,9 @@ public struct DisplayDemand: Equatable, Sendable {
 
 public struct DisplaySurfacePlan: Equatable, Sendable {
     public let id: String, primary: Bool, content: PanelContent
+    public init(id: String, primary: Bool, content: PanelContent) {
+        self.id = id; self.primary = primary; self.content = content
+    }
 }
 
 public struct MultiDisplayPresentationCoordinator {

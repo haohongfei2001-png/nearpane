@@ -9,15 +9,18 @@ final class ScriptedInput: VoiceInput {
     let update: (CaptureState, Float, String?) -> Void
     var retried: UUID?
     var closed = false
+    var onShutdown: (() -> Void)?
     var permissionDenied = false
+    private(set) var permissionRequests: [Bool] = []
     init(_ update: @escaping (CaptureState, Float, String?) -> Void) { self.update = update }
-    func start() async throws {
+    func start(requestPermission: Bool) async throws {
+        permissionRequests.append(requestPermission)
         if permissionDenied { throw CocoaError(.fileReadNoPermission) }
         update(.listening, 0, nil)
     }
     func pause() async { update(.paused, 0, nil) }
     func retry(_ id: UUID) async { retried = id }
-    func shutdown() async { closed = true }
+    func shutdown() async { closed = true; onShutdown?() }
 }
 
 @MainActor @Suite(.serialized)
@@ -25,6 +28,30 @@ struct VoiceTests {
     func directory() -> URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data").appendingPathComponent("voice-" + UUID().uuidString)
+    }
+
+    @Test func compactVoiceUsesTheExistingDeviceWithoutRequestingPermission() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var devices: [ScriptedInput] = []
+        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) }, makeInput: { _, update in
+            let device = ScriptedInput(update)
+            devices.append(device)
+            return device
+        })
+        try module.start()
+        await module.waitForTransition()
+        await module.toggle(requestPermission: false)
+        let device = try #require(devices.first)
+        #expect(device.permissionRequests == [false] && module.capture == .listening)
+        device.update(.speaking, 0.6, nil)
+        #expect(module.control.state == .recognizing)
+        await module.toggle(requestPermission: false)
+        #expect(module.capture == .paused && !device.closed)
+        await module.toggle()
+        #expect(devices.count == 1 && device.permissionRequests == [false, true])
+        module.stop()
+        await module.waitForTransition()
     }
 
     @Test func captureButtonFollowsDomainIncludingSilenceAndLateEvents() async throws {
@@ -156,6 +183,46 @@ extension VoiceTests {
         #expect(!window.isVisible && !window.isKeyWindow)
     }
 
+    @Test func restartDrainsAnAdmittedPanelReadBeforeClosingTheFirstStore() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var opens = 0
+        var retired = false
+        let module = VoiceModule(openStore: {
+            opens += 1
+            return try SaytileStore(directory: dir)
+        }, makeInput: { _, update in
+            let device = ScriptedInput(update)
+            device.onShutdown = { retired = true }
+            return device
+        })
+        try module.start()
+        await module.waitForTransition()
+        await module.toggle(requestPermission: false)
+        var release: CheckedContinuation<Void, Never>?
+        let read = Task {
+            try await module.withPanelRead { store in
+                _ = try await store.listRecordings()
+                await withCheckedContinuation { release = $0 }
+                return try await store.panelRecordingCount(createdSince: .distantPast, includingIDs: [])
+            }
+        }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while release == nil && ContinuousClock.now < deadline { await Task.yield() }
+        let gate = try #require(release)
+        module.stop()
+        try module.start()
+        while !retired && ContinuousClock.now < deadline { await Task.yield() }
+        #expect(retired)
+        #expect(opens == 1)
+        gate.resume()
+        #expect(try await read.value == 0)
+        await module.waitForTransition()
+        #expect(opens == 2 && module.issue == nil)
+        module.stop()
+        await module.waitForTransition()
+    }
+
     @Test func lateInputAndRevisionNotificationsCannotSurviveRepeatedRestarts() async throws {
         let dir = directory(); defer { try? FileManager.default.removeItem(at: dir) }
         weak var device: ScriptedInput?
@@ -177,7 +244,10 @@ extension VoiceTests {
             try module.start()
             await module.waitForTransition()
             old.update(.speaking, 1, "retired input")
-            #expect(old.closed && module.capture == .paused && module.issue == nil && module.transcript.isEmpty)
+            #expect(old.closed)
+            #expect(module.capture == .paused)
+            #expect(module.issue == nil)
+            #expect(module.transcript.isEmpty)
             denied.toggle()
         }
         module.stop(); await module.waitForTransition()
