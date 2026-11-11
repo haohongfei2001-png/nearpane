@@ -49,7 +49,12 @@ struct NativeAcceptanceSession {
             throw CocoaError(.fileReadInvalidFileName)
         }
         let fm = FileManager.default
-        let repo = URL(fileURLWithPath: fm.currentDirectoryPath)
+        // LaunchServices does not inherit the checkout's working directory. Only an
+        // already prepared, executable-bound acceptance session may use this override.
+        let checkout = prepare ? nil : ProcessInfo.processInfo.environment["NEARPANE_ACCEPTANCE_CHECKOUT"]
+        let repo = URL(fileURLWithPath: checkout ?? fm.currentDirectoryPath)
+        guard repo.path.hasPrefix("/"), repo.standardizedFileURL.path == repo.resolvingSymlinksInPath().path
+        else { throw CocoaError(.fileReadNoPermission) }
         guard fm.fileExists(atPath: repo.appendingPathComponent("Dependencies/domains.lock.json").path) else {
             throw CocoaError(.fileNoSuchFile)
         }
@@ -74,7 +79,10 @@ struct NativeAcceptanceSession {
             for url in [directory, markerURL, support, support.appendingPathComponent("Nearpane"), support.appendingPathComponent("Riftlet")] {
                 guard url.standardizedFileURL.path == url.resolvingSymlinksInPath().path else { throw CocoaError(.fileReadNoPermission) }
             }
-            guard try JSONDecoder().decode(Marker.self, from: Data(contentsOf: markerURL)) == marker else {
+            let attributes = try fm.attributesOfItem(atPath: directory.path)
+            guard (attributes[.ownerAccountID] as? NSNumber)?.uint32Value == getuid(),
+                  (attributes[.posixPermissions] as? NSNumber)?.intValue == 0o700,
+                  try JSONDecoder().decode(Marker.self, from: Data(contentsOf: markerURL)) == marker else {
                 throw CocoaError(.fileReadCorruptFile)
             }
         }

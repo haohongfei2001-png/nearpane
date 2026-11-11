@@ -62,8 +62,8 @@ def plan_key(owner, config, display):
 
 class Manager:
     def __init__(self, profile, bundle):
-        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.7\n",
-                "无法核对 P4.7 隔离资料")
+        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.8\n",
+                "无法核对 P4.8 隔离资料")
         self.root = profile / "WorkRect"
         self.root.mkdir(mode=0o700, exist_ok=True)
         require(self.root.resolve() == self.root and self.root.stat().st_uid == os.getuid()

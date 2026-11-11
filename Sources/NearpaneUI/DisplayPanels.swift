@@ -34,7 +34,7 @@ import NearpaneCore
         host.setDisplaySettings(settings, id: display)
     }
     public func setSuspended(_ value: Bool) { suspended = value }
-    public func update(screens: [ScreenGeometry]) {
+    public func update(screens: [ScreenGeometry], presentingOnly displayID: String? = nil) {
         let now = Date()
         let uptime = ProcessInfo.processInfo.systemUptime
         let prefs = host.registry.preferences
@@ -48,13 +48,16 @@ import NearpaneCore
             voice: prefs.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
             tray: prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
             spacesEnabled: prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }, uptime: uptime)
-        let ids = Set(plans.filter { !$0.primary && $0.content != .hidden }.map(\.id))
+        // Resolve roles in the real topology even when an isolated trial may present on only one display.
+        let visiblePlans = plans.filter { displayID == nil || $0.id == displayID }
+        let ids = Set(visiblePlans.filter { !$0.primary && $0.content != .hidden }.map(\.id))
         for id in Array(secondary.keys) where !ids.contains(id) { secondary.removeValue(forKey: id)?.close() }
         guard let main = plans.first(where: \.primary) else {
             primary.place(screens: [])
             return
         }
-        for plan in plans where plan.primary || ids.contains(plan.id) {
+        if let displayID, main.id != displayID { primary.place(screens: []) }
+        for plan in visiblePlans where plan.primary || ids.contains(plan.id) {
             guard let screen = screens.first(where: { $0.id == plan.id }) else { continue }
             let controller: EdgeWindowController
             if plan.primary {
@@ -63,6 +66,7 @@ import NearpaneCore
                 controller = panel
             } else {
                 controller = EdgeWindowController(host: host)
+                if displayID != nil { controller.window?.ignoresMouseEvents = true }
                 controller.usePointer(pointer)
                 secondary[plan.id] = controller
             }

@@ -43,4 +43,28 @@ import Testing
         main.close()
         host.stop()
     }
+
+    @Test func secondaryOnlyObservationPreservesRolesWithoutPresentingOnPrimary() async {
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        let main = EdgeWindowController(host: host)
+        var presented = [EdgeWindowController]()
+        let panels = DisplayPanels(host: host, primary: main, present: { presented.append($0) })
+        defer { panels.stop(); main.close(); host.stop() }
+        let a = SurfaceRect(width: 1600, height: 1000), b = SurfaceRect(x: -800, width: 800, height: 1280)
+        let screens = [ScreenGeometry(id: "a", frame: a, visibleFrame: a), ScreenGeometry(id: "b", frame: b, visibleFrame: b)]
+        var settings = DisplaySettings()
+        settings.policy = .pinned
+        host.setDisplaySettings(settings, id: "b")
+        host.setPlacement(edge: .left, displayID: "a")
+        panels.update(screens: screens, presentingOnly: "b")
+        #expect(!main.hasPlacement && panels.secondaryIDs == ["b"])
+        #expect(presented.count == 1 && presented.first !== main && presented.first?.window?.ignoresMouseEvents == true)
+        presented.removeAll()
+        panels.update(screens: [screens[0]], presentingOnly: "b")
+        #expect(!main.hasPlacement && panels.secondaryIDs.isEmpty && presented.isEmpty)
+        host.setPlacement(edge: .right, displayID: "b")
+        panels.update(screens: screens, presentingOnly: "b")
+        #expect(presented.count == 1 && presented.first === main && panels.secondaryIDs.isEmpty)
+    }
 }

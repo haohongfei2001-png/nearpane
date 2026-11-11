@@ -297,7 +297,18 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     private func updatePanels() {
         guard host?.isRunning == true else { return }
-        panels?.update(screens:placementScreens())
+        #if canImport(SaytileKit)
+        if CandidateProfile.selected, requestsDesktopFixture, let passiveDisplayID {
+            let screens = SystemScreens.geometry()
+            guard screens.count == 2, screens.last?.id == passiveDisplayID,
+                  screens.first?.id != passiveDisplayID,
+                  screens[0].frame.geometry.intersection(screens[1].frame.geometry) == nil
+            else { panels?.update(screens: []); return }
+            panels?.update(screens: screens, presentingOnly: passiveDisplayID)
+            return
+        }
+        #endif
+        panels?.update(screens: placementScreens())
     }
 
     @objc private func screensChanged() {

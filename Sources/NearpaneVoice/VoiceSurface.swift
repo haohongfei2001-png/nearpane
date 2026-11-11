@@ -120,6 +120,15 @@ struct TranscriptLine: NSViewRepresentable {
     final class TextView: NSTextView {
         var editLine: (() -> Void)?
         override var needsPanelToBecomeKey: Bool { false }
+        override func accessibilityPerformPress() -> Bool {
+            guard let editLine else { return false }
+            editLine()
+            return true
+        }
+        override func isAccessibilitySelectorAllowed(_ selector: Selector) -> Bool {
+            if selector == #selector(accessibilityPerformPress) { return editLine != nil }
+            return super.isAccessibilitySelectorAllowed(selector)
+        }
         override func menu(for event: NSEvent) -> NSMenu? {
             let menu = (super.menu(for: event)?.copy() as? NSMenu) ?? NSMenu()
             if !menu.items.isEmpty { menu.insertItem(.separator(), at: 0) }
@@ -133,6 +142,7 @@ struct TranscriptLine: NSViewRepresentable {
 
     func makeNSView(context: Context) -> TextView {
         let view = TextView(frame: .zero)
+        view.setAccessibilityHelp("修改这段文字…")
         view.isEditable = false
         view.isSelectable = true
         view.isRichText = false

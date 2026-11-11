@@ -17,7 +17,7 @@ class ProductManagementTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         profile = Path(temp.name).resolve()
-        (profile / "profile.version").write_text("Nearpane P4.7\n")
+        (profile / "profile.version").write_text("Nearpane P4.8\n")
         self.m = wm.Manager(profile, profile)
         self.addCleanup(self.m.lease.close)
         self.id = {"pid": 20, "launch": 32, "number": 3, "element": "one"}
