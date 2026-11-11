@@ -21,6 +21,49 @@ import RiftletCore
         }
     }
 
+    @Test func importedAttemptCannotArmOrObserveAnOldDraftAndAnUnspentImageRemainsEligible() async throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
+        let holds = root.appendingPathComponent("imported-attachment-holds")
+        try fm.createDirectory(at: holds, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        defer { try? fm.removeItem(at: root) }
+        func image() -> ImportedAsset {
+            ImportedAsset(sourceKey: "synthetic", fileName: "sample.png", sha256: String(repeating: "f", count: 64),
+                          byteCount: 40, pixelWidth: 2, pixelHeight: 2, mediaType: "image/png")
+        }
+        let prior = image(), fresh = image(), key = UUID()
+        try Data().write(to: holds.appendingPathComponent(prior.id.uuidString.lowercased()))
+        let target = TargetLease(adapterID: "chatgpt-web", surface: .webChat, applicationID: "com.google.Chrome",
+                                 sessionID: "old", windowID: "1", tabID: "2", documentID: "doc", composerID: "editor",
+                                 draftGeneration: "generation", clickBindingID: key)
+        let base = Browser(target)
+        var arms = 0
+        let executor = ProductDraftExecutor(root: root, base: base, guardSource: "function(){}", arm: { _ in
+            arms += 1
+            throw WebAdapterError.invalidTarget
+        }, selected: { _ in })
+        let program = try ChatGPTWebPageProgram.load()
+        try executor.checkAsset(fresh)
+        #expect(throws: ImportedAttachmentError.self) { try executor.checkAsset(prior) }
+        #expect(throws: WebAdapterError.self) { _ = try executor.targetForClick(program: program) }
+        let history = ObservationIdentity(operationID: UUID(), assetID: prior.id, attempt: 1,
+                                          assetSHA256: prior.sha256, target: target)
+        for action: WebBridgeAction in [.observe, .commit] {
+            await #expect(throws: ImportedAttachmentError.self) {
+                _ = try await executor.execute(.init(action: action, target: target, identity: history,
+                                                     invocationID: UUID()), program: program)
+            }
+        }
+        try executor.checkAsset(fresh)
+        #expect(throws: WebAdapterError.self) { _ = try executor.targetForClick(program: program) }
+        #expect(arms == 1 && base.actions.isEmpty)
+        // A malformed or redirected marker directory must also prevent arming.
+        let retired = root.appendingPathComponent("retired")
+        try fm.moveItem(at: holds, to: retired)
+        try fm.createSymbolicLink(at: holds, withDestinationURL: retired)
+        #expect(throws: WebAdapterError.self) { try executor.checkAsset(fresh) }
+    }
+
     @Test func newExplicitAttemptAfterUnusedPressCanCommitButLostReplyCannotBeReplayed() async throws {
         let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString, isDirectory:true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories:false)

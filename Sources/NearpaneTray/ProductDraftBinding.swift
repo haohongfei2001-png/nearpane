@@ -85,6 +85,8 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
     }
 }
 
+enum ImportedAttachmentError: Error { case previousAttempt }
+
 @MainActor final class ProductDraftExecutor: WebClickTargetPinning {
     typealias Arm = @MainActor (ImportedAsset) throws -> ProductDraftBinding
     typealias Selected = @MainActor (ProductDraftBinding) throws -> Void
@@ -125,7 +127,27 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
         pendingAsset = nil
         guard asset.sha256.range(of: #"^[a-f0-9]{64}$"#, options: .regularExpression) != nil,
               asset.byteCount > 0 else { throw WebAdapterError.invalidRequest }
+        try checkImportedHistory(asset.id)
         pendingAsset = asset
+    }
+
+    /// Migration retains spent asset identities without granting a new browser capability.
+    private func checkImportedHistory(_ id: UUID) throws {
+        let root = open(claims.deletingLastPathComponent().path, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        guard root >= 0 else { throw WebAdapterError.invalidPrivateFile }
+        defer { close(root) }
+        let directory = openat(root, "imported-attachment-holds", O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        if directory == -1 && errno == ENOENT { return }
+        guard directory >= 0 else { throw WebAdapterError.invalidPrivateFile }
+        defer { close(directory) }
+        var info = stat()
+        guard fstat(directory, &info) == 0, info.st_uid == getuid(), info.st_mode & 0o077 == 0 else {
+            throw WebAdapterError.invalidPrivateFile
+        }
+        if fstatat(directory, id.uuidString.lowercased(), &info, AT_SYMLINK_NOFOLLOW) == 0 {
+            throw ImportedAttachmentError.previousAttempt
+        }
+        guard errno == ENOENT else { throw WebAdapterError.invalidPrivateFile }
     }
 
     private func guarded(_ original: WebPageProgram) throws -> WebPageProgram {
@@ -168,6 +190,10 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
 
     func execute(_ command: WebBridgeCommand, program: WebPageProgram) async throws -> Data {
         guard let target = command.target, let key = target.clickBindingID else { throw WebAdapterError.invalidTarget }
+        if command.action == .observe || command.action == .commit {
+            guard let id = command.identity?.assetID else { throw WebAdapterError.invalidRequest }
+            try checkImportedHistory(id)
+        }
         let program = try guarded(program)
         if command.action == .observe {
             guard let id = command.identity, let saved = try readClaim(id.assetID), saved.identity == id,
