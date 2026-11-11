@@ -508,7 +508,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             panels?.stop()
             surface?.window?.orderOut(nil)
             host.stop()
-            settings?.window?.contentView = NSHostingView(rootView: ProgressView("正在保存资料并停止模块…").padding())
+            replaceProfileContent(ProgressView("正在保存资料并停止模块…").padding())
             await modules.finishStopping()
             await host.waitForDesktopStop()
             self.host = nil
@@ -534,12 +534,23 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         return try await operation.value
     }
 
+    private func replaceProfileContent(_ contents: some View) {
+        guard let window = settings?.window else { return }
+        let frame = window.frame
+        let view = NSHostingView(rootView: contents)
+        view.sizingOptions = []
+        view.frame = NSRect(origin: .zero, size: window.contentRect(forFrameRect: frame).size)
+        view.autoresizingMask = [.width, .height]
+        window.contentView = view
+        if window.frame != frame { window.setFrame(frame, display: true) }
+    }
+
     private func showSwitchResult(_ message: String) {
-        settings?.window?.contentView = NSHostingView(rootView: VStack(alignment: .leading, spacing: 12) {
+        replaceProfileContent(VStack(alignment: .leading, spacing: 12) {
             Text(message).textSelection(.enabled)
             Text("请退出后重新打开 Nearpane。启动时会核对上次切换的结果；可在「设置 → 模块」中再次导入或恢复上一份资料。").font(.callout)
             Button("退出 Nearpane") { NSApp.terminate(nil) }.accessibilityIdentifier("np.profile.quit")
-        }.padding(24))
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(24))
     }
     #endif
 

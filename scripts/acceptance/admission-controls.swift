@@ -1,4 +1,4 @@
-// Operates only on marked controls in an exact, secondary-only P4.9 candidate window.
+// Operates only on marked controls in the identified candidate window on the secondary display.
 import AppKit
 import ApplicationServices
 import Darwin
@@ -7,7 +7,8 @@ let a=Array(CommandLine.arguments.dropFirst())
 guard a.count==4, let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
 let exe=URL(fileURLWithPath:a[2]).resolvingSymlinksInPath()
 guard let app=NSRunningApplication(processIdentifier:pid),app.executableURL?.resolvingSymlinksInPath().path==exe.path,
-      let bundle=app.bundleURL, Bundle(url:bundle)?.bundleIdentifier=="com.holdsnow.nearpane.candidate.p49",
+      let bundle=app.bundleURL, let candidateID = Bundle(url:bundle)?.bundleIdentifier,
+      ["com.holdsnow.nearpane.candidate.p49", "com.holdsnow.nearpane.alpha"].contains(candidateID),
       Bundle(url:bundle)?.executableURL?.resolvingSymlinksInPath().path==exe.path else {stop("running bundle identity")}
 let sessions=CGSessionCopyCurrentDictionary() as? [String:Any]
 guard sessions?["kCGSSessionOnConsoleKey"] as? Bool==true,sessions?["CGSSessionScreenIsLocked"] as? Bool != true else {stop("console")}
@@ -40,23 +41,32 @@ func label(_ e:AXUIElement)->String {[string(e,"AXTitle"),string(e,"AXDescriptio
 
 
 let command = a[3]
-let fixed = ["admission-open", "admission-fixture-app", "admission-read", "admission-docked", "admission-current", "admission-custom",
+let profile = candidateID == "com.holdsnow.nearpane.alpha"
+let fixed = profile ? ["np.profile.preview", "np.profile.import", "np.profile.quit"] : ["admission-open", "admission-fixture-app", "admission-read", "admission-docked", "admission-current", "admission-custom",
              "admission-floating", "admission-refresh", "nearpane-open-panel", "nearpane-close-panel"]
 func identifier(_ e: AXUIElement) -> String { string(e, "AXIdentifier") }
 if command == "read" {
     let facts = nodes.compactMap { e -> [String: Any]? in
         let id = identifier(e)
-        guard id.hasPrefix("admission-") || fixed.contains(id) else { return nil }
-        return ["id": id, "role": string(e, "AXRole"), "name": label(e), "value": string(e, "AXValue")]
+        guard (!profile && id.hasPrefix("admission-")) || fixed.contains(id) else { return nil }
+        return ["id": id, "role": string(e, "AXRole"), "name": label(e), "value": string(e, "AXValue"), "enabled": ax(e,"AXEnabled") as? Bool ?? false]
     }
     print(String(decoding: try JSONSerialization.data(withJSONObject: ["bounds": [rect.minX,rect.minY,rect.width,rect.height],
           "frontPID": NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1, "nodes": facts]), as: UTF8.self))
 } else {
     let suffix = command.hasPrefix("admission-window-") ? String(command.dropFirst("admission-window-".count)) : ""
-    guard fixed.contains(command) || UInt32(suffix).map({String($0) == suffix}) == true else { stop("control not allowed") }
+    guard fixed.contains(command) || (!profile && UInt32(suffix).map({String($0) == suffix}) == true) else { stop("control not allowed") }
+    if profile && (app.isActive || NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) { stop("unexpected activation") }
     let matches = nodes.filter { identifier($0) == command }
-    guard matches.count == 1, let e = matches.first, let f = box(e), !f.isEmpty, rect.intersects(f),
+    guard matches.count == 1, let e = matches.first, let f = box(e), !f.isEmpty,
           ["AXButton","AXCheckBox","AXRadioButton","AXDisclosureTriangle"].contains(string(e,"AXRole")),
-          (ax(e,"AXEnabled") as? Bool) == true,
-          AXUIElementPerformAction(e,kAXPressAction as CFString) == .success else { stop("missing, disabled or ambiguous: "+command) }
+          (ax(e,"AXEnabled") as? Bool) == true else { stop("missing, disabled or ambiguous: "+command) }
+    guard profile ? rect.contains(f) : rect.intersects(f) else { stop("control outside panel: "+command+" "+NSStringFromRect(f)) }
+    let result = AXUIElementPerformAction(e, kAXPressAction as CFString)
+    if profile && command == "np.profile.quit" && result == .cannotComplete {
+        // AppKit may destroy this element before replying. The driver must independently wait for exit 0.
+        print("quit requested; awaiting process exit")
+    } else if result != .success {
+        stop("AXPress returned "+String(result.rawValue)+" for "+command)
+    }
 }
