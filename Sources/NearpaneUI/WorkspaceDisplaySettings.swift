@@ -8,13 +8,15 @@ public struct WorkspaceDisplaySettings: View {
     let stillCurrent: (ScreenGeometry) -> Bool
     @ViewState private var pendingReset: DisplaySizeReset?
     @ViewState private var chosen = ""
-    @ViewState private var key = DisplayMetric.reservedWidth
-    public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void, stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true }) {
+    @ViewState private var key: DisplayMetric
+    public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void,
+                initialMetric: DisplayMetric = .reservedWidth, stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true }) {
         self.host = host
         self.screens = screens
         self.request = request
         self.dismiss = dismiss
         self.stillCurrent = stillCurrent
+        _key = State(initialValue: initialMetric)
     }
 
     public var body: some View {
@@ -160,6 +162,7 @@ public struct WorkspaceDisplaySettings: View {
                                 .font(.caption)
                             HStack {
                                 Button("取消") { pendingReset = nil }
+                                    .accessibilityIdentifier("sizes-reset-cancel")
                                 Button("应用恢复") {
                                     let current = host.configuration.displays[screen.id] ?? .init()
                                     if let updated = reset.applying(to: current, on: screen) { save(updated) }

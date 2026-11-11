@@ -55,8 +55,34 @@ def line(proc):
 def same_rect(a, b):
     return a is not None and b is not None and len(a)==len(b)==4 and all(abs(i-j)<=1 for i,j in zip(a,b))
 
+def resources(pid, executable):
+    # Only reads resource counters for a previously enrolled process. CPU time is cumulative.
+    try:
+        if se.process_path(pid) != executable:
+            return None
+        sample = sp.run(["/bin/ps","-p",str(pid),"-o","time=,rss="],capture_output=True,text=True)
+        fields = sample.stdout.split()
+        if sample.returncode == 0 and len(fields) == 2 and se.process_path(pid) == executable:
+            return dict(pid=pid, cpuTime=fields[0], rssKiB=int(fields[1]))
+    except (OSError, ValueError):
+        pass  # A short-lived helper may exit between read-only observations.
+    return None
+
+# Independent expected slots, expressed as quarter columns and half rows of the real WorkRect.
+DENSITY_SLOTS = {
+    1: [(0,0,4,2)],
+    2: [(0,0,2,2),(2,0,2,2)],
+    3: [(2,0,2,1),(2,1,2,1),(0,0,2,2)],
+    4: [(2,0,2,1),(2,1,2,1),(0,0,2,1),(0,1,2,1)],
+    5: [(2,0,1,1),(3,0,1,1),(0,0,2,1),(0,1,2,1),(2,1,2,1)],
+    6: [(2,0,1,1),(3,0,1,1),(0,0,1,1),(0,1,2,1),(2,1,2,1),(1,0,1,1)],
+    7: [(2,0,1,1),(3,0,1,1),(0,0,1,1),(0,1,1,1),(2,1,2,1),(1,0,1,1),(1,1,1,1)],
+    8: [(2,0,1,1),(3,0,1,1),(0,0,1,1),(0,1,1,1),(2,1,1,1),(1,0,1,1),(1,1,1,1),(3,1,1,1)]
+}
+
 class Trial:
-    def __init__(self):
+    def __init__(self, candidate):
+        self.candidate = candidate
         self.app = Path((WORK/"fixture-path.txt").read_text().strip())
         self.exe = self.app / "Contents/MacOS/StandardWindows"
         check(self.app.parent.parent == Path("/private/tmp") and self.app.parent.name.startswith("nearpane-standard-windows."), "fixture location")
@@ -112,11 +138,19 @@ class Trial:
         owner = self.command("read")
         system = self.observe([r["number"] for r in owner["windows"]])
         result = {"label":label, "owner":owner,"system":system}
+        if self.host is not None and self.host.poll() is None and (host_use := resources(self.hostpid,self.hostexe)):
+            result["hostResources"] = host_use
+            children = sp.run(["/usr/bin/pgrep","-P",str(self.hostpid)],capture_output=True,text=True)
+            helper = self.hostexe.parents[1]/"Helpers/NearpaneOrdinaryWindowController"
+            result["controllerResources"] = [record for child in children.stdout.split()
+                                             if child.isdigit() and (record := resources(int(child),helper))]
         self.checkpoints.append(result)
         put(OUT/"geometry.json",self.checkpoints)
         check(system["side"]==self.run_focus["side"] and self.focus(system) and owner["focusEvents"]==0,
               "focus or display changed")
         check(len(owner["windows"])==len(system["windows"]), "incomplete independent readback")
+        check(system["ownerRegular"] and not system["ownerTerminated"] and
+              system["ownerLaunch"] == self.checkpoints[0]["system"]["ownerLaunch"], "fixture identity changed")
         for w, z in zip(owner["windows"],system["windows"]):
             check(w["number"]==z["number"] and not w["key"] and not w["main"],"key/main or window identity changed")
             if stable:
@@ -128,13 +162,13 @@ class Trial:
     def focus(self, record):
         return all(record[k]==self.run_focus[k] for k in ("front","focus"))
 
-    def baseline(self,count=3):
+    def baseline(self,count=3, density=False):
         ready = line(self.fixture)
         if self.fixture.pid == -1 and int(ready.get("ready", -1)) > 1 and se.process_path(ready["ready"]) == self.exe: self.fixture.pid = ready["ready"]
         check(ready.get("ready")==self.fixture.pid and ready["front"]==self.run_focus["front"],"launch or foreground")
         # The ordinary primary window orders first, secondary-role siblings afterwards.
-        for i in range(1,count+1):
-            self.command("add "+str(i))
+        for i in ([1,9] if density else range(1,count+1)):
+            self.command(("add-small " if density else "add ")+str(i))
         time.sleep(.8)
         first=self.sample("baseline")
         time.sleep(.12)
@@ -142,9 +176,9 @@ class Trial:
         return first
 
     def start_host(self, restart=False):
-        app=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app"
+        app=self.candidate
         self.hostexe=app/"Contents/MacOS/NearpaneHost"
-        sp.run(["/usr/bin/codesign","--verify","--strict","--deep",app],check=True)
+        sp.run(["/usr/bin/codesign","--verify","--strict","--deep",'-R=identifier "com.holdsnow.nearpane.alpha"',app],check=True)
         if not restart:
             check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode==1, "a Host is already running")
             self.sid=str(uuid.uuid4())
@@ -176,7 +210,7 @@ class Trial:
     def ui(self):
         proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,"read","--ordinary-secondary"],
                     capture_output=True,text=True,timeout=4)
-        if proc.returncode and proc.stderr.strip()=="no unique secondary panel":
+        if proc.returncode and proc.stderr.strip() in ("panel not ordered", "no unique secondary panel"):
             return {}  # AppKit is still ordering the panel. Read-only polls expire after 8 seconds.
         check(proc.returncode==0,proc.stderr.strip())
         r=json.loads(proc.stdout)
@@ -240,6 +274,60 @@ class Trial:
         try: self.press("ordinary-confirm")
         except Exception:
             put(OUT/"refused.json",self.ui()); raise
+
+    def density(self, original):
+        first, sibling = list(original)
+        managed = [first]
+        self.start_host()
+        self.press("admission-open")
+        self.press("admission-ordinary-app")
+        x,y,width,height = self.run_focus["bounds"]
+        cell_width, cell_height = (width - 160) / 4, height / 2
+        previous = dict(original)
+        receipts = set()
+        summary = []
+
+        def verify(label, expected):
+            changed = {n for n in expected if previous[n] != expected[n]}
+            check(sibling not in changed, "ungiven window in plan")
+            actions = self.checkpoint(label, expected, len(receipts) + len(changed))
+            current = {a["operation"] for a in actions}
+            new = [a for a in actions if a["operation"] not in receipts]
+            check(receipts <= current and len(new) == len(changed)
+                  and {a["id"]["number"] for a in new} == changed, "extra or missing write")
+            check(all(a["id"]["number"] != sibling for a in actions), "unapproved sibling written")
+            observed = self.checkpoints[-1]
+            max_frame_error = max(
+                abs(actual-wanted)
+                for owner, system in zip(observed["owner"]["windows"], observed["system"]["windows"])
+                for frame in (owner["frame"],system["ax"],system["cg"])
+                for actual,wanted in zip(frame,expected[owner["number"]])
+            )
+            summary.append(dict(stage=label, members=list(managed), writes=len(new),
+                                unapprovedSibling=sibling, maxIndependentFrameErrorPt=max_frame_error,
+                                maximumAXCGStepError=self.receipts[-1]["maxErrorPt"]))
+            put(OUT/"density.json", dict(session=self.sid, stages=summary))
+            receipts.update(current)
+            previous.update(expected)
+
+        for count, slots in DENSITY_SLOTS.items():
+            if count > 1:
+                created = self.command("add-small "+str(count))
+                number = next(row["number"] for row in created["windows"] if row["index"] == count)
+                time.sleep(.25)
+                before = self.sample("before-grant-"+str(count))
+                check(set(before) == {*previous,number} and all(before[n] == previous[n] for n in previous),
+                      "membership addition changed an existing window")
+                previous[number] = original[number] = before[number]
+                managed.append(number)
+            self.select(managed[-1])
+            expected = dict(original)
+            for n, (col,row,w,h) in zip(managed,slots):
+                expected[n] = [x + 160 + cell_width*col, y + cell_height*row, cell_width*w, cell_height*h]
+            verify("managed-"+str(count), expected)
+        self.press("ordinary-stop")
+        verify("restored-eight", original)
+        check(not (self.records/"journal.json").exists(), "journal remains after restore")
 
     def trial(self,original,mode):
         self.start_host()
@@ -397,15 +485,33 @@ class Trial:
 
 if __name__ == "__main__":
     p=ArgumentParser()
+    p.add_argument("--candidate",type=Path,default=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app")
     mode=p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--probe",action="store_true")
-    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display"])
+    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe"])
     args=p.parse_args()
     with (OUT/"run.txt").open("w") as fp: fp.write("probe" if args.probe else args.mode)
     print(OUT,flush=True)
-    t=Trial()
+    t=Trial(args.candidate.resolve())
     try:
-        original=t.baseline(1 if args.mode in ("fault","floating") else 3)
-        if not args.probe: t.trial(original,args.mode)
+        count = 2 if args.mode == "closure-probe" else (1 if args.mode in ("fault","floating") else 3)
+        original=t.baseline(count, density=args.mode=="density")
+        if args.mode=="density": t.density(original)
+        elif args.mode=="closure-probe":
+            from membership import probe_registration
+            probe_registration(t, original, check=check, put=put, out=OUT)
+        elif args.mode=="membership":
+            from membership import run as run_membership
+            run_membership(t, original, check=check, wait=wait, put=put, out=OUT)
+        elif not args.probe: t.trial(original,args.mode)
+    except Exception as error:
+        put(OUT/"failure.json",dict(error=str(error),session=getattr(t,"sid",None)))
+        if args.mode=="density" and t.host is not None and t.host.poll() is None and t.fixture.poll() is None and t.focus(t.observe()):
+            try:
+                t.sample("refusal-readback")
+                put(OUT/"refused.json",t.ui())
+            except Exception as sample_error:
+                put(OUT/"refusal-readback-failure.json",dict(error=str(sample_error)))
+        raise
     finally:
         t.close()

@@ -12,6 +12,14 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        if args == ["--check-helper-runtime"] {
+            if AppleHelperRuntime.python != nil {
+                print("Verified installed Apple Python for window and profile helpers.")
+                return
+            }
+            print(AppleHelperRuntime.Missing.interpreter.localizedDescription)
+            exit(3)
+        }
         #if canImport(SaytileKit)
         if args.first == "--validate-import-configuration" {
             guard CandidateProfile.selected, args.count == 2 else { exit(2) }
@@ -158,8 +166,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         guard let acceptanceSession, passiveDisplayID != nil else { return false }
         let id = acceptanceSession.directory.lastPathComponent
         let env = ProcessInfo.processInfo.environment
-        // Admission owns its separately registered fixture. It does not need a desktop collector.
-        return env["NEARPANE_MANAGEMENT_ACCEPTANCE"] == id && (requestsDesktopFixture || env["NEARPANE_ADMISSION_ACCEPTANCE"] == id)
+        // Admission and Settings-only sizing need no desktop fixture windows.
+        return env["NEARPANE_MANAGEMENT_ACCEPTANCE"] == id &&
+            (requestsDesktopFixture || env["NEARPANE_ADMISSION_ACCEPTANCE"] == id || env["NEARPANE_SIZE_ACCEPTANCE"] == id)
     }
     private var acceptanceProbe: NativeAcceptanceProbe?
     #endif

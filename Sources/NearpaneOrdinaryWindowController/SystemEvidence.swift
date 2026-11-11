@@ -19,21 +19,15 @@ func number(_ e: AXUIElement) -> UInt32? {
     return n > 0 ? n : nil
 }
 
-func checkOwner(pid: Int32, launch: UInt64, bundle: String) throws {
+func checkOwner(_ owner: OrdinaryOwnerIdentity, pid: Int32, launch: UInt64, bundle: String) throws {
     try require(AXIsProcessTrusted(), "窗口助手没有现有辅助功能权限。")
     let console = CGSessionCopyCurrentDictionary() as? [String: Any]
     try require(console?[kCGSessionOnConsoleKey as String] as? Bool == true &&
                 console?["CGSSessionScreenIsLocked"] as? Bool != true, "当前图形会话不可用。")
-    var info = proc_bsdinfo()
-    let size = Int32(MemoryLayout.size(ofValue: info))
-    guard pid > 1, pid != getpid(), pid != getppid(),
-          proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size,
-          info.pbi_pid == UInt32(pid), info.pbi_uid == getuid(),
-          info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec == launch,
-          let app = NSRunningApplication(processIdentifier: pid), app.bundleIdentifier == bundle,
-          app.activationPolicy == .regular, !app.isTerminated,
-          !bundle.hasPrefix("com.holdsnow.nearpane"), !bundle.hasPrefix("org.nearpane.")
-    else { throw Refusal("窗口所属的普通应用进程身份已变化。") }
+    try require(pid > 1 && pid != getpid() && pid != getppid(), "所选进程不在普通窗口管理范围。")
+    try require(!bundle.hasPrefix("com.holdsnow.nearpane") && !bundle.hasPrefix("org.nearpane."),
+                "Nearpane 自身窗口不能加入管理。")
+    try owner.verify(pid, launch: launch, bundle: bundle)
 }
 
 func windows(_ pid: Int32) throws -> [AXUIElement] {
@@ -104,8 +98,8 @@ private func ordinaryRole(_ element: AXUIElement) throws {
     }
 }
 
-func observation(_ id: ManagedWindowID, _ bundle: String, _ e: AXUIElement) throws -> AdmissionSample {
-    try checkOwner(pid: id.pid, launch: id.launch, bundle: bundle)
+func observation(_ owner: OrdinaryOwnerIdentity, _ id: ManagedWindowID, _ bundle: String, _ e: AXUIElement) throws -> AdmissionSample {
+    try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
     let candidates = try windows(id.pid).filter { number($0) == id.number }
     try require(candidates.count == 1 && CFEqual(candidates[0], e) && number(e) == id.number, "所选 AX 窗口已重建或编号不唯一。")
     try ordinaryRole(e)

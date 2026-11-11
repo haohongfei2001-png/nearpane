@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 import Testing
 @testable import NearpaneCore
 
@@ -34,6 +35,30 @@ struct ProfileLeaseTests {
         }
         let second = try ProfileLease(root: root)
         #expect(try second.activeGeneration().path == generation.path)
+    }
+
+    @Test func drainedOwnerReleasesLockEvenWithInheritedDescriptionAwaitingExec() throws {
+        let (root, _) = try fixture()
+        defer { try? FileManager.default.removeItem(at: root) }
+        var first: ProfileLease? = try ProfileLease(root: root)
+        let lock = root.appendingPathComponent("writer.lock")
+        var identity = stat()
+        #expect(stat(lock.path, &identity) == 0)
+        let inherited = try withExtendedLifetime(first) {
+            let fd = try #require((3..<getdtablesize()).first { descriptor in
+                var current = stat()
+                return fstat(descriptor, &current) == 0 && current.st_dev == identity.st_dev && current.st_ino == identity.st_ino
+            })
+            return fcntl(fd, F_DUPFD_CLOEXEC, 3)
+        }
+        try #require(inherited >= 0)
+        defer { close(inherited) }
+        #expect(throws: (any Error).self) { try ProfileLease(root: root) }
+        first = nil
+        let restarted = try ProfileLease(root: root)
+        withExtendedLifetime(restarted) {
+            #expect(throws: (any Error).self) { try ProfileLease(root: root) }
+        }
     }
 
     @Test func unresolvedTransactionsUnknownFormatAndReplacedStoresRefuseOpen() throws {

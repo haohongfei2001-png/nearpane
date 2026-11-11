@@ -6,6 +6,7 @@ public final class ProfileLease {
     public static let marker = Data("Nearpane P5.3\n".utf8)
     public let root: URL
     private let descriptor: Int32
+    private let ownerPID = getpid()
 
     public init(root: URL) throws {
         try Self.checkPath(root)
@@ -22,7 +23,12 @@ public final class ProfileLease {
         descriptor = fd
     }
 
-    deinit { Darwin.close(descriptor) }
+    deinit {
+        // A helper in fork/exec may momentarily hold the same open file description,
+        // even with O_CLOEXEC. The owning Host has drained its writers at this point.
+        if getpid() == ownerPID { _ = flock(descriptor, LOCK_UN) }
+        Darwin.close(descriptor)
+    }
 
     public static func checkPath(_ url: URL) throws {
         guard url.standardizedFileURL.path == url.resolvingSymlinksInPath().path else { throw CocoaError(.fileReadNoPermission) }

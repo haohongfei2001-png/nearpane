@@ -27,11 +27,12 @@ private enum AdmissionReadFailure: LocalizedError {
     private let root: URL, fixtureOnly: Bool
     private let scopedPID: Int32?
     private let scopedStart: UInt64?
-    private var references = [Int32: [UUID: OrdinaryWindowAX]]()
-    func releaseChoices() { references.removeAll(); listed.removeAll() }
+    private var directories = [Int32: OrdinaryWindowDirectory]()
+    private var listings = [Int32: UUID]()
+    func releaseChoices() { directories.removeAll(); listed.removeAll(); listings.removeAll() }
     func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX? {
         guard listed[app.pid]?.0 == app else { return nil }
-        return references[app.pid]?[choice.id]
+        return directories[app.pid]?.handles[choice.id]
     }
     private var listed = [Int32:(AdmissionApplication,[AdmissionWindowChoice])]()
     init(support: URL, fixtureOnly: Bool, scopedPID: Int32? = nil, scopedStart: UInt64? = nil) {
@@ -71,18 +72,21 @@ private enum AdmissionReadFailure: LocalizedError {
         return nil
     }
     func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice] {
+        let request = UUID()
+        listings[app.pid] = request
         listed.removeValue(forKey: app.pid)
-        references.removeValue(forKey: app.pid)
+        directories.removeValue(forKey: app.pid)
         let choices: [AdmissionWindowChoice]
         if let fixture = try check(app) {
             choices = fixture.owner.members.map { .init(id: $0.id.element, number: $0.id.number, index: $0.index) }
-        } else if let rows = try? await OrdinaryWindowAX.list(app) {
+        } else if let directory = try? OrdinaryWindowDirectory(app),
+                  let rows = try? await directory.choices(initial: true) {
             _ = try check(app)
-            choices = rows.map { $0.0 }
-            var retained = [UUID: OrdinaryWindowAX]()
-            for (choice, handle) in rows { if let handle { retained[choice.id] = handle } }
-            references[app.pid] = retained
+            guard listings[app.pid] == request else { throw AdmissionReadFailure.changed }
+            choices = rows
+            directories[app.pid] = directory
         } else {
+            guard listings[app.pid] == request else { throw AdmissionReadFailure.changed }
             // A failure of the optional writer must not disable the independent read-only preview.
             let reply = try await read(app, targets: [])
             guard reply.permitted else { throw AdmissionReadFailure.permission }
@@ -92,12 +96,24 @@ private enum AdmissionReadFailure: LocalizedError {
             }
             _ = try check(app)
         }
+        guard listings[app.pid] == request else { throw AdmissionReadFailure.changed }
         listed[app.pid] = (app,choices)
         return choices
     }
+    func refreshedWindows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]? {
+        guard let directory = directories[app.pid], directory.app == app else { return nil }
+        _ = try check(app)
+        let rows = try await directory.choices(initial: false)
+        _ = try check(app)
+        guard directories[app.pid] === directory else { throw AdmissionReadFailure.changed }
+        listed[app.pid] = (app, rows)
+        return rows
+    }
     func inspect(_ app: AdmissionApplication, selected: [AdmissionWindowChoice]) async throws -> [AdmissionPair] {
         guard !selected.isEmpty, Set(selected.map(\.id)).count == selected.count,
-              let (prev,rows) = listed[app.pid], prev == app, selected.allSatisfy(rows.contains) else { throw AdmissionReadFailure.changed }
+              let (prev,rows) = listed[app.pid], prev == app,
+              selected.allSatisfy({ pick in rows.contains { $0.id == pick.id && $0.number == pick.number } })
+        else { throw AdmissionReadFailure.changed }
         let before = try check(app)
         let targets = try selected.map { w -> AdmissionReadRequest.Target in
             guard let n = w.number else { throw AdmissionReadFailure.unknown }

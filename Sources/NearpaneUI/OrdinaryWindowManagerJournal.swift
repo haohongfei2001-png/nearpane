@@ -82,6 +82,13 @@ struct OrdinaryJournal {
     func record(_ receipt: Receipt) throws {
         try persist(receipt, to: directory.appendingPathComponent("action-\(receipt.operation.uuidString).json"))
     }
+    struct ClosedMember: Codable {
+        let session: UUID, entry: Entry, witness: OrdinaryWindowClosure
+    }
+    func record(_ closure: ClosedMember) throws {
+        let name = "closure-\(closure.session.uuidString)-\(closure.entry.id.element.uuidString).json"
+        try persist(closure, to: directory.appendingPathComponent(name))
+    }
 
     private func persist(_ record: some Encodable, to destination: URL) throws {
         let temp = directory.appendingPathComponent(".\(UUID().uuidString).tmp")

@@ -1,7 +1,17 @@
 #include "ReadOnlySpaces.h"
+#include <CoreGraphics/CGWindow.h>
 #include <dlfcn.h>
 #include <string.h>
 #include <sys/sysctl.h>
+
+int NPWindowNumberConfirmedAbsent(uint32_t window) {
+    if (window == kCGNullWindowID) return 0;
+    CFArrayRef numbers = CGWindowListCreate(kCGWindowListOptionIncludingWindow, window);
+    if (numbers == NULL) return 0;
+    int absent = CFArrayGetCount(numbers) == 0;
+    CFRelease(numbers);
+    return absent;
+}
 
 // P1-A 0a704fd7: signed 32-bit connection, CGWindowID in an explicit CFArray, selector 7 only.
 _Static_assert(sizeof(int) == 4 && sizeof(uint32_t) == 4, "unreviewed ABI");

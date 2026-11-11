@@ -31,6 +31,7 @@ func verifyParent(_ parent: pid_t) -> Bool {
 
 final class Worker {
     let parent: pid_t
+    let owner = OrdinaryOwnerIdentity()
     var app: (Int32,UInt64,String)?
     var windowsByID = [ManagedWindowID: WindowMonitor]()
     init(_ parent: pid_t) { self.parent = parent }
@@ -39,20 +40,34 @@ final class Worker {
         var reply = OrdinaryWindowReply(r.nonce)
         do {
             try require(getppid() == parent, "调用方已退出。")
-            if r.action == .list {
-                try require(app == nil && r.id == nil, "一个控制进程仅绑定一次应用。")
-                try checkOwner(pid:r.pid, launch:r.launch, bundle:r.bundle)
+            if r.action == .list || r.action == .refresh {
+                try require(r.id == nil, "窗口清单只能按已选进程查询。")
+                if r.action == .list {
+                    try require(app == nil, "一个控制进程仅绑定一次应用。")
+                } else {
+                    guard let app, app == (r.pid,r.launch,r.bundle) else { throw Refusal("所选应用已变化。") }
+                }
+                try checkOwner(owner, pid:r.pid, launch:r.launch, bundle:r.bundle)
                 app = (r.pid,r.launch,r.bundle)
                 let all = try windows(r.pid)
                 let numbers = all.map(number)
                 let counts = Dictionary(grouping:numbers.compactMap { $0 }, by:{ $0 })
+                let previous = windowsByID
+                var retained = previous.filter { $0.value.hasObserver }
                 reply.choices = all.enumerated().map { index,e -> ManagedWindowID? in
                     guard let n = numbers[index], counts[n]?.count == 1 else { return nil }
+                    if let (id, existing) = previous.first(where: {
+                        $0.key.number == n && $0.value.canListAgain && CFEqual($0.value.element,e)
+                    }) {
+                        retained[id] = existing
+                        return id
+                    }
                     let id = ManagedWindowID(pid:r.pid,launch:r.launch,number:n,element:UUID())
-                    windowsByID[id] = WindowMonitor(id:id,bundle:r.bundle,element:e,parent:parent)
+                    retained[id] = WindowMonitor(id:id,bundle:r.bundle,element:e,parent:parent,owner:owner)
                     return id
                 }
-                try checkOwner(pid:r.pid, launch:r.launch, bundle:r.bundle)
+                try checkOwner(owner, pid:r.pid, launch:r.launch, bundle:r.bundle)
+                windowsByID = retained
             } else {
                 guard let app, app == (r.pid,r.launch,r.bundle), let id = r.id,
                       let m = windowsByID[id] else { throw Refusal("窗口未在本次选择中登记。") }
@@ -60,12 +75,16 @@ final class Worker {
                 case .prepare: reply.pair = try m.prepare()
                 case .verify:
                     guard let expected = r.expected else { throw Refusal("缺少窗口基线。") }
-                    reply.pair = try m.verify(expected)
+                    do { reply.pair = try m.verify(expected) }
+                    catch let original as Refusal {
+                        do { reply.closure = try m.closure(expected: expected) }
+                        catch let closure as Refusal { throw Refusal(original.message + " " + closure.message) }
+                    }
                 case .write:
                     guard let expected = r.expected, let to = r.destination else { throw Refusal("缺少明确的窗口目标。") }
                     (reply.pair,reply.steps) = try m.write(from:expected,to:to)
                 case .release: m.stop(); windowsByID.removeValue(forKey:id)
-                case .list: break
+                case .list, .refresh: break
                 }
             }
         } catch { reply.failure = (error as? Refusal)?.message ?? "无法核对系统窗口状态。" }

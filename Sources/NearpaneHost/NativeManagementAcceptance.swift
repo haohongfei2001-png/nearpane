@@ -23,6 +23,7 @@ private final class PassiveManagementPanel: NSPanel {
               SystemScreens.geometry().last?.id == display,
               screen.frame.intersection(NSScreen.screens[0].frame).isEmpty else { throw CocoaError(.featureUnsupported) }
         let sizing = ProcessInfo.processInfo.environment["NEARPANE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
+        let moduleSizing = sizing && ProcessInfo.processInfo.environment["NEARPANE_MODULE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
         let admission = ProcessInfo.processInfo.environment["NEARPANE_ADMISSION_ACCEPTANCE"] == session.directory.lastPathComponent
         let env = ProcessInfo.processInfo.environment
         let trial = env["NEARPANE_ORDINARY_ACCEPTANCE"] == session.directory.lastPathComponent
@@ -52,7 +53,8 @@ private final class PassiveManagementPanel: NSPanel {
         panel.hidesOnDeactivate = false; panel.ignoresMouseEvents = true; panel.isReleasedWhenClosed = false
         if sizing, let target = SystemScreens.geometry().first(where: { $0.id == display }) {
             panel.contentView = NSHostingView(rootView: WorkspaceDisplaySettings(host: host, screens: [target],
-                request: { _ in }, dismiss: { _ in }))
+                request: { _ in }, dismiss: { _ in }, initialMetric: moduleSizing ? .modulePadding : .reservedWidth,
+                stillCurrent: { SystemScreens.geometry().last == $0 }))
         } else {
             let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission, ordinaryPID: selectedPID, ordinaryStart: selectedStart))
             if admission { content.sizingOptions = [] }
@@ -82,6 +84,9 @@ private final class PassiveManagementPanel: NSPanel {
                 guard let data = try? Data(contentsOf: directory.appendingPathComponent("management-request.json")),
                       let req = try? JSONDecoder().decode(Request.self, from: data), req.run == epoch, req.sequence == self.sequence + 1 else { return }
                 self.sequence = req.sequence
+                if moduleSizing && !["quit", "hide", "show"].contains(req.action) {
+                    self.stop(); NSApp.terminate(nil); return
+                }
                 // Rehearsal can create/close only the separately registered synthetic fixtures.
                 // Never grant, enable, retry or invoke the AX frame writer in this mode.
                 if trial && !["hide","show","quit","docked","floating","icon","normal-size"].contains(req.action) {

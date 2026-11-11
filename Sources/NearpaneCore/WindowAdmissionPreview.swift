@@ -46,6 +46,8 @@ public struct AdmissionContext: Equatable, Sendable {
     public var settings: DisplaySettings, edge: SurfaceEdge, preferences: WorkspacePreferences
     public var recoveryClear: Bool, exclusive: Bool?, ratio: Double, swapped: Bool, pairCustomized: Bool
     public var hypothetical = false
+    /// Physical display geometry at consent time, including rotation and backing scale.
+    public var displayGeometry: ScreenGeometry?
     /// When available, these must come from the exact cohort's verified management record.
     public var savedLayout: ManagedWindowTiler?, originalFrames: [ManagedWindowID: SurfaceRect] = [:]
 

@@ -9,11 +9,15 @@ import Testing
         var row = AdmissionWindowChoice(id: UUID(), number: 123, index: 1)
         var enumerations = 0, inspections = 0
         var list: ((AdmissionApplication) async -> [AdmissionWindowChoice])?
+        var refresh: (() async -> [AdmissionWindowChoice])?
         var read: (([AdmissionWindowChoice]) async -> [AdmissionPair])?
         func applications() -> [AdmissionApplication] { enumerations += 1; return [app] }
         func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice] {
             if let list { return await list(app) }
             return [row]
+        }
+        func refreshedWindows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]? {
+            await refresh?()
         }
         func inspect(_ app: AdmissionApplication, selected: [AdmissionWindowChoice]) async throws -> [AdmissionPair] {
             inspections += 1
@@ -21,6 +25,39 @@ import Testing
             return []
         }
         func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards { .init(exclusive:nil,recoveryClear:nil) }
+    }
+
+    @Test func liveSiblingsStayUnselectedAndReusedNumberInvalidatesOnlyItsOriginalPick() async {
+        let reader = Reader(), sibling = AdmissionWindowChoice(id: UUID(), number: 456, index: 1)
+        let selection = AdmissionSelection(reader: reader)
+        selection.open()
+        await selection.select(reader.app)
+        selection.toggle(reader.row)
+        let reordered = AdmissionWindowChoice(id: reader.row.id, number: reader.row.number, index: 2)
+        reader.refresh = { [sibling, reordered] }
+        #expect(await selection.refresh(reader.app))
+        #expect(selection.choices == [sibling,reordered] && selection.picks.map(\.choice.id) == [reader.row.id])
+        selection.toggle(sibling)
+        let replacement = AdmissionWindowChoice(id: UUID(), number: reader.row.number, index: 2)
+        reader.refresh = { [sibling, replacement] }
+        #expect(await selection.refresh(reader.app))
+        #expect(selection.picks.map(\.choice.id) == [sibling.id] && selection.failure != nil)
+        #expect(reader.inspections == 0 && selection.ordinaryReview == nil)
+    }
+
+    @Test func staleLiveRefreshCannotRestoreClosedSettingsSelection() async {
+        let reader = Reader()
+        let active = AdmissionSelection(reader: reader)
+        active.open()
+        await active.select(reader.app)
+        var done: CheckedContinuation<[AdmissionWindowChoice], Never>?
+        reader.refresh = { await withCheckedContinuation { done = $0 } }
+        let refreshing = Task { await active.refresh(reader.app) }
+        while done == nil { await Task.yield() }
+        active.close()
+        done?.resume(returning: [reader.row])
+        #expect(await refreshing.value == false)
+        #expect(active.choices.isEmpty && active.app == nil)
     }
 
     @Test func listingAndPickingNeverInspectAndRebuiltChoicesDoNotInheritSelection() async {

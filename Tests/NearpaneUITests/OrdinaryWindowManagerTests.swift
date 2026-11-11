@@ -10,7 +10,9 @@ import Testing
     let token = UUID()
     let original = SurfaceRect(x: 20, y: 30, width: 100, height: 160)
     var frame = SurfaceRect(x: 20, y: 30, width: 100, height: 160)
+    var reportedCGFrame: SurfaceRect?
     var valid = true
+    var closedWitness: OrdinaryWindowClosure?
     var writes = 0
     var lastWriteSteps = [OrdinaryWindowStep]()
     var nextVerify: (() async -> Void)?
@@ -22,7 +24,7 @@ import Testing
         let time = ProcessInfo.processInfo.systemUptime
         func sample(_ at: Double) -> AdmissionSample {
             var s = AdmissionSample(pid: id.pid, launch: id.launch, number: id.number, bundle: bundle, uptime: at)
-            s.element = id.element; s.axNumber = id.number; s.axFrame = frame; s.cgFrame = frame
+            s.element = id.element; s.axNumber = id.number; s.axFrame = frame; s.cgFrame = reportedCGFrame ?? frame
             s.minimized = false; s.fullscreen = false; s.onScreen = true; s.layer = 0; s.display = "side"
             s.minimum = .init(width: 100, height: 160); s.permission = true; s.positionSettable = true
             s.sizeSettable = true; s.selectionContinuity = true; s.role = .ordinary
@@ -33,8 +35,13 @@ import Testing
     }
     func verify(expected: SurfaceRect) async throws -> AdmissionPair {
         if let delay = nextVerify { nextVerify = nil; await delay() }
+        if let closedWitness { throw closedWitness }
         guard frame == expected else { throw WorkspaceFailure.stale }
         return try await prepare()
+    }
+    func witnessClosure(of other: ManagedWindowID? = nil) {
+        let now = ProcessInfo.processInfo.systemUptime
+        closedWitness = .init(id: other ?? id, destroyed: now - 0.3, firstAbsent: now - 0.1, secondAbsent: now)
     }
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair {
         _ = try await verify(expected: from)
@@ -61,6 +68,97 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func evenSubpointGeometryDisagreementCannotObtainOrRetainAWriteGrant() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        var different = a.frame
+        different.x += 0.25
+        a.reportedCGFrame = different
+        await #expect(throws: (any Error).self) { _ = try await manager.prepare([a], context: s.context) }
+        #expect(a.writes == 0 && manager.activeIDs.isEmpty)
+        a.reportedCGFrame = nil
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        different = a.frame
+        different.width -= 0.25
+        a.reportedCGFrame = different
+        await manager.poll()
+        #expect(manager.blocked && a.writes == 1)
+        let journal = try JSONDecoder().decode(OrdinaryJournal.Record.self, from: Data(contentsOf: s.journal))
+        #expect(journal.entries.first?.original == a.original && journal.entries.first?.confirmed == a.frame)
+        await #expect(throws: (any Error).self) { try await manager.stop() }
+        let retained = try JSONDecoder().decode(OrdinaryJournal.Record.self, from: Data(contentsOf: s.journal))
+        #expect(retained.entries.first?.refusal == OrdinaryRefusal.ambiguous.localizedDescription)
+        try manager.keepCurrent()
+    }
+    @Test func displayScaleAndRotationChangesInvalidateReviewAndActiveWriteAuthority() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        func geometry(rotation: Double, scale: Double) -> ScreenGeometry {
+            .init(id: s.context.display, frame: s.context.screen, visibleFrame: s.context.usable,
+                  rotationDegrees: rotation, backingScale: scale)
+        }
+        s.context.displayGeometry = geometry(rotation: 0, scale: 1)
+        let before = s.context
+        let review = try await manager.prepare([a], context: before)
+        s.context.displayGeometry = geometry(rotation: 0, scale: 2)
+        await #expect(throws: (any Error).self) { try await manager.confirm(review, context: before) }
+        #expect(a.writes == 0 && manager.activeIDs.isEmpty)
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        s.context.displayGeometry = geometry(rotation: 180, scale: 2)
+        await manager.poll()
+        #expect(manager.blocked && a.writes == 1)
+        await #expect(throws: (any Error).self) { try await manager.stop() }
+        #expect(a.writes == 1 && FileManager.default.fileExists(atPath:s.journal.path))
+        try manager.keepCurrent()
+    }
+    @Test func confirmedClosureRetiresOnlyThatGrantAndRestoresSavedPair() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), c = WindowDouble()
+        let manager = s.manager()
+        var pairContext = s.context
+        pairContext.pairCustomized = true; pairContext.ratio = 0.6
+        try await manager.confirm(manager.prepare([a,b], context: pairContext), context: pairContext)
+        let pair = [a.frame, b.frame]
+        try await manager.confirm(manager.prepare([c], context: s.context), context: s.context)
+        let prior = c.writes
+        c.witnessClosure()
+        await manager.poll()
+        #expect(!manager.blocked && manager.activeIDs == [a.id,b.id])
+        #expect([a.frame,b.frame] == pair && c.writes == prior)
+        let files = try FileManager.default.contentsOfDirectory(at: s.journal.deletingLastPathComponent(),
+                                                                includingPropertiesForKeys: nil)
+        let url = try #require(files.first { $0.lastPathComponent.hasPrefix("closure-") })
+        let receipt = try JSONDecoder().decode(OrdinaryJournal.ClosedMember.self, from: Data(contentsOf: url))
+        #expect(receipt.entry.id == c.id && receipt.witness.id == c.id && receipt.entry.original == c.original)
+        try await manager.stop()
+        #expect(c.writes == prior)
+    }
+
+    @Test func pausedMembershipChangeDelaysWritesAndLastClosureEndsSession() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a,b], context: s.context), context: s.context)
+        try manager.pause()
+        let writes = a.writes
+        b.witnessClosure()
+        await manager.poll()
+        #expect(manager.paused && !manager.blocked && manager.activeIDs == [a.id] && a.writes == writes)
+        try await manager.resume(context: s.context)
+        #expect(a.writes == writes + 1)
+        a.witnessClosure()
+        await manager.poll()
+        #expect(manager.activeIDs.isEmpty && !manager.blocked && !FileManager.default.fileExists(atPath:s.journal.path))
+    }
+
+    @Test func ambiguousDisappearanceAndWrongClosureProofNeverRetireOrReflow() async throws {
+        for mismatch in [false, true] {
+            let s = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), manager = s.manager()
+            try await manager.confirm(manager.prepare([a,b], context: s.context), context: s.context)
+            if mismatch { a.witnessClosure(of:b.id) } else { a.valid = false }
+            let writes = b.writes
+            await manager.poll()
+            #expect(manager.blocked && manager.activeIDs == [a.id,b.id] && b.writes == writes)
+            #expect(FileManager.default.fileExists(atPath:s.journal.path))
+            try manager.keepCurrent()
+        }
+    }
+
     @Test func reviewedObjectsOnlyWithJournalBeforeLayoutAndConditionalReturn() async throws {
         let scope = OrdinaryScope(), a = WindowDouble(), b = WindowDouble()
         let m = scope.manager()

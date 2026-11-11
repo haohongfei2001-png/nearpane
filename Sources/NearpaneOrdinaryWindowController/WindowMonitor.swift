@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import CReadOnlySpaces
 import NearpaneCore
 
 /// All registrations and callbacks live on the executable's one owning thread/run loop.
@@ -14,13 +15,19 @@ func drainWindowEvents(_ seconds: Double) {
 
 final class WindowMonitor {
     let id: ManagedWindowID, bundle: String, element: AXUIElement
+    private let owner: OrdinaryOwnerIdentity
     let parent: pid_t
     private var observer: AXObserver?, failure: String?
+    private var destroyedAt: TimeInterval?
+    private var certifiedClosed = false
+    var canListAgain: Bool { destroyedAt == nil && !certifiedClosed }
+    var hasObserver: Bool { observer != nil }
     private let incarnation = UUID()
     private var baseline: AdmissionSample?
     private var expectedFrame: SurfaceRect?, waitingFor: String?, notificationCount = 0
 
-    init(id: ManagedWindowID, bundle: String, element: AXUIElement, parent: pid_t) {
+    init(id: ManagedWindowID, bundle: String, element: AXUIElement, parent: pid_t, owner: OrdinaryOwnerIdentity) {
+        self.owner = owner
         self.id = id; self.bundle = bundle; self.element = element; self.parent = parent
     }
 
@@ -52,8 +59,13 @@ final class WindowMonitor {
     }
 
     private func receive(_ source: AXUIElement, _ event: String) {
-        guard CFEqual(source,element), event != kAXUIElementDestroyedNotification else {
+        guard CFEqual(source,element) else {
             failure = "原窗口已经关闭或系统观察对象发生变化。"; return
+        }
+        if event == kAXUIElementDestroyedNotification {
+            if failure == nil, waitingFor == nil { destroyedAt = ProcessInfo.processInfo.systemUptime }
+            failure = "原窗口收到销毁通知。"
+            return
         }
         guard let waitingFor, event == waitingFor, notificationCount == 0 else {
             failure = "发生未经本次操作确认的窗口变化，已暂停并保留恢复记录。"; return
@@ -68,7 +80,7 @@ final class WindowMonitor {
 
     private func read() throws -> AdmissionSample {
         try check()
-        var sample = try observation(id,bundle,element)
+        var sample = try observation(owner,id,bundle,element)
         sample.liveObservation = incarnation
         sample.recoveryVerified = true
         if let baseline {
@@ -107,6 +119,36 @@ final class WindowMonitor {
         try require(baseline != nil && expectedFrame == frame, "窗口事务与观察器基线不符。")
         do { return try pair(expected:frame) }
         catch { failure = (error as? Refusal)?.message ?? "窗口状态无法核对。"; throw error }
+    }
+
+    func closure(expected: SurfaceRect) throws -> OrdinaryWindowClosure {
+        guard hasObserver, baseline != nil, expectedFrame == expected, waitingFor == nil,
+              getppid() == parent else { throw Refusal("未取得原窗口的连续关闭见证。") }
+        let notificationTime = destroyedAt
+        let evidence: OrdinaryWindowClosure.Evidence = notificationTime == nil ? .invalidAXElement : .notification
+        func absence() throws -> TimeInterval {
+            try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
+            if evidence == .invalidAXElement {
+                // A timeout, lost permission, or an empty AXWindows list is not invalidation.
+                var role: CFTypeRef?
+                let result = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+                try require(result == .invalidUIElement,
+                            "未见原窗口销毁通知，原 AX 对象也未证实失效（\(result.rawValue)）。")
+            }
+            let current = try windows(id.pid)
+            for candidate in current {
+                guard !CFEqual(candidate, element), let candidateNumber = number(candidate),
+                      candidateNumber != id.number else { throw Refusal("原窗口或编号的归属仍不明确。") }
+            }
+            try require(NPWindowNumberConfirmedAbsent(id.number) == 1, "WindowServer 尚未确认原窗口编号消失。")
+            try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
+            return ProcessInfo.processInfo.systemUptime
+        }
+        let first = try absence()
+        drainWindowEvents(0.095)
+        let second = try absence()
+        certifiedClosed = true
+        return .init(id: id, destroyed: notificationTime ?? first, firstAbsent: first, secondAbsent: second, evidence: evidence)
     }
 
     func write(from: SurfaceRect, to: SurfaceRect) throws -> (AdmissionPair,[OrdinaryWindowStep]) {

@@ -61,6 +61,7 @@ enum OrdinaryRefusal: LocalizedError {
     @ObservationIgnored private var afterRead: CheckedContinuation<Void, Never>?
     var unavailableForUserAction: Bool { closing || userActionReserved || (busy && !passiveRead) }
     private var appliedArea: SurfaceRect?
+    private var grantedGeometry: ScreenGeometry?
     private(set) var activeDisplay: String?
     private(set) var verifiedIDs = Set<ManagedWindowID>()
     private(set) var restoredIDs = Set<ManagedWindowID>()
@@ -111,7 +112,9 @@ enum OrdinaryRefusal: LocalizedError {
     private func checkedScope(_ ctx: AdmissionContext, grant: (any OrdinaryWindowObserving)? = nil) throws {
         guard ctx.recoveryClear, ctx.exclusive != false, !ctx.hypothetical, !ctx.display.isEmpty,
               let live = liveContext?(ctx.display), live.recoveryClear, live.exclusive != false, !live.hypothetical,
-              ctx.display == live.display, ctx.screen == live.screen, ctx.usable == live.usable,
+              ctx.display == live.display, ctx.screen == live.screen, ctx.usable == live.usable, ctx.primary == live.primary,
+              ctx.displayGeometry == live.displayGeometry,
+              activeDisplay == nil || grantedGeometry == live.displayGeometry,
               try area(ctx) == area(live) else { throw OrdinaryRefusal.scope }
         if let grant {
             guard !excluded.contains(where: { $0.pid == grant.id.pid && $0.launch == grant.id.launch && $0.number == grant.id.number }),
@@ -222,6 +225,7 @@ enum OrdinaryRefusal: LocalizedError {
             activeIDs.append(h.id)
         }
         activeDisplay = context.display
+        grantedGeometry = context.displayGeometry
         tiler = plan.layout
         do {
             try save()
@@ -349,6 +353,33 @@ enum OrdinaryRefusal: LocalizedError {
         activeIDs.removeAll { $0 == id }
     }
 
+    private func closedMember(_ witness: OrdinaryWindowClosure, entry: OrdinaryJournal.Entry) throws -> OrdinaryJournal.ClosedMember {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard entry.id == witness.id, entry.refusal == nil, entry.intended == nil,
+              witness.destroyed >= 0, witness.destroyed <= witness.firstAbsent,
+              witness.secondAbsent - witness.firstAbsent >= 0.075,
+              witness.secondAbsent <= now, now - witness.secondAbsent <= 3 else { throw OrdinaryRefusal.lost }
+        return .init(session: session, entry: entry, witness: witness)
+    }
+
+    private func retire(_ closed: [OrdinaryJournal.ClosedMember], in context: AdmissionContext) throws {
+        let work = try area(context)
+        var next = tiler
+        for member in closed {
+            next = try next.removing(member.entry.id, in: work)
+            try journal.record(member)
+        }
+        cancelPreview()
+        for member in closed { detach(member.entry.id) }
+        tiler = next
+        appliedArea = nil
+        try save()
+        if activeIDs.isEmpty {
+            try finishRecord("closed")
+            message = "已确认全部授权窗口关闭，管理已结束。"
+        }
+    }
+
     func stop() async throws {
         try enter(allowBlocked: true)
         defer { busy = false }
@@ -359,15 +390,27 @@ enum OrdinaryRefusal: LocalizedError {
         }
         guard let display = activeDisplay, let ctx = liveContext?(display) else { fail(OrdinaryRefusal.scope); throw OrdinaryRefusal.scope }
         var failed: Error?
+        var closed = [OrdinaryJournal.ClosedMember]()
         // Independent targets can still be restored when another grant has lost continuity.
         for id in activeIDs {
             guard let e = entries[id] else { continue }
             do {
                 try await move(id, to: e.original, context: ctx, kind: "restore")
                 if e.confirmed != e.original { restoredIDs.insert(id) }
-            } catch { entries[id]?.refusal = error.localizedDescription; failed = error }
+            } catch let witness as OrdinaryWindowClosure {
+                do { closed.append(try closedMember(witness, entry: e)) }
+                catch { entries[id]?.refusal = error.localizedDescription; failed = error }
+            } catch {
+                if entries[id]?.refusal == nil { entries[id]?.refusal = error.localizedDescription }
+                failed = error
+            }
+        }
+        if !closed.isEmpty {
+            do { try retire(closed, in: ctx) }
+            catch { fail(error); throw error }
         }
         if let failed { fail(failed); throw failed }
+        guard !activeIDs.isEmpty else { return }
         try finishRecord("restored")
     }
 
@@ -391,7 +434,7 @@ enum OrdinaryRefusal: LocalizedError {
     private func reset() {
         monitoring?.cancel(); monitoring = nil
         cancelPreview(); activeIDs.removeAll(); handles.removeAll(); entries.removeAll(); leases.removeAll()
-        tiler = .init(workspace: nil); activeDisplay = nil; appliedArea = nil
+        tiler = .init(workspace: nil); activeDisplay = nil; appliedArea = nil; grantedGeometry = nil
         journalLease = nil; blocked = false; paused = false
     }
 
@@ -408,6 +451,7 @@ enum OrdinaryRefusal: LocalizedError {
         }
         guard let ctx = liveContext?(display) else { fail(OrdinaryRefusal.scope); return }
         do {
+            var closed = [OrdinaryJournal.ClosedMember]()
             for id in activeIDs {
                 guard let h = handles[id], let e = entries[id] else { throw OrdinaryRefusal.lost }
                 do {
@@ -415,7 +459,16 @@ enum OrdinaryRefusal: LocalizedError {
                     guard try sample(await h.verify(expected: e.confirmed), for: h, in: ctx) == e.confirmed else {
                         throw OrdinaryRefusal.lost
                     }
+                } catch let witness as OrdinaryWindowClosure {
+                    closed.append(try closedMember(witness, entry: e))
                 } catch { entries[id]?.refusal = error.localizedDescription; throw error }
+            }
+            if !closed.isEmpty {
+                try checkedScope(ctx)
+                // Let a waiting explicit action run its own checks before automatic membership writes.
+                guard !userActionReserved, !closing else { return }
+                try retire(closed, in: ctx)
+                if activeIDs.isEmpty { return }
             }
             if !paused, !closing, !userActionReserved, try area(ctx) != appliedArea {
                 passiveRead = false

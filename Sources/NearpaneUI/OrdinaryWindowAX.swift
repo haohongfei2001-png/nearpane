@@ -82,29 +82,48 @@ private actor OrdinaryWindowChannel {
     }
 }
 
+@MainActor final class OrdinaryWindowDirectory {
+    let app: AdmissionApplication
+    private let channel: OrdinaryWindowChannel
+    private(set) var handles = [UUID: OrdinaryWindowAX]()
+
+    init(_ app: AdmissionApplication) throws {
+        self.app = app
+        channel = try OrdinaryWindowChannel()
+    }
+
+    func choices(initial: Bool) async throws -> [AdmissionWindowChoice] {
+        let action: OrdinaryWindowRequest.Action = initial ? .list : .refresh
+        let result = try await channel.call(.init(action, pid: app.pid, launch: app.launch, bundle: app.bundle))
+        guard let choices = result.choices, choices.count <= 64 else { throw OrdinaryWindowFailure("窗口清单不完整。") }
+        var next = [UUID: OrdinaryWindowAX]()
+        let rows = try choices.enumerated().map { index, id -> AdmissionWindowChoice in
+            guard let id else { return .init(id: UUID(), number: nil, index: index + 1) }
+            guard id.pid == app.pid, id.launch == app.launch, id.number != 0, next[id.element] == nil
+            else { throw OrdinaryWindowFailure("无法核对窗口清单身份。") }
+            next[id.element] = handles[id.element] ?? OrdinaryWindowAX(id: id, bundle: app.bundle, channel: channel)
+            return .init(id: id.element, number: id.number, index: index + 1)
+        }
+        handles = next
+        return rows
+    }
+}
+
 @MainActor final class OrdinaryWindowAX {
     let id: ManagedWindowID, bundle: String
     private let channel: OrdinaryWindowChannel
     private var closed = false
     private(set) var lastWriteSteps = [OrdinaryWindowStep]()
 
-    private init(id: ManagedWindowID, bundle: String, channel: OrdinaryWindowChannel) {
+    fileprivate init(id: ManagedWindowID, bundle: String, channel: OrdinaryWindowChannel) {
         self.id = id
         self.bundle = bundle
         self.channel = channel
     }
 
-    static func list(_ app: AdmissionApplication) async throws -> [(AdmissionWindowChoice, OrdinaryWindowAX?)] {
-        let channel = try OrdinaryWindowChannel()
-        let result = try await channel.call(.init(.list, pid: app.pid, launch: app.launch, bundle: app.bundle))
-        guard let choices = result.choices, choices.count <= 64 else { throw OrdinaryWindowFailure("窗口清单不完整。") }
-        return choices.enumerated().map { index, id in
-            guard let id, id.pid == app.pid, id.launch == app.launch, id.number != 0 else {
-                return (.init(id: UUID(), number: nil, index: index + 1), nil)
-            }
-            return (.init(id: id.element, number: id.number, index: index + 1),
-                    OrdinaryWindowAX(id: id, bundle: app.bundle, channel: channel))
-        }
+    deinit {
+        let command = OrdinaryWindowRequest(.release, pid: id.pid, launch: id.launch, bundle: bundle, id: id)
+        Task { [channel] in _ = try? await channel.call(command) }
     }
 
     func prepare() async throws -> AdmissionPair { try await sample(.prepare) }
@@ -117,6 +136,9 @@ private actor OrdinaryWindowChannel {
         guard !closed else { throw OrdinaryWindowFailure("该窗口授权已结束。") }
         let response = try await channel.call(.init(action, pid: id.pid, launch: id.launch, bundle: bundle,
                                                     id: id, expected: from, destination: to))
+        if !closed, action == .verify, let witness = response.closure, witness.id == id, response.pair == nil {
+            throw witness
+        }
         guard let pair = response.pair, pair.first.id == id, pair.second.id == id,
               !closed else { throw OrdinaryWindowFailure("所选窗口身份已失效。") }
         if action == .write { lastWriteSteps = response.steps ?? [] }
@@ -128,10 +150,4 @@ private actor OrdinaryWindowChannel {
         channel.interrupt()
     }
 
-    func close() {
-        guard !closed else { return }
-        closed = true
-        let request = OrdinaryWindowRequest(.release, pid: id.pid, launch: id.launch, bundle: bundle, id: id)
-        Task { [channel] in _ = try? await channel.call(request) }
-    }
 }

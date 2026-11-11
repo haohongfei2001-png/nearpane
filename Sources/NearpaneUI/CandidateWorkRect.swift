@@ -35,8 +35,10 @@ import SwiftUI
         }
         let cfg = host.configuration
         let primary = cfg.preferredDisplayID.flatMap { id in screens.first { $0.id == id }?.id } ?? first.id
-        return .init(display: display, screen: quartz(target.frame), usable: quartz(target.visibleFrame), primary: primary == display,
-                     settings: cfg.displays[display] ?? .init(), edge: cfg.edge, preferences: cfg.workspaces, recoveryClear: true, exclusive: true)
+        var context = AdmissionContext(display: display, screen: quartz(target.frame), usable: quartz(target.visibleFrame), primary: primary == display,
+                                       settings: cfg.displays[display] ?? .init(), edge: cfg.edge, preferences: cfg.workspaces, recoveryClear: true, exclusive: true)
+        context.displayGeometry = target
+        return context
     }
 
     private var process: Process?
@@ -54,7 +56,12 @@ import SwiftUI
         guard process == nil, let folder = Bundle.main.resourceURL else { return }
         supervisorReady = false
         let child = Process(), commands = Pipe(), replies = Pipe()
-        child.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        guard let python = AppleHelperRuntime.python else {
+            message = AppleHelperRuntime.Missing.interpreter.localizedDescription
+            blocked = true
+            return
+        }
+        child.executableURL = python
         child.arguments = ["-I", "-B", "-u", folder.appendingPathComponent("WorkRect/window-management.py").path, support.path]
         child.standardInput = commands; child.standardOutput = replies
         do { try child.run() } catch { message = error.localizedDescription; blocked = true; return }

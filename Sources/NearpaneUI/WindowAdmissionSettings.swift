@@ -9,12 +9,14 @@ private typealias ViewState<T> = State<T>
     func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX?
     func releaseChoices()
     func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]
+    func refreshedWindows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]?
     func inspect(_ app: AdmissionApplication, selected: [AdmissionWindowChoice]) async throws -> [AdmissionPair]
     func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards
 }
 extension AdmissionReading {
     func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX? { nil }
     func releaseChoices() {}
+    func refreshedWindows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]? { nil }
 }
 extension WindowAdmissionReader: AdmissionReading {}
 
@@ -34,9 +36,13 @@ extension WindowAdmissionReader: AdmissionReading {}
     var picks = [Pick]()
     var ordinaryReview: OrdinaryWindowReview?
     var ordinaryContext: AdmissionContext?
-    var result: AdmissionPreviewResult?
-    var sampledScreen: SurfaceRect?
-    var samples = [AdmissionSample]()
+    struct Readout: Identifiable {
+        let group: AdmissionDisplayPreview
+        let result: AdmissionPreviewResult
+        var id: String { group.id }
+    }
+    var readouts = [Readout]()
+    var result: AdmissionPreviewResult? { readouts.count == 1 ? readouts[0].result : nil }
     var sampledAt: Date?
     var failure: String?
     var reading = false
@@ -49,10 +55,8 @@ extension WindowAdmissionReader: AdmissionReading {}
         generation += 1
         ordinaryReview = nil
         ordinaryContext = nil
-        result = nil
+        readouts = []
         sampledAt = nil
-        samples = []
-        sampledScreen = nil
         failure = nil
         reading = false
         expired = false
@@ -97,6 +101,35 @@ extension WindowAdmissionReader: AdmissionReading {}
         else { picks.append(Pick(app: app, choice: choice)) }
     }
 
+    /// Read only the explicitly selected application. New sibling windows always start unselected.
+    func refresh(_ target: AdmissionApplication) async -> Bool {
+        guard target == app else { return false }
+        guard !reading else { return true }
+        let request = generation
+        do {
+            guard let rows = try await reader.refreshedWindows(target) else { return false }
+            guard !Task.isCancelled, target == app else { return false }
+            guard request == generation else { return true }
+            let remaining = picks.filter { pick in
+                pick.app != target || rows.contains { $0.id == pick.choice.id && $0.number == pick.choice.number }
+            }
+            if remaining.count != picks.count {
+                invalidate()
+                picks = remaining
+                failure = "原窗口已从所选清单消失或身份变化，请重新选择需要管理的窗口。"
+            }
+            if choices != rows { choices = rows }
+            return true
+        } catch {
+            guard !Task.isCancelled, request == generation, target == app else { return target == app }
+            invalidate()
+            choices = []
+            picks.removeAll { $0.app == target }
+            failure = error.localizedDescription
+            return false
+        }
+    }
+
     func inspect(host: HostSession, blocked: Bool, scenario: AdmissionPlacement, ratio: Double, swap: Bool, custom: Bool, manager: CandidateWorkRect? = nil) async {
         invalidate()
         guard !picks.isEmpty else { return }
@@ -131,28 +164,19 @@ extension WindowAdmissionReader: AdmissionReading {}
                 guard let sample = observed[pick.choice.id] else { throw AdmissionSelectionError.changed }
                 return sample
             }
-            let config = host.configuration
-            let screens = SystemScreens.geometry()
-            let display = pairs.compactMap { $0.second.display }.first ?? ""
-            // A missing display retains an empty area and the original failure reasons.
-            let geometry = screens.first { $0.id == display }
-            let screen = geometry.map { Self.quartz($0.frame, screens: screens) } ?? SurfaceRect(width: 0, height: 0)
-            let usable = geometry.map { Self.quartz($0.visibleFrame, screens: screens) } ?? SurfaceRect(width: 0, height: 0)
-            var settings = config.displays[display] ?? .init()
-            var primary = display == (config.preferredDisplayID.flatMap { id in screens.first { $0.id == id }?.id } ?? screens.first?.id)
-            if scenario != .current {
-                settings.placement = scenario == .docked ? .docked : .floating
-                // In the product Floating belongs to a secondary-role panel.
-                if scenario == .floating { primary = false }
+            var groups = AdmissionDisplayPreview.groups(pairs, screens: SystemScreens.geometry(), config: host.configuration,
+                                                        scenario: scenario, ratio: ratio, swap: swap, custom: custom,
+                                                        recovery: recovery, exclusive: exclusive)
+            for index in groups.indices {
+                let ids = Set(groups[index].pairs.compactMap(\.second.id))
+                if groups.count == 1 || saved?.members.allSatisfy({ ids.contains($0.id) }) == true {
+                    groups[index].context.savedLayout = saved
+                    groups[index].context.originalFrames = originals.filter { ids.contains($0.key) }
+                }
             }
-            var context = AdmissionContext(display: display, screen: screen, usable: usable, primary: primary,
-                                           settings: settings, edge: config.edge, preferences: config.workspaces,
-                                           recoveryClear: recovery, exclusive: exclusive, ratio: custom ? ratio : 0.5, swapped: custom && swap)
-            context.hypothetical = scenario != .current || custom
-            context.pairCustomized = custom
-            context.savedLayout = saved
-            context.originalFrames = originals
-            if let manager, scenario == .current {
+            // Mixed selections are read-only independent display projections. Never pass a
+            // subset of a cross-display selection to the writer as implicit consent.
+            if let manager, scenario == .current, groups.count == 1, let display = groups.first?.id, !display.isEmpty {
                 let handles = selected.compactMap { reader.handle($0.choice, app: $0.app) }
                 if handles.count == selected.count, var live = manager.context(for: display) {
                     live.ratio = custom ? ratio : 0.5
@@ -174,12 +198,12 @@ extension WindowAdmissionReader: AdmissionReading {}
                     }
                 }
             }
-            let sample = WindowAdmissionPreview.evaluate(pairs, context: context, uptime: ProcessInfo.processInfo.systemUptime)
-            result = sample
-            sampledScreen = screen
-            samples = pairs.map(\.second)
+            let now = ProcessInfo.processInfo.systemUptime
+            readouts = groups.map {
+                .init(group: $0, result: WindowAdmissionPreview.evaluate($0.pairs, context: $0.context, uptime: now))
+            }
             sampledAt = Date()
-            if let validUntil = sample.validUntil {
+            if let validUntil = readouts.compactMap(\.result.validUntil).min() {
                 let delay = max(0, validUntil - ProcessInfo.processInfo.systemUptime)
                 Task { [weak self] in
                     try? await Task.sleep(for: .seconds(delay))
@@ -192,11 +216,7 @@ extension WindowAdmissionReader: AdmissionReading {}
         }
     }
 
-    private static func quartz(_ frame: SurfaceRect, screens: [ScreenGeometry]) -> SurfaceRect {
-        guard let menuDisplay = screens.first else { return SurfaceRect(width: 0, height: 0) }
-        return SurfaceRect(x: frame.x, y: menuDisplay.frame.y + menuDisplay.frame.height - frame.y - frame.height,
-                           width: frame.width, height: frame.height)
-    }
+
 }
 
 private enum AdmissionSelectionError: LocalizedError {
@@ -259,6 +279,13 @@ enum AdmissionPlacement: String, CaseIterable {
         .onChange(of: custom) { selection.invalidate() }
         .onChange(of: ratio) { selection.invalidate() }
         .onChange(of: swap) { selection.invalidate() }
+        .task(id: selection.app) {
+            guard let app = selection.app else { return }
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(2)) } catch { return }
+                if !(await selection.refresh(app)) { return }
+            }
+        }
         .onDisappear { opened = false; selection.close() }
     }
 
@@ -359,9 +386,15 @@ enum AdmissionPlacement: String, CaseIterable {
                 }
             }.disabled(manager.ordinary.unavailableForUserAction).accessibilityIdentifier("ordinary-confirm")
         }
-        if let result = selection.result {
-            AdmissionResultView(result: result, samples: selection.samples, screen: selection.sampledScreen, sampled: selection.sampledAt, expired: selection.expired,
-                                simulated: scenario != .current || (custom && selection.picks.count == 2))
+        if selection.readouts.count > 1 {
+            Text("已按显示器分别预演。逐窗授权时请选择同一显示器上的窗口。")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        ForEach(selection.readouts) { item in
+            if selection.readouts.count > 1 { Text(item.group.label).font(.subheadline) }
+            AdmissionResultView(result: item.result, samples: item.group.pairs.map(\.second),
+                                screen: item.group.context.screen, sampled: selection.sampledAt, expired: selection.expired,
+                                simulated: selection.readouts.count > 1 || scenario != .current || (custom && selection.picks.count == 2))
         }
     }
 }

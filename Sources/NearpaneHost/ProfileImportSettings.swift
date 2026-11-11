@@ -1,5 +1,6 @@
 #if canImport(SaytileKit)
 import AppKit
+import NearpaneCore
 import SwiftUI
 
 struct ProfileReply: Decodable, Sendable {
@@ -23,7 +24,8 @@ enum ProfileHelper {
         }
         return try await Task.detached {
             let child = Process(), pipe = Pipe()
-            child.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+            guard let python = AppleHelperRuntime.python else { throw AppleHelperRuntime.Missing.interpreter }
+            child.executableURL = python
             var arguments = ["-I", "-B", script.path, action, "--container", root.path]
             if let source { arguments += ["--source", source.path, "--sections", sections.joined(separator: ",")] }
             if let token { arguments += ["--token", token] }

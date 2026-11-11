@@ -68,6 +68,14 @@ if strings.first == "launch" {
           app.executableURL?.standardizedFileURL.path == URL(fileURLWithPath:strings[1]).standardizedFileURL.path,
           let id = app.bundleIdentifier,id == "net.example.standard-documents"
     else { die("wrong subject") }
+    var identity = proc_bsdinfo()
+    let identityBytes = Int32(MemoryLayout.size(ofValue: identity))
+    guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &identity, identityBytes) == identityBytes,
+          identity.pbi_pid == UInt32(pid), identity.pbi_uid == getuid() else { die("incomplete fixture identity") }
+    output["ownerLaunch"] = identity.pbi_start_tvsec * 1_000_000 + identity.pbi_start_tvusec
+    output["ownerBundle"] = id
+    output["ownerRegular"] = app.activationPolicy == .regular
+    output["ownerTerminated"] = app.isTerminated
     let axRoot = AXUIElementCreateApplication(pid)
     let all = value(axRoot,"AXWindows") as? [AXUIElement] ?? []
     var records = [[String:Any]]()

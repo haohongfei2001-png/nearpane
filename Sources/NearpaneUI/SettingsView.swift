@@ -103,6 +103,7 @@ public struct SettingsView: View {
     private var modules: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if domains?.candidate == true { AlphaHelp() }
                 if let profileImport { profileImport; Divider() }
                 Text("按侧栏的播放按钮开始收音，按相同位置暂停。")
                     .font(.callout).foregroundStyle(.secondary)

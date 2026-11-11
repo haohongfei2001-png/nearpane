@@ -49,10 +49,18 @@ var history = [UInt32]()
     windows.values.allSatisfy { !$0.isKeyWindow && !$0.isMainWindow && safeSecondaryFrame.contains($0.frame) } &&
     focusEvents == 0
 }
-@MainActor func add(_ n: Int) {
+@MainActor func add(_ n: Int, compact: Bool = false) {
     let visible = secondary.visibleFrame
-    let rect = CGRect(x: visible.minX + 95, y: visible.minY + 110 + CGFloat(n - 1) * 205, width: 240, height: 152)
-    guard safe(), visible.contains(rect), n > 0, n <= 4, windows[n] == nil else { finish("unsafe window geometry", 2) }
+    guard n > 0, n <= (compact ? 9 : 4), windows[n] == nil else { finish("invalid sample", 2) }
+    let rect: CGRect
+    if compact {
+        // A real, small initial window fits the existing four-column template without a special AX minimum.
+        rect = CGRect(x: visible.minX + 95 + CGFloat((n - 1) % 3) * 165,
+                      y: visible.minY + 110 + CGFloat((n - 1) / 3) * 180, width: 150, height: 128)
+    } else {
+        rect = CGRect(x: visible.minX + 95, y: visible.minY + 110 + CGFloat(n - 1) * 205, width: 240, height: 152)
+    }
+    guard safe(), visible.contains(rect) else { finish("unsafe window geometry", 2) }
     let w = NSWindow(contentRect: rect, styleMask: [.titled,.closable,.miniaturizable,.resizable],
                      backing:.buffered, defer:true, screen:secondary)
     w.isReleasedWhenClosed = false
@@ -93,6 +101,7 @@ DispatchQueue.global().async {
             let fields = line.split(separator:" ")
             switch fields.first {
             case "add" where fields.count == 2: add(Int(fields[1]) ?? 0)
+            case "add-small" where fields.count == 2: add(Int(fields[1]) ?? 0, compact:true)
             case "close" where fields.count == 2:
                 if let n = Int(fields[1]), let w = windows.removeValue(forKey:n) { w.close() }
             case "edit" where fields.count == 2:
