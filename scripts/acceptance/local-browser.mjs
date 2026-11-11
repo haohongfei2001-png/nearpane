@@ -49,11 +49,11 @@ child.stdio[4].setEncoding('utf8').on('data', part => {
     if (msg.id) {
       const waiter = pending.get(msg.id); pending.delete(msg.id);
       if (msg.error) waiter.reject(Error(msg.error.message)); else waiter.resolve(msg.result);
-    } else handlers.get(msg.method)?.(msg);
+    } else (handlers.get(msg.method+'@'+msg.sessionId) ?? handlers.get(msg.method))?.(msg);
   }
 });
 closed.then(() => { for (const waiter of pending.values()) waiter.reject(Error('Fixture browser exited')); });
-const timeout = setTimeout(() => child.kill('SIGKILL'), 45000);
+const timeout = setTimeout(() => child.kill('SIGKILL'), fixture.productDriver ? 120000 : 45000);
 const draft = fs.readFileSync(path.join(root,'scripts/acceptance/draft-observation.js'),'utf8');
 try {
   const version = await call('Browser.getVersion');
@@ -61,8 +61,8 @@ try {
   assert.equal(pages.length,1); assert.equal(pages[0].url,'about:blank');
   const {sessionId} = await call('Target.attachToTarget',{targetId:pages[0].targetId,flatten:true});
   const send = (m,p) => call(m,p,sessionId);
-  const evalPage = async expr => {
-    const r=await send('Runtime.evaluate',{expression:expr,awaitPromise:true,returnByValue:true});
+  const evalPage = async (expr, targetSession=sessionId) => {
+    const r=await call('Runtime.evaluate',{expression:expr,awaitPromise:true,returnByValue:true},targetSession);
     if (r.exceptionDetails) throw Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
     return r.result.value;
   };
@@ -70,15 +70,36 @@ try {
   await send('Emulation.setFocusEmulationEnabled',{enabled:true});
   await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
   let url, html, fulfilled=0, denied=0;
-  handlers.set('Fetch.requestPaused', ({params}) => {
-    if (params.resourceType === 'Document' && params.request.url === url && params.request.method === 'GET') {
+  const fixtureDocuments = new Map();
+  handlers.set('Fetch.requestPaused', ({params,sessionId:targetSession}) => {
+    const expected = fixture.productDriver ? fixtureDocuments.get(targetSession) : {url,html};
+    if (expected && params.resourceType === 'Document' && params.request.url === expected.url && params.request.method === 'GET') {
       fulfilled++;
-      void send('Fetch.fulfillRequest',{requestId:params.requestId,responseCode:200,
+      void call('Fetch.fulfillRequest',{requestId:params.requestId,responseCode:200,
         responseHeaders:[{name:'Content-Type',value:'text/html; charset=utf-8'},
-          {name:'Content-Security-Policy',value:"default-src 'none'; form-action 'none'; base-uri 'none'"}],
-        body:Buffer.from(html).toString('base64')});
-    } else { denied++; void send('Fetch.failRequest',{requestId:params.requestId,errorReason:'BlockedByClient'}); }
+          {name:'Content-Security-Policy',value:"default-src 'none'; form-action 'none'; base-uri 'none'" +
+            (fixture.productDriver ? "; img-src blob:" : "")}],
+        body:Buffer.from(expected.html).toString('base64')},targetSession);
+    } else { denied++; void call('Fetch.failRequest',{requestId:params.requestId,errorReason:'BlockedByClient'},targetSession); }
   });
+  if (fixture.productDriver) {
+    const {runProductCases} = await import('./product-browser-cases.mjs');
+    const navigate = async (next, body, targetSession=sessionId) => {
+      fixtureDocuments.set(targetSession,{url:next,html:body});
+      if(targetSession!==sessionId) {
+        await call('Page.enable',{},targetSession);
+        await call('Fetch.enable',{patterns:[{urlPattern:'*'}]},targetSession);
+      }
+      const loaded = new Promise(yes => handlers.set('Page.loadEventFired@'+targetSession,yes));
+      await call('Page.navigate',{url:next},targetSession); await loaded;
+      assert.equal(await evalPage('location.href',targetSession),next);
+    };
+    const evidence = await runProductCases({run, root, compose, source, png, sha, fixture, call, send, evalPage, navigate,
+      primary:pages[0].targetId, chromePID:child.pid});
+    Object.assign(evidence, {chrome:version.product, fixtureDocumentResponses:fulfilled, otherRequestsDenied:denied});
+    fs.writeFileSync(path.join(run,'receipt.json'), JSON.stringify(evidence,null,2), {flag:'wx'});
+    console.log(JSON.stringify({directory:run,...evidence}));
+  } else {
   const cases=[];
   for (const owned of [true,false]) {
     const session=randomUUID(), marker='NEARPANE-TEST-'+session;
@@ -144,6 +165,7 @@ try {
     transport:'new process; pipe; reject-only loopback proxy; DNS blocked; fixture documents intercepted',fixtureDocumentResponses:fulfilled,otherRequestsDenied:denied,cases};
   fs.writeFileSync(path.join(run,'receipt.json'),JSON.stringify(evidence,null,2),{flag:'wx'});
   console.log(JSON.stringify({directory:run,...evidence}));
+  }
 } finally {
   if(child.exitCode===null && child.signalCode===null) await call('Browser.close').catch(()=>{});
   await closed; clearTimeout(timeout); rejectProxy.close();
