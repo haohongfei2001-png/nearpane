@@ -9,5 +9,5 @@ CFArrayRef _Nullable NPReadWindowSpaces(uint32_t window) CF_RETURNS_RETAINED;
 // Window-number read witnessed in P4.7.3; unavailable on unverified OS builds.
 uint32_t NPReadAXWindowNumber(CFTypeRef _Nonnull element);
 
-// 1 only for an available, empty WindowServer list scoped to this exact number.
-int NPWindowNumberConfirmedAbsent(uint32_t window);
+// Exact ID-only query including offscreen records: absent (0), present (1), unavailable (-1).
+int NPReadWindowNumberPresence(uint32_t window);

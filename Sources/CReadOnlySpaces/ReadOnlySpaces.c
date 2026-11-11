@@ -4,13 +4,13 @@
 #include <string.h>
 #include <sys/sysctl.h>
 
-int NPWindowNumberConfirmedAbsent(uint32_t window) {
-    if (window == kCGNullWindowID) return 0;
+int NPReadWindowNumberPresence(uint32_t window) {
+    if (window == kCGNullWindowID) return -1;
     CFArrayRef numbers = CGWindowListCreate(kCGWindowListOptionIncludingWindow, window);
-    if (numbers == NULL) return 0;
-    int absent = CFArrayGetCount(numbers) == 0;
+    if (numbers == NULL) return -1;
+    CFIndex count = CFArrayGetCount(numbers);
     CFRelease(numbers);
-    return absent;
+    return count == 0 ? 0 : (count == 1 ? 1 : -1);
 }
 
 // P1-A 0a704fd7: signed 32-bit connection, CGWindowID in an explicit CFArray, selector 7 only.

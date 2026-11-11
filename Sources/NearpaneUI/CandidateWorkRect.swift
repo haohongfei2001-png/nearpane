@@ -24,10 +24,16 @@ import SwiftUI
     func connect(to host: HostSession) {
         self.host = host
         ordinary.liveContext = { [weak self] display in self?.context(for: display) }
+        ordinary.saveExclusion = { [weak host] id in
+            guard let host else { throw OrdinaryRefusal.storage }
+            var preferences = host.workspacePreferencesDraft
+            preferences.windows[id] = .exclude
+            guard host.setWorkspacePreferences(preferences) else { throw OrdinaryRefusal.storage }
+        }
     }
     func context(for display: String) -> AdmissionContext? {
         let screens = SystemScreens.geometry()
-        guard let host, let first = screens.first, let target = screens.dropFirst().first(where: { $0.id == display }),
+        guard let host, host.unsavedWorkspacePreferences == nil, let first = screens.first, let target = screens.dropFirst().first(where: { $0.id == display }),
               scopedDisplay == nil || scopedDisplay == display, !suspended, !fullscreenDisplays.contains(display),
               supervisorReady, !blocked, mode == "off" else { return nil }
         func quartz(_ r: SurfaceRect) -> SurfaceRect {
@@ -105,11 +111,14 @@ public struct CandidateWorkRectView: View {
     private let admissionFixtureOnly: Bool
     private let ordinaryPID: Int32?
     private let ordinaryStart: UInt64?
+    private let previewExposure: SettingsPreviewExposure?
     @ViewState private var confirm = false
     @AppStorage("managementPairPercent") private var percent = 60
     @AppStorage("managementPairSwap") private var swap = false
 
-    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false, ordinaryPID: Int32? = nil, ordinaryStart: UInt64? = nil) {
+    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false, ordinaryPID: Int32? = nil, ordinaryStart: UInt64? = nil,
+                previewExposure: SettingsPreviewExposure? = nil) {
+        self.previewExposure = previewExposure
         self.ordinaryStart = ordinaryStart
         self.ordinaryPID = ordinaryPID
         self.session = session
@@ -120,7 +129,8 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, scopedPID: ordinaryPID, scopedStart: ordinaryStart)
+                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, scopedPID: ordinaryPID, scopedStart: ordinaryStart,
+                                        exposure: previewExposure)
                 Divider()
                 Text("随包兼容应用 · 自动管理").font(.headline)
                 Text("此开关仅影响随包兼容应用。普通窗口需在上方逐窗选择和授权。").font(.callout)
@@ -151,7 +161,7 @@ public struct CandidateWorkRectView: View {
                 ForEach(session.windows, id: \.self) { id in
                     let excluded = (try? host.configuration.workspaces.excluded(id, bundle: "org.nearpane.lab.NearpaneFixtureWindows")) != false
                     Toggle("允许纳入管理范围 · 窗口 #\(String(id.number))", isOn: Binding(get: { !excluded }, set: { include in
-                        var prefs = host.configuration.workspaces
+                        var prefs = host.workspacePreferencesDraft
                         prefs.windows[id] = include ? .include : .exclude
                         host.setWorkspacePreferences(prefs)
                     }))

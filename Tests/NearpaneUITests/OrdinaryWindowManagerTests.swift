@@ -6,7 +6,7 @@ import Testing
 @MainActor private final class WindowDouble: OrdinaryWindowObserving {
     let id = ManagedWindowID(pid: getpid(), launch: UInt64.random(in: 2000...UInt64.max),
                              number: UInt32.random(in: 100...UInt32.max), element: UUID())
-    let bundle = "test.sample.ordinary"
+    var bundle = "test.sample.ordinary"
     let token = UUID()
     let original = SurfaceRect(x: 20, y: 30, width: 100, height: 160)
     var frame = SurfaceRect(x: 20, y: 30, width: 100, height: 160)
@@ -61,6 +61,7 @@ import Testing
     func manager() -> OrdinaryWindowManager {
         let m = OrdinaryWindowManager(support: support)
         m.liveContext = { [weak self] _ in self?.context }
+        m.saveExclusion = { [weak self] id in self?.context.preferences.windows[id] = .exclude }
         return m
     }
     var journal: URL { support.appendingPathComponent("WorkRect/ordinary/journal.json") }
@@ -68,6 +69,54 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func appExclusionRetiresOnlyItsMembersAndRespectsSpecificWindowRuleWhilePaused() async throws {
+        let scope = OrdinaryScope(), m = scope.manager(), a = WindowDouble(), b = WindowDouble(), c = WindowDouble()
+        a.bundle = "test.sample.another"
+        try await m.confirm(m.prepare([a,b,c], context: scope.context), context: scope.context)
+        let writes = [a.writes, b.writes, c.writes]
+        let excludedFrame = b.frame
+        try m.pause()
+        scope.context.preferences.excludedApps.insert(b.bundle)
+        scope.context.preferences.windows[c.id] = .include
+        await m.poll()
+        #expect(m.activeIDs == [a.id,c.id] && m.paused && !m.blocked)
+        #expect(writes == [a.writes,b.writes,c.writes])
+        try await m.resume(context: scope.context)
+        try await m.stop()
+        #expect(a.frame == a.original && c.frame == c.original && b.frame == excludedFrame && b.writes == writes[1])
+    }
+
+    @Test func savedWindowExclusionCanBeClearedButOnlyFreshConsentCanWrite() async throws {
+        let scope = OrdinaryScope(), m = scope.manager(), a = WindowDouble()
+        try await m.confirm(m.prepare([a], context: scope.context), context: scope.context)
+        try await m.exclude(a.id, context: scope.context)
+        let prior = a.writes
+        #expect(m.activeIDs.isEmpty && scope.context.preferences.windows[a.id] == .exclude)
+        let restarted = scope.manager()
+        await #expect(throws: (any Error).self) { _ = try await restarted.prepare([a], context: scope.context) }
+        scope.context.preferences.windows[a.id] = nil
+        await restarted.poll()
+        #expect(restarted.activeIDs.isEmpty && a.writes == prior)
+        let preview = try await restarted.prepare([a], context: scope.context)
+        #expect(a.writes == prior)
+        try await restarted.confirm(preview, context: scope.context)
+        #expect(restarted.activeIDs == [a.id])
+        try await restarted.stop()
+    }
+
+    @Test func failedExclusionPersistenceStopsWritesIncludingRestore() async throws {
+        let scope = OrdinaryScope(), m = scope.manager(), a = WindowDouble()
+        try await m.confirm(m.prepare([a], context: scope.context), context: scope.context)
+        let frame = a.frame, writes = a.writes
+        m.saveExclusion = { _ in throw OrdinaryRefusal.storage }
+        await #expect(throws: (any Error).self) { try await m.exclude(a.id, context: scope.context) }
+        #expect(m.blocked && m.paused && FileManager.default.fileExists(atPath: scope.journal.path))
+        await m.poll()
+        await #expect(throws: (any Error).self) { try await m.stop() }
+        #expect(a.frame == frame && a.writes == writes)
+        try m.keepCurrent()
+    }
+
     @Test func evenSubpointGeometryDisagreementCannotObtainOrRetainAWriteGrant() async throws {
         let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
         var different = a.frame

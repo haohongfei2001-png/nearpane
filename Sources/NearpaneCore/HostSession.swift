@@ -142,20 +142,27 @@ public final class HostSession {
         next.candidateTrayConnected = connected
         persistSettings(next)
     }
-    public func setWorkspacePreferences(_ value: WorkspacePreferences) {
+    public private(set) var unsavedWorkspacePreferences: WorkspacePreferences?
+    public var workspacePreferencesDraft: WorkspacePreferences { unsavedWorkspacePreferences ?? configuration.workspaces }
+
+    @discardableResult public func setWorkspacePreferences(_ value: WorkspacePreferences) -> Bool {
         var next = configuration; next.workspaces = value
-        persistSettings(next)
+        let saved = persistSettings(next)
+        unsavedWorkspacePreferences = saved ? nil : value
+        return saved
     }
-    private func persistSettings(_ next: HostConfiguration, updatePresentation: Bool = true) {
-        guard isRunning, !configurationProtected else { return }
+    @discardableResult private func persistSettings(_ next: HostConfiguration, updatePresentation: Bool = true) -> Bool {
+        guard isRunning, !configurationProtected else { return false }
         do {
             try store.save(next.validated())
             configuration = next
             configurationSaveFailed = false
             if updatePresentation { presentationChanged?() }
+            return true
         } catch {
             configurationSaveFailed = true
             diagnostics.record(.configurationWriteFailed)
+            return false
         }
     }
 

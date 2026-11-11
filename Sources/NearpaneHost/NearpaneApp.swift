@@ -178,6 +178,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var screenAsleep = false, sessionInactive = false, screenLocked = false
     private var surface: EdgeWindowController?
     private let settingsScreens = SettingsScreenInventory()
+    private let settingsPreview = SettingsPreviewExposure()
+    private var settingsWindowOpen = false
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
     private var startupTask: Task<Void, Never>?
@@ -196,6 +198,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             var duration = 25.0
             #if canImport(SaytileKit)
             if managementTrial || profileTrial { duration = 100 } else if fullscreenTrial { duration = 65 }
+            if managementTrial, let id = acceptanceSession?.directory.lastPathComponent,
+               ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_ACCEPTANCE"] == id,
+               ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"] == id { duration = 225 }
             #endif
             let timer = Timer(timeInterval: duration, repeats: false) { _ in
                 MainActor.assumeIsolated { NSApp.terminate(nil) }
@@ -365,6 +370,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        settingsPreview.withdraw()
         #if canImport(SaytileKit)
         if let profileSwitch {
             Task {
@@ -419,6 +425,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func lockChanged(_ note: Notification) {
         screenLocked = note.name.rawValue == "com.apple.screenIsLocked"
+        refreshSettingsExposure()
         modules?.workRect?.setOrdinaryHold("session", active: screenAsleep || sessionInactive || screenLocked)
         panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
         host?.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
@@ -433,6 +440,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         case NSWorkspace.sessionDidBecomeActiveNotification: sessionInactive = false
         default: break
         }
+        refreshSettingsExposure()
         modules?.workRect?.setOrdinaryHold("session", active: screenAsleep || sessionInactive || screenLocked)
         panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
         switch note.name {
@@ -491,12 +499,38 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                 window.setFrameOrigin(NSPoint(x: f.midX - window.frame.width / 2, y: f.midY - window.frame.height / 2))
             } else { window.center() }
             settings = NSWindowController(window: window)
+            let center = NotificationCenter.default
+            center.addObserver(self, selector: #selector(settingsClosing(_:)), name: NSWindow.willCloseNotification, object: window)
+            center.addObserver(self, selector: #selector(settingsWithdrawing(_:)), name: NSWindow.willMiniaturizeNotification, object: window)
+            center.addObserver(self, selector: #selector(settingsWithdrawing(_:)), name: NSApplication.willHideNotification, object: NSApp)
+            for name in [NSWindow.didDeminiaturizeNotification, NSWindow.didChangeOcclusionStateNotification] {
+                center.addObserver(self, selector: #selector(settingsVisibilityChanged(_:)), name: name, object: window)
+            }
+            center.addObserver(self, selector: #selector(settingsVisibilityChanged(_:)), name: NSApplication.didUnhideNotification, object: NSApp)
             updateSettingsContent()
         }
         settingsScreens.update(SystemScreens.geometry())
+        settingsWindowOpen = true
         settings?.showWindow(nil)
+        refreshSettingsExposure()
         // Only an explicit Settings click may activate the application.
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func settingsClosing(_ note: Notification) {
+        settingsWindowOpen = false
+        settingsPreview.withdraw()
+    }
+    @objc private func settingsWithdrawing(_ note: Notification) { settingsPreview.withdraw() }
+    @objc private func settingsVisibilityChanged(_ note: Notification) { refreshSettingsExposure() }
+    private func refreshSettingsExposure() {
+        guard settingsWindowOpen, let window = settings?.window, host?.isRunning == true else {
+            settingsPreview.withdraw()
+            return
+        }
+        settingsPreview.update(visible: window.isVisible && window.occlusionState.contains(.visible),
+                               miniaturized: window.isMiniaturized, appHidden: NSApp.isHidden,
+                               sessionUnavailable: screenLocked || screenAsleep || sessionInactive)
     }
 
     private func updateSettingsContent() {
@@ -507,7 +541,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let importer: AnyView? = nil
         #endif
         guard let host else { return }
-        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,domains:modules,profileImport:importer,
+        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,previewExposure:settingsPreview,domains:modules,profileImport:importer,
             requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
             dismissSpaces: { [weak self] id in self?.panels?.dismiss(id); self?.updatePanels() },
             placementChanged: { [weak self] in self?.updatePanels() }))
@@ -518,6 +552,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         guard profileSwitch == nil, let root = profileLease?.root, let host, let modules else { throw CancellationError() }
         let operation = Task { @MainActor () throws -> ProfileReply in
             // Retire every action surface before releasing the global writer lease.
+            settingsPreview.withdraw()
             panels?.stop()
             surface?.window?.orderOut(nil)
             host.stop()

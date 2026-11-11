@@ -89,13 +89,19 @@ private final class PassiveManagementPanel: NSPanel {
                 }
                 // Rehearsal can create/close only the separately registered synthetic fixtures.
                 // Never grant, enable, retry or invoke the AX frame writer in this mode.
-                if trial && !["hide","show","quit","docked","floating","icon","normal-size"].contains(req.action) {
+                let idleReview = trial && env["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"] == session.directory.lastPathComponent
+                if trial && !["hide","show","quit","docked","floating","icon","normal-size"].contains(req.action)
+                    && !(idleReview && req.action == "exclude-sample-app") {
                     self.stop(); NSApp.terminate(nil); return
                 }
                 if admission && !trial && !["open", "close", "exclude-last", "include-last", "hide", "show", "quit"].contains(req.action) {
                     self.stop(); NSApp.terminate(nil); return
                 }
                 switch req.action {
+                case "exclude-sample-app" where idleReview:
+                    var rules = host.workspacePreferencesDraft
+                    rules.excludedApps.insert("net.example.standard-documents")
+                    guard host.setWorkspacePreferences(rules) else { self.stop(); NSApp.terminate(nil); return }
                 case "enable","disable","pause","resume","retry","open","close","adopt","pair 62 original":
                     manager.send(req.action)
                 case "hide","show": host.setSurfaceHidden(req.action == "hide")

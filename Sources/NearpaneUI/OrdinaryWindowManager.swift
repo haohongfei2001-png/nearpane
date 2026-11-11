@@ -50,7 +50,7 @@ enum OrdinaryRefusal: LocalizedError {
     private var leases = [ManagedWindowID: OrdinaryFileLease]()
     private var entries = [ManagedWindowID: OrdinaryJournal.Entry]()
     private var handles = [ManagedWindowID: any OrdinaryWindowObserving]()
-    private var excluded = Set<ManagedWindowID>()
+    private var unsavedRevocation: ManagedWindowID?
     private var tiler = ManagedWindowTiler(workspace: nil)
     private var pending: Plan?
     private var previewRevision = 0
@@ -71,6 +71,7 @@ enum OrdinaryRefusal: LocalizedError {
     private(set) var busy = false
     private(set) var message = "选择具体窗口后可预览布局；确认前不会调整窗口。"
     var liveContext: (@MainActor (String) -> AdmissionContext?)?
+    var saveExclusion: (@MainActor (ManagedWindowID) throws -> Void)?
 
     public init(support: URL) {
         journal = OrdinaryJournal(support: support)
@@ -117,8 +118,7 @@ enum OrdinaryRefusal: LocalizedError {
               activeDisplay == nil || grantedGeometry == live.displayGeometry,
               try area(ctx) == area(live) else { throw OrdinaryRefusal.scope }
         if let grant {
-            guard !excluded.contains(where: { $0.pid == grant.id.pid && $0.launch == grant.id.launch && $0.number == grant.id.number }),
-                  try !live.preferences.excluded(grant.id, bundle: grant.bundle),
+            guard unsavedRevocation != grant.id, try !live.preferences.excluded(grant.id, bundle: grant.bundle),
                   try !ctx.preferences.excluded(grant.id, bundle: grant.bundle) else { throw WorkspaceFailure.excluded }
         }
     }
@@ -313,6 +313,8 @@ enum OrdinaryRefusal: LocalizedError {
 
     private func reflow(_ context: AdmissionContext) async throws {
         try checkedScope(context)
+        try revokeExcluded(in: context)
+        guard !activeIDs.isEmpty else { return }
         let work = try area(context)
         let next = try preferences(tiler, context, in: work)
         let frames = try next.frames(in: work)
@@ -337,15 +339,45 @@ enum OrdinaryRefusal: LocalizedError {
         defer { busy = false }
         guard !closing, entries[id] != nil, activeDisplay == context.display else { throw OrdinaryRefusal.noGrant }
         cancelPreview()
-        let next = try tiler.removing(id, in: area(context))
-        excluded.insert(id)
-        if activeIDs.count == 1 { try finishRecord("excluded"); return }
-        detach(id)
-        tiler = next
+        // Deny writes even if saving this explicit user decision fails.
+        unsavedRevocation = id
         do {
-            try save()
-            if !paused && !blocked { try await reflow(context) }
+            guard let saveExclusion else { throw OrdinaryRefusal.storage }
+            try saveExclusion(id)
+            guard let live = liveContext?(context.display), live.preferences.windows[id] == .exclude else {
+                throw OrdinaryRefusal.storage
+            }
+            unsavedRevocation = nil
+            try revokeExcluded(in: live)
+            if !activeIDs.isEmpty && !paused { try await reflow(live) }
         } catch { fail(error); throw error }
+    }
+
+    /// An explicit, proven exclusion ends this grant in place. Do not resolve an interrupted
+    /// move or an ambiguous identity merely because a user changed the policy.
+    private func revokeExcluded(in context: AdmissionContext) throws {
+        guard unsavedRevocation == nil else { throw OrdinaryRefusal.storage }
+        guard let current = liveContext?(context.display) else { throw OrdinaryRefusal.scope }
+        let revoked = try activeIDs.filter { id in
+            guard let entry = entries[id] else { throw OrdinaryRefusal.lost }
+            guard try current.preferences.excluded(id, bundle: entry.bundle) else { return false }
+            guard entry.intended == nil, entry.refusal == nil else { throw OrdinaryRefusal.lost }
+            return true
+        }
+        guard !revoked.isEmpty else { return }
+        cancelPreview()
+        if revoked.count == activeIDs.count {
+            try finishRecord("excluded")
+            message = "已排除全部授权窗口，保留当前位置。"
+            return
+        }
+        let work = try area(context)
+        var next = tiler
+        for id in revoked { next = try next.removing(id, in: work) }
+        for id in revoked { detach(id) }
+        tiler = next
+        appliedArea = nil
+        try save()
     }
 
     private func detach(_ id: ManagedWindowID) {
@@ -389,6 +421,8 @@ enum OrdinaryRefusal: LocalizedError {
             return
         }
         guard let display = activeDisplay, let ctx = liveContext?(display) else { fail(OrdinaryRefusal.scope); throw OrdinaryRefusal.scope }
+        do { try revokeExcluded(in: ctx) } catch { fail(error); throw error }
+        guard !activeIDs.isEmpty else { return }
         var failed: Error?
         var closed = [OrdinaryJournal.ClosedMember]()
         // Independent targets can still be restored when another grant has lost continuity.
@@ -435,7 +469,7 @@ enum OrdinaryRefusal: LocalizedError {
         monitoring?.cancel(); monitoring = nil
         cancelPreview(); activeIDs.removeAll(); handles.removeAll(); entries.removeAll(); leases.removeAll()
         tiler = .init(workspace: nil); activeDisplay = nil; appliedArea = nil; grantedGeometry = nil
-        journalLease = nil; blocked = false; paused = false
+        journalLease = nil; blocked = false; paused = false; unsavedRevocation = nil
     }
 
     func poll() async {
@@ -451,6 +485,8 @@ enum OrdinaryRefusal: LocalizedError {
         }
         guard let ctx = liveContext?(display) else { fail(OrdinaryRefusal.scope); return }
         do {
+            try revokeExcluded(in: ctx)
+            guard !activeIDs.isEmpty else { return }
             var closed = [OrdinaryJournal.ClosedMember]()
             for id in activeIDs {
                 guard let h = handles[id], let e = entries[id] else { throw OrdinaryRefusal.lost }

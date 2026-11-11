@@ -19,7 +19,7 @@ struct ClockDetails: View {
                     }
                 }
             }
-            Menu("额外时区") {
+            Menu("时区") {
                 Button("仅本地时间") { host.setClockTimeZone(nil) }
                 ForEach(Self.regions.keys.sorted(), id: \.self) { region in
                     Menu(region) {
@@ -29,6 +29,7 @@ struct ClockDetails: View {
                     }
                 }
             }
+            .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("额外时区")
             if host.configurationSaveFailed { Text("设置未能保存。").font(.caption) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

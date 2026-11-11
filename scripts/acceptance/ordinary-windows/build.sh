@@ -7,6 +7,7 @@ export CLANG_MODULE_CACHE_PATH="$out/cache"
 clang -framework CoreGraphics -framework CoreFoundation scripts/acceptance/ordinary-windows/window-registration.c -o "$out/window-registration"
 swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/admission-controls.swift -o "$out/controls"
 swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/ordinary-windows/SystemReadback.swift -o "$out/observe"
+swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/ordinary-windows/ResourceCounters.swift -o "$out/counters"
 swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/ordinary-windows/StandardWindows.swift -o "$out/standard-windows"
 stage=$(mktemp -d /private/tmp/nearpane-standard-windows.XXXXXXXX)
 app="$stage/Standard documents.app"

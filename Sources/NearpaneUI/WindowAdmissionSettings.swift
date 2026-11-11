@@ -28,6 +28,8 @@ extension WindowAdmissionReader: AdmissionReading {}
     }
 
     private let reader: any AdmissionReading
+    private let exposure: SettingsPreviewExposure?
+    private(set) var opened = false
     @ObservationIgnored var cancelOrdinaryPreview: (() -> Void)?
     private var generation = 0
     var apps = [AdmissionApplication]()
@@ -48,7 +50,10 @@ extension WindowAdmissionReader: AdmissionReading {}
     var reading = false
     var expired = false
 
-    init(reader: any AdmissionReading) { self.reader = reader }
+    init(reader: any AdmissionReading, exposure: SettingsPreviewExposure? = nil) {
+        self.reader = reader
+        self.exposure = exposure
+    }
 
     func invalidate(discardPlan: Bool = true) {
         if discardPlan { cancelOrdinaryPreview?() }
@@ -63,6 +68,7 @@ extension WindowAdmissionReader: AdmissionReading {}
     }
 
     func close() {
+        opened = false
         invalidate()
         reader.releaseChoices()
         apps = []
@@ -73,6 +79,8 @@ extension WindowAdmissionReader: AdmissionReading {}
 
     func open() {
         close()
+        guard exposure?.open(self) != false else { return }
+        opened = true
         apps = reader.applications()
     }
 
@@ -241,30 +249,29 @@ enum AdmissionPlacement: String, CaseIterable {
     let fixtureOnly: Bool
     let scopedPID: Int32?
     @ViewState private var selection: AdmissionSelection
-    @ViewState private var opened = false
     @ViewState private var scenario = AdmissionPlacement.current
     @ViewState private var custom = false
     @ViewState private var ratio = 60
     @ViewState private var swap = false
 
-    init(host: HostSession, manager: CandidateWorkRect, fixtureOnly: Bool, scopedPID: Int32? = nil, scopedStart: UInt64? = nil) {
+    init(host: HostSession, manager: CandidateWorkRect, fixtureOnly: Bool, scopedPID: Int32? = nil, scopedStart: UInt64? = nil,
+         exposure: SettingsPreviewExposure?) {
         self.scopedPID = scopedPID
         self.host = host
         self.manager = manager
         self.fixtureOnly = fixtureOnly
         let reader = WindowAdmissionReader(support: manager.support, fixtureOnly: fixtureOnly, scopedPID: scopedPID, scopedStart: scopedStart)
-        let scope = AdmissionSelection(reader: reader)
+        let scope = AdmissionSelection(reader: reader, exposure: exposure)
         scope.cancelOrdinaryPreview = { [weak manager] in manager?.ordinary.cancelPreview() }
         _selection = State(initialValue: scope)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button(opened ? "收起管理范围预演" : "预览管理范围…") {
-                opened.toggle()
-                if opened { selection.open() } else { selection.close() }
+            Button(selection.opened ? "收起管理范围预演" : "预览管理范围…") {
+                if selection.opened { selection.close() } else { selection.open() }
             }.accessibilityIdentifier("admission-open")
-            if opened { scope }
+            if selection.opened { scope }
             OrdinaryManagementStatus(manager: manager)
 
         }
@@ -286,7 +293,7 @@ enum AdmissionPlacement: String, CaseIterable {
                 if !(await selection.refresh(app)) { return }
             }
         }
-        .onDisappear { opened = false; selection.close() }
+        .onDisappear { selection.close() }
     }
 
     @ViewBuilder private var scope: some View {

@@ -81,14 +81,15 @@ private enum AdmissionReadFailure: LocalizedError {
             choices = fixture.owner.members.map { .init(id: $0.id.element, number: $0.id.number, index: $0.index) }
         } else if let directory = try? OrdinaryWindowDirectory(app),
                   let rows = try? await directory.choices(initial: true) {
-            _ = try check(app)
             guard listings[app.pid] == request else { throw AdmissionReadFailure.changed }
+            _ = try check(app)
             choices = rows
             directories[app.pid] = directory
         } else {
             guard listings[app.pid] == request else { throw AdmissionReadFailure.changed }
             // A failure of the optional writer must not disable the independent read-only preview.
             let reply = try await read(app, targets: [])
+            guard listings[app.pid] == request else { throw AdmissionReadFailure.changed }
             guard reply.permitted else { throw AdmissionReadFailure.permission }
             let duplicates = Dictionary(grouping: reply.numbers.compactMap { $0 }, by: { $0 }).filter { $0.value.count > 1 }
             choices = reply.numbers.enumerated().map { offset, n in
@@ -104,8 +105,8 @@ private enum AdmissionReadFailure: LocalizedError {
         guard let directory = directories[app.pid], directory.app == app else { return nil }
         _ = try check(app)
         let rows = try await directory.choices(initial: false)
-        _ = try check(app)
         guard directories[app.pid] === directory else { throw AdmissionReadFailure.changed }
+        _ = try check(app)
         listed[app.pid] = (app, rows)
         return rows
     }
@@ -114,6 +115,7 @@ private enum AdmissionReadFailure: LocalizedError {
               let (prev,rows) = listed[app.pid], prev == app,
               selected.allSatisfy({ pick in rows.contains { $0.id == pick.id && $0.number == pick.number } })
         else { throw AdmissionReadFailure.changed }
+        guard let request = listings[app.pid] else { throw AdmissionReadFailure.changed }
         let before = try check(app)
         let targets = try selected.map { w -> AdmissionReadRequest.Target in
             guard let n = w.number else { throw AdmissionReadFailure.unknown }
@@ -122,6 +124,7 @@ private enum AdmissionReadFailure: LocalizedError {
             return .init(number:n,registeredIdentifier:m.identifier)
         }
         let reply = try await read(app, targets: targets)
+        guard listings[app.pid] == request else { throw AdmissionReadFailure.changed }
         let after = try check(app)
         guard let before, let after else { return reply.pairs }
         guard before.owner.owner == after.owner.owner, before.run.session == after.run.session,

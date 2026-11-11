@@ -5,13 +5,13 @@ private typealias ViewState<T> = State<T>
 struct WorkspacePolicySettings: View {
     let host: HostSession
     @ViewState private var app = ""
-    private func edit(_ change: (inout WorkspacePreferences) -> Void) {
-        var prefs = host.configuration.workspaces
+    @discardableResult private func edit(_ change: (inout WorkspacePreferences) -> Void) -> Bool {
+        var prefs = host.workspacePreferencesDraft
         change(&prefs)
-        host.setWorkspacePreferences(prefs)
+        return host.setWorkspacePreferences(prefs)
     }
     var body: some View {
-        let prefs = host.configuration.workspaces
+        let prefs = host.workspacePreferencesDraft
         ScrollView {
             Form {
                 Picker("普通新窗口", selection: Binding(get: { prefs.newWindow }, set: { v in edit { $0.newWindow = v } })) {
@@ -25,10 +25,13 @@ struct WorkspacePolicySettings: View {
                 HStack {
                     TextField("排除应用的 Bundle ID", text: $app)
                     Button("排除应用") {
-                        edit { $0.excludedApps.insert(app) }
-                        app = ""
+                        if edit({ $0.excludedApps.insert(app) }) { app = "" }
                     }
                     .disabled(app.isEmpty || app.count > 255 || app.contains(where: \.isWhitespace))
+                }
+                if let unsaved = host.unsavedWorkspacePreferences {
+                    Text("窗口规则未保存，普通窗口写入已暂停。").font(.caption)
+                    Button("重试保存") { host.setWorkspacePreferences(unsaved) }
                 }
                 ForEach(prefs.excludedApps.sorted(), id: \.self) { bundle in
                     HStack {

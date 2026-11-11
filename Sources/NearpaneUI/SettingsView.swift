@@ -10,11 +10,13 @@ public struct SettingsView: View {
     private let domains: EmbeddedModules?
     private let profileImport: AnyView?
     private let inventory: SettingsScreenInventory
+    private let previewExposure: SettingsPreviewExposure
     private var screens: [ScreenGeometry] { inventory.screens }
     private let dismissSpaces: (String) -> Void
     private let requestSecondary: (String) -> Void
     private let placementChanged: () -> Void
-    public init(host: HostSession, inventory: SettingsScreenInventory, domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+    public init(host: HostSession, inventory: SettingsScreenInventory, previewExposure: SettingsPreviewExposure, domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+        self.previewExposure = previewExposure
         self.profileImport = profileImport
         self.dismissSpaces = dismissSpaces
         self.requestSecondary = requestSecondary
@@ -76,7 +78,7 @@ public struct SettingsView: View {
             appearance.tabItem { Text("显示器") }
             WorkspaceDisplaySettings(host:host,screens:screens,request:requestSecondary,dismiss:dismissSpaces, stillCurrent: inventory.contains).tabItem { Text("尺寸与呈现") }
             WorkspacePolicySettings(host:host).tabItem { Text("窗口规则") }
-            if let lab = domains?.workRect { CandidateWorkRectView(session: lab, host: host).tabItem { Text("窗口管理") } }
+            if let lab = domains?.workRect { CandidateWorkRectView(session: lab, host: host, previewExposure: previewExposure).tabItem { Text("窗口管理") } }
             desktopOptions.tabItem { Text("空间观察") }
             if domains?.candidate != true { mockSettings.tabItem { Text("Mock & diagnostics") } }
         }

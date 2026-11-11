@@ -13,6 +13,22 @@ func drainWindowEvents(_ seconds: Double) {
     } while ProcessInfo.processInfo.systemUptime < deadline
 }
 
+/// WindowServer can draw a closing animation after the original AX object is destroyed.
+/// Wait once for that transition, then confirm absence with two full AX/CG reads.
+func confirmedRemovalTimes(now: () -> TimeInterval, wait: (Double) -> Void,
+                           readAbsent: () throws -> Bool) throws -> (TimeInterval, TimeInterval) {
+    let deadline = now() + 0.8
+    while try !readAbsent() {
+        let remaining = deadline - now()
+        try require(remaining > 0, "关闭等待结束后 WindowServer 仍保留原窗口编号。")
+        wait(min(remaining, 0.08))
+    }
+    let first = now()
+    wait(0.095)
+    try require(try readAbsent(), "第二次读回时原窗口编号重新出现。")
+    return (first, now())
+}
+
 final class WindowMonitor {
     let id: ManagedWindowID, bundle: String, element: AXUIElement
     private let owner: OrdinaryOwnerIdentity
@@ -126,7 +142,7 @@ final class WindowMonitor {
               getppid() == parent else { throw Refusal("未取得原窗口的连续关闭见证。") }
         let notificationTime = destroyedAt
         let evidence: OrdinaryWindowClosure.Evidence = notificationTime == nil ? .invalidAXElement : .notification
-        func absence() throws -> TimeInterval {
+        func absent() throws -> Bool {
             try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
             if evidence == .invalidAXElement {
                 // A timeout, lost permission, or an empty AXWindows list is not invalidation.
@@ -140,13 +156,13 @@ final class WindowMonitor {
                 guard !CFEqual(candidate, element), let candidateNumber = number(candidate),
                       candidateNumber != id.number else { throw Refusal("原窗口或编号的归属仍不明确。") }
             }
-            try require(NPWindowNumberConfirmedAbsent(id.number) == 1, "WindowServer 尚未确认原窗口编号消失。")
+            let presence = NPReadWindowNumberPresence(id.number)
+            try require(presence >= 0, "无法读取 WindowServer 中原窗口编号的状态。")
             try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
-            return ProcessInfo.processInfo.systemUptime
+            return presence == 0
         }
-        let first = try absence()
-        drainWindowEvents(0.095)
-        let second = try absence()
+        let (first, second) = try confirmedRemovalTimes(now: { ProcessInfo.processInfo.systemUptime },
+                                                        wait: drainWindowEvents, readAbsent: absent)
         certifiedClosed = true
         return .init(id: id, destroyed: notificationTime ?? first, firstAbsent: first, secondAbsent: second, evidence: evidence)
     }

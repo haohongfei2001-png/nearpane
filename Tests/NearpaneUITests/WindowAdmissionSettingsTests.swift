@@ -60,6 +60,31 @@ import Testing
         #expect(active.choices.isEmpty && active.app == nil)
     }
 
+    @Test func withdrawnSettingsClearPrivateSelectionAndNeverResumeListingWithoutANewChoice() async {
+        let reader = Reader(), exposure = SettingsPreviewExposure()
+        let scope = AdmissionSelection(reader: reader, exposure: exposure)
+        var refreshes = 0
+        reader.refresh = { refreshes += 1; return [reader.row] }
+        func expose() { exposure.update(visible: true, miniaturized: false, appHidden: false, sessionUnavailable: false) }
+        scope.open()
+        #expect(reader.enumerations == 0 && !scope.opened)
+        for reason in 0..<4 {
+            expose()
+            #expect(!scope.opened && scope.app == nil)
+            scope.open()
+            await scope.select(reader.app)
+            scope.toggle(reader.row)
+            #expect(await scope.refresh(reader.app))
+            exposure.update(visible: reason != 0, miniaturized: reason == 1, appHidden: reason == 2, sessionUnavailable: reason == 3)
+            #expect(!scope.opened && scope.app == nil && scope.choices.isEmpty && scope.picks.isEmpty)
+            #expect(await !scope.refresh(reader.app))
+            expose()
+            await scope.select(reader.app)
+            #expect(await !scope.refresh(reader.app))
+            #expect(refreshes == reason + 1 && reader.enumerations == reason + 1)
+        }
+    }
+
     @Test func listingAndPickingNeverInspectAndRebuiltChoicesDoNotInheritSelection() async {
         let reader = Reader()
         let scope = AdmissionSelection(reader: reader)

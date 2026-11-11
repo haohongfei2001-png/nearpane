@@ -5,6 +5,25 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct ConfigurationTests {
+    @Test func failedWindowRuleSaveRetainsDraftForExplicitRetry() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = FileConfigurationStore(url: url), host = HostSession(store: store)
+        await host.start()
+        defer { host.stop() }
+        // A regular file's parent cannot be used as a directory. Exercise a real failed atomic save.
+        let parent = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: parent.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data([1]).write(to: parent, options: .withoutOverwriting)
+        var rules = host.configuration.workspaces
+        rules.excludedApps.insert("test.excluded")
+        #expect(!host.setWorkspacePreferences(rules))
+        #expect(host.unsavedWorkspacePreferences == rules && host.configuration.workspaces != rules)
+        try FileManager.default.removeItem(at: parent)
+        #expect(host.setWorkspacePreferences(host.workspacePreferencesDraft))
+        let persisted = try store.load().workspaces
+        #expect(host.unsavedWorkspacePreferences == nil && persisted == rules)
+    }
     @Test func preVisibilityConfigurationStillLoadsAndOversizedInputIsProtected() async throws {
         let url = temporaryURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

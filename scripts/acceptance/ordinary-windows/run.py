@@ -200,6 +200,8 @@ class Trial:
         env=dict(os.environ,NEARPANE_ACCEPTANCE_RUN=self.epoch, NEARPANE_MANAGEMENT_ACCEPTANCE=self.sid,
                  NEARPANE_ADMISSION_ACCEPTANCE=self.sid, NEARPANE_ORDINARY_ACCEPTANCE=self.sid,
                  NEARPANE_ORDINARY_PID=str(self.fixture.pid))
+        if getattr(self,"idle_review",False):
+            env["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"]=self.sid
         log=(OUT/("host-"+self.epoch+".log")).open("wb")
         self.host=sp.Popen(OFF+[self.hostexe,"--native-acceptance-secondary",self.sid],env=env,cwd=ROOT,stdout=log,stderr=log)
         self.hostpid=self.host.pid
@@ -488,7 +490,7 @@ if __name__ == "__main__":
     p.add_argument("--candidate",type=Path,default=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app")
     mode=p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--probe",action="store_true")
-    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe"])
+    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle"])
     args=p.parse_args()
     with (OUT/"run.txt").open("w") as fp: fp.write("probe" if args.probe else args.mode)
     print(OUT,flush=True)
@@ -497,6 +499,9 @@ if __name__ == "__main__":
         count = 2 if args.mode == "closure-probe" else (1 if args.mode in ("fault","floating") else 3)
         original=t.baseline(count, density=args.mode=="density")
         if args.mode=="density": t.density(original)
+        elif args.mode=="exclusion-idle":
+            from exclusion_idle import run
+            run(t, original, check=check, wait=wait, put=put, out=OUT, work=WORK)
         elif args.mode=="closure-probe":
             from membership import probe_registration
             probe_registration(t, original, check=check, put=put, out=OUT)
