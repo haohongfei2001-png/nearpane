@@ -227,14 +227,22 @@ extension VoiceTests {
         let dir = directory(); defer { try? FileManager.default.removeItem(at: dir) }
         weak var device: ScriptedInput?
         var denied = true
-        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) }, makeInput: { _, update in
+        var openingError: String?
+        let module = VoiceModule(openStore: {
+            openingError = nil
+            do { return try SaytileStore(directory: dir) }
+            catch {
+                openingError = String(describing: error)
+                throw error
+            }
+        }, makeInput: { _, update in
             let input = ScriptedInput(update)
             input.permissionDenied = denied
             device = input
             return input
         })
         try module.start()
-        for _ in 0..<16 {
+        for restart in 1...16 {
             await module.waitForTransition()
             await module.toggle()
             #expect(denied ? module.issue != nil && module.capture == .paused : module.capture == .listening)
@@ -246,7 +254,7 @@ extension VoiceTests {
             old.update(.speaking, 1, "retired input")
             #expect(old.closed)
             #expect(module.capture == .paused)
-            #expect(module.issue == nil)
+            #expect(module.issue == nil, "Restart \(restart), synthetic store reopen: \(openingError ?? "no error")")
             #expect(module.transcript.isEmpty)
             denied.toggle()
         }
