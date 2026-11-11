@@ -19,7 +19,7 @@ do {
         let verb = args[0], directory = URL(fileURLWithPath: args[1], isDirectory: true)
         let run: Run = try readJSON(directory, "run.json")
         if run.productManagement == true {
-            try require(["product-retired", "inspect", "observe", "recover", "candidate-layout", "candidate-pair", "candidate-adopt", "candidate-exit"].contains(verb),
+            try require(["product-retired", "product-presentation", "inspect", "observe", "recover", "candidate-layout", "candidate-pair", "candidate-adopt", "candidate-exit"].contains(verb),
                         "unsupported product action")
             _ = try Run.checked(directory)
         }
@@ -31,6 +31,8 @@ do {
             try require(gone || replacement.map { $0.start != owner.owner.start } == true,
                         "the enrolled process is still present or unavailable")
             try emit(["retired": true])
+        } else if verb == "product-presentation", run.productManagement == true {
+            try emit(try productPresentation(directory))
         } else if verb == "regular-compare" {
             let study=try RegularStudy(directory)
             do { try study.trial() }

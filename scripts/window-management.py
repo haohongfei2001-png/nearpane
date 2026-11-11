@@ -195,6 +195,25 @@ class Manager:
         self.count = len(key[2])
         return owner, config, key
 
+    def issue_ticket(self, owner, key, *, recovery=False):
+        pairs = key[2]
+        request = dict(owner, members=[m for m, _ in pairs], frames=[f for _, f in pairs])
+        save(self.directory / "presentation-request.json", request)
+        proof = self.control("product-presentation")
+        require(proof["session"].lower() == self.directory.name and proof["revision"] == owner["revision"],
+                "窗口呈现回执与当前会话不符")
+        save(self.directory / "presentation-result.json", proof)
+        observed = proof["confirmed"]
+        confirmed = [(o["member"], o["cg"]) for o in observed if o["onScreen"] is True and o["ax"] == o["cg"]]
+        require(len(confirmed) == len(observed) and confirmed == [p for p in pairs if p in confirmed],
+                "窗口呈现回执身份或几何不符")
+        require(confirmed and (confirmed == pairs or recovery), proof.get("refusal") or "窗口呈现尚未确认，暂不可管理")
+        current, _, current_key = self.snapshot()
+        require(current_key == key and not current.get("editing") and current.get("editTokens") == owner.get("editTokens")
+                and current["keyOrMain"] == owner["keyOrMain"], "窗口在呈现核对后发生变化")
+        require(0 <= time.clock_gettime(time.CLOCK_UPTIME_RAW) - proof["beganUptime"] <= 3, "窗口呈现观测已过期")
+        save(self.directory / "ticket.json", dict(request, members=[m for m, _ in confirmed], frames=[f for _, f in confirmed]))
+
     def apply(self, verb, approved=None):
         owner, config, key = self.snapshot()
         if approved is not None and (key != approved or owner.get("editing")):
@@ -203,7 +222,7 @@ class Manager:
         if not key[2]:
             self.last = key
             return True
-        save(self.directory / "ticket.json", dict(owner, members=[m for m, _ in key[2]], frames=[f for _, f in key[2]]))
+        self.issue_ticket(owner, key)
         save(self.directory / "candidate.json", dict(configuration=config, ratio=self.prefs["ratio"],
              swap=self.prefs["swap"], keepIntent=False))
         self.grant("restoring" if verb == "candidate-exit" else "active")
@@ -223,7 +242,7 @@ class Manager:
         if path.exists() and read(path)["status"] not in ("retained", "restored"):
             owner, config, key = self.snapshot()
             require(key[2], "恢复等待原窗口和权限")
-            save(self.directory / "ticket.json", dict(owner, members=[m for m, _ in key[2]], frames=[f for _, f in key[2]]))
+            self.issue_ticket(owner, key, recovery=True)
             save(self.directory / "candidate.json", dict(configuration=config, ratio=self.prefs["ratio"], swap=self.prefs["swap"], keepIntent=False))
             self.grant("restoring")
             result = self.control("recover")

@@ -22,7 +22,7 @@ extension NativeSpacesProvider {
                   let row = snapshot.native?.rows.first(where: { $0.displayID == display }),
                   row.anchor.witness == .ownedWindow, row.anchor.number == enrolled.number,
                   snapshot.windows.count == 1, let w = snapshot.windows.first, w.displayID == display,
-                  ManagedWindowID(w) == enrolled, w.metadata?.globalFrame == row.anchor.globalFrame,
+                  ManagedWindowID(w) == enrolled, w.metadata?.presentation == .confirmed, w.metadata?.globalFrame == row.anchor.globalFrame,
                   w.membership == .known(recordIDs: [row.recordID]),
                   let id = snapshot.workspaceID(display: display, record: row.recordID)
             else { throw WorkspaceFailure.membership }

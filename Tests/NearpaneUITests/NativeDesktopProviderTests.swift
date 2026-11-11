@@ -74,7 +74,7 @@ private actor Attempts {
             let anchor = ActiveSpaceAnchor(number: 44, displayID: "secondary", globalFrame: frame, witness: .appKitActiveList)
             s.windows = [.init(id: "w", displayID: "secondary", bounds: frame, membership: .known(recordIDs: ["8"]),
                                confidence: .corroboratedMetadata, metadata: .init(number: 44, pid: 721, launchMicroseconds: 123,
-                                   element: UUID(), globalFrame: frame, frontToBack: 0, minimized: false, fullScreen: false, axFrame: frame))]
+                                   element: UUID(), globalFrame: frame, frontToBack: 0, minimized: false, fullScreen: false, axFrame: frame, isOnscreen: true))]
             s.native?.rows = [.init(displayID: "secondary", scopeID: "scope", recordID: "8", anchor: anchor)]
             s.userSpaceSemantics = .witnessedCurrent
             return s

@@ -25,6 +25,18 @@ public struct CGWindowMetadata: Equatable, Sendable {
     }
 }
 
+/// CG reports the on-screen presentation. A matching window identity alone does not
+/// establish that its presentation is the ordinary AX window frame.
+public enum WindowPresentationGeometry: String, Sendable {
+    case confirmed, divergent, notOnScreen, unconfirmed
+
+    public init(cg: Rect, ax: Rect?, onScreen: Bool?) {
+        guard onScreen != false else { self = .notOnScreen; return }
+        guard onScreen == true, cg.isValid, let ax, ax.isValid else { self = .unconfirmed; return }
+        self = cg == ax ? .confirmed : .divergent
+    }
+}
+
 public struct AXWindowMetadata: Equatable, Sendable {
     public let process: ProcessIdentity
     /// Observer-local nonce bound to a retained AXUIElement, never an AX array index.
@@ -187,6 +199,9 @@ public enum TargetResolver {
         guard cg.layer == 0, cg.isOnscreen == true, cg.frontToBackIndex >= 0,
               ax.minimized == false, ax.subrole == "AXStandardWindow" else {
             throw TargetRejection.notVisibleStandardWindow
+        }
+        guard WindowPresentationGeometry(cg: cg.frame, ax: ax.frame, onScreen: cg.isOnscreen) == .confirmed else {
+            throw TargetRejection.insufficientEvidence
         }
         return WindowTarget(stamp: snapshot.stamp, cg: cg, ax: ax)
     }

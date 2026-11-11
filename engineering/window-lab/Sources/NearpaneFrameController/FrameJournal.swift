@@ -144,8 +144,9 @@ final class SessionFiles {
         for i in j.changes.indices.reversed() {
             let c = j.changes[i]
             if adapter.run.productManagement == true {
-                guard adapter.ticket.members.contains(c.member), let observed = try? adapter.observe(c.member),
-                      observed.onScreen && c.permitsProductRecovery(from: observed.cg, currentEdit: adapter.ticket.editTokens?[c.member.identifier]) else {
+                guard let index = adapter.ticket.members.firstIndex(of: c.member), adapter.ticket.frames.indices.contains(index),
+                      let observed = try? adapter.observe(c.member),
+                      observed.onScreen && observed.cg == adapter.ticket.frames[index] && c.permitsProductRecovery(from: observed.cg, currentEdit: adapter.ticket.editTokens?[c.member.identifier]) else {
                     deferred.append(c.member.id.number)
                     continue
                 }
@@ -205,6 +206,9 @@ final class SessionFiles {
     func begin(_ action: String) throws -> ActionReceipt {
         // Validate and journal the same observation. Reading a new baseline after approval would adopt a competing edit.
         let before = try observations()
+        if adapter.run.productManagement == true {
+            try require(before.map(\.cg) == adapter.ticket.frames, "窗口在呈现核对后发生变化")
+        }
         var state = try state(at: before, adopting: action == "candidate-adopt")
         let run = adapter.run, screens = run.screens, members = adapter.ticket.members
         let switching = action == "switch" || action == "switch-and-hold"

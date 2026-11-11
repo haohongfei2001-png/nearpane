@@ -16,15 +16,16 @@ struct NativeDesktopPreviewTests {
 
     func window(_ number: UInt32, _ frame: SurfaceRect, _ z: Int, _ membership: WindowMembership,
                 display: String = "portrait", pid: Int32 = 313, epoch: UInt64 = 810,
-                confidence: IdentityConfidence = .corroboratedMetadata, fullscreen: Bool? = false) -> WindowObservation {
+                confidence: IdentityConfidence = .corroboratedMetadata, fullscreen: Bool? = false,
+                axFrame: SurfaceRect? = nil, onScreen: Bool? = true) -> WindowObservation {
         let metadata = ObservedWindowMetadata(number: number, pid: pid, launchMicroseconds: epoch, element: UUID(),
-            globalFrame: frame, frontToBack: z, minimized: false, fullScreen: fullscreen, axFrame: frame)
+            globalFrame: frame, frontToBack: z, minimized: false, fullScreen: fullscreen, axFrame: axFrame ?? frame, isOnscreen: onScreen)
         return .init(id: "ref-\(number)", displayID: display,
             bounds: .init(x: frame.x + (display == portrait.id ? 800 : 0), y: frame.y, width: frame.width, height: frame.height),
             membership: membership, confidence: confidence, metadata: metadata)
     }
 
-    func sample(_ windows: [WindowObservation] = [], rows: [ObservedSpaceRow] = []) -> DesktopSnapshot {
+    func sample(_ windows: [WindowObservation] = [], rows: [ObservedSpaceRow] = [], stageManager: Bool? = nil) -> DesktopSnapshot {
         let request = DesktopReadRequest(session: UUID(), revision: 10, parentPID: 101, fixtureWindows: nil,
                                          anchors: rows.map(\.anchor), experimentalSpaces: true)
         return .observed(request, from: date, to: date, build: "fixture", topology: "two",
@@ -33,11 +34,41 @@ struct NativeDesktopPreviewTests {
                            records: ["3","4","5"].map { .init(id: $0, isCurrent: $0 == "3") }),
                      .init(id: "secondary", displayID: portrait.id, records: [.init(id: "9", isCurrent: true)])],
             windows: windows, evidence: .init(population: .workWindows, accessibility: .available, spaces: .observed,
-                                              rows: rows, windowLimitReached: false, beganUptime: 40, endedUptime: 41))
+                                              rows: rows, windowLimitReached: false, beganUptime: 40, endedUptime: 41, stageManagerEnabled: stageManager))
     }
 
     func preview(_ state: DesktopSnapshot) -> DesktopPreview? {
         DesktopPreview(snapshot: state, displayID: portrait.id, viewport: viewport, now: date, uptime: 42)
+    }
+
+    @Test func stageManagerDoesNotGrantOrRevokeIdentityOrPermissionByItself() throws {
+        let ax = SurfaceRect(x: -681, y: 64, width: 562, height: 422)
+        let cg = SurfaceRect(x: -64, y: 602, width: 49, height: 76)
+        let suspect = window(179888, cg, 0, .known(recordIDs: ["9"]), axFrame: ax)
+        let good = window(33, ax, 1, .known(recordIDs: ["9"]))
+        #expect(ManagedWindowID(suspect) != nil && suspect.metadata?.presentation == .divergent)
+        for mode: Bool? in [true, false, nil] {
+            let s = sample([suspect, good], rows: [proof], stageManager: mode)
+            let copy = try JSONDecoder().decode(DesktopSnapshot.self, from: JSONEncoder().encode(s))
+            #expect(copy == s && copy.native?.stageManagerEnabled == mode)
+            let p = try #require(preview(s))
+            #expect(p.rows[0].windows.count == 2)
+            #expect(p.hit(x: 75, y: 60, current: s, now: date, uptime: 42) == .blocked(suspect.id))
+            #expect(p.hit(x: 20, y: 12, current: s, now: date, uptime: 42) == .candidate(good.id))
+            for w in [suspect, good] {
+                let t = DesktopTarget(sessionID: s.sessionID, revision: s.revision, runtimeID: w.id)
+                #expect(s.containsObservation(w, target: t, now: date, uptime: 42) == (w == good))
+            }
+        }
+    }
+
+    @Test func legacyObservationWithoutVisibilityRemainsReadOnly() throws {
+        let w = window(1, .init(x: -560, y: 20, width: 300, height: 100), 0, .known(recordIDs: ["9"]), onScreen: nil)
+        let s = sample([w], rows: [proof])
+        let old = try JSONDecoder().decode(DesktopSnapshot.self, from: JSONEncoder().encode(s))
+        #expect(old.windows[0].metadata?.presentation == .unconfirmed)
+        let p = try #require(preview(old))
+        #expect(p.hit(x: 30, y: 5, current: old, now: date, uptime: 42) == .blocked(w.id))
     }
 
     @Test func linkedScopesAndUnwitnessedRecordsNeverProduceSpaceRows() throws {

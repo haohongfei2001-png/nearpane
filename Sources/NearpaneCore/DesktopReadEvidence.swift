@@ -1,9 +1,19 @@
+import CoreFoundation
 import Foundation
 import WindowGeometryCore
 
 public extension SurfaceRect {
     var geometry: Rect { Rect(x, y, width, height) }
     init(_ rect: Rect) { self.init(x: rect.x, y: rect.y, width: rect.width, height: rect.height) }
+}
+
+/// The preference describes this login's configuration, not the presentation of a particular window.
+public enum StageManagerPreference {
+    public static func read() -> Bool? {
+        guard let value = CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString),
+              CFGetTypeID(value) == CFBooleanGetTypeID() else { return nil }
+        return value as? Bool
+    }
 }
 
 public enum DesktopReadPopulation: String, Codable, Sendable { case workWindows, markedFixture }
@@ -17,13 +27,17 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let element: UUID?
     public let globalFrame: SurfaceRect
     public let axFrame: SurfaceRect?
+    public let isOnscreen: Bool?
+    public var presentation: WindowPresentationGeometry {
+        .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
+    }
     public let frontToBack: Int
     public let minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
-                frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil) {
+                frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil) {
         self.number = number; self.pid = pid; self.launchMicroseconds = launchMicroseconds; self.element = element
         self.globalFrame = globalFrame; self.frontToBack = frontToBack; self.minimized = minimized; self.fullScreen = fullScreen
-        self.axFrame = axFrame
+        self.axFrame = axFrame; self.isOnscreen = isOnscreen
     }
 }
 
@@ -69,11 +83,14 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     public let accessibility: AXReadStatus
     public var spaces: SpaceReadStatus
     public var rows: [ObservedSpaceRow]
+    /// Read-only system preference, independent of any individual window's presentation.
+    public let stageManagerEnabled: Bool?
     public let windowLimitReached: Bool
     public let beganUptime, endedUptime: Double
 
     public init(population: DesktopReadPopulation, accessibility: AXReadStatus, spaces: SpaceReadStatus,
-                rows: [ObservedSpaceRow], windowLimitReached: Bool, beganUptime: Double, endedUptime: Double) {
+                rows: [ObservedSpaceRow], windowLimitReached: Bool, beganUptime: Double, endedUptime: Double, stageManagerEnabled: Bool? = nil) {
+        self.stageManagerEnabled = stageManagerEnabled
         self.population = population; self.accessibility = accessibility; self.spaces = spaces; self.rows = rows
         self.windowLimitReached = windowLimitReached; self.beganUptime = beganUptime; self.endedUptime = endedUptime
     }
@@ -103,7 +120,7 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
                 guard population == .workWindows, snapshot.windows.contains(where: {
                     $0.metadata?.number == row.anchor.number && $0.metadata?.globalFrame == row.anchor.globalFrame &&
                     $0.displayID == row.displayID && $0.confidence == .corroboratedMetadata &&
-                    $0.metadata?.fullScreen == false && $0.metadata?.minimized == false &&
+                    $0.metadata?.presentation == .confirmed && $0.metadata?.fullScreen == false && $0.metadata?.minimized == false &&
                     $0.membership == .known(recordIDs: [row.recordID])
                 }) else { return false }
             }
@@ -115,7 +132,7 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
                   m.globalFrame.geometry.intersection(display.frame.geometry) != nil,
                   w.bounds == SurfaceRect(x: m.globalFrame.x - display.frame.x, y: m.globalFrame.y - display.frame.y,
                                           width: m.globalFrame.width, height: m.globalFrame.height) else { return false }
-            if let ax = m.axFrame, !ax.geometry.isValid || ax.geometry.componentError(from: m.globalFrame.geometry) > 2 { return false }
+            if let ax = m.axFrame, !ax.geometry.isValid { return false }
             if w.confidence == .corroboratedMetadata && (m.element == nil || m.axFrame == nil || (m.launchMicroseconds ?? 0) == 0) { return false }
             if case let .known(ids) = w.membership {
                 return spaces == .observed && !ids.isEmpty && Set(ids).count == ids.count
@@ -140,7 +157,8 @@ public extension DesktopSnapshot {
     /// A reference is meaningful only during this exact sample, including the process and AX incarnation.
     func containsObservation(_ window: WindowObservation, target: DesktopTarget, now: Date, uptime: Double) -> Bool {
         guard nativeIsFresh(now: now, uptime: uptime), target.sessionID == sessionID, target.revision == revision,
-              target.runtimeID == window.id, window.confidence == .corroboratedMetadata else { return false }
+              target.runtimeID == window.id, window.confidence == .corroboratedMetadata,
+              window.metadata?.presentation == .confirmed else { return false }
         return windows.first(where: { $0.id == target.runtimeID }) == window
     }
 

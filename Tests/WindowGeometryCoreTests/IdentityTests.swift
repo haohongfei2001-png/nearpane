@@ -148,6 +148,14 @@ struct IdentityTests {
         }
     }
 
+    @Test func identityMatchingToleranceDoesNotAdmitDivergentPresentation() throws {
+        let moving = snapshot(ax: [ax(frame: Rect(-499, 80, 400, 300))])
+        #expect(WindowMatcher.matches(cg: moving.cg, ax: moving.ax)[0].confidence == .corroboratedMetadata)
+        rejection(.insufficientEvidence) { _ = try issue(moving) }
+        rejection(.invalidSnapshot) { _ = try issue(snapshot(consistent: false)) }
+        #expect(try issue(snapshot(revision: 2)).stamp.revision == 2)
+    }
+
     @Test func testZeroIDInvalidFrameAndNonwindowRoleCannotMatch() {
         #expect(WindowMatcher.matches(cg: [cg(id: 0)], ax: [ax()])[0].confidence == .unknown)
         #expect(WindowMatcher.matches(cg: [cg(frame: Rect(0, 0, 0, 0))], ax: [ax()])[0].confidence == .unknown)

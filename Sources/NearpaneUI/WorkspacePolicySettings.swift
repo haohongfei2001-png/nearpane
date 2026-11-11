@@ -37,6 +37,18 @@ struct WorkspacePolicySettings: View {
                         Button("取消排除") { edit { $0.excludedApps.remove(bundle) } }
                     }
                 }
+                if let s = host.bus.desktop, let evidence = s.native {
+                    let mode = evidence.stageManagerEnabled.map { $0 ? "开启" : "关闭" } ?? "未知"
+                    Text("采样时台前调度状态：\(mode)").font(.caption)
+                    if !s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime) {
+                        Text("窗口观测尚未稳定，暂不可纳入管理。").font(.caption)
+                    } else {
+                        let count = s.windows.filter { $0.metadata?.presentation != .confirmed }.count
+                        if count > 0 {
+                            Text("\(count) 扇窗口的屏幕位置未确认，暂不可管理。").font(.caption)
+                        }
+                    }
+                }
                 if let s = host.bus.desktop, s.isStructurallyValid,
                     s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime)
                 {
@@ -46,6 +58,7 @@ struct WorkspacePolicySettings: View {
                                 Text("进程 \(id.pid) · 窗口 \(id.number)")
                                 Button("排除此窗") { setRule(.exclude, id: id, snapshot: s) }
                                 Button("纳入此窗") { setRule(.include, id: id, snapshot: s) }
+                                    .disabled(w.metadata?.presentation != .confirmed)
                             }
                         }
                     }
@@ -67,7 +80,7 @@ struct WorkspacePolicySettings: View {
     private func setRule(_ rule: WindowRule, id: ManagedWindowID, snapshot: DesktopSnapshot) {
         guard host.bus.desktop == snapshot,
             snapshot.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime),
-            snapshot.windows.contains(where: { ManagedWindowID($0) == id })
+            snapshot.windows.contains(where: { ManagedWindowID($0) == id && (rule == .exclude || $0.metadata?.presentation == .confirmed) })
         else { return }
         edit { $0.windows[id] = rule }
     }

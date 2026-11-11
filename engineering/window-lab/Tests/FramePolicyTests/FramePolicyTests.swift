@@ -123,3 +123,21 @@ extension FramePolicyTests {
         #expect(!change.permitsProductRecovery(from: automatic, currentEdit: nil))
     }
 }
+
+extension FramePolicyTests {
+    @Test func stabilityRequiresTwoVisibleReadbacksOfTheApprovedOwnerFrame() {
+        let ax = SurfaceRect(x: -681, y: 64, width: 562, height: 422)
+        let small = SurfaceRect(x: -64, y: 602, width: 49, height: 76)
+        let area = SurfaceRect(x: -800, width: 800, height: 1280)
+        let approved = Observation(member: member, cg: ax, ax: ax, onScreen: true)
+        let mismatch = Observation(member: member, cg: small, ax: ax, onScreen: true)
+        let undersized = Observation(member: member, cg: small, ax: small, onScreen: true)
+        let absent = Observation(member: member, cg: ax, ax: ax, onScreen: false)
+        for bad in [mismatch, undersized, absent] {
+            #expect(!bad.confirmsPresentation(after: bad, member: member, ownerFrame: bad.cg, usable: area))
+            #expect(!approved.confirmsPresentation(after: bad, member: member, ownerFrame: ax, usable: area))
+        }
+        #expect(!approved.confirmsPresentation(after: approved, member: member, ownerFrame: small, usable: area))
+        #expect(approved.confirmsPresentation(after: approved, member: member, ownerFrame: ax, usable: area))
+    }
+}

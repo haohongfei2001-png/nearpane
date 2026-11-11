@@ -60,7 +60,7 @@ public struct DesktopPreview: Sendable {
                 // Unassigned shapes may occlude a physical point. They cannot become a target behind a front window.
                 regions.append(.init(key: w.id, bounds: geometry, frontToBackIndex: m.frontToBack,
                     identityEligible: plan.1 != .visibleDisplay && belongs && w.confidence == .corroboratedMetadata &&
-                                      m.minimized == false && m.fullScreen == false))
+                                      m.presentation == .confirmed && m.minimized == false && m.fullScreen == false))
                 if belongs { shapes.append(.init(id: w.id, frame: SurfaceRect(geometry), confidence: w.confidence)) }
             }
             let rowFrame = rowViewport.map { full in
@@ -92,7 +92,7 @@ public extension DesktopSnapshot {
         }
         let records = Set(native.rows.filter { $0.displayID == displayID }.map(\.recordID))
         let eligible = onDisplay.filter { w in
-            guard ManagedWindowID(w) != nil, case let .known(ids) = w.membership else { return false }
+            guard w.metadata?.presentation == .confirmed, ManagedWindowID(w) != nil, case let .known(ids) = w.membership else { return false }
             return ids.count == 1 && records.contains(ids[0])
         }
         // A lone witnessed current record says nothing about the number of other desktops.

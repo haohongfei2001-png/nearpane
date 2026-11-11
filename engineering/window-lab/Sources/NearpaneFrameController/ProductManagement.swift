@@ -4,6 +4,46 @@ import Darwin
 import NearpaneCore
 import WindowLab
 
+struct PresentationReceipt: Encodable {
+    let session: UUID, revision: Int, beganUptime: Double
+    let stageManagerEnabled: Bool?
+    var confirmed = [Observation]()
+    var unconfirmed = [Observation]()
+    var refusal: String?
+}
+
+/// Observe only the named enrollment. A failed member may be deferred during crash
+/// recovery; a layout transaction requires all its members. Neither sample can write.
+@MainActor func productPresentation(_ directory: URL) throws -> PresentationReceipt {
+    let adapter = try FixtureAdapter(directory, observationOnly: true)
+    let request = adapter.ticket
+    try require(adapter.run.productManagement == true && !request.members.isEmpty
+                && request.members.count == request.frames.count, "窗口观测清单无效")
+    try adapter.requireAccess()
+    let began = ProcessInfo.processInfo.systemUptime
+    let stageBefore = StageManagerPreference.read()
+    let first = request.members.map { member in Result { try adapter.presentationSample(member) } }
+    Thread.sleep(forTimeInterval: 0.08)
+    var result = PresentationReceipt(session: request.session, revision: request.revision, beganUptime: began, stageManagerEnabled: stageBefore)
+    for (index, member) in request.members.enumerated() {
+        do {
+            let before = try first[index].get()
+            let after = try adapter.presentationSample(member)
+            guard after.confirmsPresentation(after: before, member: member, ownerFrame: request.frames[index],
+                                             usable: adapter.run.screens.usable) else {
+                result.unconfirmed.append(after)
+                throw Refusal(after.ax != after.cg ? "应用与屏幕报告的窗口位置或大小不一致，暂不可管理" :
+                                "窗口呈现不稳定、不可见或超出管理范围，暂不可管理")
+            }
+            result.confirmed.append(after)
+        } catch { result.refusal = result.refusal ?? String(describing: error) }
+    }
+    try adapter.freshness()
+    try require(stageBefore == StageManagerPreference.read(), "台前调度设置发生变化，暂不可管理")
+    try require(ProcessInfo.processInfo.systemUptime - began <= 3, "窗口呈现观测已过期")
+    return result
+}
+
 struct ManagementGrant: Codable {
     let session: UUID, display: String, writer: ProcessBirth
     let mode: String

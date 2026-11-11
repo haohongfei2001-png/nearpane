@@ -127,6 +127,7 @@ struct Reader {
               console?["CGSSessionScreenIsLocked"] as? Bool != true else { throw DesktopActionError.unsupported }
         #endif
         let build = clock.operatingSystemVersionString
+        let stageBefore = StageManagerPreference.read()
         let from = Date(), start = clock.systemUptime, before = try Topology(), list = try visible()
         var status: SpaceReadStatus = .disabled
         if request.experimentalSpaces {
@@ -143,7 +144,8 @@ struct Reader {
         let second = first?.inventory == nil ? nil : SpaceBoundary.read(displays: before.displays, windowIDs: ids)
         let activeAfter = status == .observed ? activeNumbers() : []
         let again = try visible(), topology = try Topology(), end = clock.systemUptime
-        let stable = before == topology && list == again && end-start <= 3
+        let stageAfter = StageManagerPreference.read()
+        let stable = before == topology && list == again && stageBefore == stageAfter && end-start <= 3
         if status == .observed {
             if first?.inventory == nil || second?.inventory == nil { status = .unavailable }
             else if !stable || first != second { status = .unstable }
@@ -173,8 +175,8 @@ struct Reader {
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: element?.elementToken,
                 globalFrame: SurfaceRect(entry.frame), frontToBack: entry.frontToBackIndex,
                 minimized: element?.minimized, fullScreen: element.flatMap { ax.fullScreen[$0.elementToken] },
-                axFrame: element?.frame.map(SurfaceRect.init))
-            if confidence == .corroboratedMetadata, element?.subrole == "AXStandardWindow",
+                axFrame: element?.frame.map(SurfaceRect.init), isOnscreen: entry.isOnscreen)
+            if confidence == .corroboratedMetadata, data.presentation == .confirmed, element?.subrole == "AXStandardWindow",
                data.fullScreen == false, data.minimized == false, entry.process.pid != request.parentPID,
                activeBefore.contains(entry.windowID), activeAfter.contains(entry.windowID) {
                 candidates.append(.init(number: entry.windowID, displayID: display.id, globalFrame: data.globalFrame, witness: .appKitActiveList))
@@ -190,7 +192,8 @@ struct Reader {
         return .observed(request, from: from, to: Date(), build: build, topology: before.fingerprint, consistent: stable && status != .unstable,
                          separateSpaces: before.separateSpaces, displays: before.displays, scopes: scopes, windows: windows,
                          evidence: .init(population: request.fixtureWindows == nil ? .workWindows : .markedFixture, accessibility: ax.status,
-                                         spaces: status, rows: rows, windowLimitReached: list.limited, beganUptime: start, endedUptime: end))
+                                         spaces: status, rows: rows, windowLimitReached: list.limited, beganUptime: start, endedUptime: end,
+                                         stageManagerEnabled: stageBefore == stageAfter ? stageAfter : nil))
     }
 }
 

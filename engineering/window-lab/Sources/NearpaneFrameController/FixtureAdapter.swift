@@ -2,19 +2,33 @@ import AppKit
 import ApplicationServices
 import Darwin
 import NearpaneCore
+import WindowGeometryCore
 import WindowLab
 
-struct Observation: Codable {
+struct Observation: Codable, Equatable {
     let member: Member, cg: SurfaceRect, ax: SurfaceRect?, onScreen: Bool
+
+    var hasManageablePresentation: Bool {
+        WindowPresentationGeometry(cg: cg.geometry, ax: ax?.geometry, onScreen: onScreen) == .confirmed &&
+            cg.width >= member.minimum.width && cg.height >= member.minimum.height
+    }
+
+    func confirmsPresentation(after first: Self, member expected: Member, ownerFrame: SurfaceRect, usable: SurfaceRect) -> Bool {
+        self == first && member == expected && hasManageablePresentation && cg == ownerFrame &&
+            usable.geometry.intersection(cg.geometry) == cg.geometry
+    }
 }
 
 @MainActor final class FixtureAdapter {
     let directory: URL, run: Run, ticket: OwnerState
     private(set) var setters = 0
     let acceptsAX: Bool
-    init(_ directory: URL, acceptsAX: Bool = true) throws {
+    private let observationOnly: Bool
+    init(_ directory: URL, acceptsAX: Bool = true, observationOnly: Bool = false) throws {
         self.acceptsAX = acceptsAX
-        self.directory = directory; run = try .checked(directory); ticket = try readJSON(directory, "ticket.json")
+        self.observationOnly = observationOnly
+        self.directory = directory; run = try .checked(directory)
+        ticket = try readJSON(directory, observationOnly ? "presentation-request.json" : "ticket.json")
         try freshness()
     }
     func freshness(_ member: Member? = nil) throws {
@@ -74,7 +88,7 @@ struct Observation: Codable {
         try require(role == kAXWindowRole && subrole == kAXStandardWindowSubrole, "fixture AX role \(role ?? "missing") / \(subrole ?? "missing")")
         return w
     }
-    private func bound(_ m: Member) throws -> (AXUIElement, Observation) {
+    private func measured(_ m: Member) throws -> (AXUIElement, Observation) {
         let observation = try cg(m)
         let w = try element(m)
         // Some ordinary AppKit windows omit AXFullScreen. The owner heartbeat independently checks the
@@ -88,8 +102,18 @@ struct Observation: Codable {
             throw Refusal("AX geometry unavailable")
         }
         let ax = SurfaceRect(x: pos.x, y: pos.y, width: size.width, height: size.height)
-        try require(ax == observation.cg, "AX and CG disagree")
-        return (w, .init(member: m, cg: observation.cg, ax: ax, onScreen: observation.onScreen))
+        return (w, Observation(member: m, cg: observation.cg, ax: ax, onScreen: observation.onScreen))
+    }
+
+    func presentationSample(_ m: Member) throws -> Observation { try measured(m).1 }
+
+    private func bound(_ m: Member) throws -> (AXUIElement, Observation) {
+        let (w, result) = try measured(m)
+        try require(result.ax == result.cg, "应用与屏幕报告的窗口位置或大小不一致，暂不可管理")
+        if run.productManagement == true {
+            try require(result.hasManageablePresentation, "窗口当前不可见或小于已登记的最小尺寸，暂不可管理")
+        }
+        return (w, result)
     }
     func observe(_ m: Member) throws -> Observation { try bound(m).1 }
     func writable(_ m: Member) throws {
@@ -101,6 +125,7 @@ struct Observation: Codable {
         }
     }
     func set(_ m: Member, from old: SurfaceRect, to next: SurfaceRect, parking: Bool) throws -> Observation {
+        try require(!observationOnly, "只读呈现采样没有写入权限")
         try FramePolicy.validateStep(old, next, member: m, screens: run.screens, parking: parking)
         let (window, before) = try bound(m)
         try require(before.cg == old, "frame changed since confirmation")
