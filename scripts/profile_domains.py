@@ -298,7 +298,7 @@ def settings(root):
             isinstance(cfg.get("modules"), list) and isinstance(cfg.get("displays", {}), dict),
             "Host 设置版本或结构无法识别。")
     cfg = {k: v for k, v in cfg.items() if k in {"version","edge","preferredDisplayID","surfaceHidden",
-           "candidateTrayConnected","workspaces","displays","modules","fixture"}}
+           "candidateTrayConnected","workspaces","displays","modules","fixture","clockTimeZoneID"}}
     cfg["experimentalSpaceObservation"] = False
     ws = cfg.get("workspaces", {})
     cfg["workspaces"] = {k: v for k, v in ws.items() if k in ("excludedApps", "newWindow", "overflow")}

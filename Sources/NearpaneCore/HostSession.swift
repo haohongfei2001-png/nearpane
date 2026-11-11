@@ -35,6 +35,7 @@ public final class HostSession {
     @ObservationIgnored private var desktopPauses = Set<DesktopObservationPause>()
 
     public init(store: any ConfigurationStore, provider: (any DesktopObservationProvider)? = nil,
+                includeSampleModules: Bool = true,
                 coreFactories: [String: @MainActor () -> any HostModule] = [:]) {
         let diagnostics = Diagnostics()
         let bus = SnapshotBus(diagnostics: diagnostics)
@@ -48,11 +49,12 @@ public final class HostSession {
             registry?.permissionRevoked(key.moduleID)
             diagnostics?.record(.permissionChanged, moduleID: key.moduleID)
         }
-        for manifest in BuiltinCatalog.manifests {
+        for manifest in includeSampleModules ? BuiltinCatalog.manifests : BuiltinCatalog.productManifests {
             // Static catalog registration failures are programmer errors caught by the catalog tests.
             do {
                 try registry.register(manifest) {
                     if manifest.kind == .core, let factory = coreFactories[manifest.id] { return factory() }
+                    if manifest.id == BuiltinCatalog.clock { return LocalClockModule() }
                     return SampleModule(message: manifest.kind == .core ? "Domain adapter not connected." : "Synthetic module content. No account or data source is connected.")
                 }
             } catch { diagnostics.record(.moduleFailed, moduleID: manifest.id) }
@@ -125,6 +127,13 @@ public final class HostSession {
         next.displays[id] = value
         persistSettings(next)
     }
+
+    public func setClockTimeZone(_ id: String?) {
+        guard configuration.clockTimeZoneID != id, id.map(TimeZone.knownTimeZoneIdentifiers.contains) ?? true else { return }
+        var next = configuration
+        next.clockTimeZoneID = id
+        persistSettings(next, updatePresentation: false)
+    }
     public func updatePanelContents(_ contents: [String: PanelContent]) {
         if panelContents != contents { panelContents = contents }
     }
@@ -137,13 +146,13 @@ public final class HostSession {
         var next = configuration; next.workspaces = value
         persistSettings(next)
     }
-    private func persistSettings(_ next: HostConfiguration) {
+    private func persistSettings(_ next: HostConfiguration, updatePresentation: Bool = true) {
         guard isRunning, !configurationProtected else { return }
         do {
             try store.save(next.validated())
             configuration = next
             configurationSaveFailed = false
-            presentationChanged?()
+            if updatePresentation { presentationChanged?() }
         } catch {
             configurationSaveFailed = true
             diagnostics.record(.configurationWriteFailed)
@@ -274,7 +283,11 @@ public final class HostSession {
     }
 
     private func persistModulePreferences() {
-        configuration.modules = registry.preferences
+        // Keep retired sample settings in their old slots for an Alpha rollback.
+        // Those IDs have no factory or action route in the ordinary candidate.
+        let inactive = Set(BuiltinCatalog.manifests.map(\.id)).subtracting(registry.manifests.map(\.id))
+        var current = registry.preferences.makeIterator()
+        configuration.modules = configuration.modules.compactMap { inactive.contains($0.id) ? $0 : current.next() } + Array(current)
         save()
     }
 }

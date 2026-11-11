@@ -24,32 +24,58 @@ struct PanelCapturePresentation: Equatable {
 protocol VoiceInput: AnyObject {
     func start(requestPermission: Bool) async throws
     func pause() async
-    func retry(_ id: UUID) async
+    func retry(_ id: UUID) async throws
+    func revokeCloud()
+    func configure(_ configuration: RecognitionConfiguration) async
     func shutdown() async
 }
 
 @MainActor
 private final class DomainInput: VoiceInput {
     let audio: AudioController
+    private let recordings: SaytileStore
     var observation: AnyCancellable?
     private let requireExistingPermissions: Bool
-    init(store: SaytileStore, requireExistingPermissions: Bool, changed: @escaping (CaptureState, Float, String?) -> Void) {
-        // Never load the standalone app's defaults, credentials, direct input target or cloud consents.
+    private let profile: VoiceRecognitionProfile?
+    private var configuration = RecognitionConfiguration()
+    init(store: SaytileStore, requireExistingPermissions: Bool, profile: VoiceRecognitionProfile?,
+         credentials: NearpaneVoiceCredentials?, changed: @escaping (CaptureState, Float, String?) -> Void) {
+        self.profile = profile
+        recordings = store
         self.requireExistingPermissions = requireExistingPermissions
-        audio = AudioController(store: store, recognitionConfiguration: RecognitionConfiguration())
+        audio = credentials?.controller(store: store, configuration: configuration)
+            ?? AudioController(store: store, recognitionConfiguration: configuration)
         observation = Publishers.CombineLatest3(audio.$state, audio.$level, audio.$issue).sink {
             changed($0, $1, $2)
         }
     }
     func start(requestPermission: Bool) async throws {
         // Do not trigger engine asset installation as a side effect of trying the voice button.
-        let availability = await AppleSpeechService.availability()
-        guard availability.installed else { throw AudioFailure.message(availability.message) }
+        try await prepareConfiguration()
+        if !configuration.cloudEnabled {
+            let availability = await AppleSpeechService.availability()
+            guard availability.installed else { throw AudioFailure.message(availability.message) }
+        }
         try Task.checkCancellation()
         await audio.start(requestPermission: requestPermission && !requireExistingPermissions)
     }
     func pause() async { await audio.pause() }
-    func retry(_ id: UUID) async { await audio.retry(recordingID: id) }
+    func retry(_ id: UUID) async throws {
+        let selected = try profile?.configurationForInput() ?? RecognitionConfiguration()
+        await configure(selected)
+        let expected = try await VoiceRecognitionProfile.retryConfiguration(selected, for: id, in: recordings)
+        await audio.retry(recordingID: id, expectedConfiguration: expected)
+    }
+    private func prepareConfiguration() async throws {
+        guard let profile else { return }
+        try await configure(profile.configurationForInput())
+    }
+    func revokeCloud() { audio.revokeCloudRecognition() }
+    func configure(_ value: RecognitionConfiguration) async {
+        guard configuration != value else { return }
+        configuration = value
+        await audio.setRecognitionConfiguration(value)
+    }
     func shutdown() async { observation = nil; await audio.shutdown() }
 }
 
@@ -62,6 +88,8 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private var panelReads = 0
     @ObservationIgnored private var waitingForPanelReads: CheckedContinuation<Void, Never>?
     @ObservationIgnored private var input: (any VoiceInput)?
+    private(set) var recognitionProfile: VoiceRecognitionProfile?
+    private(set) var changingRecognition = false
     @ObservationIgnored private var transition: Task<Void, Never>?
     @ObservationIgnored private var updates: Task<Void, Never>?
     @ObservationIgnored private var draftWrite: Task<Void, Never>?
@@ -83,7 +111,10 @@ public final class VoiceModule: HostModule {
     private(set) var issue: String?
     public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
 
-    public convenience init(directory: URL, requireExistingPermissions: Bool = false) {
+    public convenience init(directory: URL, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false) {
+        let credentials = allowAPISettings && !requireExistingPermissions
+            ? NearpaneVoiceCredentials(profileID: VoiceRecognitionProfile.identifier(for: directory)) : nil
+        let profile = credentials.map { VoiceRecognitionProfile(directory: directory, credentials: $0) }
         self.init(openStore: {
             let parent = directory.deletingLastPathComponent()
             if (try? parent.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
@@ -91,10 +122,14 @@ public final class VoiceModule: HostModule {
             }
             return try SaytileStore(directory: directory)
         },
-                  makeInput: { DomainInput(store: $0, requireExistingPermissions: requireExistingPermissions, changed: $1) })
+                  makeInput: { DomainInput(store: $0, requireExistingPermissions: requireExistingPermissions,
+                                           profile: profile, credentials: credentials, changed: $1) })
+        recognitionProfile = profile
     }
-    init(openStore: @escaping () throws -> SaytileStore, makeInput: @escaping MakeInput) {
+    init(openStore: @escaping () throws -> SaytileStore, recognitionProfile: VoiceRecognitionProfile? = nil,
+         makeInput: @escaping MakeInput) {
         self.openStore = openStore; self.makeInput = makeInput
+        self.recognitionProfile = recognitionProfile
     }
 
     public func start() throws {
@@ -186,7 +221,7 @@ public final class VoiceModule: HostModule {
     }
 
     func toggle(requestPermission: Bool = true) async {
-        guard active, !busy else { return }
+        guard active, !busy, !changingRecognition else { return }
         busy = true
         let epoch = generation
         defer { if generation == epoch { busy = false } }
@@ -263,14 +298,43 @@ public final class VoiceModule: HostModule {
         limit += 60; await refresh()
     }
     func retry(_ id: UUID) async {
-        guard active, !busy, rows.contains(where: { $0.id == id && $0.recognitionState == .failed }) else { return }
+        guard active, !busy, !changingRecognition, rows.contains(where: { $0.id == id && $0.recognitionState == .failed }) else { return }
+        if recognitionProfile?.enabled == true, capture == .speaking || capture == .starting {
+            issue = "请等待本次讲话结束后重试。"
+            return
+        }
+        busy = true
         let epoch = generation
+        defer { if epoch == generation { busy = false } }
         do {
             let device = try currentInput()
-            await device.retry(id)
+            try await device.retry(id)
             guard active, epoch == generation else { return }
             trackRevisions(); await refresh()
-        } catch { if epoch == generation { issue = "无法重试；文字和原音保留在资料库中。" } }
+        } catch { if epoch == generation { issue = error.localizedDescription } }
+    }
+
+    func enableAPI(language: LanguagePreference, workspace: String, region: String, expertKey: String,
+                   fusionKey: String, consent: Bool) async throws {
+        guard let recognitionProfile, !busy, !changingRecognition, capture == .paused else {
+            throw AudioFailure.message("请先暂停收音，再启用 API。")
+        }
+        changingRecognition = true
+        defer { changingRecognition = false }
+        let value = try recognitionProfile.enable(language: language, workspace: workspace, region: region,
+                                                  expertKey: expertKey, fusionKey: fusionKey, consent: consent)
+        await input?.configure(value)
+    }
+
+    func disableAPI() async throws {
+        guard let recognitionProfile, !changingRecognition else { throw AudioFailure.message("语音设置正在更新。") }
+        changingRecognition = true
+        defer { changingRecognition = false }
+        let current = input
+        current?.revokeCloud()
+        let result = Result { try recognitionProfile.disable() }
+        await current?.configure(RecognitionConfiguration())
+        try result.get()
     }
     func editText(_ id: UUID) async -> String? {
         guard active, let store, let row = rows.first(where: { $0.id == id }) else { return nil }

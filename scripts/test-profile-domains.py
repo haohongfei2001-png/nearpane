@@ -156,7 +156,7 @@ class Domains(unittest.TestCase):
     def test_display_and_explicit_layout_survive_but_window_permission_retires(self):
         cfg = domain.obj(self.data / domain.CONFIG)
         display = str(uuid.uuid4())
-        cfg.update(preferredDisplayID=display, surfaceHidden=True)
+        cfg.update(preferredDisplayID=display, surfaceHidden=True, clockTimeZoneID="Asia/Shanghai")
         cfg["displays"] = {display: {"placement":"floating","measures":["panelWidth",{"value":20,"unit":"pt"}]}}
         cfg["workspaces"].update(excludedApps=["com.example.private"],windows=[{"pid":122,"launch":2,"number":9,"element":str(uuid.uuid4())},"include"])
         (self.data / domain.CONFIG).write_text(json.dumps(cfg))
@@ -168,6 +168,7 @@ class Domains(unittest.TestCase):
         out = domain.obj(self.dest/domain.CONFIG)
         self.assertEqual(out["displays"],cfg["displays"])
         self.assertEqual(out["preferredDisplayID"],display)
+        self.assertEqual(out["clockTimeZoneID"],"Asia/Shanghai")
         self.assertTrue(out["surfaceHidden"])
         self.assertEqual(out["workspaces"]["excludedApps"],["com.example.private"])
         self.assertEqual(out["workspaces"]["windows"],[])

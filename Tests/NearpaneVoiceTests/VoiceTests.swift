@@ -20,6 +20,10 @@ final class ScriptedInput: VoiceInput {
     }
     func pause() async { update(.paused, 0, nil) }
     func retry(_ id: UUID) async { retried = id }
+    var configurations: [Bool] = []
+    var revocations = 0
+    func revokeCloud() { revocations += 1 }
+    func configure(_ configuration: RecognitionConfiguration) async { configurations.append(configuration.cloudEnabled) }
     func shutdown() async { closed = true; onShutdown?() }
 }
 

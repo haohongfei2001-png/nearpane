@@ -202,6 +202,26 @@ def tray_bindings(cache, pin):
         require((dest / path).is_symlink() and (dest / path).resolve(strict=True) == target, f"Invalid bridge link: {path}")
 
 
+def voice_bindings(cache, pin):
+    # Keep the domain's internal dependency-injection API in its own Swift module.
+    # The verified upstream directory remains byte-for-byte intact.
+    dest = cache / ("voice-" + key(pin))
+    links = {"Upstream": cache / key(pin) / "Sources/SaytileKit",
+             "Nearpane": ROOT / "Sources/NearpaneSaytileBridge"}
+    if not dest.exists():
+        with tempfile.TemporaryDirectory(prefix=".bindings-", dir=cache) as work:
+            stage = Path(work) / "voice"
+            stage.mkdir()
+            for name, target in links.items():
+                (stage / name).symlink_to(os.path.relpath(target, dest))
+            stage.rename(dest)
+    require(not dest.is_symlink() and {p.name for p in dest.iterdir()} == set(links),
+            "Unexpected entry in the SaytileKit binding")
+    for name, target in links.items():
+        require((dest / name).is_symlink() and (dest / name).resolve(strict=True) == target,
+                f"Invalid SaytileKit bridge link: {name}")
+
+
 def package_resources(resources, pins, directories):
     bundled = {
         "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
@@ -278,6 +298,7 @@ def main():
             require(len({(p / "Sources/CSQLite" / filename).read_bytes() for p in directories.values()}) == 1,
                     "Pinned SQLite module definitions no longer match")
         tray_bindings(cache, pins["riftlet"])
+        voice_bindings(cache, pins["saytile"])
         if args.package_resources:
             package_resources(args.package_resources, pins, directories)
 

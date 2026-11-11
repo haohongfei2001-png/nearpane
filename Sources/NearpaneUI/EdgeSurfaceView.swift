@@ -101,20 +101,35 @@ public struct EdgeSurfaceView: View {
                     Button {
                         host.handle(host.registry.expandedID == module.id ? .collapse : .expand(module.id))
                     } label: {
-                        Image(systemName:module.symbol)
-                            .font(settings.measures[.iconSize].map { .system(size:$0.points(in:width)) } ?? .body)
-                            .frame(width:max(settings.points(.railButtonWidth,in:width),settings.points(.hitSize,in:width)),
-                                   height:min(height,max(26,settings.points(.hitSize,in:width))))
-                            .contentShape(Rectangle())
+                        let minimumWidth = max(settings.points(.railButtonWidth,in:width), settings.points(.hitSize,in:width))
+                        let railHeight = min(height, max(26, settings.points(.hitSize,in:width)))
+                        Group {
+                            if module.id == BuiltinCatalog.clock, clockVisible {
+                                TimelineView(.everyMinute) { tick in
+                                    Text(LocalClock.time(tick.date)).font(.callout).monospacedDigit().fixedSize()
+                                }
+                                .frame(minWidth: minimumWidth).frame(height: railHeight)
+                            } else {
+                                Image(systemName:module.symbol)
+                                    .font(settings.measures[.iconSize].map { .system(size:$0.points(in:width)) } ?? .body)
+                                    .frame(width: minimumWidth, height: railHeight)
+                            }
+                        }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help(module.name)
                     .accessibilityLabel(module.name)
+                    .accessibilityIdentifier(module.id)
                     .foregroundStyle(host.registry.expandedID == module.id ? Color.indigo : Color.secondary)
                 }
             }.padding(.horizontal, 8)
         }
         .background(.regularMaterial)
+    }
+
+    private var clockVisible: Bool {
+        host.isRunning && !host.configuration.surfaceHidden && display?.interactionVisible != false
     }
 
     private func expandedModule(_ id: String,width:Double) -> some View {
@@ -125,15 +140,19 @@ public struct EdgeSurfaceView: View {
                 Text(manifest?.name ?? "Sample").font(.callout)
                 Spacer()
                 Button { host.handle(.collapse) } label: { Image(systemName: "xmark") }
-                    .buttonStyle(.plain).accessibilityLabel("Close module")
+                    .buttonStyle(.plain).accessibilityLabel("关闭模块").accessibilityIdentifier("nearpane-module-close")
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(projection?.message ?? "Module unavailable.").font(.callout)
-                    Text("Sample refreshes: \(projection?.refreshCount ?? 0)").font(.caption).monospacedDigit()
-                    Button("Refresh sample") { host.handle(.module(id, .refresh)) }
-                    Text("This is a Host lifecycle sample. Module data remains owned by its future adapter.")
-                        .font(.caption2).foregroundStyle(.secondary)
+                if id == BuiltinCatalog.clock {
+                    if clockVisible { ClockDetails(host: host) }
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(projection?.message ?? "Module unavailable.").font(.callout)
+                        Text("Sample refreshes: \(projection?.refreshCount ?? 0)").font(.caption).monospacedDigit()
+                        Button("Refresh sample") { host.handle(.module(id, .refresh)) }
+                        Text("This is a Host lifecycle sample. Module data remains owned by its future adapter.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
                 }
             }
             Spacer(minLength: 0)

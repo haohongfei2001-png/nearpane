@@ -8,6 +8,7 @@ import NearpaneCore
     var content: PanelContent = .full
     var secondary = false
     var sizeForm: PanelSizeForm = .full
+    var interactionVisible = false
     @ObservationIgnored weak var pointer: WorkspacePointerRegistry?
 }
 

@@ -6,33 +6,96 @@ private typealias ViewState<T> = State<T>
 
 /// Checking readiness never opens the device. The VoiceSurface button owns capture.
 public struct VoiceInputSettings: View {
+    private let module: VoiceModule
     @ViewState private var availability: SpeechAvailability?
     @ViewState private var microphone = AVCaptureDevice.authorizationStatus(for: .audio)
     @ViewState private var preparing = false
     @ViewState private var error: String?
+    @ViewState private var editingAPI = false
+    @ViewState private var language: LanguagePreference = .chinese
+    @ViewState private var region = "cn-beijing"
+    @ViewState private var workspace = ""
+    @ViewState private var expertKey = ""
+    @ViewState private var fusionKey = ""
+    @ViewState private var consent = false
 
-    public init() {}
+    public init(module: VoiceModule) { self.module = module }
 
     public var body: some View {
         Form {
-            LabeledContent("麦克风", value: permissionLabel)
-            Text(availability?.message ?? "正在检查本机中文识别资源…")
-            if let availability, availability.supported && !availability.installed {
-                Button(preparing ? "正在准备…" : "准备本机中文识别资源") {
-                    guard !preparing else { return }
-                    preparing = true
-                    error = nil
-                    Task {
-                        do { try await AppleSpeechService.prepare() }
-                        catch { self.error = error.localizedDescription }
-                        await refresh()
-                        preparing = false
+            if let profile = module.recognitionProfile {
+                Section("识别方式") {
+                    LabeledContent("当前", value: profile.enabled ? "API · " + (profile.language?.label ?? "") : "Apple 本机")
+                    if let issue = profile.issue { Text(issue).foregroundStyle(.secondary) }
+                    if profile.needsCleanup {
+                        Button(profile.enabled ? "切回本机并清除 API 密钥" : "清除 API 授权") {
+                            Task {
+                                do { try await module.disableAPI(); error = nil }
+                                catch { self.error = error.localizedDescription }
+                            }
+                        }.disabled(module.changingRecognition)
+                    } else if editingAPI {
+                        apiForm
+                    } else {
+                        Button("配置 API 识别…") { editingAPI = true; error = nil }
                     }
-                }.disabled(preparing)
+                }
+            }
+            Section("本机输入") {
+                LabeledContent("麦克风", value: permissionLabel)
+                Text(availability?.message ?? "正在检查本机中文识别资源…")
+                if let availability, availability.supported && !availability.installed {
+                    Button(preparing ? "正在准备…" : "准备本机中文识别资源") {
+                        guard !preparing else { return }
+                        preparing = true
+                        error = nil
+                        Task {
+                            do { try await AppleSpeechService.prepare() }
+                            catch { self.error = error.localizedDescription }
+                            await refresh()
+                            preparing = false
+                        }
+                    }.disabled(preparing)
+                }
+                Button("重新检查") { Task { await refresh() } }.disabled(preparing)
             }
             if let error { Text(error).foregroundStyle(.secondary).textSelection(.enabled) }
-            Button("重新检查") { Task { await refresh() } }.disabled(preparing)
-        }.padding().task { await refresh() }
+        }.formStyle(.grouped).task { await refresh() }.onDisappear { clearDraft() }
+    }
+
+    @ViewBuilder private var apiForm: some View {
+        Picker("识别语言", selection: $language) {
+            ForEach([LanguagePreference.chinese, .english, .chineseEnglishMixed], id: \.self) { Text($0.label).tag($0) }
+        }.onChange(of: language) { expertKey = ""; consent = false }
+        if language == .chinese {
+            Picker("Qwen 地域", selection: $region) {
+                Text("北京").tag("cn-beijing")
+                Text("新加坡").tag("ap-southeast-1")
+            }.onChange(of: region) { expertKey = ""; consent = false }
+            TextField("Qwen Workspace ID", text: $workspace)
+                .onChange(of: workspace) { consent = false }
+        }
+        let expert = ASRModelRegistry.provider(for: language)?.label ?? ""
+        SecureField(expert + " API Key", text: $expertKey)
+        SecureField("OpenAI API Key", text: $fusionKey)
+        Toggle("允许 " + expert + " 处理本次启用后的录音，并允许 OpenAI GPT-6 Astra 处理识别文字。服务可能计费。", isOn: $consent)
+        HStack {
+            Button("启用 API") {
+                Task {
+                    do {
+                        try await module.enableAPI(language: language, workspace: workspace, region: region,
+                                                   expertKey: expertKey, fusionKey: fusionKey, consent: consent)
+                        error = nil
+                    } catch { self.error = error.localizedDescription }
+                    clearDraft()
+                }
+            }.disabled(!consent || expertKey.isEmpty || fusionKey.isEmpty || (language == .chinese && workspace.isEmpty)
+                       || module.changingRecognition)
+            Button("取消") { clearDraft() }
+        }
+    }
+    private func clearDraft() {
+        expertKey = ""; fusionKey = ""; consent = false; editingAPI = false
     }
 
     private func refresh() async {

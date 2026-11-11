@@ -22,6 +22,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public var workspaces = WorkspacePreferences()
     public var displays: [String: DisplaySettings] = [:]
     public var modules: [ModulePreference] = []
+    public var clockTimeZoneID: String?
     public var fixture: DesktopFixture = .internalScopes3Plus1
 
     public init() {}
@@ -37,6 +38,8 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         workspaces = try c.decodeIfPresent(WorkspacePreferences.self,forKey:.workspaces) ?? .init()
         displays = try c.decodeIfPresent([String: DisplaySettings].self, forKey: .displays) ?? [:]
         modules = try c.decode([ModulePreference].self, forKey: .modules)
+        let clockZone = try c.decodeIfPresent(String.self, forKey: .clockTimeZoneID)
+        clockTimeZoneID = clockZone.flatMap { TimeZone.knownTimeZoneIdentifiers.contains($0) ? $0 : nil }
         fixture = try c.decode(DesktopFixture.self, forKey: .fixture)
     }
 

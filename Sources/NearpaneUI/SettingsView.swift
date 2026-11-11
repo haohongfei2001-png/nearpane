@@ -25,7 +25,7 @@ public struct SettingsView: View {
         TabView {
             modules.tabItem { Text("模块") }
             #if canImport(NearpaneVoice)
-            if domains?.candidate == true { VoiceInputSettings().tabItem { Text("语音") } }
+            if let domains, domains.candidate { VoiceInputSettings(module: domains.voice).tabItem { Text("语音") } }
             #endif
             #if canImport(NearpaneTray)
             if let tray = domains?.tray {
@@ -104,7 +104,7 @@ public struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if let profileImport { profileImport; Divider() }
-                Text("按侧栏的播放按钮开始收音，按相同位置暂停。可选模块提供的是内置示例。")
+                Text("按侧栏的播放按钮开始收音，按相同位置暂停。")
                     .font(.callout).foregroundStyle(.secondary)
                 ForEach(host.registry.preferences, id: \.id) { pref in
                     if let manifest = host.registry.manifests.first(where: { $0.id == pref.id }) {
@@ -115,10 +115,12 @@ public struct SettingsView: View {
                                 if manifest.kind == .builtin {
                                     Toggle("固定", isOn: Binding(get: { pref.pinned }, set: { host.handle(.setPinned(pref.id, $0)) }))
                                         .fixedSize()
-                                    Button { host.handle(.move(pref.id, -1)) } label: { Image(systemName: "arrow.up") }
-                                        .accessibilityLabel("Move \(manifest.name) up")
-                                    Button { host.handle(.move(pref.id, 1)) } label: { Image(systemName: "arrow.down") }
-                                        .accessibilityLabel("Move \(manifest.name) down")
+                                    if host.registry.manifests.filter({ $0.kind == .builtin }).count > 1 {
+                                        Button { host.handle(.move(pref.id, -1)) } label: { Image(systemName: "arrow.up") }
+                                            .accessibilityLabel("Move \(manifest.name) up")
+                                        Button { host.handle(.move(pref.id, 1)) } label: { Image(systemName: "arrow.down") }
+                                            .accessibilityLabel("Move \(manifest.name) down")
+                                    }
                                 }
                             }
                             HStack {
@@ -131,7 +133,7 @@ public struct SettingsView: View {
                         Divider()
                     }
                 }
-                Text("语音、托盘和空间的顺序固定。箭头仅调整可选模块。")
+                Text(domains?.candidate == true ? "固定时钟后，点击主驻留屏的时间可选择额外时区。" : "语音、托盘和空间的顺序固定。箭头仅调整可选模块。")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(8)
         }

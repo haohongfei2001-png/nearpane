@@ -39,11 +39,13 @@ public enum BuiltinCatalog {
         .init(id: screenshots, name: "Riftlet", symbol: "photo", kind: .core, actions: [:]),
         .init(id: desktop, name: "Spaces", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
         .init(id: notes, name: "Notes sample", symbol: "note.text"),
-        .init(id: clock, name: "Clock sample", symbol: "clock"),
+        .init(id: clock, name: "时钟", symbol: "clock"),
         .init(id: "com.holdsnow.nearpane.tasks-sample", name: "Tasks sample", symbol: "checklist"),
         .init(id: calendar, name: "Calendar sample", symbol: "calendar", permissions: [.calendarRead], actions: [.refresh: [.calendarRead]]),
         .init(id: "com.holdsnow.nearpane.weather-sample", name: "Weather sample", symbol: "cloud.sun")
     ]
+
+    public static let productManifests = manifests.filter { $0.kind == .core || $0.id == clock }
 }
 
 /// Trusted, bundled adapters only. Throwing failures are isolated; process crashes require a future helper/XPC boundary.

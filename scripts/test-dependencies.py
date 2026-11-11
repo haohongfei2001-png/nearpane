@@ -87,6 +87,17 @@ class DependencyTests(unittest.TestCase):
             with self.assertRaisesRegex(resolver.DependencyError, "inventory SHA"):
                 resolver.validate(bad)
 
+    def test_voice_bridge_refuses_redirected_upstream_inputs(self):
+        domain = self.cache / resolver.key(self.pin) / "Sources/SaytileKit"
+        domain.mkdir(parents=True)
+        resolver.voice_bindings(self.cache, self.pin)
+        link = self.cache / ("voice-" + resolver.key(self.pin)) / "Upstream"
+        self.assertEqual(link.resolve(strict=True), domain)
+        link.unlink()
+        link.symlink_to(self.cache)
+        with self.assertRaisesRegex(resolver.DependencyError, "Invalid SaytileKit bridge"):
+            resolver.voice_bindings(self.cache, self.pin)
+
 
 if __name__ == "__main__":
     (Path(__file__).resolve().parents[1] / "build").mkdir(exist_ok=True)

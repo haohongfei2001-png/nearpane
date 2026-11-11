@@ -311,6 +311,7 @@ public final class EdgeWindowController: NSWindowController {
     private func updateInteraction(hidden: Bool) {
         guard interactionHidden != hidden else { return }
         interactionHidden = hidden
+        display.interactionVisible = !hidden
         modules?.setInteractionHidden(hidden)
     }
 

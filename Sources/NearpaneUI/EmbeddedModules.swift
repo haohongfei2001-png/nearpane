@@ -24,7 +24,8 @@ public final class EmbeddedModules {
         voicePasteboard = testSession.map { NSPasteboard(name: .init("com.holdsnow.nearpane.acceptance." + $0.lastPathComponent)) } ?? .general
         tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession, localOnly: testSession != nil && candidate && !boundDraft,
                          productAttachments: candidate && testSession == nil)
-        voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true), requireExistingPermissions: testSession != nil)
+        voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true),
+                            requireExistingPermissions: testSession != nil, allowAPISettings: candidate)
         #endif
     }
 
@@ -38,7 +39,7 @@ public final class EmbeddedModules {
     }
 
     public func makeHost(store: any ConfigurationStore, provider: any DesktopObservationProvider = UnavailableDesktopProvider()) -> HostSession {
-        let host = HostSession(store: store, provider: provider, coreFactories: factories)
+        let host = HostSession(store: store, provider: provider, includeSampleModules: !candidate, coreFactories: factories)
         workRect?.connect(to: host)
         #if canImport(NearpaneVoice)
         voice.openingFailed = { [weak host, weak voice] in
