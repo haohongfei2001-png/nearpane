@@ -15,6 +15,8 @@ public final class HostSession {
     public let permissions: MockPermissionBroker
     public let router: InteractionRouter
     public private(set) var configuration = HostConfiguration()
+    /// Presenter output for display-local Settings previews. This does not change saved settings.
+    public private(set) var panelContents: [String: PanelContent] = [:]
     public private(set) var isRunning = false
     public private(set) var configurationProtected = false
     public private(set) var configurationSaveFailed = false
@@ -76,6 +78,7 @@ public final class HostSession {
     public func stop() {
         guard isRunning else { return }
         isRunning = false
+        panelContents = [:]
         cancelWorkspaceGesture()
         refreshGeneration += 1
         desktopTask?.cancel()
@@ -114,6 +117,9 @@ public final class HostSession {
         var next = configuration
         next.displays[id] = value
         persistSettings(next)
+    }
+    public func updatePanelContents(_ contents: [String: PanelContent]) {
+        if panelContents != contents { panelContents = contents }
     }
     public func setCandidateTrayConnected(_ connected: Bool) {
         var next = configuration

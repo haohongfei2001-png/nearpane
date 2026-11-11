@@ -42,6 +42,10 @@ private final class SurfaceHostingView: NSHostingView<EdgeSurfaceView> {
     override var needsPanelToBecomeKey: Bool { false }
 }
 
+private final class FoldedHostingView: NSHostingView<FoldedSurfaceButton> {
+    override var needsPanelToBecomeKey: Bool { false }
+}
+
 @MainActor
 public final class EdgeWindowController: NSWindowController {
     private let host: HostSession
@@ -52,6 +56,16 @@ public final class EdgeWindowController: NSWindowController {
     public private(set) var hasPlacement = false
     public private(set) var requestedFrame: NSRect?
     private var placedFrame: NSRect?
+    private let material = NSVisualEffectView()
+    private let contentView: SurfaceHostingView
+    private var contentBottom: NSLayoutConstraint
+    private var foldedView: FoldedHostingView?
+    private var closeExpansion: NSButton?
+    private var placement: (screen: ScreenGeometry, primary: String, content: PanelContent)?
+    private var savedPanelWidth: Measure?, savedPanelHeight: Measure?
+    private var folded = false
+    private var interactionHidden: Bool?
+    private(set) var temporarilyExpanded = false
     public init(host: HostSession, modules: EmbeddedModules? = nil) {
         self.host = host; self.modules = modules
         let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
@@ -69,18 +83,20 @@ public final class EdgeWindowController: NSWindowController {
         panel.isReleasedWhenClosed = false
         panel.isMovable = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenNone, .stationary, .ignoresCycle]
-        let material = NSVisualEffectView()
         material.material = .sidebar
         material.blendingMode = .behindWindow
         material.state = .active
         let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules, display: display))
+        contentView = content
+        contentBottom = content.bottomAnchor.constraint(equalTo: material.bottomAnchor)
+        content.sizingOptions = []
         content.translatesAutoresizingMaskIntoConstraints = false
         material.addSubview(content)
         NSLayoutConstraint.activate([
             content.leadingAnchor.constraint(equalTo: material.leadingAnchor),
             content.trailingAnchor.constraint(equalTo: material.trailingAnchor),
             content.topAnchor.constraint(equalTo: material.topAnchor),
-            content.bottomAnchor.constraint(equalTo: material.bottomAnchor)
+            contentBottom
         ])
         panel.contentView = material
         super.init(window: panel)
@@ -99,7 +115,7 @@ public final class EdgeWindowController: NSWindowController {
     public func place(screens: [ScreenGeometry]) {
         let usable = screens.filter { $0.frame.geometry.isValid && $0.visibleFrame.geometry.isValid }
         guard let screen = usable.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? usable.first else {
-            hasPlacement = false; display.id = nil; hide(); return
+            hasPlacement = false; placement = nil; temporarilyExpanded = false; display.id = nil; hide(); return
         }
         place(on:screen,primary:screen.id,content:.full)
     }
@@ -107,32 +123,81 @@ public final class EdgeWindowController: NSWindowController {
     func usePointer(_ registry: WorkspacePointerRegistry) { display.pointer = registry }
     public func place(on screen: ScreenGeometry, primary: String, content: PanelContent) {
         let config = host.configuration.displays[screen.id] ?? .init()
+        if display.id != screen.id || display.primaryID != primary || content == .hidden
+            || savedPanelWidth != config.measures[.panelWidth] || savedPanelHeight != config.measures[.panelHeight] {
+            temporarilyExpanded = false
+        }
+        savedPanelWidth = config.measures[.panelWidth]
+        savedPanelHeight = config.measures[.panelHeight]
+        placement = (screen, primary, content)
         display.id = screen.id; display.primaryID = primary
         display.secondary = screen.id != primary; display.content = content
         let floating = display.secondary && config.placement == .floating
+        presentationAllowed = content != .hidden
+        let voice = host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled }
+        let tray = host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }
+        guard let layout = PanelSizeLayout(settings: config, screen: screen, edge: host.configuration.edge,
+                                           content: content, voice: voice, tray: tray, floating: floating) else {
+            hasPlacement = false; hide(); return
+        }
+        let form = layout.form
+        var r = layout.frame, referenceHeight = layout.referenceHeight
+        if form == .full { temporarilyExpanded = false }
+        display.sizeForm = form
+        if temporarilyExpanded {
+            // Grow the existing panel on its own display. The override never enters the
+            // configuration store, layout journal, workspace provider or management service.
+            let factory = DisplaySettings()
+            let safe = screen.visibleFrame
+            func expanded(ignoring insets: [DisplayMetric]) -> (frame: SurfaceRect, fits: Bool)? {
+                var open = config
+                for inset in insets { open.measures[inset] = nil }
+                open.measures[.panelWidth] = .init(max(r.width, factory.points(.panelWidth, in: safe.width)))
+                open.measures[.panelHeight] = .init(max(r.height, factory.points(.panelHeight, in: safe.height)))
+                guard var frame = open.panel(on: screen, fallbackEdge: host.configuration.edge, floating: floating) else { return nil }
+                let limit = open.panelExtentRange(for: .panelWidth, on: screen).upperBound
+                func fits(_ frame: SurfaceRect) -> Bool {
+                    open.sizeForm(width: frame.width, height: max(1, frame.height - PanelSizeMetrics.minimumSide),
+                                  content: content, voice: voice, tray: tray, temporarilyExpanded: true) == .full
+                }
+                while !fits(frame) && frame.width < limit {
+                    open.measures[.panelWidth] = .init(min(limit, frame.width * 1.5))
+                    guard let next = open.panel(on: screen, fallbackEdge: host.configuration.edge, floating: floating),
+                          next.width > frame.width else { break }
+                    frame = next
+                }
+                return (frame, fits(frame))
+            }
+            if var opening = expanded(ignoring: []) {
+                // Committed margins can leave only an icon even on a large display.
+                // Relax them only in the temporary surface and only when that makes the controls fit.
+                let horizontal: [DisplayMetric] = [.sideInset].filter { config.points($0, in: safe.width) > 0 }
+                let vertical: [DisplayMetric] = [.topInset, .bottomInset].filter { config.points($0, in: safe.height) > 0 }
+                if !opening.fits {
+                    var options = [horizontal, vertical].filter { !$0.isEmpty }
+                    if options.count == 2 { options.append(horizontal + vertical) }
+                    for margins in options {
+                        if let candidate = expanded(ignoring: margins), candidate.fits {
+                            opening = candidate
+                            break
+                        }
+                    }
+                }
+                r = opening.frame
+                referenceHeight = max(1, r.height - PanelSizeMetrics.minimumSide)
+            }
+        }
+        display.referenceHeight = referenceHeight
+        updateControls(form: form)
         if let panel = window as? EdgePanel {
             let safe = screen.visibleFrame
-            panel.floatBounds = floating ? NSRect(x:safe.x,y:safe.y,width:safe.width,height:safe.height) : nil
+            panel.floatBounds = floating && !temporarilyExpanded ? NSRect(x:safe.x,y:safe.y,width:safe.width,height:safe.height) : nil
             panel.floatMoved = { [weak host] point in
                 guard let host else { return }
                 var next = host.configuration.displays[screen.id] ?? .init()
                 next.floatingPosition = .init(x:point.x,y:point.y)
                 host.setDisplaySettings(next,id:screen.id)
             }
-        }
-        presentationAllowed = content != .hidden
-        guard let full = config.panel(on:screen, fallbackEdge:host.configuration.edge) else {
-            hasPlacement = false; hide(); return
-        }
-        let voice = host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled }
-        let tray = host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }
-        let h = config.contentHeights(full.height, content:content,voice:voice,tray:tray)
-        let count = [h.voice,h.tray,h.spaces].filter { $0 > 0 }.count
-        let height = h.voice + h.tray + h.spaces + Double(max(0,count-1)) * h.gap
-        display.referenceHeight = full.height
-        guard let r = config.panel(on:screen, fallbackEdge:host.configuration.edge,
-                                   heightFraction:content == .hidden ? 1 : height / full.height,floating:floating) else {
-            hasPlacement = false; hide(); return
         }
         let frame = NSRect(x:r.x, y:r.y, width:r.width, height:r.height)
         // AppKit can round a fractional point when placing an NSPanel. Remember both values:
@@ -145,15 +210,78 @@ public final class EdgeWindowController: NSWindowController {
         hasPlacement = true
     }
 
+    @objc func toggleTemporaryExpansion() {
+        guard presentationAllowed, !host.configuration.surfaceHidden, !captureSuppressed,
+              hasPlacement, let placement, display.sizeForm != .full else { return }
+        temporarilyExpanded.toggle()
+        place(on: placement.screen, primary: placement.primary, content: placement.content)
+    }
+
+    private func updateControls(form: PanelSizeForm) {
+        let shouldFold = form != .full && !temporarilyExpanded
+        if shouldFold && foldedView == nil {
+            let view = FoldedHostingView(rootView: FoldedSurfaceButton(modules: modules, display: display) { [weak self] in
+                self?.toggleTemporaryExpansion()
+            })
+            view.sizingOptions = []
+            view.translatesAutoresizingMaskIntoConstraints = false
+            material.addSubview(view)
+            NSLayoutConstraint.activate([
+                view.leadingAnchor.constraint(equalTo: material.leadingAnchor), view.trailingAnchor.constraint(equalTo: material.trailingAnchor),
+                view.topAnchor.constraint(equalTo: material.topAnchor), view.bottomAnchor.constraint(equalTo: material.bottomAnchor)
+            ])
+            foldedView = view
+        }
+        if temporarilyExpanded && closeExpansion == nil {
+            let close = NSButton(image: NSImage(systemSymbolName: "chevron.down", accessibilityDescription: nil)!,
+                                 target: self, action: #selector(toggleTemporaryExpansion))
+            close.isBordered = false
+            close.toolTip = "收起 Nearpane"
+            close.setAccessibilityLabel("收起 Nearpane")
+            close.setAccessibilityIdentifier("nearpane-close-panel")
+            close.translatesAutoresizingMaskIntoConstraints = false
+            material.addSubview(close)
+            NSLayoutConstraint.activate([
+                close.trailingAnchor.constraint(equalTo: material.trailingAnchor),
+                close.bottomAnchor.constraint(equalTo: material.bottomAnchor),
+                close.widthAnchor.constraint(equalToConstant: PanelSizeMetrics.minimumSide),
+                close.heightAnchor.constraint(equalToConstant: PanelSizeMetrics.minimumSide)
+            ])
+            closeExpansion = close
+        }
+        if shouldFold != folded {
+            if shouldFold, let window, window.isKeyWindow {
+                window.makeFirstResponder(nil)
+                NSApp.deactivate()
+            }
+            folded = shouldFold
+            material.wantsLayer = true
+            material.layer?.cornerRadius = shouldFold ? DisplayMetric.cornerRadius.factory.value : 0
+            material.layer?.masksToBounds = shouldFold
+            if window?.isVisible == true { updateInteraction(hidden: folded) }
+        }
+        // Keep the same mounted module views, including the current text editor and draft.
+        contentView.isHidden = shouldFold
+        foldedView?.isHidden = !shouldFold
+        closeExpansion?.isHidden = !temporarilyExpanded
+        contentBottom.constant = temporarilyExpanded ? -PanelSizeMetrics.minimumSide : 0
+    }
+
+    private func updateInteraction(hidden: Bool) {
+        guard interactionHidden != hidden else { return }
+        interactionHidden = hidden
+        modules?.setInteractionHidden(hidden)
+    }
+
     /// Never called by build scripts or tests. User launch is the only automatic presentation path.
     public func presentIfNeeded() {
         guard host.isRunning, hasPlacement, presentationAllowed, !captureSuppressed, !host.configuration.surfaceHidden else { hide(); return }
-        modules?.setInteractionHidden(false)
+        updateInteraction(hidden: folded)
         if window?.isVisible == false { window?.orderFront(nil) }
     }
     public func hide() {
         (window as? EdgePanel)?.cancelFloatingDrag()
-        modules?.setInteractionHidden(true); window?.orderOut(nil)
+        updateInteraction(hidden: true); window?.orderOut(nil)
     }
 }
 

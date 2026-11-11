@@ -48,6 +48,7 @@ import NearpaneCore
             voice: prefs.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
             tray: prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
             spacesEnabled: prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }, uptime: uptime)
+        host.updatePanelContents(Dictionary(uniqueKeysWithValues: plans.map { ($0.id, $0.content) }))
         // Resolve roles in the real topology even when an isolated trial may present on only one display.
         let visiblePlans = plans.filter { displayID == nil || $0.id == displayID }
         let ids = Set(visiblePlans.filter { !$0.primary && $0.content != .hidden }.map(\.id))
@@ -75,6 +76,7 @@ import NearpaneCore
         }
     }
     public func stop() {
+        host.updatePanelContents([:])
         primary.hide()
         for panel in secondary.values { panel.close() }
         secondary.removeAll()

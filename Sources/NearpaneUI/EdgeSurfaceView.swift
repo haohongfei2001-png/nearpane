@@ -151,3 +151,58 @@ private extension View {
             .clipped().offset(x: rect.x, y: rect.y)
     }
 }
+
+/// A single button remains reachable when the normal controls no longer fit. Its image
+/// is the icon Finder resolves for this very bundle (including the system fallback).
+struct FoldedSurfaceButton: View {
+    let modules: EmbeddedModules?
+    let display: SurfaceDisplay
+    let open: () -> Void
+
+    private static let appIcon = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
+
+    private var symbols: [String] {
+        var result: [String] = []
+        if !display.secondary {
+            #if canImport(NearpaneVoice)
+            if let voice = modules?.voice, voice.active {
+                switch voice.capture {
+                case .speaking: result.append("waveform")
+                case .listening: result.append("mic")
+                default: result.append("pause")
+                }
+            }
+            if let tray = modules?.tray, tray.connected {
+                result.append(tray.visibleIDs.isEmpty ? "photo" : "photo.stack")
+            }
+            #endif
+        }
+        if display.content == .full || display.content == .spacesOnly { result.append("rectangle.3.group") }
+        return result
+    }
+
+    var body: some View {
+        GeometryReader { g in
+            let horizontal = g.size.width >= g.size.height
+            let axis = horizontal ? AnyLayout(HStackLayout(spacing: 4)) : AnyLayout(VStackLayout(spacing: 4))
+            let available = max(g.size.width, g.size.height) - PanelSizeMetrics.glassInset * 2
+            let count = display.sizeForm == .compact ? max(0, Int((available + 4) / (PanelSizeMetrics.iconSide + 4)) - 1) : 0
+            Button(action: open) {
+                axis {
+                    Image(nsImage: Self.appIcon).resizable().scaledToFit()
+                        .frame(width: PanelSizeMetrics.iconSide, height: PanelSizeMetrics.iconSide)
+                    ForEach(Array(symbols.prefix(count)), id: \.self) { symbol in
+                        Image(systemName: symbol).font(.caption).foregroundStyle(.secondary)
+                            .frame(width: PanelSizeMetrics.iconSide, height: PanelSizeMetrics.iconSide)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("展开 Nearpane")
+            .accessibilityLabel("展开 Nearpane")
+            .accessibilityIdentifier("nearpane-open-panel")
+        }
+    }
+}

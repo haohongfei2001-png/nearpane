@@ -48,22 +48,38 @@ def allowed(member, policy):
     return APP_ID not in policy.get("excludedApps", [])
 
 
-def plan_key(owner, config, display):
+def plan_key(owner, config, display, usable_width):
     settings = config.get("displays", {}).get(display, {})
     measures = settings.get("measures", [])
     if isinstance(measures, list):
         measures = dict(zip(measures[::2], measures[1::2]))
     policy = config.get("workspaces", {})
     pairs = [(m, f) for m, f in zip(owner["members"], owner["frames"]) if allowed(m, policy)]
-    return (owner["owner"], owner["revision"], pairs, display == config.get("preferredDisplayID"),
-            settings.get("edge") or config["edge"], settings.get("placement"),
-            measures.get("reservedWidth", measures.get("panelWidth")))
+    def points(name, default):
+        m = measures.get(name)
+        if m is None:
+            return default
+        return usable_width * m["value"] / 100 if m["unit"] == "%" else m["value"]
+
+    docked = display == config.get("preferredDisplayID") or settings.get("placement", "docked") == "docked"
+    # This value deduplicates polling only. The native controller independently derives DesktopWorkArea
+    # from the validated configuration and fresh display record before each write.
+    reserved = 0
+    if docked:
+        if "reservedWidth" in measures:
+            reserved = points("reservedWidth", 0)
+        else:
+            minimum = min(16 + 2 * 2, usable_width)  # PanelSizeMetrics: small app icon and glass inset.
+            maximum = max(minimum, usable_width - points("sideInset", 0))
+            reserved = min(maximum, max(minimum, points("panelWidth", usable_width / 8)))
+    edge = (settings.get("edge") or config["edge"]) if reserved else None
+    return owner["owner"], owner["revision"], pairs, edge, reserved
 
 
 class Manager:
     def __init__(self, profile, bundle):
-        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.8\n",
-                "无法核对 P4.8 隔离资料")
+        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.8.1\n",
+                "无法核对候选版本的隔离资料")
         self.root = profile / "WorkRect"
         self.root.mkdir(mode=0o700, exist_ok=True)
         require(self.root.resolve() == self.root and self.root.stat().st_uid == os.getuid()
@@ -191,7 +207,8 @@ class Manager:
         require(0 <= time.clock_gettime(time.CLOCK_UPTIME_RAW) - owner["uptime"] < 2 and (not strict or not owner["keyOrMain"]),
                 "窗口身份、显示器或焦点无法重新确认")
         config = read(self.config)
-        key = plan_key(owner, config, self.run["screens"]["secondary"])
+        screens = self.run["screens"]
+        key = plan_key(owner, config, screens["secondary"], screens["usable"]["width"])
         self.count = len(key[2])
         return owner, config, key
 

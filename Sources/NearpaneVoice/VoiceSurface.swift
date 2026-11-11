@@ -26,7 +26,7 @@ public struct VoiceSurface: View {
         GeometryReader { content(size:$0.size) }
     }
     private func content(size: CGSize) -> some View {
-        let fontSize = settings.measures[.textSize]?.points(in:size.height)
+        let fontSize = settings.readableFontSize(.textSize, in: size.height)
         let buttonWidth = settings.points(.voiceButtonWidth,in:size.width)
         let buttonHeight = settings.points(.voiceButtonHeight,in:size.height)
         return VStack(alignment: .leading, spacing: 4) {

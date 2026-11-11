@@ -330,5 +330,37 @@ struct IntegratedHostTests {
         #expect(!window.isVisible && !window.isKeyWindow && !window.isMainWindow)
         controller.close(); host.stop(); await domains.finishStopping()
     }
+
+    @Test func foldedAndExpandedPanelPreservesExistingDomainSessionAndQueue() async throws {
+        _ = NSApplication.shared
+        let root = fixtureRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let support = root.appendingPathComponent("Nearpane"), recording = try await seedVoice(support)
+        let assets = try await seedQueue(root)
+        let domains = EmbeddedModules(support: support), host = domains.makeHost(store: MemoryConfigurationStore())
+        await host.start(); await domains.voice.waitForTransition(); await domains.tray.connect()
+        let order = domains.tray.rows.map(\.id), originalStates = host.registry.states
+        try #require(Set(order) == assets)
+        let transcript = domains.voice.transcript, capture = domains.voice.capture
+        domains.voice.stageDraft(recording, text: draft)
+        let panel = EdgeWindowController(host: host, modules: domains)
+        let bounds = SurfaceRect(x: -800, width: 800, height: 1280)
+        let screen = ScreenGeometry(id: "portrait", frame: bounds, visibleFrame: bounds)
+        panel.place(on: screen, primary: screen.id, content: .full)
+        let initial = panel.requestedFrame
+        var settings = DisplaySettings()
+        settings.measures = [.panelWidth: .init(20), .panelHeight: .init(20)]
+        host.setDisplaySettings(settings, id: screen.id)
+        panel.place(on: screen, primary: screen.id, content: .full)
+        panel.toggleTemporaryExpansion()
+        panel.toggleTemporaryExpansion()
+        host.setDisplaySettings(.init(), id: screen.id)
+        panel.place(on: screen, primary: screen.id, content: .full)
+        #expect(panel.requestedFrame == initial && !panel.temporarilyExpanded)
+        #expect(domains.voice.active && domains.voice.capture == capture && domains.voice.transcript == transcript)
+        #expect(await domains.voice.editText(recording) == draft)
+        #expect(domains.tray.connected && domains.tray.rows.map(\.id) == order)
+        #expect(host.registry.states == originalStates && panel.window?.isVisible == false)
+        panel.close(); host.stop(); await domains.finishStopping()
+    }
 }
 #endif

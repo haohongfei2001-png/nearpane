@@ -17,7 +17,7 @@ class ProductManagementTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         profile = Path(temp.name).resolve()
-        (profile / "profile.version").write_text("Nearpane P4.8\n")
+        (profile / "profile.version").write_text("Nearpane P4.8.1\n")
         self.m = wm.Manager(profile, profile)
         self.addCleanup(self.m.lease.close)
         self.id = {"pid": 20, "launch": 32, "number": 3, "element": "one"}
@@ -72,7 +72,7 @@ class ProductManagementTests(unittest.TestCase):
 
     def test_dedup_ignores_ui_but_preserves_window_generation_and_area(self):
         def key():
-            return wm.plan_key(self.owner, self.host, "display")
+            return wm.plan_key(self.owner, self.host, "display", 800)
         first = key()
         self.host.update(surfaceHidden=True, modules=["hidden"])
         self.assertEqual(first, key())
@@ -95,14 +95,41 @@ class ProductManagementTests(unittest.TestCase):
             self.m.tick()
         self.m.apply.assert_called_once_with("candidate-layout", approved=rebuilt)
 
+    def test_layout_dedup_uses_effective_reservation_after_panel_resize(self):
+        measures = {}
+        settings = {"placement": "docked", "measures": measures}
+        self.host["displays"] = {"display": settings}
+        def key():
+            return wm.plan_key(self.owner, self.host, "display", 800)
+        factory = key()
+        measures["panelWidth"] = {"value": 100, "unit": "pt"}
+        measures["panelHeight"] = {"value": 20, "unit": "pt"}
+        self.assertEqual(key(), factory)
+        measures["panelWidth"] = {"value": 0, "unit": "%"}
+        icon = key()
+        self.assertEqual(icon[-1], 20)
+        self.assertNotEqual(factory, icon)
+        measures["panelWidth"] = {"value": 20, "unit": "pt"}
+        self.assertEqual(key(), icon)
+        measures["reservedWidth"] = {"value": 12.5, "unit": "%"}
+        self.assertEqual(key(), factory)
+        measures["panelWidth"] = {"value": 97, "unit": "%"}
+        self.assertEqual(key(), factory)
+        settings["placement"] = "floating"
+        floating = key()
+        self.assertEqual(floating[-1], 0)
+        settings["edge"] = "left"
+        measures.clear()
+        self.assertEqual(key(), floating)
+
     def test_replaced_member_after_debounce_gets_no_ticket_or_controller_call(self):
         self.m.mode = "active"
         self.m.directory = self.m.root
         self.m.pre = {"trusted": True}
         self.m.owner = Mock(return_value=self.owner)
-        first = wm.plan_key(self.owner, self.host, "display")
+        first = wm.plan_key(self.owner, self.host, "display", 800)
         other = dict(self.owner, revision=3, members=[{"id": dict(self.id, element="replacement")}])
-        changed = wm.plan_key(other, self.host, "display")
+        changed = wm.plan_key(other, self.host, "display", 800)
         self.m.snapshot = Mock(side_effect=[(self.owner, self.host, first)] * 2 + [(other, self.host, changed)])
         self.m.control = Mock(side_effect=AssertionError)
         self.m.tick()
@@ -152,7 +179,7 @@ class ProductManagementTests(unittest.TestCase):
         self.full_frame = dict(x=-681, y=64, width=562, height=422)
         self.small_frame = dict(x=-64, y=602, width=49, height=76)
         self.owner["frames"] = [self.full_frame]
-        key = wm.plan_key(self.owner, self.host, "display")
+        key = wm.plan_key(self.owner, self.host, "display", 800)
         self.m.snapshot = Mock(return_value=(self.owner, self.host, key))
         self.m.grant = Mock()
         return key
@@ -189,7 +216,7 @@ class ProductManagementTests(unittest.TestCase):
         self.m.control = Mock(return_value=self.proof(self.observation()))
         replaced = dict(self.owner, revision=3)
         self.m.snapshot = Mock(side_effect=[(self.owner, self.host, key),
-                                           (replaced, self.host, wm.plan_key(replaced, self.host, "display"))])
+                                           (replaced, self.host, wm.plan_key(replaced, self.host, "display", 800))])
         with self.assertRaisesRegex(ValueError, "核对后发生变化"):
             self.m.apply("candidate-layout")
         self.m.control.assert_called_once_with("product-presentation")
@@ -243,7 +270,7 @@ class ProductManagementTests(unittest.TestCase):
         self.presentation_setup()
         other = dict(self.member, id=dict(self.id, number=29, element="other"))
         owner = dict(self.owner, members=[other, self.member], frames=[self.small_frame, self.full_frame])
-        key = wm.plan_key(owner, self.host, "display")
+        key = wm.plan_key(owner, self.host, "display", 800)
         self.m.snapshot = Mock(return_value=(owner, self.host, key))
         self.m.control = Mock(return_value=self.proof(self.observation()))
         with self.assertRaises(ValueError):

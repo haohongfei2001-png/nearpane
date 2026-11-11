@@ -8,7 +8,7 @@ swift build "${args[@]}"
 bin="$(swift build "${args[@]}" --show-bin-path)"
 umask 077
 # File Provider attaches Finder metadata to repo directories. Keep the signed test apps in a private local cache.
-apps_dir="$HOME/Library/Caches/org.nearpane.window-lab/P4.2"
+apps_dir="${NEARPANE_LAB_APP_CACHE:-$HOME/Library/Caches/org.nearpane.window-lab/P4.2}"
 mkdir -p "$apps_dir"
 stage="$(mktemp -d "$apps_dir/.stage.XXXXXX")"
 trap 'rm -rf "$stage"' EXIT

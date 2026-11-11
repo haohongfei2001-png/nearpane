@@ -7,6 +7,7 @@ import NearpaneCore
     var referenceHeight: Double?
     var content: PanelContent = .full
     var secondary = false
+    var sizeForm: PanelSizeForm = .full
     @ObservationIgnored weak var pointer: WorkspacePointerRegistry?
 }
 
@@ -49,7 +50,7 @@ struct DesktopSurface: View {
                             Text(host.workspaceIssue.map { issue in
                                 issue == .minimumSize ? "窗口最小尺寸超出可用区域" : "当前无法执行工作空间操作"
                             } ?? (native.rows.contains(where: { $0.displayID == displayID }) ? "已确认的当前空间" : "此屏可见窗口 · 空间未确认"))
-                                .font(settings.measures[.labelSize].map { .system(size:$0.points(in:display?.referenceHeight ?? 600)) } ?? .caption2).foregroundStyle(.secondary)
+                                .font(settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600).map { .system(size: $0) } ?? .caption2).foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, 3)
                         }

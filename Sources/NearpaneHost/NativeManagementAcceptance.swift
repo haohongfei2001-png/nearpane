@@ -21,12 +21,21 @@ private final class PassiveManagementPanel: NSPanel {
               UUID(uuidString: epoch) != nil, NSScreen.screens.count == 2, let screen = NSScreen.screens.last,
               SystemScreens.geometry().last?.id == display,
               screen.frame.intersection(NSScreen.screens[0].frame).isEmpty else { throw CocoaError(.featureUnsupported) }
-        let rect = CGRect(x: screen.visibleFrame.midX - 270, y: screen.visibleFrame.midY - 200, width: 540, height: 400).integral
+        let sizing = ProcessInfo.processInfo.environment["NEARPANE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
+        let width = sizing ? min(610, screen.visibleFrame.width) : 540
+        let height = sizing ? min(900, screen.visibleFrame.height) : 400
+        let rect = CGRect(x: screen.visibleFrame.midX - width / 2, y: screen.visibleFrame.midY - height / 2,
+                          width: width, height: height).integral
         guard screen.visibleFrame.contains(rect) else { throw CocoaError(.featureUnsupported) }
         panel = PassiveManagementPanel(contentRect: .zero, styleMask: [.nonactivatingPanel, .titled], backing: .buffered, defer: true)
-        panel.title = "Nearpane 设置 · 窗口管理"
+        panel.title = sizing ? "Nearpane 设置 · 尺寸与呈现" : "Nearpane 设置 · 窗口管理"
         panel.hidesOnDeactivate = false; panel.ignoresMouseEvents = true; panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host))
+        if sizing, let target = SystemScreens.geometry().first(where: { $0.id == display }) {
+            panel.contentView = NSHostingView(rootView: WorkspaceDisplaySettings(host: host, screens: [target],
+                request: { _ in }, dismiss: { _ in }))
+        } else {
+            panel.contentView = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host))
+        }
         panel.setFrame(rect, display: false)
         guard screen.visibleFrame.contains(panel.frame) else { throw CocoaError(.featureUnsupported) }
         panel.orderFrontRegardless()

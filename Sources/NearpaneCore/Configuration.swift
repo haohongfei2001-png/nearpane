@@ -43,7 +43,9 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public func validated() throws -> Self {
         guard version == Self.schemaVersion else { throw ConfigurationError.unsupportedVersion }
         guard workspaces.excludedApps.allSatisfy({ !$0.isEmpty && $0.count <= 255 }), displays.count <= 64, displays.allSatisfy({ key, value in
-            !key.isEmpty && key.count <= 120 && value.toolAnchor?.anchor.geometry.isValid != false && value.floatingPosition?.x.isFinite != false && value.floatingPosition?.y.isFinite != false && value.measures.values.allSatisfy(\.valid)
+            !key.isEmpty && key.count <= 120 && value.toolAnchor?.anchor.geometry.isValid != false && value.floatingPosition?.x.isFinite != false && value.floatingPosition?.y.isFinite != false && value.measures.allSatisfy { metric, measure in
+                metric == .panelWidth || metric == .panelHeight ? measure.validPanelExtent : measure.valid
+            }
         }), modules.count <= 100,
               Set(modules.map(\.id)).count == modules.count,
               modules.allSatisfy({ !$0.id.isEmpty && $0.id.count <= 120 }),

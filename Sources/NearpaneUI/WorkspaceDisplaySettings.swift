@@ -3,13 +3,21 @@ import SwiftUI
 
 private typealias ViewState<T> = State<T>
 
-struct WorkspaceDisplaySettings: View {
+public struct WorkspaceDisplaySettings: View {
     let host: HostSession, screens: [ScreenGeometry], request: (String) -> Void, dismiss: (String) -> Void
     @ViewState private var chosen = ""
-    @ViewState private var key = DisplayMetric.panelWidth
-    var body: some View {
+    @ViewState private var key = DisplayMetric.reservedWidth
+    public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void) {
+        self.host = host
+        self.screens = screens
+        self.request = request
+        self.dismiss = dismiss
+    }
+
+    public var body: some View {
         ScrollView {
-            if let screen = screens.first(where: { $0.id == chosen }) ?? screens.first {
+            if let screen = screens.first(where: { $0.id == chosen })
+                ?? screens.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? screens.first {
                 let primary =
                     screens.first(where: { $0.id == host.configuration.preferredDisplayID })?.id ?? screens.first?.id
                 let settings = host.configuration.displays[screen.id] ?? .init()
@@ -19,7 +27,15 @@ struct WorkspaceDisplaySettings: View {
                         ForEach(Array(screens.enumerated()), id: \.element.id) { i, s in
                             Text("显示器 \(i+1) · \(Int(s.visibleFrame.width)) × \(Int(s.visibleFrame.height))").tag(s.id)
                         }
+                    }.accessibilityIdentifier("panel-size-display")
+                    PanelSizeEditor(settings: settings, screen: screen, edge: host.configuration.edge,
+                                    primary: primary == screen.id, content: host.panelContents[screen.id] ?? .hidden,
+                                    voice: host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
+                                    tray: host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }) { draft in
+                        let latest = host.configuration.displays[screen.id] ?? .init()
+                        if let applied = draft.settings(over: latest, on: screen), applied != latest { save(applied) }
                     }
+                    .id([screen.id, String(describing: settings.measures[.panelWidth]), String(describing: settings.measures[.panelHeight])])
                     if primary != screen.id {
                         Picker(
                             "空间面板",
@@ -92,7 +108,9 @@ struct WorkspaceDisplaySettings: View {
                         Text("底部").tag(PanelAnchor.bottom)
                     }
                     Picker("调整项目", selection: $key) {
-                        ForEach(DisplayMetric.allCases, id: \.self) { Text($0.label).tag($0) }
+                        ForEach(DisplayMetric.allCases.filter { $0 != .panelWidth && $0 != .panelHeight }, id: \.self) {
+                            Text($0.label).tag($0)
+                        }
                     }
                     let defaultMeasure = key == .reservedWidth ? settings.measures[.panelWidth] ?? key.factory : key.factory
                     let basis = settings.referenceExtent(for: key, screen: screen, primary: primary == screen.id)

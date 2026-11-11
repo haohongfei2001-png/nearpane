@@ -11,12 +11,18 @@ public struct DesktopWorkArea: Equatable, Sendable {
             screen.geometry.intersection(usable.geometry) == usable.geometry
         else { throw WorkspaceFailure.display }
         let docked = primary || settings.placement == .docked
-        let reserved =
-            docked
-            ? (settings.measures[.reservedWidth] ?? settings.measures[.panelWidth] ?? DisplayMetric.reservedWidth.factory)
-            : Measure(0)
-        guard reserved.valid else { throw WorkspaceFailure.invalidLayout }
-        let width = reserved.points(in: usable.width)
+        let width: Double
+        if !docked {
+            width = 0
+        } else if let reserved = settings.measures[.reservedWidth] {
+            guard reserved.valid else { throw WorkspaceFailure.invalidLayout }
+            width = reserved.points(in: usable.width)
+        } else {
+            guard (settings.measures[.panelWidth] ?? DisplayMetric.panelWidth.factory).validPanelExtent else {
+                throw WorkspaceFailure.invalidLayout
+            }
+            width = settings.committedPanelWidth(in: usable.width)
+        }
         guard width >= 0, width < usable.width else { throw WorkspaceFailure.minimumSize }
         self.display = display
         self.screen = screen

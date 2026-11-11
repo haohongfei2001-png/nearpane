@@ -13,6 +13,7 @@ public struct Measure: Codable, Equatable, Sendable {
     public func points(in extent: Double) -> Double { unit == .points ? value : extent * value / 100 }
     public var step: Double { unit == .points ? 0.5 : 0.1 }
     public var valid: Bool { value.isFinite && value >= 0 && value <= (unit == .percent ? 100 : 16384) }
+    public var validPanelExtent: Bool { value.isFinite && value >= 0 && (unit == .points || value <= 100) }
 }
 
 public enum DisplayMetric: String, Codable, CaseIterable, Sendable {
@@ -68,6 +69,15 @@ public enum SecondaryPolicy: String, Codable, CaseIterable, Sendable { case onDe
 public enum PanelAnchor: String, Codable, CaseIterable, Sendable { case top, center, bottom }
 public enum PanelContent: Equatable, Sendable { case full, compact, voiceOnly, trayOnly, spacesOnly, hidden }
 
+public enum PanelSizeForm: Equatable, Sendable { case full, compact, icon }
+
+/// Logical points. The icon view and the window clamp use the same small application icon and glass inset.
+public enum PanelSizeMetrics {
+    public static let iconSide = 16.0
+    public static let glassInset = 2.0
+    public static var minimumSide: Double { iconSide + 2 * glassInset }
+}
+
 public struct PanelPosition: Codable, Equatable, Sendable {
     public var x: Double, y: Double
     public init(x: Double, y: Double) {
@@ -99,19 +109,41 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
     public func points(_ key: DisplayMetric, in extent: Double) -> Double {
         (measures[key] ?? key.factory).points(in: max(0, extent))
     }
+
+    private func extentRange(_ extent: Double, inset: Double) -> ClosedRange<Double> {
+        let safe = extent.isFinite ? max(0, extent) : 0
+        let minimum = min(PanelSizeMetrics.minimumSide, safe)
+        return minimum...max(minimum, safe - inset)
+    }
+
+    public func panelExtentRange(for axis: DisplayMetric, on screen: ScreenGeometry) -> ClosedRange<Double> {
+        let safe = screen.visibleFrame
+        switch axis {
+        case .panelWidth:
+            return extentRange(safe.width, inset: points(.sideInset, in: safe.width))
+        case .panelHeight:
+            return extentRange(safe.height, inset: points(.topInset, in: safe.height) + points(.bottomInset, in: safe.height))
+        default:
+            preconditionFailure("Expected panelWidth or panelHeight")
+        }
+    }
+
+    func committedPanelWidth(in available: Double) -> Double {
+        let range = extentRange(available, inset: points(.sideInset, in: available))
+        return min(range.upperBound, max(range.lowerBound, points(.panelWidth, in: available)))
+    }
     public func panel(
         on screen: ScreenGeometry, fallbackEdge: SurfaceEdge, heightFraction: Double = 1, floating: Bool = false
     ) -> SurfaceRect? {
         let f = screen.visibleFrame
         guard f.geometry.isValid, heightFraction.isFinite, heightFraction > 0 else { return nil }
-        let side = min(points(.sideInset, in: f.width), f.width)
-        let top = points(.topInset, in: f.height)
-        let bottom = points(.bottomInset, in: f.height)
-        let available = f.height - top - bottom
-        let w = min(points(.panelWidth, in: f.width), f.width - side)
-        let full = min(points(.panelHeight, in: f.height), available)
-        let h = min(full, full * heightFraction)
-        guard w > 0, h > 0 else { return nil }
+        let w = committedPanelWidth(in: f.width)
+        let side = min(points(.sideInset, in: f.width), f.width - w)
+        let heights = panelExtentRange(for: .panelHeight, on: screen)
+        let available = heights.upperBound
+        let top = min(points(.topInset, in: f.height), f.height - available)
+        let full = min(available, max(heights.lowerBound, points(.panelHeight, in: f.height)))
+        let h = max(heights.lowerBound, min(full, full * heightFraction))
         let spare = available - h
         let fromTop = min(
             spare, (anchor == .center ? spare / 2 : anchor == .bottom ? spare : 0) + points(.verticalOffset, in: f.height))
@@ -209,6 +241,56 @@ public struct MultiDisplayPresentationCoordinator {
 }
 
 extension DisplaySettings {
+    /// Retain system typography when unset and preserve explicit point sizes. A percentage
+    /// cannot reduce the visible transcript or Space caption below its factory text token.
+    public func readableFontSize(_ metric: DisplayMetric, in extent: Double) -> Double? {
+        guard let choice = measures[metric] else { return nil }
+        let requested = choice.points(in: extent)
+        return choice.unit == .percent ? max(metric.factory.value, requested) : requested
+    }
+
+    /// Fit ordinary module controls at their configured sizes. Condensing the panel never changes their stored metrics.
+    public func sizeForm(width: Double, height: Double, content: PanelContent, voice: Bool, tray: Bool,
+                         referenceHeight: Double? = nil, temporarilyExpanded: Bool = false) -> PanelSizeForm {
+        let minimum = PanelSizeMetrics.minimumSide
+        let compactSpan = 2 * minimum + 2 * PanelSizeMetrics.glassInset
+        guard width.isFinite, height.isFinite, min(width, height) >= minimum,
+              max(width, height) >= compactSpan else { return .icon }
+        let sections = contentHeights(referenceHeight ?? height, content: content, voice: voice, tray: tray)
+        if voice && [.full, .compact, .voiceOnly].contains(content) {
+            let pad = points(.textPadding, in: width)
+            let requestedFont = points(.textSize, in: sections.voice)
+            let font = readableFontSize(.textSize, in: sections.voice) ?? requestedFont
+            if !temporarilyExpanded && font > requestedFont { return .compact }
+            let waveformWidth = points(.waveformSize, in: width)
+            let copySize = points(.copySize, in: sections.voice)
+            let buttonHeight = max(points(.voiceButtonHeight, in: sections.voice), waveformWidth * 24 / 28, copySize)
+            let rowWidth = max(points(.voiceButtonWidth, in: width), waveformWidth) + copySize
+                + 2 * points(.buttonGap, in: width)
+            if width < 2 * pad + max(rowWidth, 2 * font)
+                || min(height, sections.voice) < 2 * pad + buttonHeight + font * 1.3 + 4 { return .compact }
+        }
+        if tray && [.full, .compact, .trayOnly].contains(content) {
+            let pad = points(.trayPadding, in: width)
+            let glyph = points(.trayButtonSize, in: sections.tray)
+            if width < 2 * pad + 2 * glyph + points(.columnGap, in: width)
+                || min(height, sections.tray) < 2 * pad + 2 * glyph + points(.rowGap, in: sections.tray) {
+                return .compact
+            }
+        }
+        if content == .full || content == .spacesOnly {
+            let pad = points(.spacePadding, in: width)
+            let labelBasis = referenceHeight ?? height
+            let requestedLabel = points(.labelSize, in: labelBasis)
+            let label = readableFontSize(.labelSize, in: labelBasis) ?? requestedLabel
+            if !temporarilyExpanded && label > requestedLabel { return .compact }
+            if width < 2 * pad + 4 * label || min(height, sections.spaces) < 2 * pad + label * 1.3 + minimum {
+                return .compact
+            }
+        }
+        return .full
+    }
+
     public func contentHeights(_ height: Double, content: PanelContent, voice: Bool, tray: Bool) -> (
         voice: Double, tray: Double, spaces: Double, gap: Double
     ) {
@@ -236,7 +318,7 @@ extension DisplaySettings {
         switch key {
         case .panelWidth, .reservedWidth, .sideInset: return safe.width
         case .panelHeight, .topInset, .bottomInset, .verticalOffset: return safe.height
-        case .voiceHeight, .trayHeight, .spacesHeight, .sectionGap, .railHeight: return panel.height
+        case .voiceHeight, .trayHeight, .spacesHeight, .sectionGap, .railHeight, .labelSize: return panel.height
         case .textHeight, .textSize, .lineGap, .voiceButtonHeight, .copySize: return sizes.voice
         case .columnGap: return max(0, panel.width - 2 * points(.trayPadding, in: panel.width))
         case .rowGap: return max(0, sizes.tray - 2 * points(.trayPadding, in: panel.width))
@@ -251,7 +333,7 @@ extension DisplaySettings {
             let viewport = min(sizes.spaces, points(.scrollHeight, in: sizes.spaces))
             return min(viewport, points(.desktopHeight, in: viewport))
         case .desktopHeight: return min(sizes.spaces, points(.scrollHeight, in: sizes.spaces))
-        case .scrollHeight, .moduleHeight, .labelSize: return sizes.spaces
+        case .scrollHeight, .moduleHeight: return sizes.spaces
         default: return panel.width
         }
     }
