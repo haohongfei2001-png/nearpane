@@ -25,13 +25,13 @@
 | 用户可选模块及隐私 | VERIFIED · 时钟默认不启用，沿用既有 ID、启停、顺序。已在真实副屏侧栏展开和收起，能显示本地时间；可选额外时区 | [真实展开](../../build/verification/product-closeout/settings/7924e58d-b891-42c7-aa0d-db30a8cc38da/clock-expanded.png)、[时区回归](../../build/verification/product-closeout/domains/local-clock.log)。候选隐藏无实际数据源的样例；日历、天气、AI 等在产品定义中是可选扩展方向，没有作为已实现集成。 |
 | 升级、资料契约、备份、失败回退 | VERIFIED · P5.2 → P5.3 隔离副本实测，P5.4 沿用相同格式/身份；旧操作、TCC 和窗口票据不继承 | [升级回退](P5.3-UPGRADE-ROLLBACK-ACCEPTANCE.md)，`cc36d14`。更早版本按标记和真实 schema 拒绝不兼容；本轮不迁移个人资料。 |
 | 驻留、退出屏障、权限及资源 | PARTIAL · 领域进程排空、关闭观察器、睡眠/唤醒和历史一小时驻留有证据；不是普通窗口观察长期电量基准 | [P3.7](P3.7-hardening-closeout.md)、[P5.2](P5.2-MULTIDISPLAY-ACCEPTANCE.md)。新加入的长期观察以限定目标、有限采样和退出清理测量。 |
-| Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，6 个 Mach-O 均有 arm64，按各自部署下限验签；正式签名、公证、干净设备验收仍 BLOCKED | [打包检查](../../scripts/check-alpha-distribution.py)、[发布门禁](../../build/verification/product/distribution-gate.json)。[Apple 公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)：按授权签名并加固、时间戳、公证、干净机安装验证。当前无发布凭据或上传；窗口/资料助手仅使用已安装的 Apple 签名 Python，缺失时拒绝、不触发安装。 |
+| Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，6 个 Mach-O 均有 arm64，按各自部署下限验签；正式签名、公证、干净设备验收仍 BLOCKED | [打包检查](../../scripts/check-alpha-distribution.py)、[发布门禁](../../build/verification/product/distribution-gate.json)。[Apple 公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)：按授权签名并加固、时间戳、公证、干净机安装验证。已在一次性副本按嵌套顺序加固、重新计算 3 项助手指纹、重新封签 6 个 Mach-O；[原包保持一致](../../build/verification/product/signing-rehearsal.json)。未使用发布凭据或上传；窗口/资料助手仅使用已安装的 Apple 签名 Python，缺失时拒绝、不触发安装。 |
 
 ## 接续点
 
 可运行：[P5.5 Alpha](</Users/hhf/Applications/Nearpane P5.5/Nearpane P5.5 Alpha.app>)；[P5.4 回退包](</Users/hhf/Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app>)。P5.3 起共用稳定资料契约及写锁，须先退出再换版，不拷贝数据库，不自动回放外部操作。本轮只用标记的隔离目录。
 
-- 提交：`daf477b` 建立状态；`782e2df` 恢复尺寸；`182ae05` 领域设置和真实时钟。对应 P5.5 首份安装 Host SHA-256 `bba64dfbb083f904a9120e9843732e11cdb2d97da9b65c8817d86f056867a104`。安装与回退边界见[使用帮助](../../docs/ALPHA-HELP.md)。
+- 提交：`daf477b` 建立状态；`782e2df` 恢复尺寸；`182ae05` 领域设置和真实时钟。`d9adbe2` 固定八窗、按屏预演、资料锁及安装验收。对应 P5.5 首份安装 Host SHA-256 `bba64dfbb083f904a9120e9843732e11cdb2d97da9b65c8817d86f056867a104`。安装与回退边界见[使用帮助](../../docs/ALPHA-HELP.md)。
 - [集成 271/271](../../build/verification/product/integrated.log)、[独立 Host 221/221](../../build/verification/product/foundation.log)、[Debug/Release](../../build/verification/product/packages.log)、[安装资源](../../build/verification/product/installation.log)、[资料事务 13/13](../../build/verification/product/profile-transactions.log)。171 份固定输入均验证；资料锁持有者退出释放的并发回归已通过；原先失败保留在 integrated-current.log。
 - [真实密集窗口几何/采样](../../build/verification/p54/ordinary/a56be84a-0e3d-4625-b094-652a62aa9750/geometry.json)：42.88 秒交互，Host CPU 累计由 0.28 增至 1.35 秒，RSS 峰值 94,288 KiB；窗口助手 CPU 0.04→0.86 秒，RSS 峰值 15,600 KiB。不能外推电池续航。
 - 正在接续：关闭第 3 窗时残留 CG 编号的语义；已授权成员被 App 排除时不应暂停其他成员，逐窗排除的持久化与撤销；确保关闭或最小化 Settings 后不继续读取所选应用。待验证实际产品后更新此处。
