@@ -168,6 +168,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var panels: DisplayPanels?
     private var screenAsleep = false, sessionInactive = false, screenLocked = false
     private var surface: EdgeWindowController?
+    private let settingsScreens = SettingsScreenInventory()
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
     private var startupTask: Task<Void, Never>?
@@ -454,8 +455,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     @objc private func screensChanged() {
         host?.invalidateDesktop()
         updatePanels()
-        // Rebuild the settings list on its next explicit opening.
-        if settings?.window?.isVisible == true { updateSettingsContent() }
+        if settings != nil { settingsScreens.update(SystemScreens.geometry()) }
     }
 
     @objc private func toggleSurface() {
@@ -482,8 +482,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                 window.setFrameOrigin(NSPoint(x: f.midX - window.frame.width / 2, y: f.midY - window.frame.height / 2))
             } else { window.center() }
             settings = NSWindowController(window: window)
+            updateSettingsContent()
         }
-        updateSettingsContent()
+        settingsScreens.update(SystemScreens.geometry())
         settings?.showWindow(nil)
         // Only an explicit Settings click may activate the application.
         NSApp.activate(ignoringOtherApps: true)
@@ -497,7 +498,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let importer: AnyView? = nil
         #endif
         guard let host else { return }
-        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,screens:SystemScreens.geometry(),domains:modules,profileImport:importer,
+        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,domains:modules,profileImport:importer,
             requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
             dismissSpaces: { [weak self] id in self?.panels?.dismiss(id); self?.updatePanels() },
             placementChanged: { [weak self] in self?.updatePanels() }))

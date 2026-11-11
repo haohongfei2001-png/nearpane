@@ -5,13 +5,16 @@ private typealias ViewState<T> = State<T>
 
 public struct WorkspaceDisplaySettings: View {
     let host: HostSession, screens: [ScreenGeometry], request: (String) -> Void, dismiss: (String) -> Void
+    let stillCurrent: (ScreenGeometry) -> Bool
+    @ViewState private var pendingReset: DisplaySizeReset?
     @ViewState private var chosen = ""
     @ViewState private var key = DisplayMetric.reservedWidth
-    public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void) {
+    public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void, stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true }) {
         self.host = host
         self.screens = screens
         self.request = request
         self.dismiss = dismiss
+        self.stillCurrent = stillCurrent
     }
 
     public var body: some View {
@@ -21,9 +24,12 @@ public struct WorkspaceDisplaySettings: View {
                 let primary =
                     screens.first(where: { $0.id == host.configuration.preferredDisplayID })?.id ?? screens.first?.id
                 let settings = host.configuration.displays[screen.id] ?? .init()
-                let save: (DisplaySettings) -> Void = { host.setDisplaySettings($0, id: screen.id) }
+                let save: (DisplaySettings) -> Void = { value in
+                    guard stillCurrent(screen) else { return }
+                    host.setDisplaySettings(value, id: screen.id)
+                }
                 Form {
-                    Picker("配置显示器", selection: Binding(get: { screen.id }, set: { chosen = $0 })) {
+                    Picker("配置显示器", selection: Binding(get: { screen.id }, set: { chosen = $0; pendingReset = nil })) {
                         ForEach(Array(screens.enumerated()), id: \.element.id) { i, s in
                             Text("显示器 \(i+1) · \(Int(s.visibleFrame.width)) × \(Int(s.visibleFrame.height))").tag(s.id)
                         }
@@ -133,11 +139,61 @@ public struct WorkspaceDisplaySettings: View {
                         }
                     }
                     if key == .reservedWidth {
-                        Text(primary == screen.id ? "默认随主面板宽度。隐藏界面时仍保留，窗口避让仅开放给体验中的自建示例窗。" : "驻留式在隐藏时仍保留边界；浮窗式始终无预留。").font(
+                        Text(primary == screen.id ? "默认随主面板宽度。隐藏界面时仍保留，窗口避让仅对已明确授权且符合条件的窗口生效。" : "驻留式在隐藏时仍保留边界；浮窗式始终无预留。").font(
                             .caption)
                     }
+                    HStack {
+                        Button("恢复" + key.group.label + "尺寸…") {
+                            pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: key.group)
+                        }.disabled(!settings.measures.keys.contains { $0.group == key.group })
+                        .accessibilityIdentifier("sizes-reset-group")
+                        Button("恢复本屏全部尺寸…") {
+                            pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: nil)
+                        }.disabled(settings.measures.isEmpty)
+                        .accessibilityIdentifier("sizes-reset-display")
+                    }
+                    if let reset = pendingReset, reset.screen == screen {
+                        VStack(alignment: .leading) {
+                            Text(reset.group == nil || reset.group == .panel
+                                 ? "恢复后，面板与持久预留宽度将使用出厂值。已授权的窗口可能重新平铺。"
+                                 : "仅恢复" + (reset.group?.label ?? "") + "的尺寸，其余设置不变。")
+                                .font(.caption)
+                            HStack {
+                                Button("取消") { pendingReset = nil }
+                                Button("应用恢复") {
+                                    let current = host.configuration.displays[screen.id] ?? .init()
+                                    if let updated = reset.applying(to: current, on: screen) { save(updated) }
+                                    pendingReset = nil
+                                }.accessibilityIdentifier("sizes-reset-apply")
+                            }
+                        }
+                    }
                 }.padding()
-            }
+            } else { Text("没有可配置的显示器。").foregroundStyle(.secondary) }
+        }
+        .onChange(of: screens) { _, _ in pendingReset = nil }
+        .onChange(of: key) { _, _ in pendingReset = nil }
+    }
+}
+
+struct DisplaySizeReset {
+    let screen: ScreenGeometry, saved: DisplaySettings, group: DisplayMetricGroup?
+
+    func applying(to current: DisplaySettings, on live: ScreenGeometry) -> DisplaySettings? {
+        guard live == screen, current == saved else { return nil }
+        let next = current.restoringSizes(group: group)
+        return next == current ? nil : next
+    }
+}
+
+private extension DisplayMetricGroup {
+    var label: String {
+        switch self {
+        case .panel: "面板"
+        case .voice: "文字与语音"
+        case .tray: "截图托盘"
+        case .spaces: "空间预览"
+        case .modules: "可选模块"
         }
     }
 }
