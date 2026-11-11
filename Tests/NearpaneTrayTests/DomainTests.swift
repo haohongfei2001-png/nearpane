@@ -474,3 +474,147 @@ extension TrayDomainTests {
         module.stop(); await module.finishStopping()
     }
 }
+
+@Suite @MainActor struct CaptureConsentTests {
+    @Test func restartRestoresOnlyTheSelectedSystemFolderAndStopRevokesConsent() async throws {
+        let fm = FileManager.default, base = root()
+        defer { try? fm.removeItem(at: base) }
+        let library = base.appendingPathComponent("library"), source = base.appendingPathComponent("screenshots")
+        try fm.createDirectory(at: source, withIntermediateDirectories: true)
+        let store = try QueueStore(databaseURL: library.appendingPathComponent("queue.sqlite"))
+        func host() -> TrayModule {
+            let tray = TrayModule(productAttachments: true) { change, error in
+                TrayOwner(store: store, root: library, adapter: UnavailableAdapter(), policy: .init(), captureEntry: true,
+                          pin: { throw LibraryError.incompatible }, permission: { _,_ in false }, notify: change, report: error)
+            }
+            tray.captureLocation = { Location(source) }
+            return tray
+        }
+        let initial = host()
+        try initial.start(); await initial.connect()
+        #expect(!initial.collectionEnabled)
+        await initial.collect(from: source)
+        try #require(initial.collectionEnabled && initial.hasSavedCollection)
+        initial.stop(); await initial.finishStopping()
+        let next = host()
+        try next.start(); await next.connect()
+        try #require(next.collectionEnabled)
+        next.stopCollecting(); next.stop(); await next.finishStopping()
+        let final = host()
+        try final.start(); await final.connect()
+        #expect(!final.collectionEnabled && !final.hasSavedCollection)
+        #expect(try CaptureFolderConsent.read(in: library) == nil)
+        final.stop(); await final.finishStopping()
+    }
+
+    @Test func replacedOrRenamedDirectoryNeverInheritsPriorPickerConsent() throws {
+        let fm = FileManager.default, base = root()
+        defer { try? fm.removeItem(at: base) }
+        let source = base.appendingPathComponent("screenshots")
+        let alias = base.appendingPathComponent("alias")
+        try fm.createDirectory(at: source, withIntermediateDirectories: true)
+        let consent = try CaptureFolderConsent(selected: source)
+        try consent.save(in: base)
+        try fm.moveItem(at: source, to: base.appendingPathComponent("moved"))
+        try fm.createDirectory(at: source, withIntermediateDirectories: false)
+        let reopened = try #require(try CaptureFolderConsent.read(in: base))
+        #expect(!reopened.resolves(source))
+        #expect(throws: (any Error).self) { try reopened.directory() }
+        try fm.createSymbolicLink(at: alias, withDestinationURL: source)
+        #expect(throws: (any Error).self) { try CaptureFolderConsent(selected: alias) }
+    }
+}
+
+extension TrayDomainTests {
+    @Test func normalClickShowsDomainReceiptAndRestartOnlyReadsTheSelectedAsset() async throws {
+        for outcome in [ReceiptOutcome.uploadStarted, .unknown, .definitiveFailure, .verifiedReady] {
+            let dir = root()
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let db = dir.appendingPathComponent("queue.sqlite")
+            let transport = Transport()
+            await transport.configure(outcome)
+            var checks = 0, captures = 0
+            func module(_ store: QueueStore) -> TrayModule {
+                TrayModule(productAttachments: true) { change, report in
+                    TrayOwner(store: store, root: dir, adapter: transport, policy: .init(), captureEntry: true,
+                        pin: { captures += 1; return Task { try await transport.captureTarget() } },
+                        permission: { _,_ in checks += 1; return true }, notify: change, report: report)
+                }
+            }
+            let store = try QueueStore(databaseURL: db, mode: .simulation)
+            let image = ImportedAsset(sourceKey: "controlled", fileName: "one.png", sha256: String(repeating: "a", count: 64),
+                                      byteCount: 7, pixelWidth: 40, pixelHeight: 17, mediaType: "image/png", origin: .synthetic)
+            _ = try await store.importAsset(image)
+            let media = dir.appendingPathComponent("media")
+            try FileManager.default.createDirectory(at: media, withIntermediateDirectories: true)
+            try Data("fixture".utf8).write(to: media.appendingPathComponent(image.fileName))
+            let tray = module(store)
+            try tray.start()
+            await tray.connect()
+            #expect(!tray.mayAttach && checks == 0 && captures == 0)
+            await tray.authorizeAttachments()
+            let pressRow = try #require(tray.rows.first)
+            let press = try #require(tray.beginPress(pressRow))
+            await tray.finishPress(press)
+            let asset = try #require(try await store.asset(id: image.id))
+            let operation = try #require(asset.activeOperationID)
+            let expected: String
+            switch outcome {
+            case .unknown: expected = "结果未知"
+            case .uploadStarted: expected = "尚无完成回执"
+            case .verifiedReady: expected = "已附加到草稿"
+            default: expected = "附加失败"
+            }
+            #expect(tray.attachmentFeedback?.contains(expected) == true)
+            #expect(await transport.appends == 1)
+            #expect(captures == 1)
+            tray.stop()
+            await tray.finishStopping()
+            let beforeChecks = checks, beforeObservations = await transport.observations
+            let reopened = try QueueStore(databaseURL: db, mode: .simulation)
+            let next = module(reopened)
+            try next.start()
+            await next.connect()
+            #expect(next.mayAttach && next.attachmentFeedback?.contains(expected) == true)
+            #expect(try await reopened.asset(id: image.id)?.activeOperationID == operation)
+            #expect(checks == beforeChecks && captures == 1)
+            #expect(await transport.observations == beforeObservations)
+            #expect(await transport.appends == 1)
+            await next.disableAttachments()
+            next.stop(); await next.finishStopping()
+            try next.start(); await next.connect()
+            #expect(!next.mayAttach && next.attachmentFeedback?.contains(expected) == true)
+            next.stop(); await next.finishStopping()
+        }
+    }
+
+    @Test func disconnectOrRevocationCannotFinishAHeldProductClick() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let adapter = Transport()
+        let image = ImportedAsset(sourceKey: "held", fileName: "held.png", sha256: String(repeating: "b", count: 64),
+                                  byteCount: 5, pixelWidth: 8, pixelHeight: 8, mediaType: "image/png", origin: .synthetic)
+        _ = try await store.importAsset(image)
+        var revocations = 0
+        let tray = TrayModule(productAttachments: true) { changed, reported in
+            let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+                pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in true }, notify: changed, report: reported)
+            owner.cancelDraftSelections = { revocations += 1 }
+            return owner
+        }
+        try tray.start(); await tray.connect(); await tray.authorizeAttachments()
+        let heldRow = try #require(tray.rows.first)
+        let held = try #require(tray.beginPress(heldRow))
+        await tray.disableAttachments(); await tray.finishPress(held)
+        #expect(revocations > 0 && !tray.mayAttach)
+        #expect(try await store.asset(id: image.id)?.activeOperationID == nil)
+        await tray.authorizeAttachments()
+        let staleRow = try #require(tray.rows.first)
+        let stale = try #require(tray.beginPress(staleRow))
+        tray.disconnect(); await tray.connect(); await tray.finishPress(stale)
+        #expect(await adapter.appends == 0)
+        #expect(try await store.asset(id: image.id)?.activeOperationID == nil)
+        tray.stop(); await tray.finishStopping()
+    }
+}

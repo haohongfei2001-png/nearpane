@@ -1,3 +1,4 @@
+import CryptoKit
 import AppKit
 import RiftletCore
 import RiftletUI
@@ -17,6 +18,8 @@ final class TrayOwner {
     let root: URL
     let importer: PrivateAssetImporter
     var mayObserveTestClaim: () -> Bool = { false }
+    var cancelDraftSelections: () -> Void = {}
+    let receiptPolicy: ReceiptPolicy
     var checkAsset: (ImportedAsset) throws -> Void = { _ in }
     let pinTarget: () throws -> Task<TargetLease, Error>
     let checkPermission: (Bool, String?) async -> Bool
@@ -37,33 +40,58 @@ final class TrayOwner {
     // Other objects/tasks that continue domain work retain this same lock, even after UI disable.
     private let ownership: ApplicationInstanceOwnership?
 
-    static func existing(root: URL, testSession: URL? = nil, localOnly: Bool = false, notify: @escaping @MainActor () async -> Void,
+    static func existing(root: URL, testSession: URL? = nil, localOnly: Bool = false, productAttachments: Bool = false, notify: @escaping @MainActor () async -> Void,
                          report: @escaping @MainActor (String) -> Void) async throws -> TrayOwner {
         let library = try await Task.detached(priority: .userInitiated) { try ExistingLibrary.open(root) }.value
         let prefs = try ScreenshotEntryPreferences.load(from: root.appendingPathComponent("capture-entry-settings.json"))
         let policy = OrdinaryCaptureConfiguration.admission
         guard policy.usesUnifiedProduct, policy.allowsInput else { throw LibraryError.incompatible }
-        let browser = ChromeAppleEventsExecutor()
         var bound: BoundTestExecutor?
-        if let testSession {
-            guard let url = Bundle.main.url(forResource: "AcceptanceTargetGuard", withExtension: "js") else { throw WebAdapterError.programUnavailable }
-            bound = BoundTestExecutor(directory: testSession, base: browser, guardSource: try String(contentsOf: url, encoding: .utf8))
+        var product: ProductDraftExecutor?
+        if !localOnly, let url = Bundle.main.url(forResource: "AcceptanceTargetGuard", withExtension: "js"),
+           let data = try? Data(contentsOf: url),
+           let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneDraftGuardSHA256") as? String,
+           SHA256.hash(data: data).map({ String(format: "%02x", $0) }).joined() == expected,
+           let source = String(data: data, encoding: .utf8), !source.isEmpty {
+            let browser = ChromeAppleEventsExecutor()
+            if let testSession {
+                bound = BoundTestExecutor(directory: testSession, base: browser, guardSource: source)
+            } else {
+                product = ProductDraftExecutor(root: root, base: browser, guardSource: source)
+            }
+        } else if !localOnly && (productAttachments || testSession != nil) {
+            report("草稿保护程序不可用。截图仍可收录。")
         }
-        let executor: any WebClickTargetPinning
-        if let bound { executor = bound } else { executor = browser }
-        let adapter = WebAttachmentAdapter(mediaDirectory: root.appendingPathComponent("media"),
-            executor: executor, program: try ChatGPTWebPageProgram.load(), mode: .ordinaryProduct,
-            profile: policy.observationProfile, productStore: library.store, productOrigins: policy.productOrigins)
+        let executor: (any WebClickTargetPinning)?
+        if let bound { executor = bound } else { executor = product }
+        let adapter: any AttachmentAdapter
+        let pin: () throws -> Task<TargetLease, Error>
+        if let executor {
+            let web = WebAttachmentAdapter(mediaDirectory: root.appendingPathComponent("media"),
+                executor: executor, program: try ChatGPTWebPageProgram.load(), mode: .ordinaryProduct,
+                profile: policy.observationProfile, productStore: library.store, productOrigins: policy.productOrigins)
+            adapter = web
+            pin = { try web.targetForClick() }
+        } else {
+            adapter = UnavailableAdapter()
+            pin = { throw WebAdapterError.invalidTarget }
+        }
         let checker = NativeAutomationPermissionChecker()
         let owner = TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
                          captureEntry: prefs.builtInScreenshotEnabled, defaultMode: prefs.defaultMode,
-                         ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: { guard !localOnly else { throw WebAdapterError.invalidTarget }; return try adapter.targetForClick() },
-                         permission: { ask, session in guard !localOnly else { return false }; return await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
+                         ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: pin,
+                         permission: { ask, session in guard executor != nil else { return false }; return await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
                          notify: notify, report: report)
         if let bound {
             owner.mayObserveTestClaim = { bound.hasClaim }
             owner.checkAsset = { try bound.checkAsset($0) }
+        }
+        if testSession != nil {
             owner.hasCapturePermission = { CGPreflightScreenCaptureAccess() }
+        }
+        if let product {
+            owner.checkAsset = { try product.checkAsset($0) }
+            owner.cancelDraftSelections = { product.cancelSelections() }
         }
         // An explicit connection owns the original lock: finish already-journaled local imports
         // before projecting the queue. Never reinterpret an interrupted external transfer as a new click.
@@ -79,6 +107,7 @@ final class TrayOwner {
          makeSystemCapture: @escaping @MainActor () -> any SystemCaptureProcess = { MacSystemCaptureProcess() },
          pin: @escaping () throws -> Task<TargetLease, Error>, permission: @escaping (Bool, String?) async -> Bool,
          notify: @escaping @MainActor () async -> Void, report: @escaping @MainActor (String) -> Void) {
+        self.receiptPolicy = policy
         self.store = store; self.root = root; self.ownership = ownership; self.captureEntry = captureEntry
         self.defaultMode = defaultMode; self.pinTarget = pin; self.checkPermission = permission
         self.makeSystemCapture = makeSystemCapture
@@ -102,6 +131,7 @@ final class TrayOwner {
     }
 
     func cancelPresses() {
+        cancelDraftSelections()
         let ids = authority.cancel()
         guard !ids.isEmpty else { return }
         workCount += 1

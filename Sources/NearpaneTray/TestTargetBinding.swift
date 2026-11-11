@@ -32,13 +32,19 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
     }
 
     func program(_ original: WebPageProgram, guardSource: String) throws -> WebPageProgram {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let json = String(decoding: try encoder.encode(self), as: UTF8.self)
+        return try GuardedDraftProgram.compose(original, guardSource: guardSource, binding: json)
+    }
+}
+
+enum GuardedDraftProgram {
+    static func compose(_ original: WebPageProgram, guardSource: String, binding: String, product: Bool = false) throws -> WebPageProgram {
         // The digest covers *all* paths in the reviewed source, including future unanchored side effects.
         let digest = SHA256.hash(data: Data(original.functionSource.utf8)).map { String(format: "%02x", $0) }.joined()
         guard digest == "0daf3f2763e340503b8c957c4ef35a619417c5e486ac48fccbcae3f657ff9a09",
               !guardSource.isEmpty else { throw WebAdapterError.programUnavailable }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        let json = String(decoding: try encoder.encode(self), as: UTF8.self)
         var source = original.functionSource
         func replace(_ anchor: String, _ replacement: String) throws {
             guard source.components(separatedBy: anchor).count == 2 else { throw WebAdapterError.programUnavailable }
@@ -46,7 +52,12 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
         }
 
         let entry = "  const KEY = '__riftletIndependentFileInput20261104';"
-        let gate = "const nearpaneCheck = (...args) => (" + guardSource + ")(" + json + ",command,native,...args);"
+        let gate = "const nearpaneDraft = " + binding + "; const nearpaneCheck = (...args) => (" + guardSource + ")(nearpaneDraft,command,native,...args);"
+        if product {
+            // A newly pressed thumbnail gets its own lease even in the very same composer.
+            try replace("registry.current.editor !== parts.editor)", "registry.current.editor !== parts.editor || registry.current.target.clickBindingID !== nearpaneDraft.nonce.toUpperCase())")
+            try replace("draftGeneration: crypto.randomUUID()", "draftGeneration: crypto.randomUUID(), clickBindingID: nearpaneDraft.nonce.toUpperCase()")
+        }
         let chosen = "    const parts = composer();"
         try replace(chosen, chosen + "\n    nearpaneCheck(false, parts);")
 
@@ -89,7 +100,9 @@ struct TestTargetBinding: Codable, Equatable, Sendable {
             try replace(effect, "receiver.require(input);\n      " + effect)
         }
         // Install our source last so none of the upstream anchors can match inside the guard.
-        try replace(entry, gate + "\nif (!['observe','discard'].includes(command.action)) nearpaneCheck(false);\n" + entry)
+        let checkEntry = product ? "if (command.action !== 'discard') nearpaneCheck(false);" :
+            "if (!['observe','discard'].includes(command.action)) nearpaneCheck(false);"
+        try replace(entry, gate + "\n" + checkEntry + "\n" + entry)
         return WebPageProgram(sourceID: original.sourceID, functionSource: source,
                               maximumChunkBytes: original.maximumChunkBytes, inputDiscoveryTimeout: original.inputDiscoveryTimeout)
     }

@@ -1,8 +1,87 @@
-// Installed only in the explicit acceptance composition of the locked Riftlet page program.
+// Shared receiver/side-effect guard for the locked Riftlet page program.
 function nearpaneBoundDraft(b, command, native, handoff, parts, deadline, conflicts) {
   const reject = () => { throw Error('TARGET_INVALID'); };
   const surface = 'form,[data-testid="composer"],[data-composer-placement]';
+  const product = b?.mode === 'product';
+  const currentKey = 'data-nearpane-selected-image-v1';
+  const productKey = product ? 'data-nearpane-image-' + b.nonce : '';
+  function visibleModal() {
+    return [...document.querySelectorAll('dialog[open],[aria-modal="true"],[role="dialog"],[role="alertdialog"]')]
+      .some(node => !node.closest('[hidden],[inert],[aria-hidden="true"]') && node.getClientRects().length &&
+        getComputedStyle(node).visibility !== 'hidden');
+  }
+  function foreignEditingFocus(editor) {
+    const active = document.activeElement;
+    if (!active || active === editor || editor.contains(active)) return false;
+    return active.tagName === 'IFRAME' || !!active.shadowRoot || active.isContentEditable ||
+      active.matches('textarea,[role="textbox"],[role="searchbox"],input:not([type]),input[type="text" i],input[type="search" i],input[type="email" i],input[type="password" i]');
+  }
+  function productEditor() {
+    if (globalThis.top !== globalThis || location.origin !== 'https://chatgpt.com' ||
+        !/^\/(?:c\/[A-Za-z0-9-]+\/?)?$/.test(location.pathname) ||
+        document.visibilityState !== 'visible' || !document.hasFocus()) reject();
+    const editors = document.querySelectorAll('[id="prompt-textarea"]');
+    if (editors.length !== 1) reject();
+    const editor = editors[0], form = editor.closest(surface);
+    if (!(editor.isContentEditable || editor.tagName === 'TEXTAREA') || editor.disabled || editor.readOnly ||
+        !editor.getClientRects().length || editor.closest('aside,nav,header,article,[role="dialog"],[role="search"],[data-message-author-role],[inert],[aria-hidden="true"]') ||
+        !form || form === document.body || form === document.documentElement) reject();
+    if (visibleModal() || foreignEditingFocus(editor)) reject();
+    // A still-mounted editing host can sit underneath a sheet without ARIA.
+    const rect = editor.getBoundingClientRect();
+    const x = (Math.max(0, rect.left) + Math.min(innerWidth, rect.right)) / 2;
+    const y = (Math.max(0, rect.top) + Math.min(innerHeight, rect.bottom)) / 2;
+    if (!editor.contains(document.elementFromPoint(x,y))) reject();
+    return {editor, form};
+  }
+  function productChallenge() {
+    return ['nearpane-product',b.nonce,b.process,b.window,b.tab,b.assetID,b.sha256,b.boundAt,b.expiresAt].join('|');
+  }
+  if (product && command.action === 'armProductDraft') {
+    const {editor,form} = productEditor(), root = document.documentElement, href = location.href;
+    const navigation = globalThis.navigation, key = navigation?.currentEntry?.key;
+    if (!key || Date.now()/1000 > b.expiresAt) reject();
+    const scope = new AbortController(), options = {signal:scope.signal}, eventType = productChallenge();
+    const attr = JSON.stringify({...b,timeOrigin:performance.timeOrigin});
+    let observer, timeout;
+    const retire = () => {
+      scope.abort(); observer?.disconnect(); clearTimeout(timeout);
+      if (root.getAttribute(productKey) === attr) root.removeAttribute(productKey);
+      if (root.getAttribute(currentKey) === b.nonce) root.removeAttribute(currentKey);
+    };
+    const removed = records => records.some(record => [...record.removedNodes].some(node =>
+      node === root || node.contains(editor) || node.contains(form)));
+    observer = new MutationObserver(records => { if (removed(records)) retire(); });
+    observer.observe(document,{subtree:true,childList:true});
+    document.addEventListener('focusin', () => { if (foreignEditingFocus(editor)) retire(); },{capture:true,...options});
+    document.addEventListener('visibilitychange', () => { if (document.hidden) retire(); },options);
+    for (const event of ['pagehide','popstate','blur','hashchange']) window.addEventListener(event,retire,options);
+    navigation.addEventListener('currententrychange',retire,options);
+    editor.addEventListener(eventType,event => {
+      if (removed(observer.takeRecords())) { retire(); return; }
+      if (Date.now()/1000 <= b.expiresAt && document.documentElement === root && root.getAttribute(productKey) === attr &&
+          event.target === editor && editor.isConnected && editor.closest(surface) === form &&
+          form.isConnected && navigation.currentEntry?.key === key && location.href === href) event.preventDefault();
+    },options);
+    root.setAttribute(productKey,attr);
+    root.setAttribute(currentKey,b.nonce);
+    timeout = setTimeout(retire,Math.max(0,b.expiresAt*1000-Date.now()));
+    return JSON.stringify({timeOrigin:performance.timeOrigin});
+  }
   function checkDraft() {
+    if (product) {
+      const {editor,form} = productEditor();
+      if (Date.now()/1000 > b.expiresAt || performance.timeOrigin !== b.timeOrigin ||
+          native.applicationID !== 'com.google.Chrome' || native.sessionID !== b.process ||
+          native.windowID !== b.window || native.tabID !== b.tab ||
+          (command.target && command.target.clickBindingID !== b.nonce.toUpperCase()) ||
+          (command.identity && (command.identity.assetID.toLowerCase() !== b.assetID ||
+            command.identity.assetSHA256 !== b.sha256 || !Number.isSafeInteger(command.identity.attempt) || command.identity.attempt < 1)) ||
+          (parts && (parts.editor !== editor || parts.form !== form)) ||
+          (handoff && (!parts || !command.identity || command.action !== 'commit')) ||
+          editor.dispatchEvent(new Event(productChallenge(), {cancelable:true}))) reject();
+      return;
+    }
     if (Date.now() / 1000 > b.expiresAt || location.href !== b.url ||
         performance.timeOrigin !== b.timeOrigin || document.visibilityState !== 'visible' ||
         !document.hasFocus() || native.applicationID !== 'com.google.Chrome' ||
@@ -59,12 +138,14 @@ function nearpaneBoundDraft(b, command, native, handoff, parts, deadline, confli
   }
   function approved(control) {
     if (!entry || !local(entry) || !here(control) || !compatible(control)) return false;
+    if (product && (control.type === 'submit' || control.type === 'reset' ||
+        control.matches('[data-testid="send-button"],[data-testid="stop-button"]'))) return false;
     if (control === entry) return true;
     return entryDispatched && control === action && here(popup) && popup.contains(control) &&
       roots(entry,['aria-controls','aria-owns','popovertarget']).includes(popup);
   }
   function validInput(input) {
-    return input?.ownerDocument === document && !removed.has(input) && input.type === 'file' &&
+    return input?.ownerDocument === document && (!product || input.isConnected) && !removed.has(input) && input.type === 'file' &&
       !input.hasAttribute('capture') && compatible(input) && !conflicts(input, n => n === entry || n === action);
   }
   function pickerRelation(input, control) {

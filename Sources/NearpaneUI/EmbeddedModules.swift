@@ -22,7 +22,8 @@ public final class EmbeddedModules {
         workRect = candidate ? CandidateWorkRect(support: support.deletingLastPathComponent()) : nil
         #if canImport(NearpaneVoice)
         voicePasteboard = testSession.map { NSPasteboard(name: .init("com.holdsnow.nearpane.acceptance." + $0.lastPathComponent)) } ?? .general
-        tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession, localOnly: candidate && !(boundDraft && testSession != nil))
+        tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession, localOnly: testSession != nil && candidate && !boundDraft,
+                         productAttachments: candidate && testSession == nil)
         voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true), requireExistingPermissions: testSession != nil)
         #endif
     }

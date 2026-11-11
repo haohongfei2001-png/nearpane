@@ -39,6 +39,7 @@ if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then
 else
   resources="$stage/Contents/Resources"
   cp Resources/AcceptanceTargetGuard.js "$resources/"
+  /usr/bin/plutil -insert NearpaneDraftGuardSHA256 -string "$(shasum -a 256 "$resources/AcceptanceTargetGuard.js" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
   # Native SwiftPM produces flat resource directories and does not attempt to sign
   # File Provider metadata. Construct the layout required by the original .app loaders.
   install_resources() {

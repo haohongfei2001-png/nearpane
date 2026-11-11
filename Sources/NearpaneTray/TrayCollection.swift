@@ -3,7 +3,7 @@ import Darwin
 import RiftletCapture
 import RiftletCore
 
-/// The picker grant is session-local and bound to a directory identity. Never import
+/// The live watch is bound to a directory identity. Never import
 /// Riftlet's bookmarks or silently authorize a replacement folder at the same path.
 private final class FolderGrant: @unchecked Sendable {
     let directory: URL
@@ -31,18 +31,19 @@ private final class FolderGrant: @unchecked Sendable {
 @MainActor
 final class TrayCollection {
     let binding: CaptureSourceBinding
-    init(owner: TrayOwner, selected: URL, provider: any CaptureLocationProviding) throws {
+    init(owner: TrayOwner, selected: URL, provider: any CaptureLocationProviding, consent: CaptureFolderConsent? = nil,
+         invalidated: @escaping @MainActor @Sendable () -> Void = {}) throws {
         let grant = try FolderGrant(selected)
         let root = owner.root.standardizedFileURL.path
         let source = selected.resolvingSymlinksInPath().path
-        guard source != root, !source.hasPrefix(root + "/"), !root.hasPrefix(source + "/") else {
+        guard consent?.resolves(selected) != false, source != root, !source.hasPrefix(root + "/"), !root.hasPrefix(source + "/") else {
             throw CocoaError(.fileReadNoPermission)
         }
         let change = owner.notify, report = owner.report
         let magnet = owner.magnetEnabled
         let arrival: @MainActor @Sendable (TrayArrival) -> Void = { [weak owner] in owner?.arrived?($0) }
         let service = CaptureService(store: owner.store, privateRoot: owner.root, sourceDirectory: selected,
-            permitsRead: { grant.permits($0) }, onChange: { await change() },
+            permitsRead: { grant.permits($0) && consent?.resolves($0) != false }, onChange: { await change() },
             onImported: { row, observation in
                 guard magnet else { return }
                 Task(priority: .utility) {
@@ -51,7 +52,7 @@ final class TrayCollection {
                 }
             },
             onIssue: { _ in await report("系统截图目录暂不可用；已保留原队列。") })
-        binding = CaptureSourceBinding(service: service, provider: provider, permitsSource: { grant.permits($0) },
-            onIssue: { _ in await report("系统截图位置已改变，请重新选择目录。") })
+        binding = CaptureSourceBinding(service: service, provider: provider, permitsSource: { grant.permits($0) && consent?.resolves($0) != false },
+            onIssue: { _ in await invalidated() })
     }
 }

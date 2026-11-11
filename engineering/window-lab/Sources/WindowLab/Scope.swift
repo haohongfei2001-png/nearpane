@@ -114,8 +114,8 @@ package struct Run: Codable, Equatable {
             let profile = root.deletingLastPathComponent()
             let app = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             try require(root.lastPathComponent == "WorkRect" && directory.lastPathComponent == run.session.uuidString.lowercased()
-                && Bundle(url: app)?.bundleIdentifier == "com.holdsnow.nearpane.candidate.p49"
-                && (try String(contentsOf: profile.appendingPathComponent("profile.version"), encoding: .utf8)) == "Nearpane P4.9\n",
+                && Bundle(url: app)?.bundleIdentifier == "com.holdsnow.nearpane.candidate.p50"
+                && (try String(contentsOf: profile.appendingPathComponent("profile.version"), encoding: .utf8)) == "Nearpane P5.0\n",
                 "invalid installed manager or consent profile")
         } else {
             try require(run.parent == (try ProcessBirth.read(getppid())) && run.deadline >= now && run.deadline - now <= 600,

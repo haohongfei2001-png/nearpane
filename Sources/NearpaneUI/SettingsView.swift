@@ -31,7 +31,7 @@ public struct SettingsView: View {
                     if tray.connected {
                         if tray.collectionEnabled {
                             Button("停止收录系统截图") { tray.stopCollecting() }
-                        } else if domains?.candidate != true {
+                        } else if domains?.candidate != true || tray.productAttachments {
                             Button("选择当前系统截图目录并收录…") {
                                 let picker = NSOpenPanel()
                                 picker.canChooseDirectories = true; picker.canChooseFiles = false
@@ -41,6 +41,9 @@ public struct SettingsView: View {
                                 }
                             }
                         }
+                        if tray.productAttachments && tray.hasSavedCollection && !tray.collectionEnabled {
+                            Button("忘记原截图目录") { tray.stopCollecting() }
+                        }
                         Button("断开资料库") {
                             tray.disconnect()
                             if domains?.candidate == true { host.setCandidateTrayConnected(false) }
@@ -49,7 +52,11 @@ public struct SettingsView: View {
                             Button(tray.mayAttach ? "重新检查草稿附加权限" : "允许附加到当前浏览器草稿…") {
                                 Task { await tray.authorizeAttachments() }
                             }
-                            Text("点击微图只会附加到可确认的草稿；消息始终由你发送。")
+                            if tray.productAttachments && tray.mayAttach {
+                                Button("关闭草稿附加") { Task { await tray.disableAttachments() } }
+                            }
+                            if let feedback = tray.attachmentFeedback { Text(feedback).font(.callout) }
+                            Text("保持 Chrome 中要使用的 ChatGPT 草稿在前台，再点击缩略图。不会发送消息；结果未知时不会自动重传。")
                         } else { Text("当前仅收录截图。附加到草稿须使用已绑定的专用测试会话。") }
                     } else {
                         Button(tray.connecting ? "正在连接…" : (domains?.candidate == true ? "重新连接此版本托盘" : "连接已有 Riftlet 资料库")) {

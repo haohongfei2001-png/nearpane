@@ -78,7 +78,7 @@ def plan_key(owner, config, display, usable_width):
 
 class Manager:
     def __init__(self, profile, bundle):
-        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.9\n",
+        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P5.0\n",
                 "无法核对候选版本的隔离资料")
         self.root = profile / "WorkRect"
         self.root.mkdir(mode=0o700, exist_ok=True)

@@ -170,8 +170,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         #else
         let candidate = false
         #endif
-        // A browser-before binding in an explicit interactive acceptance session is the only
-        // candidate route that can ask the domain to verify an asset and acquire a target.
+        // A live acceptance session can attach only with its explicit browser-before binding.
         let boundDraft = passiveDisplayID == nil && testSession.map {
             FileManager.default.fileExists(atPath: $0.appendingPathComponent("target-binding.json").path)
         } == true

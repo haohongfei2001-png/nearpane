@@ -7,6 +7,28 @@ struct AcceptanceBrowserRoute {
     let address: NSAppleEventDescriptor
     let windowID, tabID: String
 
+    /// Resolve the current front window and its selected tab without reading other tabs.
+    static func front(pid: Int32) throws -> Self {
+        // The seed is used only to authorize the PID and form a front-window index specifier.
+        let pidRoute = try Self(pid: pid, window: "1", tab: "1")
+        let front = try pidRoute.object("cwin","indx",.init(int32: 1))
+        guard let window = try pidRoute.property("ID  ",front).stringValue,
+              let tab = try pidRoute.property("ID  ",pidRoute.property("acTa",front)).stringValue else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        let fixed = try Self(pid: pid, window:window, tab:tab)
+        guard try fixed.selected() else { throw CocoaError(.fileReadNoPermission) }
+        return fixed
+    }
+
+    func selectedURL() throws -> URL {
+        let window = try object("cwin","ID  ",.init(string:windowID))
+        let tab = try object("CrTb","ID  ",.init(string:tabID),window)
+        guard try selected(), let raw = try property("URL ",tab).stringValue, let url = URL(string: raw),
+              try selected() else { throw CocoaError(.fileReadNoPermission) }
+        return url
+    }
+
     init(pid: Int32, window: String, tab: String) throws {
         guard let w = Int64(window), let t = Int64(tab), w > 0, t > 0,
               let app = NSRunningApplication(processIdentifier: pid), app.bundleIdentifier == "com.google.Chrome", !app.isTerminated

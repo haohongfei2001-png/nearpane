@@ -77,8 +77,8 @@ public struct TraySurface: View {
         .padding(settings.points(.trayPadding,in:outer.size.width))
         .background(.indigo.opacity(0.045), in: RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:outer.size.width) ?? 8))
         .overlay(alignment: .bottomLeading) {
-            if let issue = module.issue {
-                Text(issue).font(.caption2).lineLimit(2).help(issue)
+            if let message = module.issue ?? module.attachmentFeedback {
+                Text(message).font(.caption2).lineLimit(2).help(message)
                     .padding(3).background(.regularMaterial).allowsHitTesting(false)
             }
         }
