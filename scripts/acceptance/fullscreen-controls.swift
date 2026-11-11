@@ -3,6 +3,7 @@ import AppKit
 import ApplicationServices
 import Darwin
 func stop(_ s:String)->Never {FileHandle.standardError.write(Data((s+"\n").utf8));exit(2)}
+_ = NSApplication.shared.setActivationPolicy(.prohibited)
 let a=Array(CommandLine.arguments.dropFirst())
 if a == ["preflight"] {
     let state = CGSessionCopyCurrentDictionary() as? [String:Any]
@@ -14,6 +15,11 @@ if a == ["preflight"] {
           !CGDisplayBounds(CGMainDisplayID()).intersects(CGDisplayBounds(number.uint32Value)),
           let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() else {
         stop("secondary, unlocked local console, and existing AX permission required")
+    }
+    let first = NSWorkspace.shared.frontmostApplication?.processIdentifier
+    RunLoop.current.run(until: Date().addingTimeInterval(1))
+    guard first != nil, first != getpid(), NSWorkspace.shared.frontmostApplication?.processIdentifier == first else {
+        stop("foreground in transition")
     }
     print(CFUUIDCreateString(nil,uuid) as String)
     exit(0)

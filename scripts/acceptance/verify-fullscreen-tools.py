@@ -37,7 +37,7 @@ def until(sample, seconds=6):
     raise ValueError(f"checkpoint timeout at line {sample.__code__.co_firstlineno}")
 
 
-def main(sid, app, inspect=False):
+def main(sid, app, inspect=False, resume=False):
     repo = Path(__file__).resolve().parents[2]
     sid = str(uuid.UUID(sid))
     session = repo / "build/native-acceptance" / sid
@@ -51,10 +51,13 @@ def main(sid, app, inspect=False):
 
     sp.run(["/usr/bin/codesign","--verify","--strict","--deep",app],check=True)
     se.verify_manifest(repo, session, binary, get(session / "manifest.json"))
-    check(not list(session.glob("process-*.json")) and not (session/"target-binding.json").exists(), "fresh unbound session required")
+    prior_processes = sorted(session.glob("process-*.json"),key=lambda f:get(f)["started"])
+    check((not prior_processes or resume) and not (session/"target-binding.json").exists(), "fresh unbound session required")
+    if resume:
+        check(len(prior_processes)==2 and not inspect, "only resume a single interrupted restart")
     check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode == 1, "another Host active")
     out = repo / "build/verification/p51" / sid
-    out.mkdir(mode=0o700, parents=True)
+    out.mkdir(mode=0o700, parents=True, exist_ok=resume)
     for name in ("fullscreen-controls","fullscreen-film"):
         args = ["xcrun","swiftc", *(["-parse-as-library"] if name == "fullscreen-film" else []),
                 "-module-cache-path",str(repo/"build/verification/p51/controls/cache"),
@@ -63,19 +66,56 @@ def main(sid, app, inspect=False):
     cfg_path = session / "support/Nearpane/host-configuration.json"
     cfg = get(cfg_path)
     side = cfg["preferredDisplayID"]
-    check(not cfg["displays"] and offline_run(out/"fullscreen-controls","preflight")==side,
+    check((resume or not cfg["displays"]) and offline_run(out/"fullscreen-controls","preflight")==side,
           "expected untouched, permitted secondary display")
-    cfg["displays"][side] = {"fullscreenTools":{"enabled":True,"voice":True,"capture":True,"corner":"topRight"}}
-    cfg_path.write_text(json.dumps(cfg))
+    if not resume:
+        cfg["displays"][side] = {"fullscreenTools":{"enabled":True,"voice":True,"capture":True,"corner":"topRight"}}
+        cfg_path.write_text(json.dumps(cfg))
     baseline = se.durable(session)
     check(baseline["attempts"] == 0 and baseline["voiceRecords"] == 0 and not baseline["assetOrder"], "prepare with --empty-draft")
     receipts = []
     media_limits = []
     pixel_checks = {}
+    interruptions = []
+    if resume:
+        finished, interrupted = map(get,prior_processes)
+        check(all(q["exitCode"] == 0 and q["prelaunch"] == q["postExit"] == baseline for q in [finished,interrupted]),
+              "prior shutdown or domain integrity")
+        key = finished["run"].removeprefix("events-")
+        steps = get(session/f"fullscreen-{key}.json")
+        check(steps["step"]==4 and not steps["native"] and not steps["tool"], "first run did not fully return twice")
+        records = [get(f) for f in sorted(session.glob(f"tool-frame-{key}-*.json"))]
+        check(len(records)>=10 and len(set(q["id"] for q in records))==1, "missing original window frames")
+        opened = get(out/"voice-accessibility.json")
+        x,y,w,h = opened["bounds"]
+        selected = [q for q in records if q["width"]==w and q["height"]==h]
+        check(selected and selected[-1]["x"]==selected[0]["x"]-16 and selected[-1]["y"]==selected[0]["y"],"no witnessed first move")
+        original_focus = se.events(session/(finished["run"]+".jsonl"))
+        check(all(e["state"]["foreground"]==steps["frontPID"] and not e["state"]["key"] and not e["state"]["active"] for e in original_focus),
+              "original foreground changed")
+        for name in ["strip.png","voice.png","capture.png","system-strip.raw.png"]:
+            if (out/name).exists():
+                pix=json.loads(offline_run(out/"fullscreen-film","inspect",out/name))
+                if name.endswith(".raw.png"):
+                    if pix["pixels"]==0: media_limits.append("System capture returned only transparent pixels.")
+                else:
+                    check(pix["colors"]>6 and pix["contrast"]>=12,"prior evidence empty")
+                pixel_checks[name]=pix
+        check((out/"tools.mov").stat().st_size>0, "missing original recording")
+        interrupted_events=se.events(session/(interrupted["run"]+".jsonl"))
+        receipts.append({"pid":finished["pid"],"run":key,"ordinaryRestored":True,
+                         "frontPID":steps["frontPID"],"moved":{"bounds":[x-16,y,w,h]},"steps":4,
+                         "anchor":cfg["displays"][side]["toolAnchor"], "rawFrameCount":len(records)})
+        interruptions = [dict(pid=interrupted["pid"],run=interrupted["run"],exitCode=interrupted["exitCode"],
+              cleanExit=interrupted["exitCode"]==0,persistentDomainStateUnchanged=interrupted["prelaunch"]==interrupted["postExit"],
+              kind="foreground changed after reading the strip; the exact window action was refused; Host exited normally",
+              cause="The new foreground PID was not the Host. No responsible executable or application was verified at event time.",
+              focus=[[e["kind"],e["state"]["foreground"],e["state"]["active"],e["state"]["key"]] for e in interrupted_events])]
+        (out/"interrupted-restart.json").write_text(json.dumps(interruptions[0],indent=2))
     def launch(restart):
         seq = 0
         old = set(session.glob("startup-*.json"))
-        with (out/("second.log" if restart else "first.log")).open("w") as stream:
+        with (out/("resume.log" if resume else "second.log" if restart else "first.log")).open("w") as stream:
             host = sp.Popen([*offline,sys.executable,"-B",str(repo/"scripts/native-acceptance.py"),"launch",
                              "--app",str(app),"--session",sid,"--secondary-only","--desktop-fixture"],
                             env=dict(os.environ,NEARPANE_FULLSCREEN_ACCEPTANCE=sid),cwd=repo,stdout=stream,stderr=sp.STDOUT)
@@ -166,7 +206,7 @@ def main(sid, app, inspect=False):
             ui(wid,voice)
             expanded = state(wid,close)
             check(voice not in expanded["controls"] and capture not in expanded["controls"],"wrong expanded controls")
-            (out/"voice-accessibility.json").write_text(json.dumps(expanded,indent=2))
+            (out/("restart-accessibility.json" if restart else "voice-accessibility.json")).write_text(json.dumps(expanded,indent=2))
             if inspect:
                 return
             if not restart:
@@ -214,13 +254,14 @@ def main(sid, app, inspect=False):
             if run and host.poll() is None:
                 (session/f"fullscreen-finish-{run}").touch()
             check(host.wait(timeout=75)==0,"Host did not finish normally")
-    launch(False)
+    if not resume:
+        launch(False)
     if inspect:
         print(out/"voice-accessibility.json")
         return
     launch(True)
     check(receipts[0]["pid"]!=receipts[1]["pid"] and se.durable(session)==baseline, "restart evidence mismatch")
-    summary={"session":sid,"binary":sha256(binary.read_bytes()).hexdigest(),"runs":receipts,
+    summary={"session":sid,"binary":sha256(binary.read_bytes()).hexdigest(),"runs":receipts,"interruptions":interruptions,
              "nativeFullscreenEntered":0,"spaceSwitchesRequested":0,"inputAttempts":baseline["attempts"],
              "mediaLimits":media_limits,"pixelVerification":pixel_checks,
              "mediaSource":"Rendered from actual displayed AppKit controls; neutral canvas excludes system compositor backdrop",
@@ -231,7 +272,8 @@ def main(sid, app, inspect=False):
 if __name__=="__main__":
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("session")
+    p.add_argument("--restart-only", action="store_true",help="resume only the interrupted restart after checking the original evidence")
     p.add_argument("--inspect",action="store_true",help="inspect one expanded test panel and finish")
     p.add_argument("--app",type=Path,default=Path.home()/"Applications/Nearpane P5.1/Nearpane P5.1 Alpha.app")
     args=p.parse_args()
-    main(args.session,args.app,args.inspect)
+    main(args.session,args.app,args.inspect,args.restart_only)
