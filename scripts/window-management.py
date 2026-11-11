@@ -78,7 +78,7 @@ def plan_key(owner, config, display, usable_width):
 
 class Manager:
     def __init__(self, profile, bundle):
-        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.8.1\n",
+        require(profile.resolve() == profile and (profile / "profile.version").read_text() == "Nearpane P4.9\n",
                 "无法核对候选版本的隔离资料")
         self.root = profile / "WorkRect"
         self.root.mkdir(mode=0o700, exist_ok=True)
@@ -99,7 +99,8 @@ class Manager:
         self.directory = None
         self.pre = None
         self.last = self.pending = None
-        self.error = "上次停止时的窗口恢复尚未完成。请重新核对并恢复。" if self.prefs.get("pendingStop") else None
+        self.error = self.prefs.get("blockedReason") or (
+            "上次停止时的窗口恢复尚未完成。请重新核对并恢复。" if self.prefs.get("pendingStop") else None)
         self.last_status = None
         self.count = 0
         self.seen_resize = None
@@ -157,13 +158,19 @@ class Manager:
         require(result["session"].lower() == self.directory.name, "窗口应用会话变化")
         return result
 
+    def verify_retirable(self):
+        journal = self.directory / "journal.json"
+        require(not journal.exists() or read(journal)["status"] in ("retained", "restored"),
+                "原窗口仍有未解决的恢复记录，不能改用新的窗口会话")
+        require(self.control("product-retired") == {"retired": True}, "原窗口进程的结束尚未确认")
+
     def open_window(self):
         if self.pre is None:
             self.preflight()
         if self.directory:
             owner = self.owner(optional=True)
             if owner and time.clock_gettime(time.CLOCK_UPTIME_RAW) - owner["uptime"] >= 2:
-                require(self.control("product-retired") == {"retired": True}, "原窗口进程的结束尚未确认")
+                self.verify_retirable()
                 save(self.directory / "retired.json", dict(owner=owner["owner"], reason="original process ended"))
                 self.directory = None
                 self.prefs.pop("session", None)
@@ -267,6 +274,17 @@ class Manager:
             save(self.directory / "last-recovery.json", result)
             self.recovery_note = "上次异常恢复已核对 %d 扇窗口" % len(result["observations"])
 
+    def suspend_on_error(self, error):
+        self.error = str(error)
+        self.pending = None
+        if self.mode != "off" and self.directory:
+            # A new Host must not turn a refusal back into an automatic write.
+            # Persist before attempting to change the controller lease.
+            self.prefs["blockedReason"] = self.error
+            save(self.settings, self.prefs)
+            if self.pre:
+                self.grant("paused")
+
     def tick(self):
         if not self.directory or self.mode != "active" or self.error:
             return
@@ -275,7 +293,7 @@ class Manager:
             self.recover()
         owner = self.owner()
         if not owner["members"] and owner["revision"] and time.clock_gettime(time.CLOCK_UPTIME_RAW) - owner["uptime"] >= 2:
-            require(self.control("product-retired") == {"retired": True}, "等待原进程退出")
+            self.verify_retirable()
             save(self.directory / "retired.json", dict(owner=owner["owner"], reason="all compatible windows closed"))
             self.prefs.pop("session")
             save(self.settings, self.prefs)
@@ -316,6 +334,7 @@ class Manager:
             self.mode = "paused"
         self.prefs["mode"] = self.mode
         self.prefs.pop("pendingStop", None)
+        self.prefs.pop("blockedReason", None)
         save(self.settings, self.prefs)
         self.error = self.pending = self.last = None
         self.count = 0
@@ -328,6 +347,8 @@ class Manager:
             require(cmd in ("retry", "disable") and pending in ("quit", "disable"), "请先处理上次未完成的恢复")
             self.stop_management("disable" if cmd == "disable" else pending, retry=True)
             return True
+        if self.prefs.get("blockedReason"):
+            require(cmd in ("disable", "retry", "quit", "pause"), "已保留阻塞状态；请重新核对并恢复，或停止并恢复")
         if cmd in ("disable", "quit"):
             self.stop_management(cmd)
             return cmd != "quit"
@@ -338,6 +359,7 @@ class Manager:
                 self.recover()
             self.prefs["display"] = self.pre["screens"]["secondary"]
             self.mode = self.prefs["mode"] = "active"
+            self.prefs.pop("blockedReason", None)
             save(self.settings, self.prefs)
             self.error = self.last = self.pending = None
         elif cmd == "pause":
@@ -387,9 +409,7 @@ class Manager:
                     self.tick()
                 self.status()
             except (ValueError, OSError, subprocess.SubprocessError, KeyError) as error:
-                self.error = str(error)
-                if self.directory and self.pre:
-                    self.grant("paused")
+                self.suspend_on_error(error)
                 self.status()
                 if command == "quit":
                     return

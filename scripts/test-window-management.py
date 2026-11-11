@@ -17,7 +17,7 @@ class ProductManagementTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         profile = Path(temp.name).resolve()
-        (profile / "profile.version").write_text("Nearpane P4.8.1\n")
+        (profile / "profile.version").write_text("Nearpane P4.9\n")
         self.m = wm.Manager(profile, profile)
         self.addCleanup(self.m.lease.close)
         self.id = {"pid": 20, "launch": 32, "number": 3, "element": "one"}
@@ -171,6 +171,43 @@ class ProductManagementTests(unittest.TestCase):
         self.m.preflight = Mock(side_effect=AssertionError)
         self.m.tick()
         self.m.preflight.assert_not_called()
+
+    def test_refused_recovery_survives_process_replacement_and_requires_explicit_recheck(self):
+        import uuid
+        self.m.directory = self.m.root / str(uuid.uuid4())
+        self.m.directory.mkdir()
+        wm.save(self.m.directory / "run.json", {"session": self.m.directory.name})
+        self.m.mode = "active"
+        self.m.prefs.update(session=self.m.directory.name, mode="active")
+        self.m.suspend_on_error(ValueError("恢复缺少原窗口编辑代际"))
+        self.m.lease.close()
+        reopened = wm.Manager(self.m.root.parent, self.m.root.parent)
+        self.addCleanup(reopened.lease.close)
+        self.assertIn("编辑代际", reopened.error)
+        reopened.preflight = Mock()
+        reopened.recover = Mock(side_effect=ValueError("仍缺代际"))
+        reopened.tick()
+        for cmd in ("resume", "enable", "open"):
+            with self.assertRaises(ValueError):
+                reopened.command(cmd)
+        reopened.preflight.assert_not_called()
+        with self.assertRaisesRegex(ValueError, "仍缺代际"):
+            reopened.command("retry")
+        self.assertIn("blockedReason", wm.read(reopened.settings))
+        reopened.recover = Mock()
+        reopened.pre = {"screens": {"secondary": "fixture-side"}}
+        reopened.command("retry")
+        self.assertNotIn("blockedReason", wm.read(reopened.settings))
+
+    def test_dead_or_replaced_owner_cannot_discard_an_unresolved_journal(self):
+        self.presentation_setup()
+        journal = self.m.directory / "journal.json"
+        wm.save(journal, {"status": "prepared"})
+        self.m.control = Mock()
+        with self.assertRaisesRegex(ValueError, "未解决"):
+            self.m.verify_retirable()
+        self.m.control.assert_not_called()
+        self.assertEqual(wm.read(journal)["status"], "prepared")
 
     def presentation_setup(self):
         self.m.directory = self.m.root / "ad7eb93a-37d7-465c-89a6-d841493424ea"
