@@ -130,6 +130,25 @@ struct WindowAdmissionPreviewTests {
         #expect(!prep.matchesFreshReview([fresh], context: ctx, uptime: 13.01))
     }
 
+    @Test func ordinaryObserverLossInvalidatesReviewEvenWhenFrameAndNumberStayTheSame() throws {
+        let element = UUID(), observer = UUID(), ctx = context()
+        func seen(_ observation: UUID?, at time: Double) -> AdmissionPair {
+            pair(42, first: time, element: element) {
+                $0.editGeneration = nil
+                $0.liveObservation = observation
+                $0.usesWitnessedSize = true
+                $0.minimum = .init(width: 300, height: 240)
+            }
+        }
+        let original = WindowAdmissionPreview.evaluate([seen(observer, at: 10)], context: ctx, uptime: 10.3)
+        let prepared = try #require(original.preparation)
+        #expect(original.notes.contains { $0.contains("初始宽高") })
+        #expect(prepared.matchesFreshReview([seen(observer, at: 10.4)], context: ctx, uptime: 10.6))
+        for changed in [nil, UUID()] as [UUID?] {
+            #expect(!prepared.matchesFreshReview([seen(changed, at: 10.4)], context: ctx, uptime: 10.6))
+        }
+    }
+
     @Test func ninthWindowProjectsOnlyFeasibleSplitAndDoesNotAllocateSpace() {
         let windows = (1...9).map { pair(UInt32($0)) }
         let projected = WindowAdmissionPreview.evaluate(windows, context: context(), uptime: 10.3)

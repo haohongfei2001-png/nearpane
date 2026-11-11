@@ -6,16 +6,16 @@ source scripts/build-paths.sh
 app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
-delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications/Nearpane P5.3}"
+delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications/Nearpane P5.4}"
 mkdir -p "$delivery"
 stage="$(mktemp -d "$delivery/.stage.XXXXXXXX")"
 trap 'rm -rf "$stage"' EXIT
-candidate="$stage/Nearpane P5.3 Alpha.app"
+candidate="$stage/Nearpane P5.4 Alpha.app"
 ditto --norsrc --noextattr "$app" "$candidate"
 /usr/bin/plutil -replace CFBundleIdentifier -string com.holdsnow.nearpane.alpha "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace CFBundleName -string 'Nearpane Alpha' "$candidate/Contents/Info.plist"
-/usr/bin/plutil -replace CFBundleShortVersionString -string '5.3' "$candidate/Contents/Info.plist"
-/usr/bin/plutil -replace CFBundleVersion -string 53 "$candidate/Contents/Info.plist"
+/usr/bin/plutil -replace CFBundleShortVersionString -string '5.4' "$candidate/Contents/Info.plist"
+/usr/bin/plutil -replace CFBundleVersion -string 54 "$candidate/Contents/Info.plist"
 /usr/bin/plutil -insert LSMultipleInstancesProhibited -bool true "$candidate/Contents/Info.plist"
 for helper in NearpaneFrameController NearpaneFixtureWindows; do
     ditto --norsrc --noextattr "$lab/$helper.app" "$candidate/Contents/Helpers/$helper.app"
@@ -27,7 +27,7 @@ install -m 644 scripts/profile-migration.py scripts/profile_domains.py "$candida
 codesign --force --sign - --identifier com.holdsnow.nearpane.alpha "$candidate"
 codesign --verify --strict --deep "$candidate"
 "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
-if [[ -e "$delivery/Nearpane P5.3 Alpha.app" ]]; then
-    mv "$delivery/Nearpane P5.3 Alpha.app" "$(mktemp -d "$delivery/.previous.XXXXXXXX")/"
+if [[ -e "$delivery/Nearpane P5.4 Alpha.app" ]]; then
+    mv "$delivery/Nearpane P5.4 Alpha.app" "$(mktemp -d "$delivery/.previous.XXXXXXXX")/"
 fi
 mv "$candidate" "$delivery/"

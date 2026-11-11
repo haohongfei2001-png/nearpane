@@ -16,6 +16,7 @@ var targets: [Target] = [
     .target(name: "WindowGeometryCore"),
     .target(name: "CReadOnlySpaces"),
     .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
+    .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore"] + domains),
     .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture"] : [])),
@@ -58,6 +59,7 @@ if full {
 let package = Package(name: "Nearpane", platforms: [.macOS(full ? "26.0" : "14.0")],
                       products: [.library(name: "NearpaneCore", targets: ["NearpaneCore"]),
                                  .executable(name: "NearpaneHost", targets: ["NearpaneHost"]),
+                                 .executable(name: "NearpaneOrdinaryWindowController", targets: ["NearpaneOrdinaryWindowController"]),
                                  .executable(name: "NearpaneDesktopReader", targets: ["NearpaneDesktopReader"])]
                          + (full ? [] : [.library(name: "NearpaneUI", targets: ["NearpaneUI"])]),
                       targets: targets, swiftLanguageModes: [.v6])

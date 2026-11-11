@@ -39,6 +39,7 @@ public final class EmbeddedModules {
 
     public func makeHost(store: any ConfigurationStore, provider: any DesktopObservationProvider = UnavailableDesktopProvider()) -> HostSession {
         let host = HostSession(store: store, provider: provider, coreFactories: factories)
+        workRect?.connect(to: host)
         #if canImport(NearpaneVoice)
         voice.openingFailed = { [weak host, weak voice] in
             if let voice { host?.registry.reportFailure(BuiltinCatalog.voice, from: voice) }

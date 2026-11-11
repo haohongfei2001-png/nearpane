@@ -194,6 +194,19 @@ class Domains(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "WAL"):
             domain.inspect_profile(copy)
 
+    def test_unresolved_ordinary_window_grant_blocks_generation_switch(self):
+        # Use the existing P5.3 contract so an installed older reader also notices this journal.
+        journal = self.data / "WorkRect/ordinary/journal.json"
+        journal.parent.mkdir(parents=True, mode=0o700)
+        domain.save(journal, dict(version=1, status="pending", session=str(uuid.uuid4()),
+                                  entries=[dict(operation=str(uuid.uuid4()))]))
+        before = fingerprint(self.data)
+        self.assertTrue(domain.inspect_profile(self.data)["windowRecoveryBlocked"])
+        with self.assertRaisesRegex(ValueError, "窗口恢复"):
+            domain.import_profile(self.data, self.dest, {"voice"}, self.data)
+        self.assertEqual(fingerprint(self.data), before)
+        self.assertEqual(list(self.dest.iterdir()), [])
+
     def test_same_version_unknown_schema_cannot_replace_generation(self):
         with contextlib.closing(sqlite3.connect(str(self.data/domain.VOICE))) as db, db:
             db.execute("CREATE TRIGGER injected AFTER INSERT ON revisions BEGIN DELETE FROM editing_drafts; END")

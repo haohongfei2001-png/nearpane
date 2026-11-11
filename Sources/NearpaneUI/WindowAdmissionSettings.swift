@@ -6,9 +6,15 @@ private typealias ViewState<T> = State<T>
 
 @MainActor protocol AdmissionReading {
     func applications() -> [AdmissionApplication]
+    func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX?
+    func releaseChoices()
     func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]
     func inspect(_ app: AdmissionApplication, selected: [AdmissionWindowChoice]) async throws -> [AdmissionPair]
     func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards
+}
+extension AdmissionReading {
+    func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX? { nil }
+    func releaseChoices() {}
 }
 extension WindowAdmissionReader: AdmissionReading {}
 
@@ -20,11 +26,14 @@ extension WindowAdmissionReader: AdmissionReading {}
     }
 
     private let reader: any AdmissionReading
+    @ObservationIgnored var cancelOrdinaryPreview: (() -> Void)?
     private var generation = 0
     var apps = [AdmissionApplication]()
     var app: AdmissionApplication?
     var choices = [AdmissionWindowChoice]()
     var picks = [Pick]()
+    var ordinaryReview: OrdinaryWindowReview?
+    var ordinaryContext: AdmissionContext?
     var result: AdmissionPreviewResult?
     var sampledScreen: SurfaceRect?
     var samples = [AdmissionSample]()
@@ -35,8 +44,11 @@ extension WindowAdmissionReader: AdmissionReading {}
 
     init(reader: any AdmissionReading) { self.reader = reader }
 
-    func invalidate() {
+    func invalidate(discardPlan: Bool = true) {
+        if discardPlan { cancelOrdinaryPreview?() }
         generation += 1
+        ordinaryReview = nil
+        ordinaryContext = nil
         result = nil
         sampledAt = nil
         samples = []
@@ -48,6 +60,7 @@ extension WindowAdmissionReader: AdmissionReading {}
 
     func close() {
         invalidate()
+        reader.releaseChoices()
         apps = []
         app = nil
         choices = []
@@ -84,7 +97,7 @@ extension WindowAdmissionReader: AdmissionReading {}
         else { picks.append(Pick(app: app, choice: choice)) }
     }
 
-    func inspect(host: HostSession, blocked: Bool, scenario: AdmissionPlacement, ratio: Double, swap: Bool, custom: Bool) async {
+    func inspect(host: HostSession, blocked: Bool, scenario: AdmissionPlacement, ratio: Double, swap: Bool, custom: Bool, manager: CandidateWorkRect? = nil) async {
         invalidate()
         guard !picks.isEmpty else { return }
         let request = generation
@@ -139,6 +152,28 @@ extension WindowAdmissionReader: AdmissionReading {}
             context.pairCustomized = custom
             context.savedLayout = saved
             context.originalFrames = originals
+            if let manager, scenario == .current {
+                let handles = selected.compactMap { reader.handle($0.choice, app: $0.app) }
+                if handles.count == selected.count, var live = manager.context(for: display) {
+                    live.ratio = custom ? ratio : 0.5
+                    live.swapped = custom && swap
+                    live.pairCustomized = custom
+                    do {
+                        try await manager.ordinary.performUserAction {
+                            guard self.generation == request else { throw AdmissionSelectionError.changed }
+                            let review = try await manager.ordinary.prepare(handles, context: live)
+                            guard self.generation == request else { return }
+                            self.ordinaryReview = review
+                            self.ordinaryContext = live
+                            self.sampledAt = Date()
+                        }
+                        return
+                    } catch {
+                        guard generation == request else { return }
+                        failure = error.localizedDescription
+                    }
+                }
+            }
             let sample = WindowAdmissionPreview.evaluate(pairs, context: context, uptime: ProcessInfo.processInfo.systemUptime)
             result = sample
             sampledScreen = screen
@@ -184,6 +219,7 @@ enum AdmissionPlacement: String, CaseIterable {
     let host: HostSession
     let manager: CandidateWorkRect
     let fixtureOnly: Bool
+    let scopedPID: Int32?
     @ViewState private var selection: AdmissionSelection
     @ViewState private var opened = false
     @ViewState private var scenario = AdmissionPlacement.current
@@ -191,12 +227,15 @@ enum AdmissionPlacement: String, CaseIterable {
     @ViewState private var ratio = 60
     @ViewState private var swap = false
 
-    init(host: HostSession, manager: CandidateWorkRect, fixtureOnly: Bool) {
+    init(host: HostSession, manager: CandidateWorkRect, fixtureOnly: Bool, scopedPID: Int32? = nil, scopedStart: UInt64? = nil) {
+        self.scopedPID = scopedPID
         self.host = host
         self.manager = manager
         self.fixtureOnly = fixtureOnly
-        let reader = WindowAdmissionReader(support: manager.support, fixtureOnly: fixtureOnly)
-        _selection = State(initialValue: AdmissionSelection(reader: reader))
+        let reader = WindowAdmissionReader(support: manager.support, fixtureOnly: fixtureOnly, scopedPID: scopedPID, scopedStart: scopedStart)
+        let scope = AdmissionSelection(reader: reader)
+        scope.cancelOrdinaryPreview = { [weak manager] in manager?.ordinary.cancelPreview() }
+        _selection = State(initialValue: scope)
     }
 
     var body: some View {
@@ -206,6 +245,8 @@ enum AdmissionPlacement: String, CaseIterable {
                 if opened { selection.open() } else { selection.close() }
             }.accessibilityIdentifier("admission-open")
             if opened { scope }
+            OrdinaryManagementStatus(manager: manager)
+
         }
         .onChange(of: host.configuration.workspaces) { selection.invalidate() }
         .onChange(of: host.configuration.displays) { selection.invalidate() }
@@ -227,8 +268,8 @@ enum AdmissionPlacement: String, CaseIterable {
         HStack {
             if fixtureOnly {
                 ForEach(selection.apps, id: \.pid) { app in
-                    Button("选择兼容应用 · PID \(String(app.pid))") { Task { await selection.select(app) } }
-                        .accessibilityIdentifier("admission-fixture-app")
+                    Button("\(app.name) · PID \(String(app.pid))") { Task { await selection.select(app) } }
+                        .accessibilityIdentifier(scopedPID == nil ? "admission-fixture-app" : "admission-ordinary-app")
                 }
             } else {
                 Menu(selection.app.map { "\($0.name) · PID \($0.pid)" } ?? "选择应用…") {
@@ -289,13 +330,34 @@ enum AdmissionPlacement: String, CaseIterable {
             HStack {
                 Button(selection.reading ? "正在核对…" : "核对所选窗口（\(selection.picks.count)）") {
                     Task { await selection.inspect(host: host, blocked: manager.blocked, scenario: scenario,
-                                                   ratio: Double(ratio) / 100, swap: swap, custom: custom && selection.picks.count == 2) }
+                                                   ratio: Double(ratio) / 100, swap: swap, custom: custom && selection.picks.count == 2, manager: manager) }
                 }.disabled(selection.reading).accessibilityIdentifier("admission-read")
                 Button("清空") { selection.invalidate(); selection.picks = [] }
             }
         }
         if let failure = selection.failure {
             Text("当前条件不足 · " + failure).font(.callout).accessibilityIdentifier("admission-verdict")
+        }
+        if let review = selection.ordinaryReview, let context = selection.ordinaryContext {
+            Text("可逐窗授权 · 仅调整下列窗口").font(.callout)
+            ForEach(review.proposed.keys.sorted { $0.number < $1.number }, id: \.self) { id in
+                if let r = review.proposed[id] {
+                    Text("窗口 #\(String(id.number)) → (\(Int(r.x)), \(Int(r.y)))  \(Int(r.width)) × \(Int(r.height)) pt").font(.caption)
+                }
+            }
+            Text("停止时仅恢复仍能连续核对的原窗口。若你或其他应用改变布局，会保留现状。")
+                .font(.caption).foregroundStyle(.secondary)
+            Button("授权所列窗口并应用布局") {
+                selection.invalidate(discardPlan: false)
+                Task {
+                    do {
+                        try await manager.ordinary.performUserAction {
+                            try await manager.ordinary.confirm(review, context: context)
+                        }
+                    }
+                    catch { manager.ordinary.report(error) }
+                }
+            }.disabled(manager.ordinary.unavailableForUserAction).accessibilityIdentifier("ordinary-confirm")
         }
         if let result = selection.result {
             AdmissionResultView(result: result, samples: selection.samples, screen: selection.sampledScreen, sampled: selection.sampledAt, expired: selection.expired,

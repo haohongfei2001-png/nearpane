@@ -31,6 +31,10 @@ mkdir -p "$stage/Contents/Helpers"
 install -m 755 "$reader" "$stage/Contents/Helpers/NearpaneDesktopReader"
 /usr/bin/plutil -insert NearpaneDesktopReaderSHA256 -string "$(shasum -a 256 "$reader" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
 "$stage/Contents/Helpers/NearpaneDesktopReader" --self-check
+ordinary="$binary_dir/NearpaneOrdinaryWindowController"
+/usr/bin/codesign --verify --strict "$ordinary"
+install -m 755 "$ordinary" "$stage/Contents/Helpers/NearpaneOrdinaryWindowController"
+/usr/bin/plutil -insert NearpaneOrdinaryWindowControllerSHA256 -string "$(shasum -a 256 "$ordinary" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then
   /usr/bin/plutil -replace LSMinimumSystemVersion -string 14.0 "$stage/Contents/Info.plist"
   for usage in NearpaneNativeAcceptanceSchema NSMicrophoneUsageDescription NSSpeechRecognitionUsageDescription NSAppleEventsUsageDescription; do

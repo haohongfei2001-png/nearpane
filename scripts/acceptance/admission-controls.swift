@@ -4,7 +4,8 @@ import ApplicationServices
 import Darwin
 func stop(_ s:String)->Never {FileHandle.standardError.write(Data((s+"\n").utf8));exit(2)}
 let a=Array(CommandLine.arguments.dropFirst())
-guard a.count==4, let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
+let ordinary = a.count == 5 && a[4] == "--ordinary-secondary"
+guard (a.count == 4 || ordinary), let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
 let exe=URL(fileURLWithPath:a[2]).resolvingSymlinksInPath()
 guard let app=NSRunningApplication(processIdentifier:pid),app.executableURL?.resolvingSymlinksInPath().path==exe.path,
       let bundle=app.bundleURL, let candidateID = Bundle(url:bundle)?.bundleIdentifier,
@@ -42,20 +43,26 @@ func label(_ e:AXUIElement)->String {[string(e,"AXTitle"),string(e,"AXDescriptio
 
 let command = a[3]
 let profile = candidateID == "com.holdsnow.nearpane.alpha"
-let fixed = profile ? ["np.profile.preview", "np.profile.import", "np.profile.quit"] : ["admission-open", "admission-fixture-app", "admission-read", "admission-docked", "admission-current", "admission-custom",
+guard !ordinary || profile else { stop("candidate identity") }
+let ordinaryFixed = ["admission-open", "admission-ordinary-app", "admission-read",
+                     "ordinary-confirm", "ordinary-stop", "ordinary-pause", "ordinary-resume", "ordinary-pair", "ordinary-keep-current",
+                     "nearpane-open-panel", "nearpane-close-panel"]
+let fixed = ordinary ? ordinaryFixed : profile ? ["np.profile.preview", "np.profile.import", "np.profile.quit"] : ["admission-open", "admission-fixture-app", "admission-read", "admission-docked", "admission-current", "admission-custom",
              "admission-floating", "admission-refresh", "nearpane-open-panel", "nearpane-close-panel"]
 func identifier(_ e: AXUIElement) -> String { string(e, "AXIdentifier") }
 if command == "read" {
     let facts = nodes.compactMap { e -> [String: Any]? in
         let id = identifier(e)
-        guard (!profile && id.hasPrefix("admission-")) || fixed.contains(id) else { return nil }
+        guard ((!profile || ordinary) && id.hasPrefix("admission-")) || (ordinary && id.hasPrefix("ordinary-")) || fixed.contains(id) else { return nil }
         return ["id": id, "role": string(e, "AXRole"), "name": label(e), "value": string(e, "AXValue"), "enabled": ax(e,"AXEnabled") as? Bool ?? false]
     }
     print(String(decoding: try JSONSerialization.data(withJSONObject: ["bounds": [rect.minX,rect.minY,rect.width,rect.height],
           "frontPID": NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1, "nodes": facts]), as: UTF8.self))
 } else {
     let suffix = command.hasPrefix("admission-window-") ? String(command.dropFirst("admission-window-".count)) : ""
-    guard fixed.contains(command) || (!profile && UInt32(suffix).map({String($0) == suffix}) == true) else { stop("control not allowed") }
+    let excluded = command.hasPrefix("ordinary-exclude-") ? String(command.dropFirst("ordinary-exclude-".count)) : ""
+    guard fixed.contains(command) || ((!profile || ordinary) && UInt32(suffix).map({String($0) == suffix}) == true)
+            || (ordinary && UInt32(excluded).map({String($0) == excluded}) == true) else { stop("control not allowed") }
     if profile && (app.isActive || NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) { stop("unexpected activation") }
     let matches = nodes.filter { identifier($0) == command }
     guard matches.count == 1, let e = matches.first, let f = box(e), !f.isEmpty,

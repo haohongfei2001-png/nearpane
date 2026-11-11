@@ -9,6 +9,9 @@ public struct AdmissionSample: Codable, Equatable, Sendable {
     public var element: UUID?, axNumber: UInt32?, cgFrame: SurfaceRect?, axFrame: SurfaceRect?
     public var onScreen: Bool?, layer: Int?, minimized: Bool?, fullscreen: Bool?, display: String?
     public var minimum: SurfaceRect?, positionSettable: Bool?, sizeSettable: Bool?, editGeneration: String?
+    /// Incarnation of a continuously registered system observer. No target-app edit token is inferred.
+    public var liveObservation: UUID?
+    public var usesWitnessedSize: Bool?
     public var stageManager: Bool?, permission = false, recoveryVerified = false
     /// The identity selected in Settings was positively witnessed again in both samples.
     public var selectionContinuity = false
@@ -136,6 +139,7 @@ public struct PreparedWindowAdmission: Sendable {
 }
 
 public enum WindowAdmissionPreview {
+    private static let witnessedSizeNote = "应用未报告最小尺寸，仅允许在已见证的初始宽高范围以上调整。"
     private static let maxAge = 3.0
     private static let sampleInterval = 0.08
 
@@ -145,6 +149,7 @@ public enum WindowAdmissionPreview {
             && a.element == b.element && a.axNumber == b.axNumber && a.cgFrame == b.cgFrame && a.axFrame == b.axFrame
             && a.display == b.display && a.stageManager == b.stageManager && a.onScreen == b.onScreen
             && a.role == b.role && a.layer == b.layer && a.minimized == b.minimized && a.fullscreen == b.fullscreen
+            && a.liveObservation == b.liveObservation && a.usesWitnessedSize == b.usesWitnessedSize
             && a.minimum == b.minimum && a.editGeneration == b.editGeneration && a.permission == b.permission
             && a.recoveryVerified == b.recoveryVerified && a.positionSettable == b.positionSettable && a.sizeSettable == b.sizeSettable
             && a.selectionContinuity == b.selectionContinuity
@@ -192,8 +197,11 @@ public enum WindowAdmissionPreview {
             if b.presentation != .confirmed || a.presentation != .confirmed { result.reject(.geometry) }
             if b.positionSettable == false || b.sizeSettable == false { result.reject(.lockedFrame) }
             else if b.positionSettable == nil || b.sizeSettable == nil { result.reject(.unknownFrameRights) }
-            if b.editGeneration?.isEmpty != false { result.reject(.editGeneration) }
+            if b.editGeneration?.isEmpty != false && b.liveObservation == nil { result.reject(.editGeneration) }
             if !b.recoveryVerified { result.reject(.recovery) }
+            if b.usesWitnessedSize == true && !result.notes.contains(witnessedSizeNote) {
+                result.notes.append(witnessedSizeNote)
+            }
             guard let id = b.id, a.id == id, let bundle = b.bundle, !bundle.isEmpty else {
                 result.reject(.identity); continue
             }

@@ -5,6 +5,40 @@ import SwiftUI
 /// Owns one serialized manager for the whole Host, independent of panel visibility.
 @MainActor @Observable public final class CandidateWorkRect {
     let support: URL
+    let ordinary: OrdinaryWindowManager
+    private weak var host: HostSession?
+    public internal(set) var scopedDisplay: String?
+    public func restrictOrdinaryAcceptance(to display: String) { scopedDisplay = display }
+    private var supervisorReady = false
+    private var suspended = false
+    private var fullscreenDisplays = Set<String>()
+    private var holds = Set<String>()
+    public func setOrdinaryHold(_ reason: String, active: Bool) {
+        if active { holds.insert(reason) } else { holds.remove(reason) }
+        suspended = !holds.isEmpty
+    }
+    public func ordinaryPresentation(_ state: String, display: String) {
+        if state == "hold" { fullscreenDisplays.insert(display) }
+        if state == "returned" || state == "ordinary" { fullscreenDisplays.remove(display) }
+    }
+    func connect(to host: HostSession) {
+        self.host = host
+        ordinary.liveContext = { [weak self] display in self?.context(for: display) }
+    }
+    func context(for display: String) -> AdmissionContext? {
+        let screens = SystemScreens.geometry()
+        guard let host, let first = screens.first, let target = screens.dropFirst().first(where: { $0.id == display }),
+              scopedDisplay == nil || scopedDisplay == display, !suspended, !fullscreenDisplays.contains(display),
+              supervisorReady, !blocked, mode == "off" else { return nil }
+        func quartz(_ r: SurfaceRect) -> SurfaceRect {
+            .init(x: r.x, y: first.frame.y + first.frame.height - r.y - r.height, width: r.width, height: r.height)
+        }
+        let cfg = host.configuration
+        let primary = cfg.preferredDisplayID.flatMap { id in screens.first { $0.id == id }?.id } ?? first.id
+        return .init(display: display, screen: quartz(target.frame), usable: quartz(target.visibleFrame), primary: primary == display,
+                     settings: cfg.displays[display] ?? .init(), edge: cfg.edge, preferences: cfg.workspaces, recoveryClear: true, exclusive: true)
+    }
+
     private var process: Process?
     private var input: FileHandle?
     private var monitor: Task<Void, Never>?
@@ -15,9 +49,10 @@ import SwiftUI
     private(set) var blocked = false
     private(set) var trusted = false
 
-    init(support: URL) { self.support = support }
+    init(support: URL) { self.support = support; ordinary = OrdinaryWindowManager(support: support) }
     public func start() {
         guard process == nil, let folder = Bundle.main.resourceURL else { return }
+        supervisorReady = false
         let child = Process(), commands = Pipe(), replies = Pipe()
         child.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
         child.arguments = ["-I", "-B", "-u", folder.appendingPathComponent("WorkRect/window-management.py").path, support.path]
@@ -31,10 +66,12 @@ import SwiftUI
             do {
                 for try await line in replies.fileHandleForReading.bytes.lines {
                     let reply = try JSONDecoder().decode(Reply.self, from: Data(line.utf8))
+                    supervisorReady = true
                     mode = reply.mode; count = reply.members; windows = reply.windows
                     message = reply.detail; blocked = reply.blocked; trusted = reply.trusted
                 }
             } catch { message = error.localizedDescription; blocked = true }
+            supervisorReady = false
             try? input?.close(); input = nil
             await Task.detached { child.waitUntilExit() }.value
             process = nil
@@ -48,6 +85,7 @@ import SwiftUI
         catch { message = error.localizedDescription; blocked = true }
     }
     public func finish() async {
+        await ordinary.finish()
         if input != nil { send("quit") }
         try? input?.close(); input = nil
         await monitor?.value
@@ -58,11 +96,15 @@ private typealias ViewState<T> = State<T>
 public struct CandidateWorkRectView: View {
     let session: CandidateWorkRect, host: HostSession
     private let admissionFixtureOnly: Bool
+    private let ordinaryPID: Int32?
+    private let ordinaryStart: UInt64?
     @ViewState private var confirm = false
     @AppStorage("managementPairPercent") private var percent = 60
     @AppStorage("managementPairSwap") private var swap = false
 
-    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false) {
+    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false, ordinaryPID: Int32? = nil, ordinaryStart: UInt64? = nil) {
+        self.ordinaryStart = ordinaryStart
+        self.ordinaryPID = ordinaryPID
         self.session = session
         self.host = host
         self.admissionFixtureOnly = admissionFixtureOnly
@@ -71,13 +113,13 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly)
+                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, scopedPID: ordinaryPID, scopedStart: ordinaryStart)
                 Divider()
-                Text("自动管理").font(.headline)
-                Text("可写范围仅含随包兼容应用在副屏登记的窗口。").font(.callout)
+                Text("随包兼容应用 · 自动管理").font(.headline)
+                Text("此开关仅影响随包兼容应用。普通窗口需在上方逐窗选择和授权。").font(.callout)
                 Text(session.message).textSelection(.enabled)
                 if session.mode == "off" && !session.blocked {
-                    Button("启用自动窗口管理…") { confirm = true }
+                    Button("启用自动窗口管理…") { confirm = true }.disabled(!session.ordinary.activeIDs.isEmpty || session.ordinary.blocked || session.ordinary.busy)
                         .alert("允许自动调整副屏兼容窗口？", isPresented: $confirm) {
                             Button("取消", role: .cancel) {}
                             Button("允许并启用") { session.send("enable") }

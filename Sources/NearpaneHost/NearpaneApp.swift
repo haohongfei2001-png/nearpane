@@ -310,6 +310,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         panels.managementChanged = { [weak modules] id, state, deadline in
             guard UUID(uuidString: id) != nil else { return }
             let expiry = deadline.map { " " + String($0) } ?? ""
+            modules?.workRect?.ordinaryPresentation(state, display: id)
             modules?.workRect?.send("presentation " + state + " " + id + expiry)
         }
         #if canImport(SaytileKit)
@@ -408,6 +409,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func lockChanged(_ note: Notification) {
         screenLocked = note.name.rawValue == "com.apple.screenIsLocked"
+        modules?.workRect?.setOrdinaryHold("session", active: screenAsleep || sessionInactive || screenLocked)
         panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
         host?.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
         updatePanels()
@@ -421,6 +423,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         case NSWorkspace.sessionDidBecomeActiveNotification: sessionInactive = false
         default: break
         }
+        modules?.workRect?.setOrdinaryHold("session", active: screenAsleep || sessionInactive || screenLocked)
         panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
         switch note.name {
         case NSWorkspace.screensDidSleepNotification: host?.setDesktopPause(.screensAsleep, paused: true)

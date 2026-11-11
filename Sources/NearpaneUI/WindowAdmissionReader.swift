@@ -25,8 +25,18 @@ private enum AdmissionReadFailure: LocalizedError {
 /// Every entry point follows a user selection. Nothing here can dispatch a management action.
 @MainActor final class WindowAdmissionReader {
     private let root: URL, fixtureOnly: Bool
+    private let scopedPID: Int32?
+    private let scopedStart: UInt64?
+    private var references = [Int32: [UUID: OrdinaryWindowAX]]()
+    func releaseChoices() { references.removeAll(); listed.removeAll() }
+    func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX? {
+        guard listed[app.pid]?.0 == app else { return nil }
+        return references[app.pid]?[choice.id]
+    }
     private var listed = [Int32:(AdmissionApplication,[AdmissionWindowChoice])]()
-    init(support: URL, fixtureOnly: Bool) {
+    init(support: URL, fixtureOnly: Bool, scopedPID: Int32? = nil, scopedStart: UInt64? = nil) {
+        self.scopedStart = scopedStart
+        self.scopedPID = scopedPID
         self.root = support.appendingPathComponent("WorkRect")
         self.fixtureOnly = fixtureOnly
     }
@@ -36,15 +46,16 @@ private enum AdmissionReadFailure: LocalizedError {
         return f
     }
     func applications() -> [AdmissionApplication] {
-        listed.removeAll()
+        releaseChoices()
         var result = [AdmissionApplication]()
-        if let f = AdmissionFixture.read(root) {
+        if scopedPID == nil, let f = AdmissionFixture.read(root) {
             result.append(.init(pid: f.owner.owner.pid, launch: f.owner.owner.start, bundle: AdmissionFixture.bundle, name: "随包兼容应用"))
         }
-        guard !fixtureOnly else { return result }
+        guard !fixtureOnly || scopedPID != nil else { return result }
         for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular && !app.isTerminated {
-            guard app.processIdentifier != getpid(), let id = app.bundleIdentifier, id != Bundle.main.bundleIdentifier,
-                  id != AdmissionFixture.bundle, !id.hasPrefix("org.nearpane."), let b = AdmissionBirth.read(app.processIdentifier) else { continue }
+            guard (scopedPID == nil || scopedPID == app.processIdentifier), app.processIdentifier != getpid(), let id = app.bundleIdentifier, id != Bundle.main.bundleIdentifier,
+                  id != AdmissionFixture.bundle, !id.hasPrefix("org.nearpane."), !id.hasPrefix("com.holdsnow.nearpane"), let b = AdmissionBirth.read(app.processIdentifier) else { continue }
+            guard scopedPID == nil || (id == "net.example.standard-documents" && b.start == scopedStart) else { continue }
             result.append(.init(pid: b.pid, launch: b.start, bundle: id, name: app.localizedName ?? id))
         }
         return result.sorted { ($0.name,$0.pid) < ($1.name,$1.pid) }
@@ -54,17 +65,25 @@ private enum AdmissionReadFailure: LocalizedError {
             guard let f = fixture(app) else { throw AdmissionReadFailure.changed }
             return f
         }
-        guard !fixtureOnly, app.pid != getpid(), AdmissionBirth.read(app.pid)?.start == app.launch,
+        guard scopedPID == nil || (app.bundle == "net.example.standard-documents" && app.launch == scopedStart), (!fixtureOnly || scopedPID == app.pid), (scopedPID == nil || scopedPID == app.pid), app.pid != getpid(), AdmissionBirth.read(app.pid)?.start == app.launch,
               let running = NSRunningApplication(processIdentifier: app.pid), running.activationPolicy == .regular,
               running.bundleIdentifier == app.bundle, !running.isTerminated else { throw AdmissionReadFailure.changed }
         return nil
     }
     func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice] {
         listed.removeValue(forKey: app.pid)
+        references.removeValue(forKey: app.pid)
         let choices: [AdmissionWindowChoice]
         if let fixture = try check(app) {
             choices = fixture.owner.members.map { .init(id: $0.id.element, number: $0.id.number, index: $0.index) }
+        } else if let rows = try? await OrdinaryWindowAX.list(app) {
+            _ = try check(app)
+            choices = rows.map { $0.0 }
+            var retained = [UUID: OrdinaryWindowAX]()
+            for (choice, handle) in rows { if let handle { retained[choice.id] = handle } }
+            references[app.pid] = retained
         } else {
+            // A failure of the optional writer must not disable the independent read-only preview.
             let reply = try await read(app, targets: [])
             guard reply.permitted else { throw AdmissionReadFailure.permission }
             let duplicates = Dictionary(grouping: reply.numbers.compactMap { $0 }, by: { $0 }).filter { $0.value.count > 1 }

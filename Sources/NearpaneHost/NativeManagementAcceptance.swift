@@ -2,6 +2,7 @@
 import AppKit
 import NearpaneCore
 import NearpaneUI
+import Security
 import SwiftUI
 
 private final class PassiveManagementPanel: NSPanel {
@@ -23,6 +24,18 @@ private final class PassiveManagementPanel: NSPanel {
               screen.frame.intersection(NSScreen.screens[0].frame).isEmpty else { throw CocoaError(.featureUnsupported) }
         let sizing = ProcessInfo.processInfo.environment["NEARPANE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
         let admission = ProcessInfo.processInfo.environment["NEARPANE_ADMISSION_ACCEPTANCE"] == session.directory.lastPathComponent
+        let env = ProcessInfo.processInfo.environment
+        let trial = env["NEARPANE_ORDINARY_ACCEPTANCE"] == session.directory.lastPathComponent
+        var selectedPID: Int32?
+        var selectedStart: UInt64?
+        if trial {
+            guard admission, !sizing, let raw = env["NEARPANE_ORDINARY_PID"], let pid = Int32(raw),
+                  let start = Self.birth(pid), Self.ownedStandardFixture(pid: pid), Self.birth(pid) == start else { throw CocoaError(.featureUnsupported) }
+            selectedStart = start
+            selectedPID = pid
+            manager.restrictOrdinaryAcceptance(to: display)
+        }
+        let originalSizes = host.configuration.displays[display] ?? .init()
         guard !(sizing && admission) else { throw CocoaError(.featureUnsupported) }
         // On this rotated display the OS can move a newly ordered panel inward (the live
         // witness was x=-681 for a 690 pt window). Leave space at both edges and
@@ -41,7 +54,7 @@ private final class PassiveManagementPanel: NSPanel {
             panel.contentView = NSHostingView(rootView: WorkspaceDisplaySettings(host: host, screens: [target],
                 request: { _ in }, dismiss: { _ in }))
         } else {
-            let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission))
+            let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission, ordinaryPID: selectedPID, ordinaryStart: selectedStart))
             if admission { content.sizingOptions = [] }
             panel.contentView = content
         }
@@ -71,7 +84,10 @@ private final class PassiveManagementPanel: NSPanel {
                 self.sequence = req.sequence
                 // Rehearsal can create/close only the separately registered synthetic fixtures.
                 // Never grant, enable, retry or invoke the AX frame writer in this mode.
-                if admission && !["open", "close", "exclude-last", "include-last", "hide", "show", "quit"].contains(req.action) {
+                if trial && !["hide","show","quit","docked","floating","icon","normal-size"].contains(req.action) {
+                    self.stop(); NSApp.terminate(nil); return
+                }
+                if admission && !trial && !["open", "close", "exclude-last", "include-last", "hide", "show", "quit"].contains(req.action) {
                     self.stop(); NSApp.terminate(nil); return
                 }
                 switch req.action {
@@ -83,6 +99,16 @@ private final class PassiveManagementPanel: NSPanel {
                     host.setPlacement(edge: host.configuration.edge, displayID: main)
                     var settings = host.configuration.displays[display] ?? .init()
                     settings.placement = req.action == "floating" ? .floating : .docked
+                    host.setDisplaySettings(settings, id: display)
+                case "icon" where trial, "normal-size" where trial:
+                    var settings = host.configuration.displays[display] ?? .init()
+                    for key: DisplayMetric in [.panelWidth, .panelHeight] {
+                        settings.measures[key] = req.action == "icon" ? Measure(20) : originalSizes.measures[key]
+                    }
+                    // Changing the tool's visual size alone must not release the committed WorkRect.
+                    if settings.measures[.reservedWidth] == nil {
+                        settings.measures[.reservedWidth] = originalSizes.measures[.reservedWidth] ?? originalSizes.measures[.panelWidth] ?? DisplayMetric.panelWidth.factory
+                    }
                     host.setDisplaySettings(settings, id: display)
                 case "tight-reserve", "reset-reserve":
                     var settings = host.configuration.displays[display] ?? .init()
@@ -101,6 +127,35 @@ private final class PassiveManagementPanel: NSPanel {
             }
         }
         self.timer = timer; RunLoop.main.add(timer, forMode: .common)
+    }
+    private static func birth(_ pid: Int32) -> UInt64? {
+        var b = proc_bsdinfo()
+        let size = Int32(MemoryLayout.size(ofValue: b))
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &b, size) == size,
+              b.pbi_pid == UInt32(pid), b.pbi_uid == getuid() else { return nil }
+        return b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec
+    }
+    private static func ownedStandardFixture(pid: Int32) -> Bool {
+        guard pid > 1, let app = NSRunningApplication(processIdentifier: pid),
+              app.bundleIdentifier == "net.example.standard-documents", app.activationPolicy == .regular,
+              !app.isTerminated, let executable = app.executableURL?.resolvingSymlinksInPath(),
+              executable.path.range(of: #"^/(?:private/)?tmp/nearpane-standard-windows\.[a-zA-Z0-9]{8}/Standard documents\.app/Contents/MacOS/StandardWindows$"#,
+                                    options: .regularExpression) != nil else { return false }
+        var guest: SecCode?, disk: SecStaticCode?, live: SecStaticCode?
+        let flags = SecCSFlags()
+        guard SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid as String: pid] as CFDictionary, flags, &guest) == errSecSuccess,
+              let guest, SecCodeCheckValidity(guest, flags, nil) == errSecSuccess,
+              SecCodeCopyStaticCode(guest, flags, &live) == errSecSuccess,
+              SecStaticCodeCreateWithPath(executable as CFURL, flags, &disk) == errSecSuccess else { return false }
+        func digest(_ code: SecStaticCode?) -> Data? {
+            guard let code else { return nil }
+            var info: CFDictionary?
+            guard SecCodeCopySigningInformation(code, .init(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+                  let row = info as? [String:Any], row[kSecCodeInfoIdentifier as String] as? String == app.bundleIdentifier else { return nil }
+            return row[kSecCodeInfoUnique as String] as? Data
+        }
+        guard let identity = digest(live), !identity.isEmpty else { return false }
+        return identity == digest(disk)
     }
     func stop() { timer?.invalidate(); panel.orderOut(nil); panel.close() }
 }

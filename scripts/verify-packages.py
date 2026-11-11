@@ -45,7 +45,16 @@ def verify(app, lock, sandbox):
             standalone.write_bytes(host_image)
             subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(standalone)], check=True)
     subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(helper)], check=True)
-    for exe in (binary, helper):
+    writer = contents / "Helpers/NearpaneOrdinaryWindowController"
+    if writer.resolve() != writer or digest(writer) != plist.get("NearpaneOrdinaryWindowControllerSHA256"):
+        raise ValueError("Ordinary window controller fingerprint mismatch")
+    subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(writer)], check=True)
+    writer_imports = {line.split()[-1] for line in subprocess.check_output(
+        ["/usr/bin/nm", "-u", str(writer)], text=True).splitlines() if line.split()}
+    if "_AXUIElementSetAttributeValue" not in writer_imports or writer_imports & {
+            "_CGEventPost", "_CGEventPostToPid", "_AXUIElementPerformAction"}:
+        raise ValueError("Unexpected ordinary window controller capabilities")
+    for exe in (binary, helper, writer):
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
             raise ValueError("Private desktop framework linked directly: " + exe.name)
     private_symbols = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces", b"SLSMainConnectionID", b"_AXUIElementGetWindow")
