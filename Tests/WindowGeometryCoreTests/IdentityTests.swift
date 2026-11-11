@@ -69,6 +69,20 @@ struct IdentityTests {
         #expect(matches.map(\.axCandidateIndices) == [[1], [0]])
     }
 
+    @Test func testDocumentWindowNumberDoesNotOverrideDivergentOnscreenBounds() {
+        // P4.7.2 observed these three rectangles for one process. Give both rows
+        // matching synthetic titles so the rejection cannot depend on missing titles.
+        let document = ax(frame: Rect(-681, 64, 562, 422))
+        let visible = cg(id: 179888, frame: Rect(-64, 602, 49, 76))
+        let other = cg(id: 179886, frame: Rect(0, 580, 500, 500), onscreen: false)
+        let s = snapshot(cg: [other, visible], ax: [document])
+        let matches = WindowMatcher.matches(cg: s.cg, ax: s.ax)
+        #expect(matches.allSatisfy { $0.confidence == .unknown && $0.axCandidateIndices.isEmpty })
+        rejection(.insufficientEvidence) {
+            _ = try TargetResolver.issue(windowID: visible.windowID, in: s, now: 10.2)
+        }
+    }
+
     @Test func testSameTitleAndFrameMultipleAXCandidatesAreAmbiguous() {
         let s = snapshot(ax: [ax(), ax(token: UUID())])
         #expect(WindowMatcher.matches(cg: s.cg, ax: s.ax)[0].confidence == .ambiguous)
