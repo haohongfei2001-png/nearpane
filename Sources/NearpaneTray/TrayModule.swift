@@ -302,6 +302,9 @@ public final class TrayModule: HostModule {
             issue = nil
             pressTask = target
             return .init(id: row.id, revision: row.visibilityRevision, epoch: interaction, target: target)
+        } catch AcceptanceBrowserRoute.ScriptError.javaScriptFromAppleEventsDenied {
+            issue = "Chrome 已拒绝来自 Apple 事件的 JavaScript，截图仍在托盘中。可在 Chrome「视图 → 开发者」检查此项设置。"
+            return nil
         } catch { issue = "未能确认目标草稿，截图仍在托盘中。"; return nil }
     }
     func finishPress(_ press: TrayPress) async {

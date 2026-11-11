@@ -1,4 +1,5 @@
 import Foundation
+import Carbon
 import Testing
 import CoreGraphics
 import ImageIO
@@ -23,10 +24,12 @@ private func makePNG(_ original: URL) throws {
 
 private actor Location: CaptureLocationProviding {
     let url: URL
+    private(set) var starts = 0
+    private(set) var stops = 0
     init(_ url: URL) { self.url = url }
     func currentDirectory() async throws -> URL { url }
-    func start(onChange: @escaping @Sendable () async -> Void) async throws {}
-    func stop() async {}
+    func start(onChange: @escaping @Sendable () async -> Void) async throws { starts += 1 }
+    func stop() async { stops += 1 }
 }
 
 private actor Transport: AttachmentAdapter {
@@ -58,6 +61,47 @@ private actor Transport: AttachmentAdapter {
 
 @MainActor @Suite(.serialized)
 struct TrayDomainTests {
+    @Test func chromeScriptRefusalIsDiagnosedOnlyAtTheGuardBeforeAnyInput() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let image = ImportedAsset(sourceKey: "script-refusal", fileName: "test.png", sha256: String(repeating: "c", count: 64),
+                                  byteCount: 3, pixelWidth: 8, pixelHeight: 8, mediaType: "image/png", origin: .synthetic)
+        _ = try await store.importAsset(image)
+        let adapter = Transport()
+        var script = true, status: Int32 = 12, thrown = false, domain = NSOSStatusErrorDomain
+        let module = TrayModule(productAttachments: true) { changed, reported in
+            TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true, pin: {
+                _ = try AcceptanceBrowserRoute.checkedReply(executingJavaScript: script) {
+                    if thrown { throw NSError(domain: domain, code: Int(status)) }
+                    let reply = NSAppleEventDescriptor(eventClass: kCoreEventClass, eventID: kAEAnswer,
+                                targetDescriptor: .null(), returnID: -1, transactionID: 0)
+                    reply.setParam(.init(int32: status), forKeyword: keyErrorNumber)
+                    return reply
+                }
+                return Task { try await adapter.captureTarget() }
+            }, permission: { _,_ in true }, notify: changed, report: reported)
+        }
+        try module.start(); await module.connect(); await module.authorizeAttachments()
+        let row = try #require(module.rows.first)
+        for (isScript, code, isThrown, errorDomain, specific) in [
+            (true, Int32(12), false, NSOSStatusErrorDomain, true),
+            (true, 12, true, NSOSStatusErrorDomain, true),
+            (false, 12, false, NSOSStatusErrorDomain, false),
+            (true, -1743, true, NSOSStatusErrorDomain, false),
+            (true, 12, true, NSCocoaErrorDomain, false)
+        ] {
+            (script, status, thrown, domain) = (isScript, code, isThrown, errorDomain)
+            #expect(module.beginPress(row) == nil)
+            let message = try #require(module.issue)
+            #expect(message.contains("JavaScript") == specific)
+            #expect(module.visibleIDs == [image.id])
+            #expect(try await store.asset(id: image.id)?.activeOperationID == nil)
+        }
+        #expect(await adapter.appends == 0)
+        #expect(await adapter.observations == 0)
+        module.stop(); await module.finishStopping()
+    }
     @Test func oneStoreOwnsUnknownReconciliationRevivalRetryAndPositiveSwallow() async throws {
         let dir = root()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -322,8 +366,12 @@ struct TrayDomainTests {
         try module.start(); await module.connect()
         await module.collect(from: source, provider: Location(base.appendingPathComponent("not-authorized")))
         #expect(!module.collectionEnabled)
-        await module.collect(from: source, provider: Location(source))
+        let location = Location(source)
+        await module.collect(from: source, provider: location)
         try #require(module.collectionEnabled)
+        let starts = await location.starts, stops = await location.stops
+        #expect(starts == 1)
+        module.surfaceHidden(true)
         try makePNG(source.appendingPathComponent("ordinary.png"))
         let file = source.appendingPathComponent("generated.png")
         try makePNG(file)
@@ -333,7 +381,17 @@ struct TrayDomainTests {
         while module.rows.isEmpty, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
         #expect(module.rows.map(\.image.origin) == [.systemScreenshot])
         #expect(try await store.assets().map(\.id) == module.rows.map(\.id))
+        let acceptedIDs = module.visibleIDs
+        for _ in 0..<3 {
+            module.surfaceHidden(false)
+            module.surfaceHidden(true)
+        }
+        module.surfaceHidden(false)
+        #expect(module.collectionEnabled && module.visibleIDs == acceptedIDs)
+        #expect(await location.starts == starts)
+        #expect(await location.stops == stops)
         module.stop(); await module.finishStopping()
+        #expect(await location.stops > stops)
     }
 
     @Test func realImporterAndThumbnailUseSameExistingLibraryAndPreserveMediaAcrossReconnect() async throws {

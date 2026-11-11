@@ -3,6 +3,7 @@ import Carbon
 
 /// A PID-addressed, nonprompting route read shared by the fixture Host and its observation helper.
 struct AcceptanceBrowserRoute {
+    enum ScriptError: Error { case javaScriptFromAppleEventsDenied }
     let app: NSRunningApplication
     let address: NSAppleEventDescriptor
     let windowID, tabID: String
@@ -56,9 +57,26 @@ struct AcceptanceBrowserRoute {
         let e = NSAppleEventDescriptor(eventClass: code(suite), eventID: code(verb), targetDescriptor: address, returnID: -1, transactionID: 0)
         e.setParam(direct,forKeyword: code("----"))
         if let script { e.setParam(.init(string: script),forKeyword: code("JvSc")) }
-        let reply = try e.sendEvent(options: [.waitForReply,.neverInteract],timeout: 3)
-        guard (reply.paramDescriptor(forKeyword: code("errn"))?.int32Value ?? 0) == 0,
-              let value = reply.paramDescriptor(forKeyword: code("----")) else { throw CocoaError(.fileReadNoPermission) }
+        return try Self.checkedReply(executingJavaScript: script != nil) {
+            try e.sendEvent(options: [.waitForReply,.neverInteract],timeout: 3)
+        }
+    }
+
+    static func checkedReply(executingJavaScript: Bool, send: () throws -> NSAppleEventDescriptor) throws -> NSAppleEventDescriptor {
+        let reply: NSAppleEventDescriptor
+        do { reply = try send() }
+        catch {
+            let native = error as NSError
+            if executingJavaScript, native.domain == NSOSStatusErrorDomain, native.code == 12 {
+                throw ScriptError.javaScriptFromAppleEventsDenied
+            }
+            throw CocoaError(.fileReadNoPermission)
+        }
+        let status = reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value ?? 0
+        if executingJavaScript, status == 12 { throw ScriptError.javaScriptFromAppleEventsDenied }
+        guard status == 0, let value = reply.paramDescriptor(forKeyword: keyDirectObject) else {
+            throw CocoaError(.fileReadNoPermission)
+        }
         return value
     }
     private func property(_ key: String,_ from: NSAppleEventDescriptor) throws -> NSAppleEventDescriptor {

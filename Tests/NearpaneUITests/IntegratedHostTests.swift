@@ -11,6 +11,16 @@ import RiftletCapture
 @testable import NearpaneTray
 @testable import NearpaneUI
 
+private actor TestCaptureDirectory: CaptureLocationProviding {
+    let url: URL
+    private(set) var starts = 0
+    private(set) var stops = 0
+    init(_ url: URL) { self.url = url }
+    func currentDirectory() async throws -> URL { url }
+    func start(onChange: @escaping @Sendable () async -> Void) async throws { starts += 1 }
+    func stop() async { stops += 1 }
+}
+
 /// Shipping composition, existing-format libraries under a unique test root, zero device or target access.
 @MainActor @Suite(.serialized)
 struct IntegratedHostTests {
@@ -329,6 +339,74 @@ struct IntegratedHostTests {
         }
         #expect(!window.isVisible && !window.isKeyWindow && !window.isMainWindow)
         controller.close(); host.stop(); await domains.finishStopping()
+    }
+
+    @Test func residentDisplayLossAndReturnRetainTheLiveStoreWatcherAndUnsentQueue() async throws {
+        _ = NSApplication.shared
+        let root = fixtureRoot(); defer { try? FileManager.default.removeItem(at: root) }
+        let support = root.appendingPathComponent("Nearpane"), recording = try await seedVoice(support)
+        let ids = try await seedQueue(root)
+        let directory = root.appendingPathComponent("test-screenshots", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        let watcher = TestCaptureDirectory(directory)
+        let domains = EmbeddedModules(support: support)
+        let host = domains.makeHost(store: MemoryConfigurationStore())
+        await host.start(); await domains.voice.waitForTransition(); await domains.tray.connect()
+        await domains.tray.collect(from: directory, provider: watcher)
+        let main = EdgeWindowController(host: host, modules: domains)
+        let panels = DisplayPanels(host: host, primary: main, domains: domains, present: { _ in })
+        defer { panels.stop(); main.close(); host.stop() }
+
+        let store = try await domains.voice.withPanelRead { $0 }
+        let ticket = try await store.beginRecognition(recordingID: recording)
+        let edited = "这条手记已由用户校对"
+        try #require(await domains.voice.saveEdit(recording, text: edited))
+        domains.voice.stageDraft(recording, text: draft)
+        let epochs = host.bus.moduleSnapshots.mapValues(\.instanceID)
+        let order = domains.tray.visibleIDs
+        try #require(Set(order) == ids && epochs[BuiltinCatalog.voice] != nil && epochs[BuiltinCatalog.screenshots] != nil)
+        try #require(await watcher.starts == 1)
+        let previousStops = await watcher.stops
+        let landscape = SurfaceRect(width: 1600, height: 900), portrait = SurfaceRect(x: -800, width: 800, height: 1280)
+        let resident = ScreenGeometry(id: "resident", frame: landscape, visibleFrame: landscape)
+        let side = ScreenGeometry(id: "side", frame: portrait, visibleFrame: portrait)
+        var sideSettings = DisplaySettings()
+        sideSettings.policy = .pinned
+        host.setPlacement(edge: .right, displayID: resident.id)
+        host.setDisplaySettings(sideSettings, id: side.id)
+        panels.update(screens: [resident, side])
+        #expect(host.panelContents[side.id] == .spacesOnly)
+
+        func verifyDomains() async throws {
+            #expect(host.bus.moduleSnapshots.mapValues(\.instanceID) == epochs)
+            let current = try await domains.voice.withPanelRead { $0 }
+            #expect(current === store && domains.voice.capture == .paused)
+            #expect(await domains.voice.editText(recording) == draft)
+            #expect(domains.voice.transcript == [edited, secondLine].joined(separator: "\n"))
+            #expect(domains.tray.visibleIDs == order && domains.tray.collectionEnabled && !domains.tray.mayAttach)
+            #expect(throws: LibraryError.busy) { try ExistingLibrary.open(root.appendingPathComponent("Riftlet")) }
+            #expect(await watcher.starts == 1)
+            #expect(await watcher.stops == previousStops)
+        }
+        panels.update(screens: [side])
+        #expect(host.panelContents[resident.id] == nil && main.hasPlacement && panels.secondaryIDs.isEmpty)
+        try await verifyDomains()
+        // A recognition result that started on the disconnected display arrives after the manual edit.
+        try #require(try await store.applyRecognition(ticket: ticket, text: "迟到的识别版本", isFinal: true))
+        try await store.finishRecognition(ticket: ticket)
+        await domains.voice.refresh()
+        host.setSurfaceHidden(true)
+        panels.update(screens: [side, resident])
+        #expect(!main.hasPlacement && panels.secondaryIDs.isEmpty)
+        try await verifyDomains()
+        host.setSurfaceHidden(false)
+        panels.update(screens: [side, resident])
+        #expect(main.hasPlacement && panels.secondaryIDs == [side.id] && host.panelContents[side.id] == .spacesOnly)
+        #expect(host.configuration.preferredDisplayID == resident.id && main.window?.isVisible == false)
+        try await verifyDomains()
+        host.stop(); await domains.finishStopping()
+        #expect(await watcher.stops > previousStops)
+        try ApplicationInstanceOwnership(root: root.appendingPathComponent("Riftlet")).close()
     }
 
     @Test func foldedAndExpandedPanelPreservesExistingDomainSessionAndQueue() async throws {
