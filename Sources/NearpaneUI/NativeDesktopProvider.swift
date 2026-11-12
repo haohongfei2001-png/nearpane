@@ -19,7 +19,10 @@ import WindowGeometryCore
     public static func packaged(fixtureWindows: @escaping @MainActor () -> [NSWindow]? = { nil }) -> any DesktopObservationProvider {
         guard Bundle.main.bundleURL.pathExtension == "app", let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneDesktopReaderSHA256") as? String,
               expected.count == 64 else { return UnavailableDesktopProvider() }
-        let executable = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
+        // Foundation normalizes volume aliases such as /private/tmp to /tmp. Resolve the
+        // application itself first; redirects inside Contents/Helpers are still rejected.
+        let executable = Bundle.main.bundleURL.resolvingSymlinksInPath()
+            .appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
         guard executable.path == executable.resolvingSymlinksInPath().path else { return UnavailableDesktopProvider() }
         return NativeDesktopProvider(fixtureWindows: fixtureWindows, anchors: { currentAnchors(fixtureWindows() ?? NSApp.windows) }) { request in
             try await Task.detached(priority: .utility) {
