@@ -26,9 +26,15 @@ import RiftletCore
             window.contentView = NSHostingView(rootView: ReviewDocumentView(document: sample))
             window.setFrameOrigin(.init(x: area.minX + 24 + CGFloat(index) * 30,
                                         y: area.minY + 36 + CGFloat(index) * 24))
-            window.orderBack(nil)
-            window.displayIfNeeded()
             return window
+        }
+        // Match the reference's document / revision / plan / editor progression.
+        // orderBack keeps these four synthetic documents below the user's foreground windows.
+        for document in [ReviewDocument.article, .notes, .plan, .code] {
+            if let index = ReviewDocument.allCases.firstIndex(of: document) {
+                windows[index].orderBack(nil)
+                windows[index].displayIfNeeded()
+            }
         }
     }
 
