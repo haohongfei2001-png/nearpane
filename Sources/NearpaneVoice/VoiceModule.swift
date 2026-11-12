@@ -298,7 +298,9 @@ public final class VoiceModule: HostModule {
         let request = refreshID
         do {
             let requested = limit
-            let (result, count) = try await withPanelRead { store in
+            // Re-read origin only for a changed preferred revision of the active recording.
+            let oldTail = rows.last, priorLive = history.document.liveTailID
+            let (result, count, liveID) = try await withPanelRead { store in
                 var result: [Recording] = []
                 while result.count < requested {
                     let batch = min(1_000, requested - result.count)
@@ -308,13 +310,21 @@ public final class VoiceModule: HostModule {
                     if page.count < batch { break }
                 }
                 let count = try await store.panelRecordingCount(createdSince: .distantPast, includingIDs: [])
-                return (result, count)
+                var live: UUID?
+                if let tail = result.first, tail.isRecording, tail.recognitionState == .running, let preferred = tail.preferredRevisionID {
+                    if oldTail?.id == tail.id, oldTail?.preferredRevisionID == preferred {
+                        live = priorLive
+                    } else if try await store.revisions(recordingID: tail.id).first(where: { $0.id == preferred })?.origin == .partial {
+                        live = tail.id
+                    }
+                }
+                return (result, count, live)
             }
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
             let start = max(0, count - result.count)
-            if ordered != rows || hasEarlier != (count > result.count) || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
-                history = VoiceHistoryProjection(ordered, startPosition: start, hasEarlier: count > result.count)
+            if ordered != rows || liveID != history.document.liveTailID || hasEarlier != (count > result.count) || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
+                history = VoiceHistoryProjection(ordered, startPosition: start, hasEarlier: count > result.count, liveTailID: liveID)
                 rows = ordered
                 acceptanceEvent?("voiceRows")
             }
@@ -332,7 +342,8 @@ public final class VoiceModule: HostModule {
             // A read admitted before this synchronous commit may finish afterwards.
             refreshID += 1
             rows = saved
-            history = VoiceHistoryProjection(saved, startPosition: start, hasEarlier: hasEarlier)
+            let liveID = history.document.liveTailID.flatMap { id in edits.contains(where: { $0.id == id }) ? nil : id }
+            history = VoiceHistoryProjection(saved, startPosition: start, hasEarlier: hasEarlier, liveTailID: liveID)
             panelEditIssue = nil
             acceptanceEvent?("userEdit")
             didPublish(generation)

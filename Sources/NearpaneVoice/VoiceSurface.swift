@@ -26,18 +26,14 @@ public struct VoiceSurface: View {
     public var body: some View {
         let history = module.history
         let empty = history.entries.allSatisfy { $0.displayText.isEmpty }
-        VoiceSurfacePanel(document: history.document, access: access, capture: capture,
+        let document = displayedDocument(history)
+        VoiceSurfacePanel(document: document, access: access, capture: capture,
             canCopy: !selected.isEmpty || !history.copyText.isEmpty, selectedText: selected,
             onCopy: {
                 let selection = access.view?.selectionSnapshot ?? ""
                 if !selection.isEmpty { _ = copy(selection, to: pasteboard); return }
-                let rendered = access.view?.rendered
-                var snapshot = Dictionary(uniqueKeysWithValues: (rendered?.spans ?? []).map { ($0.entry.id, $0.entry.displayText) })
-                // Include utterances that had no visible text at click time.
-                for row in history.entries where rendered?.displayed[row.position] == "" {
-                    snapshot[row.id] = ""
-                }
-                module.copyLatestGroup(snapshot: snapshot, to: pasteboard)
+                guard let rendered = access.view?.rendered else { return }
+                module.copyLatestGroup(snapshot: history.copySnapshot(rendered: rendered), to: pasteboard)
             }, onToggle: { Task { await module.toggle() } },
             onPage: { if $0 { Task { await module.loadEarlier() } } },
             onSelectionChange: { selected = $0 }, onFollowChange: { reading = !$0 },
@@ -118,9 +114,15 @@ public struct VoiceSurface: View {
             Button("重试识别") { Task { await module.retry(failed.id) } }
         }
         if module.offersManualInput {
-            Button("插入当前文字") { module.insertDisplayedText() }
+            Button("插入当前文字") { access.view?.settleLivePresentation(); module.insertDisplayedText() }
                 .disabled(module.inserting || editing != nil || module.transcript.isEmpty)
         }
+    }
+
+    private func displayedDocument(_ history: VoiceHistoryProjection) -> PanelTimelineDocument<VoiceHistoryEntry> {
+        var page = history.document
+        if reading || editing != nil || capture.state != .recognizing { page.liveTailID = nil }
+        return page
     }
 
     func copy(_ text: String, to pasteboard: NSPasteboard) -> Bool {

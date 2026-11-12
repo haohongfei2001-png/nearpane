@@ -26,3 +26,18 @@ Nearpane now resolves eight shared files from Saytile `6271a65f17f5b749ff89427e6
 | Complete offline Swift suite in the local macOS desktop session, including the embedded AppKit editor | PASS · 316/316 across 52 suites |
 | Initial sandbox-only run | BLOCKED · the Swift test process received signal 5 during native tests |
 | Fresh cross-host screenshot comparison on this pin | NOT_RUN |
+
+## Saytile 内测 0.3
+
+Nearpane pins the nine shared inputs from Saytile `d80a537f6038674e8755c47bbde0b28c90e6684c`. Their combined SHA-256 is `c14f6f6f4c2d3c57e15d6b732223f50b3e35c1a4d89bc5c219d3d91f314f4c28`. Every cached file matched its corresponding Git blob. The host marks an in-progress recording's preferred partial revision as live. Final and edited revisions are displayed atomically. A copy snapshots the text visible for each recording ID when the user clicks, including when pagination shifts a record's position.
+
+| Verification on Apple Silicon | Result |
+| --- | --- |
+| Full offline native Swift Testing suite, including the embedded AppKit editor, Chinese input, copy, selection, undo and independent host lifecycle | PASS · 319 tests across 52 suites |
+| Changed preferred partial revision, inline edit and subsequent ASR result in an isolated SQLite store | PASS · the edit stays selected |
+| Partial text copied with a shifted history position | PASS · the snapshot uses the original recording ID and visible prefix |
+| Dependency inventory and resolver tests | PASS · 9 Git blobs matched, 6 resolver tests passed |
+| Local debug app build, ad hoc bundle seal, deep strict verification, and packaged Saytile and Riftlet resource checks | PASS |
+| New end-to-end live microphone trial and frame-by-frame cross-host comparison on this pin | NOT_RUN |
+
+This run used disposable host fixtures and a local debug bundle. The recognition and tray dependencies keep their existing lock entries.

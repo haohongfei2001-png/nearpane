@@ -126,6 +126,44 @@ extension VoiceTests {
         await module.waitForTransition()
     }
 
+    @Test func copyUsesRenderedRecordingIDsWhenPositionsShiftAndTheTailIsPartial() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        let old = try await store.createRecording()
+        _ = try await store.saveEdit(recordingID: old.id, text: "第一段")
+        let tail = try await store.createRecording()
+        _ = try await store.saveEdit(recordingID: tail.id, text: "第二段")
+        let rows = try await store.listPanelRecordings(createdSince: .distantPast, includingIDs: [], limit: 10, offset: 0)
+        let prior = VoiceHistoryProjection(rows.reversed())
+        var visible = prior.document
+        visible.displayed[prior.entries[1].position] = "第"
+        let current = VoiceHistoryProjection([rows[0]])
+        #expect(current.copySnapshot(rendered: visible)[tail.id] == "第")
+        try await store.close()
+    }
+
+    @Test func onlyTheLiveASRRevisionMayRevealInSmallSteps() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        let row = try await store.createRecording()
+        let ticket = try await store.beginRecognition(recordingID: row.id)
+        _ = try await store.applyRecognition(ticket: ticket, text: "正在听写", isFinal: false)
+        let module = VoiceModule(openStore: { store }, makeInput: { _, callback in ScriptedInput(callback) })
+        try module.start()
+        await module.waitForTransition()
+        await module.refresh()
+        #expect(module.history.document.liveTailID == row.id)
+        try module.applyPanelEdits([.init(id: row.id, before: "正在听写", after: "手工编辑")])
+        #expect(module.history.document.liveTailID == nil)
+        _ = try await store.applyRecognition(ticket: ticket, text: "稍后返回的文字", isFinal: true)
+        await module.refresh()
+        #expect(module.history.document.liveTailID == nil && module.transcript == "手工编辑")
+        module.stop()
+        await module.waitForTransition()
+    }
+
     @Test func crossRecordingEditRejectsStaleHumanRevisionWithoutPartialWrites() async throws {
         let directory = directory()
         defer { try? FileManager.default.removeItem(at: directory) }
