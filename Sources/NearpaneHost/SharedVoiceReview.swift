@@ -55,9 +55,11 @@ import SaytileVoiceUI
         while host.bus.desktop?.windows.count != desktop.windows.count, ContinuousClock.now < ready {
             try await Task.sleep(for: .milliseconds(100))
         }
-        let states = referenceWidth ? ["speaking"] : ["paused", "standby", "speaking"]
+        // A fresh speaking window isolates the live caret from earlier AX selection checks.
+        let freshSpeaking = referenceWidth || ProcessInfo.processInfo.environment["NEARPANE_REVIEW_FRESH_SPEAKING"] == "1"
+        let states = freshSpeaking ? ["speaking"] : ["paused", "standby", "speaking"]
         for state in states {
-            if state == "standby" || referenceWidth { await fixture.listen() }
+            if state == "standby" || freshSpeaking { await fixture.listen() }
             if state == "speaking" { fixture.speak() }
             try await Task.sleep(for: .milliseconds(550))
             window.contentView?.layoutSubtreeIfNeeded()
@@ -85,6 +87,7 @@ import SaytileVoiceUI
                 "backdrop":backdrop.windowNumber,"points":[bounds.width,bounds.height],
                 "visible":[visible.minX,visible.minY,visible.width,visible.height],
                 "glass":[inner.minX, inner.minY, inner.width, inner.height],
+                "windowKey":window.isKeyWindow, "transcriptIsFirstResponder":window.firstResponder is CompactTranscriptTextView,
                 "trayAssets":modules.tray.visibleIDs.count, "desktopWindows":sample.windows.count,
                 "desktopPopulation":"markedFixture","referenceWidth":referenceWidth, "witnessedSpaces":sample.native?.rows.count ?? 0]
             let json = try JSONSerialization.data(withJSONObject: receipt, options: .sortedKeys)
