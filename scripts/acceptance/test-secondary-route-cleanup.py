@@ -210,6 +210,54 @@ class RouteCleanup(unittest.TestCase):
         self.assert_refusal("adjacent created desktop not confirmed")
 
 
+class BlankTargetCalibration(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.run = str(uuid.uuid4()).upper()
+        self.child = Mock(pid=2345)
+        self.child.poll.return_value = None
+        self.session = route.Session.__new__(route.Session)
+        self.session.primary, self.session.secondary = "main", "side"
+        self.session.a, self.session.b = "10", "11"
+        self.session.out = self.root
+        self.session.args = SimpleNamespace(kit=self.root, witness=self.root)
+        self.enrollment = dict(run=self.run, label="A", window="99", frontPID="2345", method="appkit-key-window")
+        write(self.root / "enrolled-A.json", self.enrollment)
+        write(self.root / "origin-A.json", dict(number=99, record="10", frontPID=2345, currents={"main":"1","side":"10"}))
+        self.proof = dict(occupancy="NO_RELOCATION_OBSERVED", source="10", target="11", sourcePID=2345,
+                          sourceWindow=99, primary="main", secondary="side", primaryCurrent="1", scopeSamples=2,
+                          blockingWindows=0, corroboratedShared=0)
+
+    def calibrate(self):
+        self.session.calibrate("enroll-B", self.root, self.run, self.child)
+
+    def test_clear_target_reaches_one_calibration_after_double_occupancy_read(self):
+        with patch.object(route.sp, "run", return_value=Mock(returncode=0, stdout=json.dumps(self.proof))) as call:
+            self.calibrate()
+        self.assertEqual([c.args[0][0].name for c in call.call_args_list], ["occupancy", "calibrate-route"])
+        self.assertEqual(call.call_args_list[0].args[0][1:], ["--scoped","2345","99","main","side","1","10","11"])
+        self.assertEqual(route.read(self.root / "target-occupancy.json")["sample"], self.proof)
+
+    def test_occupied_changed_unreadable_or_shared_target_gets_zero_calibration_calls(self):
+        for delta, code in (({"blockingWindows":1},0), ({"corroboratedShared":1},0), ({"scopeSamples":1},0),
+                            ({"target":"12"},0), ({"sourcePID":2346},0), ({"sourceWindow":100},0), ({},2)):
+            with self.subTest(delta=delta, code=code), patch.object(
+                route.sp, "run", return_value=Mock(returncode=code, stdout=json.dumps(dict(self.proof, **delta)))
+            ) as call:
+                with self.assertRaisesRegex(ValueError, "blank secondary B"):
+                    self.calibrate()
+                self.assertEqual([c.args[0][0].name for c in call.call_args_list], ["occupancy"])
+                (self.root / "target-occupancy.json").unlink()
+
+    def test_stale_enrollment_rejected_without_invoking_helpers(self):
+        write(self.root / "enrolled-A.json", dict(self.enrollment, run="older"))
+        with patch.object(route.sp, "run") as call, self.assertRaisesRegex(ValueError, "unbound occupancy"):
+            self.calibrate()
+        call.assert_not_called()
+
+
 class RouteLeg(unittest.TestCase):
     def setUp(self):
         self.run = str(uuid.uuid4()).upper()

@@ -76,6 +76,29 @@ func overviewOwner(_ pid: pid_t?) -> Bool {
   guard let pid, let host = overviewHost(pid) else { return false }
   return host == "com.apple.dock" || host == "com.apple.WindowManager"
 }
+// A hover is delivered only to Apple's Spaces bar on the enrolled physical display.
+// The resulting mouse position never identifies or presses an Add or Remove button.
+private func stripOwner(at point: CGPoint, display: CGDirectDisplayID) -> pid_t? {
+  guard CGDisplayBounds(display).contains(point), !CGDisplayBounds(CGMainDisplayID()).contains(point) else { return nil }
+  var hit: AXUIElement?
+  guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit)
+          == .success, var node = hit else { return nil }
+  var pid: pid_t = 0
+  guard AXUIElementGetPid(node, &pid) == .success, overviewOwner(pid) else { return nil }
+  var foundStrip = false
+  for _ in 0..<8 {
+    var owner: pid_t = 0
+    guard AXUIElementGetPid(node, &owner) == .success, owner == pid else { return nil }
+    let id = attr(node, kAXIdentifierAttribute) as? String
+    if id == "mc.spaces" { foundStrip = true }
+    if id == "mc.display" {
+      return foundStrip && (attr(node, "AXDisplayID") as? NSNumber)?.uint32Value == display ? pid : nil
+    }
+    guard let parent = attr(node, kAXParentAttribute), CFGetTypeID(parent) == AXUIElementGetTypeID() else { return nil }
+    node = parent as! AXUIElement
+  }
+  return nil
+}
 func live(_ args: [String]) throws {
   guard (args.count == 4 || (args.count == 6 && ["create","remove","prepare-and-restore"].contains(args[4]))), let display = UUID(uuidString: args[0]),
     let start = ISO8601DateFormatter().date(from: args[2]),
@@ -327,11 +350,12 @@ func live(_ args: [String]) throws {
     ])
     try toggleOverview()
     toggled = true
-    let cutoff = Date().addingTimeInterval(4)
+    let cutoff = min(Date().addingTimeInterval(8), end.addingTimeInterval(-12))
     var evidence: [String: Any]?
     var lastState = ""
     let overviewSince = ProcessInfo.processInfo.systemUptime
-    var hoveredStrip = false
+    var hoverStep = 0
+    var nextHover = overviewSince + 0.65
     var nextStructure = Date.distantPast
     var previousStructure: Data?
     func recordStructure() {
@@ -353,29 +377,35 @@ func live(_ args: [String]) throws {
          let groups = try? children(AXUIElementCreateApplication(dock.processIdentifier),named:"mc"),
          groups.count == 1 { ownedOverview = groups[0] }
       recordStructure()
-      if !hoveredStrip && ProcessInfo.processInfo.systemUptime-overviewSince >= 0.65,
+      if hoverStep < 2 && ProcessInfo.processInfo.systemUptime >= nextHover,
          let dock = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock").first,
          dock.executableURL?.path == "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock",
          (try? children(AXUIElementCreateApplication(dock.processIdentifier),named:"mc").count) == 1,
          near(try point(),landed), let spent = pointerLoanBegan, physicalMouseIdle(since:spent) {
         let cgBounds = CGDisplayBounds(width)
-        let stripPoint = CGPoint(x:cgBounds.midX, y:cgBounds.minY + 12)
-        // Hover in the middle of the secondary Spaces strip; never use coordinates to press a control.
-        // Cursor positioning itself does not post a mouse click or a drag.
-        hoveredStrip = true
-        try need(place(stripPoint,on:width) == .success,"secondary overview hover positioning failed")
-        spin(0.06)
-        let stop = try point()
-        try need(near(stop,stripPoint),"secondary strip pointer readback differs")
-        landed = stop
-        var hit: AXUIElement?
-        let hitStatus = AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),Float(stop.x),Float(stop.y),&hit)
-        var hitPID: pid_t = 0
-        let verifiedSystemHit = hitStatus == .success && hit.map { AXUIElementGetPid($0,&hitPID) == .success && overviewOwner(hitPID) } == true
-        if verifiedSystemHit, let event = CGEvent(mouseEventSource:nil, mouseType:.mouseMoved, mouseCursorPosition:stop, mouseButton:.left) {
-          event.postToPid(hitPID)
+        // On a collapsed strip a corner hover alone can leave the bar at 40 pt.
+        // First expand it from the middle, then visit the right edge only after
+        // the second point actually hits the same display's expanded system bar.
+        let center = hoverStep == 0
+        let stripPoint = CGPoint(x: center ? cgBounds.midX : cgBounds.maxX - 10,
+                                 y: cgBounds.minY + (center ? 12 : 74))
+        let step = hoverStep + 1
+        nextHover = ProcessInfo.processInfo.systemUptime + 0.45
+        if let owner = stripOwner(at: stripPoint, display: width) {
+          hoverStep = step
+          try need(protectedPresentation(FocusAnchor.geometry(anchor.number,anchor.owner.processIdentifier)),
+                   "original window changed before secondary strip hover")
+          try need(place(stripPoint,on:width) == .success,"secondary overview hover positioning failed")
+          spin(0.06)
+          let stop = try point()
+          try need(near(stop,stripPoint),"secondary strip pointer readback differs")
+          landed = stop
+          try need(stripOwner(at: stop, display: width) == owner, "secondary strip owner changed during hover")
+          guard let event = CGEvent(mouseEventSource:nil, mouseType:.mouseMoved, mouseCursorPosition:stop, mouseButton:.left)
+          else { throw Refusal("system hover event unavailable") }
+          event.postToPid(owner)
+          emit(["event":"secondaryStripHover","step":step,"systemOverviewOwner":true])
         }
-        emit(["event":"secondaryStripHover","systemOverviewOwner":verifiedSystemHit,"hitStatus":hitStatus.rawValue])
       }
       let cg = FocusAnchor.geometry(anchor.number,anchor.owner.processIdentifier)
       if !protectedPresentation(cg) {

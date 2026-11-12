@@ -51,6 +51,8 @@ struct SecondarySpacesBar {
   let side: CGDirectDisplayID
   let spaces: AXUIElement
   let add: AXUIElement
+  let container: AXUIElement
+  fileprivate let addLocation: ControlLocation
   let primaryContainer: Bool
 }
 
@@ -78,9 +80,90 @@ private func childOf(_ el:AXUIElement,_ parent:AXUIElement) -> Bool {
   guard let actual=attr(el,kAXParentAttribute), CFGetTypeID(actual)==AXUIElementGetTypeID() else {return false}
   return CFEqual(actual,parent)
 }
-private func allowableCommandGeometry(_ el:AXUIElement,_ bounds:CGRect) -> Bool {
-  let f=reportedFrames(el)
-  return compatibleFrames(f.direct,f.split,inside:bounds)
+// A hit witness is about the owner and the exact accessibility object under a point.
+// Probe coordinates are never used to issue mouse input.
+fileprivate enum ControlLocation: Equatable {
+  case frame(CGRect)
+  case hit(CGPoint)
+
+  var left: CGFloat {
+    switch self { case .frame(let r): return r.minX; case .hit(let p): return p.x }
+  }
+  var right: CGFloat {
+    switch self { case .frame(let r): return r.maxX; case .hit(let p): return p.x }
+  }
+
+  func recheck(_ element: AXUIElement, owner: pid_t, in area: CGRect) -> Bool {
+    switch self {
+    case .frame(let expected):
+      let f = reportedFrames(element)
+      return compatibleFrames(f.direct, f.split, inside: area) && (f.direct ?? f.split) == expected
+    case .hit(let point):
+      return area.contains(point) && exactHit(element, owner: owner)(point)
+    }
+  }
+}
+
+private func exactHit(_ element: AXUIElement, owner: pid_t) -> (CGPoint) -> Bool {
+  let root = AXUIElementCreateSystemWide()
+  AXUIElementSetMessagingTimeout(root, 0.10)
+  return { point in
+    var result: AXUIElement?, pid: pid_t = 0
+    return AXUIElementCopyElementAtPosition(root, Float(point.x), Float(point.y), &result) == .success &&
+      result.map { AXUIElementGetPid($0, &pid) == .success && pid == owner && CFEqual(element, $0) } == true
+  }
+}
+
+private func probePoints(in area: CGRect, add: Bool) -> [CGPoint] {
+  guard area.minX.isFinite, area.minY.isFinite, area.width.isFinite, area.height.isFinite,
+        area.width >= 4, area.height >= 4 else { return [] }
+  // Sample the right edge before the rest of the system strip. Include its final 20 pt
+  // and separate rows so a compact bar and a fully expanded bar are both covered.
+  let xs: [CGFloat] = add ? [2, 7, 15, 24, 36, 52, 72, 96].map { area.maxX - $0 } :
+    [0.5, 0.375, 0.625, 0.25, 0.75, 0.125, 0.875, 0.4375, 0.5625].map { area.minX + area.width * $0 }
+  return [0.5, 0.25, 0.75, 0.125, 0.875].flatMap { fraction in
+    xs.map { CGPoint(x: $0, y: area.minY + area.height * fraction) }
+  }.filter { area.contains($0) }
+}
+
+private func confirmedHit(_ points: [CGPoint], until deadline: TimeInterval, matches: (CGPoint) -> Bool,
+                          settle: () -> Void) -> ControlLocation? {
+  for point in points {
+    guard ProcessInfo.processInfo.systemUptime < deadline else { return nil }
+    if matches(point) {
+      settle()
+      guard ProcessInfo.processInfo.systemUptime < deadline, matches(point) else { return nil }
+      return .hit(point)
+    }
+  }
+  return nil
+}
+
+private func activationPoint(_ element: AXUIElement) -> CGPoint? {
+  guard let value = attr(element, "AXActivationPoint"), CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+  let ax = value as! AXValue
+  var point = CGPoint.zero
+  guard AXValueGetType(ax) == .cgPoint, AXValueGetValue(ax, .cgPoint, &point),
+        point.x.isFinite, point.y.isFinite else { return nil }
+  return point
+}
+
+private func locate(_ element: AXUIElement, owner: pid_t, in area: CGRect, add: Bool) -> ControlLocation? {
+  let frames = reportedFrames(element)
+  if compatibleFrames(frames.direct, frames.split, inside: area), let rect = frames.direct ?? frames.split {
+    return .frame(rect)
+  }
+  var candidates = probePoints(in: area, add: add)
+  if let point = activationPoint(element), area.contains(point) { candidates.insert(point, at: 0) }
+  return confirmedHit(candidates, until: ProcessInfo.processInfo.systemUptime + 0.45,
+                      matches: exactHit(element, owner: owner), settle: { Thread.sleep(forTimeInterval: 0.045) })
+}
+
+private func inTileOrder(_ locations: [ControlLocation]) -> Bool {
+  zip(locations, locations.dropFirst()).allSatisfy { a, b in
+    if case .frame = a, case .frame = b { return a.right <= b.left }
+    return a.right < b.left
+  }
 }
 private func compatibleFrames(_ direct:CGRect?,_ split:CGRect?,inside bounds:CGRect) -> Bool {
   if let a=direct, let b=split, a != b {return false}
@@ -141,14 +224,16 @@ func secondarySpacesBar(_ displayUUID: UUID) throws -> SecondarySpacesBar? {
         return AXUIElementGetPid(element,&pid) == .success && pid==owner.processIdentifier
       }), let strip=systemControlFrame(spaces), !strip.isEmpty, CGDisplayBounds(side).contains(strip),
           systemControlFrame(container)==CGDisplayBounds(side),
-          childOf(add,spaces), childOf(spaces,container), allowableCommandGeometry(add,strip),
+          childOf(add,spaces), childOf(spaces,container),
           attr(add,kAXRoleAttribute) as? String == kAXButtonRole,
-          attr(add,kAXEnabledAttribute) as? Bool == true else {throw Refusal("secondary control geometry or owner unconfirmed")}
+          attr(add,kAXEnabledAttribute) as? Bool == true,
+          let location=locate(add,owner:owner.processIdentifier,in:strip,add:true)
+        else {throw Refusal("secondary control geometry, physical hit or owner unconfirmed")}
       var actions:CFArray?
       guard AXUIElementCopyActionNames(add,&actions) == .success,
             (actions as? [String])?.contains(kAXPressAction as String)==true else {throw Refusal("no affirmative add action")}
       if !bars.contains(where:{CFEqual($0.add,add)}) {
-        bars.append(SecondarySpacesBar(dock:dock,owner:owner,side:side,spaces:spaces,add:add,
+        bars.append(SecondarySpacesBar(dock:dock,owner:owner,side:side,spaces:spaces,add:add,container:container,addLocation:location,
           primaryContainer:containers.contains{ (attr($0,"AXDisplayID") as? NSNumber)?.uint32Value==CGMainDisplayID() }))
       }
     }
@@ -167,6 +252,10 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
   if let bar {
     report["primaryOverviewContainerPresent"]=bar.primaryContainer
     report["systemControlOwner"]=bar.owner.bundleIdentifier
+    switch bar.addLocation {
+    case .frame: report["secondaryCommandProof"]="containedFrame"
+    case .hit(let p): report["secondaryCommandProof"]="repeatedExactPhysicalHit"; report["confirmedSecondaryPoint"]=[p.x,p.y]
+    }
   }
   return report
 }
@@ -186,6 +275,29 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
             (CGRect(x:-5,y:0,width:10,height:10),nil,false)]
           guard cases.allSatisfy({compatibleFrames($0.0,$0.1,inside:side)==$0.2}) else {exit(2)}
           print("\(cases.count) semantic command geometry cases passed")
+          return
+        }
+        if CommandLine.arguments.dropFirst().elementsEqual(["--test-command-hit"]) {
+          let compact = CGRect(x:-800, y:0, width:800, height:40)
+          let expanded = CGRect(x:-800, y:0, width:800, height:170)
+          let candidates = probePoints(in:expanded,add:true), compactPoints = probePoints(in:compact,add:true)
+          let edge = CGPoint(x:-7,y:85), deadline = ProcessInfo.processInfo.systemUptime + 5
+          var readCount = 0, calls = 0
+          let stable = confirmedHit(candidates, until:deadline, matches:{ $0 == edge }, settle:{})
+          let changed = confirmedHit([edge], until:deadline, matches:{ _ in readCount += 1; return readCount == 1 },settle:{})
+          let expired = confirmedHit([edge], until:0, matches:{ _ in calls += 1; return true },settle:{})
+          let tilePoints = probePoints(in:expanded,add:false)
+          let a = CGPoint(x:-500,y:85), b = CGPoint(x:-300,y:85)
+          let checks = [
+            candidates.allSatisfy { expanded.contains($0) }, compactPoints.allSatisfy { compact.contains($0) },
+            compactPoints.contains(CGPoint(x:-2,y:20)), stable == .hit(edge), changed == nil,
+            expired == nil && calls == 0, confirmedHit(candidates,until:deadline,matches:{_ in false},settle:{}) == nil,
+            tilePoints.contains(a) && tilePoints.contains(b), inTileOrder([.hit(a),.hit(b)]),
+            !inTileOrder([.hit(b),.hit(a)]), !inTileOrder([.hit(b),.hit(b)]),
+            !inTileOrder([.frame(CGRect(x:-500,y:0,width:225,height:80)),.hit(b)])
+          ]
+          guard checks.allSatisfy({$0}) else { exit(2) }
+          print("\(checks.count) secondary physical command hit cases passed")
           return
         }
         guard CommandLine.arguments.count == 2,
@@ -420,6 +532,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
             let f=reportedFrames(node)
             if let r=f.direct {child["directFrame"]=[r.origin.x,r.origin.y,r.width,r.height]}
             if let r=f.split {child["splitFrame"]=[r.origin.x,r.origin.y,r.width,r.height]}
+            if let p=activationPoint(node) {child["activationPoint"]=[p.x,p.y]}
             child["enabled"]=attr(node,kAXEnabledAttribute) as? Bool
             child["actions"]=(try? actionsOf(node))?.filter{$0=="AXPress"}
             child["parentConfirmed"]=childOf(node,el)
@@ -432,6 +545,34 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         return ["childCount":rows.count,"nodes":children]
       }
       report["windowManager"]=summarize(wmRoot,0)
+      // Only the named system commands: compare both display-specific identities
+      // without walking the primary window list, reading labels, or using its point as input.
+      func addCommand(_ scope: AXUIElement, _ screen: CGDirectDisplayID) -> AXUIElement? {
+        guard let groups = try? children(scope,named:"mc.display"),
+              let container = try? only(groups.filter{ (attr($0,"AXDisplayID") as? NSNumber)?.uint32Value == screen }, "display"),
+              systemControlFrame(container) == CGDisplayBounds(screen),
+              let strip = try? only(children(container,named:"mc.spaces"),"bar"), childOf(strip,container),
+              let add = try? only(children(strip,named:"mc.spaces.add"),"add"), childOf(add,strip),
+              attr(add,kAXRoleAttribute) as? String == kAXButtonRole else { return nil }
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(add,&pid) == .success && pid == host.processIdentifier else { return nil }
+        return add
+      }
+      let overviewRoots = [wmRoot] + ((try? children(wmRoot,named:"mc")) ?? [])
+      for scope in overviewRoots {
+        guard let a = addCommand(scope,side), let b = addCommand(scope,CGMainDisplayID()) else { continue }
+        var comparison: [String:Any] = ["distinct": !CFEqual(a,b), "primaryDisplay":CGMainDisplayID(),"secondaryDisplay":side]
+        for (key, command) in [("secondary",a),("primary",b)] {
+          let frames=reportedFrames(command)
+          var info: [String:Any] = [:]
+          if let f=frames.direct {info["directFrame"]=[f.origin.x,f.origin.y,f.width,f.height]}
+          if let f=frames.split {info["splitFrame"]=[f.origin.x,f.origin.y,f.width,f.height]}
+          if let p=activationPoint(command) {info["activationPoint"]=[p.x,p.y]}
+          comparison[key]=info
+        }
+        report["systemAddComparison"]=comparison
+        break
+      }
     }
     // Read through the system Dock only. Sampling a point never moves the cursor or presses
     // a control. Results outside this exact Dock process yield no element metadata.
@@ -519,7 +660,9 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
 
   private struct ProvisionControls {
     let bar: SecondarySpacesBar
+    let list: AXUIElement
     let tiles: [AXUIElement]
+    let locations: [ControlLocation]
     let labels: [String]
     init(display: UUID, count: Int) throws {
       guard let observed = try secondarySpacesBar(display), !observed.dock.isTerminated, !observed.owner.isTerminated
@@ -533,19 +676,18 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
       let secondary = CGDisplayBounds(observed.side)
       guard childOf(list,observed.spaces), let listFrame=systemControlFrame(list),
             !listFrame.isEmpty, secondary.contains(listFrame) else {throw Refusal("unverified secondary desktop list")}
-      let bounds = try items.map { tile -> CGRect in
+      let placements = try items.map { tile -> ControlLocation in
         var pid:pid_t=0
-        let frames=reportedFrames(tile)
         guard childOf(tile,list), AXUIElementGetPid(tile,&pid) == .success,
-              pid==observed.owner.processIdentifier, compatibleFrames(frames.direct,frames.split,inside:listFrame),
-              let rect=frames.direct ?? frames.split,
+              pid==observed.owner.processIdentifier,
               attr(tile,kAXRoleAttribute) as? String == kAXButtonRole,
               attr(tile, kAXEnabledAttribute) as? Bool == true,
-              (try actionsOf(tile)).contains(kAXPressAction as String)
+              (try actionsOf(tile)).contains(kAXPressAction as String),
+              let placement=locate(tile,owner:pid,in:listFrame,add:false)
         else { throw Refusal("secondary desktop tile ownership, geometry or capability changed") }
-        return rect
+        return placement
       }
-      guard zip(bounds,bounds.dropFirst()).allSatisfy({$0.maxX <= $1.minX}) else {
+      guard inTileOrder(placements) else {
         throw Refusal("desktop buttons overlap or visual order is ambiguous")
       }
       let values = try items.map { tile -> String in
@@ -558,8 +700,31 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         throw Refusal("indistinguishable system desktop tiles")
       }
       bar = observed
+      self.list = list
       tiles = items
+      locations = placements
       labels = values
+    }
+
+    // Repeat the affirmative evidence on the same live objects after the durable
+    // one-shot intent, just before dispatch. Never reselect a tile or use a fallback point.
+    func recheckBeforeInput() throws {
+      let owner = bar.owner.processIdentifier
+      guard !bar.owner.isTerminated, !bar.dock.isTerminated,
+            overviewHost(owner) == bar.owner.bundleIdentifier,
+            (attr(bar.container,"AXDisplayID") as? NSNumber)?.uint32Value == bar.side,
+            systemControlFrame(bar.container) == CGDisplayBounds(bar.side),
+            let strip = systemControlFrame(bar.spaces), !strip.isEmpty, CGDisplayBounds(bar.side).contains(strip),
+            childOf(bar.spaces,bar.container), childOf(bar.add,bar.spaces), childOf(list,bar.spaces),
+            let listFrame = systemControlFrame(list), !listFrame.isEmpty, strip.contains(listFrame),
+            let current = attr(list,kAXChildrenAttribute) as? [AXUIElement], current.count == tiles.count,
+            attr(bar.add,kAXEnabledAttribute) as? Bool == true,
+            bar.addLocation.recheck(bar.add, owner:owner, in:strip),
+            tiles.indices.allSatisfy({ i in
+              CFEqual(current[i], tiles[i]) && childOf(tiles[i],list) &&
+                attr(tiles[i],kAXEnabledAttribute) as? Bool == true &&
+                locations[i].recheck(tiles[i],owner:owner,in:listFrame)
+            }) else { throw Refusal("secondary command or desktop tiles lost their physical proof") }
     }
   }
 
@@ -618,6 +783,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         (try state()) == original
       else { throw Refusal("secondary add control changed") }
       try folder.put(intent, "create-intent.json")
+      try ui.recheckBeforeInput()
       try requireAuthorizedAction()
       guard AXUIElementPerformAction(ui.bar.add, kAXPressAction as CFString) == .success else {
         throw Refusal("secondary Add returned no acknowledgement; intent remains spent")
@@ -683,6 +849,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
       (actions as? [String])?.contains(remove) == true
     else { throw Refusal("exact inactive B tile or Remove Desktop action unavailable") }
     try folder.put(created, "remove-intent.json")
+    try ui.recheckBeforeInput()
     try requireAuthorizedAction()
     guard AXUIElementPerformAction(ui.tiles[b], remove as CFString) == .success else {
       throw Refusal("removal outcome unknown; do not replay")

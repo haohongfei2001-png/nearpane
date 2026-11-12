@@ -201,6 +201,35 @@ class Session:
             sp.run([self.args.kit/"focus-return", self.secondary,self.a,self.args.starts,ends,operation,self.ledger],
                    stdout=log, stderr=err, check=True, env=self.panel_environment(ends))
 
+    def calibrate(self, step, cache, run, child):
+        if step == "enroll-B":
+            enrollment = read(cache / "enrolled-A.json")
+            source = read(cache / "origin-A.json")
+            window = source["number"]
+            need(child.poll() is None and type(window) is int and 0 < window < 2**32 and
+                 enrollment["run"] == run and enrollment["label"] == "A" and
+                 enrollment["method"] == "appkit-key-window" and enrollment["window"] == str(window) and
+                 enrollment["frontPID"] == str(child.pid) and source["frontPID"] == child.pid and
+                 source["record"] == source["currents"][self.secondary] == self.a, "unbound occupancy fixture")
+            primary_current = source["currents"][self.primary]
+            sample = sp.run([self.args.kit / "occupancy", "--scoped", str(child.pid), str(window),
+                             self.primary, self.secondary, primary_current, self.a, self.b],
+                            capture_output=True, timeout=6)
+            proof = json.loads(sample.stdout)
+            save(self.out / "target-occupancy.json", dict(run=run, exit=sample.returncode, sample=proof))
+            # The removal helper allows shared non-desktop windows since removal would not
+            # relocate them. An initially blank test B cannot make that exemption.
+            required = dict(occupancy="NO_RELOCATION_OBSERVED", source=self.a, target=self.b,
+                            sourcePID=child.pid, sourceWindow=window, primary=self.primary,
+                            secondary=self.secondary, primaryCurrent=primary_current, scopeSamples=2,
+                            blockingWindows=0, corroboratedShared=0)
+            need(sample.returncode == 0 and child.poll() is None and all(
+                type(proof.get(k)) is type(v) and proof[k] == v for k, v in required.items()
+            ), "blank secondary B not verified; no calibration input")
+        with (self.out / (step + "-calibration.log")).open("xb") as log:
+            sp.run([self.args.kit / "calibrate-route", self.args.witness, run, step],
+                   stdout=log, stderr=log, check=True)
+
     def rounds(self):
         now = utcnow()
         end = min(now + dt.timedelta(seconds=120), self.end-dt.timedelta(seconds=CLEANUP_SECONDS))
@@ -232,8 +261,7 @@ class Session:
                         "--starts",now.strftime(STAMP),"--ends",end.strftime(STAMP),"--allow-temporary-focus"],check=True)
                 for step in ("enroll-B","return-A"):
                     wait_until(child,lambda:(cache/("request-"+step+".json")).exists(),time.monotonic()+35,"no "+step+" request")
-                    with (self.out/(step+"-calibration.log")).open("xb") as c:
-                        sp.run([self.args.kit/"calibrate-route",self.args.witness,key,step],stdout=c,stderr=c,check=True)
+                    self.calibrate(step, cache, key, child)
                 child.wait(timeout=max(1,(end-utcnow()).total_seconds()+10))
                 need(child.returncode==0 and read(cache/"completed.json").get("observedRoundTrips")==3, "three round trips not confirmed")
                 for i in range(1,4):
