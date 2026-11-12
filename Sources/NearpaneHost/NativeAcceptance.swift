@@ -102,6 +102,7 @@ struct NativeAcceptanceSession {
         let visible, key, active, layoutMatches, hasTranscript, trayConnected, voiceEnabled, editorFocused, mayAttach, collecting: Bool
         let foreground, micAuthorization, speechAuthorization: Int
         let voice: String
+        let effectiveAppearance: String?
         let recordings: [UUID]
         let trayCount: Int
         let trayIDs: String
@@ -119,6 +120,21 @@ struct NativeAcceptanceSession {
         let url = session.directory.appendingPathComponent("events-" + run + ".jsonl")
         try Data().write(to: url, options: .withoutOverwriting)
         sink = try FileHandle(forWritingTo: url)
+        // Per-window appearance in an executable-bound, secondary-only fixture. Finder
+        // launches and the system appearance never enter this path.
+        let env = ProcessInfo.processInfo.environment
+        let localAppearance = env["NEARPANE_APPEARANCE_SESSION"] == session.directory.lastPathComponent
+        if localAppearance {
+            guard CommandLine.arguments.dropFirst().first == "--native-acceptance-secondary",
+                  let request = env["NEARPANE_PANEL_APPEARANCE"], ["aqua", "darkAqua"].contains(request),
+                  let window = surface.window, NSScreen.screens.count == 2,
+                  let side = NSScreen.screens.last, side.frame.contains(window.frame),
+                  !side.frame.intersects(NSScreen.screens[0].frame), window.ignoresMouseEvents,
+                  let appearance = NSAppearance(named: request == "aqua" ? .aqua : .darkAqua) else {
+                throw CocoaError(.featureUnsupported)
+            }
+            window.appearance = appearance
+        }
         let sample: @MainActor (String) -> Void = { [weak self, weak host, weak modules, weak surface] kind in
             guard let self, let host, let modules, let window = surface?.window else { return }
             let expected = SurfacePlacement.resolve(screens: screens(), preferredID: host.configuration.preferredDisplayID,
@@ -142,7 +158,8 @@ struct NativeAcceptanceSession {
                 foreground: Int(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0),
                 micAuthorization: AVCaptureDevice.authorizationStatus(for: .audio).rawValue,
                 speechAuthorization: SFSpeechRecognizer.authorizationStatus().rawValue,
-                voice: voice, recordings: modules.voice.openRecordingIDs, trayCount: ids.count, trayIDs: fingerprint,
+                voice: voice, effectiveAppearance: localAppearance ? window.effectiveAppearance.name.rawValue : nil,
+                recordings: modules.voice.openRecordingIDs, trayCount: ids.count, trayIDs: fingerprint,
                 pid: Int(ProcessInfo.processInfo.processIdentifier), windowID: window.windowNumber))
         }
         modules.voice.acceptanceEvent = sample
