@@ -6,6 +6,10 @@
 
 **当前可打开的版本**　[Nearpane P5.7 Alpha](</Users/hhf/Applications/Nearpane P5.7/Nearpane P5.7 Alpha.app>)。回退时正常退出当前版本，再打开 [P5.6 Alpha](</Users/hhf/Applications/Nearpane P5.6/Nearpane P5.6 Alpha.app>)。两个版本沿用稳定资料身份，普通用户窗口自动接管默认关闭。
 
+## 副屏 Native Spaces 续验
+
+11 月 12 日现场的两次 P5.7 读取及最终冻结见证均发现副屏只有普通桌面 4297。A→B→A 完成 0/3，跨空间移动 0 次。最终只读检查已绑定主屏原焦点的可归还对象；在明确的无人时段内可先校准临时借焦点，再独立执行副屏全屏与真实 Host 浮层联验。当前没有实际全屏进入、退出或浮层开合收据。实验工具和空资料 Alpha 已签封，个人 P5.7 安装及产品动作开关保持原状。[本轮现场收据、冻结包及接续入口](NATIVE-SPACES-SECONDARY-CONTINUATION.md)
+
 ## P5.7 原生空间和全屏
 
 | 用户操作 | 当前状态 |
