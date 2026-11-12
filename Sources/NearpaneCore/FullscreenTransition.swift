@@ -191,6 +191,7 @@ public struct FloatingToolSurface: Codable, Equatable, Sendable {
 /// AX element tokens belong to a reader invocation. Continuity across samples is used
 /// only to keep a tool visible; the window controller needs its own fresh action ticket.
 public struct FullscreenDisplaySample: Sendable {
+    public static let maximumLifetime: TimeInterval = 12
     public let beganUptime: Double?
     public let session: UUID
     public let revision: UInt64

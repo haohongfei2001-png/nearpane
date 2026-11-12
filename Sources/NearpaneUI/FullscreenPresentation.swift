@@ -35,7 +35,8 @@ import NearpaneCore
                     return ManagedWindowID(item)
                 })
             }
-            return .init(session: desktop.sessionID, revision: desktop.revision, validUntil: native.beganUptime + 12,
+            return .init(session: desktop.sessionID, revision: desktop.revision,
+                         validUntil: native.beganUptime + FullscreenDisplaySample.maximumLifetime,
                          observation: observation, ordinaryMembers: members, beganUptime: native.beganUptime)
         }
         let measured = reading.flatMap { sample -> FullscreenDisplaySample? in

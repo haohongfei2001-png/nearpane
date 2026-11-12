@@ -11,15 +11,50 @@ import SwiftUI
     public func restrictOrdinaryAcceptance(to display: String) { scopedDisplay = display }
     private var supervisorReady = false
     private var suspended = false
-    private var fullscreenDisplays = Set<String>()
+    private enum DesktopWitness {
+        case ordinary(until: Double)
+        case withheld
+        case awaitingSource
+    }
+    private var desktopWitnesses = [String: DesktopWitness]()
     private var holds = Set<String>()
     public func setOrdinaryHold(_ reason: String, active: Bool) {
         if active { holds.insert(reason) } else { holds.remove(reason) }
         suspended = !holds.isEmpty
     }
-    public func ordinaryPresentation(_ state: String, display: String) {
-        if state == "hold" { fullscreenDisplays.insert(display) }
-        if state == "returned" || state == "ordinary" { fullscreenDisplays.remove(display) }
+    public func ordinaryPresentation(_ state: String, display: String, deadline: Double?) {
+        let now = ProcessInfo.processInfo.systemUptime
+        let managedHere = ordinary.activeDisplay == display
+        switch state {
+        case "hold":
+            desktopWitnesses[display] = managedHere ? .awaitingSource : .withheld
+        case "ordinary", "returned":
+            if case .awaitingSource = desktopWitnesses[display], managedHere && state != "returned" { return }
+            guard let deadline, deadline.isFinite, deadline > now,
+                  deadline - now <= FullscreenDisplaySample.maximumLifetime else {
+                if case .awaitingSource = desktopWitnesses[display] { return }
+                desktopWitnesses[display] = .withheld
+                return
+            }
+            desktopWitnesses[display] = .ordinary(until: deadline)
+        default:
+            if case .ordinary = desktopWitnesses[display] { desktopWitnesses[display] = .withheld }
+        }
+    }
+    func presentationPauseReason(on display: String, uptime: Double) -> String? {
+        if permitsOrdinaryPresentation(on: display, uptime: uptime) { return nil }
+        if case .awaitingSource = desktopWitnesses[display] {
+            return "等待确认已返回全屏前的空间和窗口。原布局记录已保留。"
+        }
+        return "本屏普通桌面状态尚待核对，窗口调整已暂停。"
+    }
+    func permitsOrdinaryPresentation(on display: String, uptime: Double) -> Bool {
+        switch desktopWitnesses[display] {
+        // With no desktop observation source the existing independent target checks still apply.
+        case nil: true
+        case let .ordinary(until): uptime.isFinite && uptime < until
+        case .withheld, .awaitingSource: false
+        }
     }
     func connect(to host: HostSession) {
         self.host = host
@@ -34,7 +69,8 @@ import SwiftUI
     func context(for display: String) -> AdmissionContext? {
         let screens = SystemScreens.geometry()
         guard let host, host.unsavedWorkspacePreferences == nil, let first = screens.first, let target = screens.dropFirst().first(where: { $0.id == display }),
-              scopedDisplay == nil || scopedDisplay == display, !suspended, !fullscreenDisplays.contains(display),
+              scopedDisplay == nil || scopedDisplay == display, !suspended,
+              permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime),
               supervisorReady, !blocked, mode == "off" else { return nil }
         func quartz(_ r: SurfaceRect) -> SurfaceRect {
             .init(x: r.x, y: first.frame.y + first.frame.height - r.y - r.height, width: r.width, height: r.height)
@@ -57,7 +93,13 @@ import SwiftUI
     private(set) var blocked = false
     private(set) var trusted = false
 
-    init(support: URL) { self.support = support; ordinary = OrdinaryWindowManager(support: support) }
+    init(support: URL) {
+        self.support = support
+        ordinary = OrdinaryWindowManager(support: support)
+        ordinary.presentationHeld = { [weak self] display in
+            self?.permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime) != true
+        }
+    }
     public func start() {
         guard process == nil, let folder = Bundle.main.resourceURL else { return }
         supervisorReady = false

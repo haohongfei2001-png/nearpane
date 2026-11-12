@@ -72,6 +72,7 @@ enum OrdinaryRefusal: LocalizedError {
     private(set) var busy = false
     private(set) var message = "选择具体窗口后可预览布局；确认前不会调整窗口。"
     var liveContext: (@MainActor (String) -> AdmissionContext?)?
+    var presentationHeld: (@MainActor (String) -> Bool)?
     var saveExclusion: (@MainActor (ManagedWindowID) throws -> Void)?
 
     public init(support: URL) {
@@ -487,7 +488,8 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     func poll() async {
-        guard !busy, !userActionReserved, !blocked, !closing, !activeIDs.isEmpty, let display = activeDisplay else { return }
+        guard !busy, !userActionReserved, !blocked, !closing, !activeIDs.isEmpty,
+              let display = activeDisplay, presentationHeld?(display) != true else { return }
         busy = true
         passiveRead = true
         defer {

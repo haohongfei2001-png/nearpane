@@ -365,7 +365,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         panels.managementChanged = { [weak modules] id, state, deadline in
             guard UUID(uuidString: id) != nil else { return }
             let expiry = deadline.map { " " + String($0) } ?? ""
-            modules?.workRect?.ordinaryPresentation(state, display: id)
+            modules?.workRect?.ordinaryPresentation(state, display: id, deadline: deadline)
             modules?.workRect?.send("presentation " + state + " " + id + expiry)
         }
         #if canImport(SaytileKit)

@@ -15,6 +15,10 @@ private typealias ViewState<T> = State<T>
             Text(session.message).font(.caption).foregroundStyle(.secondary)
                 .accessibilityIdentifier("ordinary-status")
             if !session.activeIDs.isEmpty {
+                if let display = session.activeDisplay,
+                   let reason = manager.presentationPauseReason(on: display, uptime: ProcessInfo.processInfo.systemUptime) {
+                    Text(reason).font(.caption).accessibilityIdentifier("ordinary-display-hold")
+                }
                 ForEach(session.activeIDs, id: \.self) { id in
                     HStack {
                         Text(session.managedWindowLabel(id) + " · " + (session.verifiedIDs.contains(id) ? "布局已读回" : "待核对"))

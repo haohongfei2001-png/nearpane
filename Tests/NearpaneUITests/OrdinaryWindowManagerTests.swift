@@ -70,6 +70,55 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func anExpiredOrWithdrawnDesktopWitnessStopsOrdinaryWindowWrites() {
+        let scope = OrdinaryScope(), candidate = CandidateWorkRect(support: scope.support)
+        let now = ProcessInfo.processInfo.systemUptime
+        candidate.ordinaryPresentation("unknown", display: "isolated", deadline: nil)
+        #expect(candidate.permitsOrdinaryPresentation(on: "isolated", uptime: now))
+        candidate.ordinaryPresentation("ordinary", display: "side", deadline: now + 3)
+        #expect(candidate.permitsOrdinaryPresentation(on: "side", uptime: now))
+        #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: now + 3))
+        candidate.ordinaryPresentation("unknown", display: "side", deadline: nil)
+        #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: now))
+        for deadline in [nil, .nan, .infinity, now - 1, now + 100] as [Double?] {
+            candidate.ordinaryPresentation("ordinary", display: "side", deadline: deadline)
+            #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: now))
+        }
+        candidate.ordinaryPresentation("ordinary", display: "other", deadline: nil)
+        #expect(!candidate.permitsOrdinaryPresentation(on: "other", uptime: now))
+    }
+
+    @Test func managedWindowOnAnotherOrdinarySpaceCannotUseAFullscreenReturn() async throws {
+        let scope = OrdinaryScope(), candidate = CandidateWorkRect(support: scope.support), window = WindowDouble()
+        let manager = candidate.ordinary
+        scope.context.settings.placement = .docked
+        func send(_ state: String) {
+            candidate.ordinaryPresentation(state, display: "side", deadline: ProcessInfo.processInfo.systemUptime + 8)
+        }
+        manager.liveContext = { [weak candidate] display in
+            candidate?.permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime) == true ? scope.context : nil
+        }
+        send("ordinary")
+        let plan = try await manager.prepare([window], context: scope.context)
+        try await manager.confirm(plan, context: scope.context)
+        let before = window.writes
+        send("hold")
+        scope.context.settings.placement = .floating
+        await manager.poll()
+        #expect(!manager.blocked && window.writes == before)
+        send("unknown")
+        send("ordinary")
+        #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: ProcessInfo.processInfo.systemUptime))
+        await #expect(throws: OrdinaryRefusal.scope) { try await manager.update(context: scope.context) }
+        await manager.poll()
+        #expect(!manager.blocked && window.writes == before)
+        #expect(FileManager.default.fileExists(atPath: scope.journal.path))
+        send("returned")
+        #expect(candidate.permitsOrdinaryPresentation(on: "side", uptime: ProcessInfo.processInfo.systemUptime))
+        try await manager.stop()
+        #expect(window.frame == window.original && window.writes == before + 1)
+    }
+
     @Test func managedLabelsUseOnlyGrantedOwnersAndDisambiguateEqualApplicationNames() async throws {
         let scope = OrdinaryScope(), manager = scope.manager(), first = WindowDouble(), second = WindowDouble()
         second.applicationName = "sample"
