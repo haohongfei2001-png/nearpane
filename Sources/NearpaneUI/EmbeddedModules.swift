@@ -25,7 +25,8 @@ public final class EmbeddedModules {
         tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession, localOnly: testSession != nil && candidate && !boundDraft,
                          productAttachments: candidate && testSession == nil)
         voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true),
-                            requireExistingPermissions: testSession != nil, allowAPISettings: candidate)
+                            requireExistingPermissions: testSession != nil, allowAPISettings: candidate,
+                            allowManualInsertion: candidate && testSession == nil)
         #endif
     }
 

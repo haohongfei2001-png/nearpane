@@ -88,6 +88,13 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private var panelReads = 0
     @ObservationIgnored private var waitingForPanelReads: CheckedContinuation<Void, Never>?
     @ObservationIgnored private var input: (any VoiceInput)?
+    typealias ManualInputFactory = (SaytileStore) throws -> NearpaneManualInsertion
+    @ObservationIgnored private var makeManualInput: ManualInputFactory?
+    @ObservationIgnored private var manualInput: NearpaneManualInsertion?
+    @ObservationIgnored private var manualTask: Task<Void, Never>?
+    var offersManualInput: Bool { makeManualInput != nil }
+    private(set) var inserting = false
+    private(set) var insertionNotice: String?
     private(set) var recognitionProfile: VoiceRecognitionProfile?
     private(set) var changingRecognition = false
     @ObservationIgnored private var transition: Task<Void, Never>?
@@ -111,7 +118,7 @@ public final class VoiceModule: HostModule {
     private(set) var issue: String?
     public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
 
-    public convenience init(directory: URL, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false) {
+    public convenience init(directory: URL, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false, allowManualInsertion: Bool = false) {
         let credentials = allowAPISettings && !requireExistingPermissions
             ? NearpaneVoiceCredentials(profileID: VoiceRecognitionProfile.identifier(for: directory)) : nil
         let profile = credentials.map { VoiceRecognitionProfile(directory: directory, credentials: $0) }
@@ -125,10 +132,11 @@ public final class VoiceModule: HostModule {
                   makeInput: { DomainInput(store: $0, requireExistingPermissions: requireExistingPermissions,
                                            profile: profile, credentials: credentials, changed: $1) })
         recognitionProfile = profile
+        if allowManualInsertion && !requireExistingPermissions { makeManualInput = { try NearpaneManualInsertion(store: $0) } }
     }
     init(openStore: @escaping () throws -> SaytileStore, recognitionProfile: VoiceRecognitionProfile? = nil,
-         makeInput: @escaping MakeInput) {
-        self.openStore = openStore; self.makeInput = makeInput
+         makeManualInput: ManualInputFactory? = nil, makeInput: @escaping MakeInput) {
+        self.openStore = openStore; self.makeInput = makeInput; self.makeManualInput = makeManualInput
         self.recognitionProfile = recognitionProfile
     }
 
@@ -178,6 +186,13 @@ public final class VoiceModule: HostModule {
 
     public func stop() {
         guard active else { return }
+        manualInput?.finish()
+        manualInput = nil
+        manualTask?.cancel()
+        let endingInsertion = manualTask
+        manualTask = nil
+        inserting = false
+        insertionNotice = nil
         active = false; generation += 1; updates?.cancel(); updates = nil
         if let revisionObserver { NotificationCenter.default.removeObserver(revisionObserver); self.revisionObserver = nil }
         notifiedRefresh?.cancel(); notifiedRefresh = nil
@@ -188,6 +203,7 @@ public final class VoiceModule: HostModule {
         busy = false; hasEarlier = false; issue = nil; limit = 60
         transition = Task {
             await previous?.value
+            await endingInsertion?.value
             await oldInput?.shutdown()
             await writes?.value
             // Cancelling a view refresh does not cancel an already admitted SQLite read.
@@ -294,6 +310,58 @@ public final class VoiceModule: HostModule {
             hasEarlier = count > result.count
         } catch { if generation == epoch { issue = "暂时无法读取文字；保留上次内容。" } }
     }
+    /// The gesture captures both the visible revisions and its foreground field before any await.
+    @discardableResult func insertDisplayedText() -> Task<Void, Never>? {
+        guard active, !inserting, let store, let makeManualInput else { return nil }
+        let visible = rows.filter { !$0.text.isEmpty }
+        let revisions = visible.compactMap { row in row.preferredRevisionID.map { (row.id, $0, row.text) } }
+        guard !revisions.isEmpty, revisions.count == visible.count else { return nil }
+        let action: NearpaneManualInsertion
+        do { action = try makeManualInput(store) }
+        catch {
+            switch error as? NativeInputError {
+            case .permission: insertionNotice = "当前没有辅助功能权限，可复制文字。"
+            case .noTarget: insertionNotice = "未找到前台输入框，可复制文字。"
+            default: insertionNotice = "无法安全绑定当前输入框，可复制文字。"
+            }
+            return nil
+        }
+        manualInput = action
+        inserting = true
+        insertionNotice = nil
+        let epoch = generation
+        let task = Task {
+            defer {
+                action.finish()
+                if epoch == generation { manualInput = nil; inserting = false; manualTask = nil }
+            }
+            do {
+                try await action.bind()
+                var frozen = [TranscriptRevision]()
+                for (recording, revision, text) in revisions {
+                    try Task.checkCancellation()
+                    frozen.append(try await store.freezeRevision(recordingID: recording, revisionID: revision, text: text))
+                }
+                var confirmed = 0
+                for item in frozen {
+                    try Task.checkCancellation()
+                    let result = await action.insert(recording: item.recordingID, revision: item.id)
+                    guard epoch == generation else { return }
+                    guard result == .confirmed else {
+                        insertionNotice = (confirmed == 0 ? "" : "已确认 " + String(confirmed) + " 段。") + result.message
+                        return
+                    }
+                    confirmed += 1
+                }
+                if epoch == generation { insertionNotice = "已插入 " + String(confirmed) + " 段文字。" }
+            } catch {
+                if epoch == generation { insertionNotice = "目标或文字已变化，已停止插入。" }
+            }
+        }
+        manualTask = task
+        return task
+    }
+
     func loadEarlier() async {
         limit += 60; await refresh()
     }

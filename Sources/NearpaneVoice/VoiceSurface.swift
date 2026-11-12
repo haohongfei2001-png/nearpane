@@ -82,7 +82,7 @@ public struct VoiceSurface: View {
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.frame(maxWidth: .infinity, maxHeight: min(size.height,settings.points(.textHeight,in:size.height)), alignment: .topLeading)
             }
-            if let issue = module.issue {
+            if let issue = module.issue ?? module.insertionNotice {
                 Text(issue).font(.caption2).foregroundStyle(.secondary).lineLimit(2).help(issue)
             }
             HStack(spacing:settings.points(.buttonGap,in:size.width)) {
@@ -91,6 +91,12 @@ public struct VoiceSurface: View {
                 } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc").font(settings.measures[.copySize].map { .system(size:$0.points(in:size.height)) } ?? .body) }
                 .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字").help("复制当前文字")
                 .onChange(of: module.transcript) { copied = false }
+                .contextMenu {
+                    if module.offersManualInput {
+                        Button("插入当前文字") { module.insertDisplayedText() }
+                            .disabled(module.inserting || editing != nil || module.transcript.isEmpty)
+                    }
+                }
                 Spacer()
                 Button { Task { await module.toggle() } } label: {
                     VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).foregroundStyle(.indigo).frame(minWidth:buttonWidth,minHeight:buttonHeight).contentShape(Rectangle())
