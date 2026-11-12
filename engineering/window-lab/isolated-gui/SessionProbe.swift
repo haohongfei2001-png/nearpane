@@ -1,5 +1,6 @@
 // Read-only. No NSApplication, window enumeration, TCC prompts or event posting.
 import ApplicationServices
+import Carbon
 import CryptoKit
 import Foundation
 import Security
@@ -88,22 +89,55 @@ func output<T: Encodable>(_ value: T) throws {
   enc.outputFormatting = [.sortedKeys]
   FileHandle.standardOutput.write(try enc.encode(value) + Data([10]))
 }
+
+// Carbon exposes the registered chord, modifiers and enabled bit. It does not
+// expose which Mission Control command (if any) owns one of these registrations.
+struct ArrowRegistrations: Encodable {
+  let left, right: Bool
+
+  static func read() throws -> Self {
+    var list: Unmanaged<CFArray>?
+    guard CopySymbolicHotKeys(&list) == noErr, let rows = list?.takeRetainedValue() as? [[String: Any]]
+    else { throw Stop("system shortcut registrations unavailable") }
+    func registered(_ code: Int) -> Bool {
+      rows.contains { row in
+        guard row["kHISymbolicHotKeyCode"] as? Int == code,
+          row["kHISymbolicHotKeyEnabled"] as? Bool == true,
+          let modifiers = row["kHISymbolicHotKeyModifiers"] as? Int else { return false }
+        return modifiers & ~Int(kEventKeyModifierFnMask) == Int(controlKey)
+      }
+    }
+    return .init(left: registered(123), right: registered(124))
+  }
+}
 do {
   let args = Array(CommandLine.arguments.dropFirst())
+  if args == ["control-arrows"] {
+    try output(ArrowRegistrations.read())
+    exit(0)
+  }
   let session = try Session.read()
   if args == ["baseline"],
     session.graphical && session.isConsole && session.uid == session.consoleUID
   {
     try output(session)
-  } else if args.count == 2 && args[0] == "check" {
+  } else if args.count == 2 && ["check", "check-console"].contains(args[0]) {
     let original = try JSONDecoder().decode(
       Session.self, from: Data(contentsOf: URL(fileURLWithPath: args[1])))
-    let failures = session.blockers(relativeTo: original)
+    let checkingConsole = args[0] == "check-console"
+    let failures: [String]
+    if checkingConsole {
+      let same = original.graphical && original.isConsole && original.uid == original.consoleUID
+        && session.graphical && session.isConsole && session.uid == session.consoleUID
+        && session.uid == original.uid && session.securityID == original.securityID
+        && session.boot == original.boot && session.displays.count == 2 && session.displays == original.displays
+      failures = same ? [] : ["console differs from frozen two-display baseline"]
+    } else { failures = session.blockers(relativeTo: original) }
     struct Result: Encodable { let caller: Session, blockers: [String], verdict: String }
     try output(
       Result(
         caller: session, blockers: failures,
-        verdict: failures.isEmpty ? "ISOLATED_GUI_CANDIDATE" : "ENVIRONMENT_BLOCKED"))
+        verdict: failures.isEmpty ? (checkingConsole ? "CONSOLE_SCOPE_ONLY" : "ISOLATED_GUI_CANDIDATE") : "ENVIRONMENT_BLOCKED"))
     exit(failures.isEmpty ? 0 : 3)
   } else {
     throw Stop("expected baseline in physical console, or check <protected-baseline.json>")

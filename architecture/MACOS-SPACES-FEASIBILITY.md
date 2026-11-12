@@ -156,3 +156,33 @@ Space ID 仅作为短期运行时身份，不作为持久化用户数据或跨�
 **解释边界：** 该结果证明私有 scope 可在该系统构建上与公开显示器 UUID 对应，但不证明 3+1 条记录是 4 个独立的用户 Spaces。共享 Spaces 的切换语义、窗口跨显示器行为和写操作尚未验证。不能将 scope 直接当作用户可见 Space 列表，也不能将其记录数简单相加。
 
 本轮没有采集像素、切换 Space、改变窗口焦点或请求新权限。Space type 保留 raw 数值，不推断 `type=4` 的语义。P1 仍为 IN PROGRESS。
+
+## 9. macOS 27 原生动作的准入与复测入口
+
+| 用户意图 | 当前可用路径 | 交付条件与维护范围 |
+|---|---|---|
+| 读当前桌面和窗口归属 | AppKit 活动空间见证、AX/CG 窗口代际与几何、构建限定的私有只读 inventory 和 membership | 观察服务仅展示取得独立窗口见证的行。未知 build、不同观测不一致、普通窗口与 Stage Manager 缩略几何不一致均不能获得动作资格。系统升级需要单独重验只读 ABI |
+| 选择指定的空间行 | 系统支持 Control 加左右方向键切换到相邻桌面。实验入口支持经现场校准的一个相邻 A/B 对 | 必须有两个普通桌面和专用窗口见证、方向与回程校准、会话/两屏/焦点读回。使用快捷键不具备按 ID 直接寻址任意桌面的能力。正式行点击仍关闭 |
+| 将指定窗口拖入另一空间 | Mission Control 提供拖动具体窗口到桌面的交互，也可把窗口拖到屏幕边缘 | 当前没有把 Mission Control 目标缩略项稳定绑定到 Space ID、精确验证移动该窗口且可恢复的实机证据。AX 设置 frame、切换 Space 和激活全 App 均无法代替这项验收。坐标驱动的 UI 自动化随系统版本、动画与显示布局变化，暂不开放 |
+| 创建、删除空桌面 | 系统 Mission Control 提供新增及删除控件。删除时 macOS 会迁移其中的窗口 | 创建须独立确认新增 ID 和来源保留。删除须先证明完整成员集合为空、删除后核对其他桌面的窗口及返回路径。可见窗口列表没有完整性保证。当前两项均关闭 |
+| 激活窗口或 App | 针对确定 AX 窗口的 raise、应用激活各有独立语义，应用激活可能将前台带到已有窗口的桌面 | 不能把焦点或最前台 PID 当成 Space 切换/逐窗迁移回执。实验仅校验自建窗口焦点，没有激活日常应用的写路径 |
+| 原生全屏与 Stage Manager 分组 | AppKit 提供本方窗口的集合行为、全屏状态和空间变化通知，Stage Manager 对窗口另有分组/缩略呈现 | 全屏专用 Space 和原始类型不明的记录排除于普通 A/B。变化通知用于重新采样；不可从通知推导目标 ID 或把台前分组当成另一个 Space |
+
+系统交互说明见 [Apple 的 Spaces 操作](https://support.apple.com/guide/mac-help/work-in-multiple-spaces-mh14112/mac)、[AppKit 窗口 collectionBehavior](https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct)、[当前空间变化通知](https://developer.apple.com/documentation/appkit/nsworkspace/activespacedidchangenotification)及 [Stage Manager](https://support.apple.com/guide/mac-help/mchl534ba392/mac)。本机 macOS SDK 的 CarbonEvents.h 为 CopySymbolicHotKeys 定义了按键、修饰键与 enabled 三个字段。探针只输出 Control 加左右方向键是否各有启用的登记。登记值不包含命令含义，现场校准仍是必要条件。
+
+### 两种验收范围
+
+继续使用 [P4.3.1 工程控制端协议](../engineering/verification/P4.3.1-ISOLATED-GUI-READINESS.md) 和同一见证进程。工程端运行 `scripts/acceptance/freeze-isolated-gui-kit.sh` 生成新的只读冻结包，核对 `SHA256SUMS` 及签名。旧冻结包保留原有边界。以下入口位于新包的 `NearpaneSpaceWitness.app/Contents/MacOS/NearpaneSpaceWitness`。
+
+- **独立图形登录**使用 `--check` 和 `--three-rounds`。需证实另一账户、另一图形 Security Session 和两个与受保护显示器互不相交的测试显示器。若现场校准证明两个测试屏的 current 有联动，仅允许该校准得到的两组状态；缺少其中任何记录即拒绝。
+- **无人使用的物理控制台**使用 `--check-console` 只读检查冻结的双屏拓扑及副屏是否具备独立 A/B 候选。它不会开启输入。只有所有者另行指定无人使用时段和测试桌面，工程端才运行 `--three-rounds-console`。此路线要求另一显示器全程保持原 current。将演练限制到副屏，或写一个时间戳，均不能单独满足授权及身份条件。
+- 登记窗口前，控制台见证程序在用户私有的本次 RUN 目录输出 `console-scope.json` 和 `WAIT unattended-consent`。工程控制端在取得授权后以 0600 文件原子交付 `unattended-consent.ready`，包含本次 `run`、`boot`、数值 `securityID`、`secondaryDisplay`、本次指定的 `source`/`target` 内部记录字符串、ISO8601 `starts`/`ends` 与 `permitsCalibrationAndThreeRoundTrips`。一次授权最长 15 分钟；运行总时限仍为 10 分钟。过期、重启、换会话、换屏及重放均拒绝。此文件仅记录已经取得的所有者授权。工程端不得自行发放权限或从未证实的记录列表猜测测试桌面。
+- 两种路线都需要对自建 A/B 窗实际点击与校准。每次自动发键之前，独立 Reader 各读取一次源窗和后台目标窗的系统描述，再以 120 ms 间隔重复。仅接受父进程持有的两个不同 layer-zero 窗口、同一显示器普通记录上的唯一 membership、准确的前向/返回相邻关系、两屏 current 和拓扑。每次输入均有 intent、posted 和双采样 confirmed 收据。意图发送后缺少确认会停止；异常时不得凭方向键猜测回程。范围撤销或到期后不得发键。此代码只进入验收包，不会给产品 Host 开放切换能力。
+
+### 2026-11-12 实机收据
+
+macOS 27.0（26A428）上，空窗口白名单的两个连续 revision 均观测到 `separateSpaces=true`。1920×1080 主屏 scope 有 3 条内部记录，90° 的 800×1280 副屏 scope 只有 1 条。两个检查点的两屏 current 完全一致。系统公开快捷键表显示两个方向均有启用的 Control 组合。以上没有读取私人窗口内容，也没有证明存在一对可在副屏切换的用户桌面。
+
+最终签名见证程序 SHA-256 为 `700aafb6e627e91d5e95482cc39745845681ee19fddce5b0a0a6f703e456bfb8`，Reader 为 `b48f5dc41cb448356192215277b475af473b9917e99751932272bf1b0ba080d0`。在实际控制台上，`--check` 因同账户、同 Security Session、可见受保护显示器而退出 1；`--check-console` 因副屏不足两个候选记录而退出 1。两次调用均在创建窗口、登记初始焦点、发送键盘事件前结束。真实切换 0/3 轮，真实迁窗、创建和删除均为 0。当前只提供无人时段仍不足以执行该副屏路径。需要一次同时交付可用时段与两个已经存在、允许工程端登记的相邻普通测试桌面，或交付能控制且与日常显示完全隔离的双屏测试会话及 A/B。现有主屏的 3 条记录没有收到任何操作。
+
+WindowLab 的 10 项测试通过，其中时段与会话授权测试含 11 个参数场景。另有一项路由约束测试覆盖 12 个参数场景，包括后台目的窗口 membership 改变、其他屏 current 改变、已校准隔离双屏联动和其目标记录消失。见证程序及实验 Reader 均完成 Release 构建，签名和冻结目录 6 份 SHA-256 验证通过。项目忽略目录 `build/verification/native-route/` 留存 `final-preflight.json`、`scope-only.json`、测试日志与可复验的冻结包 `Nearpane-Space-Witness.zip`。现场行为仍待有相应授权和双桌面的环境验证。

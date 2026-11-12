@@ -6,7 +6,7 @@ export NEARPANE_FOUNDATION_ONLY=1
 umask 077
 scratch="$PWD/build/isolated-gui"
 mkdir -p "$scratch"
-stage="$(mktemp -d /Users/Shared/Nearpane-P431.XXXXXXXX)"
+stage="$(mktemp -d "${NEARPANE_SPACE_KIT_PARENT:-/Users/Shared}/Nearpane-P431.XXXXXXXX")"
 ready=0
 trap 'if [[ "$ready" != 1 ]]; then rm -rf "$stage"; fi' EXIT
 lab=(--package-path engineering/window-lab --scratch-path "$PWD/build/window-lab/swift" --disable-sandbox -c release)
@@ -25,6 +25,10 @@ with open(sys.argv[1],"wb") as out:
                        CFBundleIdentifier="org.nearpane.lab.NearpaneSpaceWitness",CFBundleVersion="1",
                        CFBundlePackageType="APPL",LSUIElement=True),out)
 PY
+# The staged test bundle may acquire Finder metadata under a synced Documents folder.
+for attribute in com.apple.FinderInfo com.apple.ResourceFork; do
+  /usr/bin/xattr -rd "$attribute" "$app" 2>/dev/null || true
+done
 codesign --force --sign - "$app"
 codesign --verify --deep --strict "$app"
 xcrun swiftc -O engineering/window-lab/isolated-gui/SessionProbe.swift -o "$stage/SessionProbe"

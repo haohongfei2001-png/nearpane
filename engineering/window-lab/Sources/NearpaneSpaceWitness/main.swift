@@ -23,7 +23,13 @@ import WindowLab
   private var admitted: SessionIdentity?
   var originDisplay: String?
   let deadline = ProcessInfo.processInfo.systemUptime + 600
-  init() throws {
+  let consoleTrial: Bool
+  private var consoleConsent: ConsoleSpaceConsent?
+  private var consentExpiresUptime: Double?
+  private var enrolledRead: String { consoleTrial ? "--read-enrolled-console" : "--read-encoded" }
+
+  init(consoleTrial: Bool) throws {
+    self.consoleTrial = consoleTrial
     kit = Bundle.main.bundleURL.deletingLastPathComponent()
     let base = try FileManager.default.url(
       for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
@@ -61,13 +67,22 @@ import WindowLab
     let url = dir.appendingPathComponent("scope-" + UUID().uuidString + ".json")
     try helper(
       kit.appendingPathComponent("SessionProbe"),
-      ["check", kit.appendingPathComponent("protected.json").path], output: url)
+      [consoleTrial ? "check-console" : "check", kit.appendingPathComponent("protected.json").path], output: url)
     struct Check: Decodable { let caller: SessionIdentity, verdict: String }
     let check = try JSONDecoder().decode(Check.self, from: Data(contentsOf: url))
     try require(
-      check.verdict == "ISOLATED_GUI_CANDIDATE" && (admitted == nil || admitted == check.caller),
+      check.verdict == (consoleTrial ? "CONSOLE_SCOPE_ONLY" : "ISOLATED_GUI_CANDIDATE") && (admitted == nil || admitted == check.caller),
       "session binding changed")
     admitted = check.caller
+    try checkConsentExpiry()
+  }
+  func checkConsentExpiry() throws {
+    if let consent = consoleConsent {
+      guard let caller = admitted, let end = consentExpiresUptime, ProcessInfo.processInfo.systemUptime < end,
+            let display = originDisplay,
+            consent.allows(run: run, boot: caller.boot, securityID: caller.securityID, display: display, at: Date())
+      else { throw Refusal("console authorization expired or no longer matches") }
+    }
   }
   private var gui: NSApplication?
   private var clicked = Set<String>()
@@ -104,9 +119,68 @@ import WindowLab
     originDisplay = display
     return (secondary, display)
   }
+  // Scope-only snapshot. No AX tree or WindowServer descriptions are requested.
+  func consoleEndpoint(_ label: String, display: String) throws -> DesktopSnapshot {
+    revision += 1
+    let request = DesktopReadRequest(session: run, revision: revision, parentPID: getpid(),
+                                    fixtureWindows: [], anchors: [], experimentalSpaces: true)
+    let file = dir.appendingPathComponent("scope-snapshot-\(revision).json")
+    try helper(Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader"),
+               [enrolledRead, try JSONEncoder().encode(request).base64EncodedString()], output: file)
+    let s = try JSONDecoder().decode(DesktopSnapshot.self, from: Data(contentsOf: file))
+    guard s.isStructurallyValid, s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime),
+          s.sessionID == run, s.revision == revision, s.windows.isEmpty, s.native?.population == .markedFixture,
+          s.native?.spaces == .observed, s.scopes.count == 2,
+          let scope = s.scopes.first(where: { $0.displayID == display }), scope.records.filter(\.isCurrent).count == 1
+    else { throw Refusal("scope-only observation unavailable") }
+    try require(s.separateSpaces == true, "shared Spaces: independent secondary A/B cannot be attested")
+    try require(scope.records.count >= 2, "secondary scope has fewer than two candidate records")
+    if let consent = consoleConsent {
+      let required = label == "A" ? consent.source : consent.target
+      guard scope.records.first(where: \.isCurrent)?.id == required,
+            let a = scope.records.firstIndex(where: { $0.id == consent.source }),
+            let b = scope.records.firstIndex(where: { $0.id == consent.target }), abs(a-b) == 1
+      else { throw Refusal("console is not at the specified adjacent test endpoints") }
+      if let origin = baseline["A"] {
+        for scope in s.scopes where scope.displayID != display {
+          try require(scope.records.first(where: \.isCurrent)?.id == origin.currents[scope.displayID],
+                      "untested display changed during setup")
+        }
+      }
+    }
+    return s
+  }
+
+  func awaitConsoleConsent() throws {
+    guard let session = admitted else { throw Refusal("missing console identity") }
+    let (_, display) = try screen()
+    _ = try consoleEndpoint("A", display: display)
+    try writeJSON(["run": run.uuidString, "boot": session.boot, "securityID": String(session.securityID),
+                   "secondaryDisplay": display], dir, "console-scope.json")
+    try awaitCheckpoint("unattended-consent")
+    let file = dir.appendingPathComponent("unattended-consent.ready")
+    let fd = open(file.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
+    guard fd >= 0 else { throw Refusal("cannot open console authorization") }
+    let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+    defer { try? handle.close() }
+    var info = stat()
+    guard fstat(fd, &info) == 0, info.st_uid == getuid(), info.st_nlink == 1,
+          info.st_mode & S_IFMT == S_IFREG, info.st_mode & 0o077 == 0, info.st_size <= 4096
+    else { throw Refusal("unsafe console authorization file") }
+    let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+    let consent = try decoder.decode(ConsoleSpaceConsent.self, from: try handle.read(upToCount: 4097) ?? Data())
+    let now = Date()
+    guard consent.allows(run: run, boot: session.boot, securityID: session.securityID, display: display, at: now)
+    else { throw Refusal("missing current consent for these two test desktops") }
+    consoleConsent = consent
+    consentExpiresUptime = ProcessInfo.processInfo.systemUptime + consent.ends.timeIntervalSince(now)
+    _ = try consoleEndpoint("A", display: display)
+  }
+
   func create(_ label: String) throws {
     try scope()
-    let (s, _) = try screen()
+    let (s, display) = try screen()
+    if consoleTrial { _ = try consoleEndpoint(label, display: display) }
     let visible = s.visibleFrame
     let r = CGRect(x: visible.midX - 140, y: visible.midY - 90, width: 280, height: 180).integral
     try require(visible.contains(r) && windows[label] == nil, "invalid enrollment")
@@ -183,7 +257,7 @@ import WindowLab
     let url = dir.appendingPathComponent("snapshot-\(revision).json")
     try helper(
       Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader"),
-      ["--read-encoded", try JSONEncoder().encode(req).base64EncodedString()], output: url)
+      [enrolledRead, try JSONEncoder().encode(req).base64EncodedString()], output: url)
     let s = try JSONDecoder().decode(DesktopSnapshot.self, from: Data(contentsOf: url))
     guard s.isStructurallyValid,
       s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime),
@@ -196,8 +270,11 @@ import WindowLab
       row.anchor.witness == .ownedWindow, row.anchor.globalFrame == frame, s.windows.count == 1,
       let obs = s.windows.first, let id = ManagedWindowID(obs), id.pid == birth.pid,
       id.launch == birth.start, id.number == number,
-      obs.membership == .known(recordIDs: [row.recordID]), obs.metadata?.globalFrame == frame
+      obs.metadata?.presentation == .confirmed, obs.membership == .known(recordIDs: [row.recordID]), obs.metadata?.globalFrame == frame
     else { throw Refusal("no independent Space/window witness") }
+    if let consent = consoleConsent {
+      try require(row.recordID == (label == "A" ? consent.source : consent.target), "user-designated endpoint changed")
+    }
     var currents = [String: String]()
     for scope in s.scopes {
       let active = scope.records.filter(\.isCurrent)
@@ -212,6 +289,7 @@ import WindowLab
     try ownedAX(label)
     let (after, focusAfter) = try focusedWindow()
     try require(after == pid && CFEqual(el, focusAfter), "focus changed during read")
+    try require(w.isKeyWindow && elements[label].map { CFEqual($0, el) } == true, "actual focus is not the enrolled endpoint window")
     focus[label] = el
     return .init(
       scope: row.scopeID, record: row.recordID, currents: currents, frame: frame, number: number,
@@ -233,6 +311,7 @@ import WindowLab
   // Rendezvous with the controller running in the isolated GUI. The unique
   // directory is mode 0700. A checkpoint file alone never attests a transition.
   func awaitCheckpoint(_ name: String) throws {
+    try checkConsentExpiry()
     let url = dir.appendingPathComponent(name + ".ready")
     try require(
       !FileManager.default.fileExists(atPath: url.path), "checkpoint arrived before request")
@@ -242,6 +321,7 @@ import WindowLab
     announce("WAIT " + name)
     while !FileManager.default.fileExists(atPath: url.path) {
       try require(ProcessInfo.processInfo.systemUptime < deadline, "checkpoint timeout")
+      try checkConsentExpiry()
       pump()
     }
     try scope()
@@ -281,6 +361,24 @@ import WindowLab
         run: run, operation: op, beforeRevision: revision, source: origin, target: target,
         direction: direction), dir, checkpoint + "-intent.json")
     try scope()
+    guard let display = originDisplay,
+          UInt32(sourceWindow.windowNumber) == origin.number,
+          UInt32(targetWindow.windowNumber) == target.number else { throw Refusal("window generation changed") }
+    let proof = dir.appendingPathComponent(checkpoint + "-route.json")
+    try helper(Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader"),
+               ["--enrolled-route", display, String(origin.number), String(target.number)], output: proof)
+    let evidence = try JSONDecoder().decode(NativeRouteEvidence.self, from: Data(contentsOf: proof))
+    try require(evidence.validates(display: display, source: origin.record, sourceWindow: origin.number,
+                                   target: target.record, targetWindow: target.number,
+                                   sourceCurrents: origin.currents, targetCurrents: target.currents,
+                                   frozenOrder: origin.recordOrder, frozenTopology: origin.topology, right: direction == .right,
+                                   isolatedDisplays: !consoleTrial),
+                "inactive target, other display, or calibrated order changed")
+    let shortcuts = dir.appendingPathComponent(checkpoint + "-shortcuts.json")
+    try helper(kit.appendingPathComponent("SessionProbe"), ["control-arrows"], output: shortcuts)
+    struct ArrowRegistrations: Decodable { let left, right: Bool }
+    let registrations = try JSONDecoder().decode(ArrowRegistrations.self, from: Data(contentsOf: shortcuts))
+    try require(registrations.left && registrations.right, "calibrated forward or return chord no longer registered")
     let (pid, currentFocus) = try focusedWindow()
     let modifiers: CGEventFlags = [.maskControl, .maskAlternate, .maskCommand, .maskShift]
     try require(
@@ -296,6 +394,7 @@ import WindowLab
     else { throw Refusal("unable to produce system shortcut") }
     down.flags = .maskControl
     up.flags = .maskControl
+    try checkConsentExpiry()
     down.post(tap: .cgSessionEventTap)
     up.post(tap: .cgSessionEventTap)
     try writeJSON(
@@ -319,6 +418,7 @@ import WindowLab
   func runTrial() throws {
     announce("RUN " + dir.path)
     try scope()  // Gate before NSApplication initialization and before window creation.
+    if consoleTrial { try awaitConsoleConsent() }
     let app = NSApplication.shared
     try require(
       app.setActivationPolicy(.accessory) && AXIsProcessTrusted(),
@@ -374,7 +474,7 @@ import WindowLab
     let url = dir.appendingPathComponent("after-cleanup.json")
     try helper(
       Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader"),
-      ["--read-encoded", try JSONEncoder().encode(request).base64EncodedString()], output: url)
+      [enrolledRead, try JSONEncoder().encode(request).base64EncodedString()], output: url)
     let s = try JSONDecoder().decode(DesktopSnapshot.self, from: Data(contentsOf: url))
     try require(
       s.isStructurallyValid
@@ -414,12 +514,16 @@ import WindowLab
 do {
   let args = Array(CommandLine.arguments.dropFirst())
   try require(
-    args == ["--check"] || args == ["--three-rounds"], "expected --check or --three-rounds")
-  let trial = try Trial()
-  if args == ["--check"] {
+    args.count == 1 && ["--check", "--three-rounds", "--check-console", "--three-rounds-console"].contains(args[0]), "unknown witness command")
+  let trial = try Trial(consoleTrial: args[0].hasSuffix("-console"))
+  if args[0].hasPrefix("--check") {
     trial.announce("RUN " + trial.dir.path)
     try trial.scope()
-    trial.announce("ISOLATED_GUI_CANDIDATE")
+    if trial.consoleTrial {
+      let (_, display) = try trial.screen()
+      _ = try trial.consoleEndpoint("A", display: display)
+      trial.announce("CONSOLE_SCOPE_ONLY: OWNER AUTHORIZATION AND TWO ORDINARY TEST ENDPOINTS REQUIRED")
+    } else { trial.announce("ISOLATED_GUI_CANDIDATE") }
     exit(0)
   }
   do { try trial.runTrial() } catch {

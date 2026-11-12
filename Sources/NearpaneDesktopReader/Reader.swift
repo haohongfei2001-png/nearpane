@@ -114,7 +114,9 @@ struct Reader {
         // This separately compiled test helper can only inspect its parent's one
         // marked window in a different user's GUI, or perform a scope-only read.
         var physicalConsole = stat()
-        guard stat("/dev/console", &physicalConsole) == 0, physicalConsole.st_uid != getuid(),
+        let scopedConsole = CommandLine.arguments.dropFirst().first == "--read-enrolled-console"
+        guard stat("/dev/console", &physicalConsole) == 0,
+              scopedConsole ? (physicalConsole.st_uid == getuid() && console?[kCGSessionOnConsoleKey as String] as? Bool == true) : physicalConsole.st_uid != getuid(),
               console?[kCGSessionUserIDKey as String] as? UInt32 == getuid(),
               console?[kCGSessionLoginDoneKey as String] as? Bool == true,
               console?["CGSSessionScreenIsLocked"] as? Bool != true,
@@ -206,7 +208,14 @@ struct Reader {
         let arguments = Array(CommandLine.arguments.dropFirst())
         if arguments == ["--self-check"] { print("Nearpane desktop reader 1"); return }
         do {
-            #if !NEARPANE_ISOLATED_GUI_LAB
+            #if NEARPANE_ISOLATED_GUI_LAB
+            if arguments.count == 4, arguments[0] == "--enrolled-route",
+               let source = UInt32(arguments[2]), let target = UInt32(arguments[3]) {
+                let result = try EnrolledRoute.sample(display: arguments[1], numbers: [source, target])
+                FileHandle.standardOutput.write(try JSONEncoder().encode(result))
+                return
+            }
+            #else
             if arguments.count == 2, arguments[0] == "--admission", arguments[1].utf8.count < 16384,
                let bytes = Data(base64Encoded: arguments[1]) {
                 let request = try JSONDecoder().decode(AdmissionReadRequest.self, from: bytes)
@@ -214,10 +223,15 @@ struct Reader {
                 return
             }
             #endif
+            #if NEARPANE_ISOLATED_GUI_LAB
+            let encodedCommands = ["--read-encoded", "--read-enrolled-console"]
+            #else
+            let encodedCommands = ["--read-encoded"]
+            #endif
             let bytes: Data
             if arguments == ["--read-once"] {
                 bytes = FileHandle.standardInput.readData(ofLength: 8193)
-            } else if arguments.count == 2, arguments[0] == "--read-encoded", arguments[1].utf8.count <= 10924,
+            } else if arguments.count == 2, encodedCommands.contains(arguments[0]), arguments[1].utf8.count <= 10924,
                       let decoded = Data(base64Encoded: arguments[1]) {
                 bytes = decoded
             } else { exit(2) }
