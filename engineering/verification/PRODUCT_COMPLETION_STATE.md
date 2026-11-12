@@ -23,7 +23,9 @@
 | 连续宽高、按屏 pt/%、图标及恢复默认 | VERIFIED · 原生图标/默认/窄高/展开已有实拍；本轮副屏实测“模块”和“本屏全部尺寸”的预览、取消、应用 | [P4.8.1](P4.8.1-RESPONSIVE-ALPHA.md)、[本轮 Settings 实测](../../build/verification/product-closeout/settings/7924e58d-b891-42c7-aa0d-db30a8cc38da/result.json)。只复原模块时独立预留保持 119 pt；确认全屏尺寸重置后才恢复跟随。另一屏配置不变、管理写入零。P5.4 同时操作普通窗口和图标的一次焦点分歧不按通过。 |
 | 默认布局、玻璃、文字、截图动效、键盘可及性 | PARTIAL · 有副屏单窗实拍/滚动/焦点；动态玻璃和真实选区磁力仍缺连续可归因证据 | [P3.8](P3.8-native-experience-closeout.md)。禁止采集个人桌面，不用静态替代动态。本轮补齐按模块/当前屏恢复尺寸，应用前提示 Docked 预留变化；显示器拓扑变化原地刷新设置页并作废旧确认。提交 `782e2df`，副屏设置操作见上一行。系统 VoiceOver 导航未经真人验收。 |
 | 用户可选模块及隐私 | VERIFIED · 时钟默认不启用，沿用既有 ID、启停、顺序。已在真实副屏侧栏展开和收起，能显示本地时间；可选额外时区 | [真实展开](../../build/verification/product-closeout/settings/7924e58d-b891-42c7-aa0d-db30a8cc38da/clock-expanded.png)、[时区回归](../../build/verification/product-closeout/domains/local-clock.log)。候选隐藏无实际数据源的样例；日历、天气、AI 等在产品定义中是可选扩展方向，没有作为已实现集成。 |
-| 升级、资料契约、备份、失败回退 | VERIFIED · P5.2 → P5.3 隔离副本实测，P5.4 沿用相同格式/身份；旧操作、TCC 和窗口票据不继承 | [升级回退](P5.3-UPGRADE-ROLLBACK-ACCEPTANCE.md)，`cc36d14`。更早版本按标记和真实 schema 拒绝不兼容；本轮不迁移个人资料。 |
+| 可选的日历、天气、AI 或第三方插件 | NOT_IMPLEMENTED · 产品定义列为扩展方向，当前成品未提供对应数据服务 | 时钟已独立落地；其余项目等实际用户任务、数据源及权限决定。[模块范围](../../PRODUCT_DEFINITION.md) |
+| 首次使用、权限说明和故障处置 | IMPLEMENTED · 安装包内提供可离线阅读的使用帮助；设置显示授权范围、拒绝原因及待处理恢复 | [随包帮助](../../docs/ALPHA-HELP.md)。当前系统的隔离运行已验证；新设备的 TCC 首次授权和不同辅助技术用户的上手体验未实测。 |
+| 升级、资料契约、备份、失败回退 | VERIFIED · P5.2 → P5.3 隔离副本实测，P5.4、P5.5 沿用相同格式和身份；旧操作、TCC 和窗口票据不继承 | [升级回退](P5.3-UPGRADE-ROLLBACK-ACCEPTANCE.md)，`cc36d14`。更早版本按标记和真实 schema 拒绝不兼容；本轮不迁移个人资料。 |
 | 驻留、退出屏障、权限及资源 | PARTIAL · 领域进程排空、关闭观察器、睡眠/唤醒和历史一小时驻留有证据；不是普通窗口观察长期电量基准 | [P3.7](P3.7-hardening-closeout.md)、[P5.2](P5.2-MULTIDISPLAY-ACCEPTANCE.md)。新加入的长期观察以限定目标、有限采样和退出清理测量。 |
 | Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，6 个 Mach-O 均有 arm64，按各自部署下限验签；正式签名、公证、干净设备验收仍 BLOCKED | [打包检查](../../scripts/check-alpha-distribution.py)、[发布门禁](../../build/verification/product/distribution-gate.json)。[Apple 公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)：按授权签名并加固、时间戳、公证、干净机安装验证。已在一次性副本按嵌套顺序加固、重新计算 3 项助手指纹、重新封签 6 个 Mach-O；[原包保持一致](../../build/verification/product/signing-rehearsal.json)。未使用发布凭据或上传；窗口/资料助手仅使用已安装的 Apple 签名 Python，缺失时拒绝、不触发安装。 |
 
@@ -36,3 +38,29 @@
 - [真实密集窗口几何/采样](../../build/verification/p54/ordinary/a56be84a-0e3d-4625-b094-652a62aa9750/geometry.json)：42.88 秒交互，Host CPU 累计由 0.28 增至 1.35 秒，RSS 峰值 94,288 KiB；窗口助手 CPU 0.04→0.86 秒，RSS 峰值 15,600 KiB。不能外推电池续航。
 - 第二轮冻结修复：`5720cf32269e33b9f2067e2945f7dcbae83d005e58e76406b61c65cfbac927b2`（Host）；[278 项集成](../../build/verification/product/final-integrated.log)、[228 项独立 Host](../../build/verification/product/final-foundation.log)、[安装资源](../../build/verification/product/final-installation.log)。关闭/重建已实测；[排除与驻留](../../build/verification/p54/ordinary/ea4e25fe-579a-4070-841e-f29568037dfa/exclusion-result.json)亦已通过。逐窗 Settings 按钮落盘后仅另一窗重排一次，未授权窗零写；App 排除经同一设置 setter 验证（未点击该表单），撤销余窗且不覆盖其位置。[180 秒内核采样](../../build/verification/p54/ordinary/ea4e25fe-579a-4070-841e-f29568037dfa/steady-resources.json)：7 个检查点、事务数始终 3；Host CPU 1.0843 s / 0.72742 J / 35.20–35.64 MiB，助手 0.8228 s / 0.76499 J / 5.91–6.02 MiB，不是整机功耗。普通 Settings 的选择在关窗、最小化、遮挡和锁屏时撤销，不中断已授权的窗口管理；仅就实际执行环境报告。
 - 时区回退缺陷：两个旧/新签包对隔离配置保存后会遗失额外时区。[复现](../../build/verification/product/version-roundtrip/probe.json)。`1dba9bf` 将显式时区选择原子保存于当前资料代际，旧版继续管理原有设置。损坏记录保留，重新选择后可恢复；损坏源不会作为成功导入发布。两项 Swift、10 项领域及 14 项迁移事务检查通过。[迁移收据](../../build/verification/product/version-roundtrip/migration.log)。
+
+## 最终冻结成品
+
+产品源码 `0d6c9731995f2fcdff4d18ef1342a841e80524cf`。Finder 打开上方 P5.5 Alpha，在菜单栏进入设置；默认不接管普通窗口。此构建在 `839cb18` 的窗口生命周期基础上加入 `1dba9bf` 的时区资料延续、`e947d61` 的手动文字插入、进程内验收外观采样及深色语音图形修复。手动插入从正在使用的输入框开始，在检查其他页面内容之前核对进程、窗口、元素和文档，遇到来源不明或无明确回执就中止。[输入守卫的 21 个场景](../../build/verification/product-closeout/domains/manual-scope-3.log)在真实 SQLite 及替身输入框上运行。
+
+| 最终包检查 | 结果 |
+|---|---|
+| 工程回归 | [Swift 集成 285/285、独立 Host 230/230、JS 18/18 与 17/17、依赖解析 6/6、回执 27/27](../../build/verification/product/shipping-contrast/regressions.log)；[窗口策略 32/32](../../build/verification/product/delivery-window.log)。套件有交叉，不相加。 |
+| 可运行文件和资源 | [Debug/Release 各 16 项资源](../../build/verification/product/shipping-contrast/packages.log)，[安装包 20 项资源](../../build/verification/product/shipping-contrast/installation.log)。P5.5 Host SHA-256 `e6e9ddd1e6e4931d02798a98622f5178313b2ce8d4c3573b402afcd98ae742c2`；P5.4 回退包的 Host 仍为 `80f42f10b307ec7f6b60788a256a4d0c30748e4137f34ad334cedefff901eda5`。[完整指纹](../../build/verification/product/shipping-contrast/installed.sha) |
+| 依赖与发布 | 对两个锁定版本逐文件校验 93 + 78 = 171 份输入。P5.2 的完整源码对照和本轮核对仍支持保留锁，独立应用主分支的改动没有引入第二个引擎。[首方比较](P5.2-UPSTREAM-INTEGRATION.md) · [独立复核](../../build/verification/product/independent-delivery-audit.json)。[签名演练](../../build/verification/product/shipping-contrast/signing-rehearsal.json)签封 6 个嵌套 Mach-O，更新了 3 个助手指纹；安装包逐文件保持一致，未使用 Developer ID。 |
+| 隔离资料 | [领域 10/10](../../build/verification/product/shipping-contrast/profile-domains.log)、[事务 14/14](../../build/verification/product/shipping-contrast/profile-transactions.log)。空资料夹具与含五张图的夹具原始目录散列分别为 `8691e847…d195`、`0b51c11a…5977`，前后逐一相符。人工编辑、队列顺序和 UNKNOWN 保留；没有授予浏览器输入、系统权限或旧窗口操作许可。 |
+
+在外观修复前的冻结 Host `b93fca41…b64c` 上，[再次逐窗授权 1–8 扇副屏普通窗](../../build/verification/p54/ordinary/1349fee5-2175-46cc-b67c-c12e9fffba12/density.json)。17 笔布局、8 笔原位恢复，所有者读数与 AX/CG 的最大几何误差都是 0 pt。第九扇未获授权的同应用窗口始终保持原位；[退出清理](../../build/verification/p54/ordinary/1349fee5-2175-46cc-b67c-c12e9fffba12/cleanup.json)核对焦点未变、无残留、退出码 0。最终包的普通窗口助手与此轮逐字节相同，源码差异只涉及语音字形；没有重跑窗口写入。
+
+P5.5 → P5.4 → P5.5 的[真实安装包往返收据](../../build/verification/product/version-roundtrip/installed-result.json)来自同一个隔离资料代际；P5.5 Host 为 `b93fca41…b64c`，最终包的资料事务另见上表。旧包重存后主配置已无时区字段，新包重开仍读到 `Asia/Shanghai`，并读回旧包的显示设置变更。显式清除、损坏原件保留、导入暂存区隔离和领域记录数量都通过。
+
+最终成品按同一副屏 240 × 1280 pt 面板分别呈现 Aqua 和 Dark Aqua。实际 AX 界定的收音按钮内，深色实心字形对相邻底色从 1.522∶1 提高到 3.528∶1，浅色保持 3.625∶1。合成文字及四张可见缩略图的位置、大小一致，五张图的队列和原焦点保持。验收采用的非文字控件对比度参考值是 3∶1；此处只报告两个实测外观。[修复前深色实拍](../../build/verification/product-closeout/appearance/4188f15e-3a76-4990-bd78-46d09a7e230a/darkAqua.png) · [修复后深色](../../build/verification/product-closeout/appearance/261b0027-6e5d-430b-8f48-2b49d2715518/darkAqua.png) · [最终浅色](../../build/verification/product-closeout/appearance/261b0027-6e5d-430b-8f48-2b49d2715518/aqua.png) · [原始几何、像素及退出收据](../../build/verification/product-closeout/appearance/261b0027-6e5d-430b-8f48-2b49d2715518/result.json) · [W3C 的对比度说明](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)
+
+### 下次从哪些条件继续
+
+- **真人语音、前台文字输入。** 语音只需一次安静且本人同意的短句，核对实际 Host 的麦克风与语音权限、本次 Attempt 的 final 及返回待命。外部文字插入另需一个可暂时取得真实前台焦点的空白测试输入框；使用前台的个人桌面期间保持待验。默认本地模式无需 API 密钥。
+- **草稿附件。** 只在已有授权的、已登录且无私人内容的专用草稿上做一次单图输入，再看原 Riftlet 的终态；没有终态继续保留 UNKNOWN。无需再次验证已通过的托盘和网页守卫。
+- **桌面编排。** 已管理对象覆盖副屏标准 AppKit 窗口。扩大到某款日常应用，需要该应用的独立空白窗口和相应授权。对 Native 的下一步是专用时段或隔离桌面上的真实 A→B→A、两屏见证及可验证返回。第三方全屏覆盖、物理拔插、真实选区动效和合成材质的最终视觉效果，均须满足不影响个人主屏且能对现场画面取证的条件。
+- **Virtual 和公开发行。** Virtual 继续关闭，等有能够独立读回同一窗口、可恢复且保护同 App 兄弟窗口的新系统机制。公开分发需要受权的 Developer ID、公证和干净机安装；本地可直接使用上述 Alpha。
+
+**本轮按完成条件 B 交接。** 以上授权范围内的工程和设备验收已收口。保留未通过的原始观测和明确的下一项门槛。发布前须取得相应授权；本次只在工程分支本地提交。远端查询时仍为 `cc36d147904fde58373fbb868d270502c69af31e`。[只读远端收据](../../build/verification/product/nearpane-origin-at-delivery.json)。本收据所在本地提交用 `git log -1 --format=%H -- engineering/verification/PRODUCT_COMPLETION_STATE.md` 定位。

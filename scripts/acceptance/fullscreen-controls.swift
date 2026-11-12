@@ -85,6 +85,43 @@ func visit(_ e:AXUIElement) {
 visit(matches[0])
 func string(_ e:AXUIElement,_ k:String)->String {(ax(e,k) as? String) ?? ""}
 
+if a[3] == "read-appearance" {
+    guard id == "com.holdsnow.nearpane.alpha", !app.isActive,
+          NSWorkspace.shared.frontmostApplication?.processIdentifier != pid else { stop("appearance target active") }
+    func visibleThroughParents(_ e: AXUIElement, frame: CGRect) -> Bool {
+        var node = e
+        var visited = Set<AXUIElement>()
+        while visited.insert(node).inserted, visited.count <= 64 {
+            if ax(node, "AXHidden") as? Bool == true { return false }
+            if string(node, "AXRole") == "AXScrollArea" {
+                guard let clip = box(node), clip.contains(frame) else { return false }
+            }
+            if CFEqual(node, matches[0]) { return true }
+            guard let parent = ax(node, "AXParent"), CFGetTypeID(parent) == AXUIElementGetTypeID() else { return false }
+            node = parent as! AXUIElement
+        }
+        return false
+    }
+    // Export geometry and semantic types only. No AXValue, transcript, or private window text.
+    let visible = nodes.compactMap { e -> [String:Any]? in
+        let role = string(e, "AXRole"), kind: String
+        if role == "AXTextArea" && string(e, "AXHelp") == "修改这段文字…" { kind = "transcript" }
+        else if role == "AXButton", ax(e, "AXEnabled") as? Bool == true,
+                [string(e, "AXDescription"), string(e, "AXTitle")].contains("开始或恢复收音") {
+            kind = "startCapture"
+        }
+        else if ["AXImage", "AXButton"].contains(role),
+                string(e, "AXDescription").range(of: #"^(?:附加到草稿，)?截图 [0-9]+$"#, options: .regularExpression) != nil { kind = "thumbnail" }
+        else { return nil }
+        guard let frame = box(e), !frame.isEmpty, rect.contains(frame), visibleThroughParents(e, frame: frame) else { return nil }
+        return ["kind":kind, "frame":[frame.minX,frame.minY,frame.width,frame.height]]
+    }
+    print(String(decoding:try JSONSerialization.data(withJSONObject:[
+        "pid": pid, "window":wid, "panel":[rect.minX,rect.minY,rect.width,rect.height], "visible":visible
+    ]),as:UTF8.self))
+    exit(0)
+}
+
 let commands = ["np.fullscreen.open.voice": "AXPress", "np.fullscreen.open.capture": "AXPress",
                 "np.fullscreen.close": "AXPress", "np.fullscreen.move": "AXDecrement"]
 let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
