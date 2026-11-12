@@ -116,6 +116,19 @@ struct NearpaneApp {
             #endif
             return
         }
+        #if canImport(SaytileKit) && canImport(RiftletCore)
+        if args.first == "--native-acceptance-shared-voice" {
+            guard args.count == 2, let session = try? NativeAcceptanceSession(id: args[1], prepare: false) else { exit(2) }
+            let app = NSApplication.shared
+            app.setActivationPolicy(.accessory)
+            Task { @MainActor in
+                do { try await SharedVoiceReview.run(session); exit(0) }
+                catch { FileHandle.standardError.write(Data("Voice comparison failed: \(error)\n".utf8)); exit(3) }
+            }
+            app.run()
+            return
+        }
+        #endif
         let delegate = HostAppDelegate()
         if let command = args.first, command.hasPrefix("--native-acceptance") {
             #if canImport(RiftletCore) && canImport(SaytileKit)
@@ -253,6 +266,20 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         var testSession: URL?
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession { support = acceptanceSession.support; testSession = acceptanceSession.directory }
+        else if Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.voice-preview" {
+            // This independently signed preview uses the normal host with an empty, private
+            // support root. CandidateProfile and the external window controller stay off.
+            support.appendPathComponent("Nearpane Voice Preview", isDirectory: true)
+            do {
+                try ProfileLease.checkPath(support)
+                try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true,
+                                                        attributes: [.posixPermissions: 0o700])
+            } catch {
+                NSApp.presentError(error)
+                NSApp.terminate(nil)
+                return
+            }
+        }
         if CandidateProfile.selected {
             do {
                 if let acceptanceSession, !profileTrial {

@@ -224,6 +224,7 @@ def voice_bindings(cache, pin):
 
 def package_resources(resources, pins, directories):
     bundled = {
+        "saytileVoiceUI": {},
         "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
         "riftlet": {"Sources/RiftletAdapters/Resources/" + p: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + p
                     for p in ("chatgpt-web-20261027.js", "legacy-web-observe.js")}
@@ -279,13 +280,13 @@ def main():
         print("Foundation only: no domain inputs required.")
         return
     lock = json.loads(LOCK.read_text())
-    require(lock["format"] == 1 and set(lock["domains"]) == {"saytile", "riftlet"}, "Unsupported dependency lock")
+    require(lock["format"] == 1 and set(lock["domains"]) == {"saytile", "riftlet", "saytileVoiceUI"}, "Unsupported dependency lock")
     pins = lock["domains"]
     for pin in pins.values():
         validate(pin)
     if args.propose:
         domain, revision, path = args.propose
-        require(domain in pins and not args.offline, "Choose saytile or riftlet for an online proposal")
+        require(domain in pins and not args.offline, "Choose a locked domain for an online proposal")
         propose(lock, domain, revision, Path(path))
         return
     cache = cache_root()
@@ -295,7 +296,7 @@ def main():
         offline = args.offline or args.package_resources is not None or os.environ.get("NEARPANE_OFFLINE") == "1"
         directories = {name: prepare(cache, pin, offline) for name, pin in pins.items()}
         for filename in ("module.modulemap", "shim.h"):
-            require(len({(p / "Sources/CSQLite" / filename).read_bytes() for p in directories.values()}) == 1,
+            require(len({(directories[name] / "Sources/CSQLite" / filename).read_bytes() for name in ("saytile", "riftlet")}) == 1,
                     "Pinned SQLite module definitions no longer match")
         tray_bindings(cache, pins["riftlet"])
         voice_bindings(cache, pins["saytile"])

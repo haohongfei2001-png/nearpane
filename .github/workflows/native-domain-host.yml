@@ -1,0 +1,34 @@
+name: Native domain host
+on:
+  pull_request:
+    branches: [implementation/host-foundation-20261109]
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Dependencies/**'
+      - 'Package.swift'
+      - 'scripts/**'
+      - '.github/workflows/native-domain-host.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nearpane-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  native:
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Resolve and verify domain source inventories
+        run: |
+          mkdir -p build
+          python3 scripts/test-dependencies.py
+          python3 scripts/prepare-domains.py
+      - name: Run the complete native test suite offline
+        env:
+          NEARPANE_OFFLINE: '1'
+        run: scripts/test.sh

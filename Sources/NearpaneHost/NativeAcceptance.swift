@@ -65,7 +65,11 @@ struct NativeAcceptanceSession {
         let marker = Marker(version: 2, session: uuid, executableSHA256: SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined())
         if prepare {
             try fm.createDirectory(at: parent, withIntermediateDirectories: true)
-            guard parent.resolvingSymlinksInPath().path == parent.path, mkdir(directory.path, 0o700) == 0 else {
+            // Foundation abbreviates the real /private/tmp directory to /tmp. Use the filesystem's
+            // canonical spelling here so an isolated checkout works and symlinked parents still fail.
+            guard let physical = realpath(parent.path, nil) else { throw CocoaError(.fileReadNoPermission) }
+            defer { free(physical) }
+            guard String(cString: physical) == parent.path, mkdir(directory.path, 0o700) == 0 else {
                 throw CocoaError(.fileWriteFileExists)
             }
             if !CandidateProfile.selected {

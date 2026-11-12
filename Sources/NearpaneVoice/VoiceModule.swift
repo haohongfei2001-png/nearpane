@@ -3,9 +3,10 @@ import Combine
 import NearpaneCore
 import Observation
 import SaytileKit
+import SaytileVoiceUI
 
 /// A presentation of Saytile's capture state, never an independent recognition state machine.
-enum PanelCaptureVisualState { case paused, standby, recognizing }
+typealias PanelCaptureVisualState = VoicePanelState
 struct PanelCapturePresentation: Equatable {
     let state: PanelCaptureVisualState
     let liveVoiceLevel: Double?
@@ -114,6 +115,7 @@ public final class VoiceModule: HostModule {
     private(set) var busy = false
     public private(set) var capture: CaptureState = .paused
     private(set) var control = PanelCapturePresentation(.paused, 0)
+    private(set) var history = VoiceHistoryProjection()
     private(set) var rows: [Recording] = []
     private(set) var hasEarlier = false
     private(set) var issue: String?
@@ -200,7 +202,7 @@ public final class VoiceModule: HostModule {
         let closingGeneration = generation
         let previous = transition, oldInput = input, oldStore = store, writes = draftWrite
         draftWrite = nil
-        input = nil; store = nil; rows = []; capture = .paused; control = .init(.paused, 0)
+        input = nil; store = nil; rows = []; history = VoiceHistoryProjection(); capture = .paused; control = .init(.paused, 0)
         busy = false; hasEarlier = false; issue = nil; limit = 60
         transition = Task {
             await previous?.value
@@ -307,7 +309,12 @@ public final class VoiceModule: HostModule {
             }
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
-            if ordered != rows { rows = ordered; acceptanceEvent?("voiceRows") }
+            let start = max(0, count - result.count)
+            if ordered != rows || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
+                history = VoiceHistoryProjection(ordered, startPosition: start)
+                rows = ordered
+                acceptanceEvent?("voiceRows")
+            }
             hasEarlier = count > result.count
         } catch { if generation == epoch { issue = "暂时无法读取文字；保留上次内容。" } }
     }

@@ -12,6 +12,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 RESOURCE_PATHS = {
+    "saytileVoiceUI": {},
     "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
     "riftlet": {"Sources/RiftletAdapters/Resources/" + file: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + file
                 for file in ("chatgpt-web-20261027.js","legacy-web-observe.js")}

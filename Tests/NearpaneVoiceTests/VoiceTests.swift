@@ -3,6 +3,7 @@ import Foundation
 import AppKit
 @testable import SaytileKit
 @testable import NearpaneVoice
+@testable import SaytileVoiceUI
 
 @MainActor
 final class ScriptedInput: VoiceInput {
@@ -165,25 +166,30 @@ extension VoiceTests {
                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         defer { window.close() }
-        let view = TranscriptLine.TextView(frame: window.contentView!.bounds)
+        let view = CompactTranscriptTextView(frame: window.contentView!.bounds)
         window.contentView = view
         view.isEditable = false; view.isSelectable = true
         view.string = "synthetic selectable transcript"
         var calls = 0
-        view.editLine = { calls += 1 }
+        view.onEdit = { calls += 1 }
+        view.fillContextMenu = { menu in
+            menu.addItem(VoiceMenuItem("修改这段文字…") { calls += 1 })
+        }
         let event = try #require(NSEvent.mouseEvent(with: .rightMouseDown, location: .init(x: 12,y: 12),
             modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
             eventNumber: 1, clickCount: 1, pressure: 1))
         for _ in 0..<2 {
             let menu = try #require(view.menu(for: event))
+            view.menuNeedsUpdate(menu)
             let matches = menu.items.filter { $0.title == "修改这段文字…" }
             #expect(matches.count == 1)
             let item = try #require(matches.first)
-            #expect(item.target === view)
+            #expect(item.target === item)
             let action = try #require(item.action)
             #expect(app.sendAction(action, to: item.target, from: item))
         }
-        #expect(calls == 2 && !view.isEditable && view.isSelectable)
+        #expect(view.accessibilityPerformPress())
+        #expect(calls == 3 && !view.isEditable && view.isSelectable)
         #expect(!window.isVisible && !window.isKeyWindow)
     }
 

@@ -63,7 +63,16 @@ final class VoiceRecognitionProfile {
     var language: LanguagePreference? { grant?.language }
 
     static func identifier(for directory: URL) -> String {
-        SHA256.hash(data: Data(directory.standardizedFileURL.path.utf8)).map { String(format: "%02x", $0) }.joined()
+        // Foundation can change /private/tmp to /tmp only after a path exists.
+        // Normalize the existing parent before deriving the first-run Keychain scope.
+        var parent = directory
+        var suffix: [String] = []
+        while !FileManager.default.fileExists(atPath: parent.path), !parent.path.isEmpty, parent.path != "/" {
+            suffix.append(parent.lastPathComponent)
+            parent.deleteLastPathComponent()
+        }
+        let path = suffix.reversed().reduce(parent.standardizedFileURL) { $0.appendingPathComponent($1) }
+        return SHA256.hash(data: Data(path.path.utf8)).map { String(format: "%02x", $0) }.joined()
     }
     init(directory: URL, credentials: any VoiceCredentialAccess) {
         self.directory = directory

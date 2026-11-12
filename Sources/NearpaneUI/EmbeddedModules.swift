@@ -10,6 +10,7 @@ import AppKit
 @MainActor
 public final class EmbeddedModules {
     #if canImport(NearpaneVoice)
+    package let voiceReviewInput: SharedVoiceReviewInput?
     public let voice: VoiceModule
     public let tray: TrayModule
     let voicePasteboard: NSPasteboard
@@ -17,14 +18,16 @@ public final class EmbeddedModules {
 
     public let workRect: CandidateWorkRect?
     public let candidate: Bool
-    public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
+    public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false, reviewVoice: Bool = false) {
         self.candidate = candidate
         workRect = candidate ? CandidateWorkRect(support: support.deletingLastPathComponent()) : nil
         #if canImport(NearpaneVoice)
         voicePasteboard = testSession.map { NSPasteboard(name: .init("com.holdsnow.nearpane.acceptance." + $0.lastPathComponent)) } ?? .general
         tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession, localOnly: testSession != nil && candidate && !boundDraft,
                          productAttachments: candidate && testSession == nil)
-        voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true),
+        let fixture = reviewVoice && testSession != nil ? SharedVoiceReviewInput(directory: support.appendingPathComponent("Voice")) : nil
+        voiceReviewInput = fixture
+        voice = fixture?.module ?? VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true),
                             requireExistingPermissions: testSession != nil, allowAPISettings: candidate,
                             allowManualInsertion: candidate && testSession == nil)
         #endif

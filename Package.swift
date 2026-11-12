@@ -29,7 +29,8 @@ var targets: [Target] = [
 if full {
     let manifest = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     let lock = try JSONDecoder().decode(DomainLock.self, from: Data(contentsOf: manifest.appendingPathComponent("Dependencies/domains.lock.json")))
-    guard let speech = lock.domains["saytile"], let tray = lock.domains["riftlet"] else { fatalError("Incomplete domain lock") }
+    guard let speech = lock.domains["saytile"], let tray = lock.domains["riftlet"],
+          let surface = lock.domains["saytileVoiceUI"] else { fatalError("Incomplete domain lock") }
     let run = Context.environment["NEARPANE_RUN_ID"] ?? ""
     let cache = (run.isEmpty ? ".build" : "build/standalone." + run + "/cache") + "/domain-cache-v1/"
     let saytile = cache + speech.key + "/Sources/"
@@ -53,8 +54,9 @@ if full {
                 path: cache + "tray-" + tray.key, sources: ["Host", "Upstream"],
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "NearpaneTrayTests", dependencies: ["NearpaneTray", "RiftletCore", "RiftletCapture"]),
-        .target(name: "NearpaneVoice", dependencies: ["NearpaneCore", "SaytileKit"]),
-        .testTarget(name: "NearpaneVoiceTests", dependencies: ["NearpaneVoice", "SaytileKit", "CAudio"])
+        .target(name: "SaytileVoiceUI", path: cache + surface.key + "/Sources/SaytileVoiceUI"),
+        .target(name: "NearpaneVoice", dependencies: ["NearpaneCore", "SaytileKit", "SaytileVoiceUI"]),
+        .testTarget(name: "NearpaneVoiceTests", dependencies: ["NearpaneVoice", "SaytileKit", "CAudio", "SaytileVoiceUI"])
     ]
 }
 let package = Package(name: "Nearpane", platforms: [.macOS(full ? "26.0" : "14.0")],
