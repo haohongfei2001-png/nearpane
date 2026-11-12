@@ -12,6 +12,13 @@ struct SpaceInventoryTests {
     }
     let records: [[String: Any]] = [["id64": 5, "type": 0], ["id64": 9, "type": 4]]
 
+    @Test func ordinaryCandidatesPreserveDisplayAndUnfilteredRecordOrder() throws {
+        let raw = records + [["id64": 12, "type": 91], ["id64": 8, "type": 0]]
+        let inventory = try #require(SpaceInventory(scope(raw), displays: displays))
+        #expect(inventory.ordinaryRecordsByDisplay == [id: ["5", "8"]])
+        #expect(inventory.scopes[0].records.map(\.id) == ["5", "9", "12", "8"])
+    }
+
     @Test func membershipKeepsMultipleIDsAndEmptyOrInvalidIsUnknown() throws {
         let inventory = try #require(SpaceInventory(scope(records), displays: displays))
         #expect(inventory.membership([9,5]) == .known(recordIDs: ["5","9"]))

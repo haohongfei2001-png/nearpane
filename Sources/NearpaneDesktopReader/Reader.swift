@@ -11,6 +11,11 @@ struct Reader {
     let request: DesktopReadRequest
     let clock = ProcessInfo.processInfo
     let windowLimit = 192
+    #if NEARPANE_ISOLATED_GUI_LAB
+    // Scope-only console fixtures can report type evidence from this very read,
+    // without another trip to WindowServer or changing the product wire format.
+    var scopeTypes: (([String: [String]]) -> Void)?
+    #endif
 
     private func titleToken(_ title: String) -> String? {
         guard !title.isEmpty else { return nil }
@@ -154,6 +159,11 @@ struct Reader {
         }
         let boundary = status == .observed ? second : nil
         let scopes = boundary?.inventory?.scopes ?? []
+        #if NEARPANE_ISOLATED_GUI_LAB
+        if scopedConsole, request.fixtureWindows?.isEmpty == true, let inventory = boundary?.inventory {
+            scopeTypes?(inventory.ordinaryRecordsByDisplay)
+        }
+        #endif
         var windows = [WindowObservation]()
         var candidates = request.anchors.filter { $0.witness == .ownedWindow }
         let elements = ax.values.sorted { $0.key < $1.key }.flatMap(\.value)
@@ -249,9 +259,32 @@ struct Reader {
             guard request.version == 1, request.revision > 0, request.parentPID == getppid(),
                   request.anchors.count <= 16, (request.fixtureWindows?.count ?? 0) <= 32 else { exit(2) }
             NSApplication.shared.setActivationPolicy(.prohibited)
+            #if NEARPANE_ISOLATED_GUI_LAB
+            var ordinary: [String: [String]]?
+            let snapshot = try Reader(request: request, scopeTypes: { ordinary = $0 }).sample()
+            if let ordinary, snapshot.isStructurallyValid {
+                let reply = OrdinaryScopeSample(snapshot: snapshot, ordinaryRecordsByDisplay: ordinary)
+                FileHandle.standardOutput.write(try JSONEncoder().encode(reply))
+                return
+            }
+            #else
             let snapshot = try Reader(request: request).sample()
+            #endif
             guard snapshot.isStructurallyValid else { exit(3) }
             FileHandle.standardOutput.write(try JSONEncoder().encode(snapshot))
         } catch { FileHandle.standardError.write(Data("Read-only desktop sample unavailable.\n".utf8)); exit(3) }
     }
 }
+
+#if NEARPANE_ISOLATED_GUI_LAB
+private struct OrdinaryScopeSample: Encodable {
+    let snapshot: DesktopSnapshot
+    let ordinaryRecordsByDisplay: [String: [String]]
+    private enum Keys: String, CodingKey { case ordinaryRecordsByDisplay }
+    func encode(to encoder: Encoder) throws {
+        try snapshot.encode(to: encoder)
+        var fields = encoder.container(keyedBy: Keys.self)
+        try fields.encode(ordinaryRecordsByDisplay, forKey: .ordinaryRecordsByDisplay)
+    }
+}
+#endif

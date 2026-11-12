@@ -156,33 +156,39 @@ import WindowLab
   }
   // Scope-only snapshot. No AX tree or WindowServer descriptions are requested.
   func consoleScopes() throws -> DesktopSnapshot {
+    try consoleScopeObservation().0
+  }
+  func consoleScopeObservation() throws -> (DesktopSnapshot, OrdinaryConsoleScope) {
     revision += 1
     let request = DesktopReadRequest(session: run, revision: revision, parentPID: getpid(),
                                     fixtureWindows: [], anchors: [], experimentalSpaces: true)
     let file = dir.appendingPathComponent("scope-snapshot-\(revision).json")
     try helper(Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader"),
                [enrolledRead, try JSONEncoder().encode(request).base64EncodedString()], output: file)
-    let s = try JSONDecoder().decode(DesktopSnapshot.self, from: Data(contentsOf: file))
+    let bytes = try Data(contentsOf: file), decoder = JSONDecoder()
+    let s = try decoder.decode(DesktopSnapshot.self, from: bytes)
     guard s.isStructurallyValid, s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime),
           s.sessionID == run, s.revision == revision, s.windows.isEmpty, s.native?.population == .markedFixture,
           s.native?.spaces == .observed, s.scopes.count == 2,
           s.scopes.allSatisfy({ $0.records.filter(\.isCurrent).count == 1 })
     else { throw Refusal("scope-only observation unavailable") }
     try require(s.separateSpaces == true, "shared Spaces: independent secondary A/B cannot be attested")
-    return s
+    guard let types = try? decoder.decode(OrdinaryConsoleScope.self, from: bytes) else {
+      throw Refusal("frozen Reader did not attest ordinary record types for this sample")
+    }
+    return (s, types)
   }
   func consoleEndpoint(_ label: String, display: String) throws -> DesktopSnapshot {
-    let s = try consoleScopes()
-    guard let scope = s.scopes.first(where: { $0.displayID == display }) else { throw Refusal("unknown test display") }
-    if !fullscreenOnly { try require(scope.records.count >= 2, "secondary scope has fewer than two candidate records") }
+    let (s, types) = try consoleScopeObservation()
+    guard let scope = s.scopes.first(where: { $0.displayID == display }),
+          let current = scope.records.first(where: \.isCurrent)?.id else { throw Refusal("unknown test display") }
+    let other = fullscreenOnly ? nil : consoleConsent.map { label == "A" ? $0.target : $0.source }
+    try require(types.admits(scope, current: current, fullscreenOnly: fullscreenOnly, other: other),
+                fullscreenOnly ? "current secondary record is not an observed ordinary desktop"
+                               : "adjacent ordinary secondary records not observed in the complete system order")
     if let consent = consoleConsent {
       let required = label == "A" ? consent.source : consent.target
       try require(scope.records.first(where: \.isCurrent)?.id == required, "console is not at the specified test desktop")
-      if !fullscreenOnly {
-        guard let a = scope.records.firstIndex(where: { $0.id == consent.source }),
-              let b = scope.records.firstIndex(where: { $0.id == consent.target }), abs(a-b) == 1
-        else { throw Refusal("specified endpoints are not adjacent") }
-      }
       if let originScopes {
         try require(try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: required),
                     "display topology, record order or protected current changed during calibration")

@@ -21,7 +21,7 @@ class TestCheckpoint(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.folder = Path(temp.name)
         self.run = str(uuid.uuid4()).upper()
-        self.origin = dict(sessionID=self.run, separateSpaces=True, scopes=[
+        self.origin = dict(sessionID=self.run, separateSpaces=True, ordinaryRecordsByDisplay={"main": ["1"], "side": ["10", "11"]}, scopes=[
             dict(displayID="main", records=[dict(id="1", isCurrent=True)]),
             dict(displayID="side", records=[dict(id="10", isCurrent=True), dict(id="11", isCurrent=False)])])
         self.put("scope-snapshot-1.json", self.origin)
@@ -42,6 +42,32 @@ class TestCheckpoint(unittest.TestCase):
         self.origin["scopes"][0]["records"] += [dict(id="2", isCurrent=False), dict(id="3", isCurrent=False)]
         with self.assertRaises(ctl.Refusal):
             ctl.check_order(self.origin, "side", "10", "11")
+
+    def test_mixed_missing_or_nonadjacent_ordinary_records_do_not_release(self):
+        for candidates in (["10"], ["11"], None):
+            with self.subTest(candidates=candidates):
+                origin = dict(self.origin)
+                if candidates is None:
+                    del origin["ordinaryRecordsByDisplay"]
+                else:
+                    origin["ordinaryRecordsByDisplay"] = {"main": ["1"], "side": candidates}
+                with self.assertRaises(ctl.Refusal):
+                    ctl.check_order(origin, "side", "10", "11")
+        self.origin["scopes"][1]["records"].insert(1, dict(id="12", isCurrent=False))
+        with self.assertRaises(ctl.Refusal):
+            ctl.check_order(self.origin, "side", "10", "11")
+
+    def test_fullscreen_from_secondary_nonordinary_record_cannot_release(self):
+        self.args.fullscreen_only = True
+        self.args.target = None
+        (self.folder / "console-scope.json").unlink()
+        self.put("console-scope.json", dict(run=self.run, boot="test", securityID=1, secondaryDisplay="side", procedure="fullscreen"))
+        self.origin["ordinaryRecordsByDisplay"]["side"] = ["11"]
+        (self.folder / "scope-snapshot-1.json").unlink()
+        self.put("scope-snapshot-1.json", self.origin)
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        self.assertFalse((self.folder / "unattended-consent.ready").exists())
 
     def test_expired_interval_cannot_release(self):
         self.args.ends = self.args.starts

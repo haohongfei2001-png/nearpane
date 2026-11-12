@@ -70,13 +70,25 @@ def format_utc(instant):
     return instant.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def check_order(origin, secondary, source, target):
-    require(source != target, "identical endpoints")
-    scope, = [s for s in origin["scopes"] if s["displayID"] == secondary]
+def ordinary_scope(origin, secondary, source):
+    matches = [s for s in origin["scopes"] if s["displayID"] == secondary]
+    require(origin["separateSpaces"] is True and len(matches) == 1, "secondary display scope not observed")
+    scope = matches[0]
     order = [r["id"] for r in scope["records"]]
     currents = [r["id"] for r in scope["records"] if r["isCurrent"]]
-    require(origin["separateSpaces"] is True and currents == [source] and source in order and target in order
-            and abs(order.index(source) - order.index(target)) == 1, "requested adjacent endpoints not observed")
+    evidence = origin.get("ordinaryRecordsByDisplay")
+    ordinary = evidence.get(secondary) if isinstance(evidence, dict) else None
+    require(isinstance(ordinary, list) and all(isinstance(i, str) for i in ordinary) and
+            len(set(ordinary)) == len(ordinary) and [i for i in order if i in ordinary] == ordinary and
+            currents == [source] and source in ordinary, "ordinary secondary desktop not confirmed by the frozen Reader")
+    return order, ordinary
+
+
+def check_order(origin, secondary, source, target):
+    require(source != target, "identical endpoints")
+    order, ordinary = ordinary_scope(origin, secondary, source)
+    require(target in ordinary and abs(order.index(source) - order.index(target)) == 1,
+            "requested ordinary endpoints are not adjacent in the complete secondary order")
     return order
 
 
@@ -96,10 +108,7 @@ def grant(run_dir, run, args):
     if fullscreen:
         require(not args.target and args.source.isascii() and args.source.isdecimal() and int(args.source) > 0,
                 "fullscreen consent requires only the identified blank source")
-        scopes = [s for s in origin["scopes"] if s["displayID"] == context["secondaryDisplay"]]
-        require(origin["separateSpaces"] is True and len(scopes) == 1 and
-                [r["id"] for r in scopes[0]["records"] if r["isCurrent"]] == [args.source],
-                "specified fullscreen source is not the current secondary desktop")
+        ordinary_scope(origin, context["secondaryDisplay"], args.source)
     else:
         check_order(origin, context["secondaryDisplay"], args.source, args.target)
     starts, ends = utc(args.starts), utc(args.ends)

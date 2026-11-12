@@ -9,6 +9,12 @@ struct SpaceInventory: Equatable {
     let scopes: [ManagedDisplayScope]
     let rawTypes: [String: Int64]
     var ids: Set<String> { Set(rawTypes.keys) }
+    /// A raw ordinary record is eligible for calibration, not proof of a desktop or membership.
+    var ordinaryRecordsByDisplay: [String: [String]] {
+        Dictionary(uniqueKeysWithValues: scopes.map { scope in
+            (scope.displayID, scope.records.map(\.id).filter { rawTypes[$0] == 0 })
+        })
+    }
 
     static func integer(_ raw: Any?) -> NSNumber? {
         guard let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
