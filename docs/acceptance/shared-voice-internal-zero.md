@@ -41,3 +41,15 @@ Nearpane pins the nine shared inputs from Saytile `d80a537f6038674e8755c47bbde0b
 | New end-to-end live microphone trial and frame-by-frame cross-host comparison on this pin | NOT_RUN |
 
 This run used disposable host fixtures and a local debug bundle. The recognition and tray dependencies keep their existing lock entries.
+
+## Saytile 内测 0.4
+
+Nearpane uses the shared editor at Saytile commit `7d575dc2437e5e1e9489e47ad093da04b6a313e4`. The ten locked inputs include `ReaderTextContainer.swift`, which retains line wrapping at the overlap between successive pages. Their combined SHA-256 is `bf9544bb6eae081b6dcfec02158d8b49434726e70e9a3fe47b8dfb5ade3814bf`.
+
+| Verification on Apple Silicon | Result |
+| --- | --- |
+| Git blobs and offline source cache | PASS · 10 verified files and 6 dependency resolver tests |
+| Concurrent Swift suite (initial run) | FAIL · 318 passed. The fresh module in the unverified-insertion restart test encountered an exclusive database lock in its synthetic directory. The underlying cause was not established. |
+| Serial Swift suite | PASS · 319 tests in 52 suites, including expanding the history page, copying a group spanning pages, and editing the embedded transcript |
+| Worktree debug bundle | PASS · native host and helper executables built, signatures checked, packaged Saytile and Riftlet resources verified |
+| Installed Nearpane or fresh cross-host scroll capture | NOT_RUN |
