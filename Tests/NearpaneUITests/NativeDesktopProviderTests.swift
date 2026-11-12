@@ -47,6 +47,24 @@ private actor Attempts {
 }
 
 @MainActor struct NativeDesktopProviderTests {
+    @Test func readerResolvesTheBundleRootButRejectsAnInternalHelperRedirect() throws {
+        let files = FileManager.default
+        let root = files.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? files.removeItem(at: root) }
+        let app = root.appendingPathComponent("Nearpane.app", isDirectory: true)
+        let helper = app.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
+        try files.createDirectory(at: helper.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data().write(to: helper)
+        let link = root.appendingPathComponent("linked.app")
+        try files.createSymbolicLink(at: link, withDestinationURL: app)
+        #expect(NativeDesktopProvider.resolvedReader(in: link)?.path == helper.resolvingSymlinksInPath().path)
+        let outside = root.appendingPathComponent("other-reader")
+        try Data().write(to: outside)
+        try files.removeItem(at: helper)
+        try files.createSymbolicLink(at: helper, withDestinationURL: outside)
+        #expect(NativeDesktopProvider.resolvedReader(in: app) == nil)
+    }
+
     @Test func accessibleWindowPositionUsesTheClippedDrawingWithinItsDisplay() {
         let desktop = SurfaceRect(x: 18, y: 56, width: 80, height: 120)
         let visible = SurfaceRect(x: 58, y: 86, width: 40, height: 90)
