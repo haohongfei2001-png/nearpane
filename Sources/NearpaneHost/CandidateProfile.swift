@@ -69,7 +69,13 @@ enum CandidateProfile {
             guard try integer("PRAGMA user_version") == version else {
                 throw NSError(domain: "Nearpane.Profile", code: 4, userInfo: [NSLocalizedDescriptionKey: "这份资料的数据库格式与当前 Nearpane 不兼容。请使用对应的版本。"])
             }
-            if counts { result[table] = try integer("SELECT count(*) FROM " + table) }
+            if counts {
+                result[table] = try integer("SELECT count(*) FROM " + table)
+            } else {
+                // The database header's user_version can survive a damaged schema page.
+                // Check an expected table without scanning its contents on normal startup.
+                _ = try integer("SELECT EXISTS(SELECT 1 FROM " + table + " LIMIT 1)")
+            }
         }
         return result
     }

@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import time
 import uuid
-from contextlib import closing
+from contextlib import closing, nullcontext
 
 ROOT = Path(__file__).resolve().parents[2]
 SANDBOX = ["/usr/bin/sandbox-exec", "-p",
@@ -110,6 +110,56 @@ def projection(report):
     return {domain: {k: v for k, v in fields.items() if k != "databaseSHA256"}
             for domain, fields in report.items()}
 
+
+def verify_read_errors(app):
+    """Run the installed Host's read-only profile gate on disposable SQLite failures."""
+    host = binary(app, "com.holdsnow.nearpane.alpha")
+    cases = (("missing-wal-sidecars", "Nearpane.Profile.SQLite", 14, "只读"),
+             ("locked", "Nearpane.Profile.SQLite", 5, "正在使用"),
+             ("not-a-database", "Nearpane.Profile.SQLite", 26, "无法识别"),
+             ("damaged-page", "Nearpane.Profile.SQLite", 11, "结构损坏"),
+             ("future-schema", "Nearpane.Profile", 4, "不兼容"))
+    results = []
+    for case, domain, code, text in cases:
+        session = prepare(host, True)
+        entry = [host, "--verify-bundled-resources", "--profile-acceptance-open", session.name]
+        initial = run(entry, reply=True)
+        generation = Path(initial["path"])
+        require(generation == session/"Nearpane Alpha Profiles"/"generations"/str(uuid.UUID(initial["generation"])),
+                "Unexpected fixture generation")
+        db = generation/"Riftlet/queue.sqlite"
+        if case == "missing-wal-sidecars":
+            # Reproduce the system SQLite read of a clean WAL-mode main file without sidecars.
+            require(db.read_bytes()[18:20] == bytes((2,2)), "Expected WAL format")
+            wal = Path(str(db)+"-wal")
+            require(not wal.exists() or wal.stat().st_size == 0, "Refusing to remove committed fixture frames")
+            for suffix in ("-wal", "-shm"):
+                Path(str(db)+suffix).unlink(missing_ok=True)
+        else:
+            run(["/usr/bin/sqlite3", db, "PRAGMA journal_mode=DELETE;"])
+            if case == "future-schema":
+                run(["/usr/bin/sqlite3", db, "PRAGMA user_version=91;"])
+            elif case == "not-a-database":
+                db.write_bytes(b"synthetic non-database " * 100)
+            elif case == "damaged-page":
+                with db.open("r+b") as file:
+                    file.seek(100)  # First schema B-tree page type is no longer valid.
+                    file.write(bytes((0xff,)))
+        before = sha(db.read_bytes())
+        lock_context = closing(sqlite3.connect(db)) if case == "locked" else nullcontext()
+        with lock_context as lock:
+            if lock is not None:
+                lock.execute("BEGIN EXCLUSIVE")
+            refused = subprocess.run(SANDBOX + list(map(str, entry)), cwd=ROOT, capture_output=True, text=True, timeout=25)
+        require(refused.returncode == 3 and refused.stderr.startswith("Isolated profile open failed:")
+                and f"Domain={domain} Code={code} " in refused.stderr
+                and text in refused.stderr, f"{case}: unexpected refusal: {refused.stderr[:300]}")
+        require(sha(db.read_bytes()) == before, case + ": read-only refusal modified database")
+        if case == "missing-wal-sidecars":
+            require(all(not Path(str(db)+s).exists() for s in ("-wal", "-shm")), "Refusal created SQLite sidecars")
+        results.append(dict(case=case, session=session.name, domain=domain, code=code, output=refused.stderr.strip(),
+                            databaseSHA256BeforeAndAfter=before))
+    print(json.dumps({"hostSHA256":sha(host.read_bytes()), "refusals":results}, ensure_ascii=False, indent=2))
 
 def verify(old, new):
     before, after = binary(old, "com.holdsnow.nearpane.candidate.p52"), binary(new, "com.holdsnow.nearpane.alpha")
@@ -262,7 +312,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old", type=Path, default=Path.home()/"Applications/Nearpane P5.2/Nearpane P5.2 Alpha.app")
     parser.add_argument("--new", type=Path, default=Path.home()/"Applications/Nearpane P5.3/Nearpane P5.3 Alpha.app")
-    parser.add_argument("--settings", action="store_true", help="Press the real Settings controls in the marked secondary panel")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--settings", action="store_true", help="Press the real Settings controls in the marked secondary panel")
+    mode.add_argument("--read-errors", action="store_true", help="Check the installed Host's profile refusal reasons without GUI")
     args = parser.parse_args()
     os.umask(0o077)
-    (verify_settings if args.settings else verify)(args.old.resolve(strict=True), args.new.resolve(strict=True))
+    if args.read_errors:
+        verify_read_errors(args.new.resolve(strict=True))
+    else:
+        (verify_settings if args.settings else verify)(args.old.resolve(strict=True), args.new.resolve(strict=True))

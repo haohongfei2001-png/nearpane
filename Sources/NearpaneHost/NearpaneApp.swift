@@ -76,8 +76,10 @@ struct NearpaneApp {
                     if CandidateProfile.selected, args[1] == "--profile-acceptance-open" {
                         let session = try NativeAcceptanceSession(id: args[2], prepare: false)
                         Task {
+                            var phase = "profile open"
                             do {
                                 let (lease, generation) = try await CandidateProfile.open(in: session.directory)
+                                phase = "profile readback"
                                 let config = try FileConfigurationStore(url: generation.appendingPathComponent("Nearpane/host-configuration.json"), activeProfile: true).load()
                                 let counts = try CandidateProfile.inspectStores(in: generation, counts: true)
                                 let result: [String: Any] = ["generation": generation.lastPathComponent, "path": generation.path, "counts": counts,
@@ -86,7 +88,7 @@ struct NearpaneApp {
                                 let data = try JSONSerialization.data(withJSONObject: result, options: .sortedKeys)
                                 try withExtendedLifetime(lease) { try FileHandle.standardOutput.write(contentsOf: data + Data([10])) }
                                 exit(0)
-                            } catch { FileHandle.standardError.write(Data("Isolated profile open failed: \(error)\n".utf8)); exit(3) }
+                            } catch { FileHandle.standardError.write(Data("Isolated \(phase) failed: \(error)\n".utf8)); exit(3) }
                         }
                         dispatchMain()
                     }

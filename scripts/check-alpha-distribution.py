@@ -68,7 +68,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     try:
         report = inspect(args.app)
-    except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as exc:
+    except subprocess.CalledProcessError as exc:
+        parser.exit(1, f"{exc}\n{(exc.stdout or '').strip()}\n")
+    except (OSError, ValueError, KeyError) as exc:
         parser.exit(1, str(exc) + "\n")
     print(json.dumps(report, indent=2, sort_keys=True))
     if args.require_distribution_signatures and report["missingDistributionSignatures"]:
