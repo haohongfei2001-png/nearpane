@@ -100,8 +100,36 @@ func verifyLiveWitness() {
 }
 verifyLiveWitness()
 let root=AXUIElementCreateApplication(pid)
-let ownerWindows = ax(root,"AXWindows") as? [AXUIElement] ?? []
-let matches=ownerWindows.filter{box($0)==rect}
+if a.count == 10 {
+    guard AXUIElementSetMessagingTimeout(root, 0.2) == .success else { stop("panel AX messaging unavailable") }
+}
+var ownerWindows = ax(root,"AXWindows") as? [AXUIElement] ?? []
+var matches = ownerWindows.filter { box($0) == rect }
+if a.count == 10 {
+    // A nonactivating panel may reach CG before it appears in this process's AX window list.
+    // Reobserve the original CG number, owner, bounds and foreground witness while awaiting publication.
+    let cutoff = ProcessInfo.processInfo.systemUptime + 0.8
+    var samples = 0
+    while true {
+        verifyLiveWitness()
+        samples += 1
+        let numbered = ownerWindows.filter { (ax($0, "AXWindowNumber") as? NSNumber)?.uint32Value == wid }
+        if matches.count > 1 || numbered.count > 1 ||
+            (numbered.first.map { box($0) != rect } ?? false) ||
+            (matches.first.flatMap { ax($0, "AXWindowNumber") as? NSNumber }.map { $0.uint32Value != wid } ?? false) {
+            stop("conflicting enrolled panel: CG=\(wid) \(rect) AX=\(ownerWindows.count) geometryMatches=\(matches.count) numberedMatches=\(numbered.count)")
+        }
+        if matches.count == 1 { break }
+        guard ProcessInfo.processInfo.systemUptime < cutoff else {
+            let frames = ownerWindows.prefix(8).map { box($0).map { NSStringFromRect($0) } ?? "unknown" }
+            stop("enrolled panel absent: CG=\(wid) \(rect) AX=\(ownerWindows.count) frames=\(frames) samples=\(samples)")
+        }
+        Thread.sleep(forTimeInterval: 0.05)
+        verifyLiveWitness()
+        ownerWindows = ax(root, "AXWindows") as? [AXUIElement] ?? []
+        matches = ownerWindows.filter { box($0) == rect }
+    }
+}
 // The supervised Host supplies its actual EdgePanel window number. Read only this
 // process's window list; never traverse children or invoke an action on an edge.
 if a[3] == "read-edge-frame" {
@@ -225,5 +253,13 @@ if command == "read" {
           action == "AXDecrement" ? (role == "AXSlider" && enabled != false) : (role == "AXButton" && enabled == true)
     else { stop("control does not advertise this action: " + command) }
     verifyLiveWitness()
+    if a.count == 10 {
+        guard let current = ax(root, "AXWindows") as? [AXUIElement] else { stop("panel disappeared before press") }
+        let exact = current.filter { box($0) == rect }
+        guard exact.count == 1, CFEqual(exact[0], matches[0]), box(control) == frame else {
+            stop("panel changed before press: CG=\(wid) \(rect) AX=\(current.count) geometryMatches=\(exact.count)")
+        }
+        verifyLiveWitness()
+    }
     guard AXUIElementPerformAction(control, action as CFString) == .success else { stop("AX action denied: " + command) }
 }

@@ -6,6 +6,10 @@
 
 **当前可打开的版本**　[Nearpane P5.7 Alpha](</Users/hhf/Applications/Nearpane P5.7/Nearpane P5.7 Alpha.app>)。回退时正常退出当前版本，再打开 [P5.6 Alpha](</Users/hhf/Applications/Nearpane P5.6/Nearpane P5.6 Alpha.app>)。两个版本沿用稳定资料身份，普通用户窗口自动接管默认关闭。
 
+## 副屏全屏工具浮层 · 2026-11-13 02:35
+
+**VERIFIED（当前系统构建，隔离 Host，自建全屏窗口）**　普通面板在全屏中隐藏，用户动作对应的 AXPress 打开语音工具一次、收起一次，同一浮层的状态条、展开、收起均由外部 AX 读回。退出后普通面板恢复，原主屏窗口取回焦点和原位置；Host 正常排空。Voice 与 Tray 实例及空资料保持一致。本次只见证一个普通副屏桌面，A/B 切换及跨空间拖窗仍关闭。[系统及工具结果](NATIVE-FULLSCREEN-OVERLAY-RESULT.md)
+
 ## 副屏原生全屏实测 · 2026-11-13
 
 在当前系统构建上，自建窗口已真实完成原生全屏 4297 → 4446 → 4297，主屏 current 保持 1309，退出后同一主屏原窗口的 AX 焦点及 frame 已核实，两扇测试窗零残留。隔离 Host 未完成工具浮层开合，AX 控件操作 0 次。副屏仍只有一个普通桌面。[现场时间线、失败与清理证据](NATIVE-FULLSCREEN-TIMED-SECONDARY.md)

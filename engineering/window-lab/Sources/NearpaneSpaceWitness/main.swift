@@ -65,18 +65,17 @@ import WindowLab
     p.executableURL = url
     p.arguments = args
     p.standardInput = FileHandle.nullDevice
-    try Data().write(to: output, options: .withoutOverwriting)
-    let handle = try FileHandle(forWritingTo: output)
-    defer { try? handle.close() }
-    p.standardOutput = handle
-    try p.run()
-    let end = ProcessInfo.processInfo.systemUptime + 5
-    while p.isRunning && ProcessInfo.processInfo.systemUptime < end { pump() }
-    if p.isRunning {
-      p.terminate()
-      throw Refusal("observer timeout")
+    try publishObserverOutput(at: output) { handle in
+      p.standardOutput = handle
+      try p.run()
+      let end = ProcessInfo.processInfo.systemUptime + 5
+      while p.isRunning && ProcessInfo.processInfo.systemUptime < end { pump() }
+      if p.isRunning {
+        p.terminate()
+        throw Refusal("observer timeout")
+      }
+      try require(p.terminationStatus == 0, "observer refused: " + output.lastPathComponent)
     }
-    try require(p.terminationStatus == 0, "observer refused: " + output.lastPathComponent)
   }
   func scope(cleanupRead: Bool = false) throws {
     try require(cleanupRead || ProcessInfo.processInfo.systemUptime < deadline, "trial expired")
@@ -573,6 +572,16 @@ import WindowLab
                   "could not enroll the fixture as foreground")
       pump()
     }
+    // A key window can be reported before the external AX server publishes its new frame.
+    // Let AppKit service that transition before asking the independent Reader for both samples.
+    let settleUntil = ProcessInfo.processInfo.systemUptime + 0.30
+    repeat {
+      try checkConsentExpiry()
+      try require(window.isKeyWindow && window.screen == secondary && window.isOnActiveSpace &&
+                  window.windowNumber == Int(before.number) && NSWorkspace.shared.frontmostApplication?.processIdentifier == birth.pid,
+                  "foreground or enrolled window changed after activation")
+      pump()
+    } while ProcessInfo.processInfo.systemUptime < settleUntil
     let here = try stable(label, "origin-" + label)
     try require(here.record == before.record && here.scope == before.scope && here.currents == before.currents &&
                 here.number == before.number && here.frame == before.frame && here.recordOrder == before.recordOrder &&
