@@ -17,9 +17,9 @@ struct NativeDesktopPreviewTests {
     func window(_ number: UInt32, _ frame: SurfaceRect, _ z: Int, _ membership: WindowMembership,
                 display: String = "portrait", pid: Int32 = 313, epoch: UInt64 = 810,
                 confidence: IdentityConfidence = .corroboratedMetadata, fullscreen: Bool? = false,
-                axFrame: SurfaceRect? = nil, onScreen: Bool? = true) -> WindowObservation {
+                axFrame: SurfaceRect? = nil, onScreen: Bool? = true, axNumber: UInt32? = nil) -> WindowObservation {
         let metadata = ObservedWindowMetadata(number: number, pid: pid, launchMicroseconds: epoch, element: UUID(),
-            globalFrame: frame, frontToBack: z, minimized: false, fullScreen: fullscreen, axFrame: axFrame ?? frame, isOnscreen: onScreen)
+            globalFrame: frame, frontToBack: z, minimized: false, fullScreen: fullscreen, axFrame: axFrame ?? frame, isOnscreen: onScreen, axStandardWindowNumber: axNumber)
         return .init(id: "ref-\(number)", displayID: display,
             bounds: .init(x: frame.x + (display == portrait.id ? 800 : 0), y: frame.y, width: frame.width, height: frame.height),
             membership: membership, confidence: confidence, metadata: metadata)
@@ -39,6 +39,22 @@ struct NativeDesktopPreviewTests {
 
     func preview(_ state: DesktopSnapshot) -> DesktopPreview? {
         DesktopPreview(snapshot: state, displayID: portrait.id, viewport: viewport, now: date, uptime: 42)
+    }
+
+    @Test func activeSpaceRowUsesSystemNumberWhenTitlesCannotCorroborate() throws {
+        let frame = proof.anchor.globalFrame
+        let row = ObservedSpaceRow(displayID: portrait.id, scopeID: proof.scopeID, recordID: proof.recordID,
+            anchor: .init(number: 77, displayID: portrait.id, globalFrame: frame, witness: .appKitActiveList))
+        func witnessed(_ confidence: IdentityConfidence, axNumber: UInt32?) -> DesktopSnapshot {
+            let w = window(77, frame, 0, .known(recordIDs: ["9"]), confidence: confidence, axNumber: axNumber)
+            return sample([w], rows: [row])
+        }
+        #expect(preview(witnessed(.corroboratedMetadata, axNumber: 78)) == nil)
+        let exact = witnessed(.geometryOnly, axNumber: 77)
+        #expect(try #require(preview(exact)).rows.map(\.kind) == [.witnessedSpace("9")])
+        #expect(!exact.capabilities.spaceSwitching)
+        #expect(preview(witnessed(.ambiguous, axNumber: 77)) == nil)
+        #expect(preview(witnessed(.geometryOnly, axNumber: nil)) == nil)
     }
 
     @Test func stageManagerDoesNotGrantOrRevokeIdentityOrPermissionByItself() throws {

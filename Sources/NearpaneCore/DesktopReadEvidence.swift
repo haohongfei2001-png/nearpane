@@ -44,6 +44,16 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     }
 }
 
+public extension WindowObservation {
+    /// Membership and active-Space visibility are checked separately by the reader.
+    var canWitnessCurrentSpace: Bool {
+        guard confidence == .geometryOnly || confidence == .corroboratedMetadata,
+              let m = metadata, m.number > 0, m.axStandardWindowNumber == m.number,
+              m.pid > 0, (m.launchMicroseconds ?? 0) > 0, m.element != nil else { return false }
+        return m.presentation == .confirmed && m.fullScreen == false && m.minimized == false
+    }
+}
+
 public enum ActiveSpaceWitness: String, Codable, Sendable { case ownedWindow, appKitActiveList }
 
 /// Identifies the independent public AppKit observation used to attest the current record.
@@ -122,8 +132,7 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
             if row.anchor.witness == .appKitActiveList {
                 guard population == .workWindows, snapshot.windows.contains(where: {
                     $0.metadata?.number == row.anchor.number && $0.metadata?.globalFrame == row.anchor.globalFrame &&
-                    $0.displayID == row.displayID && $0.confidence == .corroboratedMetadata &&
-                    $0.metadata?.presentation == .confirmed && $0.metadata?.fullScreen == false && $0.metadata?.minimized == false &&
+                    $0.displayID == row.displayID && $0.canWitnessCurrentSpace &&
                     $0.membership == .known(recordIDs: [row.recordID])
                 }) else { return false }
             }

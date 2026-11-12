@@ -171,6 +171,7 @@ struct Reader {
             }
             let confidence: NearpaneCore.IdentityConfidence
             switch match.confidence {
+            case .corroboratedMetadata where standardNumber != nil && standardNumber != entry.windowID: confidence = .ambiguous
             case .corroboratedMetadata: confidence = .corroboratedMetadata
             case .geometryOnly: confidence = .geometryOnly
             case .ambiguous: confidence = .ambiguous
@@ -182,16 +183,16 @@ struct Reader {
                 minimized: element?.minimized, fullScreen: element.flatMap { ax.fullScreen[$0.elementToken] },
                 axFrame: element?.frame.map(SurfaceRect.init), isOnscreen: entry.isOnscreen,
                 axStandardWindowNumber: standardNumber)
-            if confidence == .corroboratedMetadata, data.presentation == .confirmed, element?.subrole == "AXStandardWindow",
-               data.fullScreen == false, data.minimized == false, entry.process.pid != request.parentPID,
+            let local = SurfaceRect(x: entry.frame.x-display.frame.x, y: entry.frame.y-display.frame.y,
+                                    width: entry.frame.width, height: entry.frame.height)
+            let observed = WindowObservation(id: "\(request.revision)/\(entry.process.pid)/\(entry.windowID)", displayID: display.id,
+                                 bounds: local, membership: boundary?.membership[entry.windowID] ?? .unknown,
+                                 confidence: confidence, metadata: data)
+            windows.append(observed)
+            if observed.canWitnessCurrentSpace, entry.process.pid != request.parentPID,
                activeBefore.contains(entry.windowID), activeAfter.contains(entry.windowID) {
                 candidates.append(.init(number: entry.windowID, displayID: display.id, globalFrame: data.globalFrame, witness: .appKitActiveList))
             }
-            let local = SurfaceRect(x: entry.frame.x-display.frame.x, y: entry.frame.y-display.frame.y,
-                                    width: entry.frame.width, height: entry.frame.height)
-            windows.append(.init(id: "\(request.revision)/\(entry.process.pid)/\(entry.windowID)", displayID: display.id,
-                                 bounds: local, membership: boundary?.membership[entry.windowID] ?? .unknown,
-                                 confidence: confidence, metadata: data))
         }
         let rows = boundary?.confirmedRows(displays: before.displays, separateSpaces: before.separateSpaces,
             complete: stable && !list.limited, candidates: candidates, windows: list.windows, parent: request.parentPID) ?? []
