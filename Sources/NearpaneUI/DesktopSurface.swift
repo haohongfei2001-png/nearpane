@@ -116,6 +116,7 @@ struct DesktopSurface: View {
     private func drawing(_ preview: DesktopPreview, windows: [WindowObservation], showImages: Bool) -> some View {
         let observations = Dictionary(uniqueKeysWithValues: windows.map { ($0.id, $0) })
         return Canvas { context, _ in
+            var icons = [WorkspaceWindowThumbnails.WindowKey: NSImage]()
             for row in preview.rows {
                 let desktop = row.desktop
                 let desktopRect = CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height)
@@ -135,6 +136,16 @@ struct DesktopSurface: View {
                         clipped.clip(to: outline)
                         clipped.draw(Image(decorative: pixels, scale: 1),
                             in: CGRect(x: rect.midX - width / 2, y: rect.midY - height / 2, width: width, height: height))
+                    } else if let observation = observations[window.id], min(rect.width, rect.height) >= 15,
+                              let key = WorkspaceWindowThumbnails.WindowKey(observation) {
+                        if icons[key] == nil, AdmissionBirth.read(key.pid)?.start == key.launch {
+                            icons[key] = NSRunningApplication(processIdentifier: key.pid)?.icon
+                        }
+                        if let icon = icons[key] {
+                            let side = min(22, min(rect.width, rect.height) * 0.48)
+                            context.draw(Image(nsImage: icon), in: CGRect(x: rect.midX - side / 2,
+                                y: rect.midY - side / 2, width: side, height: side))
+                        }
                     }
                     context.stroke(outline, with: .color(.white.opacity(0.82)),
                         style: .init(lineWidth: settings.points(.borderWidth, in: row.rowFrame.width),

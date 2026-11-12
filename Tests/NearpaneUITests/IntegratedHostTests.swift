@@ -299,7 +299,10 @@ struct IntegratedHostTests {
         let hosting = try #require(content.subviews.compactMap { $0 as? NSHostingView<EdgeSurfaceView> }.first)
         let background = try #require(content.subviews.compactMap { $0 as? NSVisualEffectView }.first)
         #expect(background.material == .sidebar && background.blendingMode == .behindWindow)
-        #expect(background.frame.minY == 0 && background.frame.height == 744)
+        // The shared SwiftUI rail owns the full backdrop; the folded-panel effect is dormant.
+        #expect(background.isHidden && background.frame == content.bounds)
+        let desktop = LayoutComposer.compose(width: window.frame.width, height: window.frame.height,
+            pinnedCount: 0, expanded: false).desktop
         for state in ["collapsed", "expanded"] {
             if state == "expanded" { domains.tray.toggleMenu() }
             hosting.layoutSubtreeIfNeeded(); hosting.displayIfNeeded()
@@ -322,11 +325,13 @@ struct IntegratedHostTests {
                 let pixels = CGRect(x: 0, y: 0, width: source.width, height: source.height)
                 flat.setFillColor(CGColor(gray: 0.95, alpha: 1)); flat.fill(pixels)
                 flat.draw(source, in: pixels)
-                // No other content is expected near the center of the bottom 5/8.
-                // The area must actually contain the unknown-state label, not a clipped empty view.
+                // The fresh empty-state label belongs in the middle of the actual Spaces card.
+                // Sample its text band, away from its border and the adjacent tools.
                 let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
                 var ink = 0
-                for y in (source.height * 65 / 100)..<(source.height * 72 / 100) {
+                let center = desktop.y + desktop.height / 2 - (1.65 - 0.52) * window.frame.width * 15 / 325 / 2
+                let scale = Double(source.height) / window.frame.height
+                for y in Int((center - 10) * scale)..<Int((center + 10) * scale) {
                     for x in (source.width / 8)..<(source.width * 7 / 8) {
                         let pixel = bytes.advanced(by: y * flat.bytesPerRow + x * 4)
                         if max(pixel[0], max(pixel[1], pixel[2])) < 200 { ink += 1 }
