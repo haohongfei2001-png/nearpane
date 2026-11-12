@@ -6,8 +6,8 @@ source scripts/build-paths.sh
 app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
-version=5.5
-build_number=55
+version=5.6
+build_number=56
 name="Nearpane P$version Alpha.app"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications/Nearpane P$version}"
 mkdir -p "$delivery"

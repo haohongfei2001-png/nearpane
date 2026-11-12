@@ -98,7 +98,7 @@ struct DesktopSurface: View {
     }
 
     static func windowDescription(index: Int, frame: SurfaceRect, within desktop: SurfaceRect) -> String {
-        func percent(_ extent: Double, of total: Double) -> Int { Int((100 * extent / total).rounded()) }
+        func percent(_ extent: Double, of total: Double) -> Int { Int((extent / total * 100).rounded()) }
         let left = percent(frame.x - desktop.x, of: desktop.width)
         let top = percent(frame.y - desktop.y, of: desktop.height)
         return "窗口 \(index + 1)，左距 \(left)%，上距 \(top)%，宽 \(percent(frame.width, of: desktop.width))%，高 \(percent(frame.height, of: desktop.height))%"
