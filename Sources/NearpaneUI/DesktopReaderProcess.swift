@@ -48,7 +48,11 @@ enum DesktopReaderProcess {
               posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0) == 0,
               posix_spawn_file_actions_adddup2(&actions, fds[1], STDOUT_FILENO) == 0 else { throw ReaderFailure.unavailable }
         let executablePath = executable.path(percentEncoded: false)
-        var args = [executablePath, mode, argument].map { strdup($0) } + [nil]
+        let arguments: [String] = [executablePath, mode, argument]
+        var args: [UnsafeMutablePointer<CChar>?] = arguments.map { value in
+            value.withCString { bytes in strdup(bytes) }
+        }
+        args.append(nil)
         var env = [strdup("PATH=/usr/bin:/bin"), nil]
         defer { args.forEach { free($0) }; env.forEach { free($0) } }
         var pid: pid_t = 0
