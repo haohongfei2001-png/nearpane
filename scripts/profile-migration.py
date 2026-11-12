@@ -429,6 +429,7 @@ def validate_configuration(root):
 
 
 def validate_with_host(host, root):
+    staged_clock = domains.obj(root / domains.CONFIG).get("clockTimeZoneID")
     result = subprocess.run([str(host), "--validate-import-configuration", str(root / domains.CONFIG)],
                             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                             timeout=15, check=False)
@@ -436,7 +437,11 @@ def validate_with_host(host, root):
             "Host 无法安全读取导入的显示器或模块设置。")
     confirmed = json.loads(result.stdout)
     require(isinstance(confirmed, dict) and confirmed.get("version") == 1, "Host 返回的设置版本不符。")
+    require(confirmed.get("clockTimeZoneID") == staged_clock, "当前版本无法识别所选资料的额外时区，请在来源版本核对。")
     put(root / domains.CONFIG, confirmed)
+    # Both files are still in the unpublished generation. The normalized projection, not any
+    # earlier occupant or adjacent file, supplies the preference that survives a legacy save.
+    put(root / domains.CLOCK, confirmed.get("clockTimeZoneID"))
 
 
 def main():

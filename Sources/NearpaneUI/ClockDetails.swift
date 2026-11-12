@@ -30,6 +30,9 @@ struct ClockDetails: View {
                 }
             }
             .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("额外时区")
+            if host.clockNeedsAttention {
+                Text("额外时区未能读取。原设置已保留，可从「时区」重新选择。").font(.caption)
+            }
             if host.configurationSaveFailed { Text("设置未能保存。").font(.caption) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

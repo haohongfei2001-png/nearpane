@@ -174,6 +174,27 @@ class Domains(unittest.TestCase):
         self.assertEqual(out["workspaces"]["windows"],[])
         self.assertEqual(domain.obj(self.dest/"WorkRect/management.json"),dict(mode="off",ratio=.63,swap=True))
 
+    def test_clock_projection_uses_only_the_selected_settings_generation(self):
+        (self.data / "profile.version").write_bytes(b"Nearpane P5.3\n")
+        (self.data / domain.CLOCK).write_text(json.dumps("Europe/Paris"))
+        original = fingerprint(self.data)
+        domain.import_profile(ARGS.source, self.dest, ["tray"], self.data)
+        self.assertEqual(domain.obj(self.dest/domain.CONFIG)["clockTimeZoneID"], "Europe/Paris")
+        self.assertEqual(fingerprint(self.data), original)
+        chosen = self.case/"selected-settings"
+        chosen.mkdir()
+        domain.import_profile(ARGS.source, chosen, ["settings"], self.data)
+        self.assertEqual(domain.obj(chosen/domain.CONFIG).get("clockTimeZoneID"),
+                         domain.settings(ARGS.source)[0].get("clockTimeZoneID"))
+        (self.data/domain.CLOCK).write_text("null")
+        config = domain.obj(self.data/domain.CONFIG)
+        config["clockTimeZoneID"] = "Asia/Shanghai"
+        (self.data/domain.CONFIG).write_text(json.dumps(config))
+        self.assertNotIn("clockTimeZoneID", domain.settings(self.data)[0])
+        (self.data/domain.CLOCK).write_text('{"permission":true}')
+        with self.assertRaises(ValueError):
+            domain.settings(self.data)
+
     def test_committed_wal_recovered_in_private_copy_and_truncated_wal_refused(self):
         base = self.data / domain.VOICE
         rid = query(base, "SELECT id FROM recordings")[0][0]

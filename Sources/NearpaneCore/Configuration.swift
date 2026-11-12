@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 public struct ModulePreference: Codable, Equatable, Sendable {
     public var id: String
@@ -63,12 +64,24 @@ public enum ConfigurationError: Error { case unsupportedVersion, invalid }
 public protocol ConfigurationStore {
     func load() throws -> HostConfiguration
     func save(_ configuration: HostConfiguration) throws
+    func saveClock(_ configuration: HostConfiguration) throws
+    var clockNeedsAttention: Bool { get }
+}
+extension ConfigurationStore {
+    public var clockNeedsAttention: Bool { false }
+    public func saveClock(_ configuration: HostConfiguration) throws { try save(configuration) }
 }
 
 @MainActor
 public final class FileConfigurationStore: ConfigurationStore {
     public let url: URL
-    public init(url: URL) { self.url = url }
+    private let clockFile: URL?
+    public private(set) var clockNeedsAttention = false
+    private var inlineClock: String?
+    public init(url: URL, activeProfile: Bool = false) {
+        self.url = url
+        clockFile = activeProfile ? url.deletingLastPathComponent().appendingPathComponent("clock-time-zone.v1.json") : nil
+    }
 
     public func load() throws -> HostConfiguration {
         let handle: FileHandle
@@ -80,11 +93,70 @@ public final class FileConfigurationStore: ConfigurationStore {
         let limit = 128 * 1024
         let data = try handle.read(upToCount: limit + 1) ?? Data()
         guard data.count <= limit else { throw ConfigurationError.invalid }
-        return try JSONDecoder().decode(HostConfiguration.self, from: data).validated()
+        var configuration = try JSONDecoder().decode(HostConfiguration.self, from: data).validated()
+        inlineClock = configuration.clockTimeZoneID
+        clockNeedsAttention = false
+        if let clockFile {
+            do { configuration.clockTimeZoneID = try readClock(at: clockFile, configuration: configuration) }
+            catch {
+                clockNeedsAttention = true
+                configuration.clockTimeZoneID = nil
+            }
+        }
+        return configuration
+    }
+
+    private func readClock(at file: URL, configuration: HostConfiguration) throws -> String? {
+        // Staged import validation uses the default store and sees exactly its canonical document.
+        try ProfileLease.checkPath(file)
+        let fd = open(file.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
+        guard fd >= 0 else {
+            guard errno == ENOENT else { throw CocoaError(.fileReadNoPermission) }
+            if configuration.clockTimeZoneID != nil { try saveClock(configuration) }
+            return configuration.clockTimeZoneID
+        }
+        let reader = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        defer { try? reader.close() }
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG, info.st_uid == getuid(),
+              info.st_nlink == 1, info.st_size <= 256 else { throw ConfigurationError.invalid }
+        let bytes = try reader.read(upToCount: 257) ?? Data()
+        guard bytes.count <= 256 else { throw ConfigurationError.invalid }
+        let zone = try JSONDecoder().decode(String?.self, from: bytes)
+        guard zone.map(TimeZone.knownTimeZoneIdentifiers.contains) ?? true else { throw ConfigurationError.invalid }
+        return zone
+    }
+
+    public func saveClock(_ configuration: HostConfiguration) throws {
+        guard let clockFile else { try save(configuration); return }
+        let zone = configuration.clockTimeZoneID
+        guard zone.map(TimeZone.knownTimeZoneIdentifiers.contains) ?? true else { throw ConfigurationError.invalid }
+        try ProfileLease.checkPath(clockFile)
+        if clockNeedsAttention {
+            var info = stat()
+            if lstat(clockFile.path, &info) == 0 {
+                guard info.st_mode & S_IFMT == S_IFREG, info.st_uid == getuid() else { throw ConfigurationError.invalid }
+                // Preserve the bad record until explicit reset. A hard link retains even a large
+                // bad file without copying its contents. The atomic replacement unlinks only our name.
+                let backup = clockFile.deletingLastPathComponent().appendingPathComponent("clock-recovery-\(info.st_dev)-\(info.st_ino)")
+                if info.st_nlink == 1 {
+                    guard link(clockFile.path, backup.path) == 0 else { throw CocoaError(.fileWriteUnknown) }
+                } else {
+                    var saved = stat()
+                    guard info.st_nlink == 2, lstat(backup.path, &saved) == 0,
+                          saved.st_dev == info.st_dev, saved.st_ino == info.st_ino else { throw ConfigurationError.invalid }
+                }
+            } else if errno != ENOENT { throw CocoaError(.fileReadNoPermission) }
+        }
+        // A single atomic replacement is the entire clock change. JSON null records a clear even
+        // if an older Host still has an inline value. No authority or other settings live here.
+        try JSONEncoder().encode(zone).write(to: clockFile, options: .atomic)
+        clockNeedsAttention = false
     }
 
     public func save(_ configuration: HostConfiguration) throws {
-        let value = try configuration.validated()
+        var value = try configuration.validated()
+        if clockNeedsAttention { value.clockTimeZoneID = inlineClock }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(value)

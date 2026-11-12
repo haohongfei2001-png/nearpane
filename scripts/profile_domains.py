@@ -16,6 +16,7 @@ import uuid
 VOICE = Path("Nearpane/Voice/Saytile.sqlite")
 TRAY = Path("Riftlet/queue.sqlite")
 CONFIG = Path("Nearpane/host-configuration.json")
+CLOCK = Path("Nearpane/clock-time-zone.v1.json")
 # sqlite_master, including indexes and constraints, from the two pinned domain writers.
 SCHEMA = {VOICE: (5, "034c18279d1b3aaffc7580f07c568baf34809cceba5fc4f95469d96ccd4b76e9"),
           TRAY: (4, "04b043caf5f2b592719c1a5a7ef57e876ea2bb874462b01c6254a493d739f096")}
@@ -292,13 +293,22 @@ def attachment_holds(db, library, ids):
     return holds
 
 
-def settings(root):
+def settings(root, *, include_clock=True):
     cfg = obj(root / CONFIG, 128 * 1024)
     require(cfg.get("version") == 1 and cfg.get("edge") in ("left", "right") and
             isinstance(cfg.get("modules"), list) and isinstance(cfg.get("displays", {}), dict),
             "Host 设置版本或结构无法识别。")
     cfg = {k: v for k, v in cfg.items() if k in {"version","edge","preferredDisplayID","surfaceHidden",
            "candidateTrayConnected","workspaces","displays","modules","fixture","clockTimeZoneID"}}
+    clock = root / CLOCK
+    if include_clock and (clock.exists() or clock.is_symlink()) and regular(root / "profile.version").read_bytes() == b"Nearpane P5.3\n":
+        require(regular(clock).stat().st_size <= 256, "时区设置文件超过大小限制。")
+        zone = json.loads(clock.read_bytes())
+        require(zone is None or (isinstance(zone, str) and 0 < len(zone) <= 128), "时区设置格式无效。")
+        if zone is None:
+            cfg.pop("clockTimeZoneID", None)
+        else:
+            cfg["clockTimeZoneID"] = zone
     cfg["experimentalSpaceObservation"] = False
     ws = cfg.get("workspaces", {})
     cfg["workspaces"] = {k: v for k, v in ws.items() if k in ("excludedApps", "newWindow", "overflow")}
@@ -338,7 +348,7 @@ def copy_capture_preferences(source, destination):
 
 def inspect_profile(source):
     source = directory(Path(source))
-    cfg, _, blocked = settings(source)
+    cfg, _, blocked = settings(source, include_clock=False)
     with snapshot(source, VOICE) as voice, snapshot(source, TRAY) as queue:
         return dict(**voice_stats(voice), **tray_contents(queue, source),
                     displaySettings=len(cfg.get("displays", {})), windowRecoveryBlocked=blocked)

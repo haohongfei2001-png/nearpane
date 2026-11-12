@@ -90,6 +90,23 @@ class Transactions(unittest.TestCase):
         g = m.generation(self.container, self.apply(["tray"])["active"])
         self.assertEqual((m.domains.inspect_profile(g)["voiceRecords"], m.domains.inspect_profile(g)["trayAssets"]), (1, 5))
 
+    def test_clock_survives_selective_import_and_invalid_zone_refuses_publication(self):
+        sidecar = self.current / m.domains.CLOCK
+        sidecar.write_text(json.dumps("Europe/Paris"))
+        generation = m.generation(self.container, self.apply(["voice"])["active"])
+        self.assertEqual(json.loads((generation / m.domains.CLOCK).read_bytes()), "Europe/Paris")
+        self.assertEqual(m.domains.settings(generation)[0]["clockTimeZoneID"], "Europe/Paris")
+        index = m.index(self.container)
+        source = self.source / m.domains.CONFIG
+        cfg = m.domains.obj(source)
+        cfg["clockTimeZoneID"] = "Unknown/Invalid"
+        m.put(source, cfg)
+        with self.assertRaisesRegex(ValueError, "时区"):
+            self.apply(["settings"])
+        self.assertEqual(m.index(self.container), index)
+        self.assertEqual(m.domains.obj(source), cfg)
+        self.assertFalse(m.state(self.container)["needsRecovery"])
+
     def test_old_confirmation_rejected(self):
         token = m.preview(self.container, self.source, m.SECTIONS)["token"]
         cfg = self.source / m.domains.CONFIG

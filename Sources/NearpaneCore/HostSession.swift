@@ -65,6 +65,7 @@ public final class HostSession {
         guard !isRunning else { return }
         do {
             configuration = try store.load()
+            clockNeedsAttention = store.clockNeedsAttention
             configurationProtected = false
         } catch {
             configuration = HostConfiguration()
@@ -128,11 +129,12 @@ public final class HostSession {
         persistSettings(next)
     }
 
+    public private(set) var clockNeedsAttention = false
     public func setClockTimeZone(_ id: String?) {
-        guard configuration.clockTimeZoneID != id, id.map(TimeZone.knownTimeZoneIdentifiers.contains) ?? true else { return }
+        guard (clockNeedsAttention || configuration.clockTimeZoneID != id), id.map(TimeZone.knownTimeZoneIdentifiers.contains) ?? true else { return }
         var next = configuration
         next.clockTimeZoneID = id
-        persistSettings(next, updatePresentation: false)
+        if persistSettings(next, updatePresentation: false, clockOnly: true) { clockNeedsAttention = false }
     }
     public func updatePanelContents(_ contents: [String: PanelContent]) {
         if panelContents != contents { panelContents = contents }
@@ -151,10 +153,12 @@ public final class HostSession {
         unsavedWorkspacePreferences = saved ? nil : value
         return saved
     }
-    @discardableResult private func persistSettings(_ next: HostConfiguration, updatePresentation: Bool = true) -> Bool {
+    @discardableResult private func persistSettings(_ next: HostConfiguration, updatePresentation: Bool = true,
+                                                    clockOnly: Bool = false) -> Bool {
         guard isRunning, !configurationProtected else { return false }
         do {
-            try store.save(next.validated())
+            let valid = try next.validated()
+            if clockOnly { try store.saveClock(valid) } else { try store.save(valid) }
             configuration = next
             configurationSaveFailed = false
             if updatePresentation { presentationChanged?() }

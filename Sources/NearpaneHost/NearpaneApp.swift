@@ -78,10 +78,11 @@ struct NearpaneApp {
                         Task {
                             do {
                                 let (lease, generation) = try await CandidateProfile.open(in: session.directory)
-                                let config = try FileConfigurationStore(url: generation.appendingPathComponent("Nearpane/host-configuration.json")).load()
+                                let config = try FileConfigurationStore(url: generation.appendingPathComponent("Nearpane/host-configuration.json"), activeProfile: true).load()
                                 let counts = try CandidateProfile.inspectStores(in: generation, counts: true)
                                 let result: [String: Any] = ["generation": generation.lastPathComponent, "path": generation.path, "counts": counts,
-                                                             "configurationReadable": true, "hidden": config.surfaceHidden]
+                                                             "configurationReadable": true, "hidden": config.surfaceHidden,
+                                                             "clockTimeZoneID": config.clockTimeZoneID as Any? ?? NSNull()]
                                 let data = try JSONSerialization.data(withJSONObject: result, options: .sortedKeys)
                                 try withExtendedLifetime(lease) { try FileHandle.standardOutput.write(contentsOf: data + Data([10])) }
                                 exit(0)
@@ -240,12 +241,15 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
         guard !Task.isCancelled else { return }
-        let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"))
         #if canImport(SaytileKit)
         let candidate = CandidateProfile.selected
+        let activeProfile = profileLease != nil
         #else
         let candidate = false
+        let activeProfile = false
         #endif
+        let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"),
+                                           activeProfile: activeProfile)
         // A live acceptance session can attach only with its explicit browser-before binding.
         let boundDraft = passiveDisplayID == nil && testSession.map {
             FileManager.default.fileExists(atPath: $0.appendingPathComponent("target-binding.json").path)
