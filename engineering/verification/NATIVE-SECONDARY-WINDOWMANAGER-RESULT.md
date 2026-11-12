@@ -33,3 +33,15 @@
 副屏自建窗口原生全屏、用户打开和收起语音工具、退出回到原桌面与普通面板已有独立现场通过记录。本轮仅修改验收工具和文档。已安装 P5.7 Alpha 通过严格签名核验，Host SHA-256 为 `7f07b68da4bcf720545ee2ea63e4bccc722d0bf7249c93a1286fb4945a20a833`。[全屏浮层现场记录](NATIVE-FULLSCREEN-OVERLAY-RESULT.md) · [当前 Alpha](</Users/hhf/Applications/Nearpane P5.7/Nearpane P5.7 Alpha.app>)
 
 下一次有效的实机条件是副屏自身已有可识别的相邻空白普通 B，或取得能独立证明添加动作确实位于副屏的新证据。已有 B 时可直接从 A/B 身份及回程校准开始。空间行接入仍取决于三轮真实往返，跨空间拖窗另须证明单窗 membership 改变、兄弟窗口原位及可恢复。
+
+## 第二次无人时段
+
+2026-11-13 北京时间 05:20—05:34:45。两次冻结 Reader 读取均确认主屏 current 为 1309，副屏 current 为 4297，副屏只有这一个普通桌面。第一次使用的较早 Reader 缺少普通桌面分类字段，已舍弃其读数并按清单锁定 P5.7 Reader。[有效的两次读取](../../build/verification/secondary-control-identity/1D1B15B6-FC54-4BDA-89CD-4514A667A90F.json)
+
+05:20 自建窗口 189180 获得副屏焦点并打开调度中心。桌面栏右上方的悬停交给已验证的 Apple 系统进程，栏仍高 40 pt。添加按钮的两种矩形读数仍为 (828.125, −32.5, 56.25, 90)，栏内的有界系统命中检查未能两次定位到同一个按钮。没有按下按钮。05:20:40 概览关闭，窗口消失，双屏 current、原焦点及指针均归还。[实机操作与外部读回](../../build/verification/secondary-route-followup/b470f15a-1656-465b-b242-697aaf8c9b25/create.jsonl)
+
+随后改为先从中部展开栏，再在已确认的展开区域悬停右缘。05:23 系统仍报告有输入，未启动窗口。05:24 创建的窗口 189223 在借用指针前发现指针已变化，随即关闭，未打开概览。外部观察器确认子进程退出、原 AX 窗口与几何恢复；指针位置已与登记时不同。05:25—05:27 的只读等待共采样 60 次，最长一次报告空闲 14.9 秒，未达本次为避免干扰而设置的连续 30 秒，后续验收未启动。上述记录只能说明系统输入状态，不能判断是谁在使用电脑。[首次预检](../../build/verification/secondary-route-followup/c0f721e7-dbc8-454a-9baf-9272c320e45d/create.jsonl) · [指针变化前后](../../build/verification/secondary-route-followup/c183401d-6b49-41bb-9b46-e053741a055b/create.jsonl) · [只读等待](../../build/verification/secondary-control-identity/idle-dispatch.txt)
+
+三个准备目录的动作日志均无创建意图，方向见证进程均未启动。**实际建 B 为 0，普通 A→B→A 为 0/3，跨空间移窗为 0。** 最新的“中部展开 → 右缘显现 → 精确按钮命中”路径未取得完整现场结果。若副屏已经有可见证的专用相邻 B，可直接走现有桌面的校准入口。此前的独立全屏和工具浮层结果继续有效。
+
+实验源码提交 `4c8c02329af32eb3fd59168417e9410a30e2e11e`。当矩形不能定位时，新的检查要求副屏条内同一物理点两次命中已登记的同一 Apple 控件，并在输入前重新核对对象。只有语义控件获准才可派发动作。新控件命中 12 项、原几何 9 项、监督与清理 24 项、许可检查点 13 项、拓扑 5 项回归均通过。最终工具的六个二进制通过 SHA-256 清单核验，实验 App 通过严格签名核验。构建与这些离线检查均未给产品添加空间切换权限。[监督器用例结果](../../build/verification/secondary-control-identity/supervisor-regression.log) · [公开命中接口](https://developer.apple.com/documentation/applicationservices/1462077-axuielementcopyelementatposition)
