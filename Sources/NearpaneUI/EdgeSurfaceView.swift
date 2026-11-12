@@ -32,7 +32,10 @@ public struct EdgeSurfaceView: View {
                 #endif
                 if layout.voice.height > 0 {
                     #if canImport(SaytileVoiceUI)
-                    FramedVoiceSlot { voice }.place(in: layout.voice)
+                    // Preserve the card's soft shadow in the glass gutter before the tray.
+                    FramedVoiceSlot { voice }
+                        .frame(width: layout.voice.width, height: layout.voice.height)
+                        .offset(x: layout.voice.x, y: layout.voice.y)
                     #else
                     voice.place(in: layout.voice)
                     #endif
@@ -56,7 +59,11 @@ public struct EdgeSurfaceView: View {
             // Offset children don't contribute their offsets to a ZStack's measured size.
             // Clip at the whole panel, not at the height of its largest individual region.
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+            #if canImport(SaytileVoiceUI)
+            .clipShape(RoundedRectangle(cornerRadius: VoiceRailMetrics(width: geometry.size.width).radius, style: .continuous))
+            #else
             .clipped()
+            #endif
             #if canImport(NearpaneTray)
             .contentShape(Rectangle())
             .simultaneousGesture(SpatialTapGesture().onEnded { event in
