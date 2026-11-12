@@ -9,7 +9,7 @@ struct LayoutTests {
             for height in [400.0, 864, 1920] {
                 for count in [0, 1, 5, 100] {
                     let result = LayoutComposer.compose(width: width, height: height, pinnedCount: count, expanded: false)
-                    #expect(abs(result.voice.height - min(height * 0.225, width * 173 / 325)) < 0.0001)
+                    #expect(abs(result.voice.height - min(height * 0.225, width * 173 / 325).rounded()) < 0.0001)
                     #expect(abs(result.screenshots.height - min(height * 0.225, width * 195 / 325)) < 0.0001)
                     #expect(result.desktop.y == result.voice.height + result.screenshots.height)
                     #expect(abs(result.desktop.y + result.desktop.height - height) < 0.0001)
@@ -27,10 +27,11 @@ struct LayoutTests {
 
         let one = sizes.contentHeights(913, width: 325, content: .voiceOnly, voice: true, tray: true)
         #expect(one.voice == 173 && one.tray == 0 && one.spaces == 0)
+        #expect(sizes.contentHeights(1080, width: 240, content: .full, voice: true, tray: true).voice == 128)
         var manual = sizes
-        manual.measures = [.voiceHeight: .init(201), .trayHeight: .init(24, .percent)]
+        manual.measures = [.voiceHeight: .init(201.25), .trayHeight: .init(24, .percent)]
         let adjusted = manual.contentHeights(900, width: 150, content: .full, voice: true, tray: true)
-        #expect(adjusted.voice == 201 && adjusted.tray == 216 && adjusted.spaces == 483)
+        #expect(adjusted.voice == 201.25 && adjusted.tray == 216 && adjusted.spaces == 482.75)
     }
 
     @Test func testOverlayAndOverflowDoNotChangeCoreGeometry() {

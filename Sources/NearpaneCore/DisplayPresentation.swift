@@ -335,9 +335,11 @@ extension DisplaySettings {
         let gaps = max(0, [showVoice, showTray, showSpaces].filter { $0 }.count - 1)
         let gap = min(points(.sectionGap, in: h), h / Double(max(1, gaps + 1)))
         #if canImport(SaytileVoiceUI)
-        let factoryVoice = VoiceRailMetrics.factoryHeight(width: width, visibleHeight: h)
+        // NSWindow rounds the standalone factory slot to whole logical points.
+        // Match that host boundary before SwiftUI lays out the embedded card.
+        let factoryVoice = VoiceRailMetrics.factoryHeight(width: width, visibleHeight: h).rounded()
         #else
-        let factoryVoice = min(h * 0.225, width * 173 / 325)
+        let factoryVoice = min(h * 0.225, width * 173 / 325).rounded()
         #endif
         let voiceHeight = showVoice ? measures[.voiceHeight]?.points(in: h) ?? factoryVoice : 0
         let trayHeight = showTray ? measures[.trayHeight]?.points(in: h) ?? min(h * 0.225, width * 195 / 325) : 0

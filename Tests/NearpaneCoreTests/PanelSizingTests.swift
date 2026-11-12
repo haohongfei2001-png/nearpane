@@ -12,7 +12,7 @@ struct PanelSizingTests {
         let frame = try #require(settings.panel(on: portrait, fallbackEdge: .right))
         #expect(frame == SurfaceRect(x: -100, y: 0, width: 100, height: 1280))
         let sections = settings.contentHeights(frame.height, width: frame.width, content: .full, voice: true, tray: true)
-        #expect(abs(sections.voice - 100 * 173 / 325.0) < 0.0001)
+        #expect(sections.voice == 53)
         #expect(sections.tray == 60)
         #expect(abs(sections.voice + sections.tray + sections.spaces - frame.height) < 0.0001)
         #expect(settings.sizeForm(width: frame.width, height: frame.height, content: .full, voice: true, tray: true) == .full)
