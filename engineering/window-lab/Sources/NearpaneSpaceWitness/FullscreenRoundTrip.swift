@@ -117,11 +117,23 @@ extension Trial {
         enrolledFullscreen = second
         try writeJSON(["run": run.uuidString, "source": origin.record, "fullscreenCurrent": second.0.currents[display],
                        "focusAndBothDisplays": "verified", "revision": String(revision)], dir, "fullscreen-enter-confirmed.json")
+        if observeTools, let current = second.0.currents[display] {
+            try holdForTools(origin: origin, display: display, fullscreen: current) {
+                try require(try readFullscreen() == second, "fullscreen window, focus, geometry or display state changed during Host observation")
+            }
+        }
         try toggle(enter: false)
         let returned = try stable("A", "fullscreen-returned")
         try require(returned == origin && notices.entered == 1 && notices.exited == 1,
                     "original window, focus, ordinary frame or both display currents did not return")
         try writeJSON(["run": run.uuidString, "source": origin.record, "returned": returned.record,
                        "systemInputs": "2", "revision": String(revision)], dir, "fullscreen-exit-confirmed.json")
+        if observeTools {
+            let end = min(authorizedUntil - 3, ProcessInfo.processInfo.systemUptime + 2)
+            while ProcessInfo.processInfo.systemUptime < end {
+                try focusedFixture()
+                pump()
+            }
+        }
     }
 }

@@ -86,7 +86,10 @@ def grant(run_dir, run, args):
     origin = load(run_dir / "scope-snapshot-1.json")
     require(context["run"] == run == origin["sessionID"], "origin belongs to another trial")
     fullscreen = getattr(args, "fullscreen_only", False)
-    require(fullscreen == (context.get("procedure", "route") == "fullscreen"), "consent does not match trial procedure")
+    tools = getattr(args, "observe_tools", False)
+    require(not tools or fullscreen, "tool observation requires an authorized fullscreen trial")
+    procedure = "fullscreen-tools" if tools else "fullscreen" if fullscreen else "route"
+    require(context.get("procedure", "route") == procedure, "consent does not match trial procedure")
     focus_loan = getattr(args, "allow_temporary_focus", False)
     require(not focus_loan or context.get("focusLoanProtocol") == "1",
             "this frozen witness cannot verify a temporary foreground loan")
@@ -107,7 +110,8 @@ def grant(run_dir, run, args):
             dict(run=run, boot=context["boot"], securityID=int(context["securityID"]),
                  secondaryDisplay=context["secondaryDisplay"], source=args.source, target=args.target or "",
                  starts=format_utc(starts), ends=format_utc(ends), permitsCalibrationAndThreeRoundTrips=not fullscreen,
-                 permitsSingleWindowFullscreen=fullscreen, permitsTemporarySecondaryFocus=focus_loan))
+                 permitsSingleWindowFullscreen=fullscreen, permitsTemporarySecondaryFocus=focus_loan,
+                 permitsFullscreenToolObservation=tools))
 
 
 def ack(run_dir, run, args, *, timeout=20):
@@ -161,7 +165,9 @@ def main():
      Use the UUID printed by this new trial. On its unattended-consent request, record only
      an existing owner grant using consent --source ID --target ID --starts ISO8601 --ends ISO8601.
      Add --allow-temporary-focus only when the owner explicitly permits a temporary foreground
-     loan in that interval. The witness rehearses passive return to the exact original window.
+     loan in that interval. The witness then enrolls A and B through actual AppKit foreground
+     acquisition, and rehearses passive return if borrowing focus from the protected display.
+     When enroll-A and observe-B complete this way, those fixture clicks/acks are unnecessary.
   3. After its enroll-A request and an actual click on the A fixture, use ack enroll-A.
      At enroll-B, use only the public Control-arrow mapping independently demonstrated for
      this pair. After reaching B, use ack enroll-B --observed-chord left|right. A registered
@@ -172,6 +178,11 @@ def main():
   Alternatively, --fullscreen-console enrolls only A. Record the existing fullscreen grant
   with consent --fullscreen-only --source ID --starts ISO8601 --ends ISO8601 and ack the
   actual enroll-A click. It attempts one public AppKit entry and exit on the enrolled window.
+  For a combined Host test, start --fullscreen-tools-console with consent --fullscreen-only
+  --observe-tools. Its fullscreen-tools-challenge.json identifies the live evidence interval.
+  The Host controller correlates the real UI observations and writes fullscreen-tools-response.json
+  while the witness is still holding the enrolled fullscreen window. The ordinary fullscreen
+  trial does not wait for a controller.
   5. On stopped.json, inspect pendingInput, cleanup, scopeReturn, focusReturn and raw
      per-leg records. No retry or automatic inverse shortcut is issued by this controller.
      A trial terminated without stopped.json or completed.json has an unknown outcome.""")
@@ -183,6 +194,8 @@ def main():
         consent.add_argument("--" + key, required=True)
     consent.add_argument("--target", help="required destination for a route trial")
     consent.add_argument("--fullscreen-only", action="store_true", help="grant only one native fullscreen entry and return on A")
+    consent.add_argument("--observe-tools", action="store_true",
+                         help="hold an enrolled fullscreen fixture while the isolated Host is observed")
     consent.add_argument("--allow-temporary-focus", action="store_true",
                          help="record an explicit loan to this run's secondary fixture within the specified interval")
     release = commands.add_parser("ack", help="acknowledge a witnessed fixture click or manually demonstrated system chord")

@@ -22,10 +22,13 @@ import WindowLab
     let boot: String, displays: [String]
   }
   private var admitted: SessionIdentity?
+  var consoleBoot: String? { admitted?.boot }
+  var authorizedUntil: Double { min(deadline, consentExpiresUptime ?? deadline) }
   var originDisplay: String?
   let deadline = ProcessInfo.processInfo.systemUptime + 600
   let consoleTrial: Bool
-  let fullscreenOnly: Bool
+  let fullscreenOnly, observeTools: Bool
+  var toolObservationResult: String?
   private var originScopes: TrialDisplayState?
   private var cleanupAttempted = false
   private var cleanupVerified = false
@@ -38,9 +41,10 @@ import WindowLab
   private var consentExpiresUptime: Double?
   var enrolledRead: String { consoleTrial ? "--read-enrolled-console" : "--read-encoded" }
 
-  init(consoleTrial: Bool, fullscreenOnly: Bool = false) throws {
+  init(consoleTrial: Bool, fullscreenOnly: Bool = false, observeTools: Bool = false) throws {
     self.consoleTrial = consoleTrial
     self.fullscreenOnly = fullscreenOnly
+    self.observeTools = observeTools
     kit = Bundle.main.bundleURL.deletingLastPathComponent()
     let base = try FileManager.default.url(
       for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
@@ -92,7 +96,7 @@ import WindowLab
     if let consent = consoleConsent {
       guard let caller = admitted, let end = consentExpiresUptime, ProcessInfo.processInfo.systemUptime < end,
             let display = originDisplay,
-            consent.allows(run: run, boot: caller.boot, securityID: caller.securityID, display: display, at: Date(), fullscreenOnly: fullscreenOnly)
+            consent.allows(run: run, boot: caller.boot, securityID: caller.securityID, display: display, at: Date(), fullscreenOnly: fullscreenOnly, observeTools: observeTools)
       else { throw Refusal("console authorization expired or no longer matches") }
     }
   }
@@ -102,8 +106,17 @@ import WindowLab
           let end = consentExpiresUptime, min(end, deadline) - ProcessInfo.processInfo.systemUptime > seconds
     else { throw Refusal("insufficient authorized time for fullscreen and return") }
   }
+  func toolObservationCutoff() throws -> Double {
+    try checkConsentExpiry()
+    guard observeTools, consoleConsent?.permitsFullscreenToolObservation == true,
+          let end = consentExpiresUptime else { throw Refusal("missing timed fullscreen tool grant") }
+    // Reserve enough time for two independent reads, the AppKit return and cleanup.
+    let now = ProcessInfo.processInfo.systemUptime
+    return min(now + 90, min(end, deadline) - 35)
+  }
   private var gui: NSApplication?
   private var clicked = Set<String>()
+  private var enrolledByAppKit = Set<String>()
   func pump() {
     if let gui {
       while let event = gui.nextEvent(
@@ -183,7 +196,7 @@ import WindowLab
     let (_, display) = try screen()
     originScopes = try TrialDisplayState(consoleEndpoint("A", display: display))
     try writeJSON(["run": run.uuidString, "boot": session.boot, "securityID": String(session.securityID),
-                   "secondaryDisplay": display, "focusLoanProtocol": "1", "procedure": fullscreenOnly ? "fullscreen" : "route"], dir, "console-scope.json")
+                   "secondaryDisplay": display, "focusLoanProtocol": "1", "procedure": observeTools ? "fullscreen-tools" : fullscreenOnly ? "fullscreen" : "route"], dir, "console-scope.json")
     try awaitCheckpoint("unattended-consent")
     let file = dir.appendingPathComponent("unattended-consent.ready")
     let fd = open(file.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
@@ -197,7 +210,7 @@ import WindowLab
     let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
     let consent = try decoder.decode(ConsoleSpaceConsent.self, from: try handle.read(upToCount: 4097) ?? Data())
     let now = Date()
-    guard consent.allows(run: run, boot: session.boot, securityID: session.securityID, display: display, at: now, fullscreenOnly: fullscreenOnly)
+    guard consent.allows(run: run, boot: session.boot, securityID: session.securityID, display: display, at: now, fullscreenOnly: fullscreenOnly, observeTools: observeTools)
     else { throw Refusal("missing current consent for these two test desktops") }
     consoleConsent = consent
     consentExpiresUptime = ProcessInfo.processInfo.systemUptime + consent.ends.timeIntervalSince(now)
@@ -270,7 +283,7 @@ import WindowLab
     return "unknown"
   }
 
-  func sample(_ label: String) throws -> Position {
+  func sample(_ label: String, beforeAcquiringFocus: Bool = false) throws -> Position {
     try scope()
     guard let w = windows[label] else { throw Refusal("unknown window") }
     try ownedAX(label)
@@ -288,7 +301,7 @@ import WindowLab
     let frame = try placement()
     let number = UInt32(w.windowNumber)
     let (pid, el) = try focusedWindow()
-    if let expected = focus[label] {
+    if !beforeAcquiringFocus, let expected = focus[label] {
       try require(CFEqual(expected, el), "unexpected focus at endpoint")
     }
     revision += 1
@@ -333,8 +346,10 @@ import WindowLab
     try ownedAX(label)
     let (after, focusAfter) = try focusedWindow()
     try require(after == pid && CFEqual(el, focusAfter), "focus changed during read")
-    try require(w.isKeyWindow && elements[label].map { CFEqual($0, el) } == true, "actual focus is not the enrolled endpoint window")
-    focus[label] = el
+    if !beforeAcquiringFocus {
+      try require(w.isKeyWindow && elements[label].map { CFEqual($0, el) } == true, "actual focus is not the enrolled endpoint window")
+      focus[label] = el
+    }
     return .init(
       scope: row.scopeID, record: row.recordID, currents: currents, frame: frame, number: number,
       frontPID: pid,
@@ -376,7 +391,7 @@ import WindowLab
         if name == "enroll-B" {
           try require(windows["A"]?.isOnActiveSpace == false, "source window still on active Space")
         } else {
-          try require(clicked.contains(destination), "fixture click not witnessed")
+          try require(clicked.contains(destination) || enrolledByAppKit.contains(destination), "endpoint foreground not witnessed")
           _ = try stable(destination, "observed-" + name)
         }
         let first = try TrialDisplayState(consoleEndpoint(destination, display: display))
@@ -512,6 +527,48 @@ import WindowLab
     confirmedInputs += 1
     pendingInput = nil
   }
+  /// The explicit temporary-focus grant permits activating this retained fixture on its own desktop.
+  /// The read-only snapshot before the activation is never used as proof of the resulting focus.
+  func enroll(_ label: String, checkpoint: String) throws -> Position {
+    guard consoleConsent?.permitsTemporarySecondaryFocus == true else {
+      try awaitCheckpoint(checkpoint)
+      try require(clicked.contains(label), "no GUI click witnessed on the enrolled endpoint")
+      return try stable(label, "origin-" + label)
+    }
+    guard let window = windows[label], let display = originDisplay else { throw Refusal("missing own window") }
+    let before = try sample(label, beforeAcquiringFocus: true)
+    let independently = try sample(label, beforeAcquiringFocus: true)
+    try require(before == independently, "fixture membership, identity, focus or geometry changed before activation")
+    _ = try consoleEndpoint(label, display: display)
+    try ownedAX(label)
+    let (secondary, _) = try screen()
+    try require(window.screen == secondary && window.isOnActiveSpace && secondary.frame.contains(window.frame)
+                && UInt32(exactly: window.windowNumber) == before.number && windows[label] === window,
+                "enrollment window has left the authorized desktop")
+    let (front, _) = try focusedWindow()
+    try require(front == before.frontPID, "foreground changed before fixture enrollment")
+    try checkConsentExpiry()
+    if !window.isKeyWindow || front != birth.pid {
+      NSApp.activate()
+      window.makeKeyAndOrderFront(nil)
+    }
+    let until = ProcessInfo.processInfo.systemUptime + 2
+    while !window.isKeyWindow || NSWorkspace.shared.frontmostApplication?.processIdentifier != birth.pid {
+      let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier
+      try checkConsentExpiry()
+      try require((pid == before.frontPID || pid == birth.pid) && ProcessInfo.processInfo.systemUptime < until,
+                  "could not enroll the fixture as foreground")
+      pump()
+    }
+    let here = try stable(label, "origin-" + label)
+    try require(here.record == before.record && here.scope == before.scope && here.currents == before.currents &&
+                here.number == before.number && here.frame == before.frame && here.recordOrder == before.recordOrder &&
+                here.topology == before.topology && here.build == before.build, "desktop changed during fixture enrollment")
+    try writeJSON(["run": run.uuidString, "window": String(here.number), "label": label, "method": "appkit-key-window",
+                   "frontPID": String(here.frontPID), "revision": String(revision)], dir, "enrolled-" + label + ".json")
+    enrolledByAppKit.insert(label)
+    return here
+  }
   func runTrial() throws {
     announce("RUN " + dir.path)
     try scope()  // Gate before NSApplication initialization and before window creation.
@@ -540,9 +597,7 @@ import WindowLab
     gui = app
     app.finishLaunching()
     try create("A")
-    try awaitCheckpoint("enroll-A")
-    try require(clicked.contains("A"), "no GUI click witnessed on enrolled A")
-    baseline["A"] = try stable("A", "origin-A")
+    baseline["A"] = try enroll("A", checkpoint: "enroll-A")
     if let focusLoan { try rehearsePassiveReturn(focusLoan) }
     if fullscreenOnly {
       try fullscreenRoundTrip()
@@ -552,9 +607,7 @@ import WindowLab
     try require(
       windows["A"]?.isOnActiveSpace == false, "A still active; B not independently arranged")
     try create("B")
-    try awaitCheckpoint("observe-B")
-    try require(clicked.contains("B"), "no GUI click witnessed on enrolled B")
-    let b = try stable("B", "origin-B")
+    let b = try enroll("B", checkpoint: "observe-B")
     guard let a = baseline["A"], a.scope == b.scope, a.record != b.record, a.topology == b.topology,
       a.build == b.build
     else { throw Refusal("distinct A/B not witnessed") }
@@ -681,8 +734,9 @@ import WindowLab
 do {
   let args = Array(CommandLine.arguments.dropFirst())
   try require(
-    args.count == 1 && ["--check", "--three-rounds", "--check-console", "--three-rounds-console", "--check-fullscreen-console", "--fullscreen-console"].contains(args[0]), "unknown witness command")
-  let trial = try Trial(consoleTrial: args[0].hasSuffix("-console"), fullscreenOnly: args[0].contains("fullscreen"))
+    args.count == 1 && ["--check", "--three-rounds", "--check-console", "--three-rounds-console", "--check-fullscreen-console", "--fullscreen-console", "--check-fullscreen-tools-console", "--fullscreen-tools-console"].contains(args[0]), "unknown witness command")
+  let trial = try Trial(consoleTrial: args[0].hasSuffix("-console"), fullscreenOnly: args[0].contains("fullscreen"),
+                        observeTools: args[0].contains("fullscreen-tools"))
   if args[0].hasPrefix("--check") {
     trial.announce("RUN " + trial.dir.path)
     struct CheckReceipt: Encodable {
@@ -734,7 +788,11 @@ do {
     try trial.checkFinalScopes()
     try trial.restoredFocus()
     if trial.fullscreenOnly {
-      try writeJSON(["observedFullscreenRoundTrips": 1, "observedRoundTrips": 0], trial.dir, "completed.json")
+      struct Complete: Encodable {
+        let observedFullscreenRoundTrips = 1, observedRoundTrips = 0
+        let toolObservationCheckpoint: String?
+      }
+      try writeJSON(Complete(toolObservationCheckpoint: trial.toolObservationResult), trial.dir, "completed.json")
     } else {
       try writeJSON(["observedRoundTrips": 3], trial.dir, "completed.json")
     }

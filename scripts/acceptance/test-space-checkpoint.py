@@ -66,6 +66,20 @@ class TestCheckpoint(unittest.TestCase):
         self.assertFalse(grant["permitsCalibrationAndThreeRoundTrips"])
         self.assertEqual(grant["target"], "")
 
+    def test_only_combined_consent_can_request_the_tool_checkpoint(self):
+        context = ctl.load(self.folder / "console-scope.json")
+        (self.folder / "console-scope.json").unlink()
+        self.put("console-scope.json", dict(context, procedure="fullscreen-tools"))
+        self.args.target = None
+        self.args.fullscreen_only = True
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        self.args.observe_tools = True
+        ctl.grant(self.folder, self.run, self.args)
+        receipt = ctl.load(self.folder / "unattended-consent.ready")
+        self.assertTrue(receipt["permitsFullscreenToolObservation"])
+        self.assertFalse(receipt["permitsCalibrationAndThreeRoundTrips"])
+
     def test_timed_route_does_not_imply_a_focus_loan(self):
         ctl.grant(self.folder, self.run, self.args)
         self.assertFalse(ctl.load(self.folder / "unattended-consent.ready")["permitsTemporarySecondaryFocus"])
