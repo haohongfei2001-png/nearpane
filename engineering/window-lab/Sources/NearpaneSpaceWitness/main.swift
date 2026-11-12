@@ -24,6 +24,14 @@ import WindowLab
   var originDisplay: String?
   let deadline = ProcessInfo.processInfo.systemUptime + 600
   let consoleTrial: Bool
+  private var originScopes: TrialDisplayState?
+  private var cleanupAttempted = false
+  private var cleanupVerified = false
+  private var focusVerified = false
+  private var scopesVerified = false
+  private var pendingInput: UUID?
+  private var postedInputs = 0
+  private var confirmedInputs = 0
   private var consoleConsent: ConsoleSpaceConsent?
   private var consentExpiresUptime: Double?
   private var enrolledRead: String { consoleTrial ? "--read-enrolled-console" : "--read-encoded" }
@@ -94,7 +102,11 @@ import WindowLab
         if event.type == .leftMouseDown, let target = event.window,
           let label = windows.first(where: { $0.value === target })?.key
         {
-          clicked.insert(label)
+          if clicked.insert(label).inserted {
+            // This receipt is only for the two retained test windows.
+            try? writeJSON(["run": run.uuidString, "label": label, "window": String(target.windowNumber)],
+                           dir, "click-" + label + ".json")
+          }
         }
         gui.sendEvent(event)
       }
@@ -141,11 +153,9 @@ import WindowLab
             let a = scope.records.firstIndex(where: { $0.id == consent.source }),
             let b = scope.records.firstIndex(where: { $0.id == consent.target }), abs(a-b) == 1
       else { throw Refusal("console is not at the specified adjacent test endpoints") }
-      if let origin = baseline["A"] {
-        for scope in s.scopes where scope.displayID != display {
-          try require(scope.records.first(where: \.isCurrent)?.id == origin.currents[scope.displayID],
-                      "untested display changed during setup")
-        }
+      if let originScopes {
+        try require(try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: required),
+                    "display topology, record order or protected current changed during calibration")
       }
     }
     return s
@@ -154,7 +164,7 @@ import WindowLab
   func awaitConsoleConsent() throws {
     guard let session = admitted else { throw Refusal("missing console identity") }
     let (_, display) = try screen()
-    _ = try consoleEndpoint("A", display: display)
+    originScopes = try TrialDisplayState(consoleEndpoint("A", display: display))
     try writeJSON(["run": run.uuidString, "boot": session.boot, "securityID": String(session.securityID),
                    "secondaryDisplay": display], dir, "console-scope.json")
     try awaitCheckpoint("unattended-consent")
@@ -273,7 +283,9 @@ import WindowLab
       obs.metadata?.presentation == .confirmed, obs.membership == .known(recordIDs: [row.recordID]), obs.metadata?.globalFrame == frame
     else { throw Refusal("no independent Space/window witness") }
     if let consent = consoleConsent {
-      try require(row.recordID == (label == "A" ? consent.source : consent.target), "user-designated endpoint changed")
+      guard let originScopes, row.recordID == (label == "A" ? consent.source : consent.target),
+            try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: row.recordID)
+      else { throw Refusal("test endpoint or protected display departed the authorized baseline") }
     }
     var currents = [String: String]()
     for scope in s.scopes {
@@ -319,10 +331,41 @@ import WindowLab
       ["checkpoint": name, "run": run.uuidString, "afterRevision": String(revision)], dir,
       "request-" + name + ".json")
     announce("WAIT " + name)
+    var checkedToken: UUID?
     while !FileManager.default.fileExists(atPath: url.path) {
+      let probe = dir.appendingPathComponent(name + ".observe")
+      if consoleTrial, consoleConsent != nil, checkedToken == nil, FileManager.default.fileExists(atPath: probe.path) {
+        struct Request: Decodable { let run, token: UUID; let checkpoint: String }
+        let probe: Request = try readJSON(dir, name + ".observe")
+        try require(probe.run == run && probe.checkpoint == name, "wrong observation request")
+        guard let display = originDisplay else { throw Refusal("missing secondary display") }
+        let destination = (name == "observe-B" || name == "enroll-B") ? "B" : "A"
+        try scope()
+        if name == "enroll-B" {
+          try require(windows["A"]?.isOnActiveSpace == false, "source window still on active Space")
+        } else {
+          try require(clicked.contains(destination), "fixture click not witnessed")
+          _ = try stable(destination, "observed-" + name)
+        }
+        let first = try TrialDisplayState(consoleEndpoint(destination, display: display))
+        let until = ProcessInfo.processInfo.systemUptime + 0.25
+        while ProcessInfo.processInfo.systemUptime < until { pump() }
+        let latest = try TrialDisplayState(consoleEndpoint(destination, display: display))
+        try require(first == latest, "calibration observation was unstable")
+        try writeJSON(["run": run.uuidString, "checkpoint": name, "token": probe.token.uuidString,
+                       "endpoint": latest.currents[display], "revision": String(revision)],
+                      dir, "attested-" + name + ".json")
+        checkedToken = probe.token
+      }
       try require(ProcessInfo.processInfo.systemUptime < deadline, "checkpoint timeout")
       try checkConsentExpiry()
       pump()
+    }
+    if consoleTrial && consoleConsent != nil {
+      struct Release: Decodable { let run, token: UUID; let checkpoint: String }
+      let release: Release = try readJSON(dir, name + ".ready")
+      try require(release.run == run && release.token == checkedToken && release.checkpoint == name,
+                  "missing witnessed calibration release")
     }
     try scope()
   }
@@ -336,6 +379,28 @@ import WindowLab
       c.run == run && c.checkpoint == checkpoint,
       "missing session-specific demonstrated system shortcut")
     return c.demonstratedControlArrow
+  }
+
+  private func checkControlArrows(_ filename: String) throws {
+    let url = dir.appendingPathComponent(filename)
+    try helper(kit.appendingPathComponent("SessionProbe"), ["control-arrows"], output: url)
+    struct Registrations: Decodable { let left, right: Bool }
+    let keys = try JSONDecoder().decode(Registrations.self, from: Data(contentsOf: url))
+    try require(keys.left && keys.right, "forward or return chord is not registered")
+  }
+
+  private func requestCalibration(_ name: String, from source: String) throws {
+    if consoleTrial {
+      try checkControlArrows(name + "-available-shortcuts.json")
+      let (screen, display) = try screen()
+      _ = try consoleEndpoint(source, display: display)
+      let (pid, el) = try focusedWindow()
+      try require(pid == birth.pid && windows[source]?.isKeyWindow == true
+                  && elements[source].map { CFEqual($0, el) } == true
+                  && screen.frame.contains(NSEvent.mouseLocation),
+                  "calibration requires the focused secondary fixture and pointer")
+    }
+    try awaitCheckpoint(name)
   }
 
   func navigate(
@@ -374,11 +439,7 @@ import WindowLab
                                    frozenOrder: origin.recordOrder, frozenTopology: origin.topology, right: direction == .right,
                                    isolatedDisplays: !consoleTrial),
                 "inactive target, other display, or calibrated order changed")
-    let shortcuts = dir.appendingPathComponent(checkpoint + "-shortcuts.json")
-    try helper(kit.appendingPathComponent("SessionProbe"), ["control-arrows"], output: shortcuts)
-    struct ArrowRegistrations: Decodable { let left, right: Bool }
-    let registrations = try JSONDecoder().decode(ArrowRegistrations.self, from: Data(contentsOf: shortcuts))
-    try require(registrations.left && registrations.right, "calibrated forward or return chord no longer registered")
+    try checkControlArrows(checkpoint + "-shortcuts.json")
     let (pid, currentFocus) = try focusedWindow()
     let modifiers: CGEventFlags = [.maskControl, .maskAlternate, .maskCommand, .maskShift]
     try require(
@@ -395,8 +456,10 @@ import WindowLab
     down.flags = .maskControl
     up.flags = .maskControl
     try checkConsentExpiry()
+    pendingInput = op
     down.post(tap: .cgSessionEventTap)
     up.post(tap: .cgSessionEventTap)
+    postedInputs += 1
     try writeJSON(
       ["operation": op.uuidString, "postedUptime": String(ProcessInfo.processInfo.systemUptime)],
       dir, checkpoint + "-posted.json")
@@ -414,6 +477,8 @@ import WindowLab
     try writeJSON(
       ["operation": op.uuidString, "afterRevision": String(revision)], dir,
       checkpoint + "-confirmed.json")
+    confirmedInputs += 1
+    pendingInput = nil
   }
   func runTrial() throws {
     announce("RUN " + dir.path)
@@ -432,7 +497,7 @@ import WindowLab
     try awaitCheckpoint("enroll-A")
     try require(clicked.contains("A"), "no GUI click witnessed on enrolled A")
     baseline["A"] = try stable("A", "origin-A")
-    try awaitCheckpoint("enroll-B")
+    try requestCalibration("enroll-B", from: "A")
     try require(
       windows["A"]?.isOnActiveSpace == false, "A still active; B not independently arranged")
     try create("B")
@@ -443,7 +508,7 @@ import WindowLab
       a.build == b.build
     else { throw Refusal("distinct A/B not witnessed") }
     baseline["B"] = b
-    try awaitCheckpoint("return-A")
+    try requestCalibration("return-A", from: "B")
     _ = try stable("A", "initial-A")
     let forward = try demonstrated("enroll-B")
     let back = try demonstrated("return-A")
@@ -464,14 +529,18 @@ import WindowLab
     guard let initialFocus else { throw Refusal("initial focus missing") }
     let (pid, el) = try focusedWindow()
     try require(pid == initialFocus.0 && CFEqual(el, initialFocus.1), "original focus not restored")
+    focusVerified = true
+    try writeJSON(["run": run.uuidString, "frontPID": String(pid), "sameAXFocus": "true"], dir, "restored-focus.json")
   }
   func checkFinalScopes() throws {
-    guard let a = baseline["A"] else { throw Refusal("missing original endpoint") }
+    guard originScopes != nil || baseline["A"] != nil else { throw Refusal("missing original endpoint") }
     revision += 1
     let request = DesktopReadRequest(
       session: run, revision: revision, parentPID: getpid(),
       fixtureWindows: [], anchors: [], experimentalSpaces: true)
-    let url = dir.appendingPathComponent("after-cleanup.json")
+    let original = dir.appendingPathComponent("after-cleanup.json")
+    let url = FileManager.default.fileExists(atPath: original.path)
+      ? dir.appendingPathComponent("after-stop-" + String(revision) + ".json") : original
     try helper(
       Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader"),
       [enrolledRead, try JSONEncoder().encode(request).base64EncodedString()], output: url)
@@ -480,16 +549,19 @@ import WindowLab
       s.isStructurallyValid
         && s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime)
         && s.native?.population == .markedFixture && s.native?.spaces == .observed
-        && s.sessionID == run && s.revision == revision && s.topologyFingerprint == a.topology
-        && s.sourceBuild == a.build
-        && s.separateSpaces == true && s.windows.isEmpty && s.scopes.count == 2
-        && Set(s.scopes.map(\.displayID)) == Set(a.currents.keys)
-        && s.scopes.allSatisfy { scope in
-          let active = scope.records.filter(\.isCurrent)
-          return active.count == 1 && active[0].id == a.currents[scope.displayID]
-        }, "original display scopes not restored after cleanup")
+        && s.sessionID == run && s.revision == revision && s.windows.isEmpty,
+      "final scope observation unavailable")
+    let final = try TrialDisplayState(s)
+    if let original = originScopes {
+      try require(final == original, "original display scopes not restored after cleanup")
+    } else if let a = baseline["A"] {
+      try require(final.topology == a.topology && final.build == a.build && final.currents == a.currents,
+                  "original display scopes not restored after cleanup")
+    }
+    scopesVerified = true
   }
   func closeOwned() throws {
+    cleanupAttempted = true
     let ids = windows.values.map { UInt32($0.windowNumber) }
     for w in windows.values {
       w.orderOut(nil)
@@ -503,11 +575,37 @@ import WindowLab
         return !rows.contains { $0[kCGWindowOwnerPID as String] as? Int32 == birth.pid }
       }) {
         try writeJSON(["remaining": 0, "enrolled": ids.count], dir, "cleanup.json")
+        cleanupVerified = true
         return
       }
       pump()
     } while ProcessInfo.processInfo.systemUptime < end
     throw Refusal("fixture cleanup unconfirmed")
+  }
+  // Never issue another shortcut on failure. Window cleanup, Space return and
+  // AX focus return are independent facts; record them even when one fails.
+  func recordStop(_ cause: Error) throws {
+    var result = ["run": run.uuidString, "reason": String(describing: cause),
+                  "postedInputs": String(postedInputs), "confirmedInputs": String(confirmedInputs),
+                  "pendingInput": pendingInput?.uuidString ?? "none"]
+    if !cleanupAttempted {
+      do { try closeOwned() } catch { result["cleanupError"] = String(describing: error) }
+    }
+    result["cleanup"] = cleanupVerified ? "verified" : "unverified"
+    if initialFocus != nil {
+      do {
+        try scope()
+        if !scopesVerified {
+          do { try checkFinalScopes() } catch { result["scopeError"] = String(describing: error) }
+        }
+        if !focusVerified {
+          do { try restoredFocus() } catch { result["focusError"] = String(describing: error) }
+        }
+      } catch { result["observationError"] = String(describing: error) }
+    }
+    result["scopeReturn"] = scopesVerified ? "verified" : "unverified"
+    result["focusReturn"] = focusVerified ? "verified" : "unverified"
+    try writeJSON(result, dir, "stopped.json")
   }
 }
 
@@ -518,24 +616,37 @@ do {
   let trial = try Trial(consoleTrial: args[0].hasSuffix("-console"))
   if args[0].hasPrefix("--check") {
     trial.announce("RUN " + trial.dir.path)
-    try trial.scope()
-    if trial.consoleTrial {
-      let (_, display) = try trial.screen()
-      _ = try trial.consoleEndpoint("A", display: display)
-      trial.announce("CONSOLE_SCOPE_ONLY: OWNER AUTHORIZATION AND TWO ORDINARY TEST ENDPOINTS REQUIRED")
-    } else { trial.announce("ISOLATED_GUI_CANDIDATE") }
+    struct CheckReceipt: Encodable {
+      let run: UUID, outcome: String, reason: String?
+      let windowsCreated = 0, inputsPosted = 0
+    }
+    do {
+      try trial.scope()
+      if trial.consoleTrial {
+        let (_, display) = try trial.screen()
+        _ = try trial.consoleEndpoint("A", display: display)
+      }
+      let result = trial.consoleTrial ? "CONSOLE_SCOPE_ONLY" : "ISOLATED_GUI_CANDIDATE"
+      try writeJSON(CheckReceipt(run: trial.run, outcome: result, reason: nil), trial.dir, "preflight.json")
+      trial.announce(result)
+    } catch {
+      try writeJSON(CheckReceipt(run: trial.run, outcome: "REFUSED", reason: String(describing: error)),
+                    trial.dir, "preflight.json")
+      throw error
+    }
     exit(0)
   }
-  do { try trial.runTrial() } catch {
-    try writeJSON(["reason": String(describing: error)], trial.dir, "stopped.json")
+  do {
+    try trial.runTrial()
     try trial.closeOwned()
+    try trial.scope()
+    try trial.checkFinalScopes()
+    try trial.restoredFocus()
+    try writeJSON(["observedRoundTrips": 3], trial.dir, "completed.json")
+  } catch {
+    try trial.recordStop(error)
     throw error
   }
-  try trial.closeOwned()
-  try trial.scope()
-  try trial.checkFinalScopes()
-  try trial.restoredFocus()
-  try writeJSON(["observedRoundTrips": 3], trial.dir, "completed.json")
 } catch {
   FileHandle.standardError.write(Data("\(error)\n".utf8))
   exit(1)

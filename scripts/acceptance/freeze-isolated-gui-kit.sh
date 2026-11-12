@@ -35,8 +35,9 @@ xcrun swiftc -O engineering/window-lab/isolated-gui/SessionProbe.swift -o "$stag
 codesign --force --sign - --identifier org.nearpane.lab.SessionProbe "$stage/SessionProbe"
 codesign --verify --strict "$stage/SessionProbe"
 "$stage/SessionProbe" baseline > "$stage/protected.json"
+install -m 755 scripts/acceptance/space-checkpoint.py "$stage/space-checkpoint.py"
 cd "$stage"
-shasum -a 256 SessionProbe protected.json NearpaneSpaceWitness.app/Contents/{Info.plist,MacOS/NearpaneSpaceWitness,Helpers/NearpaneDesktopReader,_CodeSignature/CodeResources} > SHA256SUMS
+shasum -a 256 SessionProbe protected.json space-checkpoint.py NearpaneSpaceWitness.app/Contents/{Info.plist,MacOS/NearpaneSpaceWitness,Helpers/NearpaneDesktopReader,_CodeSignature/CodeResources} > SHA256SUMS
 shasum -a 256 -c SHA256SUMS
 # Only this fresh, initially private folder is published. Trial data goes to the test user's private cache.
 chmod -R a+rX,go-w "$stage"
