@@ -8,7 +8,7 @@ import NearpaneCore
 enum AdmissionAXRead {
     enum Failure: Error { case noSession, changedOwner, incompleteList, invalidTarget }
 
-    private static func value(_ e: AXUIElement, _ key: String) -> CFTypeRef? {
+    static func value(_ e: AXUIElement, _ key: String) -> CFTypeRef? {
         var v: CFTypeRef?
         return AXUIElementCopyAttributeValue(e, key as CFString, &v) == .success ? v : nil
     }
@@ -20,7 +20,7 @@ enum AdmissionAXRead {
         return n > 0 ? n : nil
     }
 
-    private static func frame(_ element: AXUIElement) -> SurfaceRect? {
+    static func frame(_ element: AXUIElement) -> SurfaceRect? {
         guard let p = value(element, kAXPositionAttribute), let s = value(element, kAXSizeAttribute),
               CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(s) == AXValueGetTypeID() else { return nil }
         var point = CGPoint.zero, size = CGSize.zero

@@ -210,6 +210,14 @@ struct Reader {
         if arguments == ["--self-check"] { print("Nearpane desktop reader 1"); return }
         do {
             #if NEARPANE_ISOLATED_GUI_LAB
+            if arguments.count == 2, arguments[0] == "--enrolled-move-check", arguments[1].utf8.count <= 16384,
+               let bytes = Data(base64Encoded: arguments[1]) {
+                let request = try JSONDecoder().decode(EnrolledMoveRequest.self, from: bytes)
+                let reply = try request.observe()
+                FileHandle.standardOutput.write(try JSONEncoder().encode(reply))
+                if !reply.matchesCheckpoint { exit(3) }
+                return
+            }
             if arguments.count == 4, arguments[0] == "--enrolled-route",
                let source = UInt32(arguments[2]), let target = UInt32(arguments[3]) {
                 let result = try EnrolledRoute.sample(display: arguments[1], numbers: [source, target])
