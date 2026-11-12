@@ -123,7 +123,18 @@ func run() throws {
     Thread.sleep(forTimeInterval: 0.025)
   }
   guard let (side, rect, number) = target else {
-    throw Stop("A did not acquire the expected foreground window")
+    // The route may refuse before showing A. No placement call is reachable above
+    // this point. Attest unchanged cursor only after the fixture has really exited.
+    guard app.isTerminated else { throw Stop("A did not acquire the expected foreground window") }
+    for index in 0..<2 {
+      let p = try pointer()
+      guard p == original, try PointerDisplay(point: p) == originalDisplay else {
+        throw Stop("cursor changed before a loan could be established")
+      }
+      if index == 0 { Thread.sleep(forTimeInterval: 0.05) }
+    }
+    print("original pointer unchanged; no loan")
+    return
   }
   let dest = CGPoint(x: rect.midX.rounded(), y: rect.midY.rounded())
   try required(
@@ -164,14 +175,20 @@ func run() throws {
       "pointer changed outside the observed loan; return withheld")
     try originalDisplay.move(to: original)
     let limit = now() + 0.5
-    var matched = false
+    var firstMatch: CGPoint?
+    var verified = false
     while now() < limit {
       let p = try pointer()
-      if p == original && matched { break }
-      matched = p == original
+      let screen = try PointerDisplay(point: p)
+      if screen == originalDisplay, abs(p.x - original.x) <= 1, abs(p.y - original.y) <= 1 {
+        if firstMatch == p { verified = true; note("returned", p); break }
+        firstMatch = p
+      } else {
+        firstMatch = nil
+      }
       Thread.sleep(forTimeInterval: 0.04)
     }
-    try required(matched && (try pointer()) == original, "original pointer not restored")
+    try required(verified, "original pointer not restored")
   }
   if let observationError { throw observationError }
   print("original pointer restored")

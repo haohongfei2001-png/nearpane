@@ -72,8 +72,12 @@ func toggleOverview() throws {
   try need(!request.isRunning && request.terminationStatus == 0,"system overview open request failed")
 
 }
+func overviewOwner(_ pid: pid_t?) -> Bool {
+  guard let pid, let host = overviewHost(pid) else { return false }
+  return host == "com.apple.dock" || host == "com.apple.WindowManager"
+}
 func live(_ args: [String]) throws {
-  guard (args.count == 4 || (args.count == 6 && ["create","remove"].contains(args[4]))), let display = UUID(uuidString: args[0]),
+  guard (args.count == 4 || (args.count == 6 && ["create","remove","prepare-and-restore"].contains(args[4]))), let display = UUID(uuidString: args[0]),
     let start = ISO8601DateFormatter().date(from: args[2]),
     let end = ISO8601DateFormatter().date(from: args[3]), start <= Date(),
     end.timeIntervalSince(start) <= 900,
@@ -108,13 +112,17 @@ func live(_ args: [String]) throws {
     let width = (side.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value,
     [CGMainDisplayID(),width].contains(where:{CGDisplayBounds($0).contains(anchor.axFrame)})
   else { throw Refusal("external focus observer or original identity changed") }
+  let allowPrimaryOverview = env["NEARPANE_PRIMARY_OVERVIEW_UNTIL"] == args[3]
+    && CGDisplayBounds(CGMainDisplayID()).contains(anchor.axFrame)
+    && CGDisplayBounds(CGMainDisplayID()).contains(anchor.cgFrame)
+  let baseMembership = (NPReadWindowSpaces(anchor.number) as? [NSNumber])?.map(\.stringValue).sorted()
   let birth = anchor.birth
   let pointer = try point()
   let originalNumber = anchor.number
   emit([
     "event": "original", "run": run, "process": focus.0,
     "processBirth": birth.timeIntervalSince1970,
-    "window": originalNumber, "source": source, "side": sideID, "originalPointer":[pointer.x,pointer.y],
+    "window": originalNumber, "primaryOverviewAllowed":allowPrimaryOverview, "source": source, "side": sideID, "originalPointer":[pointer.x,pointer.y],
   ])
   app.finishLaunching()
   let rect = CGRect(
@@ -153,6 +161,7 @@ func live(_ args: [String]) throws {
   }
   var movedPointer = false
   var toggled = false
+  var ownedOverview: AXUIElement?
   var verifiedClosed = false
   var failure: Error?
   let here = CGRect(
@@ -161,12 +170,22 @@ func live(_ args: [String]) throws {
   func originalUnchanged() throws {
     try need(anchor.isIntact,"original focus owner or geometry changed")
   }
+  func protectedPresentation(_ geometry: CGRect?) -> Bool {
+    guard anchor.logicalFrameIntact, let geometry else { return false }
+    if geometry == anchor.cgFrame { return true }
+    guard toggled, allowPrimaryOverview, let baseMembership, !baseMembership.isEmpty,
+          geometry.width > 0, geometry.height > 0,
+          CGDisplayBounds(CGMainDisplayID()).contains(geometry),
+          (NPReadWindowSpaces(anchor.number) as? [NSNumber])?.map(\.stringValue).sorted() == baseMembership
+    else { return false }
+    return true
+  }
   func isOriginal() -> Bool { anchor.isFocused }
   func within() throws {
     try need(Date() >= start && end.timeIntervalSinceNow > 8, "time expired")
     if toggled {
-      // The overview animates CG presentation frames. Read through the animation, but the
-      // actual create/remove admission below still requires the original independent geometry.
+      // The compositor may animate while AX retains the original layout. checkAction
+      // separately checks the physical display, membership, and timed presentation grant.
       try need(anchor.logicalFrameIntact, "original AX identity or logical frame changed in overview")
     } else {
       try originalUnchanged()
@@ -308,14 +327,58 @@ func live(_ args: [String]) throws {
     ])
     try toggleOverview()
     toggled = true
-    let cutoff = Date().addingTimeInterval(2.5)
+    let cutoff = Date().addingTimeInterval(4)
     var evidence: [String: Any]?
     var lastState = ""
+    let overviewSince = ProcessInfo.processInfo.systemUptime
+    var hoveredStrip = false
+    var nextStructure = Date.distantPast
+    var previousStructure: Data?
+    func recordStructure() {
+      guard Date() >= nextStructure else { return }
+      nextStructure = Date().addingTimeInterval(0.4)
+      let structure = overviewSkeleton(display)
+      let data = try? JSONSerialization.data(withJSONObject:structure,options:.sortedKeys)
+      if data != previousStructure {
+        emit(["event":"overviewTree","structure":structure])
+        previousStructure = data
+      }
+    }
     repeat {
       spin(0.08)
       try within()
+      if ownedOverview == nil,
+         let dock = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock").first,
+         overviewOwner(dock.processIdentifier),
+         let groups = try? children(AXUIElementCreateApplication(dock.processIdentifier),named:"mc"),
+         groups.count == 1 { ownedOverview = groups[0] }
+      recordStructure()
+      if !hoveredStrip && ProcessInfo.processInfo.systemUptime-overviewSince >= 0.65,
+         let dock = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock").first,
+         dock.executableURL?.path == "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock",
+         (try? children(AXUIElementCreateApplication(dock.processIdentifier),named:"mc").count) == 1,
+         near(try point(),landed), let spent = pointerLoanBegan, physicalMouseIdle(since:spent) {
+        let cgBounds = CGDisplayBounds(width)
+        let stripPoint = CGPoint(x:cgBounds.midX, y:cgBounds.minY + 12)
+        // Hover in the middle of the secondary Spaces strip; never use coordinates to press a control.
+        // Cursor positioning itself does not post a mouse click or a drag.
+        hoveredStrip = true
+        try need(place(stripPoint,on:width) == .success,"secondary overview hover positioning failed")
+        spin(0.06)
+        let stop = try point()
+        try need(near(stop,stripPoint),"secondary strip pointer readback differs")
+        landed = stop
+        var hit: AXUIElement?
+        let hitStatus = AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),Float(stop.x),Float(stop.y),&hit)
+        var hitPID: pid_t = 0
+        let verifiedSystemHit = hitStatus == .success && hit.map { AXUIElementGetPid($0,&hitPID) == .success && overviewOwner(hitPID) } == true
+        if verifiedSystemHit, let event = CGEvent(mouseEventSource:nil, mouseType:.mouseMoved, mouseCursorPosition:stop, mouseButton:.left) {
+          event.postToPid(hitPID)
+        }
+        emit(["event":"secondaryStripHover","systemOverviewOwner":verifiedSystemHit,"hitStatus":hitStatus.rawValue])
+      }
       let cg = FocusAnchor.geometry(anchor.number,anchor.owner.processIdentifier)
-      if cg != anchor.cgFrame || !anchor.logicalFrameIntact {
+      if !protectedPresentation(cg) {
         emit(["event":"protectedWindowCheck","originalWindow":anchor.number,"cgReadable":cg != nil,
               "cgMatchesOriginal":cg == anchor.cgFrame,"logicalIdentityAndFrameIntact":anchor.logicalFrameIntact])
         throw Refusal("protected window geometry unconfirmed during system overview")
@@ -351,12 +414,12 @@ func live(_ args: [String]) throws {
       }
       func checkAction() throws {
         try need(start <= Date() && end.timeIntervalSinceNow > 10,"late provision action")
-        try originalUnchanged()
+        try need(protectedPresentation(FocusAnchor.geometry(anchor.number,anchor.owner.processIdentifier)),
+                 "protected owner, logical layout, membership or overview presentation changed")
         try need(try scoped(sideID,source).contains(originalPrimary), "protected current or order changed")
         let sideStillHere = try onlyScreen(sideID)
-        let dock = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
         let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        let allowed = front == getpid() || (dock.count == 1 && front == dock.first?.processIdentifier)
+        let allowed = front == getpid() || overviewOwner(front)
         try need(sideStillHere == side && near(try point(),landed) && allowed &&
                 NSEvent.pressedMouseButtons == 0 &&
                 CGEventSource.flagsState(.combinedSessionState).intersection([.maskCommand,.maskShift,.maskControl,.maskAlternate]).isEmpty,
@@ -377,33 +440,56 @@ func live(_ args: [String]) throws {
         try need(process.terminationStatus == 0 && (report["occupancy"] as? String) ==
                  (target == nil ? "SOURCE_WITNESSED" : "NO_RELOCATION_OBSERVED"), "disposable desktop could not be safely verified")
       }
-      let destination = try provisionSecondaryDesktop(mode, directory:URL(fileURLWithPath:args[5]), display:display,
+      if mode == "prepare-and-restore" { try need(end.timeIntervalSinceNow > 55,"insufficient time for provision and verified rollback") }
+      let firstOperation = mode == "prepare-and-restore" ? "create" : mode
+      let destination = try provisionSecondaryDesktop(firstOperation, directory:URL(fileURLWithPath:args[5]), display:display,
           source:source, requireAuthorizedAction:checkAction, requireSafeOccupancy:occupancy)
-      verifiedOperation = mode
+      verifiedOperation = firstOperation
       expectedScopes = try scoped(sideID,source)
-      emit(["event":"verifiedProvision","operation":mode,"source":source,"target":destination])
+      emit(["event":"verifiedProvision","operation":firstOperation,"source":source,"target":destination])
+      if mode == "prepare-and-restore" {
+        try within()
+        let removed = try provisionSecondaryDesktop("remove",directory:URL(fileURLWithPath:args[5]),display:display,
+            source:source,requireAuthorizedAction:checkAction,requireSafeOccupancy:occupancy)
+        expectedScopes = try scoped(sideID,source)
+        try need(removed == destination && expectedScopes == inv,"original test topology did not return")
+        verifiedOperation = "createAndRemove"
+        emit(["event":"verifiedProvision","operation":"remove","source":source,"target":removed])
+      }
     }
   } catch { failure = error }
   // Dismiss only our known overview; never post an Escape or activate the previous user app.
   if toggled, end.timeIntervalSinceNow > 3, anchor.logicalFrameIntact,
     (try? scoped(sideID, source)) == expectedScopes,
-    near(try? point(),landed),
+    NSEvent.pressedMouseButtons == 0,
+    let retained = ownedOverview,
     let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
       .first,
     let m = try? children(AXUIElementCreateApplication(dock.processIdentifier), named: "mc"),
-    m.count == 1,
+    m.count == 1, CFEqual(retained,m[0]),
     let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-    [getpid(), dock.processIdentifier].contains(front)
+    (front == getpid() || overviewOwner(front) || (front == focus.0 && isOriginal()))
   {
     do {
       try toggleOverview()
-      spin(0.55)
+      spin(0.75)
       verifiedClosed = (try observe(display)["state"] as? String == "overviewNotExposed")
     } catch {}
   }
   if toggled && !verifiedClosed {
     verifiedClosed = (try? observe(display)["state"] as? String) == "overviewNotExposed"
     if !verifiedClosed { emit(["event":"overviewAtCleanup","structure":overviewSkeleton(display)]) }
+  }
+  // Mission Control can leave keyboard focus with Dock. Let only our retained test window
+  // become key again after a verified dismissal, then use the rehearsed passive return.
+  if toggled && verifiedClosed && !isOriginal() && Date() < end && anchor.isIntact &&
+      (try? scoped(sideID,source)) == expectedScopes && w.isOnActiveSpace &&
+      (NPReadWindowSpaces(num) as? [NSNumber])?.map(\.stringValue) == [source] {
+    let front = NSWorkspace.shared.frontmostApplication
+    if front?.processIdentifier == getpid() || overviewOwner(front?.processIdentifier) {
+      w.makeKeyAndOrderFront(nil)
+      spin(0.12)
+    }
   }
   w.orderOut(nil)
   w.close()
@@ -423,7 +509,7 @@ func live(_ args: [String]) throws {
     "event": "cleanup", "originalFocus": ret, "originalWindow": originalNumber, "window": num,
     "originalPointer": near(try? point(),pointer), "scopesMatchVerifiedOperation": topology,
     "windowAbsent": absent, "overviewInvoked": toggled, "overviewDismissed": verifiedClosed,
-    "verifiedSpaceMutations": verifiedOperation == nil ? 0 : 1,
+    "verifiedSpaceMutations": verifiedOperation == "createAndRemove" ? 2 : (verifiedOperation == nil ? 0 : 1),
   ])
   if let failure { throw failure }
   try need(

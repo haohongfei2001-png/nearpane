@@ -24,6 +24,17 @@ def write(path, data):
     path.write_text(json.dumps(data), encoding="utf-8")
 
 
+class PresentationGrant(unittest.TestCase):
+    def test_permission_is_local_to_the_current_invocation(self):
+        session = route.Session.__new__(route.Session)
+        session.args = SimpleNamespace(allow_primary_overview=False, ends="2026-11-12T20:56:45Z")
+        key = "NEARPANE_PRIMARY_OVERVIEW_UNTIL"
+        with patch.dict(route.os.environ, {key: "an earlier grant"}):
+            self.assertNotIn(key, session.panel_environment())
+            session.args.allow_primary_overview = True
+            self.assertEqual(session.panel_environment()[key], session.args.ends)
+
+
 class RouteCleanup(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
@@ -94,9 +105,69 @@ class RouteCleanup(unittest.TestCase):
     def test_cleanup_from_original_paired_receipts(self):
         self.assert_cleanup()
 
+    def test_create_helper_deadline_reserves_route_readbacks_and_cleanup(self):
+        s = self.session
+        s.args.kit = self.prior
+        s.args.allow_primary_overview = True
+        reserve = route.MIN_ROUTE_SECONDS + route.CLEANUP_SECONDS + route.ADDED_READBACK_SECONDS
+        cutoff = s.end - dt.timedelta(seconds=reserve)
+        with patch.object(route, "utcnow", return_value=cutoff - dt.timedelta(seconds=30)), patch.object(route.sp, "run") as run:
+            with self.assertRaisesRegex(ValueError, "insufficient time"):
+                route.Session.panel(s, "create")
+            run.assert_not_called()
+        with patch.object(route, "utcnow", return_value=cutoff - dt.timedelta(seconds=31)), patch.object(route.sp, "run") as run:
+            route.Session.panel(s, "create")
+            self.assertEqual(run.call_args.args[0][4], cutoff.strftime(route.STAMP))
+            self.assertEqual(run.call_args.kwargs["env"]["NEARPANE_PRIMARY_OVERVIEW_UNTIL"], cutoff.strftime(route.STAMP))
+
+    def setup_unlaunched_route(self):
+        s = self.session
+        s.out, s.ledger = self.prior, self.ledger
+        s.primary, s.secondary, s.a, s.b = fixtures["PRIMARY"], SECONDARY, "10", None
+        s.origin = pair(1, ["10"], ["10"])
+        s.setup = Mock()
+        self.live.update(added=pair(3, ["10", "11"], ["10", "11"]),
+                         **{"before-remove": self.live["current"]})
+        return s
+
+    def test_pre_spawn_expiration_cleans_created_target_only_after_new_proof(self):
+        s = self.setup_unlaunched_route()
+        with patch.object(route, "utcnow", return_value=s.end - dt.timedelta(seconds=90)):
+            with self.assertRaisesRegex(ValueError, "insufficient time for route"):
+                s.execute()
+        self.assertEqual([c.args[0] for c in s.panel.call_args_list], ["create", "remove"])
+        self.assertFalse((s.out / "complete.json").exists())
+        self.assertTrue((s.out / "route-not-started.json").is_file())
+
+    def test_pre_spawn_refusal_with_unknown_original_focus_retains_desktop(self):
+        s = self.setup_unlaunched_route()
+        self.creation_receipts.write_text("")
+        with patch.object(route, "utcnow", return_value=s.end - dt.timedelta(seconds=90)):
+            with self.assertRaisesRegex(ValueError, "externalFocusArmed"):
+                s.execute()
+        s.panel.assert_called_once_with("create")
+
     def test_failed_pointer_return(self):
         self.record_route(pointer=False)
         self.assert_refusal("pointer return")
+
+    def test_unconfirmed_external_chord_blocks_an_otherwise_safe_stop(self):
+        self.record_route()
+        write(self.prior / "witness/external-enroll-B-intent.json", {"operation": "one"})
+        self.assert_refusal("external calibration outcome unconfirmed")
+
+    def test_external_chord_must_match_endpoint_and_attestation(self):
+        self.record_route()
+        w = self.prior / "witness"
+        intent = dict(operation="one", checkpoint="enroll-B", run="r", target="11")
+        for kind in ("intent", "posted", "confirmed"):
+            fields = dict(intent, attestationToken="token") if kind == "confirmed" else intent
+            write(w / f"external-enroll-B-{kind}.json", fields)
+        attested = dict(token="token", run="r", checkpoint="enroll-B", endpoint="10")
+        write(w / "attested-enroll-B.json", attested)
+        self.assert_refusal("external calibration receipts disagree")
+        write(w / "attested-enroll-B.json", dict(attested, endpoint="11"))
+        self.assert_cleanup()
 
     def test_missing_pointer_receipt(self):
         self.record_route(pointer=None)
@@ -137,6 +208,35 @@ class RouteCleanup(unittest.TestCase):
     def test_created_target_mismatches_samples(self):
         write(self.ledger / "created.json", {"intent": self.intent, "target": "12"})
         self.assert_refusal("adjacent created desktop not confirmed")
+
+
+class RouteLeg(unittest.TestCase):
+    def setUp(self):
+        self.run = str(uuid.uuid4()).upper()
+        operation = str(uuid.uuid4()).upper()
+        self.intent = dict(run=self.run, operation=operation, beforeRevision=9,
+                           source={"record": "A"}, target={"record": "B"})
+        self.posted = {"operation": operation}
+        self.confirmed = dict(operation=operation, afterRevision="10")
+
+    def verify(self):
+        route.verify_leg(self.intent, self.posted, self.confirmed, self.run, "A", "B")
+
+    def test_frozen_swift_number_to_string_receipts(self):
+        self.verify()
+
+    def test_stale_or_malformed_confirmation(self):
+        for value in ("9", "010", "１２", "18446744073709551616", 10, True):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.confirmed["afterRevision"] = value
+                self.verify()
+
+    def test_other_run_or_operation_or_direction(self):
+        for obj, field, value in ((self.intent, "run", str(uuid.uuid4()).upper()),
+                                  (self.posted, "operation", str(uuid.uuid4()).upper()),
+                                  (self.intent, "target", {"record": "A"})):
+            with self.subTest(field=field), patch.dict(obj, {field: value}), self.assertRaises(ValueError):
+                self.verify()
 
 
 if __name__ == "__main__":

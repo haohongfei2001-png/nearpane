@@ -22,11 +22,32 @@ VERIFY = runpy.run_path(str(SCRIPTS / "verify-secondary-provision.py"))["verify"
 STAMP = "%Y-%m-%dT%H:%M:%SZ"
 UTC = dt.timezone.utc
 WITNESS_MANIFEST = "35ad31052d8e3ce196924f307548209609e4e9ea3d5073bc89e224ebec723add"
+MIN_ROUTE_SECONDS = 65
+CLEANUP_SECONDS = 45
+# Two independent six-second Reader calls and their spacing, after the create helper exits.
+ADDED_READBACK_SECONDS = 14
+
+
+class RouteNotStarted(ValueError):
+    """Raised only before opening the route log or spawning the witness."""
 
 
 def need(test, reason):
     if not test:
         raise ValueError(reason)
+
+
+def verify_leg(intent, posted, confirmed, run, source, target):
+    # Swift's Codable Attempt stores UInt64 as a number. The completion dictionary
+    # has String values and stores the independent Reader revision as decimal text.
+    before, after = intent["beforeRevision"], confirmed["afterRevision"]
+    need(type(before) is int and 0 < before < 2**64 and
+         isinstance(after, str) and 0 < len(after) <= 20 and after.isascii() and after.isdecimal() and
+         str(int(after)) == after and before < int(after) < 2**64, "invalid route revision sequence")
+    operation = intent["operation"]
+    need(isinstance(operation, str) and str(uuid.UUID(operation)).upper() == operation and
+         intent["run"] == run and intent["source"]["record"] == source and intent["target"]["record"] == target and
+         operation == posted["operation"] == confirmed["operation"], "unbound system receipt")
 
 
 def read(file):
@@ -83,6 +104,18 @@ def require_safe_route_stop(folder):
     else:
         need(read(done).get("observedRoundTrips") == 3 and (witness / "after-cleanup.json").is_file() and
              read(witness / "restored-focus.json").get("sameAXFocus") == "true", "route completion or return unverified")
+    # stopped.pendingInput covers the witness's own six chords. The separate
+    # calibration process journals its two possible inputs before posting.
+    for step in ("enroll-B", "return-A"):
+        files = [witness / f"external-{step}-{kind}.json" for kind in ("intent", "posted", "confirmed")]
+        if any(path.exists() for path in files):
+            need(all(path.is_file() for path in files), "external calibration outcome unconfirmed")
+            intent, posted, confirmed = map(read, files)
+            attested = read(witness / f"attested-{step}.json")
+            need(posted == intent and intent["checkpoint"] == step and
+                 intent["run"] == attested["run"] and intent["target"] == attested["endpoint"] and
+                 attested["checkpoint"] == step and all(confirmed.get(k) == v for k, v in intent.items()) and
+                 confirmed["attestationToken"] == attested["token"], "external calibration receipts disagree")
     pointer = read(folder / "pointer-exit.json")
     need(pointer.get("returned") is True and pointer.get("exit") == 0, "pointer return not verified")
 
@@ -151,16 +184,28 @@ class Session:
         else:
             need(self.args.existing_target is None, "designated existing destination absent")
 
+    def panel_environment(self, ends=None):
+        env = os.environ.copy()
+        env.pop("NEARPANE_PRIMARY_OVERVIEW_UNTIL", None)
+        if self.args.allow_primary_overview:
+            env["NEARPANE_PRIMARY_OVERVIEW_UNTIL"] = ends or self.args.ends
+        return env
+
     def panel(self, operation):
-        need((self.end-utcnow()).total_seconds() > (100 if operation=="create" else 30), "insufficient time for setup and return")
+        deadline = self.end
+        if operation == "create":
+            deadline -= dt.timedelta(seconds=MIN_ROUTE_SECONDS + CLEANUP_SECONDS + ADDED_READBACK_SECONDS)
+        need((deadline-utcnow()).total_seconds() > 30, "insufficient time for setup, route and return")
+        ends = deadline.strftime(STAMP)
         with (self.out / (operation+".jsonl")).open("xb") as log, (self.out/(operation+"-stderr.log")).open("xb") as err:
-            sp.run([self.args.kit/"focus-return", self.secondary,self.a,self.args.starts,self.args.ends,operation,self.ledger],
-                   stdout=log, stderr=err, check=True)
+            sp.run([self.args.kit/"focus-return", self.secondary,self.a,self.args.starts,ends,operation,self.ledger],
+                   stdout=log, stderr=err, check=True, env=self.panel_environment(ends))
 
     def rounds(self):
         now = utcnow()
-        end = min(now + dt.timedelta(seconds=120), self.end-dt.timedelta(seconds=45))
-        need((end-now).total_seconds() > 65, "insufficient time for route and separate cleanup")
+        end = min(now + dt.timedelta(seconds=120), self.end-dt.timedelta(seconds=CLEANUP_SECONDS))
+        if (end-now).total_seconds() <= MIN_ROUTE_SECONDS:
+            raise RouteNotStarted("insufficient time for route and separate cleanup")
         log = self.out/"witness.log"
         def wait_until(child, condition, limit, reason):
             while not condition():
@@ -195,9 +240,9 @@ class Session:
                     for target in ("B","A"):
                         prefix="round-"+str(i)+"-"+target
                         intent, posted, confirmed = [read(cache/(prefix+"-"+suffix+".json")) for suffix in ("intent","posted","confirmed")]
-                        need(intent["operation"]==posted["operation"]==confirmed["operation"] and confirmed["afterRevision"]>intent["beforeRevision"],
-                             "unbound system receipt")
-                        need(read(cache/(prefix+".json"))["record"]==(self.b if target=="B" else self.a),"wrong endpoint")
+                        source_id, target_id = (self.a,self.b) if target == "B" else (self.b,self.a)
+                        verify_leg(intent, posted, confirmed, key, source_id, target_id)
+                        need(read(cache/(prefix+".json"))["record"] == target_id, "wrong endpoint")
                 need(read(cache/"restored-focus.json")["sameAXFocus"] == "true","original focus not confirmed")
             finally:
                 # An uncertain transition is never reversed by this supervisor. Let a granted
@@ -211,9 +256,10 @@ class Session:
                 if pointer is not None:
                     rc = pointer.wait(timeout=8)
                     lines = (self.out / "pointer.log").read_text().splitlines()
-                    returned = rc == 0 and lines[-1:] == ["original pointer restored"]
-                    save(self.out / "pointer-exit.json", dict(exit=rc, returned=returned))
-                    need(returned,"pointer restoration unconfirmed")
+                    no_loan = rc == 0 and lines[-1:] == ["original pointer unchanged; no loan"]
+                    restored = rc == 0 and lines[-1:] == ["original pointer restored"]
+                    save(self.out / "pointer-exit.json", dict(exit=rc, returned=restored or no_loan, noLoan=no_loan))
+                    need(restored or no_loan,"pointer restoration unconfirmed")
 
     def execute(self):
         self.setup()
@@ -229,13 +275,24 @@ class Session:
         route_error = None
         try:
             self.rounds()
-        except (ValueError,OSError,sp.SubprocessError) as e:
+        except RouteNotStarted as e:
+            # The typed pre-spawn refusal proves this invocation created no route process.
+            # Independent creation, focus and live scope receipts are still mandatory.
+            need(not (self.out / "witness.log").exists(), "unexpected witness launch evidence")
+            save(self.out / "route-not-started.json", dict(reason=str(e), source=self.a, target=self.b))
+            if not created:
+                raise
+            creation_returned(self.out)
+            current = VERIFY(self.primary, self.secondary, self.origin, self.pair("before-remove"))
+            need((current["source"], current["target"]) == (self.a, self.b), "created desktop changed before cleanup")
             route_error = str(e)
+        except (ValueError,KeyError,TypeError,OSError,sp.SubprocessError) as e:
+            route_error = str(e)
+            if created:
+                require_safe_route_stop(self.out)
         if created:
             # Stop inputs on focus escape or uncertain return. A simple route refusal may be
             # cleaned only with an explicit witness receipt for scopes, focus and fixture cleanup.
-            if route_error:
-                require_safe_route_stop(self.out)
             self.panel("remove")
             reset = VERIFY(self.primary,self.secondary,self.origin,self.provisioned,self.pair("restored"))
             need(reset["originalScopesRestored"],"original inventory not restored")
@@ -298,6 +355,7 @@ def main():
         parser.add_argument("--"+key,type=lambda s:Path(s).resolve(strict=True),required=True)
     for key in ("starts","ends","display","source"):
         parser.add_argument("--"+key, required=True)
+    parser.add_argument("--allow-primary-overview", action="store_true", help="owner permits transient system overview presentation on the primary during this timed trial")
     parser.add_argument("--existing-target")
     parser.add_argument("--cleanup-run", type=lambda value:Path(value).resolve(strict=True),
                         help="within a current loan, remove only the evidenced new B from this stopped trial")

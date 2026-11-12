@@ -1,6 +1,7 @@
 // Standalone observer is read-only. Action methods compile only in the device-lab overview driver.
 import AppKit
 import ApplicationServices
+import Security
 
 struct Refusal: Error {
   let reason: String
@@ -24,6 +25,21 @@ func children(_ parent: AXUIElement, named id: String) throws -> [AXUIElement] {
   return children.filter { attr($0, kAXIdentifierAttribute) as? String == id }
 }
 
+// Verify the live hit-test owner's Apple code requirement before examining its AX metadata.
+func overviewHost(_ pid:pid_t) -> String? {
+  guard let app=NSRunningApplication(processIdentifier:pid), !app.isTerminated,
+        let id=app.bundleIdentifier, let actual=app.executableURL?.resolvingSymlinksInPath().path else {return nil}
+  let hosts=["com.apple.dock":"/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock",
+             "com.apple.WindowManager":"/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager",
+             "com.apple.exposelauncher":"/System/Applications/Mission Control.app/Contents/MacOS/Mission Control"]
+  guard hosts[id]==actual else {return nil}
+  var code:SecCode?, requirement:SecRequirement?
+  guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid: NSNumber(value:pid)] as CFDictionary,[],&code)==errSecSuccess,
+        let code, SecRequirementCreateWithString(("anchor apple and identifier \""+id+"\"") as CFString,[],&requirement)==errSecSuccess,
+        let requirement, SecCodeCheckValidity(code,[],requirement)==errSecSuccess else {return nil}
+  return id
+}
+
 func only(_ elements: [AXUIElement], _ label: String) throws -> AXUIElement {
   guard elements.count == 1 else { throw Refusal("missing or ambiguous " + label) }
   return elements[0]
@@ -31,10 +47,47 @@ func only(_ elements: [AXUIElement], _ label: String) throws -> AXUIElement {
 
 struct SecondarySpacesBar {
   let dock: NSRunningApplication
+  let owner: NSRunningApplication
   let side: CGDirectDisplayID
   let spaces: AXUIElement
   let add: AXUIElement
   let primaryContainer: Bool
+}
+
+private func reportedFrames(_ el:AXUIElement) -> (direct:CGRect?,split:CGRect?) {
+  var direct:CGRect?, split:CGRect?
+  if let p=attr(el,kAXPositionAttribute), let sz=attr(el,kAXSizeAttribute),
+     CFGetTypeID(p)==AXValueGetTypeID(), CFGetTypeID(sz)==AXValueGetTypeID() {
+    var pos=CGPoint.zero, size=CGSize.zero
+    if AXValueGetValue(p as! AXValue,.cgPoint,&pos), AXValueGetValue(sz as! AXValue,.cgSize,&size) {
+      split=CGRect(origin:pos,size:size)
+    }
+  }
+  if let raw=attr(el,"AXFrame"), CFGetTypeID(raw)==AXValueGetTypeID(), AXValueGetType(raw as! AXValue) == .cgRect {
+    var rect=CGRect.zero
+    if AXValueGetValue(raw as! AXValue,.cgRect,&rect) {direct=rect}
+  }
+  return (direct,split)
+}
+private func systemControlFrame(_ el:AXUIElement) -> CGRect? {
+  let f=reportedFrames(el)
+  if let direct=f.direct, let split=f.split, direct != split {return nil}
+  return f.direct ?? f.split
+}
+private func childOf(_ el:AXUIElement,_ parent:AXUIElement) -> Bool {
+  guard let actual=attr(el,kAXParentAttribute), CFGetTypeID(actual)==AXUIElementGetTypeID() else {return false}
+  return CFEqual(actual,parent)
+}
+private func allowableCommandGeometry(_ el:AXUIElement,_ bounds:CGRect) -> Bool {
+  let f=reportedFrames(el)
+  return compatibleFrames(f.direct,f.split,inside:bounds)
+}
+private func compatibleFrames(_ direct:CGRect?,_ split:CGRect?,inside bounds:CGRect) -> Bool {
+  if let a=direct, let b=split, a != b {return false}
+  // A command is allowed only with affirmative geometry on the display named by its AX ancestors.
+  guard let rect = direct ?? split else { return false }
+  return rect.origin.x.isFinite && rect.origin.y.isFinite && rect.width.isFinite && rect.height.isFinite
+    && rect.width > 0 && rect.height > 0 && bounds.contains(rect)
 }
 
 func secondarySpacesBar(_ displayUUID: UUID) throws -> SecondarySpacesBar? {
@@ -66,25 +119,42 @@ func secondarySpacesBar(_ displayUUID: UUID) throws -> SecondarySpacesBar? {
   let groups = try children(root, named: "mc")
   guard !groups.isEmpty else { return nil }
   let group = try only(groups, "overview")
-  let containers = try children(group, named: "mc.display")
-  let secondary = try only(
-    containers.filter { (attr($0, "AXDisplayID") as? NSNumber)?.uint32Value == side },
-    "secondary display group")
-  let spaces = try only(children(secondary, named: "mc.spaces"), "secondary spaces bar")
-  let button = try only(children(spaces, named: "mc.spaces.add"), "secondary add button")
-  var actions: CFArray?
-  guard attr(button, kAXRoleAttribute) as? String == kAXButtonRole,
-    attr(button, kAXEnabledAttribute) as? Bool != false,
-    AXUIElementCopyActionNames(button, &actions) == .success,
-    (actions as? [String])?.contains(kAXPressAction as String) == true
-  else {
-    throw Refusal("enabled secondary add control not confirmed")
+  guard overviewHost(dock.processIdentifier)=="com.apple.dock" else { throw Refusal("system Dock identity changed") }
+  var roots:[(NSRunningApplication,AXUIElement)]=[(dock,group)]
+  let wm=NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.WindowManager")
+  if wm.count==1, let host=wm.first, overviewHost(host.processIdentifier)=="com.apple.WindowManager" {
+    let hostRoot=AXUIElementCreateApplication(host.processIdentifier)
+    AXUIElementSetMessagingTimeout(hostRoot,0.3)
+    roots.append((host,hostRoot))
+    let mc=try children(hostRoot,named:"mc")
+    if mc.count==1 {roots.append((host,mc[0]))}
   }
-  let primary = containers.contains {
-    (attr($0, "AXDisplayID") as? NSNumber)?.uint32Value == CGMainDisplayID()
+  var bars:[SecondarySpacesBar]=[]
+  for (owner,scope) in roots {
+    let containers=try children(scope,named:"mc.display")
+    for container in containers where (attr(container,"AXDisplayID") as? NSNumber)?.uint32Value==side {
+      let spaces=try only(children(container,named:"mc.spaces"),"secondary spaces bar")
+      let add=try only(children(spaces,named:"mc.spaces.add"),"secondary add button")
+      let nodes=[container,spaces,add]
+      guard nodes.allSatisfy({element in
+        var pid:pid_t=0
+        return AXUIElementGetPid(element,&pid) == .success && pid==owner.processIdentifier
+      }), let strip=systemControlFrame(spaces), !strip.isEmpty, CGDisplayBounds(side).contains(strip),
+          systemControlFrame(container)==CGDisplayBounds(side),
+          childOf(add,spaces), childOf(spaces,container), allowableCommandGeometry(add,strip),
+          attr(add,kAXRoleAttribute) as? String == kAXButtonRole,
+          attr(add,kAXEnabledAttribute) as? Bool == true else {throw Refusal("secondary control geometry or owner unconfirmed")}
+      var actions:CFArray?
+      guard AXUIElementCopyActionNames(add,&actions) == .success,
+            (actions as? [String])?.contains(kAXPressAction as String)==true else {throw Refusal("no affirmative add action")}
+      if !bars.contains(where:{CFEqual($0.add,add)}) {
+        bars.append(SecondarySpacesBar(dock:dock,owner:owner,side:side,spaces:spaces,add:add,
+          primaryContainer:containers.contains{ (attr($0,"AXDisplayID") as? NSNumber)?.uint32Value==CGMainDisplayID() }))
+      }
+    }
   }
-  return SecondarySpacesBar(
-    dock: dock, side: side, spaces: spaces, add: button, primaryContainer: primary)
+  guard bars.count==1 else {throw Refusal("missing or ambiguous secondary display group")}
+  return bars[0]
 }
 
 func observe(_ displayUUID: UUID) throws -> [String: Any] {
@@ -94,7 +164,10 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     "display": displayUUID.uuidString, "systemInputs": 0,
     "sampledAt": ISO8601DateFormatter().string(from: Date()),
   ]
-  if let bar { report["primaryOverviewContainerPresent"] = bar.primaryContainer }
+  if let bar {
+    report["primaryOverviewContainerPresent"]=bar.primaryContainer
+    report["systemControlOwner"]=bar.owner.bundleIdentifier
+  }
   return report
 }
 
@@ -102,6 +175,19 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
   @main struct ObserverMain {
     static func main() {
       do {
+        if CommandLine.arguments.dropFirst().elementsEqual(["--test-command-geometry"]) {
+          let side=CGRect(x:-800,y:0,width:800,height:1280)
+          let tile=CGRect(x:-120,y:20,width:60,height:44)
+          let main=CGRect(x:100,y:20,width:60,height:44)
+          let observedAdd=CGRect(x:828.125,y:-32.5,width:56.25,height:90)
+          let cases:[(CGRect?,CGRect?,Bool)]=[(nil,nil,false),(.zero,nil,false),(nil,tile,true),
+            (tile,tile,true),(main,main,false),(main,tile,false),(tile,.zero,false),
+            (observedAdd,observedAdd,false),
+            (CGRect(x:-5,y:0,width:10,height:10),nil,false)]
+          guard cases.allSatisfy({compatibleFrames($0.0,$0.1,inside:side)==$0.2}) else {exit(2)}
+          print("\(cases.count) semantic command geometry cases passed")
+          return
+        }
         guard CommandLine.arguments.count == 2,
           let display = UUID(uuidString: CommandLine.arguments[1])
         else {
@@ -179,6 +265,8 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     let boot: String
     let issuedUptime: Double
     let dockBirth: Date
+    let ownerID: String
+    let ownerBirth: Date
   }
 
   private struct ProvisionResult: Codable {
@@ -242,19 +330,6 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     return uuid.uuidString
   }
 
-  // Some AX controls publish a composite frame, others publish position and size.
-  private func controlFrame(_ control: AXUIElement) -> CGRect? {
-    let split = frame(control)
-    guard let raw = attr(control, "AXFrame"), CFGetTypeID(raw) == AXValueGetTypeID(),
-      AXValueGetType(raw as! AXValue) == .cgRect
-    else { return split }
-    var direct = CGRect.zero
-    guard AXValueGetValue(raw as! AXValue, .cgRect, &direct), split == nil || split == direct else {
-      return nil
-    }
-    return direct
-  }
-
   private func actionsOf(_ control: AXUIElement) throws -> [String] {
     var raw: CFArray?
     guard AXUIElementCopyActionNames(control, &raw) == .success, let actions = raw as? [String]
@@ -295,20 +370,28 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
       for el in elements {
         guard remaining>0 else { break }
         remaining -= 1
-        guard let id=attr(el,kAXIdentifierAttribute) as? String, id=="mc" || id.hasPrefix("mc.") else { continue }
+        let id=attr(el,kAXIdentifierAttribute) as? String ?? ""
+        guard depth > 0 || id=="mc" else { continue }
+        var owner:pid_t=0
+        guard AXUIElementGetPid(el,&owner) == .success, owner == dock.processIdentifier else { continue }
         let role=attr(el,kAXRoleAttribute) as? String ?? ""
-        var entry:[String:Any]=["id":safeIDs.contains(id) ? id : "mc.other", "role": safeRoles.contains(role) ? role : "other"]
+        var entry:[String:Any]=["id":safeIDs.contains(id) ? id : "unrecognized", "role": safeRoles.contains(role) ? role : "other"]
         let screen=(attr(el,"AXDisplayID") as? NSNumber)?.uint32Value
         if let screen {entry["displayID"]=screen}
+        else if let unknown=attr(el,"AXDisplayID") { entry["displayIDType"]=CFGetTypeID(unknown) }
+        if depth==1, role=="AXGroup", let rect=systemControlFrame(el) {
+          entry["exactSecondaryDisplayFrame"]=rect==sideBounds
+          entry["exactMainDisplayFrame"]=rect==CGDisplayBounds(CGMainDisplayID())
+        }
         let branchOnSide=id=="mc.display" ? screen==side : isSecondary
         if branchOnSide && safeIDs.contains(id) && id != "mc.windows" {
-          if let r=controlFrame(el), !r.isEmpty, sideBounds.contains(r) {entry["sideBounds"]=[r.minX,r.minY,r.width,r.height]}
+          if let r=systemControlFrame(el), !r.isEmpty, sideBounds.contains(r) {entry["sideBounds"]=[r.minX,r.minY,r.width,r.height]}
           else {entry["sideBoundsConfirmed"]=false}
           if let actions=try? actionsOf(el) {
             entry["actions"]=actions.filter{["AXPress","AXRemoveDesktop","AXCancel","AXShowMenu"].contains($0)}
           }
         }
-        if (depth==0 && id=="mc") || (depth==1 && id=="mc.display" && branchOnSide) ||
+        if (depth==0 && id=="mc") || (depth==1 && role=="AXGroup" && (branchOnSide || id=="mc.display" || screen==side || systemControlFrame(el)==sideBounds)) ||
              (branchOnSide && depth<4 && ["mc.spaces","mc.spaces.list"].contains(id)) {
           entry["children"]=walk(el,depth:depth+1,isSecondary:branchOnSide)
         }
@@ -318,6 +401,118 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     }
     report["state"]="observed"; report["sideDisplayID"]=side
     report["dock"]=walk(root,depth:0,isSecondary:false)
+    let wm=NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.WindowManager")
+    if wm.count==1, let host=wm.first, overviewHost(host.processIdentifier)=="com.apple.WindowManager" {
+      let wmRoot=AXUIElementCreateApplication(host.processIdentifier)
+      AXUIElementSetMessagingTimeout(wmRoot,0.20)
+      func summarize(_ el:AXUIElement,_ depth:Int)->[String:Any] {
+        guard let rows=attr(el,kAXChildrenAttribute) as? [AXUIElement],rows.count<=256 else{return ["childrenUnavailable":true]}
+        var children:[[String:Any]]=[]
+        for node in rows.prefix(24) {
+          var pid:pid_t=0
+          guard AXUIElementGetPid(node,&pid) == .success,pid==host.processIdentifier else{continue}
+          let id=attr(node,kAXIdentifierAttribute) as? String ?? "", role=attr(node,kAXRoleAttribute) as? String ?? ""
+          var child:[String:Any]=["id":safeIDs.contains(id) ? id : "unrecognized","role":safeRoles.contains(role) ? role : "other"]
+          let sid=(attr(node,"AXDisplayID") as? NSNumber)?.uint32Value
+          if let sid {child["displayID"]=sid}
+          if safeIDs.contains(id), let r=systemControlFrame(node), !r.isEmpty,sideBounds.contains(r){child["sideBounds"]=[r.minX,r.minY,r.width,r.height]}
+          if id=="mc.spaces.add" {
+            let f=reportedFrames(node)
+            if let r=f.direct {child["directFrame"]=[r.origin.x,r.origin.y,r.width,r.height]}
+            if let r=f.split {child["splitFrame"]=[r.origin.x,r.origin.y,r.width,r.height]}
+            child["enabled"]=attr(node,kAXEnabledAttribute) as? Bool
+            child["actions"]=(try? actionsOf(node))?.filter{$0=="AXPress"}
+            child["parentConfirmed"]=childOf(node,el)
+          }
+          if depth<3 && (id=="mc" || (id=="mc.display" && sid==side) || id=="mc.spaces") {
+            child["children"]=summarize(node,depth+1)
+          }
+          children.append(child)
+        }
+        return ["childCount":rows.count,"nodes":children]
+      }
+      report["windowManager"]=summarize(wmRoot,0)
+    }
+    // Read through the system Dock only. Sampling a point never moves the cursor or presses
+    // a control. Results outside this exact Dock process yield no element metadata.
+    if let groups=try? children(root,named:"mc"), groups.count==1 {
+      let group=groups[0]
+      var alternate:[String:Int]=[:]
+      for key in ["AXChildren","AXVisibleChildren","AXContents","AXChildrenInNavigationOrder"] {
+        if let rows=attr(group,key) as? [AXUIElement] {alternate[key]=rows.count}
+      }
+      report["overviewCollections"]=alternate
+      var probes:[[String:Any]]=[]
+      for p in [CGPoint(x:sideBounds.maxX-22,y:sideBounds.minY+24),
+                CGPoint(x:sideBounds.midX,y:sideBounds.minY+28),
+                CGPoint(x:sideBounds.maxX-32,y:sideBounds.minY+62)] {
+        var hit: AXUIElement?
+        let code=AXUIElementCopyElementAtPosition(root,Float(p.x),Float(p.y),&hit)
+        var entry:[String:Any]=["axStatus":code.rawValue]
+        if code == .success, var el=hit {
+          var chain:[[String:Any]]=[]
+          for _ in 0..<8 {
+            var owner:pid_t=0
+            guard AXUIElementGetPid(el,&owner) == .success, owner==dock.processIdentifier else {break}
+            let id=attr(el,kAXIdentifierAttribute) as? String ?? ""
+            let role=attr(el,kAXRoleAttribute) as? String ?? ""
+            var node:[String:Any]=["id":safeIDs.contains(id) ? id : "unrecognized",
+                                   "role":safeRoles.contains(role) ? role : "other"]
+            if let sid=attr(el,"AXDisplayID") as? NSNumber {node["displayID"]=sid}
+            if safeIDs.contains(id), let rect=systemControlFrame(el), !rect.isEmpty, sideBounds.contains(rect) {
+              node["sideBounds"]=[rect.minX,rect.minY,rect.width,rect.height]
+            }
+            chain.append(node)
+            if CFEqual(el,group) {entry["matchedOverview"]=true;break}
+            if CFEqual(el,root) {break}
+            guard let parent=attr(el,kAXParentAttribute), CFGetTypeID(parent)==AXUIElementGetTypeID() else {break}
+            el=parent as! AXUIElement
+          }
+          entry["ancestors"]=chain
+        }
+        probes.append(entry)
+      }
+      report["secondaryDockHitTests"]=probes
+      let systemRoot=AXUIElementCreateSystemWide()
+      AXUIElementSetMessagingTimeout(systemRoot,0.20)
+      var publicHits:[[String:Any]]=[]
+      for offset in [(22,40),(32,65),(25,92),(40,112),(100,60),(64,18),(25,18),(240,52),(400,44),(775,40)] {
+        let x=sideBounds.maxX-CGFloat(offset.0), y=sideBounds.minY+CGFloat(offset.1)
+        guard sideBounds.contains(CGPoint(x:x,y:y)) else {continue}
+        var hit:AXUIElement?
+        let status=AXUIElementCopyElementAtPosition(systemRoot,Float(x),Float(y),&hit)
+        var entry:[String:Any]=["point":[x,y],"status":status.rawValue]
+        if status == .success, var el=hit {
+          var owner:pid_t=0
+          if AXUIElementGetPid(el,&owner) == .success, let host=overviewHost(owner) {
+            entry["host"]=host
+            var chain:[[String:Any]]=[]
+            for _ in 0..<9 {
+              var current:pid_t=0
+              guard AXUIElementGetPid(el,&current) == .success, current==owner else {break}
+              let id=attr(el,kAXIdentifierAttribute) as? String ?? "", role=attr(el,kAXRoleAttribute) as? String ?? ""
+              var row:[String:Any]=["id":safeIDs.contains(id) ? id : "unrecognized",
+                                    "role":safeRoles.contains(role) || role=="AXApplication" ? role : "other"]
+              if let sid=attr(el,"AXDisplayID") as? NSNumber {row["displayID"]=sid}
+              if safeIDs.contains(id), let rect=systemControlFrame(el), !rect.isEmpty, sideBounds.contains(rect) {
+                row["sideBounds"]=[rect.minX,rect.minY,rect.width,rect.height]
+              }
+              if let actions=try? actionsOf(el) {
+                row["actions"]=actions.filter{["AXPress","AXRemoveDesktop","AXCancel"].contains($0)}
+              }
+              chain.append(row)
+              if role=="AXApplication" {break}
+              guard let parent=attr(el,kAXParentAttribute), CFGetTypeID(parent)==AXUIElementGetTypeID() else {break}
+              el=parent as! AXUIElement
+            }
+            entry["ancestors"]=chain
+          } else {entry["host"]="outsideSystemAllowlist"}
+        }
+        publicHits.append(entry)
+      }
+      report["secondarySystemHitTests"]=publicHits
+
+    }
     report["limited"]=remaining==0
     return report
   }
@@ -327,9 +522,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     let tiles: [AXUIElement]
     let labels: [String]
     init(display: UUID, count: Int) throws {
-      guard let observed = try secondarySpacesBar(display), !observed.dock.isTerminated,
-        let addFrame = controlFrame(observed.add), !addFrame.isEmpty,
-        CGDisplayBounds(observed.side).contains(addFrame)
+      guard let observed = try secondarySpacesBar(display), !observed.dock.isTerminated, !observed.owner.isTerminated
       else { throw Refusal("secondary add button frame or Dock identity unavailable") }
       let list = try only(
         children(observed.spaces, named: "mc.spaces.list"), "secondary desktop list")
@@ -338,16 +531,21 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         throw Refusal("secondary system desktop buttons differ from ordinary inventory")
       }
       let secondary = CGDisplayBounds(observed.side)
+      guard childOf(list,observed.spaces), let listFrame=systemControlFrame(list),
+            !listFrame.isEmpty, secondary.contains(listFrame) else {throw Refusal("unverified secondary desktop list")}
       let bounds = try items.map { tile -> CGRect in
-        guard let r = controlFrame(tile), !r.isEmpty, secondary.contains(r),
-          attr(tile, kAXEnabledAttribute) as? Bool != false,
-          (try actionsOf(tile)).contains(kAXPressAction as String)
-        else {
-          throw Refusal("secondary desktop tile not enabled or outside display")
-        }
-        return r
+        var pid:pid_t=0
+        let frames=reportedFrames(tile)
+        guard childOf(tile,list), AXUIElementGetPid(tile,&pid) == .success,
+              pid==observed.owner.processIdentifier, compatibleFrames(frames.direct,frames.split,inside:listFrame),
+              let rect=frames.direct ?? frames.split,
+              attr(tile,kAXRoleAttribute) as? String == kAXButtonRole,
+              attr(tile, kAXEnabledAttribute) as? Bool == true,
+              (try actionsOf(tile)).contains(kAXPressAction as String)
+        else { throw Refusal("secondary desktop tile ownership, geometry or capability changed") }
+        return rect
       }
-      guard zip(bounds, bounds.dropFirst()).allSatisfy({ $0.maxX <= $1.minX }) else {
+      guard zip(bounds,bounds.dropFirst()).allSatisfy({$0.maxX <= $1.minX}) else {
         throw Refusal("desktop buttons overlap or visual order is ambiguous")
       }
       let values = try items.map { tile -> String in
@@ -407,14 +605,14 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         throw Refusal("additional desktop already exists; creation refused")
       }
       let initialUI = try ProvisionControls(display: display, count: 1)
-      guard let birth = initialUI.bar.dock.launchDate else {
+      guard let birth = initialUI.bar.dock.launchDate, let ownerBirth = initialUI.bar.owner.launchDate, let ownerID = initialUI.bar.owner.bundleIdentifier else {
         throw Refusal("missing Dock generation")
       }
       try requireSafeOccupancy(nil)
       let intent = ProvisionIntent(
         operation: UUID(), display: display, source: source, initial: original,
         sourceTileLabel: initialUI.labels[0], boot: boot,
-        issuedUptime: ProcessInfo.processInfo.systemUptime, dockBirth: birth)
+        issuedUptime: ProcessInfo.processInfo.systemUptime, dockBirth: birth, ownerID:ownerID, ownerBirth:ownerBirth)
       let ui = try ProvisionControls(display: display, count: 1)
       guard CFEqual(initialUI.bar.add, ui.bar.add), initialUI.labels == ui.labels,
         (try state()) == original
@@ -459,7 +657,8 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         "created desktop receipt no longer matches original display, boot, order or source")
     }
     let first = try ProvisionControls(display: display, count: 2)
-    guard first.bar.dock.launchDate == intent.dockBirth else {
+    guard first.bar.dock.launchDate == intent.dockBirth, first.bar.owner.launchDate==intent.ownerBirth,
+          first.bar.owner.bundleIdentifier==intent.ownerID else {
       throw Refusal("original system Dock restarted")
     }
     // Match A across the two overviews, using either its unchanged unique label or the
@@ -477,7 +676,8 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     let ui = try ProvisionControls(display: display, count: 2)
     var actions: CFArray?
     let remove = "AXRemoveDesktop"
-    guard ui.bar.dock.launchDate == intent.dockBirth, ui.labels == first.labels,
+    guard ui.bar.dock.launchDate == intent.dockBirth, ui.bar.owner.launchDate==intent.ownerBirth,
+          ui.bar.owner.bundleIdentifier==intent.ownerID, ui.labels == first.labels,
       CFEqual(first.tiles[b], ui.tiles[b]), (try state()) == original,
       AXUIElementCopyActionNames(ui.tiles[b], &actions) == .success,
       (actions as? [String])?.contains(remove) == true
