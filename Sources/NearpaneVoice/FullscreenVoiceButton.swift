@@ -22,7 +22,6 @@ public struct FullscreenVoiceButton: View {
             }
         } label: {
             VoiceCaptureGlyph(presentation: module.control, width: 22)
-                .foregroundStyle(.indigo)
                 .frame(width: 38, height: 28).contentShape(Rectangle())
         }
         .buttonStyle(.plain).disabled(!available)

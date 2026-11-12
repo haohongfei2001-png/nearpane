@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// The existing voice button's glyph only. No panel, color, size or control layout
-/// is defined here. Every bar height comes from the current measured voice level.
+/// The button shape is shared by the sidebar and the fullscreen tool.
+/// Every bar height comes from the current measured voice level.
 struct VoiceCaptureGlyph: View {
     let presentation: PanelCapturePresentation
     var width: Double = 28
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         // Keep one shape identity, including startup and recovery. Until capture
@@ -16,6 +17,7 @@ struct VoiceCaptureGlyph: View {
             paused: paused ? 1 : 0,
             speaking: presentation.state == .recognizing ? 1 : 0,
             level: presentation.liveVoiceLevel ?? 0)
+        .foregroundStyle(colorScheme == .dark ? Color.indigo.mix(with: .white, by: 0.65) : .indigo)
         // A new value retargets the current shape; no delayed actions, queued
         // transitions, random oscillators or idle animation. State wins when
         // phase and level change together; level-only updates use the short ease.

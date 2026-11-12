@@ -99,7 +99,7 @@ public struct VoiceSurface: View {
                 }
                 Spacer()
                 Button { Task { await module.toggle() } } label: {
-                    VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).foregroundStyle(.indigo).frame(minWidth:buttonWidth,minHeight:buttonHeight).contentShape(Rectangle())
+                    VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).frame(minWidth:buttonWidth,minHeight:buttonHeight).contentShape(Rectangle())
                 }
                 .disabled(module.busy || !module.active)
                 .help(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
