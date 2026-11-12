@@ -30,7 +30,7 @@ if a == ["preflight"] || a == ["preflight-displays"] {
     print(CFUUIDCreateString(nil,uuid) as String)
     exit(0)
 }
-guard a.count==4, let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
+guard [4, 10].contains(a.count), let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
 let exe=URL(fileURLWithPath:a[2]).resolvingSymlinksInPath()
 guard let app=NSRunningApplication(processIdentifier:pid),app.executableURL?.resolvingSymlinksInPath().path==exe.path,
       let bundle=app.bundleURL, let id = Bundle(url:bundle)?.bundleIdentifier, ["com.holdsnow.nearpane.candidate.p51","com.holdsnow.nearpane.candidate.p52","com.holdsnow.nearpane.alpha"].contains(id),
@@ -51,6 +51,54 @@ func box(_ e:AXUIElement)->CGRect? {
  guard AXValueGetValue(pv as! AXValue,.cgPoint,&p),AXValueGetValue(sv as! AXValue,.cgSize,&z) else {return nil}
  return CGRect(origin:p,size:z)
 }
+// The optional six values bind a real-system overlay action to its still-focused
+// foreground witness, its process generation, the secondary display and a deadline.
+func verifyLiveWitness() {
+    guard a.count == 10 else { return }
+    guard ["read", "np.fullscreen.open.voice", "np.fullscreen.close"].contains(a[3]),
+          let witness = Int32(a[4]), let launch = UInt64(a[5]), let number = UInt32(a[6]),
+          let run = UUID(uuidString: a[7]), let display = UUID(uuidString: a[8]),
+          let until = Double(a[9]), until.isFinite, until > ProcessInfo.processInfo.systemUptime,
+          witness > 1, witness != pid, number > 0, !app.isActive,
+          NSWorkspace.shared.frontmostApplication?.processIdentifier == witness else { stop("witness focus or deadline changed") }
+    guard let hostRows = CGWindowListCopyWindowInfo(.optionIncludingWindow, wid) as? [[String:Any]],
+          hostRows.count == 1, let hostRow = hostRows.first,
+          hostRow[kCGWindowOwnerPID as String] as? Int32 == pid,
+          hostRow[kCGWindowNumber as String] as? UInt32 == wid,
+          hostRow[kCGWindowIsOnscreen as String] as? Bool == true,
+          let bounds = hostRow[kCGWindowBounds as String] as? NSDictionary,
+          CGRect(dictionaryRepresentation:bounds) == rect else { stop("tool panel changed") }
+    var info = proc_bsdinfo()
+    let bytes = Int32(MemoryLayout<proc_bsdinfo>.size)
+    guard proc_pidinfo(witness, PROC_PIDTBSDINFO, 0, &info, bytes) == bytes,
+          info.pbi_pid == UInt32(witness), info.pbi_uid == getuid(),
+          info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec == launch,
+          let focused = ax(AXUIElementCreateApplication(witness), kAXFocusedWindowAttribute),
+          CFGetTypeID(focused) == AXUIElementGetTypeID() else { stop("enrolled witness unavailable") }
+    let element = focused as! AXUIElement
+    var owner: pid_t = 0
+    guard AXUIElementGetPid(element, &owner) == .success, owner == witness,
+          ax(element, kAXIdentifierAttribute) as? String == run.uuidString + "/A",
+          (ax(element, "AXFullScreen") as? NSNumber)?.boolValue == true,
+          let af = box(element),
+          let records = CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String: Any]],
+          records.count == 1, let record = records.first,
+          record[kCGWindowOwnerPID as String] as? Int32 == witness,
+          record[kCGWindowNumber as String] as? UInt32 == number,
+          record[kCGWindowIsOnscreen as String] as? Bool == true,
+          let fields = record[kCGWindowBounds as String] as? NSDictionary,
+          let actual = CGRect(dictionaryRepresentation: fields), af.equalTo(actual),
+          NSScreen.screens.count == 2, NSScreen.screensHaveSeparateSpaces,
+          NSScreen.screens.contains(where: { screen in
+              guard let n = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
+                    n.uint32Value != CGMainDisplayID(), CGDisplayIsInMirrorSet(n.uint32Value) == 0,
+                    let id = CGDisplayCreateUUIDFromDisplayID(n.uint32Value)?.takeRetainedValue(),
+                    UUID(uuidString: CFUUIDCreateString(nil, id) as String) == display else { return false }
+              let area = CGDisplayBounds(n.uint32Value)
+              return area.contains(rect) && area.contains(actual)
+          }) else { stop("target no longer occupies the enrolled fullscreen display") }
+}
+verifyLiveWitness()
 let root=AXUIElementCreateApplication(pid)
 let ownerWindows = ax(root,"AXWindows") as? [AXUIElement] ?? []
 let matches=ownerWindows.filter{box($0)==rect}
@@ -76,6 +124,9 @@ if a[3] == "read-edge-frame" {
     exit(0)
 }
 guard matches.count==1 else {stop("no unique secondary panel")}
+if a.count == 10, let mapped = ax(matches[0], "AXWindowNumber") as? NSNumber, mapped.uint32Value != wid {
+    stop("conflicting tool window identity")
+}
 var nodes:[AXUIElement]=[],seen=Set<AXUIElement>()
 func visit(_ e:AXUIElement) {
  guard seen.insert(e).inserted,nodes.count<1000 else {return}
@@ -173,5 +224,6 @@ if command == "read" {
           (available as? [String])?.contains(action) == true,
           action == "AXDecrement" ? (role == "AXSlider" && enabled != false) : (role == "AXButton" && enabled == true)
     else { stop("control does not advertise this action: " + command) }
+    verifyLiveWitness()
     guard AXUIElementPerformAction(control, action as CFString) == .success else { stop("AX action denied: " + command) }
 }

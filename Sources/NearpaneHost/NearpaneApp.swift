@@ -124,7 +124,8 @@ struct NearpaneApp {
                 delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
                 switch command {
                 case "--native-acceptance-session": break
-                case "--native-acceptance-secondary", "--native-acceptance-secondary-desktop":
+                case "--native-acceptance-secondary", "--native-acceptance-secondary-desktop", "--native-acceptance-secondary-fullscreen":
+                    delegate.enrolledFullscreenTrial = command == "--native-acceptance-secondary-fullscreen"
                     delegate.requestsDesktopFixture = command == "--native-acceptance-secondary-desktop"
                     let secondary = SystemScreens.geometry().dropFirst()
                     guard secondary.count == 1, let id = secondary.first?.id, UUID(uuidString: id) != nil else { exit(2) }
@@ -161,6 +162,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var desktopFixture: DesktopAcceptanceFixture?
     private var managementProbe: NativeManagementAcceptance?
     private var fullscreenFixture: FullscreenAcceptanceFixture?
+    var enrolledFullscreenTrial = false
+    private var enrolledFullscreen: EnrolledFullscreenFixture?
     private var fullscreenTrial: Bool {
         guard requestsDesktopFixture, passiveDisplayID != nil, let acceptanceSession else { return false }
         return ProcessInfo.processInfo.environment["NEARPANE_FULLSCREEN_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent
@@ -230,7 +233,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.
             var duration = 25.0
             #if canImport(SaytileKit)
-            if managementTrial || profileTrial { duration = 100 } else if fullscreenTrial { duration = 65 }
+            if managementTrial || profileTrial { duration = 100 } else if fullscreenTrial || enrolledFullscreenTrial { duration = 65 }
             if managementTrial, let id = acceptanceSession?.directory.lastPathComponent,
                ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_ACCEPTANCE"] == id,
                ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"] == id { duration = 225 }
@@ -291,7 +294,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         self.modules = modules
         modules.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         #if canImport(SaytileKit)
-        if !profileTrial { modules.workRect?.start() }
+        if !profileTrial && !enrolledFullscreenTrial { modules.workRect?.start() }
         #else
         modules.workRect?.start()
         #endif
@@ -328,7 +331,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
         #if canImport(SaytileKit)
-        if profileTrial, let options = profileOptions, let acceptanceSession, let display = passiveDisplayID {
+        if !enrolledFullscreenTrial, profileTrial, let options = profileOptions, let acceptanceSession, let display = passiveDisplayID {
             // A marked fixture selects the version without opening an AppKit pop-up over the desktop.
             // Reading this synthetic source still requires the same explicit Preview and Confirm controls.
             options.version = "P5.2"
@@ -340,6 +343,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let controller = EdgeWindowController(host: session, modules: modules)
         surface = controller
         if passiveDisplayID != nil { controller.window?.ignoresMouseEvents = true }
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        if enrolledFullscreenTrial, let acceptanceSession, let display = passiveDisplayID {
+            do {
+                enrolledFullscreen = try EnrolledFullscreenFixture(session: acceptanceSession, display: display,
+                    domains: modules, edge: controller.window)
+            } catch { NSApp.terminate(nil); return }
+        }
+        #endif
         controller.place(screens: placementScreens())
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession {
@@ -369,7 +380,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             modules?.workRect?.send("presentation " + state + " " + id + expiry)
         }
         #if canImport(SaytileKit)
-        if fullscreenTrial, let acceptanceSession, let display = passiveDisplayID, let desktopFixture {
+        if let enrolledFullscreen {
+            panels.fixtureFullscreen = { [weak enrolledFullscreen] display in enrolledFullscreen?.sample(display) }
+            enrolledFullscreen.start { [weak self] in self?.updatePanels() }
+        } else if fullscreenTrial, let acceptanceSession, let display = passiveDisplayID, let desktopFixture {
             do {
                 let fixture = try FullscreenAcceptanceFixture(session: acceptanceSession, displayID: display,
                     ownedWindow: { try desktopFixture.fixtureWindowNumber() }, refresh: { [weak self] in self?.updatePanels() })
@@ -418,6 +432,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             await host?.waitForDesktopStop()
             #if canImport(RiftletCore) && canImport(SaytileKit)
             fullscreenFixture?.stop()
+            enrolledFullscreen?.stop()
             managementProbe?.stop()
             acceptanceProbe?.finish()
             #endif
@@ -484,7 +499,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private func updatePanels() {
         guard host?.isRunning == true else { return }
         #if canImport(SaytileKit)
-        if CandidateProfile.selected, requestsDesktopFixture, let passiveDisplayID {
+        if CandidateProfile.selected, requestsDesktopFixture || enrolledFullscreenTrial, let passiveDisplayID {
             let screens = SystemScreens.geometry()
             guard screens.count == 2, screens.last?.id == passiveDisplayID,
                   screens.first?.id != passiveDisplayID,
