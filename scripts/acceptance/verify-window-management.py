@@ -76,6 +76,8 @@ class Trial:
             os.fsync(f.fileno())
 
     def command(self, name, *, refuse=None):
+        if getattr(self, "passive_source", False):
+            need(name in ("preflight", "observe", "confirm-exit"), "passive source command refused")
         self.count += 1
         stem = self.dir / f"{self.count:03d}-{name}"
         tries = len(list(self.dir.glob("attempt-*.json")))
@@ -111,6 +113,8 @@ class Trial:
         return json.loads(result.stdout)
 
     def membership(self, action, index):
+        if getattr(self, "passive_source", False):
+            need(action in ("create", "gate-read", "close") and index == 1, "unexpected passive fixture command")
         self.sequence += 1
         save(self.dir / "command.json", dict(sequence=self.sequence, action=action, index=index))
 
@@ -150,19 +154,62 @@ class Trial:
         need(code == 0, "fixture did not exit normally")
         self.event("CG-cleanup", **self.command("confirm-exit"))
 
-    def exercise(self, suite, read_gate):
+    def observe_source(self, session, display, source):
+        """Witness a single nonactivating fixture using the two installed, signed lab helpers."""
+        ticket = self.membership("create", 1)
+        member, = ticket["members"]
+        owner_frame, = ticket["frames"]
+        snapshots = []
+        for _ in range(2):
+            row, = self.command("observe")
+            need(row["member"] == member and row["onScreen"] and row["cg"] == row["ax"] == owner_frame,
+                 "the enrolled window's AX and CG frames do not match its owner's frame")
+            self.membership("gate-read", 1)
+            sample = read(self.dir / f"native-gate-{self.sequence}.json")
+            verify_source_sample(sample, session, self.sequence, display, source, member["id"], owner_frame)
+            snapshots.append(sample)
+        first, second = snapshots
+        need(first["scopes"] == second["scopes"] and first["topologyFingerprint"] == second["topologyFingerprint"]
+             and first["sourceBuild"] == second["sourceBuild"] and first["native"]["endedUptime"] < second["native"]["beganUptime"],
+             "unstable independent source observations")
+        state = self.membership("close", 1)
+        need(not state["members"], "owned window did not close")
+        def closed_focus():
+            trace = self.dir / f"focus-{self.owner.pid}.jsonl"
+            for line in reversed(trace.read_bytes().splitlines()):
+                if not line.endswith(b"}"):
+                    continue
+                event = json.loads(line)
+                if event["event"] == "sample" and event["uptime"] > state["uptime"]:
+                    need(event["sameAXFocusedWindow"] and not event["active"] and not event["windows"],
+                         "original focus missing after close")
+                    return event
+        focused = until(closed_focus, 2)
+        self.event("passive-source", display=display, record=source, member=member["id"], frame=owner_frame,
+                   revisions=[s["revision"] for s in snapshots], sameAXFocus=focused["sameAXFocusedWindow"],
+                   frontPID=focused["frontPID"])
+
+    def exercise(self, suite, read_gate, source=None, display=None):
+        self.passive_source = suite == "passive-source"
         pre = self.command("preflight")
         need(pre["controllerID"] == "org.nearpane.lab.NearpaneFrameController" and pre["parent"]["pid"] == os.getpid(), "control subject")
         run = dict(session=str(uuid.uuid4()), parent=pre["parent"], deadline=pre["uptime"] + 480, screens=pre["screens"])
-        self.study_focus = suite == "focus-study"
-        if self.study_focus:
+        self.study_focus = suite == "focus-study" or self.passive_source
+        if suite == "focus-study":
             need(pre.get("visibilityProtocolVersion") == 1 and pre.get("virtualSwitchAvailable") is False, "expected focus-only capability")
         if suite == "including-parking":
             need(pre.get("virtualSwitchAvailable") is True, "no device-verified Virtual parking mechanism")
         run["parkingStudy"] = self.study_focus
+        if self.passive_source:
+            need(pre["trusted"] and pre["screens"]["separateSpaces"] and pre["screens"]["secondary"] == display and source,
+                 "missing AX permission or the specified independent secondary display")
+            run["deadline"] = pre["uptime"] + 35
         save(self.dir / "run.json", run)
         self.start_owner()
         self.phase = "enroll"
+        if self.passive_source:
+            self.observe_source(run["session"], display, source)
+            return
         self.membership("create", 1)
         self.command("inspect")
         if not pre["trusted"]:
@@ -386,10 +433,35 @@ class Trial:
                 raise NotVerified("fixture stopped early; see fixture stderr")
 
 
+def verify_source_sample(sample, session, revision, display, source, identity, frame):
+    need(sample["sessionID"].lower() == session.lower() and sample["revision"] == revision
+         and sample["freshness"] == "fresh" and sample["topologyConsistent"] and sample["separateSpaces"]
+         and sample["native"]["population"] == "markedFixture" and sample["native"]["spaces"] == "observed"
+         and sample["native"]["accessibility"] == "available" and not sample["native"]["windowLimitReached"],
+         "incomplete source sample")
+    row, = sample["native"]["rows"]
+    scope, = [s for s in sample["scopes"] if s["displayID"] == display]
+    need([r["id"] for r in scope["records"] if r["isCurrent"]] == [source]
+         and row["scopeID"] == scope["id"] and row["displayID"] == display and row["recordID"] == source
+         and row["anchor"] == dict(displayID=display, witness="ownedWindow", number=identity["number"], globalFrame=frame),
+         "source desktop is not the enrolled secondary window's current desktop")
+    window, = sample["windows"]
+    meta = window["metadata"]
+    need(window["displayID"] == display and window["confidence"] == "corroboratedMetadata"
+         and window["membership"] == {"known": {"recordIDs": [source]}}
+         and meta["pid"] == identity["pid"] and meta["number"] == identity["number"]
+         and meta["launchMicroseconds"] == identity["launch"] and meta["globalFrame"] == meta["axFrame"] == frame
+         and meta["axStandardWindowNumber"] == identity["number"] and meta["isOnscreen"]
+         and not meta["minimized"] and not meta["fullScreen"],
+         "source window identity, presentation or exclusive membership is unproven")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("evidence", type=Path)
-    parser.add_argument("--suite", choices=("focus-study","canary", "workrect", "controls", "panel", "refusals", "including-parking"), default="workrect")
+    parser.add_argument("--suite", choices=("passive-source", "focus-study","canary", "workrect", "controls", "panel", "refusals", "including-parking"), default="workrect")
+    parser.add_argument("--source", help="ordinary source record already confirmed by the console preflight")
+    parser.add_argument("--display", help="physical secondary display UUID for passive-source")
     parser.add_argument("--read-gate", action="store_true", help="sample only the first owned window with the bundled read-only reader")
     args = parser.parse_args()
     evidence = args.evidence.resolve()
@@ -399,8 +471,8 @@ def main():
     print(trial.dir, flush=True)
     failure = []
     try:
-        trial.exercise(args.suite, args.read_gate)
-    except (OSError, ValueError, subprocess.SubprocessError, NotVerified) as e:
+        trial.exercise(args.suite, args.read_gate, args.source, args.display)
+    except (OSError, ValueError, KeyError, subprocess.SubprocessError, NotVerified) as e:
         failure.append(str(e))
     finally:
         try:
