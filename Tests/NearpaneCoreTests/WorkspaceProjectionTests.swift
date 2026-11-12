@@ -4,6 +4,18 @@ import Testing
 @testable import NearpaneCore
 
 struct WorkspaceProjectionTests {
+    @Test func windowContentsRequireAnOptInOnEachDisplay() throws {
+        let old = try JSONDecoder().decode(DisplaySettings.self, from: Data(#"{"placement":"floating"}"#.utf8))
+        #expect(!old.showsWindowContents)
+        var work = old
+        work.showsWindowContents = true
+        let settings = ["work": work, "presentation": DisplaySettings()]
+        let restored = try JSONDecoder().decode([String: DisplaySettings].self,
+                                                 from: JSONEncoder().encode(settings))
+        #expect(restored["work"]?.showsWindowContents == true)
+        #expect(restored["presentation"]?.showsWindowContents == false)
+    }
+
     @Test func observationOnlyUsesWitnessedRowsAndActualFramesEvenOutsidePlannedWorkRect() throws {
         let f = NativeDesktopPreviewTests()
         let full = SurfaceRect(x: -800, y: 20, width: 800, height: 1260)

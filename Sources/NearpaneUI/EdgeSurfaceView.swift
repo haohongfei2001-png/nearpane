@@ -1,6 +1,7 @@
 import SwiftUI
 import NearpaneCore
 #if canImport(NearpaneVoice)
+import SaytileVoiceUI
 import NearpaneVoice
 import NearpaneTray
 #endif
@@ -26,9 +27,23 @@ public struct EdgeSurfaceView: View {
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight:display?.referenceHeight)
             ZStack(alignment: .topLeading) {
-                if layout.voice.height > 0 { voice.place(in:layout.voice) }
-                if layout.screenshots.height > 0 { screenshots.place(in:layout.screenshots) }
-                if layout.desktop.height > 0 { desktop.place(in:layout.desktop) }
+                #if canImport(SaytileVoiceUI)
+                VoiceRailGlass(width: geometry.size.width)
+                #endif
+                if layout.voice.height > 0 {
+                    #if canImport(SaytileVoiceUI)
+                    FramedVoiceSlot { voice }.place(in: layout.voice)
+                    #else
+                    voice.place(in: layout.voice)
+                    #endif
+                }
+                if layout.screenshots.height > 0 {
+                    moduleCard(width: geometry.size.width, last: layout.desktop.height == 0) { screenshots }
+                        .place(in: layout.screenshots)
+                }
+                if layout.desktop.height > 0 {
+                    moduleCard(width: geometry.size.width, last: true) { desktop }.place(in: layout.desktop)
+                }
                 if display?.secondary != true, let rect = layout.expanded, let id = host.registry.expandedID {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())
@@ -53,6 +68,28 @@ public struct EdgeSurfaceView: View {
             #endif
         }
         .tint(.indigo)
+    }
+
+    private func moduleCard<Content: View>(width: CGFloat, last: Bool, @ViewBuilder content: () -> Content) -> some View {
+        #if canImport(SaytileVoiceUI)
+        let inset = VoiceRailMetrics(width: width).sideInset
+        #else
+        let inset = min(18, width * 0.046)
+        #endif
+        let shape = RoundedRectangle(cornerRadius: inset * 1.45, style: .continuous)
+        return content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
+                shape.fill(.white.opacity(0.42))
+                shape.fill(LinearGradient(colors: [.white.opacity(0.30), .white.opacity(0.03)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .clipShape(shape)
+            .overlay { shape.strokeBorder(.white.opacity(0.60), lineWidth: 0.7).allowsHitTesting(false) }
+            .shadow(color: .black.opacity(0.10), radius: inset * 0.45, y: inset * 0.18)
+            .padding(.horizontal, inset)
+            .padding(.top, inset * 0.52)
+            .padding(.bottom, last ? inset * 1.65 : inset * 0.52)
     }
 
     private func enabled(_ id: String) -> Bool {

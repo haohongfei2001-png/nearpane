@@ -11,7 +11,7 @@ struct PanelSizeLayout {
           content: PanelContent, voice: Bool, tray: Bool, floating: Bool) {
         guard let full = settings.panel(on: screen, fallbackEdge: edge) else { return nil }
         referenceHeight = full.height
-        let sizes = settings.contentHeights(full.height, content: content, voice: voice, tray: tray)
+        let sizes = settings.contentHeights(full.height, width: full.width, content: content, voice: voice, tray: tray)
         let sections = [sizes.voice, sizes.tray, sizes.spaces].filter { $0 > 0 }
         let fittedHeight = sections.reduce(0, +) + Double(max(0, sections.count - 1)) * sizes.gap
         let alwaysUseFullHeight = settings.measures[.panelHeight] != nil || content == .hidden

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(SaytileVoiceUI)
+import SaytileVoiceUI
+#endif
 
 public enum MeasureUnit: String, Codable, CaseIterable, Sendable {
     case points = "pt"
@@ -91,6 +94,7 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
     public var toolAnchor: FloatingToolSurface?
     public var placement: SpacePanelPlacement = .docked
     public var policy: SecondaryPolicy = .onDemand
+    public var showsWindowContents = false
     public var spacesDismissed = false
     public var edge: SurfaceEdge?
     public var anchor: PanelAnchor = .top
@@ -102,6 +106,7 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
         fullscreenTools = try values.decodeIfPresent(FullscreenToolSettings.self, forKey: .fullscreenTools) ?? .init()
         toolAnchor = try values.decodeIfPresent(FloatingToolSurface.self, forKey: .toolAnchor)
         placement = try values.decodeIfPresent(SpacePanelPlacement.self, forKey: .placement) ?? .docked
+        showsWindowContents = try values.decodeIfPresent(Bool.self, forKey: .showsWindowContents) ?? false
         spacesDismissed = try values.decodeIfPresent(Bool.self, forKey: .spacesDismissed) ?? false
         policy = try values.decodeIfPresent(SecondaryPolicy.self, forKey: .policy) ?? .onDemand
         edge = try values.decodeIfPresent(SurfaceEdge.self, forKey: .edge)
@@ -269,19 +274,27 @@ extension DisplaySettings {
         let compactSpan = 2 * minimum + 2 * PanelSizeMetrics.glassInset
         guard width.isFinite, height.isFinite, min(width, height) >= minimum,
               max(width, height) >= compactSpan else { return .icon }
-        let sections = contentHeights(referenceHeight ?? height, content: content, voice: voice, tray: tray)
+        let sections = contentHeights(referenceHeight ?? height, width: width, content: content, voice: voice, tray: tray)
         if voice && [.full, .compact, .voiceOnly].contains(content) {
-            let pad = points(.textPadding, in: width)
-            let requestedFont = points(.textSize, in: sections.voice)
-            let font = readableFontSize(.textSize, in: sections.voice) ?? requestedFont
+            // Legacy relative text preferences refer to the configured voice height.
+            // The actual default card and controls scale down together on a narrow rail.
+            let textBasis = points(.voiceHeight, in: referenceHeight ?? height)
+            let requestedFont = points(.textSize, in: textBasis)
+            let font = readableFontSize(.textSize, in: textBasis) ?? requestedFont
             if !temporarilyExpanded && font > requestedFont { return .compact }
-            let waveformWidth = points(.waveformSize, in: width)
-            let copySize = points(.copySize, in: sections.voice)
-            let buttonHeight = max(points(.voiceButtonHeight, in: sections.voice), waveformWidth * 24 / 28, copySize)
-            let rowWidth = max(points(.voiceButtonWidth, in: width), waveformWidth) + copySize
-                + 2 * points(.buttonGap, in: width)
-            if width < 2 * pad + max(rowWidth, 2 * font)
-                || min(height, sections.voice) < 2 * pad + buttonHeight + font * 1.3 + 4 { return .compact }
+            let scale = min(1, max(0.40, width / 240))
+            func control(_ key: DisplayMetric, _ extent: Double) -> Double {
+                measures[key]?.points(in: extent) ?? key.factory.points(in: extent) * scale
+            }
+            let pad = control(.textPadding, width)
+            let waveformWidth = control(.waveformSize, width)
+            let copySize = control(.copySize, sections.voice)
+            let buttonHeight = max(control(.voiceButtonHeight, sections.voice), waveformWidth * 24 / 28, copySize)
+            let rowWidth = max(control(.voiceButtonWidth, width), waveformWidth) + copySize + 2 * control(.buttonGap, width)
+            let railSides = 2 * min(width / 4, width * 15 / 325)
+            let railEnds = min(width * 25 / 325, sections.voice / 4) + min(width * 8 / 325, sections.voice / 8)
+            if width - railSides < 2 * pad + max(rowWidth, 2 * font)
+                || min(height, sections.voice) - railEnds < 2 * pad + buttonHeight + font * 1.3 + 4 * scale { return .compact }
         }
         if tray && [.full, .compact, .trayOnly].contains(content) {
             let pad = points(.trayPadding, in: width)
@@ -304,21 +317,33 @@ extension DisplaySettings {
         return .full
     }
 
-    public func contentHeights(_ height: Double, content: PanelContent, voice: Bool, tray: Bool) -> (
+    public func contentHeights(_ height: Double, width: Double, content: PanelContent, voice: Bool, tray: Bool) -> (
         voice: Double, tray: Double, spaces: Double, gap: Double
     ) {
+        let requested = requestedSectionHeights(height: height, width: width, content: content, voice: voice, tray: tray)
+        let total = requested.voice + requested.tray + requested.spaces
+        let scale = min(1, requested.available / max(Double.leastNormalMagnitude, total))
+        return (requested.voice * scale, requested.tray * scale, requested.spaces * scale, requested.gap)
+    }
+
+    public func requestedSectionHeights(height: Double, width: Double, content: PanelContent, voice: Bool, tray: Bool)
+        -> (voice: Double, tray: Double, spaces: Double, gap: Double, available: Double) {
         let h = max(0, height)
         let showVoice = voice && [.full, .compact, .voiceOnly].contains(content)
         let showTray = tray && [.full, .compact, .trayOnly].contains(content)
         let showSpaces = content == .full || content == .spacesOnly
         let gaps = max(0, [showVoice, showTray, showSpaces].filter { $0 }.count - 1)
         let gap = min(points(.sectionGap, in: h), h / Double(max(1, gaps + 1)))
-        let amounts = [
-            showVoice ? points(.voiceHeight, in: h) : 0, showTray ? points(.trayHeight, in: h) : 0,
-            showSpaces ? (content == .spacesOnly && measures[.spacesHeight] == nil ? h : points(.spacesHeight, in: h)) : 0,
-        ]
-        let scale = min(1, max(0, h - Double(gaps) * gap) / max(Double.leastNormalMagnitude, amounts.reduce(0, +)))
-        return (amounts[0] * scale, amounts[1] * scale, amounts[2] * scale, gap)
+        #if canImport(SaytileVoiceUI)
+        let factoryVoice = VoiceRailMetrics.factoryHeight(width: width, visibleHeight: h)
+        #else
+        let factoryVoice = min(h * 0.225, width * 173 / 325)
+        #endif
+        let voiceHeight = showVoice ? measures[.voiceHeight]?.points(in: h) ?? factoryVoice : 0
+        let trayHeight = showTray ? measures[.trayHeight]?.points(in: h) ?? min(h * 0.225, width * 195 / 325) : 0
+        let remaining = max(0, h - voiceHeight - trayHeight - Double(gaps) * gap)
+        let spaceHeight = showSpaces ? measures[.spacesHeight]?.points(in: h) ?? remaining : 0
+        return (voiceHeight, trayHeight, spaceHeight, gap, max(0, h - Double(gaps) * gap))
     }
 }
 
@@ -327,7 +352,7 @@ extension DisplaySettings {
     public func referenceExtent(for key: DisplayMetric, screen: ScreenGeometry, primary: Bool) -> Double {
         let safe = screen.visibleFrame
         let panel = panel(on: screen, fallbackEdge: .right) ?? safe
-        let sizes = contentHeights(panel.height, content: primary ? .full : .spacesOnly, voice: primary, tray: primary)
+        let sizes = contentHeights(panel.height, width: panel.width, content: primary ? .full : .spacesOnly, voice: primary, tray: primary)
         switch key {
         case .panelWidth, .reservedWidth, .sideInset: return safe.width
         case .panelHeight, .topInset, .bottomInset, .verticalOffset: return safe.height

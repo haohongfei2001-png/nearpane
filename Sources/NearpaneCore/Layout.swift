@@ -60,7 +60,7 @@ public enum LayoutComposer {
                                voiceEnabled: Bool = true, trayEnabled: Bool = true, referenceHeight: Double? = nil) -> SurfaceLayout {
         let w = width.isFinite ? max(0, width) : 0
         let h = height.isFinite ? max(0, height) : 0
-        let sizes = settings.contentHeights(referenceHeight ?? h, content: content, voice: voiceEnabled, tray: trayEnabled)
+        let sizes = settings.contentHeights(referenceHeight ?? h, width: w, content: content, voice: voiceEnabled, tray: trayEnabled)
         let voice = min(h, sizes.voice)
         let trayY = min(h, voice + (voice > 0 && sizes.tray > 0 ? sizes.gap : 0))
         let tray = min(h - trayY, sizes.tray)
