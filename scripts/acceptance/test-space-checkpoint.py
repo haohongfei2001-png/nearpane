@@ -66,6 +66,20 @@ class TestCheckpoint(unittest.TestCase):
         self.assertFalse(grant["permitsCalibrationAndThreeRoundTrips"])
         self.assertEqual(grant["target"], "")
 
+    def test_timed_route_does_not_imply_a_focus_loan(self):
+        ctl.grant(self.folder, self.run, self.args)
+        self.assertFalse(ctl.load(self.folder / "unattended-consent.ready")["permitsTemporarySecondaryFocus"])
+
+    def test_focus_loan_requires_capable_witness_and_explicit_flag(self):
+        self.args.allow_temporary_focus = True
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        context = ctl.load(self.folder / "console-scope.json")
+        (self.folder / "console-scope.json").unlink()
+        self.put("console-scope.json", dict(context, focusLoanProtocol="1"))
+        ctl.grant(self.folder, self.run, self.args)
+        self.assertTrue(ctl.load(self.folder / "unattended-consent.ready")["permitsTemporarySecondaryFocus"])
+
     def test_chord_conflicting_with_order_and_missing_click_rejected(self):
         ctl.grant(self.folder, self.run, self.args)
         self.request("enroll-B")

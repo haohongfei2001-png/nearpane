@@ -87,6 +87,9 @@ def grant(run_dir, run, args):
     require(context["run"] == run == origin["sessionID"], "origin belongs to another trial")
     fullscreen = getattr(args, "fullscreen_only", False)
     require(fullscreen == (context.get("procedure", "route") == "fullscreen"), "consent does not match trial procedure")
+    focus_loan = getattr(args, "allow_temporary_focus", False)
+    require(not focus_loan or context.get("focusLoanProtocol") == "1",
+            "this frozen witness cannot verify a temporary foreground loan")
     if fullscreen:
         require(not args.target and args.source.isascii() and args.source.isdecimal() and int(args.source) > 0,
                 "fullscreen consent requires only the identified blank source")
@@ -104,7 +107,7 @@ def grant(run_dir, run, args):
             dict(run=run, boot=context["boot"], securityID=int(context["securityID"]),
                  secondaryDisplay=context["secondaryDisplay"], source=args.source, target=args.target or "",
                  starts=format_utc(starts), ends=format_utc(ends), permitsCalibrationAndThreeRoundTrips=not fullscreen,
-                 permitsSingleWindowFullscreen=fullscreen))
+                 permitsSingleWindowFullscreen=fullscreen, permitsTemporarySecondaryFocus=focus_loan))
 
 
 def ack(run_dir, run, args, *, timeout=20):
@@ -157,6 +160,8 @@ def main():
   2. When both test desktops and return path are identified, start --three-rounds-console.
      Use the UUID printed by this new trial. On its unattended-consent request, record only
      an existing owner grant using consent --source ID --target ID --starts ISO8601 --ends ISO8601.
+     Add --allow-temporary-focus only when the owner explicitly permits a temporary foreground
+     loan in that interval. The witness rehearses passive return to the exact original window.
   3. After its enroll-A request and an actual click on the A fixture, use ack enroll-A.
      At enroll-B, use only the public Control-arrow mapping independently demonstrated for
      this pair. After reaching B, use ack enroll-B --observed-chord left|right. A registered
@@ -178,6 +183,8 @@ def main():
         consent.add_argument("--" + key, required=True)
     consent.add_argument("--target", help="required destination for a route trial")
     consent.add_argument("--fullscreen-only", action="store_true", help="grant only one native fullscreen entry and return on A")
+    consent.add_argument("--allow-temporary-focus", action="store_true",
+                         help="record an explicit loan to this run's secondary fixture within the specified interval")
     release = commands.add_parser("ack", help="acknowledge a witnessed fixture click or manually demonstrated system chord")
     release.add_argument("checkpoint", choices=STEPS[1:])
     release.add_argument("--observed-chord", choices=("left", "right"))

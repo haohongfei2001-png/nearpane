@@ -9,6 +9,12 @@ package struct ConsoleSpaceConsent: Codable {
     package let starts, ends: Date
     package let permitsCalibrationAndThreeRoundTrips: Bool
     package let permitsSingleWindowFullscreen: Bool?
+    package let permitsTemporarySecondaryFocus: Bool?
+
+    /// Only consulted after allows() verifies the owner, procedure, display and time window.
+    package func acceptsFocusRegion(_ region: String) -> Bool {
+        region == "secondary" || (region == "protected-main" && permitsTemporarySecondaryFocus == true)
+    }
 
     package func allows(run expected: UUID, boot liveBoot: String, securityID liveID: UInt32,
                         display: String, at now: Date, fullscreenOnly: Bool = false) -> Bool {

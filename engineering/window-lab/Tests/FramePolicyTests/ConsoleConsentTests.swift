@@ -23,6 +23,19 @@ struct ConsoleConsentTests {
         #expect(try allowed(fullscreen: false))
     }
 
+    @Test(arguments: [nil, false, true] as [Bool?])
+    func focusOnlyBorrowsFromAnIdentifiedDisplayWithExplicitConsent(granted: Bool?) throws {
+        var data: [String:Any] = ["run":UUID().uuidString, "secondaryDisplay":UUID().uuidString,
+                                  "boot":"boot", "securityID":4, "source":"8", "target":"9",
+                                  "starts":1, "ends":800, "permitsCalibrationAndThreeRoundTrips":true]
+        data["permitsTemporarySecondaryFocus"] = granted
+        let consent = try JSONDecoder().decode(ConsoleSpaceConsent.self, from: JSONSerialization.data(withJSONObject: data))
+        #expect(consent.acceptsFocusRegion("secondary"))
+        #expect(consent.acceptsFocusRegion("protected-main") == (granted == true))
+        #expect(!consent.acceptsFocusRegion("spanning"))
+        #expect(!consent.acceptsFocusRegion("unknown"))
+    }
+
     @Test(arguments: ["valid", "future", "expired", "too-long", "replay", "different-boot", "changed-login",
                       "different-display", "same-space", "invalid-id", "not-authorized"])
     func scopeAndIntervalRemainBound(reason: String) throws {

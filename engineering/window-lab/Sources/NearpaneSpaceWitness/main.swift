@@ -16,6 +16,7 @@ import WindowLab
   }
   var baseline: [String: Position] = [:], focus: [String: AXUIElement] = [:]
   var initialFocus: (Int32, AXUIElement)?
+  var focusLoan: ConsoleFocusLoan?
   struct SessionIdentity: Decodable, Equatable {
     let uid, consoleUID, securityID: UInt32
     let boot: String, displays: [String]
@@ -72,8 +73,8 @@ import WindowLab
     }
     try require(p.terminationStatus == 0, "observer refused: " + output.lastPathComponent)
   }
-  func scope() throws {
-    try require(ProcessInfo.processInfo.systemUptime < deadline, "trial expired")
+  func scope(cleanupRead: Bool = false) throws {
+    try require(cleanupRead || ProcessInfo.processInfo.systemUptime < deadline, "trial expired")
     let url = dir.appendingPathComponent("scope-" + UUID().uuidString + ".json")
     try helper(
       kit.appendingPathComponent("SessionProbe"),
@@ -84,9 +85,10 @@ import WindowLab
       check.verdict == (consoleTrial ? "CONSOLE_SCOPE_ONLY" : "ISOLATED_GUI_CANDIDATE") && (admitted == nil || admitted == check.caller),
       "session binding changed")
     admitted = check.caller
-    try checkConsentExpiry()
+    if !cleanupRead { try checkConsentExpiry() }
   }
   func checkConsentExpiry() throws {
+    try focusLoan?.verifyOriginal()
     if let consent = consoleConsent {
       guard let caller = admitted, let end = consentExpiresUptime, ProcessInfo.processInfo.systemUptime < end,
             let display = originDisplay,
@@ -181,7 +183,7 @@ import WindowLab
     let (_, display) = try screen()
     originScopes = try TrialDisplayState(consoleEndpoint("A", display: display))
     try writeJSON(["run": run.uuidString, "boot": session.boot, "securityID": String(session.securityID),
-                   "secondaryDisplay": display, "procedure": fullscreenOnly ? "fullscreen" : "route"], dir, "console-scope.json")
+                   "secondaryDisplay": display, "focusLoanProtocol": "1", "procedure": fullscreenOnly ? "fullscreen" : "route"], dir, "console-scope.json")
     try awaitCheckpoint("unattended-consent")
     let file = dir.appendingPathComponent("unattended-consent.ready")
     let fd = open(file.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
@@ -221,6 +223,11 @@ import WindowLab
     w.contentView = NSTextField(labelWithString: "P4.3 " + label + " " + run.uuidString)
     w.setFrame(r, display: false)
     try require(w.frame == r && s.visibleFrame.contains(w.frame), "unsafe fixture frame")
+    if label == "A", let focusLoan {
+      try checkConsentExpiry()
+      try focusLoan.requireFocused(focusedWindow())
+      try checkConsentExpiry()
+    }
     windows[label] = w
     w.orderFrontRegardless()
   }
@@ -257,17 +264,9 @@ import WindowLab
   // AX window frames use global Quartz points. Only the display classification leaves this check.
   func focusRegion(_ element: AXUIElement, secondary: NSScreen) -> String {
     guard let display = secondary.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
-          let p = labAttribute(element, kAXPositionAttribute), let s = labAttribute(element, kAXSizeAttribute),
-          CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(s) == AXValueGetTypeID() else { return "unknown" }
-    let position = p as! AXValue, size = s as! AXValue
-    var point = CGPoint.zero, dimensions = CGSize.zero
-    guard AXValueGetType(position) == .cgPoint, AXValueGetType(size) == .cgSize,
-          AXValueGetValue(position, .cgPoint, &point), AXValueGetValue(size, .cgSize, &dimensions),
-          point.x.isFinite, point.y.isFinite, dimensions.width.isFinite, dimensions.height.isFinite,
-          dimensions.width > 0, dimensions.height > 0 else { return "unknown" }
-    let frame = CGRect(origin: point, size: dimensions)
+          let frame = ConsoleFocusLoan.frame(element) else { return "unknown" }
     if CGDisplayBounds(display.uint32Value).contains(frame) { return "secondary" }
-    if CGDisplayBounds(CGMainDisplayID()).intersects(frame) { return "protected-main" }
+    if CGDisplayBounds(CGMainDisplayID()).contains(frame) { return "protected-main" }
     return "unknown"
   }
 
@@ -524,17 +523,27 @@ import WindowLab
     let original = try focusedWindow()
     if consoleTrial {
       let (secondary, _) = try screen()
-      try require(focusRegion(original.1, secondary: secondary) == "secondary",
-                  "starting the trial would leave protected or unlocated focus")
+      let region = focusRegion(original.1, secondary: secondary)
+      guard let consent = consoleConsent, consent.acceptsFocusRegion(region) else {
+        throw Refusal("protected or unlocated focus without an applicable owner grant")
+      }
+      if region == "protected-main" { focusLoan = try ConsoleFocusLoan(original) }
     }
     initialFocus = original
-    try writeJSON(["frontPID": original.0], dir, "initial-focus.json")
+    if let focusLoan {
+      try writeJSON(["frontPID": String(original.0), "processBirth": String(focusLoan.owner.start),
+                     "focusToken": focusLoan.token.uuidString, "region": "protected-main", "mode": "temporary"],
+                    dir, "initial-focus.json")
+    } else {
+      try writeJSON(["frontPID": original.0], dir, "initial-focus.json")
+    }
     gui = app
     app.finishLaunching()
     try create("A")
     try awaitCheckpoint("enroll-A")
     try require(clicked.contains("A"), "no GUI click witnessed on enrolled A")
     baseline["A"] = try stable("A", "origin-A")
+    if let focusLoan { try rehearsePassiveReturn(focusLoan) }
     if fullscreenOnly {
       try fullscreenRoundTrip()
       return
@@ -569,10 +578,18 @@ import WindowLab
   }
   func restoredFocus() throws {
     guard let initialFocus else { throw Refusal("initial focus missing") }
+    if let focusLoan { try observePassiveReturn(focusLoan) }
     let (pid, el) = try focusedWindow()
     try require(pid == initialFocus.0 && CFEqual(el, initialFocus.1), "original focus not restored")
+    var receipt = ["run": run.uuidString, "frontPID": String(pid), "sameAXFocus": "true"]
+    if let focusLoan {
+      try focusLoan.requireFocused((pid, el))
+      receipt["processBirth"] = String(focusLoan.owner.start)
+      receipt["focusToken"] = focusLoan.token.uuidString
+      receipt["originalFrameUnchanged"] = "true"
+    }
+    try writeJSON(receipt, dir, "restored-focus.json")
     focusVerified = true
-    try writeJSON(["run": run.uuidString, "frontPID": String(pid), "sameAXFocus": "true"], dir, "restored-focus.json")
   }
   func checkFinalScopes() throws {
     guard originScopes != nil || baseline["A"] != nil else { throw Refusal("missing original endpoint") }
@@ -609,6 +626,9 @@ import WindowLab
       w.orderOut(nil)
       w.close()
     }
+    if focusLoan != nil && NSWorkspace.shared.frontmostApplication?.processIdentifier == birth.pid {
+      NSApp.hide(nil)
+    }
     let end = ProcessInfo.processInfo.systemUptime + 2
     repeat {
       if ids.allSatisfy({ id in
@@ -643,7 +663,7 @@ import WindowLab
     result["cleanup"] = cleanupVerified ? "verified" : "unverified"
     if initialFocus != nil {
       do {
-        try scope()
+        try scope(cleanupRead: true)
         if !scopesVerified {
           do { try checkFinalScopes() } catch { result["scopeError"] = String(describing: error) }
         }
@@ -668,12 +688,14 @@ do {
     struct CheckReceipt: Encodable {
       let run: UUID, outcome: String, reason: String?
       let accessibilityTrusted: Bool, initialFocusAvailable: Bool?, initialFocusRegion: String?
+      let returnAnchorAvailableForTimedLoan: Bool?
       let windowsCreated = 0, inputsPosted = 0
     }
-    var initialFocusAvailable: Bool?, initialFocusRegion: String?
+    var initialFocusAvailable: Bool?, initialFocusRegion: String?, loanAnchorAvailable: Bool?
     func record(_ outcome: String, reason: String? = nil) throws {
       try writeJSON(CheckReceipt(run: trial.run, outcome: outcome, reason: reason, accessibilityTrusted: AXIsProcessTrusted(),
-                                 initialFocusAvailable: initialFocusAvailable, initialFocusRegion: initialFocusRegion), trial.dir, "preflight.json")
+                                 initialFocusAvailable: initialFocusAvailable, initialFocusRegion: initialFocusRegion,
+                                 returnAnchorAvailableForTimedLoan: loanAnchorAvailable), trial.dir, "preflight.json")
     }
     do {
       try trial.scope()
@@ -684,11 +706,17 @@ do {
         // No prompt, enrollment, app activation or focus change occurs in check mode.
         try require(AXIsProcessTrusted(), "frozen witness lacks Accessibility for the original focus check")
         initialFocusAvailable = false
-        let (_, element) = try trial.focusedWindow()
+        let original = try trial.focusedWindow()
+        let element = original.1
         initialFocusAvailable = true
         let region = trial.focusRegion(element, secondary: secondary)
         initialFocusRegion = region
-        try require(region == "secondary", "starting the trial would leave protected or unlocated focus")
+        if region == "protected-main" {
+          loanAnchorAvailable = (try? ConsoleFocusLoan(original).requireFocused(trial.focusedWindow())) != nil
+        }
+        try require(region == "secondary", region == "protected-main"
+                    ? "protected main: explicitly timed secondary focus loan and passive-return rehearsal required"
+                    : "unable to bind original focus to a single display")
       }
       let result = trial.consoleTrial ? "CONSOLE_SCOPE_ONLY" : "ISOLATED_GUI_CANDIDATE"
       try record(result)
@@ -702,7 +730,7 @@ do {
   do {
     try trial.runTrial()
     try trial.closeOwned()
-    try trial.scope()
+    try trial.scope(cleanupRead: true)
     try trial.checkFinalScopes()
     try trial.restoredFocus()
     if trial.fullscreenOnly {
