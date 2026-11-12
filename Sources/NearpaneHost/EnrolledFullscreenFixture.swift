@@ -66,9 +66,10 @@ import NearpaneUI
         let exe = URL(fileURLWithPath:path), bundle = exe.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let reader = bundle.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
         var code: SecStaticCode?
-        guard exe.resolvingSymlinksInPath().path == path, reader.resolvingSymlinksInPath().path == reader.path,
+        guard EnrolledFullscreenObservation.matchesExecutablePath(enrolled: reader.path, reported: reader.path),
               Bundle(url:bundle)?.bundleIdentifier == "org.nearpane.lab.NearpaneSpaceWitness",
-              Bundle(url:bundle)?.executableURL?.path == path,
+              let bundlePath = Bundle(url:bundle)?.executableURL?.path,
+              EnrolledFullscreenObservation.matchesExecutablePath(enrolled: path, reported: bundlePath),
               SecStaticCodeCreateWithPath(bundle as CFURL, [], &code) == errSecSuccess, let code,
               SecStaticCodeCheckValidity(code, SecCSFlags(rawValue:kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode), nil) == errSecSuccess,
               let cd = Self.codeDirectory(code), !cd.isEmpty,
@@ -133,7 +134,8 @@ import NearpaneUI
               session?[kCGSessionUserIDKey as String] as? UInt32 == getuid(),
               session?["CGSSessionScreenIsLocked"] as? Bool != true, NSScreen.screensHaveSeparateSpaces,
               let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier == c.pid,
-              app.executableURL?.resolvingSymlinksInPath().path == executable.path, AXIsProcessTrusted(),
+              let reported = app.executableURL?.path,
+              EnrolledFullscreenObservation.matchesExecutablePath(enrolled: executable.path, reported: reported), AXIsProcessTrusted(),
               !NSApp.isActive, NSApp.keyWindow == nil, NSApp.mainWindow == nil else { return false }
         var birth = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue:birth))

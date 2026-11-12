@@ -15,6 +15,7 @@ import WindowLab
     let number: UInt32, frontPID: Int32, topology: String, build: String, recordOrder: [String]
   }
   var baseline: [String: Position] = [:], focus: [String: AXUIElement] = [:]
+  var retiredRehearsal: (number: UInt32, element: AXUIElement)?
   var initialFocus: (Int32, AXUIElement)?
   var focusLoan: ConsoleFocusLoan?
   struct SessionIdentity: Decodable, Equatable {
@@ -182,12 +183,14 @@ import WindowLab
     let (s, types) = try consoleScopeObservation()
     guard let scope = s.scopes.first(where: { $0.displayID == display }),
           let current = scope.records.first(where: \.isCurrent)?.id else { throw Refusal("unknown test display") }
-    let other = fullscreenOnly ? nil : consoleConsent.map { label == "A" ? $0.target : $0.source }
+    try require(["A", "B", "focus-rehearsal"].contains(label), "unknown endpoint")
+    let onSource = label != "B"
+    let other = fullscreenOnly ? nil : consoleConsent.map { onSource ? $0.target : $0.source }
     try require(types.admits(scope, current: current, fullscreenOnly: fullscreenOnly, other: other),
                 fullscreenOnly ? "current secondary record is not an observed ordinary desktop"
                                : "adjacent ordinary secondary records not observed in the complete system order")
     if let consent = consoleConsent {
-      let required = label == "A" ? consent.source : consent.target
+      let required = onSource ? consent.source : consent.target
       try require(scope.records.first(where: \.isCurrent)?.id == required, "console is not at the specified test desktop")
       if let originScopes {
         try require(try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: required),
@@ -242,7 +245,7 @@ import WindowLab
     w.contentView = NSTextField(labelWithString: "P4.3 " + label + " " + run.uuidString)
     w.setFrame(r, display: false)
     try require(w.frame == r && s.visibleFrame.contains(w.frame), "unsafe fixture frame")
-    if label == "A", let focusLoan {
+    if label != "B", let focusLoan {
       try checkConsentExpiry()
       try focusLoan.requireFocused(focusedWindow())
       try checkConsentExpiry()
@@ -262,6 +265,10 @@ import WindowLab
       labAttribute(w, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
       labAttribute(w, kAXMinimizedAttribute) as? Bool == false
     else { throw Refusal("missing enrolled AX window") }
+    if let retiredRehearsal, label != "focus-rehearsal" {
+      try require(!CFEqual(retiredRehearsal.element, w) && windows[label]?.windowNumber != Int(retiredRehearsal.number),
+                  "new fixture reused a retired rehearsal identity")
+    }
     if let prior = elements[label] { try require(CFEqual(prior, w), "AX window rebuilt") }
     elements[label] = w
   }
@@ -334,7 +341,7 @@ import WindowLab
       obs.metadata?.presentation == .confirmed, obs.membership == .known(recordIDs: [row.recordID]), obs.metadata?.globalFrame == frame
     else { throw Refusal("no independent Space/window witness") }
     if let consent = consoleConsent {
-      guard let originScopes, row.recordID == (label == "A" ? consent.source : consent.target),
+      guard let originScopes, row.recordID == (label == "B" ? consent.target : consent.source),
             try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: row.recordID)
       else { throw Refusal("test endpoint or protected display departed the authorized baseline") }
     }
@@ -580,9 +587,19 @@ import WindowLab
     try scope()  // Gate before NSApplication initialization and before window creation.
     if consoleTrial { try awaitConsoleConsent() }
     let app = NSApplication.shared
-    try require(
-      app.setActivationPolicy(.accessory) && AXIsProcessTrusted(),
-      "test GUI Accessibility unavailable")
+    let initialPolicy = app.activationPolicy()
+    let setResult = initialPolicy == .accessory ? nil : app.setActivationPolicy(.accessory)
+    let effectivePolicy = app.activationPolicy()
+    let accessibilityTrusted = AXIsProcessTrusted()
+    struct GUIAdmission: Encodable {
+      let initialPolicy: Int, effectivePolicy: Int, setRequested: Bool, setResult: Bool?
+      let accessibilityTrusted: Bool
+    }
+    try writeJSON(GUIAdmission(initialPolicy: initialPolicy.rawValue, effectivePolicy: effectivePolicy.rawValue,
+                               setRequested: setResult != nil, setResult: setResult, accessibilityTrusted: accessibilityTrusted),
+                  dir, "gui-admission.json")
+    try require(effectivePolicy == .accessory, "test GUI did not acquire accessory activation policy")
+    try require(accessibilityTrusted, "frozen witness lacks Accessibility for test GUI")
     let original = try focusedWindow()
     if consoleTrial {
       let (secondary, _) = try screen()
@@ -602,9 +619,9 @@ import WindowLab
     }
     gui = app
     app.finishLaunching()
+    if let focusLoan { try rehearsePassiveReturn(focusLoan) }
     try create("A")
     baseline["A"] = try enroll("A", checkpoint: "enroll-A")
-    if let focusLoan { try rehearsePassiveReturn(focusLoan) }
     if fullscreenOnly {
       try fullscreenRoundTrip()
       return
@@ -680,7 +697,7 @@ import WindowLab
   }
   func closeOwned() throws {
     cleanupAttempted = true
-    let ids = windows.values.map { UInt32($0.windowNumber) }
+    let ids = windows.values.map { UInt32($0.windowNumber) } + [retiredRehearsal?.number].compactMap { $0 }
     for w in windows.values {
       w.orderOut(nil)
       w.close()

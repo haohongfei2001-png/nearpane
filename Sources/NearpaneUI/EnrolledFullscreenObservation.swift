@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import NearpaneCore
 
@@ -8,6 +9,19 @@ public struct EnrolledFullscreenObservation: Decodable, Equatable {
     public let pid: Int32, launch: UInt64, number: UInt32, revision: UInt64
     public let expiresUptime: Double
     public let witnessSHA256, readerSHA256: String
+
+    /// The controller enrolls a physical path. Foundation may present that same
+    /// macOS path without its /private prefix. Other links are never enrollment.
+    package static func matchesExecutablePath(enrolled: String, reported: String) -> Bool {
+        func physicalPath(_ path: String) -> String? {
+            guard path.hasPrefix("/"), !path.utf8.contains(0), let resolved = realpath(path, nil) else { return nil }
+            defer { free(resolved) }
+            return String(validatingCString: resolved)
+        }
+        guard physicalPath(enrolled) == enrolled else { return false }
+        if reported == enrolled { return true }
+        return enrolled == "/private" + reported && physicalPath(reported) == enrolled
+    }
 
     public func sample(_ snapshot: DesktopSnapshot, sourceCurrents: [String: String], returned: Bool,
                        date: Date, uptime: Double, validUntil: Double) -> FullscreenDisplaySample? {

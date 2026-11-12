@@ -164,6 +164,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var fullscreenFixture: FullscreenAcceptanceFixture?
     var enrolledFullscreenTrial = false
     private var enrolledFullscreen: EnrolledFullscreenFixture?
+    private var fullscreenStartupStage: StaticString = "launch"
     private var fullscreenTrial: Bool {
         guard requestsDesktopFixture, passiveDisplayID != nil, let acceptanceSession else { return false }
         return ProcessInfo.processInfo.environment["NEARPANE_FULLSCREEN_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent
@@ -178,6 +179,18 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
     private var acceptanceProbe: NativeAcceptanceProbe?
     #endif
+    /// The timed witness controller captures stderr in its isolated session. A deadline records
+    /// the last reached stage even when startup never gets as far as opening the event log.
+    private func traceFullscreenStartup(_ stage: StaticString? = nil, error: Error? = nil) {
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        guard enrolledFullscreenTrial else { return }
+        if let stage { fullscreenStartupStage = stage }
+        let outcome = error.map { "rejected code=\(($0 as NSError).code)" } ?? (stage == nil ? "deadline" : "reached")
+        let record = "fullscreen-startup uptime=\(ProcessInfo.processInfo.systemUptime) stage=\(fullscreenStartupStage) \(outcome)\n"
+        FileHandle.standardError.write(Data(record.utf8))
+        #endif
+    }
+
     private var host: HostSession?
     private var modules: EmbeddedModules?
     private var panels: DisplayPanels?
@@ -191,6 +204,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindowOpen = false
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
+    private var passiveShutdownTimer: Timer?
     private var startupTask: Task<Void, Never>?
     // A passive material observation must not create a menu, move the pointer, or fall back to the main display.
     var passiveDisplayID: String?
@@ -238,9 +252,13 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_ACCEPTANCE"] == id,
                ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"] == id { duration = 225 }
             #endif
-            let timer = Timer(timeInterval: duration, repeats: false) { _ in
-                MainActor.assumeIsolated { NSApp.terminate(nil) }
+            let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.traceFullscreenStartup()
+                    NSApp.terminate(nil)
+                }
             }
+            passiveShutdownTimer = timer
             RunLoop.main.add(timer, forMode: .common)
         }
         startupTask = Task { [weak self] in
@@ -256,7 +274,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         if CandidateProfile.selected {
             do {
                 if let acceptanceSession, !profileTrial {
+                    traceFullscreenStartup("preparing-profile")
                     support = try await CandidateProfile.prepareFixture(in: acceptanceSession.directory)
+                    traceFullscreenStartup("profile-ready")
                 } else {
                     let (lease, active) = try await CandidateProfile.open(in: acceptanceSession?.directory ?? support)
                     profileLease = lease
@@ -289,6 +309,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let boundDraft = passiveDisplayID == nil && testSession.map {
             FileManager.default.fileExists(atPath: $0.appendingPathComponent("target-binding.json").path)
         } == true
+        traceFullscreenStartup("constructing-modules")
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
@@ -321,12 +342,16 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         host = session
         session.setDesktopPause(.screensAsleep, paused: desktopAsleep)
         session.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
+        traceFullscreenStartup("starting-host")
         await session.start()
+        traceFullscreenStartup("host-started")
         guard !Task.isCancelled else { return }
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if (passiveDisplayID != nil && acceptanceSession != nil) || (candidate && acceptanceSession == nil && session.configuration.candidateTrayConnected) {
             // Show the explicitly scoped fixture's gallery without opening Settings on the user's desktop.
+            traceFullscreenStartup("connecting-tray")
             await modules.tray.connect()
+            traceFullscreenStartup("tray-connect-returned")
             guard !Task.isCancelled else { return }
         }
         #endif
@@ -340,15 +365,21 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         #endif
+        traceFullscreenStartup("creating-edge")
         let controller = EdgeWindowController(host: session, modules: modules)
         surface = controller
         if passiveDisplayID != nil { controller.window?.ignoresMouseEvents = true }
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if enrolledFullscreenTrial, let acceptanceSession, let display = passiveDisplayID {
             do {
+                traceFullscreenStartup("binding-witness")
                 enrolledFullscreen = try EnrolledFullscreenFixture(session: acceptanceSession, display: display,
                     domains: modules, edge: controller.window)
-            } catch { NSApp.terminate(nil); return }
+                traceFullscreenStartup("witness-bound")
+            } catch {
+                traceFullscreenStartup("binding-witness", error: error)
+                NSApp.terminate(nil); return
+            }
         }
         #endif
         controller.place(screens: placementScreens())
@@ -359,10 +390,15 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                 if managementTrial, let display = passiveDisplayID, let manager = modules.workRect {
                     managementProbe = try NativeManagementAcceptance(session: acceptanceSession, display: display, host: session, manager: manager)
                 }
+                traceFullscreenStartup("opening-event-log")
                 acceptanceProbe = try NativeAcceptanceProbe(session: acceptanceSession, host: session, modules: modules,
                     surface: controller, screens: { [weak self] in self?.placementScreens() ?? [] })
+                traceFullscreenStartup("event-log-ready")
             }
-            catch { NSApp.terminate(nil); return }
+            catch {
+                traceFullscreenStartup("opening-event-log", error: error)
+                NSApp.terminate(nil); return
+            }
         }
         #endif
         let panels = DisplayPanels(host: session, primary: controller, domains: modules)
@@ -409,10 +445,15 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         #endif
         session.presentationChanged = { [weak self] in self?.updatePanels() }
         updatePanels()
+        traceFullscreenStartup("panels-updated")
         if passiveDisplayID == nil { installMenu() }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // The existing termination owns the drain. A second terminate while AppKit is
+        // waiting for our reply can bypass the remaining work.
+        passiveShutdownTimer?.invalidate()
+        passiveShutdownTimer = nil
         settingsPreview.withdraw()
         #if canImport(SaytileKit)
         if let profileSwitch {
@@ -442,6 +483,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        passiveShutdownTimer?.invalidate()
+        passiveShutdownTimer = nil
         startupTask?.cancel()
         host?.stop()
         panels?.stop()

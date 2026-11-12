@@ -68,43 +68,46 @@ extension Trial {
 
   func rehearsePassiveReturn(_ loan: ConsoleFocusLoan) throws {
     let (secondary, display) = try screen()
-    guard let target = windows["A"], let enrolled = focus["A"], let origin = baseline["A"],
-          let initial = initialFocus, windows.count == 1 else { throw Refusal("missing enrolled focus pair") }
+    let label = "focus-rehearsal"
+    try require(windows.isEmpty && retiredRehearsal == nil, "focus rehearsal already started")
+    try create(label)
+    let origin = try enroll(label, checkpoint: label)
+    guard let target = windows[label], let enrolled = focus[label], let initial = initialFocus,
+          windows.count == 1 else { throw Refusal("missing enrolled rehearsal window") }
     try checkConsentExpiry()
     let focusNow = try focusedWindow()
     try require(focusNow.0 == birth.pid && CFEqual(focusNow.1, enrolled) && target.isKeyWindow &&
-                target.screen == secondary && target.isOnActiveSpace, "A cannot release a verified foreground loan")
+                target.windowNumber == Int(origin.number) && target.screen == secondary && target.isOnActiveSpace,
+                "rehearsal cannot release a verified foreground loan")
     target.orderOut(nil)
+    target.close()
+    retiredRehearsal = (origin.number, enrolled)
+    windows.removeValue(forKey: label)
+    elements.removeValue(forKey: label)
+    focus.removeValue(forKey: label)
     if NSWorkspace.shared.frontmostApplication?.processIdentifier == birth.pid { NSApp.hide(nil) }
     try observePassiveReturn(loan)
     _ = try consoleEndpoint("A", display: display)
     try loan.requireFocused(focusedWindow())
-    try writeJSON(["run": run.uuidString, "focusToken": loan.token.uuidString, "owner": String(initial.0),
-                   "processBirth": String(loan.owner.start), "sameAXFocus": "true", "originalFrameUnchanged": "true"],
-                  dir, "focus-return-rehearsal.json")
-    try checkConsentExpiry()
-    try require(windows["A"] === target && target.windowNumber == Int(origin.number),
-                "secondary fixture changed during focus rehearsal")
-    try loan.requireFocused(focusedWindow())
-    NSApp.unhideWithoutActivation()
-    target.orderFrontRegardless()
-    try ownedAX("A")
-    try require(target.screen == secondary && secondary.frame.contains(target.frame) && target.isOnActiveSpace,
-                "restored fixture is no longer on the source display and Space")
-    _ = try consoleEndpoint("A", display: display)
-    try checkConsentExpiry()
-    try loan.requireFocused(focusedWindow())
-    try checkConsentExpiry()
-    NSApp.activate()
-    target.makeKeyAndOrderFront(nil)
     let until = ProcessInfo.processInfo.systemUptime + 2
-    while !target.isKeyWindow || NSWorkspace.shared.frontmostApplication?.processIdentifier != birth.pid {
+    while true {
       try checkConsentExpiry()
-      let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-      try require((front == loan.owner.pid || front == birth.pid) && ProcessInfo.processInfo.systemUptime < until,
-                  "fixture did not reacquire its own focus")
+      if let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, origin.number) as? [[String: Any]],
+         !rows.contains(where: { $0[kCGWindowOwnerPID as String] as? Int32 == birth.pid }),
+         let ax = labAttribute(AXUIElementCreateApplication(birth.pid), kAXWindowsAttribute) as? [AXUIElement],
+         !ax.contains(where: { CFEqual($0, enrolled) ||
+           labAttribute($0, kAXIdentifierAttribute) as? String == run.uuidString + "/" + label }) { break }
+      try require(ProcessInfo.processInfo.systemUptime < until, "closed rehearsal window still present or unobservable")
       pump()
     }
-    _ = try stable("A", "focus-loan-reacquired")
+    try loan.requireFocused(focusedWindow())
+    try writeJSON(["run": run.uuidString, "focusToken": loan.token.uuidString, "owner": String(initial.0),
+                   "processBirth": String(loan.owner.start), "sameAXFocus": "true", "originalFrameUnchanged": "true",
+                   "retiredRehearsalNumber": String(origin.number), "retiredAXAndCGAbsent": "true"],
+                  dir, "focus-return-rehearsal.json")
+    try checkConsentExpiry()
+    NSApp.unhideWithoutActivation()
+    _ = try consoleEndpoint("A", display: display)
+    try loan.requireFocused(focusedWindow())
   }
 }

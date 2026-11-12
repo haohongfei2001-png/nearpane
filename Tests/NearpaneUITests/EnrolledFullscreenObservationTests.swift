@@ -7,6 +7,26 @@ struct EnrolledFullscreenObservationTests {
     let run = UUID(), date = Date(timeIntervalSince1970: 1000)
     let before = ["main":"101", "side":"202"]
 
+    @Test func enrolledExecutableAcceptsSystemTemporaryAliasOnlyForSamePhysicalFile() throws {
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: "/private/tmp").appendingPathComponent(UUID().uuidString)
+        try fm.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? fm.removeItem(at: root) }
+        let exe = root.appendingPathComponent("witness")
+        let link = root.appendingPathComponent("link")
+        try Data().write(to: exe)
+        try fm.createSymbolicLink(at: link, withDestinationURL: exe)
+        let matches = EnrolledFullscreenObservation.matchesExecutablePath
+        #expect(matches(exe.path, exe.path))
+        #expect(matches(exe.path, "/tmp/" + root.lastPathComponent + "/witness"))
+        #expect(!matches(link.path, link.path))
+        #expect(!matches(exe.path, link.path))
+        #expect(!matches("/tmp/" + root.lastPathComponent + "/witness", exe.path))
+        try fm.removeItem(at: exe)
+        try fm.createSymbolicLink(at: exe, withDestinationURL: root)
+        #expect(!matches(exe.path, exe.path))
+    }
+
     func challenge() throws -> EnrolledFullscreenObservation {
         let facts: [String:Any] = ["run": run.uuidString, "token": UUID().uuidString, "pid":115, "launch":2002,
             "number":29, "display":"side", "source":"202", "fullscreenCurrent":"303", "revision":6,
