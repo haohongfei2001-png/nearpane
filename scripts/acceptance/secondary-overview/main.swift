@@ -15,27 +15,6 @@ func spin(_ seconds: Double) {
     RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.015))
   } while ProcessInfo.processInfo.systemUptime < end
 }
-func currentFocus() throws -> (pid_t, AXUIElement) {
-  guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-    let value = attr(AXUIElementCreateApplication(pid), kAXFocusedWindowAttribute),
-    CFGetTypeID(value) == AXUIElementGetTypeID()
-  else { throw Refusal("no exact AX focus") }
-  let el = value as! AXUIElement
-  var owner: pid_t = 0
-  try need(AXUIElementGetPid(el, &owner) == .success && owner == pid, "focus owner conflict")
-  return (pid, el)
-}
-func frame(_ el: AXUIElement) -> CGRect? {
-  guard let p = attr(el, kAXPositionAttribute), let s = attr(el, kAXSizeAttribute),
-    CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(s) == AXValueGetTypeID()
-  else { return nil }
-  var point = CGPoint.zero
-  var size = CGSize.zero
-  guard AXValueGetValue(p as! AXValue, .cgPoint, &point),
-    AXValueGetValue(s as! AXValue, .cgSize, &size)
-  else { return nil }
-  return CGRect(origin: point, size: size)
-}
 func scoped(_ display: String, _ origin: String) throws -> [String] {
   guard let rows = NPReadInventory() as? [[String: Any]], rows.count == 2 else {
     throw Refusal("inventory unavailable")
@@ -81,16 +60,20 @@ func emit(_ fields: [String: Any]) {
 }
 // This uses the installed /System application, not a private Dock notification.
 func toggleOverview() throws {
-  let p = Process()
-  p.executableURL = URL(
-    fileURLWithPath: "/System/Applications/Mission Control.app/Contents/MacOS/Mission Control")
-  p.standardInput = FileHandle.nullDevice
-  p.standardOutput = FileHandle.nullDevice
-  p.standardError = FileHandle.nullDevice
-  try p.run()
+  let request = Process()
+  request.executableURL = URL(fileURLWithPath:"/usr/bin/open")
+  request.arguments = ["-a","/System/Applications/Mission Control.app"]
+  request.standardInput = FileHandle.nullDevice
+  request.standardOutput = FileHandle.nullDevice
+  request.standardError = FileHandle.nullDevice
+  try request.run()
+  let deadline = ProcessInfo.processInfo.systemUptime + 2
+  while request.isRunning && ProcessInfo.processInfo.systemUptime < deadline { spin(0.02) }
+  try need(!request.isRunning && request.terminationStatus == 0,"system overview open request failed")
+
 }
 func live(_ args: [String]) throws {
-  guard args.count == 4, let display = UUID(uuidString: args[0]),
+  guard (args.count == 4 || (args.count == 6 && ["create","remove"].contains(args[4]))), let display = UUID(uuidString: args[0]),
     let start = ISO8601DateFormatter().date(from: args[2]),
     let end = ISO8601DateFormatter().date(from: args[3]), start <= Date(),
     end.timeIntervalSince(start) <= 900,
@@ -112,21 +95,26 @@ func live(_ args: [String]) throws {
     try observe(display)["state"] as? String == "overviewNotExposed",
     "preexisting overview or permission unavailable")
   let inv = try scoped(sideID, source)
-  let focus = try currentFocus()
-  guard let orig = frame(focus.1), CGDisplayBounds(CGMainDisplayID()).contains(orig),
-    let owner = NSRunningApplication(processIdentifier: focus.0), let birth = owner.launchDate,
-    let width = (side.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value
-  else { throw Refusal("no stable ordinary focus return object") }
-  try need(
-    attr(focus.1, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole
-      && NPReadAXWindowNumber(focus.1) > 0, "ordinary original window required")
+  var expectedScopes = inv
+  var verifiedOperation: String?
+  let mode = args.count == 6 ? args[4] : "observe"
+  let kit = Bundle.main.bundleURL.deletingLastPathComponent()
+  let anchor = try FocusAnchor()
+  let focus = (anchor.owner.processIdentifier, anchor.element)
+  let env = ProcessInfo.processInfo.environment
+  guard env["NEARPANE_RETURN_OBSERVER"] == String(getppid()),
+    let run = env["NEARPANE_RETURN_RUN"], UUID(uuidString:run) != nil,
+    anchor.environment.allSatisfy({env[$0.key] == $0.value}),
+    let width = (side.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value,
+    [CGMainDisplayID(),width].contains(where:{CGDisplayBounds($0).contains(anchor.axFrame)})
+  else { throw Refusal("external focus observer or original identity changed") }
+  let birth = anchor.birth
   let pointer = try point()
-  let run = UUID().uuidString
-  let originalNumber = NPReadAXWindowNumber(focus.1)
+  let originalNumber = anchor.number
   emit([
     "event": "original", "run": run, "process": focus.0,
     "processBirth": birth.timeIntervalSince1970,
-    "window": originalNumber, "source": source, "side": sideID,
+    "window": originalNumber, "source": source, "side": sideID, "originalPointer":[pointer.x,pointer.y],
   ])
   app.finishLaunching()
   let rect = CGRect(
@@ -141,6 +129,28 @@ func live(_ args: [String]) throws {
   w.setAccessibilityIdentifier(run)
   w.contentView = NSTextField(labelWithString: "Nearpane — secondary desktop test")
   w.setFrame(rect, display: false)
+  let displays = [CGMainDisplayID(),width]
+  guard let returnDisplay = displays.first(where:{CGDisplayBounds($0).contains(pointer)}) else {
+    throw Refusal("unable to identify original cursor display")
+  }
+  func place(_ position: CGPoint,on screen: CGDirectDisplayID) -> CGError {
+    let bounds = CGDisplayBounds(screen)
+    return CGDisplayMoveCursorToPoint(screen,CGPoint(x:position.x-bounds.minX,y:position.y-bounds.minY))
+  }
+  func near(_ a:CGPoint?,_ b:CGPoint?) -> Bool {
+    guard let a, let b else { return false }
+    return abs(a.x-b.x) <= 1 && abs(a.y-b.y) <= 1
+  }
+  var landed: CGPoint?
+  var pointerLoanBegan: Double?
+  func physicalMouseIdle(since time: Double) -> Bool {
+    let elapsed = ProcessInfo.processInfo.systemUptime - time
+    let events: [CGEventType] = [.mouseMoved,.leftMouseDown,.rightMouseDown,.otherMouseDown,
+                                .leftMouseDragged,.rightMouseDragged,.otherMouseDragged]
+    return NSEvent.pressedMouseButtons == 0 && events.allSatisfy {
+      CGEventSource.secondsSinceLastEventType(.hidSystemState,eventType:$0) > elapsed
+    }
+  }
   var movedPointer = false
   var toggled = false
   var verifiedClosed = false
@@ -149,19 +159,19 @@ func live(_ args: [String]) throws {
     x: CGDisplayBounds(width).midX, y: CGDisplayBounds(width).midY, width: 1, height: 1
   ).origin
   func originalUnchanged() throws {
-    try need(
-      !owner.isTerminated && owner.launchDate == birth
-        && NPReadAXWindowNumber(focus.1) == originalNumber && frame(focus.1) == orig,
-      "original focus owner or geometry changed")
+    try need(anchor.isIntact,"original focus owner or geometry changed")
   }
-  func isOriginal() -> Bool {
-    guard let now = try? currentFocus() else { return false }
-    return now.0 == focus.0 && CFEqual(now.1, focus.1)
-  }
+  func isOriginal() -> Bool { anchor.isFocused }
   func within() throws {
     try need(Date() >= start && end.timeIntervalSinceNow > 8, "time expired")
-    try originalUnchanged()
-    try need(try scoped(sideID, source) == inv, "display state changed")
+    if toggled {
+      // The overview animates CG presentation frames. Read through the animation, but the
+      // actual create/remove admission below still requires the original independent geometry.
+      try need(anchor.logicalFrameIntact, "original AX identity or logical frame changed in overview")
+    } else {
+      try originalUnchanged()
+    }
+    try need(try scoped(sideID, source) == expectedScopes, "display state changed")
   }
   var num: UInt32 = 0
   do {
@@ -172,7 +182,7 @@ func live(_ args: [String]) throws {
     w.orderFrontRegardless()
     spin(0.30)
     num = UInt32(w.windowNumber)
-    func exactWindow() throws {
+    @discardableResult func exactWindow() throws -> AXUIElement {
       guard let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, num) as? [[String: Any]],
         rows.count == 1,
         let r = rows.first, r[kCGWindowOwnerPID as String] as? Int32 == getpid(),
@@ -191,6 +201,7 @@ func live(_ args: [String]) throws {
           && w.isOnActiveSpace && w.screen == side
           && (NPReadWindowSpaces(num) as? [NSNumber])?.map(\.stringValue) == [source],
         "own geometry or membership not confirmed")
+      return ax
     }
     try exactWindow()
     try within()
@@ -202,15 +213,51 @@ func live(_ args: [String]) throws {
       "axFocusReadable": observed != nil, "fixtureKey": w.isKeyWindow,
       "fixtureMain": w.isMainWindow,
     ])
-    try need(isOriginal(), "original focus changed before loan")
-    app.activate()
-    w.makeKeyAndOrderFront(nil)
-    spin(0.45)
-    try exactWindow()
-    let key = try currentFocus()
-    try need(
-      key.0 == getpid() && NPReadAXWindowNumber(key.1) == num && w.isKeyWindow,
-      "fixture did not receive focus")
+    // AppKit may make this exact window key as a side effect of ordering. An unrelated
+    // window, including another window of the original process, cannot take this branch.
+    func acquire() throws -> (pid_t, AXUIElement) {
+      let element = try exactWindow()
+      try within()
+      var published: (pid_t, AXUIElement)?
+      let publishLimit = ProcessInfo.processInfo.systemUptime + 1
+      repeat {
+        try within()
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        try need(front == focus.0 || front == getpid(), "focus escaped before acquisition")
+        published = try? currentFocus()
+        if published != nil { break }
+        spin(0.04)
+      } while ProcessInfo.processInfo.systemUptime < publishLimit
+      guard let observed = published else { throw Refusal("original or fixture focus not published") }
+      switch orderedFocus(original:observed.0 == focus.0 && CFEqual(observed.1,focus.1),
+                          ownedElement:observed.0 == getpid() && CFEqual(observed.1,element),
+                          ownedKey:w.isKeyWindow) {
+      case .original:
+        app.activate()
+        w.makeKeyAndOrderFront(nil)
+      case .owned:
+        break
+      case .refused:
+        throw Refusal("focus is neither the original window nor the enrolled key window")
+      }
+      let limit = ProcessInfo.processInfo.systemUptime + 1.5
+      repeat {
+        spin(0.04)
+        try within()
+        if let front = NSWorkspace.shared.frontmostApplication?.processIdentifier {
+          try need(front == focus.0 || front == getpid(),"focus escaped the registered pair")
+        }
+        if let now = try? currentFocus() {
+          if now.0 == getpid() && CFEqual(now.1,element) && w.isKeyWindow {
+            try exactWindow()
+            return now
+          }
+          try need(now.0 == focus.0 && CFEqual(now.1,focus.1),"unregistered focus while acquiring fixture")
+        }
+      } while ProcessInfo.processInfo.systemUptime < limit
+      throw Refusal("enrolled window did not take focus")
+    }
+    _ = try acquire()
     // Verify passive return before invoking any system overview.
     w.orderOut(nil)
     app.hide(nil)
@@ -221,14 +268,10 @@ func live(_ args: [String]) throws {
     w.orderFrontRegardless()
     spin(0.25)
     try exactWindow()
-    try need(isOriginal(), "return anchor lost")
-    app.activate()
-    w.makeKeyAndOrderFront(nil)
-    spin(0.4)
-    try exactWindow()
-    let key2 = try currentFocus()
+    let key2 = try acquire()
     try need(
-      key2.0 == getpid() && CFEqual(key2.1, key.1) && w.isKeyWindow, "secondary focus changed")
+      key2.0 == getpid() && w.isKeyWindow && UInt32(w.windowNumber) == num &&
+        CFEqual(key2.1, try exactWindow()), "focused element does not belong to the re-enrolled fixture")
     try within()
     try need(
       CGEventSource.buttonState(.combinedSessionState, button: .left) == false
@@ -236,15 +279,27 @@ func live(_ args: [String]) throws {
           .maskControl, .maskShift, .maskAlternate, .maskCommand,
         ]).isEmpty, "input already in use")
     try need((try point()) == pointer, "pointer changed before loan")
-    try need(CGWarpMouseCursorPosition(here) == .success, "could not position pointer on fixture")
+    pointerLoanBegan = ProcessInfo.processInfo.systemUptime
+    try need(place(here,on:width) == .success, "could not position pointer on fixture")
     movedPointer = true
+    spin(0.06)
+    let first = try point()
+    spin(0.06)
+    let actual = try point()
+    if near(first,actual) && CGEventSource.secondsSinceLastEventType(.hidSystemState,eventType:.mouseMoved) > 0.3 { landed = actual }
     try within()
     try exactWindow()
     let finalFocus = try currentFocus()
-    try need(
-      (try point()) == here && finalFocus.0 == getpid() && CFEqual(finalFocus.1, key.1)
-        && w.isKeyWindow && NSScreen.main == side, "secondary pointer, active display or focus lost"
-    )
+    let finalElement = try exactWindow()
+    let frontOwned = finalFocus.0 == getpid() && CFEqual(finalFocus.1, finalElement)
+    let keyScreen = (w.screen?.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value
+    let publishedScreen = (NSScreen.main?.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value
+    emit(["event":"pointerLoan","first":[first.x,first.y],"actual":[actual.x,actual.y],
+          "requested":[here.x,here.y],"frontOwned":frontOwned,"key":w.isKeyWindow,
+          "keyScreen":keyScreen ?? 0,"publishedMainScreen":publishedScreen ?? 0,"targetDisplay":width])
+    try need(near(landed,actual) && abs(actual.x-here.x) < 12 && abs(actual.y-here.y) < 12 &&
+        CGDisplayBounds(width).contains(actual) && frontOwned && w.isKeyWindow && keyScreen == width,
+        "secondary fixture pointer or focused window not independently confirmed")
     try need(
       try observe(display)["state"] as? String == "overviewNotExposed", "overview predated action")
     emit([
@@ -255,21 +310,84 @@ func live(_ args: [String]) throws {
     toggled = true
     let cutoff = Date().addingTimeInterval(2.5)
     var evidence: [String: Any]?
+    var lastState = ""
     repeat {
       spin(0.08)
       try within()
-      if let s = try? observe(display), s["state"] as? String == "secondaryAddControlObserved" {
-        evidence = s
-        break
+      let cg = FocusAnchor.geometry(anchor.number,anchor.owner.processIdentifier)
+      if cg != anchor.cgFrame || !anchor.logicalFrameIntact {
+        emit(["event":"protectedWindowCheck","originalWindow":anchor.number,"cgReadable":cg != nil,
+              "cgMatchesOriginal":cg == anchor.cgFrame,"logicalIdentityAndFrameIntact":anchor.logicalFrameIntact])
+        throw Refusal("protected window geometry unconfirmed during system overview")
+      }
+      do {
+        let sample = try observe(display)
+        if sample["state"] as? String == "secondaryAddControlObserved" {
+          evidence = sample
+          break
+        }
+        if lastState != "noGroup" {
+          emit(["event":"overviewObserved","state":sample,"structure":overviewSkeleton(display)])
+          lastState = "noGroup"
+        }
+      } catch {
+        let reason = (error as? Refusal)?.reason ?? String(describing:error)
+        if reason != lastState {
+          emit(["event":"overviewObserved","reason":reason,"structure":overviewSkeleton(display)])
+          lastState = reason
+        }
       }
     } while Date() < cutoff
     guard let evidence else { throw Refusal("secondary add control not independently identified") }
     emit(evidence)
+    if mode != "observe" {
+      guard let primaryUUID = CGDisplayCreateUUIDFromDisplayID(CGMainDisplayID())?.takeRetainedValue() else {
+        throw Refusal("missing primary display UUID")
+      }
+      let primary = CFUUIDCreateString(nil,primaryUUID) as String
+      guard let originalPrimary = inv.first(where: {$0.hasPrefix(primary + ":")}),
+            let originalCurrent = originalPrimary.split(separator: ":").dropFirst().first else {
+        throw Refusal("missing primary source record")
+      }
+      func checkAction() throws {
+        try need(start <= Date() && end.timeIntervalSinceNow > 10,"late provision action")
+        try originalUnchanged()
+        try need(try scoped(sideID,source).contains(originalPrimary), "protected current or order changed")
+        let sideStillHere = try onlyScreen(sideID)
+        let dock = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let allowed = front == getpid() || (dock.count == 1 && front == dock.first?.processIdentifier)
+        try need(sideStillHere == side && near(try point(),landed) && allowed &&
+                NSEvent.pressedMouseButtons == 0 &&
+                CGEventSource.flagsState(.combinedSessionState).intersection([.maskCommand,.maskShift,.maskControl,.maskAlternate]).isEmpty,
+                "focus, input or display changed during provision")
+      }
+      func occupancy(_ target: String?) throws {
+        let process = Process(), pipe = Pipe()
+        process.executableURL = kit.appendingPathComponent("occupancy")
+        process.arguments = ["--scoped",String(getpid()),String(num),primary,sideID,String(originalCurrent),source] + (target.map {[$0]} ?? [])
+        process.standardOutput = pipe; process.standardInput = FileHandle.nullDevice
+        try process.run()
+        let until = ProcessInfo.processInfo.systemUptime + 6
+        while process.isRunning && ProcessInfo.processInfo.systemUptime < until { spin(0.03) }
+        if process.isRunning { process.terminate(); throw Refusal("target occupancy read timed out") }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let report = try JSONSerialization.jsonObject(with:data) as? [String:Any] ?? [:]
+        emit(["event":"scopedOccupancy","sample":report,"exit":process.terminationStatus])
+        try need(process.terminationStatus == 0 && (report["occupancy"] as? String) ==
+                 (target == nil ? "SOURCE_WITNESSED" : "NO_RELOCATION_OBSERVED"), "disposable desktop could not be safely verified")
+      }
+      let destination = try provisionSecondaryDesktop(mode, directory:URL(fileURLWithPath:args[5]), display:display,
+          source:source, requireAuthorizedAction:checkAction, requireSafeOccupancy:occupancy)
+      verifiedOperation = mode
+      expectedScopes = try scoped(sideID,source)
+      emit(["event":"verifiedProvision","operation":mode,"source":source,"target":destination])
+    }
   } catch { failure = error }
   // Dismiss only our known overview; never post an Escape or activate the previous user app.
-  if toggled, end.timeIntervalSinceNow > 3, (try? originalUnchanged()) != nil,
-    (try? scoped(sideID, source)) == inv,
-    (try? point()) == here,
+  if toggled, end.timeIntervalSinceNow > 3, anchor.logicalFrameIntact,
+    (try? scoped(sideID, source)) == expectedScopes,
+    near(try? point(),landed),
     let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
       .first,
     let m = try? children(AXUIElementCreateApplication(dock.processIdentifier), named: "mc"),
@@ -283,6 +401,10 @@ func live(_ args: [String]) throws {
       verifiedClosed = (try observe(display)["state"] as? String == "overviewNotExposed")
     } catch {}
   }
+  if toggled && !verifiedClosed {
+    verifiedClosed = (try? observe(display)["state"] as? String) == "overviewNotExposed"
+    if !verifiedClosed { emit(["event":"overviewAtCleanup","structure":overviewSkeleton(display)]) }
+  }
   w.orderOut(nil)
   w.close()
   // orderFrontRegardless or AppKit startup can alter focus before an explicit activate(). Relinquish
@@ -290,19 +412,22 @@ func live(_ args: [String]) throws {
   if NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid() { app.hide(nil) }
   let passiveEnd = ProcessInfo.processInfo.systemUptime + 2
   repeat { spin(0.08) } while !isOriginal() && ProcessInfo.processInfo.systemUptime < passiveEnd
-  if movedPointer && (try? point()) == here { _ = CGWarpMouseCursorPosition(pointer) }
+  if movedPointer, let spent = pointerLoanBegan, Date() < end, near(try? point(),landed), physicalMouseIdle(since:spent) {
+    _ = place(pointer,on:returnDisplay)
+    spin(0.06)
+  }
   let ret = isOriginal() && (try? originalUnchanged()) != nil
-  let topology = (try? scoped(sideID, source)) == inv
+  let topology = (try? scoped(sideID, source)) == expectedScopes
   let absent = num == 0 || NPReadWindowNumberPresence(num) == 0
   emit([
     "event": "cleanup", "originalFocus": ret, "originalWindow": originalNumber, "window": num,
-    "originalPointer": (try? point()) == pointer, "originalScopes": topology,
+    "originalPointer": near(try? point(),pointer), "scopesMatchVerifiedOperation": topology,
     "windowAbsent": absent, "overviewInvoked": toggled, "overviewDismissed": verifiedClosed,
-    "spaceMutations": 0,
+    "verifiedSpaceMutations": verifiedOperation == nil ? 0 : 1,
   ])
   if let failure { throw failure }
   try need(
-    ret && absent && topology && verifiedClosed && (try point()) == pointer, "cleanup not confirmed"
+    absent && topology && verifiedClosed && near(try point(),pointer), "cleanup not confirmed"
   )
 }
 func onlyScreen(_ uuid: String) throws -> NSScreen {
