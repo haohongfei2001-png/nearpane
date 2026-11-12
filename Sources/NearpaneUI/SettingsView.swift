@@ -47,6 +47,7 @@ public struct SettingsView: View {
                             }
                         }
                         if tray.productAttachments && tray.hasSavedCollection && !tray.collectionEnabled {
+                            Button("重新核对原截图目录") { Task { await tray.recheckCollection() } }
                             Button("忘记原截图目录") { tray.stopCollecting() }
                         }
                         Button("断开资料库") {
@@ -54,12 +55,13 @@ public struct SettingsView: View {
                             if domains?.candidate == true { host.setCandidateTrayConnected(false) }
                         }
                         if !tray.localOnly {
-                            Button(tray.mayAttach ? "重新检查草稿附加权限" : "允许附加到当前浏览器草稿…") {
+                            Button((tray.mayAttach || tray.savedAttachmentConsent) ? "重新检查草稿附加权限" : "允许附加到当前浏览器草稿…") {
                                 Task { await tray.authorizeAttachments() }
                             }
-                            if tray.productAttachments && tray.mayAttach {
+                            if tray.productAttachments && tray.savedAttachmentConsent {
                                 Button("关闭草稿附加") { Task { await tray.disableAttachments() } }
                             }
+                            if let notice = tray.attachmentAccessNotice { Text(notice).foregroundStyle(.secondary) }
                             if let feedback = tray.attachmentFeedback { Text(feedback).font(.callout) }
                             Text("保持 Chrome 中要使用的 ChatGPT 草稿在前台，再点击缩略图。不会发送消息；结果未知时不会自动重传。")
                         } else { Text("当前仅收录截图。附加到草稿须使用已绑定的专用测试会话。") }

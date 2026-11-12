@@ -1,8 +1,26 @@
 import AppKit
+import Carbon
 import Darwin
 import RiftletAdapters
 import RiftletCore
 import Security
+
+struct DraftAutomationUnavailable: Error {
+    let state: AutomationPermissionState
+}
+
+extension AutomationPermissionState {
+    var attachmentNotice: String? {
+        switch self {
+        case .granted: nil
+        case .browserNotRunning: "请打开 Chrome，再重新检查草稿附加权限。"
+        case .browserNotInstalled: "此 Mac 未找到 Chrome，截图可继续留在托盘。"
+        case .denied: "请在系统设置的「隐私与安全性 → 自动化」中允许 Nearpane 控制 Chrome，再重新检查。"
+        case .notRequested: "尚未授予 Nearpane 控制 Chrome 的权限。"
+        case .unavailable, .notNeeded: "无法核实当前 Chrome 或附件守卫，请确认目标浏览器后重新检查。"
+        }
+    }
+}
 
 /// The page owns the document/editor references. Only this short-lived witness, never draft text or its URL,
 /// is stored with the input claim so read-only reconciliation can address the original invocation.
@@ -36,6 +54,14 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
     @MainActor static func arm(_ asset: ImportedAsset, guardSource: String) throws -> Self {
         guard let app = NSWorkspace.shared.frontmostApplication, app.bundleIdentifier == "com.google.Chrome",
               let identity = ChromeProcessIdentity.read(pid: app.processIdentifier), signedChrome(pid: identity.pid)
+        else { throw WebAdapterError.browserNotFrontmost }
+        // The persisted checkbox is user intent. Check the authority of this exact
+        // running process before the first browser event, without requesting consent.
+        let address = NSAppleEventDescriptor(processIdentifier: identity.pid)
+        let status = AEDeterminePermissionToAutomateTarget(address.aeDesc, typeWildCard, typeWildCard, false)
+        let access = NativeAutomationPermissionChecker.classify(status)
+        guard access == .granted else { throw DraftAutomationUnavailable(state: access) }
+        guard identity.isCurrent(), NSWorkspace.shared.frontmostApplication?.processIdentifier == identity.pid
         else { throw WebAdapterError.browserNotFrontmost }
         let route = try AcceptanceBrowserRoute.front(pid: identity.pid)
         let url = try route.selectedURL()

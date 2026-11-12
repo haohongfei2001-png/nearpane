@@ -41,10 +41,17 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var currentFeedbackAsset: UUID?
     @ObservationIgnored private var feedbackFromCurrentConnection = false
     @ObservationIgnored private var permissionRequest = UUID()
+    @ObservationIgnored private var consentSave: Task<Bool, Never>?
     private static let consentKey = "nearpane-draft-attachments-enabled-v1"
     private static let feedbackKey = "nearpane-last-selected-asset-v1"
     /// Only supplied by the marked secondary review with its own retained NSWindow.
     public var reviewCaptureWindow: (@MainActor () throws -> UInt32)?
+    // 0 and 1 are the existing on-disk choices. Older builds treat the suspended value as off.
+    private enum DraftConsent: UInt8 {
+        case off = 0, enabled = 1, needsRecheck = 2
+    }
+    public private(set) var savedAttachmentConsent = false
+    public private(set) var attachmentAccessNotice: String?
     public private(set) var mayAttach = false
     public private(set) var captureEntry = false
     public private(set) var issue: String?
@@ -101,8 +108,8 @@ public final class TrayModule: HostModule {
             let consent = try restoring ?? (productAttachments ? CaptureFolderConsent(selected: selected) : nil)
             let current = try TrayCollection(owner: owner, selected: selected, provider: provider, consent: consent) { [weak self] in
                 guard let self, self.collectionAttempt == ticket else { return }
-                self.stopCollecting()
-                self.issue = "系统截图目录或访问条件已改变；收录已停止，请重新选择目录。"
+                self.haltCollection()
+                self.issue = self.hasSavedCollection ? "截图目录或访问条件已改变。收录已暂停，可重新核对原目录或选择新目录。" : "截图目录或访问条件已改变，请重新选择目录。"
             }
             collection = current
             try await current.binding.start()
@@ -124,7 +131,12 @@ public final class TrayModule: HostModule {
             hasSavedCollection = true
             let selected = try consent.directory()
             await collect(from: selected, provider: captureLocation(), restoring: consent)
-        } catch { hasSavedCollection = true; issue = "原截图目录无法核对；请重新选择或忘记此授权。" }
+        } catch { hasSavedCollection = true; issue = "原截图目录暂时无法核对。可在目录恢复后重新检查，或选择新目录。" }
+    }
+
+    public func recheckCollection() async {
+        guard hasSavedCollection, collection == nil, let owner else { return }
+        await restoreCollection(in: owner)
     }
 
     /// Explicit stop forgets the picker grant. Closing the Host only stops this watch.
@@ -201,10 +213,13 @@ public final class TrayModule: HostModule {
             }
             value.reviewCaptureWindow = reviewCaptureWindow
             if productAttachments {
-                let enabled = try await value.store.checkpoint(for: Self.consentKey) == Data([1])
+                let saved = try await value.store.checkpoint(for: Self.consentKey)
                 let last = try await value.store.checkpoint(for: Self.feedbackKey)
                 guard active, epoch == entry else { value.close(); return }
-                mayAttach = enabled
+                let consent = saved.flatMap { $0.count == 1 ? DraftConsent(rawValue: $0[$0.startIndex]) : nil } ?? .off
+                mayAttach = consent == .enabled
+                savedAttachmentConsent = consent != .off
+                attachmentAccessNotice = consent == .needsRecheck ? "重新检查草稿附加权限后可继续。" : nil
                 currentFeedbackAsset = last.flatMap { UUID(uuidString: String(decoding: $0, as: UTF8.self)) }
             }
             owner = value; connected = true; captureEntry = value.captureEntry
@@ -218,51 +233,74 @@ public final class TrayModule: HostModule {
     }
     public func disconnect() {
         haltCollection(); hasSavedCollection = false; cancelArrival(); flight?.close(); flight = nil; epoch = UUID(); cancelInteraction()
-        let observing = observe
-        observing?.cancel(); observe = nil
+        let observing = observe, saving = consentSave
+        observing?.cancel(); observe = nil; consentSave = nil
         if let owner {
             owner.close()
-            if owner.hasPendingWork || observing != nil {
+            if owner.hasPendingWork || observing != nil || saving != nil {
                 let previous = ownerDrain
-                ownerDrain = Task { await previous?.value; await observing?.value; await owner.finishWork() }
+                ownerDrain = Task { await previous?.value; await observing?.value; _ = await saving?.value; await owner.finishWork() }
             }
         }
         owner = nil
         attachmentFeedback = nil; currentFeedbackAsset = nil; feedbackFromCurrentConnection = false
+        savedAttachmentConsent = false; attachmentAccessNotice = nil
         permissionRequest = UUID()
         exposureChanged?(false)
         settle?.cancel(); settle = nil
         rows = []; acceptedRows = [:]; swallowing = []; expanded = false
         captureEntry = false; mayAttach = false; connected = false; connecting = false; issue = nil
     }
+    // A permission loss during mouse-down must survive a fast disconnect/reopen.
+    // Serialize with explicit reauthorization and disable in the user's action order.
+    @discardableResult private func saveConsent(_ consent: DraftConsent, owner: TrayOwner) -> Task<Bool, Never> {
+        let earlier = consentSave
+        let save = Task {
+            _ = await earlier?.value
+            do {
+                try await owner.store.saveCheckpoint(Data([consent.rawValue]), for: Self.consentKey)
+                return true
+            } catch { return false }
+        }
+        consentSave = save
+        return save
+    }
+
     public func authorizeAttachments() async {
         guard !localOnly, let owner else { return }
         let request = UUID()
         permissionRequest = request
-        let allowed = await owner.checkPermission(true, nil)
+        let result = await owner.checkPermission(true, nil)
+        let allowed = result == .granted
         guard self.owner === owner, permissionRequest == request else { return }
+        attachmentAccessNotice = result.attachmentNotice
         if !allowed {
             mayAttach = false
             cancelInteraction()
             observe?.cancel()
         }
         if productAttachments {
-            do { try await owner.store.saveCheckpoint(Data([allowed ? 1 : 0]), for: Self.consentKey) }
-            catch { issue = "未能保存草稿附加授权。"; return }
+            let consent: DraftConsent = allowed ? .enabled : (savedAttachmentConsent ? .needsRecheck : .off)
+            let saved = await saveConsent(consent, owner: owner).value
             guard self.owner === owner, permissionRequest == request else { return }
+            guard saved else { issue = "未能保存草稿附加授权。"; return }
+            savedAttachmentConsent = consent != .off
         }
         mayAttach = allowed
         if allowed && owner.mayObserveTestClaim() { scheduleObservation(owner) }
-        issue = allowed ? nil : "尚未获得当前浏览器的草稿附加权限。"
+        issue = nil
     }
     public func disableAttachments() async {
         guard productAttachments, let owner else { return }
-        permissionRequest = UUID()
+        let request = UUID()
+        permissionRequest = request
+        savedAttachmentConsent = false; attachmentAccessNotice = nil
         mayAttach = false
         cancelInteraction()
         observe?.cancel()
-        do { try await owner.store.saveCheckpoint(Data([0]), for: Self.consentKey) }
-        catch { if self.owner === owner { issue = "本次已关闭草稿附加，但未能保存设置。" } }
+        if await !saveConsent(.off, owner: owner).value, self.owner === owner, permissionRequest == request {
+            issue = "本次已关闭草稿附加，但未能保存设置。"
+        }
     }
 
     public func surfaceHidden(_ value: Bool) {
@@ -295,7 +333,7 @@ public final class TrayModule: HostModule {
     func beginPress(_ row: AssetRecord) -> TrayPress? {
         guard active, !hidden, let owner, acceptedRows[row.id] == row.visibilityRevision,
               row.status != .missing, row.status != .used, row.status != .transferring else { return nil }
-        guard mayAttach else { issue = "请先在设置中允许附加到草稿。"; return nil }
+        guard mayAttach else { issue = attachmentAccessNotice ?? "请先在设置中允许附加到草稿。"; return nil }
         do {
             try owner.checkAsset(row.image)
             let target = try owner.pinTarget()
@@ -304,6 +342,15 @@ public final class TrayModule: HostModule {
             return .init(id: row.id, revision: row.visibilityRevision, epoch: interaction, target: target)
         } catch ImportedAttachmentError.previousAttempt {
             issue = "这张截图已有旧版附加记录。请在原草稿核对结果。"
+            return nil
+        } catch let unavailable as DraftAutomationUnavailable {
+            permissionRequest = UUID()
+            if productAttachments && savedAttachmentConsent { saveConsent(.needsRecheck, owner: owner) }
+            mayAttach = false
+            attachmentAccessNotice = unavailable.state.attachmentNotice
+            cancelInteraction()
+            observe?.cancel()
+            issue = attachmentAccessNotice
             return nil
         } catch AcceptanceBrowserRoute.ScriptError.javaScriptFromAppleEventsDenied {
             issue = "Chrome 已拒绝来自 Apple 事件的 JavaScript，截图仍在托盘中。可在 Chrome「视图 → 开发者」检查此项设置。"
@@ -356,7 +403,7 @@ public final class TrayModule: HostModule {
                 do {
                     guard !(try await value.store.unresolvedOperations()).isEmpty else { return }
                     try await value.performWork {
-                        try await value.transfer.observePending { target in await value.checkPermission(false, target.sessionID) }
+                        try await value.transfer.observePending { target in await value.checkPermission(false, target.sessionID) == .granted }
                     }
                     await refresh()
                 } catch { if owner === value { issue = "无法确认原操作的状态。" }; return }

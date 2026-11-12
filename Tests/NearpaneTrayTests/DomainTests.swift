@@ -23,13 +23,15 @@ private func makePNG(_ original: URL) throws {
 }
 
 private actor Location: CaptureLocationProviding {
-    let url: URL
+    var url: URL
+    private var changed: (@Sendable () async -> Void)?
     private(set) var starts = 0
     private(set) var stops = 0
     init(_ url: URL) { self.url = url }
     func currentDirectory() async throws -> URL { url }
-    func start(onChange: @escaping @Sendable () async -> Void) async throws { starts += 1 }
-    func stop() async { stops += 1 }
+    func start(onChange: @escaping @Sendable () async -> Void) async throws { starts += 1; changed = onChange }
+    func stop() async { stops += 1; changed = nil }
+    func update(_ next: URL) async { url = next; await changed?() }
 }
 
 private actor Transport: AttachmentAdapter {
@@ -80,7 +82,7 @@ struct TrayDomainTests {
                     return reply
                 }
                 return Task { try await adapter.captureTarget() }
-            }, permission: { _,_ in true }, notify: changed, report: reported)
+            }, permission: { _,_ in .granted }, notify: changed, report: reported)
         }
         try module.start(); await module.connect(); await module.authorizeAttachments()
         let row = try #require(module.rows.first)
@@ -115,7 +117,7 @@ struct TrayDomainTests {
         let adapter = Transport()
         let module = TrayModule { change, error in
             TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
-                      pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in true },
+                      pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in .granted },
                       notify: change, report: error)
         }
         try module.start()
@@ -163,7 +165,7 @@ struct TrayDomainTests {
         let adapter = Transport()
         let module = TrayModule { change, error in
             TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: false,
-                      pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in true }, notify: change, report: error)
+                      pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in .granted }, notify: change, report: error)
         }
         try module.start(); await module.connect(); await module.authorizeAttachments()
         let press = try #require(module.beginPress(record))
@@ -188,7 +190,7 @@ struct TrayDomainTests {
         let module = TrayModule { change, error in
             TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: false,
                 pin: { Task { try await adapter.captureTarget() } },
-                permission: { ask, _ in checks.append(ask); return authorized }, notify: change, report: error)
+                permission: { ask, _ in checks.append(ask); return authorized ? .granted : .denied }, notify: change, report: error)
         }
         try module.start()
         await module.connect()
@@ -221,7 +223,7 @@ struct TrayDomainTests {
                 pin: { Task { @MainActor in
                     await withCheckedContinuation { releasePin = $0 }
                     return try await adapter.captureTarget()
-                } }, permission: { _,_ in true }, notify: change, report: error)
+                } }, permission: { _,_ in .granted }, notify: change, report: error)
         }
         try module.start(); await module.connect(); await module.authorizeAttachments()
         let press = try #require(module.beginPress(row))
@@ -325,7 +327,7 @@ struct TrayDomainTests {
             opens += 1
             if opens == 1 { await withCheckedContinuation { openGate = $0 } }
             let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: false,
-                                  pin: { Task { try await adapter.captureTarget() } }, permission: { _, _ in false },
+                                  pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in .denied },
                                   notify: change, report: error)
             lastOwner = owner
             return owner
@@ -361,7 +363,7 @@ struct TrayDomainTests {
         let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"))
         let module = TrayModule { change, error in
             TrayOwner(store: store, root: dir, adapter: UnavailableAdapter(), policy: .init(), captureEntry: true,
-                      pin: { throw LibraryError.incompatible }, permission: { _,_ in false }, notify: change, report: error)
+                      pin: { throw LibraryError.incompatible }, permission: { _,_ in .denied }, notify: change, report: error)
         }
         try module.start(); await module.connect()
         await module.collect(from: source, provider: Location(base.appendingPathComponent("not-authorized")))
@@ -441,7 +443,7 @@ extension TrayDomainTests {
         let child = SyntheticCaptureChild()
         var reports = 0
         let owner = TrayOwner(store: store, root: dir, adapter: Transport(), policy: .init(), captureEntry: true,
-            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in false },
+            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in .denied },
             notify: {}, report: { _ in reports += 1 })
         var paths = Set<URL>()
         for _ in 0..<2 {
@@ -463,7 +465,7 @@ extension TrayDomainTests {
         let child = SyntheticCaptureChild(), adapter = Transport()
         var reports = 0
         let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
-            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in false },
+            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in .denied },
             notify: {}, report: { _ in reports += 1 })
         child.shouldFail = true
         owner.capture(.system)
@@ -485,7 +487,7 @@ extension TrayDomainTests {
         var finish: CheckedContinuation<Void,Never>?
         var notifications = 0, drained = false
         let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
-            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in false },
+            makeSystemCapture: { child }, pin: { throw CancellationError() }, permission: { _,_ in .denied },
             notify: { notifications += 1; await withCheckedContinuation { finish = $0 } }, report: { _ in })
         owner.capture(.system)
         try makePNG(try #require(child.output))
@@ -512,7 +514,7 @@ extension TrayDomainTests {
             opens += 1
             let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
                 ownership: try ApplicationInstanceOwnership(root: dir), makeSystemCapture: { child },
-                pin: { throw CancellationError() }, permission: { _,_ in false }, notify: change, report: error)
+                pin: { throw CancellationError() }, permission: { _,_ in .denied }, notify: change, report: error)
             current = owner; return owner
         }
         try module.start(); await module.connect(); current?.capture(.system)
@@ -543,7 +545,7 @@ extension TrayDomainTests {
         func host() -> TrayModule {
             let tray = TrayModule(productAttachments: true) { change, error in
                 TrayOwner(store: store, root: library, adapter: UnavailableAdapter(), policy: .init(), captureEntry: true,
-                          pin: { throw LibraryError.incompatible }, permission: { _,_ in false }, notify: change, report: error)
+                          pin: { throw LibraryError.incompatible }, permission: { _,_ in .denied }, notify: change, report: error)
             }
             tray.captureLocation = { Location(source) }
             return tray
@@ -563,6 +565,37 @@ extension TrayDomainTests {
         #expect(!final.collectionEnabled && !final.hasSavedCollection)
         #expect(try CaptureFolderConsent.read(in: library) == nil)
         final.stop(); await final.finishStopping()
+    }
+
+    @Test func liveDirectoryChangePausesUntilOriginalPickerGrantCanBeRechecked() async throws {
+        let fm = FileManager.default, base = root()
+        defer { try? fm.removeItem(at: base) }
+        let library = base.appendingPathComponent("library"), source = base.appendingPathComponent("screenshots")
+        let other = base.appendingPathComponent("other")
+        for directory in [source, other] { try fm.createDirectory(at: directory, withIntermediateDirectories: true) }
+        let store = try QueueStore(databaseURL: library.appendingPathComponent("queue.sqlite"))
+        let location = Location(source)
+        let tray = TrayModule(productAttachments: true) { change, error in
+            TrayOwner(store: store, root: library, adapter: UnavailableAdapter(), policy: .init(), captureEntry: true,
+                      pin: { throw LibraryError.incompatible }, permission: { _,_ in .denied }, notify: change, report: error)
+        }
+        tray.captureLocation = { location }
+        try tray.start(); await tray.connect()
+        await tray.collect(from: source)
+        try #require(tray.collectionEnabled)
+        await location.update(other)
+        #expect(!tray.collectionEnabled && tray.hasSavedCollection)
+        await tray.recheckCollection()
+        #expect(!tray.collectionEnabled && tray.hasSavedCollection)
+        let original = try #require(try CaptureFolderConsent.read(in: library))
+        #expect(original.resolves(source) && !original.resolves(other))
+        await location.update(source)
+        await tray.recheckCollection()
+        #expect(tray.collectionEnabled)
+        #expect(try await store.assets().isEmpty)
+        tray.stopCollecting()
+        #expect(try CaptureFolderConsent.read(in: library) == nil)
+        tray.stop(); await tray.finishStopping()
     }
 
     @Test func replacedOrRenamedDirectoryNeverInheritsPriorPickerConsent() throws {
@@ -596,7 +629,7 @@ extension TrayDomainTests {
                 TrayModule(productAttachments: true) { change, report in
                     TrayOwner(store: store, root: dir, adapter: transport, policy: .init(), captureEntry: true,
                         pin: { captures += 1; return Task { try await transport.captureTarget() } },
-                        permission: { _,_ in checks += 1; return true }, notify: change, report: report)
+                        permission: { _,_ in checks += 1; return .granted }, notify: change, report: report)
                 }
             }
             let store = try QueueStore(databaseURL: db, mode: .simulation)
@@ -646,6 +679,109 @@ extension TrayDomainTests {
         }
     }
 
+    @Test func browserAvailabilityAndSystemConsentRemainDistinctAcrossRestart() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let db = dir.appendingPathComponent("queue.sqlite"), transport = Transport()
+        var checks = 0, pins = 0, state: AutomationPermissionState = .notRequested
+        func module() throws -> TrayModule {
+            let store = try QueueStore(databaseURL: db, mode: .simulation)
+            return TrayModule(productAttachments: true) { change, report in
+                TrayOwner(store: store, root: dir, adapter: transport, policy: .init(), captureEntry: true,
+                          pin: { pins += 1; return Task { try await transport.captureTarget() } },
+                          permission: { _,_ in checks += 1; return state }, notify: change, report: report)
+            }
+        }
+        let first = try module()
+        try first.start(); await first.connect()
+        for (result, reason): (AutomationPermissionState, String) in [
+            (.notRequested, "尚未授予"), (.denied, "系统设置"), (.browserNotInstalled, "未找到 Chrome"),
+            (.unavailable, "无法核实"), (.browserNotRunning, "请打开 Chrome")
+        ] {
+            state = result
+            await first.authorizeAttachments()
+            #expect(first.attachmentAccessNotice?.contains(reason) == true)
+            #expect(!first.mayAttach && !first.savedAttachmentConsent)
+        }
+        state = .granted
+        await first.authorizeAttachments()
+        #expect(first.mayAttach && first.savedAttachmentConsent)
+        state = .browserNotRunning
+        await first.authorizeAttachments()
+        #expect(!first.mayAttach && first.savedAttachmentConsent)
+        first.stop(); await first.finishStopping()
+        let before = checks, next = try module()
+        try next.start(); await next.connect()
+        #expect(!next.mayAttach && next.savedAttachmentConsent && checks == before)
+        state = .granted
+        await next.authorizeAttachments()
+        #expect(next.mayAttach && next.attachmentAccessNotice == nil)
+        await next.disableAttachments()
+        #expect(!next.savedAttachmentConsent && !next.mayAttach && pins == 0)
+        #expect(await transport.appends == 0)
+        next.stop(); await next.finishStopping()
+    }
+
+    @Test func aLatePermissionReplyCannotReenableAttachmentsAfterExplicitDisable() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let entered = AsyncStream<Void>.makeStream()
+        var answer: CheckedContinuation<AutomationPermissionState, Never>?
+        let tray = TrayModule(productAttachments: true) { change, report in
+            TrayOwner(store: store, root: dir, adapter: UnavailableAdapter(), policy: .init(), captureEntry: true,
+                      pin: { throw LibraryError.incompatible }, permission: { _,_ in
+                          await withCheckedContinuation { answer = $0; entered.continuation.yield() }
+                      }, notify: change, report: report)
+        }
+        try tray.start(); await tray.connect()
+        let checking = Task { await tray.authorizeAttachments() }
+        var entry = entered.stream.makeAsyncIterator()
+        _ = try #require(await entry.next())
+        await tray.disableAttachments()
+        try #require(answer).resume(returning: .granted)
+        await checking.value
+        #expect(!tray.mayAttach && !tray.savedAttachmentConsent)
+        tray.disconnect(); await tray.connect()
+        #expect(!tray.mayAttach && !tray.savedAttachmentConsent)
+        tray.stop(); await tray.finishStopping()
+    }
+
+    @Test func revokedAutomationAtMouseDownRefusesHeldAndSubsequentClicksUntilExplicitRecheck() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let image = ImportedAsset(sourceKey: "revoked", fileName: "one.png", sha256: String(repeating: "b", count: 64),
+                                  byteCount: 5, pixelWidth: 8, pixelHeight: 8, mediaType: "image/png", origin: .synthetic)
+        _ = try await store.importAsset(image)
+        let transport = Transport()
+        var state = AutomationPermissionState.granted, pins = 0
+        let tray = TrayModule(productAttachments: true) { change, report in
+            TrayOwner(store: store, root: dir, adapter: transport, policy: .init(), captureEntry: true,
+                      pin: {
+                          pins += 1
+                          guard state == .granted else { throw DraftAutomationUnavailable(state: state) }
+                          return Task { try await transport.captureTarget() }
+                      }, permission: { _,_ in state }, notify: change, report: report)
+        }
+        try tray.start(); await tray.connect(); await tray.authorizeAttachments()
+        let row = try #require(tray.rows.first)
+        let held = try #require(tray.beginPress(row))
+        state = .denied
+        #expect(tray.beginPress(row) == nil && !tray.mayAttach && tray.savedAttachmentConsent)
+        #expect(tray.attachmentAccessNotice?.contains("系统设置") == true)
+        await tray.finishPress(held)
+        #expect(tray.beginPress(row) == nil && pins == 2)
+        tray.disconnect(); await tray.connect()
+        #expect(!tray.mayAttach && tray.savedAttachmentConsent && pins == 2)
+        #expect(try await store.asset(id: image.id)?.activeOperationID == nil)
+        #expect(await transport.appends == 0)
+        state = .granted
+        await tray.authorizeAttachments()
+        #expect(tray.mayAttach && tray.attachmentAccessNotice == nil)
+        tray.stop(); await tray.finishStopping()
+    }
+
     @Test func disconnectOrRevocationCannotFinishAHeldProductClick() async throws {
         let dir = root()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -657,7 +793,7 @@ extension TrayDomainTests {
         var revocations = 0
         let tray = TrayModule(productAttachments: true) { changed, reported in
             let owner = TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
-                pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in true }, notify: changed, report: reported)
+                pin: { Task { try await adapter.captureTarget() } }, permission: { _,_ in .granted }, notify: changed, report: reported)
             owner.cancelDraftSelections = { revocations += 1 }
             return owner
         }

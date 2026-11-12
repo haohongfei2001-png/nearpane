@@ -51,6 +51,7 @@ private final class DomainInput: VoiceInput {
     }
     func start(requestPermission: Bool) async throws {
         // Do not trigger engine asset installation as a side effect of trying the voice button.
+        if VoiceInputRoute.current() == .disconnected { throw AudioFailure.message(VoiceInputRoute.disconnected.label) }
         try await prepareConfiguration()
         if !configuration.cloudEnabled {
             let availability = await AppleSpeechService.availability()

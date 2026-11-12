@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import SaytileKit
 import SwiftUI
 
@@ -9,6 +10,7 @@ public struct VoiceInputSettings: View {
     private let module: VoiceModule
     @ViewState private var availability: SpeechAvailability?
     @ViewState private var microphone = AVCaptureDevice.authorizationStatus(for: .audio)
+    @ViewState private var route: VoiceInputRoute = .unknown
     @ViewState private var preparing = false
     @ViewState private var error: String?
     @ViewState private var editingAPI = false
@@ -42,7 +44,8 @@ public struct VoiceInputSettings: View {
                 }
             }
             Section("本机输入") {
-                LabeledContent("麦克风", value: permissionLabel)
+                LabeledContent("麦克风权限", value: permissionLabel)
+                LabeledContent("输入设备", value: route.label)
                 Text(availability?.message ?? "正在检查本机中文识别资源…")
                 if let availability, availability.supported && !availability.installed {
                     Button(preparing ? "正在准备…" : "准备本机中文识别资源") {
@@ -60,7 +63,14 @@ public struct VoiceInputSettings: View {
                 Button("重新检查") { Task { await refresh() } }.disabled(preparing)
             }
             if let error { Text(error).foregroundStyle(.secondary).textSelection(.enabled) }
-        }.formStyle(.grouped).task { await refresh() }.onDisappear { clearDraft() }
+        }.formStyle(.grouped).task { await refresh() }
+        .task {
+            for await _ in VoiceInputRouteObservation.shared.changes() { refreshDevice() }
+        }
+        .onReceive(Publishers.Merge(NotificationCenter.default.publisher(for: AVCaptureDevice.wasConnectedNotification),
+                                   NotificationCenter.default.publisher(for: AVCaptureDevice.wasDisconnectedNotification))) { _ in refreshDevice() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refreshDevice() }
+        .onDisappear { clearDraft() }
     }
 
     @ViewBuilder private var apiForm: some View {
@@ -98,8 +108,13 @@ public struct VoiceInputSettings: View {
         expertKey = ""; fusionKey = ""; consent = false; editingAPI = false
     }
 
-    private func refresh() async {
+    private func refreshDevice() {
         microphone = AVCaptureDevice.authorizationStatus(for: .audio)
+        route = VoiceInputRoute.current()
+    }
+
+    private func refresh() async {
+        refreshDevice()
         availability = await AppleSpeechService.availability()
     }
 

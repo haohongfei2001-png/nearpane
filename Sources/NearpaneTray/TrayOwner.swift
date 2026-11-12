@@ -22,7 +22,7 @@ final class TrayOwner {
     let receiptPolicy: ReceiptPolicy
     var checkAsset: (ImportedAsset) throws -> Void = { _ in }
     let pinTarget: () throws -> Task<TargetLease, Error>
-    let checkPermission: (Bool, String?) async -> Bool
+    let checkPermission: (Bool, String?) async -> AutomationPermissionState
     private var captureController: InteractiveScreenshotController?
     let magnetEnabled: Bool
     var arrived: ((TrayArrival) -> Void)?
@@ -80,7 +80,7 @@ final class TrayOwner {
         let owner = TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
                          captureEntry: prefs.builtInScreenshotEnabled, defaultMode: prefs.defaultMode,
                          ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: pin,
-                         permission: { ask, session in guard executor != nil else { return false }; return await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) == .granted },
+                         permission: { ask, session in guard executor != nil else { return .unavailable }; return await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) },
                          notify: notify, report: report)
         if let bound {
             owner.mayObserveTestClaim = { bound.hasClaim }
@@ -105,7 +105,7 @@ final class TrayOwner {
     init(store: QueueStore, root: URL, adapter: any AttachmentAdapter, policy: ReceiptPolicy,
          captureEntry: Bool, defaultMode: ScreenshotMode = .window, ownership: ApplicationInstanceOwnership? = nil, magnetEnabled: Bool = false,
          makeSystemCapture: @escaping @MainActor () -> any SystemCaptureProcess = { MacSystemCaptureProcess() },
-         pin: @escaping () throws -> Task<TargetLease, Error>, permission: @escaping (Bool, String?) async -> Bool,
+         pin: @escaping () throws -> Task<TargetLease, Error>, permission: @escaping (Bool, String?) async -> AutomationPermissionState,
          notify: @escaping @MainActor () async -> Void, report: @escaping @MainActor (String) -> Void) {
         self.receiptPolicy = policy
         self.store = store; self.root = root; self.ownership = ownership; self.captureEntry = captureEntry
@@ -122,7 +122,7 @@ final class TrayOwner {
             onChange: { [ownership] in await notify(); withExtendedLifetime(ownership) {} },
             onAcceptedSelectionFinished: { id in await authority.finish(id) },
             validateAcceptedSelection: { token in
-                let authorized = await permission(false, token.target.sessionID)
+                let authorized = await permission(false, token.target.sessionID) == .granted
                 return await MainActor.run {
                     authorized && authority.permits(token, epoch: token.hostEpoch, foregroundSession: nil,
                         hidden: false, terminating: false, now: ProcessInfo.processInfo.systemUptime)
