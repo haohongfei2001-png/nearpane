@@ -262,11 +262,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openHost() async {
+        let voicePreview = Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.voice-preview"
         var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         var testSession: URL?
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession { support = acceptanceSession.support; testSession = acceptanceSession.directory }
-        else if Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.voice-preview" {
+        else if voicePreview {
             // This independently signed preview uses the normal host with an empty, private
             // support root. CandidateProfile and the external window controller stay off.
             support.appendPathComponent("Nearpane Voice Preview", isDirectory: true)
@@ -326,7 +327,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         modules.workRect?.start()
         #endif
         let provider: any DesktopObservationProvider
-        if testSession == nil { provider = NativeDesktopProvider.packaged() }
+        if testSession == nil && !voicePreview { provider = NativeDesktopProvider.packaged() }
         else {
             #if canImport(RiftletCore) && canImport(SaytileKit)
             if requestsDesktopFixture, let acceptanceSession, let passiveDisplayID {
