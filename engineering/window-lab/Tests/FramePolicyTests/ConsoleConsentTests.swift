@@ -3,6 +3,26 @@ import Testing
 import WindowLab
 
 struct ConsoleConsentTests {
+    @Test func fullscreenGrantCannotAuthorizeRouteAndRouteCannotEnterFullscreen() throws {
+        let run = UUID(), display = UUID().uuidString, now = Date()
+        var payload: [String:Any] = ["run":run.uuidString, "secondaryDisplay":display, "boot":"boot",
+            "securityID":12, "source":"87", "target":"", "permitsCalibrationAndThreeRoundTrips":false,
+            "permitsSingleWindowFullscreen":true, "starts":now.addingTimeInterval(-1).timeIntervalSinceReferenceDate,
+            "ends":now.addingTimeInterval(100).timeIntervalSinceReferenceDate]
+        func allowed(fullscreen: Bool) throws -> Bool {
+            let grant = try JSONDecoder().decode(ConsoleSpaceConsent.self, from: JSONSerialization.data(withJSONObject: payload))
+            return grant.allows(run: run, boot: "boot", securityID: 12, display: display, at: now, fullscreenOnly: fullscreen)
+        }
+        #expect(try allowed(fullscreen: true))
+        #expect(try !allowed(fullscreen: false))
+        payload["permitsCalibrationAndThreeRoundTrips"] = true; payload["target"] = "88"
+        #expect(try !allowed(fullscreen: true))
+        #expect(try !allowed(fullscreen: false))
+        payload.removeValue(forKey: "permitsSingleWindowFullscreen")
+        #expect(try !allowed(fullscreen: true))
+        #expect(try allowed(fullscreen: false))
+    }
+
     @Test(arguments: ["valid", "future", "expired", "too-long", "replay", "different-boot", "changed-login",
                       "different-display", "same-space", "invalid-id", "not-authorized"])
     func scopeAndIntervalRemainBound(reason: String) throws {

@@ -36,4 +36,15 @@ package struct TrialDisplayState: Equatable {
             && scopeIDs == next.scopeIDs && orders == next.orders && build == next.build
             && topology == next.topology && expected == next.currents
     }
+
+    /// Native full screen can insert a temporary record and change the secondary's usable
+    /// frame. The caller separately checks both physical displays and the enrolled AX/CG window.
+    package func permitsFullscreen(_ next: Self, secondary: String, member: String) -> Bool {
+        guard build == next.build, scopeIDs == next.scopeIDs, next.currents[secondary] == member,
+              let ordinary = orders[secondary], !ordinary.contains(member),
+              let fullscreen = next.orders[secondary], fullscreen.count == ordinary.count + 1,
+              fullscreen.filter({ $0 != member }) == ordinary,
+              let primary = currents.keys.first(where: { $0 != secondary }) else { return false }
+        return next.currents[primary] == currents[primary] && next.orders[primary] == orders[primary]
+    }
 }

@@ -49,6 +49,23 @@ class TestCheckpoint(unittest.TestCase):
             ctl.grant(self.folder, self.run, self.args)
         self.assertFalse((self.folder / "unattended-consent.ready").exists())
 
+    def test_fullscreen_requires_its_own_grant_and_current_blank_source_only(self):
+        self.args.fullscreen_only = True
+        self.args.target = None
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        (self.folder / "console-scope.json").unlink()
+        self.put("console-scope.json", dict(run=self.run, boot="test", securityID=1, secondaryDisplay="side", procedure="fullscreen"))
+        self.args.source = "11"
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        self.args.source = "10"
+        ctl.grant(self.folder, self.run, self.args)
+        grant = ctl.load(self.folder / "unattended-consent.ready")
+        self.assertTrue(grant["permitsSingleWindowFullscreen"])
+        self.assertFalse(grant["permitsCalibrationAndThreeRoundTrips"])
+        self.assertEqual(grant["target"], "")
+
     def test_chord_conflicting_with_order_and_missing_click_rejected(self):
         ctl.grant(self.folder, self.run, self.args)
         self.request("enroll-B")

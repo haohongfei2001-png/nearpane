@@ -43,4 +43,15 @@ struct TrialDisplayStateTests {
         missing.separateSpaces = false
         #expect(throws: (any Error).self) { try TrialDisplayState(missing) }
     }
+
+    @Test func fullscreenMemberMustBeOneNewSecondaryRecordWithProtectedPrimaryUnchanged() throws {
+        let source = try TrialDisplayState(snapshot("X", "A"))
+        let valid = try TrialDisplayState(snapshot("X", "F", records: ["A", "F", "B"]))
+        #expect(source.permitsFullscreen(valid, secondary: "secondary", member: "F"))
+        #expect(!source.permitsFullscreen(valid, secondary: "secondary", member: "B"))
+        for bad in [snapshot("Y", "F", records: ["A", "F", "B"]), snapshot("X", "B"),
+                    snapshot("X", "F", records: ["B", "F", "A"]), snapshot("X", "F", records: ["A", "F", "G", "B"])] {
+            #expect(try !source.permitsFullscreen(TrialDisplayState(bad), secondary: "secondary", member: "F"))
+        }
+    }
 }

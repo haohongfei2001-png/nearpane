@@ -24,6 +24,7 @@ import WindowLab
   var originDisplay: String?
   let deadline = ProcessInfo.processInfo.systemUptime + 600
   let consoleTrial: Bool
+  let fullscreenOnly: Bool
   private var originScopes: TrialDisplayState?
   private var cleanupAttempted = false
   private var cleanupVerified = false
@@ -34,10 +35,11 @@ import WindowLab
   private var confirmedInputs = 0
   private var consoleConsent: ConsoleSpaceConsent?
   private var consentExpiresUptime: Double?
-  private var enrolledRead: String { consoleTrial ? "--read-enrolled-console" : "--read-encoded" }
+  var enrolledRead: String { consoleTrial ? "--read-enrolled-console" : "--read-encoded" }
 
-  init(consoleTrial: Bool) throws {
+  init(consoleTrial: Bool, fullscreenOnly: Bool = false) throws {
     self.consoleTrial = consoleTrial
+    self.fullscreenOnly = fullscreenOnly
     kit = Bundle.main.bundleURL.deletingLastPathComponent()
     let base = try FileManager.default.url(
       for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
@@ -88,9 +90,15 @@ import WindowLab
     if let consent = consoleConsent {
       guard let caller = admitted, let end = consentExpiresUptime, ProcessInfo.processInfo.systemUptime < end,
             let display = originDisplay,
-            consent.allows(run: run, boot: caller.boot, securityID: caller.securityID, display: display, at: Date())
+            consent.allows(run: run, boot: caller.boot, securityID: caller.securityID, display: display, at: Date(), fullscreenOnly: fullscreenOnly)
       else { throw Refusal("console authorization expired or no longer matches") }
     }
+  }
+  func requireFullscreenTime(_ seconds: TimeInterval) throws {
+    try scope()
+    guard fullscreenOnly, consoleConsent?.permitsSingleWindowFullscreen == true,
+          let end = consentExpiresUptime, min(end, deadline) - ProcessInfo.processInfo.systemUptime > seconds
+    else { throw Refusal("insufficient authorized time for fullscreen and return") }
   }
   private var gui: NSApplication?
   private var clicked = Set<String>()
@@ -132,7 +140,7 @@ import WindowLab
     return (secondary, display)
   }
   // Scope-only snapshot. No AX tree or WindowServer descriptions are requested.
-  func consoleEndpoint(_ label: String, display: String) throws -> DesktopSnapshot {
+  func consoleScopes() throws -> DesktopSnapshot {
     revision += 1
     let request = DesktopReadRequest(session: run, revision: revision, parentPID: getpid(),
                                     fixtureWindows: [], anchors: [], experimentalSpaces: true)
@@ -143,16 +151,23 @@ import WindowLab
     guard s.isStructurallyValid, s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime),
           s.sessionID == run, s.revision == revision, s.windows.isEmpty, s.native?.population == .markedFixture,
           s.native?.spaces == .observed, s.scopes.count == 2,
-          let scope = s.scopes.first(where: { $0.displayID == display }), scope.records.filter(\.isCurrent).count == 1
+          s.scopes.allSatisfy({ $0.records.filter(\.isCurrent).count == 1 })
     else { throw Refusal("scope-only observation unavailable") }
     try require(s.separateSpaces == true, "shared Spaces: independent secondary A/B cannot be attested")
-    try require(scope.records.count >= 2, "secondary scope has fewer than two candidate records")
+    return s
+  }
+  func consoleEndpoint(_ label: String, display: String) throws -> DesktopSnapshot {
+    let s = try consoleScopes()
+    guard let scope = s.scopes.first(where: { $0.displayID == display }) else { throw Refusal("unknown test display") }
+    if !fullscreenOnly { try require(scope.records.count >= 2, "secondary scope has fewer than two candidate records") }
     if let consent = consoleConsent {
       let required = label == "A" ? consent.source : consent.target
-      guard scope.records.first(where: \.isCurrent)?.id == required,
-            let a = scope.records.firstIndex(where: { $0.id == consent.source }),
-            let b = scope.records.firstIndex(where: { $0.id == consent.target }), abs(a-b) == 1
-      else { throw Refusal("console is not at the specified adjacent test endpoints") }
+      try require(scope.records.first(where: \.isCurrent)?.id == required, "console is not at the specified test desktop")
+      if !fullscreenOnly {
+        guard let a = scope.records.firstIndex(where: { $0.id == consent.source }),
+              let b = scope.records.firstIndex(where: { $0.id == consent.target }), abs(a-b) == 1
+        else { throw Refusal("specified endpoints are not adjacent") }
+      }
       if let originScopes {
         try require(try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: required),
                     "display topology, record order or protected current changed during calibration")
@@ -166,7 +181,7 @@ import WindowLab
     let (_, display) = try screen()
     originScopes = try TrialDisplayState(consoleEndpoint("A", display: display))
     try writeJSON(["run": run.uuidString, "boot": session.boot, "securityID": String(session.securityID),
-                   "secondaryDisplay": display], dir, "console-scope.json")
+                   "secondaryDisplay": display, "procedure": fullscreenOnly ? "fullscreen" : "route"], dir, "console-scope.json")
     try awaitCheckpoint("unattended-consent")
     let file = dir.appendingPathComponent("unattended-consent.ready")
     let fd = open(file.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
@@ -180,7 +195,7 @@ import WindowLab
     let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
     let consent = try decoder.decode(ConsoleSpaceConsent.self, from: try handle.read(upToCount: 4097) ?? Data())
     let now = Date()
-    guard consent.allows(run: run, boot: session.boot, securityID: session.securityID, display: display, at: now)
+    guard consent.allows(run: run, boot: session.boot, securityID: session.securityID, display: display, at: now, fullscreenOnly: fullscreenOnly)
     else { throw Refusal("missing current consent for these two test desktops") }
     consoleConsent = consent
     consentExpiresUptime = ProcessInfo.processInfo.systemUptime + consent.ends.timeIntervalSince(now)
@@ -198,6 +213,7 @@ import WindowLab
       contentRect: .init(origin: .zero, size: r.size), styleMask: [.titled, .closable, .resizable],
       backing: .buffered, defer: true, screen: s)
     w.isRestorable = false
+    if fullscreenOnly { w.collectionBehavior.insert(.fullScreenPrimary) }
     w.isReleasedWhenClosed = false
     w.ignoresMouseEvents = false
     w.title = "Nearpane test " + label
@@ -497,6 +513,10 @@ import WindowLab
     try awaitCheckpoint("enroll-A")
     try require(clicked.contains("A"), "no GUI click witnessed on enrolled A")
     baseline["A"] = try stable("A", "origin-A")
+    if fullscreenOnly {
+      try fullscreenRoundTrip()
+      return
+    }
     try requestCalibration("enroll-B", from: "A")
     try require(
       windows["A"]?.isOnActiveSpace == false, "A still active; B not independently arranged")
@@ -588,6 +608,13 @@ import WindowLab
     var result = ["run": run.uuidString, "reason": String(describing: cause),
                   "postedInputs": String(postedInputs), "confirmedInputs": String(confirmedInputs),
                   "pendingInput": pendingInput?.uuidString ?? "none"]
+    if fullscreenOnly {
+      for action in ["enter", "exit"] {
+        let prefix = dir.appendingPathComponent("fullscreen-" + action).path
+        result["fullscreen-" + action] = FileManager.default.fileExists(atPath: prefix + "-confirmed.json") ? "confirmed" :
+          (FileManager.default.fileExists(atPath: prefix + "-intent.json") ? "intent-unconfirmed" : "not-requested")
+      }
+    }
     if !cleanupAttempted {
       do { try closeOwned() } catch { result["cleanupError"] = String(describing: error) }
     }
@@ -612,8 +639,8 @@ import WindowLab
 do {
   let args = Array(CommandLine.arguments.dropFirst())
   try require(
-    args.count == 1 && ["--check", "--three-rounds", "--check-console", "--three-rounds-console"].contains(args[0]), "unknown witness command")
-  let trial = try Trial(consoleTrial: args[0].hasSuffix("-console"))
+    args.count == 1 && ["--check", "--three-rounds", "--check-console", "--three-rounds-console", "--check-fullscreen-console", "--fullscreen-console"].contains(args[0]), "unknown witness command")
+  let trial = try Trial(consoleTrial: args[0].hasSuffix("-console"), fullscreenOnly: args[0].contains("fullscreen"))
   if args[0].hasPrefix("--check") {
     trial.announce("RUN " + trial.dir.path)
     struct CheckReceipt: Encodable {
@@ -642,7 +669,11 @@ do {
     try trial.scope()
     try trial.checkFinalScopes()
     try trial.restoredFocus()
-    try writeJSON(["observedRoundTrips": 3], trial.dir, "completed.json")
+    if trial.fullscreenOnly {
+      try writeJSON(["observedFullscreenRoundTrips": 1, "observedRoundTrips": 0], trial.dir, "completed.json")
+    } else {
+      try writeJSON(["observedRoundTrips": 3], trial.dir, "completed.json")
+    }
   } catch {
     try trial.recordStop(error)
     throw error

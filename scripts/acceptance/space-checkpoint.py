@@ -85,15 +85,26 @@ def grant(run_dir, run, args):
     context = load(run_dir / "console-scope.json")
     origin = load(run_dir / "scope-snapshot-1.json")
     require(context["run"] == run == origin["sessionID"], "origin belongs to another trial")
-    check_order(origin, context["secondaryDisplay"], args.source, args.target)
+    fullscreen = getattr(args, "fullscreen_only", False)
+    require(fullscreen == (context.get("procedure", "route") == "fullscreen"), "consent does not match trial procedure")
+    if fullscreen:
+        require(not args.target and args.source.isascii() and args.source.isdecimal() and int(args.source) > 0,
+                "fullscreen consent requires only the identified blank source")
+        scopes = [s for s in origin["scopes"] if s["displayID"] == context["secondaryDisplay"]]
+        require(origin["separateSpaces"] is True and len(scopes) == 1 and
+                [r["id"] for r in scopes[0]["records"] if r["isCurrent"]] == [args.source],
+                "specified fullscreen source is not the current secondary desktop")
+    else:
+        check_order(origin, context["secondaryDisplay"], args.source, args.target)
     starts, ends = utc(args.starts), utc(args.ends)
     now = dt.datetime.now(dt.timezone.utc)
     require(starts <= now < ends and ends - starts <= dt.timedelta(minutes=15),
             "owner-approved unattended interval must be current and at most 15 minutes")
     publish(run_dir / "unattended-consent.ready",
             dict(run=run, boot=context["boot"], securityID=int(context["securityID"]),
-                 secondaryDisplay=context["secondaryDisplay"], source=args.source, target=args.target,
-                 starts=format_utc(starts), ends=format_utc(ends), permitsCalibrationAndThreeRoundTrips=True))
+                 secondaryDisplay=context["secondaryDisplay"], source=args.source, target=args.target or "",
+                 starts=format_utc(starts), ends=format_utc(ends), permitsCalibrationAndThreeRoundTrips=not fullscreen,
+                 permitsSingleWindowFullscreen=fullscreen))
 
 
 def ack(run_dir, run, args, *, timeout=20):
@@ -153,6 +164,9 @@ def main():
   4. At observe-B, click the new B fixture and use ack observe-B. At return-A, after the
      demonstrated return, use ack return-A --observed-chord left|right. These setup steps
      do not count toward the three automated rounds. Never acknowledge unobserved input.
+  Alternatively, --fullscreen-console enrolls only A. Record the existing fullscreen grant
+  with consent --fullscreen-only --source ID --starts ISO8601 --ends ISO8601 and ack the
+  actual enroll-A click. It attempts one public AppKit entry and exit on the enrolled window.
   5. On stopped.json, inspect pendingInput, cleanup, scopeReturn, focusReturn and raw
      per-leg records. No retry or automatic inverse shortcut is issued by this controller.
      A trial terminated without stopped.json or completed.json has an unknown outcome.""")
@@ -160,8 +174,10 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status")
     consent = commands.add_parser("consent", help="record an existing owner grant for these specific endpoints")
-    for key in ("source", "target", "starts", "ends"):
+    for key in ("source", "starts", "ends"):
         consent.add_argument("--" + key, required=True)
+    consent.add_argument("--target", help="required destination for a route trial")
+    consent.add_argument("--fullscreen-only", action="store_true", help="grant only one native fullscreen entry and return on A")
     release = commands.add_parser("ack", help="acknowledge a witnessed fixture click or manually demonstrated system chord")
     release.add_argument("checkpoint", choices=STEPS[1:])
     release.add_argument("--observed-chord", choices=("left", "right"))
