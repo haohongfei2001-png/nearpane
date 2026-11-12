@@ -1,0 +1,610 @@
+{
+  "stateSource": "synthetic capture state and text in separate disposable SQLite stores",
+  "capture": "WindowServer, only the two identified windows of each launched fixture, 2 pixels/point",
+  "backdrop": "generated violet-to-blue gradient, 32 by 512, projected over the entire visible frame",
+  "Saytile": {
+    "bundle": "app.saytile.testing.reference-shell.20261113",
+    "sourceCheckoutSHA": "cde27aed528f0fe306c13ebfda4685c606130f21",
+    "embeddedSourceSHA": "d3ddafcd4d410fc763ae2a5badfaefa21ceb48fc",
+    "sourceTree": "0b83a0a02af75b4f678ce72b5cd3dd6610f5bc73",
+    "signature": "codesign --verify --strict --deep PASS",
+    "sourceCheckoutChanges": "",
+    "speakingFrameAdditionalSettleSeconds": 1.8,
+    "exeSHA256": "d068b8d633492ce3fb66b087a4da6d9daf72a798a570efb9151d04b210f68f82",
+    "scenes": {
+      "panel-paused": {
+        "accessibility": {
+          "framesRelativeToGlassTopLeft": {
+            "panel.capture": [
+              143.9230769230769,
+              70.53846153846143,
+              63.5,
+              26.5
+            ],
+            "panel.copy": [
+              10.923076923076906,
+              70.53846153846143,
+              35,
+              26.5
+            ],
+            "panel.transcript": [
+              14.423076923076906,
+              2.0384615384614335,
+              197.5,
+              67
+            ]
+          },
+          "nativeTextMatches": true,
+          "observedTextFont": "PingFangSC-Regular",
+          "observedTextPointSize": 14.399999999999999,
+          "status": "PASS",
+          "voiceAXValue": "暂停"
+        },
+        "backingScale": 2,
+        "contentRelativePoints": [
+          11.076923076923094,
+          18.461538461538566,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "heightPX": 256,
+        "ownedWindows": 2,
+        "screens": 2,
+        "sourceCG": [
+          1680,
+          0,
+          240,
+          128
+        ],
+        "widthPX": 480,
+        "windowCG": [
+          1680,
+          0,
+          240,
+          128
+        ],
+        "glassAppKit": [
+          1691.076923076923,
+          957.9076923076923,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "visibleAppKit": [
+          0,
+          0,
+          1920,
+          1080
+        ]
+      },
+      "panel-standby": {
+        "accessibility": {
+          "framesRelativeToGlassTopLeft": {
+            "panel.capture": [
+              143.9230769230769,
+              70.53846153846143,
+              63.5,
+              26.5
+            ],
+            "panel.copy": [
+              10.923076923076906,
+              70.53846153846143,
+              35,
+              26.5
+            ],
+            "panel.transcript": [
+              14.423076923076906,
+              2.0384615384614335,
+              197.5,
+              67
+            ]
+          },
+          "nativeTextMatches": true,
+          "observedTextFont": "PingFangSC-Regular",
+          "observedTextPointSize": 14.399999999999999,
+          "status": "PASS",
+          "voiceAXValue": "待命"
+        },
+        "backingScale": 2,
+        "contentRelativePoints": [
+          11.076923076923094,
+          18.461538461538566,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "heightPX": 256,
+        "ownedWindows": 2,
+        "screens": 2,
+        "sourceCG": [
+          1680,
+          0,
+          240,
+          128
+        ],
+        "widthPX": 480,
+        "windowCG": [
+          1680,
+          0,
+          240,
+          128
+        ],
+        "glassAppKit": [
+          1691.076923076923,
+          957.9076923076923,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "visibleAppKit": [
+          0,
+          0,
+          1920,
+          1080
+        ]
+      },
+      "panel-speaking": {
+        "accessibility": {
+          "copyGroup": true,
+          "copySelection": true,
+          "framesRelativeToGlassTopLeft": {
+            "panel.capture": [
+              143.9230769230769,
+              70.53846153846143,
+              63.5,
+              26.5
+            ],
+            "panel.copy": [
+              10.923076923076906,
+              70.53846153846143,
+              35,
+              26.5
+            ],
+            "panel.transcript": [
+              14.423076923076906,
+              2.0384615384614335,
+              197.5,
+              67
+            ]
+          },
+          "nativeTextMatches": true,
+          "observedTextFont": "PingFangSC-Regular",
+          "observedTextPointSize": 14.399999999999999,
+          "status": "PASS",
+          "voiceAXValue": "正在识别"
+        },
+        "backingScale": 2,
+        "contentRelativePoints": [
+          11.076923076923094,
+          18.461538461538566,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "heightPX": 256,
+        "ownedWindows": 2,
+        "screens": 2,
+        "sourceCG": [
+          1680,
+          0,
+          240,
+          128
+        ],
+        "widthPX": 480,
+        "windowCG": [
+          1680,
+          0,
+          240,
+          128
+        ],
+        "glassAppKit": [
+          1691.076923076923,
+          957.9076923076923,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "visibleAppKit": [
+          0,
+          0,
+          1920,
+          1080
+        ]
+      }
+    }
+  },
+  "Nearpane": {
+    "bundle": "com.holdsnow.nearpane.host",
+    "sourceCheckoutSHA": "044b659f64146db0832f7c45a2d232512d7ddba5",
+    "embeddedSourceSHA": null,
+    "sourceTree": "12aab541edae9e73928812a7f93a26cf6bf2d5e8",
+    "signature": "codesign --verify --strict --deep PASS",
+    "sourceCheckoutChanges": "",
+    "speakingFrameAdditionalSettleSeconds": 1.8,
+    "exeSHA256": "3bc40e7f7db8de8254b6f1ee0de2cdaae503e018bafa91c94a452dd59d0543d0",
+    "scenes": {
+      "panel-paused": {
+        "accessibility": {
+          "framesRelativeToGlassTopLeft": {
+            "panel.capture": [
+              143.9230769230769,
+              70.53846153846143,
+              63.5,
+              26.5
+            ],
+            "panel.copy": [
+              10.923076923076906,
+              70.53846153846143,
+              35,
+              26.5
+            ],
+            "panel.transcript": [
+              14.423076923076906,
+              2.0384615384614335,
+              197.5,
+              67
+            ]
+          },
+          "nativeTextMatches": true,
+          "observedTextFont": "PingFangSC-Regular",
+          "observedTextPointSize": 14.399999999999999,
+          "status": "PASS",
+          "voiceAXValue": "暂停"
+        },
+        "backingScale": 2,
+        "contentRelativePoints": [
+          11.076923076923094,
+          18.461538461538566,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "heightPX": 2160,
+        "ownedWindows": 2,
+        "screens": 2,
+        "sourceCG": [
+          1680,
+          0,
+          240,
+          1080
+        ],
+        "widthPX": 480,
+        "windowCG": [
+          1680,
+          0,
+          240,
+          1080
+        ],
+        "workspaceThumbnailAXCount": 4,
+        "glassAppKit": [
+          1691.076923076923,
+          957.9076923076923,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "visibleAppKit": [
+          0,
+          0,
+          1920,
+          1080
+        ],
+        "desktopFixture": {
+          "trayAssets": 3,
+          "desktopWindows": 4,
+          "desktopPopulation": "markedFixture",
+          "witnessedSpaces": 0,
+          "referenceWidth": false
+        }
+      },
+      "panel-standby": {
+        "accessibility": {
+          "framesRelativeToGlassTopLeft": {
+            "panel.capture": [
+              143.9230769230769,
+              70.53846153846143,
+              63.5,
+              26.5
+            ],
+            "panel.copy": [
+              10.923076923076906,
+              70.53846153846143,
+              35,
+              26.5
+            ],
+            "panel.transcript": [
+              14.423076923076906,
+              2.0384615384614335,
+              197.5,
+              67
+            ]
+          },
+          "nativeTextMatches": true,
+          "observedTextFont": "PingFangSC-Regular",
+          "observedTextPointSize": 14.399999999999999,
+          "status": "PASS",
+          "voiceAXValue": "待命"
+        },
+        "backingScale": 2,
+        "contentRelativePoints": [
+          11.076923076923094,
+          18.461538461538566,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "heightPX": 2160,
+        "ownedWindows": 2,
+        "screens": 2,
+        "sourceCG": [
+          1680,
+          0,
+          240,
+          1080
+        ],
+        "widthPX": 480,
+        "windowCG": [
+          1680,
+          0,
+          240,
+          1080
+        ],
+        "workspaceThumbnailAXCount": 4,
+        "glassAppKit": [
+          1691.076923076923,
+          957.9076923076923,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "visibleAppKit": [
+          0,
+          0,
+          1920,
+          1080
+        ],
+        "desktopFixture": {
+          "trayAssets": 3,
+          "desktopWindows": 4,
+          "desktopPopulation": "markedFixture",
+          "witnessedSpaces": 0,
+          "referenceWidth": false
+        }
+      },
+      "panel-speaking": {
+        "accessibility": {
+          "copyGroup": true,
+          "copySelection": true,
+          "framesRelativeToGlassTopLeft": {
+            "panel.capture": [
+              143.9230769230769,
+              70.53846153846143,
+              63.5,
+              26.5
+            ],
+            "panel.copy": [
+              10.923076923076906,
+              70.53846153846143,
+              35,
+              26.5
+            ],
+            "panel.transcript": [
+              14.423076923076906,
+              2.0384615384614335,
+              197.5,
+              67
+            ]
+          },
+          "nativeTextMatches": true,
+          "observedTextFont": "PingFangSC-Regular",
+          "observedTextPointSize": 14.399999999999999,
+          "status": "PASS",
+          "voiceAXValue": "正在识别"
+        },
+        "backingScale": 2,
+        "contentRelativePoints": [
+          11.076923076923094,
+          18.461538461538566,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "heightPX": 2160,
+        "ownedWindows": 2,
+        "screens": 2,
+        "sourceCG": [
+          1680,
+          0,
+          240,
+          1080
+        ],
+        "widthPX": 480,
+        "windowCG": [
+          1680,
+          0,
+          240,
+          1080
+        ],
+        "workspaceThumbnailAXCount": 4,
+        "glassAppKit": [
+          1691.076923076923,
+          957.9076923076923,
+          217.84615384615384,
+          103.63076923076923
+        ],
+        "visibleAppKit": [
+          0,
+          0,
+          1920,
+          1080
+        ],
+        "desktopFixture": {
+          "trayAssets": 3,
+          "desktopWindows": 4,
+          "desktopPopulation": "markedFixture",
+          "witnessedSpaces": 0,
+          "referenceWidth": false
+        }
+      }
+    }
+  },
+  "artworkWidthNearpane": {
+    "bundle": "com.holdsnow.nearpane.host",
+    "sourceCheckoutSHA": "044b659f64146db0832f7c45a2d232512d7ddba5",
+    "embeddedSourceSHA": null,
+    "sourceTree": "12aab541edae9e73928812a7f93a26cf6bf2d5e8",
+    "signature": "codesign --verify --strict --deep PASS",
+    "sourceCheckoutChanges": "",
+    "speakingFrameAdditionalSettleSeconds": 1.8,
+    "exeSHA256": "3bc40e7f7db8de8254b6f1ee0de2cdaae503e018bafa91c94a452dd59d0543d0",
+    "scenes": {
+      "panel-speaking": {
+        "accessibility": {
+          "copyGroup": true,
+          "copySelection": true,
+          "framesRelativeToGlassTopLeft": {
+            "panel.capture": [
+              224.23846153846148,
+              109.23076923076928,
+              99,
+              41.5
+            ],
+            "panel.copy": [
+              17.23846153846148,
+              109.23076923076928,
+              54,
+              41.5
+            ],
+            "panel.transcript": [
+              23.23846153846148,
+              2.7307692307692832,
+              307,
+              104
+            ]
+          },
+          "nativeTextMatches": true,
+          "observedTextFont": "PingFangSC-Regular",
+          "observedTextPointSize": 22.44,
+          "status": "PASS",
+          "voiceAXValue": "正在识别"
+        },
+        "backingScale": 2,
+        "contentRelativePoints": [
+          17.26153846153852,
+          28.769230769230717,
+          339.4769230769231,
+          161.02461538461537
+        ],
+        "heightPX": 2160,
+        "ownedWindows": 2,
+        "screens": 2,
+        "sourceCG": [
+          1546,
+          0,
+          374,
+          1080
+        ],
+        "widthPX": 748,
+        "windowCG": [
+          1546,
+          0,
+          374,
+          1080
+        ],
+        "workspaceThumbnailAXCount": 4,
+        "glassAppKit": [
+          1563.2615384615385,
+          890.2061538461538,
+          339.4769230769231,
+          161.02461538461537
+        ],
+        "visibleAppKit": [
+          0,
+          0,
+          1920,
+          1080
+        ],
+        "desktopFixture": {
+          "trayAssets": 3,
+          "desktopWindows": 4,
+          "desktopPopulation": "markedFixture",
+          "witnessedSpaces": 0,
+          "referenceWidth": true
+        }
+      }
+    }
+  },
+  "tolerances": {
+    "rgbMeanAbsoluteDifferencePer8BitChannel": 3,
+    "glassAndAXFramePoints": 0.5
+  },
+  "comparison": {
+    "panel-paused": {
+      "geometryDeltaPoints": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rasterSizes": [
+        [
+          436,
+          207
+        ],
+        [
+          436,
+          207
+        ]
+      ],
+      "commonPixelRGBMeanAbsoluteDifference": [
+        1.3099100296946329,
+        1.1703230953330674,
+        0.3536320524752914
+      ],
+      "commonDifferentPixelFraction": 0.8339759783716705,
+      "fractionWithAnyChannelDeltaAbove8": 0.001506891814031822
+    },
+    "panel-standby": {
+      "geometryDeltaPoints": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rasterSizes": [
+        [
+          436,
+          207
+        ],
+        [
+          436,
+          207
+        ]
+      ],
+      "commonPixelRGBMeanAbsoluteDifference": [
+        1.503745069361344,
+        1.370540265035678,
+        0.5780592119842219
+      ],
+      "commonDifferentPixelFraction": 0.8373554048663742,
+      "fractionWithAnyChannelDeltaAbove8": 0.016043965784691753
+    },
+    "panel-speaking": {
+      "geometryDeltaPoints": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rasterSizes": [
+        [
+          436,
+          207
+        ],
+        [
+          436,
+          207
+        ]
+      ],
+      "commonPixelRGBMeanAbsoluteDifference": [
+        1.3063090014625716,
+        1.1656805389354252,
+        0.33713380312901653
+      ],
+      "commonDifferentPixelFraction": 0.826009395913664,
+      "fractionWithAnyChannelDeltaAbove8": 0.001495811727163941
+    }
+  },
+  "result": "PASS",
+  "failures": []
+}

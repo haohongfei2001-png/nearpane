@@ -47,11 +47,16 @@ enum DesktopReaderProcess {
               posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0) == 0,
               posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0) == 0,
               posix_spawn_file_actions_adddup2(&actions, fds[1], STDOUT_FILENO) == 0 else { throw ReaderFailure.unavailable }
-        var args = [executable.path, mode, argument].map { strdup($0) } + [nil]
+        let executablePath = executable.path(percentEncoded: false)
+        let arguments: [String] = [executablePath, mode, argument]
+        var args: [UnsafeMutablePointer<CChar>?] = arguments.map { value in
+            value.withCString { bytes in strdup(bytes) }
+        }
+        args.append(nil)
         var env = [strdup("PATH=/usr/bin:/bin"), nil]
         defer { args.forEach { free($0) }; env.forEach { free($0) } }
         var pid: pid_t = 0
-        guard posix_spawn(&pid, executable.path, &actions, &attrs, &args, &env) == 0 else { throw ReaderFailure.unavailable }
+        guard posix_spawn(&pid, executablePath, &actions, &attrs, &args, &env) == 0 else { throw ReaderFailure.unavailable }
         didSpawn?(pid)
         close(fds[1]); fds[1] = -1
         var status: Int32 = 0, reaped = false, eof = false

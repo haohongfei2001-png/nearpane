@@ -1,7 +1,7 @@
 name: Native domain host
 on:
   pull_request:
-    branches: [implementation/host-foundation-20261109]
+    branches: [implementation/host-foundation-20261109, codex/shared-voice-surface]
     paths:
       - 'Sources/**'
       - 'Tests/**'

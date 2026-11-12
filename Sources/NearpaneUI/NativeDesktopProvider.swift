@@ -19,8 +19,7 @@ import WindowGeometryCore
     public static func packaged(fixtureWindows: @escaping @MainActor () -> [NSWindow]? = { nil }) -> any DesktopObservationProvider {
         guard Bundle.main.bundleURL.pathExtension == "app", let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneDesktopReaderSHA256") as? String,
               expected.count == 64 else { return UnavailableDesktopProvider() }
-        let executable = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
-        guard executable.path == executable.resolvingSymlinksInPath().path else { return UnavailableDesktopProvider() }
+        guard let executable = resolvedReader(in: Bundle.main.bundleURL) else { return UnavailableDesktopProvider() }
         return NativeDesktopProvider(fixtureWindows: fixtureWindows, anchors: { currentAnchors(fixtureWindows() ?? NSApp.windows) }) { request in
             try await Task.detached(priority: .utility) {
                 let bytes = try Data(contentsOf: executable, options: .mappedIfSafe)
@@ -28,6 +27,13 @@ import WindowGeometryCore
             }.value
             return try await DesktopReaderProcess.read(executable: executable, request: request)
         }
+    }
+
+    // Foundation normalizes volume aliases such as /private/tmp to /tmp. Resolve the
+    // application itself first; redirects inside Contents/Helpers are still rejected.
+    static func resolvedReader(in bundle: URL) -> URL? {
+        let executable = bundle.resolvingSymlinksInPath().appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
+        return executable.path == executable.resolvingSymlinksInPath().path ? executable : nil
     }
 
     init(fixtureWindows: @escaping @MainActor () -> [NSWindow]?, anchors: @escaping @MainActor () -> [ActiveSpaceAnchor],

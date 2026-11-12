@@ -59,7 +59,6 @@ public final class EdgeWindowController: NSWindowController {
     private var placedFrame: NSRect?
     private let container = NSView()
     private let material = NSVisualEffectView()
-    private let sidebarHeight: NSLayoutConstraint
     private let contentView: SurfaceHostingView
     private var contentBottom: NSLayoutConstraint
     private var foldedView: FoldedHostingView?
@@ -93,13 +92,12 @@ public final class EdgeWindowController: NSWindowController {
         material.material = .sidebar
         material.blendingMode = .behindWindow
         material.state = .active
-        // Keep the sidebar effect behind its host regions only. A second visual
-        // effect behind the voice glass changes its tint during composition.
+        // Only the folded or foundation host uses this system backdrop. The full
+        // product draws the shared rail glass once behind all three modules.
         material.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(material)
-        sidebarHeight = material.heightAnchor.constraint(equalTo: container.heightAnchor)
         NSLayoutConstraint.activate([
-            sidebarHeight,
+            material.topAnchor.constraint(equalTo: container.topAnchor),
             material.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             material.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             material.bottomAnchor.constraint(equalTo: container.bottomAnchor)
@@ -239,11 +237,9 @@ public final class EdgeWindowController: NSWindowController {
         }
         display.referenceHeight = referenceHeight
         updateControls(form: form)
-        let sections = LayoutComposer.compose(width: r.width, height: max(0, r.height + contentBottom.constant),
-            pinnedCount: host.registry.pinnedModules.count, expanded: host.registry.expandedID != nil,
-            settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
-        let voiceOwnsMaterial = !folded && modules != nil && host.registry.states[BuiltinCatalog.voice] == .resident
-        sidebarHeight.constant = voiceOwnsMaterial ? -(sections.voice.y + sections.voice.height) : 0
+        #if canImport(SaytileVoiceUI)
+        material.isHidden = !folded
+        #endif
         if let panel = window as? EdgePanel {
             let safe = screen.visibleFrame
             panel.floatBounds = floating && !temporarilyExpanded ? NSRect(x:safe.x,y:safe.y,width:safe.width,height:safe.height) : nil

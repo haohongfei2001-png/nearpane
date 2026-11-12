@@ -19,6 +19,21 @@ public struct WorkspaceDisplaySettings: View {
         _key = State(initialValue: initialMetric)
     }
 
+    private func defaultMeasure(settings: DisplaySettings, screen: ScreenGeometry, primary: Bool) -> Measure {
+        if key == .reservedWidth { return settings.measures[.panelWidth] ?? key.factory }
+        guard [.voiceHeight, .trayHeight, .spacesHeight].contains(key),
+              let panel = settings.panel(on: screen, fallbackEdge: host.configuration.edge) else { return key.factory }
+        var factory = settings
+        factory.measures[key] = nil
+        let requested = factory.requestedSectionHeights(height: panel.height, width: panel.width,
+            content: primary ? .full : .spacesOnly, voice: primary, tray: primary)
+        switch key {
+        case .voiceHeight: return .init(requested.voice)
+        case .trayHeight: return .init(requested.tray)
+        default: return .init(requested.spaces)
+        }
+    }
+
     public var body: some View {
         ScrollView {
             if let screen = screens.first(where: { $0.id == chosen })
@@ -44,6 +59,19 @@ public struct WorkspaceDisplaySettings: View {
                         if let applied = draft.settings(over: latest, on: screen), applied != latest { save(applied) }
                     }
                     .id([screen.id, String(describing: settings.measures[.panelWidth]), String(describing: settings.measures[.panelHeight])])
+                    Toggle("显示窗口内容预览", isOn: Binding(
+                        get: { settings.showsWindowContents },
+                        set: { enabled in
+                            var updated = settings
+                            updated.showsWindowContents = enabled
+                            save(updated)
+                            if enabled && !CGPreflightScreenCaptureAccess() { _ = CGRequestScreenCaptureAccess() }
+                        }
+                    ))
+                    .help("在本屏空间面板中显示窗口缩略图。需要系统屏幕录制权限，预览仅保存在内存。")
+                    if settings.showsWindowContents && !CGPreflightScreenCaptureAccess() {
+                        Link("在系统设置中允许屏幕录制", destination: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+                    }
                     if primary == screen.id {
                         FullscreenToolPreferencesView(host: host, display: screen.id)
                     }
@@ -123,7 +151,7 @@ public struct WorkspaceDisplaySettings: View {
                             Text($0.label).tag($0)
                         }
                     }
-                    let defaultMeasure = key == .reservedWidth ? settings.measures[.panelWidth] ?? key.factory : key.factory
+                    let defaultMeasure = defaultMeasure(settings: settings, screen: screen, primary: primary == screen.id)
                     let basis = settings.referenceExtent(for: key, screen: screen, primary: primary == screen.id)
                     MeasureEditor(metric: key, configured: settings.measures[key], factory: defaultMeasure, extent: basis) {
                         value in
@@ -133,9 +161,10 @@ public struct WorkspaceDisplaySettings: View {
                     }.id("\(screen.id)-\(key.rawValue)-\(String(describing:settings.measures[key]))")
                     if primary == screen.id, let panel = settings.panel(on: screen, fallbackEdge: host.configuration.edge) {
                         let h = panel.height
-                        let total = [DisplayMetric.voiceHeight, .trayHeight, .spacesHeight].map { settings.points($0, in: h) }.reduce(0, +) + 2 * settings.points(.sectionGap, in: h)
-                        if total > h + 0.01 {
-                            let actual = settings.contentHeights(h, content: .full, voice: true, tray: true)
+                        let wanted = settings.requestedSectionHeights(height: h, width: panel.width,
+                            content: .full, voice: true, tray: true)
+                        if wanted.voice + wanted.tray + wanted.spaces > wanted.available + 0.01 {
+                            let actual = settings.contentHeights(h, width: panel.width, content: .full, voice: true, tray: true)
                             Text("分区合计超过面板高度，当前等比适配。实际高度为文字 \(actual.voice, specifier: "%.1f")、托盘 \(actual.tray, specifier: "%.1f")、空间 \(actual.spaces, specifier: "%.1f") pt。")
                                 .font(.caption).foregroundStyle(.secondary)
                         }

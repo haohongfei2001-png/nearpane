@@ -10,16 +10,16 @@ struct DomainPin: Decodable {
     var key: String { commit + "-" + treeSHA256 }
 }
 struct DomainLock: Decodable { let domains: [String: DomainPin] }
-let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray"] : []
+let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray", "SaytileVoiceUI"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
 var targets: [Target] = [
     .target(name: "WindowGeometryCore"),
     .target(name: "CReadOnlySpaces"),
-    .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
+    .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"] + (full ? ["SaytileVoiceUI"] : [])),
     .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture"] : [])),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "SaytileVoiceUI", "RiftletAdapters", "RiftletCore", "RiftletCapture"] : [])),
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
     .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController"]),
     .testTarget(name: "NearpaneDesktopReaderTests", dependencies: ["NearpaneDesktopReader", "NearpaneCore"]),

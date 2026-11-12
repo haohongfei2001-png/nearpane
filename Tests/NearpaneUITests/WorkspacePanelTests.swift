@@ -319,7 +319,7 @@ import Testing
         let opened = try #require(panel.requestedFrame)
         #expect(panel.temporarilyExpanded && opened.width == 100 && opened.height == 1280)
         let basis = Double(opened.height) - PanelSizeMetrics.minimumSide
-        let voice = settings.contentHeights(basis, content: .full, voice: true, tray: true).voice
+        let voice = settings.contentHeights(basis, width: opened.width, content: .full, voice: true, tray: true).voice
         #expect(settings.readableFontSize(.textSize, in: voice) == DisplayMetric.textSize.factory.value)
         #expect(settings.readableFontSize(.labelSize, in: basis) == DisplayMetric.labelSize.factory.value)
         panel.toggleTemporaryExpansion()

@@ -28,7 +28,7 @@ import SaytileKit
             guard try await store.listRecordings(limit: 1).isEmpty else { throw CocoaError(.fileWriteFileExists) }
             let row = try await store.createRecording()
             let ticket = try await store.beginRecognition(recordingID: row.id)
-            _ = try await store.applyRecognition(ticket: ticket, text: "把今天的讨论记下来。\n下午三点继续。", isFinal: false)
+            _ = try await store.applyRecognition(ticket: ticket, text: "把设计系统的更新内容整理成一份简要的汇报，重点包括组件优化和交互调整。", isFinal: false)
         }
         await module.refresh()
     }

@@ -12,6 +12,8 @@ import NearpaneCore
     @ObservationIgnored weak var pointer: WorkspacePointerRegistry?
 }
 
+private typealias PreviewState<T> = SwiftUI.State<T>
+
 struct DesktopSurface: View {
     let host: HostSession
     let displayID: String?
@@ -19,65 +21,140 @@ struct DesktopSurface: View {
     var display: SurfaceDisplay?
     var settings: DisplaySettings = .init()
 
+    @PreviewState private var thumbnails = WorkspaceWindowThumbnails()
+
     var body: some View {
         Group {
             if enabled, !host.providerFailed, let snapshot = host.bus.desktop, let native = snapshot.native {
                 TimelineView(.periodic(from: .now, by: 2)) { tick in
-                    let uptime = ProcessInfo.processInfo.systemUptime
-                    if snapshot.nativeIsFresh(now: tick.date, uptime: uptime), !native.windowLimitReached,
-                       !native.rows.isEmpty || snapshot.displays.contains(where: { $0.id == displayID }) {
-                        VStack(spacing: 3) {
-                            GeometryReader { size in
-                                let pad = min(settings.points(.spacePadding,in:size.size.width), min(size.size.width,size.size.height) / 3)
-                                let width = min(size.size.width,settings.points(.desktopWidth,in:size.size.width))
-                                let height = min(size.size.height,settings.points(.scrollHeight,in:size.size.height))
-                                let available = min(height,settings.points(.desktopHeight,in:height))
-                                let rows = max(1,native.rows.filter { $0.displayID == displayID }.count)
-                                let desired = settings.points(.spaceRowHeight,in:available) * Double(rows)
-                                let canvasHeight = max(1,desired)
-                                ScrollView(.vertical) {
-                                    let bounds = SurfaceRect(x:(size.size.width-width)/2+pad,y:pad,width:width-pad*2,height:canvasHeight-pad*2)
-                                    if let preview = DesktopPreview(snapshot:snapshot,displayID:displayID,viewport:bounds,now:tick.date,
-                                        uptime:uptime,restrictToDisplay:true,rowGap:settings.points(.spaceRowGap,in:available),
-                                        rowViewport:.init(width:size.size.width,height:canvasHeight)) {
-                                        drawing(preview)
-                                            .overlay {
-                                                if snapshot.capabilities.spaceSwitching, let display { WorkspacePointerSurface(host:host,preview:preview,sample:snapshot,display:display) }
+                    if snapshot.nativeIsFresh(now: tick.date, uptime: ProcessInfo.processInfo.systemUptime),
+                       !native.windowLimitReached, snapshot.displays.contains(where: { $0.id == displayID }) {
+                        let windows = snapshot.windows.filter { $0.displayID == displayID }
+                            .sorted { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }
+                        let showImages = settings.showsWindowContents && display?.interactionVisible == true
+                        let observedSpace = native.rows.contains { $0.displayID == displayID }
+                        GeometryReader { proxy in
+                            let width = min(proxy.size.width, settings.points(.desktopWidth, in: proxy.size.width))
+                            let height = min(proxy.size.height, settings.points(.scrollHeight, in: proxy.size.height))
+                            let pad = min(settings.measures[.spacePadding]?.points(in: width) ?? width * 0.047,
+                                          min(width, height) / 3)
+                            let available = min(height, settings.points(.desktopHeight, in: height))
+                            let gap = settings.points(.spaceRowGap, in: available)
+                            let rowHeight = min(available, settings.measures[.spaceRowHeight]?.points(in: available)
+                                ?? max(1, (available - 2 * pad - 3 * gap) / 4))
+                            let gallery = !observedSpace && showImages && windows.contains { thumbnails.image(for: $0) != nil }
+                            ScrollView(.vertical) {
+                                if gallery {
+                                    // Unknown membership cannot create a Space. Each actual window is a read-only tile.
+                                    LazyVStack(spacing: gap) {
+                                        ForEach(windows) { window in
+                                            if let image = thumbnails.image(for: window) {
+                                                Image(decorative: image, scale: 1)
+                                                    .resizable().scaledToFit()
+                                                    .padding(3)
+                                                    .shadow(color: .black.opacity(0.20), radius: 1.5, y: 1)
+                                                    .frame(maxWidth: .infinity)
+                                                    .frame(height: max(1, rowHeight))
+                                                    .background(previewBackground)
+                                                    .clipShape(RoundedRectangle(cornerRadius: max(3, pad * 0.7)))
+                                                    .accessibilityHidden(false)
+                                                    .accessibilityLabel("本屏窗口预览，空间未确认")
+                                                    .accessibilityIdentifier("desktop-window-preview")
                                             }
-                                            .frame(width:size.size.width,height:canvasHeight)
+                                        }
+                                    }.padding(pad)
+                                } else {
+                                    let canvas = max(1, rowHeight)
+                                    let bounds = SurfaceRect(x: pad, y: pad, width: max(1, width - 2 * pad), height: max(1, canvas - 2 * pad))
+                                    if let preview = DesktopPreview(snapshot: snapshot, displayID: displayID,
+                                        viewport: bounds, now: tick.date, uptime: ProcessInfo.processInfo.systemUptime,
+                                        restrictToDisplay: true, rowGap: gap, rowViewport: .init(width: width, height: canvas)) {
+                                        drawing(preview, windows: windows, showImages: showImages)
+                                            .overlay {
+                                                if snapshot.capabilities.spaceSwitching, let display {
+                                                    WorkspacePointerSurface(host: host, preview: preview, sample: snapshot, display: display)
+                                                }
+                                            }
+                                            .frame(width: width, height: canvas)
                                     }
-                                }.frame(height:height)
+                                }
+                                if let issue = host.workspaceIssue {
+                                    status(issue == .minimumSize ? "窗口最小尺寸超出可用区域" : "当前无法执行工作空间操作")
+                                } else if showImages && !CGPreflightScreenCaptureAccess() {
+                                    status("窗口内容预览需要屏幕录制权限")
+                                } else if !observedSpace && !gallery {
+                                    status("本屏窗口 · 空间未确认")
+                                }
                             }
-                            Text(host.workspaceIssue.map { issue in
-                                issue == .minimumSize ? "窗口最小尺寸超出可用区域" : "当前无法执行工作空间操作"
-                            } ?? (native.rows.contains(where: { $0.displayID == displayID }) ? "已确认的当前空间" : "此屏可见窗口 · 空间未确认"))
-                                .font(settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600).map { .system(size: $0) } ?? .caption2).foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, 3)
+                            .frame(width: width, height: height)
+                            .frame(maxWidth: .infinity)
                         }
+                        .task(id: RefreshKey(session: snapshot.sessionID, revision: snapshot.revision, screen: displayID,
+                                             visible: showImages)) {
+                            if showImages { await thumbnails.refresh(windows, population: native.population) }
+                            else { thumbnails.clear() }
+                        }
+                        .onDisappear { thumbnails.clear() }
                     } else { status(snapshot.freshness == .transient ? "桌面正在变化" : "等待完整桌面快照") }
                 }
             } else { status(enabled ? "空间归属尚未确认" : "空间预览已停用") }
         }
-        .overlay(alignment: .top) { Divider().opacity(0.4) }
         .accessibilityHint("只读预览")
         .accessibilityIdentifier("desktop-reserved-region")
     }
 
-    private func drawing(_ preview: DesktopPreview) -> some View {
-        Canvas { context, _ in
+    private struct RefreshKey: Equatable {
+        let session: UUID, revision: UInt64, screen: String?, visible: Bool
+    }
+
+    private var previewGradient: Gradient {
+        // The reference uses a daylight-blue desktop behind each fitted window.
+        Gradient(colors: [Color(red: 0.76, green: 0.78, blue: 0.97),
+                          Color(red: 0.40, green: 0.58, blue: 0.96)])
+    }
+
+    private var previewBackground: LinearGradient {
+        LinearGradient(gradient: previewGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    private func drawing(_ preview: DesktopPreview, windows: [WindowObservation], showImages: Bool) -> some View {
+        let observations = Dictionary(uniqueKeysWithValues: windows.map { ($0.id, $0) })
+        return Canvas { context, _ in
+            var icons = [WorkspaceWindowThumbnails.WindowKey: NSImage]()
             for row in preview.rows {
                 let desktop = row.desktop
-                let path = Path(CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height))
-                context.fill(path, with: .color(.secondary.opacity(0.08)))
+                let desktopRect = CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height)
+                let shape = Path(roundedRect: desktopRect, cornerRadius: min(8, desktop.width * 0.035))
+                context.fill(shape, with: .linearGradient(
+                    previewGradient,
+                    startPoint: desktopRect.origin, endPoint: CGPoint(x: desktopRect.maxX, y: desktopRect.maxY)))
                 for window in row.windows.reversed() {
                     let r = window.frame
-                    let outline = Path(CGRect(x: r.x, y: r.y, width: r.width, height: r.height))
-                    context.fill(outline, with: .color(Color(nsColor: .controlBackgroundColor)))
-                    context.stroke(outline, with: .color(.secondary.opacity(0.85)), style: .init(lineWidth: settings.points(.borderWidth,in:row.rowFrame.width),
-                        dash: window.confidence == .corroboratedMetadata ? [] : [2, 1]))
+                    let rect = CGRect(x: r.x, y: r.y, width: r.width, height: r.height)
+                    let outline = Path(roundedRect: rect, cornerRadius: min(2.5, min(r.width, r.height) / 5))
+                    context.fill(outline, with: .color(.white.opacity(0.62)))
+                    if showImages, let observation = observations[window.id], let pixels = thumbnails.image(for: observation) {
+                        let scale = min(rect.width / CGFloat(pixels.width), rect.height / CGFloat(pixels.height))
+                        let width = CGFloat(pixels.width) * scale, height = CGFloat(pixels.height) * scale
+                        var clipped = context
+                        clipped.clip(to: outline)
+                        clipped.draw(Image(decorative: pixels, scale: 1),
+                            in: CGRect(x: rect.midX - width / 2, y: rect.midY - height / 2, width: width, height: height))
+                    } else if let observation = observations[window.id], min(rect.width, rect.height) >= 15,
+                              let key = WorkspaceWindowThumbnails.WindowKey(observation) {
+                        if icons[key] == nil, AdmissionBirth.read(key.pid)?.start == key.launch {
+                            icons[key] = NSRunningApplication(processIdentifier: key.pid)?.icon
+                        }
+                        if let icon = icons[key] {
+                            let side = min(22, min(rect.width, rect.height) * 0.48)
+                            context.draw(Image(nsImage: icon), in: CGRect(x: rect.midX - side / 2,
+                                y: rect.midY - side / 2, width: side, height: side))
+                        }
+                    }
+                    context.stroke(outline, with: .color(.white.opacity(0.82)),
+                        style: .init(lineWidth: settings.points(.borderWidth, in: row.rowFrame.width),
+                                     dash: window.confidence == .corroboratedMetadata ? [] : [2, 1]))
                 }
-                context.stroke(path, with: .color(.secondary.opacity(0.5)), lineWidth: 0.7)
             }
         }
         .accessibilityChildren {

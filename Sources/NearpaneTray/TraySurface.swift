@@ -32,8 +32,15 @@ public struct TraySurface: View {
                                 }
                                 if module.captureEntry && !module.expanded {
                                     Button { module.toggleMenu() } label: {
-                                        Image(systemName: "camera").matchedGeometryEffect(id: "systemCamera", in: morph)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
+                                        Image(systemName: "camera")
+                                            .font(.system(size: min(30, cell.height * 0.39), weight: .medium))
+                                            .foregroundStyle(Color(red: 0.42, green: 0.33, blue: 0.94))
+                                            .matchedGeometryEffect(id: "systemCamera", in: morph)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .background(LinearGradient(colors: [.white.opacity(0.53), .indigo.opacity(0.11)],
+                                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                                            .clipShape(RoundedRectangle(cornerRadius: cell.height * 0.12, style: .continuous))
+                                            .contentShape(Rectangle())
                                     }.frame(width: cell.width, height: cell.height)
                                     .buttonStyle(.plain).accessibilityLabel("展开截图方式")
                                 }
@@ -74,8 +81,7 @@ public struct TraySurface: View {
             }
         }
         .font(settings.measures[.trayButtonSize].map { .system(size:$0.points(in:outer.size.height)) } ?? .body)
-        .padding(settings.points(.trayPadding,in:outer.size.width))
-        .background(.indigo.opacity(0.045), in: RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:outer.size.width) ?? 8))
+        .padding(settings.measures[.trayPadding]?.points(in: outer.size.width) ?? min(16, outer.size.width * 0.047))
         .overlay(alignment: .bottomLeading) {
             if let message = module.issue ?? module.attachmentFeedback {
                 Text(message).font(.caption2).lineLimit(2).help(message)
@@ -98,6 +104,8 @@ public struct TraySurface: View {
                     }
                 }
                 .frame(width: size.width, height: size.height)
+                .clipShape(RoundedRectangle(cornerRadius: min(size.width, size.height) * 0.095, style: .continuous))
+                .shadow(color: .black.opacity(0.14), radius: 1.7, y: 1)
                 .overlay { ThumbnailHit(row: row, module: module, arrivalID: module.arrival?.id, left: left) }
                 .offset(x: leaving && !reducedMotion ? (left ? -56 : 56) : 0)
                 .opacity(leaving ? 0 : 1)

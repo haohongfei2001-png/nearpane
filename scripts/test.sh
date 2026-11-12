@@ -21,4 +21,4 @@ scratch="$build_root/native"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then scratch="$build_root/native-foundation"; fi
 swift test --build-system native --disable-xctest --enable-swift-testing --disable-sandbox \
   --scratch-path "$scratch" --cache-path "$build_root/cache" --config-path "$build_root/config" \
-  --security-path "$build_root/security" "${testing_flags[@]}" "$@"
+  --security-path "$build_root/security" ${testing_flags[@]+"${testing_flags[@]}"} "$@"
