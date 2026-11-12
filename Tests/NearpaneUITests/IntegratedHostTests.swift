@@ -1,5 +1,6 @@
 #if canImport(NearpaneVoice) && canImport(NearpaneTray)
 import AppKit
+import SwiftUI
 import ImageIO
 import UniformTypeIdentifiers
 import Testing
@@ -295,7 +296,10 @@ struct IntegratedHostTests {
         content.appearance = NSAppearance(named: .aqua)
         content.layoutSubtreeIfNeeded()
         #expect(window.frame.width == 240 && window.frame.height == 960 && !window.isVisible)
-        let hosting = try #require(content.subviews.first)
+        let hosting = try #require(content.subviews.compactMap { $0 as? NSHostingView<EdgeSurfaceView> }.first)
+        let background = try #require(content.subviews.compactMap { $0 as? NSVisualEffectView }.first)
+        #expect(background.material == .sidebar && background.blendingMode == .behindWindow)
+        #expect(background.frame.minY == 0 && background.frame.height == 744)
         for state in ["collapsed", "expanded"] {
             if state == "expanded" { domains.tray.toggleMenu() }
             hosting.layoutSubtreeIfNeeded(); hosting.displayIfNeeded()

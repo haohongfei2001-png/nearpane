@@ -62,7 +62,7 @@ public struct EdgeSurfaceView: View {
     @ViewBuilder private var voice: some View {
         #if canImport(NearpaneVoice)
         if let modules, host.registry.states[BuiltinCatalog.voice] == .resident {
-            VoiceSurface(modules.voice, pasteboard: modules.voicePasteboard, settings:settings)
+            VoiceSurface(modules.voice, pasteboard: modules.voicePasteboard)
         } else { unavailableVoice }
         #else
         unavailableVoice

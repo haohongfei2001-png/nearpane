@@ -119,7 +119,7 @@ public struct WorkspaceDisplaySettings: View {
                         Text("底部").tag(PanelAnchor.bottom)
                     }
                     Picker("调整项目", selection: $key) {
-                        ForEach(DisplayMetric.allCases.filter { $0 != .panelWidth && $0 != .panelHeight }, id: \.self) {
+                        ForEach(DisplayMetric.allCases.filter { $0 != .panelWidth && $0 != .panelHeight && ($0.group != .voice || $0 == .voiceHeight) }, id: \.self) {
                             Text($0.label).tag($0)
                         }
                     }

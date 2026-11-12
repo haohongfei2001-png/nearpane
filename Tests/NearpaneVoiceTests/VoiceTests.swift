@@ -3,6 +3,7 @@ import Foundation
 import AppKit
 @testable import SaytileKit
 @testable import NearpaneVoice
+@testable import SaytileVoiceUI
 
 @MainActor
 final class ScriptedInput: VoiceInput {
@@ -165,25 +166,30 @@ extension VoiceTests {
                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         defer { window.close() }
-        let view = TranscriptLine.TextView(frame: window.contentView!.bounds)
+        let view = CompactTranscriptTextView(frame: window.contentView!.bounds)
         window.contentView = view
         view.isEditable = false; view.isSelectable = true
         view.string = "synthetic selectable transcript"
         var calls = 0
-        view.editLine = { calls += 1 }
+        view.onEdit = { calls += 1 }
+        view.fillContextMenu = { menu in
+            menu.addItem(VoiceMenuItem("修改这段文字…") { calls += 1 })
+        }
         let event = try #require(NSEvent.mouseEvent(with: .rightMouseDown, location: .init(x: 12,y: 12),
             modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
             eventNumber: 1, clickCount: 1, pressure: 1))
         for _ in 0..<2 {
             let menu = try #require(view.menu(for: event))
+            view.menuNeedsUpdate(menu)
             let matches = menu.items.filter { $0.title == "修改这段文字…" }
             #expect(matches.count == 1)
             let item = try #require(matches.first)
-            #expect(item.target === view)
+            #expect(item.target === item)
             let action = try #require(item.action)
             #expect(app.sendAction(action, to: item.target, from: item))
         }
-        #expect(calls == 2 && !view.isEditable && view.isSelectable)
+        #expect(view.accessibilityPerformPress())
+        #expect(calls == 3 && !view.isEditable && view.isSelectable)
         #expect(!window.isVisible && !window.isKeyWindow)
     }
 
@@ -292,5 +298,46 @@ extension VoiceTests {
         await module.toggle()
         #expect(events.suffix(2) == ["userPause","captureState"])
         module.stop(); await module.waitForTransition()
+    }
+}
+
+extension VoiceTests {
+    @Test func copyReadsWholeActiveGroupAcrossPagesAndFreezesRenderedWords() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        let base = Date(timeIntervalSince1970: 1700020800)
+        var ids: [UUID] = []
+        for index in -1..<63 {
+            let stamp = base.addingTimeInterval(index < 0 ? -121 : Double(index))
+            let row = try await store.createRecording(createdAt: stamp)
+            _ = try await store.saveEdit(recordingID: row.id, text: "段\(index)")
+            try await store.finishRecording(id: row.id)
+            ids.append(row.id)
+        }
+        let module = VoiceModule(openStore: { store }) { _, update in ScriptedInput(update) }
+        try module.start()
+        await module.waitForTransition()
+        #expect(module.rows.count == 60 && module.hasEarlier)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally() }
+        let snapshot = [ids[4]: "读到的修订", ids[5]: ""]
+        module.copyLatestGroup(snapshot: snapshot, to: board)
+        let deadline = ContinuousClock.now + .seconds(2)
+        while board.string(forType: .string) == nil && ContinuousClock.now < deadline { await Task.yield() }
+        let expected = (0..<63).compactMap { i -> String? in
+            switch i { case 3: "读到的修订"; case 4: nil; default: "段\(i)" }
+        }.joined(separator: "\n")
+        #expect(board.string(forType: .string) == expected)
+        let next = try await store.createRecording(createdAt: base.addingTimeInterval(1000))
+        _ = try await store.saveEdit(recordingID: next.id, text: "下一组")
+        await module.refresh()
+        #expect(board.string(forType: .string) == expected)
+        module.copyLatestGroup(snapshot: snapshot, to: board)
+        #expect(board.string(forType: .string) == "下一组")
+        await module.loadEarlier()
+        #expect(!module.hasEarlier && module.rows.count == 65)
+        module.stop()
+        await module.waitForTransition()
     }
 }

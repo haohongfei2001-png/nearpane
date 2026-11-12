@@ -116,6 +116,19 @@ struct NearpaneApp {
             #endif
             return
         }
+        #if canImport(SaytileKit) && canImport(RiftletCore)
+        if args.first == "--native-acceptance-shared-voice" {
+            guard args.count == 2, let session = try? NativeAcceptanceSession(id: args[1], prepare: false) else { exit(2) }
+            let app = NSApplication.shared
+            app.setActivationPolicy(.prohibited)
+            Task { @MainActor in
+                do { try await SharedVoiceReview.run(session); exit(0) }
+                catch { FileHandle.standardError.write(Data("Voice comparison failed: \(error)\n".utf8)); exit(3) }
+            }
+            app.run()
+            return
+        }
+        #endif
         let delegate = HostAppDelegate()
         if let command = args.first, command.hasPrefix("--native-acceptance") {
             #if canImport(RiftletCore) && canImport(SaytileKit)
@@ -249,10 +262,25 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openHost() async {
+        let voicePreview = Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.voice-preview"
         var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         var testSession: URL?
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession { support = acceptanceSession.support; testSession = acceptanceSession.directory }
+        else if voicePreview {
+            // This independently signed preview uses the normal host with an empty, private
+            // support root. CandidateProfile and the external window controller stay off.
+            support.appendPathComponent("Nearpane Voice Preview", isDirectory: true)
+            do {
+                try ProfileLease.checkPath(support)
+                try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true,
+                                                        attributes: [.posixPermissions: 0o700])
+            } catch {
+                NSApp.presentError(error)
+                NSApp.terminate(nil)
+                return
+            }
+        }
         if CandidateProfile.selected {
             do {
                 if let acceptanceSession, !profileTrial {
@@ -299,7 +327,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         modules.workRect?.start()
         #endif
         let provider: any DesktopObservationProvider
-        if testSession == nil { provider = NativeDesktopProvider.packaged() }
+        if testSession == nil && !voicePreview { provider = NativeDesktopProvider.packaged() }
         else {
             #if canImport(RiftletCore) && canImport(SaytileKit)
             if requestsDesktopFixture, let acceptanceSession, let passiveDisplayID {

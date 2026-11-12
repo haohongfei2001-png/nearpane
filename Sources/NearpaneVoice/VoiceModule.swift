@@ -3,9 +3,10 @@ import Combine
 import NearpaneCore
 import Observation
 import SaytileKit
+import SaytileVoiceUI
 
 /// A presentation of Saytile's capture state, never an independent recognition state machine.
-enum PanelCaptureVisualState { case paused, standby, recognizing }
+typealias PanelCaptureVisualState = VoicePanelState
 struct PanelCapturePresentation: Equatable {
     let state: PanelCaptureVisualState
     let liveVoiceLevel: Double?
@@ -114,6 +115,7 @@ public final class VoiceModule: HostModule {
     private(set) var busy = false
     public private(set) var capture: CaptureState = .paused
     private(set) var control = PanelCapturePresentation(.paused, 0)
+    private(set) var history = VoiceHistoryProjection()
     private(set) var rows: [Recording] = []
     private(set) var hasEarlier = false
     private(set) var issue: String?
@@ -200,7 +202,7 @@ public final class VoiceModule: HostModule {
         let closingGeneration = generation
         let previous = transition, oldInput = input, oldStore = store, writes = draftWrite
         draftWrite = nil
-        input = nil; store = nil; rows = []; capture = .paused; control = .init(.paused, 0)
+        input = nil; store = nil; rows = []; history = VoiceHistoryProjection(); capture = .paused; control = .init(.paused, 0)
         busy = false; hasEarlier = false; issue = nil; limit = 60
         transition = Task {
             await previous?.value
@@ -307,7 +309,12 @@ public final class VoiceModule: HostModule {
             }
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
-            if ordered != rows { rows = ordered; acceptanceEvent?("voiceRows") }
+            let start = max(0, count - result.count)
+            if ordered != rows || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
+                history = VoiceHistoryProjection(ordered, startPosition: start)
+                rows = ordered
+                acceptanceEvent?("voiceRows")
+            }
             hasEarlier = count > result.count
         } catch { if generation == epoch { issue = "暂时无法读取文字；保留上次内容。" } }
     }
@@ -361,6 +368,31 @@ public final class VoiceModule: HostModule {
         }
         manualTask = task
         return task
+    }
+
+    func copyLatestGroup(snapshot displayed: [UUID: String], to pasteboard: NSPasteboard) {
+        guard active, let tail = rows.last, let group = history.entries.last?.group else { return }
+        let members = history.entries.filter { $0.group == group }
+        if !hasEarlier || members.count < rows.count {
+            let text = members.map { displayed[$0.id] ?? $0.displayText }.filter { !$0.isEmpty }.joined(separator: "\n")
+            if !text.isEmpty { pasteboard.clearContents(); pasteboard.setString(text, forType: .string) }
+            return
+        }
+        var snapshot = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0.displayText) })
+        snapshot.merge(displayed) { _, rendered in rendered }
+        let epoch = generation
+        let change = pasteboard.changeCount
+        Task {
+            do {
+                let text = try await withPanelRead { store in
+                    try await store.nearpaneGroupText(through: tail.id, snapshot: snapshot,
+                                                      idleInterval: VoiceHistoryProjection.idleInterval)
+                }
+                guard active, epoch == generation, !text.isEmpty, change == pasteboard.changeCount else { return }
+                pasteboard.clearContents()
+                pasteboard.setString(text, forType: .string)
+            } catch { if active, epoch == generation { issue = "暂时无法读取此时间组。" } }
+        }
     }
 
     func loadEarlier() async {

@@ -1,5 +1,6 @@
 import AVFoundation
 import SwiftUI
+import SaytileVoiceUI
 
 /// Only the domain's three-state glyph is exposed. No transcript is embedded in this control.
 public struct FullscreenVoiceButton: View {
@@ -21,7 +22,7 @@ public struct FullscreenVoiceButton: View {
                 await module.toggle(requestPermission: false)
             }
         } label: {
-            VoiceCaptureGlyph(presentation: module.control, width: 22)
+            VoiceCaptureGlyph(presentation: module.control.surface(running: module.capture.isRunning), scale: 0.8)
                 .frame(width: 38, height: 28).contentShape(Rectangle())
         }
         .buttonStyle(.plain).disabled(!available)
