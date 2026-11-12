@@ -4,7 +4,18 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前可打开的版本**　[Nearpane P5.6 Alpha](</Users/hhf/Applications/Nearpane P5.6/Nearpane P5.6 Alpha.app>)，回退包为 [P5.5 Alpha](</Users/hhf/Applications/Nearpane P5.5/Nearpane P5.5 Alpha.app>)。两版使用同一应用身份，换版前正常退出当前版本。普通用户窗口自动接管默认关闭。
+**当前可打开的版本**　[Nearpane P5.7 Alpha](</Users/hhf/Applications/Nearpane P5.7/Nearpane P5.7 Alpha.app>)。回退时正常退出当前版本，再打开 [P5.6 Alpha](</Users/hhf/Applications/Nearpane P5.6/Nearpane P5.6 Alpha.app>)。两个版本沿用稳定资料身份，普通用户窗口自动接管默认关闭。
+
+## P5.7 原生空间和全屏
+
+| 用户操作 | 当前状态 |
+|---|---|
+| 查看当前 Space | 已安装 Reader 在真机双屏读回成功。来源行要求独立的 active-Space 窗口、同屏唯一 membership 与稳定几何。普通窗口缺可比标题时可使用同号 AX/CG 作证，窗口号冲突会被拒绝。 |
+| 点击空间行、跨空间拖窗 | 副屏只有一条可观测记录。三轮 A→B→A 完成 0 轮，移动 0 窗。两个产品入口均关闭。 |
+| 全屏后的布局恢复 | 已修复来源过期和错误桌面可以放行布局写入的问题。保留原事务，在 Settings 显示等待原因。冻结见证包确认真实 AX 焦点在受保护主屏，本轮全屏进入/退出 0 次，真实浮层及返回待验。 |
+| 安装与回退 | Debug、Release、305 项集成、243 项独立 Host 回归通过。两版已安装 Host 的隔离资料往返通过，源数据、五项媒体及 UNKNOWN 完整。 |
+
+本轮功能、实机预检、设备限制和接续入口见[原生空间交付收据](P5.7-NATIVE-SPACES.md)。P5.6 的真实跨应用平铺仍以原现场收据为准。其余语音、截图附加、全屏工具呈现、发布及普通窗口兼容性范围沿用下表。
 
 ## P5.5 之后的实测增量
 
