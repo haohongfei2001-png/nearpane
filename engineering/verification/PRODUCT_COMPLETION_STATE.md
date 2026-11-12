@@ -4,6 +4,50 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
+**当前可打开的版本**　[Nearpane P5.6 Alpha](</Users/hhf/Applications/Nearpane P5.6/Nearpane P5.6 Alpha.app>)，回退包为 [P5.5 Alpha](</Users/hhf/Applications/Nearpane P5.5/Nearpane P5.5 Alpha.app>)。两版使用同一应用身份，换版前正常退出当前版本。普通用户窗口自动接管默认关闭。
+
+## P5.5 之后的实测增量
+
+本轮从本地 `b90c3ca7341bf40c8fcf6356a86c9cebedc112ed` 开始。下表保留各阶段原始证据。
+
+- **首次跨应用混合平铺。** 两款独立 AppKit 应用各有两扇窗口。逐窗选择文档窗和允许加入其他应用台前分组的工具窗，在副屏 640 × 1280 pt 的 WorkRect 中先得到 320 + 320 pt，再得到 384 + 256 pt。7 笔布局、3 笔恢复，18 个 AX 属性写入步骤。Owner、AX、CG 最大误差 0 pt，预演和暂停期间新增写入均为零。排除工具窗后只调整另一应用。四个窗口最终无残留，前台 PID 和 AX 焦点相同。此轮冻结 Host 为 `467f38c7301c9a97d7aba858780c8b90d0be43f4d4c51f4d77a0f36604035ea8`。验收范围代码 `2fbcae4`，设置页以已获准的应用身份标记管理对象 `d2565c3`。[实测与各阶段读回](../../build/verification/p54/ordinary/01af32e7-4d37-4ff0-8ce1-e866cdb6c6eb/mixed.json) · [事务](../../build/verification/p54/ordinary/01af32e7-4d37-4ff0-8ce1-e866cdb6c6eb/manager.json) · [退出](../../build/verification/p54/ordinary/01af32e7-4d37-4ff0-8ce1-e866cdb6c6eb/cleanup.json) · [工具窗口的 AppKit 行为](https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct/canjoinallapplications)
+- **两个主文档应用的限制。** 第二个应用出现后，第一个应用的 AX 保持 240 × 152 pt，CG 显示 49 × 71 pt。此次预检停在首次写入之前。窗口同号只能证明身份，无法证明它当前以可写的普通几何显示；不切换台前调度分组。[现场负例](../../build/verification/p54/ordinary/897371f9-c70a-49ed-b180-1a67a96cfb00/geometry.json)
+- **启动、全屏与输入法。** 从应用启动即登记锁屏和会话通知；资料打开期间的暂停条件在首次桌面读取之前生效。回归覆盖两个条件独立解除。另复现 AX 全屏标志与同号 AX/CG 小矩形同时出现时错误授予单窗全屏资格；现在要求已核对的窗口覆盖可用工作区域。候选文字正处于输入法标记时，尺寸预览刷新和辅助功能赋值均保留当前组合，确认后才提交。代码 `c0ca411`。[启动读数](../../build/verification/product-next/preview-and-startup.log) · [全屏反例原始失败](../../build/verification/product-next/fullscreen-before.log) · [修复后](../../build/verification/product-next/fullscreen-after.log) · [AppKit 输入法合成事件](../../build/verification/product-next/ime.log)
+
+### Native Spaces 的执行检查点
+
+macOS 27.0（26A428）两次独立只读采样均报告 `separateSpaces=true`；1920 × 1080 主屏有 3 条内部记录，800 × 1280、旋转 90° 的副屏只有 1 条。两次 current 稳定。此处的数字是 scope 记录数，用户桌面总数仍未知。对比 P1 当时的 `false`，当前结果也说明启动时必须重新读取设置。未读取任何个人窗口内容。[本次空窗口白名单读回](../../build/verification/native-route/scope-only.json)
+
+已冻结的双窗口见证包在每次拟发键前独立复核两扇登记窗口、两屏 current、相邻方向、当前焦点和有效会话。明确区分专用图形会话与限时授权控制台。实际运行前者在日常登录被拒，后者因副屏缺第二个候选被拒。两条入口均在创建窗口前返回，输入 0，真实 A→B→A **0/3**。空间行切换、跨空间拖窗、创建、删除、Virtual 停放都保持关闭。公开快捷键可表达相邻方向，Apple 的窗口拖拽需要 Mission Control 的真实目标；当前均没有本机三次往返与跨空间 membership 终态。[可行路线、分发和返回条件](../../architecture/MACOS-SPACES-FEASIBILITY.md) · [冻结工具](../../build/verification/native-route/Nearpane-Space-Witness.zip) · [两次拒绝收据与可执行文件指纹](../../build/verification/native-route/final-preflight.json) · [Apple 的多空间操作说明](https://support.apple.com/guide/mac-help/work-in-multiple-spaces-mh14112/mac)
+
+若使用当前 Mac，需一个明确的无人使用时段，加上副屏上由所有者指定的一对相邻空白普通测试桌面和可靠回程。另一选择是已有、可控制且完全隔离的图形登录或测试机，并提供两个测试 Space。常用虚拟机应用的标准安装位置和命令入口未发现现成工具；未检查私人虚拟机目录，也没有创建账户、来宾系统或修改系统选项。[环境探查范围](../../build/verification/product-next/vm-availability.json) · [Apple 的 macOS 来宾方案](https://developer.apple.com/documentation/virtualization/running-macos-in-a-virtual-machine-on-apple-silicon)
+
+### 语音、截图与草稿权限
+
+设置分别呈现 TCC 与默认音频输入状态，显示期间共享一个 HAL 默认路由监听器，最后一个视图退出后注销。实机注册和注销均返回 0，默认输入可用；设备之间的切换通过合成变更事件验证。Riftlet 的截图目录丢失后保留原授权和队列，让用户重新核对同一个目录。目录名相同但 inode 或创建时间不同会拒绝。Chrome 不在运行、未安装、尚未询问、已拒绝和身份不明确都有对应反馈。迟到的权限回复不能重启用户刚关闭的附加；待重核状态可跨重启保留，P5.5 读取时保持关闭。原授权在隔离导入及回退后都没有继承，源树指纹不变。[实际 HAL 收据](../../build/verification/continuation-domains/hardware/listener/result.txt) · [权限与顺序回归](../../build/verification/continuation-domains/final-auth-and-routes.log) · [资料投影](../../build/verification/continuation-domains/profile-permission-projection.json)
+
+### 安装包上的窗口布局和可及性
+
+P5.6 第一份安装包的 Host 为 `a708574915fb44e5d9627ad56a55387de6b305aebe33d717fda29a640a70ac94`。实际从「设置」逐窗授权两个进程时，AX 的两个静态文字行分别显示 Standard documents、Standard palette，仅显示获准的应用与窗口编号。排除后相应行消失，未授权兄弟窗一直保持原位。验收脚本最初错误假设刷新后仍选中了两窗，实际界面清楚显示仅选一扇。保留该次拒绝与退出收据后，重新逐一选择并核对两扇窗口，完整 10 笔事务通过。[首次中止及现场](../../build/verification/p54/ordinary/074158e8-180b-4690-86aa-043666fb9d2f/) · [10 笔事务](../../build/verification/p54/ordinary/89c99e9f-0fe6-4b40-9a20-d23ee4c1be59/mixed.json) · [真实 Settings 名称](../../build/verification/p54/ordinary/89c99e9f-0fe6-4b40-9a20-d23ee4c1be59/mixed-half-owner-rows.json) · [退出清理](../../build/verification/p54/ordinary/89c99e9f-0fe6-4b40-9a20-d23ee4c1be59/cleanup.json)
+
+副屏普通窗口预览现在为辅助功能提供逐窗、从前到后的相对位置和宽高。对标记的两扇合成窗读取实际 macOS AX 静态文字，在禁用及启用空间观察的两种状态均与独立几何换算一致。截图、语音文字和窗口标题没有进入描述。没有启用系统 VoiceOver 朗读。此次 Host 在副屏持续约 23.54 秒，24 次同一进程内核采样，CPU 0.204 秒、进程能量计数差约 0.254 J、物理内存 35.16–83.39 MiB。测量包含启动与窗口预览，长期驻留另见已有 180 秒内核观测及 P3.7 收据。[实际 AX 及几何](../../build/native-acceptance/237ec2e8-4ae7-4741-9e6a-15caa819e4a7/desktop-result.json) · [单窗实拍](../../build/native-acceptance/237ec2e8-4ae7-4741-9e6a-15caa819e4a7/panel-observed.png) · [资源与焦点](../../build/verification/product-next/installed-native.json)
+
+### 最终成品与回退
+
+- **本地中文管线。** 本轮 P5.6 首次查询时系统报告支持中文、资源尚未就绪。通过已签包的官方准备入口执行一次，后续进程及最终安装包均回读已安装。下载字节数未知。最终包麦克风状态为已授权，旧 Speech 授权状态为未决定。独立且已准备的固定 Saytile 领域程序处理了本轮 29,061 帧合成中文 PCM，本次 Recording 和 Attempt 自己的 terminal 为 completed，final 与预期短句一致，SQLite 完整性检查通过。另一独立程序身份未取得资源，自行停止；没有把它记作成功。未打开物理麦克风。[资源准备](../../build/verification/product-next/installed-voice-prepare.log) · [最终安装包资源读回](../../build/verification/product-next/shipping/installed-voice-status.log) · [此次识别关联收据](../../build/verification/product-next/voice-pcm/correlated-final.json)
+- **资料原件与回退。** 最终 P5.6 → 既有 P5.5 → 最终 P5.6 使用同一隔离代际、同一目录 inode，五张媒体的 SHA-256 及顺序、人工修订、时区、旧版保存的显隐偏好和一笔 UNKNOWN 全部保留。外部输入 START、语音派发及窗口动作收据均为零；合成来源前后散列相同。另实测 Apple SQLite 对缺少 WAL/SHM 的主文件返回 CANTOPEN。原版一概提示文件损坏，现在日常启动能区分不可只读打开、忙锁、非数据库、坏页和不兼容 schema，五类均拒绝、原主文件指纹保持一致。修正还覆盖 header 版本正常但表页损坏的情况。未用个人资料。[两版往返](../../build/verification/product-next/version-roundtrip/final-roundtrip.json) · [五种真实错误](../../build/verification/product-next/version-roundtrip/final-read-errors.json) · [SQLite 实际返回码](../../build/verification/product-next/version-roundtrip/sqlite-cold-probe.json)
+- **最终冻结。** 产品源码 `af8948a2580a2068a2b41153a0f1717bd8f19d1d`，安装 Host SHA-256 `73f795dd8929de8ee534edcfafb2118cc2b2b45c0a94bd3afc4a02df5abab062`。最终安装和上次混合平铺用包的五个嵌套助手逐字节相同；Host 增量涉及资料读取及显示器恢复。最终包在副屏重新启动并正常退出；原焦点、五图队列保持，输入尝试和 START 均为零。两扇合成窗的 Owner/CG/AX 最大误差 0 pt，空间登记前后均读回两个正确的静态 AX 轮廓，其中有真实 current 见证的一轮仅确认副屏自己的当前行。23.66 秒中采样 24 次，Host CPU 0.266 秒、能量计数差 0.266 J、物理内存 28.86–83.84 MiB。这是启动和可见预览的进程测量。[最终实拍](../../build/native-acceptance/c8d6a18f-65bc-40fc-b3dc-06cdbe58b7f1/panel-observed.png) · [最终现场读回](../../build/native-acceptance/c8d6a18f-65bc-40fc-b3dc-06cdbe58b7f1/desktop-result.json) · [资源与焦点](../../build/verification/product-next/shipping/installed-native.json)
+- **回归与构建。** Swift 集成 300/300、独立 Host 238/238、固定网页组合 18/18、目标守卫 17/17、依赖解析 6/6、回执策略 27/27、窗口管理 Python 32/32、资料领域 10/10、迁移事务 14/14。固定上游仍为 93 + 78 = 171 个文件。Debug、Release 各有 16 份相同资源；Alpha 增加四份帮助与管理资源，20 份资源指纹为 `dbcba47b4d3428d465610fe7d696ee6a8560ce0d8f8a94bfbd92710a460ee782`。六个 Mach-O 验签通过，均含 arm64；属于本机开发签名，尚未公证。原始日志保留工程目录临时包的验签失败；最终安装目录的校验独立通过。[回归汇总](../../build/verification/product-next/shipping/regressions.log) · [窗口回归](../../build/verification/product-next/window-management.log) · [领域投影](../../build/verification/product-next/shipping/profile-domains.log) · [迁移回归](../../build/verification/product-next/shipping/profile-transactions.log) · [Debug/Release](../../build/verification/product-next/shipping/packages.log) · [安装资源](../../build/verification/product-next/shipping/installation.log) · [签名清单](../../build/verification/product-next/shipping/distribution.json)
+- **本地提交。** 基线 `b90c3ca` 后依次为 `c0ca411` 会话/预览/输入法、`2fbcae4` 混排实测、`d2565c3` 管理对象显示、`fb3cf9b` 空间路由见证、`1b0db47` 领域权限恢复、`18c4d98` 独立打包、`043fd47` 资料错误与屏幕重连、`af8948a` 普通启动坏页核对。最终收据提交可由 `git log -1 --format=%H -- engineering/verification/PRODUCT_COMPLETION_STATE.md` 定位。
+
+### 当前须由外部满足的条件
+
+1. **空间与全屏。** 优先交付一对相邻空白测试 Space 及允许副屏切换和返回的无人时段，或指定可控独立双屏的图形会话。工程端负责身份映射、校准、三轮往返、回程和清理。现在仅有一个副屏候选。跨空间迁窗与 Virtual 各自仍需单独的身份、动作及恢复证据。真实第三方全屏、物理插拔、真人输入法或 VoiceOver 使用体验和真实区域截图磁力效果，沿用受保护环境条件。
+2. **真人端到端。** 若希望完成这两项验收，一次交接安静中文短句时段，以及一个合法登录、无私人内容的专用 ChatGPT 草稿。二者可以分别选择。真实设备采集、实际外部文字插入与 ChatGPT 最终服务回执按各自证据待验，UNKNOWN 保持原状。
+3. **发布。** 个人 Alpha 可本机使用。向他人正式分发时才需 Developer ID、公证及干净设备验证。当前无公开发布。
+
+## 按能力追溯的历次证据
+
 | 正式能力 | 状态 / 实际边界 | 证据、依赖与下一步 |
 |---|---|---|
 | 普通窗逐窗选择、预演、授权/撤销、同应用隔离 | VERIFIED · 当前 build 的副屏标准 AppKit 窗口；全局自动接管关闭 | [P5.4 原生](P5.4-REAL-AX-ACCEPTANCE.md)；产物源码 `8613465`。达到真实 AX/CG/焦点条件才能发放许可。无普遍第三方兼容声明。 |
@@ -29,7 +73,7 @@
 | 驻留、退出屏障、权限及资源 | PARTIAL · 领域进程排空、关闭观察器、睡眠/唤醒和历史一小时驻留有证据；不是普通窗口观察长期电量基准 | [P3.7](P3.7-hardening-closeout.md)、[P5.2](P5.2-MULTIDISPLAY-ACCEPTANCE.md)。新加入的长期观察以限定目标、有限采样和退出清理测量。 |
 | Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，6 个 Mach-O 均有 arm64，按各自部署下限验签；正式签名、公证、干净设备验收仍 BLOCKED | [打包检查](../../scripts/check-alpha-distribution.py)、[发布门禁](../../build/verification/product/distribution-gate.json)。[Apple 公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)：按授权签名并加固、时间戳、公证、干净机安装验证。已在一次性副本按嵌套顺序加固、重新计算 3 项助手指纹、重新封签 6 个 Mach-O；[原包保持一致](../../build/verification/product/signing-rehearsal.json)。未使用发布凭据或上传；窗口/资料助手仅使用已安装的 Apple 签名 Python，缺失时拒绝、不触发安装。 |
 
-## 当前交付和接续点
+## P5.5 交付记录
 
 可运行：[P5.5 Alpha](</Users/hhf/Applications/Nearpane P5.5/Nearpane P5.5 Alpha.app>)；[P5.4 回退包](</Users/hhf/Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app>)。P5.3 起共用稳定资料契约及写锁，须先退出再换版，不拷贝数据库，不自动回放外部操作。本轮只用标记的隔离目录。
 
@@ -39,7 +83,7 @@
 - 第二轮冻结修复：`5720cf32269e33b9f2067e2945f7dcbae83d005e58e76406b61c65cfbac927b2`（Host）；[278 项集成](../../build/verification/product/final-integrated.log)、[228 项独立 Host](../../build/verification/product/final-foundation.log)、[安装资源](../../build/verification/product/final-installation.log)。关闭/重建已实测；[排除与驻留](../../build/verification/p54/ordinary/ea4e25fe-579a-4070-841e-f29568037dfa/exclusion-result.json)亦已通过。逐窗 Settings 按钮落盘后仅另一窗重排一次，未授权窗零写；App 排除经同一设置 setter 验证（未点击该表单），撤销余窗且不覆盖其位置。[180 秒内核采样](../../build/verification/p54/ordinary/ea4e25fe-579a-4070-841e-f29568037dfa/steady-resources.json)：7 个检查点、事务数始终 3；Host CPU 1.0843 s / 0.72742 J / 35.20–35.64 MiB，助手 0.8228 s / 0.76499 J / 5.91–6.02 MiB，不是整机功耗。普通 Settings 的选择在关窗、最小化、遮挡和锁屏时撤销，不中断已授权的窗口管理；仅就实际执行环境报告。
 - 时区回退缺陷：两个旧/新签包对隔离配置保存后会遗失额外时区。[复现](../../build/verification/product/version-roundtrip/probe.json)。`1dba9bf` 将显式时区选择原子保存于当前资料代际，旧版继续管理原有设置。损坏记录保留，重新选择后可恢复；损坏源不会作为成功导入发布。两项 Swift、10 项领域及 14 项迁移事务检查通过。[迁移收据](../../build/verification/product/version-roundtrip/migration.log)。
 
-## 最终冻结成品
+## P5.5 冻结成品
 
 产品源码 `0d6c9731995f2fcdff4d18ef1342a841e80524cf`。Finder 打开上方 P5.5 Alpha，在菜单栏进入设置；默认不接管普通窗口。此构建在 `839cb18` 的窗口生命周期基础上加入 `1dba9bf` 的时区资料延续、`e947d61` 的手动文字插入、进程内验收外观采样及深色语音图形修复。手动插入从正在使用的输入框开始，在检查其他页面内容之前核对进程、窗口、元素和文档，遇到来源不明或无明确回执就中止。[输入守卫的 21 个场景](../../build/verification/product-closeout/domains/manual-scope-3.log)在真实 SQLite 及替身输入框上运行。
 
@@ -56,11 +100,11 @@ P5.5 → P5.4 → P5.5 的[真实安装包往返收据](../../build/verification
 
 最终成品按同一副屏 240 × 1280 pt 面板分别呈现 Aqua 和 Dark Aqua。实际 AX 界定的收音按钮内，深色实心字形对相邻底色从 1.522∶1 提高到 3.528∶1，浅色保持 3.625∶1。合成文字及四张可见缩略图的位置、大小一致，五张图的队列和原焦点保持。验收采用的非文字控件对比度参考值是 3∶1；此处只报告两个实测外观。[修复前深色实拍](../../build/verification/product-closeout/appearance/4188f15e-3a76-4990-bd78-46d09a7e230a/darkAqua.png) · [修复后深色](../../build/verification/product-closeout/appearance/261b0027-6e5d-430b-8f48-2b49d2715518/darkAqua.png) · [最终浅色](../../build/verification/product-closeout/appearance/261b0027-6e5d-430b-8f48-2b49d2715518/aqua.png) · [原始几何、像素及退出收据](../../build/verification/product-closeout/appearance/261b0027-6e5d-430b-8f48-2b49d2715518/result.json) · [W3C 的对比度说明](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)
 
-### 下次从哪些条件继续
+### P5.5 当时的外部条件
 
 - **真人语音、前台文字输入。** 语音只需一次安静且本人同意的短句，核对实际 Host 的麦克风与语音权限、本次 Attempt 的 final 及返回待命。外部文字插入另需一个可暂时取得真实前台焦点的空白测试输入框；使用前台的个人桌面期间保持待验。默认本地模式无需 API 密钥。
 - **草稿附件。** 只在已有授权的、已登录且无私人内容的专用草稿上做一次单图输入，再看原 Riftlet 的终态；没有终态继续保留 UNKNOWN。无需再次验证已通过的托盘和网页守卫。
 - **桌面编排。** 已管理对象覆盖副屏标准 AppKit 窗口。扩大到某款日常应用，需要该应用的独立空白窗口和相应授权。对 Native 的下一步是专用时段或隔离桌面上的真实 A→B→A、两屏见证及可验证返回。第三方全屏覆盖、物理拔插、真实选区动效和合成材质的最终视觉效果，均须满足不影响个人主屏且能对现场画面取证的条件。
 - **Virtual 和公开发行。** Virtual 继续关闭，等有能够独立读回同一窗口、可恢复且保护同 App 兄弟窗口的新系统机制。公开分发需要受权的 Developer ID、公证和干净机安装；本地可直接使用上述 Alpha。
 
-**本轮按完成条件 B 交接。** 以上授权范围内的工程和设备验收已收口。保留未通过的原始观测和明确的下一项门槛。发布前须取得相应授权；本次只在工程分支本地提交。远端查询时仍为 `cc36d147904fde58373fbb868d270502c69af31e`。[只读远端收据](../../build/verification/product/nearpane-origin-at-delivery.json)。本收据所在本地提交用 `git log -1 --format=%H -- engineering/verification/PRODUCT_COMPLETION_STATE.md` 定位。
+**P5.5 当时按完成条件 B 交接。** 以上授权范围内的工程和设备验收已收口。保留未通过的原始观测和明确的下一项门槛。发布前须取得相应授权；本次只在工程分支本地提交。远端查询时仍为 `cc36d147904fde58373fbb868d270502c69af31e`。[只读远端收据](../../build/verification/product/nearpane-origin-at-delivery.json)。本收据所在本地提交用 `git log -1 --format=%H -- engineering/verification/PRODUCT_COMPLETION_STATE.md` 定位。
