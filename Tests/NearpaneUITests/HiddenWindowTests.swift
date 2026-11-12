@@ -47,7 +47,7 @@ struct HiddenWindowTests {
         #expect(!(panel!.hidesOnDeactivate))
         #expect(panel!.collectionBehavior.contains(.canJoinAllSpaces))
         #expect(panel!.level == .floating)
-        #expect(panel!.contentView is NSVisualEffectView)
+        #expect(panel!.contentView?.subviews.compactMap { $0 as? NSVisualEffectView }.map(\.material) == [.sidebar])
         controller.close()
     }
 

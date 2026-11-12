@@ -34,7 +34,14 @@ public struct VoiceSurface: View {
             canCopy: !selected.isEmpty || !history.copyText.isEmpty, selectedText: selected,
             onCopy: {
                 let selection = access.view?.selectionSnapshot ?? ""
-                _ = copy(selection.isEmpty ? history.copyText : selection, to: pasteboard)
+                if !selection.isEmpty { _ = copy(selection, to: pasteboard); return }
+                let rendered = access.view?.rendered
+                var snapshot = Dictionary(uniqueKeysWithValues: (rendered?.spans ?? []).map { ($0.entry.id, $0.entry.displayText) })
+                // Include utterances that had no visible text at click time.
+                for row in history.entries where rendered?.displayed[row.position] == "" {
+                    snapshot[row.id] = ""
+                }
+                module.copyLatestGroup(snapshot: snapshot, to: pasteboard)
             }, onToggle: { Task { await module.toggle() } },
             onPage: { if $0 { Task { await module.loadEarlier() } } },
             onSelectionChange: { selected = $0 }, onFollowChange: { reading = !$0 },

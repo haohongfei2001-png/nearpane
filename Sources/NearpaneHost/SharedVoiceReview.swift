@@ -37,7 +37,10 @@ import SaytileKit
             window.contentView?.layoutSubtreeIfNeeded()
             let expected: CaptureState = state == "paused" ? .paused : state == "standby" ? .listening : .speaking
             guard modules.voice.capture == expected, !window.isKeyWindow, window.isVisible, !NSApp.isActive,
-                  !modules.voice.transcript.isEmpty else { throw CocoaError(.validationMissingMandatoryProperty) }
+                  !modules.voice.transcript.isEmpty else {
+                let checks = "capture=\(modules.voice.capture == expected) key=\(window.isKeyWindow) visible=\(window.isVisible) active=\(NSApp.isActive) hasText=\(!modules.voice.transcript.isEmpty)"
+                throw NSError(domain: "SharedVoiceReview", code: 1, userInfo: [NSLocalizedDescriptionKey: checks])
+            }
             let bounds = window.frame
             let layout = LayoutComposer.compose(width: bounds.width, height: bounds.height,
                 pinnedCount: host.registry.pinnedModules.count, expanded: false, settings: .init())

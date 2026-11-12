@@ -25,11 +25,10 @@ struct VoiceHistoryProjection: Equatable {
         var start = Date.distantPast
         var day = ""
         var offset = 0
-        var end: Date?
+        var previous: Recording?
         for (index, row) in rows.enumerated() {
             let position = Int64(startPosition + index)
-            if end.map({ row.createdAt.timeIntervalSince($0) >= Self.idleInterval }) ?? true
-                || !calendar.isDate(start, inSameDayAs: row.createdAt) {
+            if previous.map({ !row.nearpaneContinues($0, idleInterval: Self.idleInterval, calendar: calendar) }) ?? true {
                 group = position
                 start = row.createdAt
                 let civil = calendar.dateComponents([.year, .month, .day], from: start)
@@ -38,10 +37,10 @@ struct VoiceHistoryProjection: Equatable {
             }
             entries.append(.init(id: row.id, position: position, displayText: row.text, group: group,
                                  groupStart: start, groupDay: day, groupUTCOffset: offset))
-            end = row.createdAt.addingTimeInterval(max(0, row.duration))
+            previous = row
         }
         self.entries = entries
-        idleDeadline = end?.addingTimeInterval(Self.idleInterval)
+        idleDeadline = previous.map { $0.createdAt.addingTimeInterval(max(0, $0.duration) + Self.idleInterval) }
         copyText = entries.filter { $0.group == group && !$0.displayText.isEmpty }.map(\.displayText).joined(separator: "\n")
     }
 }

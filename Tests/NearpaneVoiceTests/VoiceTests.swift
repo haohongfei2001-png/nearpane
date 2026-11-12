@@ -300,3 +300,44 @@ extension VoiceTests {
         module.stop(); await module.waitForTransition()
     }
 }
+
+extension VoiceTests {
+    @Test func copyReadsWholeActiveGroupAcrossPagesAndFreezesRenderedWords() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        let base = Date(timeIntervalSince1970: 1700020800)
+        var ids: [UUID] = []
+        for index in -1..<63 {
+            let stamp = base.addingTimeInterval(index < 0 ? -121 : Double(index))
+            let row = try await store.createRecording(createdAt: stamp)
+            _ = try await store.saveEdit(recordingID: row.id, text: "段\(index)")
+            try await store.finishRecording(id: row.id)
+            ids.append(row.id)
+        }
+        let module = VoiceModule(openStore: { store }) { _, update in ScriptedInput(update) }
+        try module.start()
+        await module.waitForTransition()
+        #expect(module.rows.count == 60 && module.hasEarlier)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally() }
+        let snapshot = [ids[4]: "读到的修订", ids[5]: ""]
+        module.copyLatestGroup(snapshot: snapshot, to: board)
+        let deadline = ContinuousClock.now + .seconds(2)
+        while board.string(forType: .string) == nil && ContinuousClock.now < deadline { await Task.yield() }
+        let expected = (0..<63).compactMap { i -> String? in
+            switch i { case 3: "读到的修订"; case 4: nil; default: "段\(i)" }
+        }.joined(separator: "\n")
+        #expect(board.string(forType: .string) == expected)
+        let next = try await store.createRecording(createdAt: base.addingTimeInterval(1000))
+        _ = try await store.saveEdit(recordingID: next.id, text: "下一组")
+        await module.refresh()
+        #expect(board.string(forType: .string) == expected)
+        module.copyLatestGroup(snapshot: snapshot, to: board)
+        #expect(board.string(forType: .string) == "下一组")
+        await module.loadEarlier()
+        #expect(!module.hasEarlier && module.rows.count == 65)
+        module.stop()
+        await module.waitForTransition()
+    }
+}

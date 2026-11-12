@@ -370,6 +370,31 @@ public final class VoiceModule: HostModule {
         return task
     }
 
+    func copyLatestGroup(snapshot displayed: [UUID: String], to pasteboard: NSPasteboard) {
+        guard active, let tail = rows.last, let group = history.entries.last?.group else { return }
+        let members = history.entries.filter { $0.group == group }
+        if !hasEarlier || members.count < rows.count {
+            let text = members.map { displayed[$0.id] ?? $0.displayText }.filter { !$0.isEmpty }.joined(separator: "\n")
+            if !text.isEmpty { pasteboard.clearContents(); pasteboard.setString(text, forType: .string) }
+            return
+        }
+        var snapshot = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0.displayText) })
+        snapshot.merge(displayed) { _, rendered in rendered }
+        let epoch = generation
+        let change = pasteboard.changeCount
+        Task {
+            do {
+                let text = try await withPanelRead { store in
+                    try await store.nearpaneGroupText(through: tail.id, snapshot: snapshot,
+                                                      idleInterval: VoiceHistoryProjection.idleInterval)
+                }
+                guard active, epoch == generation, !text.isEmpty, change == pasteboard.changeCount else { return }
+                pasteboard.clearContents()
+                pasteboard.setString(text, forType: .string)
+            } catch { if active, epoch == generation { issue = "暂时无法读取此时间组。" } }
+        }
+    }
+
     func loadEarlier() async {
         limit += 60; await refresh()
     }
