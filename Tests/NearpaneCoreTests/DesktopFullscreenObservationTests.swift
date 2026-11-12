@@ -51,6 +51,20 @@ struct DesktopFullscreenObservationTests {
         #expect(observe(fixture.sample([])) == .unknown)
     }
 
+    @Test func matchingSmallFramesAndAnAXFullscreenFlagCannotExposeToolsOnTheDesktop() throws {
+        let thumbnail = SurfaceRect(x: -64, y: 602, width: 49, height: 76)
+        for stageManager in [true, false] {
+            let small = fixture.sample([window(full: true, frame: thumbnail)], stageManager: stageManager)
+            #expect(observe(small) == .unknown)
+        }
+        let usable = SurfaceRect(x: -800, y: 20, width: 800, height: 1260)
+        let full = window(full: true, frame: usable)
+        guard case .native = observe(fixture.sample([full], stageManager: true)) else {
+            Issue.record("A corroborated fullscreen surface covering the usable display should be admitted")
+            return
+        }
+    }
+
     @Test func invalidatedPermissionAndLateOrTransientReadCannotAuthorizeAnOverlay() {
         let full = window(full: true)
         var snapshot = fixture.sample([full])

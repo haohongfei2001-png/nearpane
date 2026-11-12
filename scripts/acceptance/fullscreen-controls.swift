@@ -85,6 +85,24 @@ func visit(_ e:AXUIElement) {
 visit(matches[0])
 func string(_ e:AXUIElement,_ k:String)->String {(ax(e,k) as? String) ?? ""}
 
+if a[3] == "read-desktop-outlines" {
+    guard id == "com.holdsnow.nearpane.alpha", !app.isActive,
+          NSWorkspace.shared.frontmostApplication?.processIdentifier != pid else { stop("unexpected active Host") }
+    let pattern = #"^窗口 [1-9][0-9]*，左距 [0-9]{1,3}%，上距 [0-9]{1,3}%，宽 [0-9]{1,3}%，高 [0-9]{1,3}%$"#
+    var outlines: [String] = []
+    for node in nodes where string(node, "AXIdentifier") == "desktop-window-outline" {
+        let labels = ["AXValue", "AXDescription", "AXTitle"].map { string(node, $0) }
+        guard let description = labels.first(where: { $0.range(of: pattern, options: .regularExpression) != nil }),
+              string(node, "AXRole") == "AXStaticText" else { stop("unexpected outline semantics") }
+        var actions: CFArray?
+        guard AXUIElementCopyActionNames(node, &actions) == .success,
+              !(actions as? [String] ?? []).contains("AXPress") else { stop("unexpected outline action") }
+        outlines.append(description)
+    }
+    print(String(decoding: try JSONEncoder().encode(outlines), as: UTF8.self))
+    exit(0)
+}
+
 if a[3] == "read-appearance" {
     guard id == "com.holdsnow.nearpane.alpha", !app.isActive,
           NSWorkspace.shared.frontmostApplication?.processIdentifier != pid else { stop("appearance target active") }

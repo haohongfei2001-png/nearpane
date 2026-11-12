@@ -19,9 +19,14 @@ extension DesktopSnapshot {
         if let candidate = fullscreen.first {
             // A background, split-view, cross-display or changing presentation cannot name a single
             // current fullscreen owner. Screen dimensions alone never establish fullscreen.
+            guard let usable = display.usable else { return .unknown }
+            let workArea = SurfaceRect(x: display.frame.x + usable.x, y: display.frame.y + usable.y,
+                                       width: usable.width, height: usable.height).geometry
             guard fullscreen.count == 1, candidate.displayID == displayID,
                   let m = candidate.metadata, let window = fullscreenSampleIdentity(candidate),
                   display.frame.geometry.intersection(m.globalFrame.geometry) == m.globalFrame.geometry,
+                  let coverage = m.globalFrame.geometry.intersection(workArea),
+                  coverage.componentError(from: workArea) <= 2,
                   visible.allSatisfy({ ($0.metadata?.frontToBack ?? -1) >= m.frontToBack })
             else { return .unknown }
             return .native(window: window)

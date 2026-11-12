@@ -89,20 +89,24 @@ struct PanelSizeDraft: Equatable {
     }
 }
 
-final class PanelDimensionTextField: NSTextField, NSTextFieldDelegate {
+class PanelDimensionTextField: NSTextField, NSTextFieldDelegate {
     var edited: (String) -> Void = { _ in }
 
+    private var composing: Bool { (currentEditor() as? NSTextView)?.hasMarkedText() == true }
+
     func controlTextDidChange(_ notification: Notification) {
+        guard !composing else { return }
         edited(currentEditor()?.string ?? stringValue)
     }
 
     override func setAccessibilityValue(_ accessibilityValue: Any?) {
-        guard isEnabled, isEditable, let text = accessibilityValue as? String else { return }
+        guard isEnabled, isEditable, !composing, let text = accessibilityValue as? String else { return }
         display(text)
         edited(text)
     }
 
     func display(_ text: String) {
+        guard !composing else { return }
         if stringValue != text { stringValue = text }
         if let editor = currentEditor(), editor.string != text { editor.string = text }
     }

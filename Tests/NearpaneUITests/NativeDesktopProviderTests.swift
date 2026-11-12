@@ -36,7 +36,24 @@ private actor Attempts {
     }
 }
 
+@MainActor private final class CountingRead: LiveDesktopObservationProvider {
+    let capabilities = DesktopCapabilities(observation: .readOnly)
+    private(set) var reads = 0
+    func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot {
+        reads += 1
+        return sample(.init(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: nil,
+                            anchors: [], experimentalSpaces: experimentalSpaces), status: .disabled)
+    }
+}
+
 @MainActor struct NativeDesktopProviderTests {
+    @Test func accessibleWindowPositionUsesTheClippedDrawingWithinItsDisplay() {
+        let desktop = SurfaceRect(x: 18, y: 56, width: 80, height: 120)
+        let visible = SurfaceRect(x: 58, y: 86, width: 40, height: 90)
+        #expect(DesktopSurface.windowDescription(index: 1, frame: visible, within: desktop) ==
+                "窗口 2，左距 50%，上距 25%，宽 50%，高 75%")
+    }
+
     @Test func privateCrashFallsBackToPublicAndStaysLatchedUntilOptInChanges() async throws {
         let attempts = Attempts()
         let provider = NativeDesktopProvider(fixtureWindows: { nil }, anchors: { [] }) { try await attempts.call($0) }
@@ -99,6 +116,24 @@ private actor Attempts {
             #expect(host.bus.desktop == nil)
             host.stop()
         }
+    }
+
+    @Test func openingAProfileWhileLockedDoesNotStartObservationUntilWakeAndUnlock() async throws {
+        let reader = CountingRead()
+        let host = HostSession(store: MemoryConfigurationStore(), provider: reader)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.screensAsleep, paused: true)
+        await host.start()
+        let modules = host.registry.states
+        await host.refreshDesktop()
+        #expect(reader.reads == 0 && host.bus.desktop == nil)
+        host.setDesktopPause(.screensAsleep, paused: false)
+        await host.refreshDesktop()
+        #expect(reader.reads == 0 && host.bus.desktop == nil)
+        host.setDesktopPause(.inactiveSession, paused: false)
+        for _ in 0..<100 where host.bus.desktop == nil { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(reader.reads == 1 && host.bus.desktop != nil && host.registry.states == modules)
+        host.stop()
     }
 
     @Test func sleepAndInactiveSessionRequireBothReasonsToClearBeforeASingleFreshRead() async throws {

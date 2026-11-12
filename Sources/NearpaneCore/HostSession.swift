@@ -236,7 +236,8 @@ public final class HostSession {
     }
 
     public func setDesktopPause(_ reason: DesktopObservationPause, paused: Bool) {
-        guard isRunning, provider is any LiveDesktopObservationProvider else { return }
+        // Session notifications may arrive before the profile finishes opening.
+        guard provider is any LiveDesktopObservationProvider else { return }
         let changed = paused ? desktopPauses.insert(reason).inserted : desktopPauses.remove(reason) != nil
         if changed { invalidateDesktop() }
     }

@@ -177,6 +177,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var modules: EmbeddedModules?
     private var panels: DisplayPanels?
     private var screenAsleep = false, sessionInactive = false, screenLocked = false
+    private var sessionUnavailable: Bool { screenAsleep || sessionInactive || screenLocked }
     private var surface: EdgeWindowController?
     private let settingsScreens = SettingsScreenInventory()
     private let settingsPreview = SettingsPreviewExposure()
@@ -193,7 +194,30 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         return screens.dropFirst().filter { $0.id == passiveDisplayID }
     }
 
+    private func observeDesktopSession() {
+        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification, NSWorkspace.screensDidWakeNotification,
+                     NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
+                     NSWorkspace.sessionDidBecomeActiveNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
+        }
+        let distributed = DistributedNotificationCenter.default()
+        for name in ["com.apple.screenIsLocked", "com.apple.screenIsUnlocked"] {
+            distributed.addObserver(self, selector: #selector(lockChanged(_:)), name: .init(name), object: nil)
+        }
+        NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
+            name: NSApplication.didChangeScreenParametersNotification, object: nil)
+        let console = CGSessionCopyCurrentDictionary() as? [String: Any]
+        sessionInactive = console?[kCGSessionOnConsoleKey as String] as? Bool != true ||
+            console?[kCGSessionLoginDoneKey as String] as? Bool != true
+        screenLocked = console?["CGSSessionScreenIsLocked"] as? Bool == true
+        screenAsleep = !NSScreen.screens.contains { screen in
+            guard let id = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber else { return false }
+            return CGDisplayIsAsleep(id.uint32Value) == 0
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        observeDesktopSession()
         if passiveDisplayID != nil {
             // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.
             var duration = 25.0
@@ -257,6 +281,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
+        modules.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         #if canImport(SaytileKit)
         if !profileTrial { modules.workRect?.start() }
         #else
@@ -283,6 +308,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
         let session = modules.makeHost(store: store, provider: provider)
         host = session
+        session.setDesktopPause(.screensAsleep, paused: screenAsleep)
+        session.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
         await session.start()
         guard !Task.isCancelled else { return }
         #if canImport(RiftletCore) && canImport(SaytileKit)
@@ -321,6 +348,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         #endif
         let panels = DisplayPanels(host: session, primary: controller, domains: modules)
         self.panels = panels
+        panels.setSuspended(sessionUnavailable)
         panels.refresh = { [weak self] in self?.updatePanels() }
         panels.topologyChanged = { [weak modules] displays in
             let ids = displays.compactMap { UUID(uuidString: $0)?.uuidString }.sorted()
@@ -360,17 +388,6 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         session.presentationChanged = { [weak self] in self?.updatePanels() }
         updatePanels()
         if passiveDisplayID == nil { installMenu() }
-        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification, NSWorkspace.screensDidWakeNotification,
-                     NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
-                     NSWorkspace.sessionDidBecomeActiveNotification] {
-            NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
-        }
-        let distributed = DistributedNotificationCenter.default()
-        for name in ["com.apple.screenIsLocked", "com.apple.screenIsUnlocked"] {
-            distributed.addObserver(self, selector: #selector(lockChanged(_:)), name: .init(name), object: nil)
-        }
-        NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
-            name: NSApplication.didChangeScreenParametersNotification, object: nil)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -429,9 +446,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func lockChanged(_ note: Notification) {
         screenLocked = note.name.rawValue == "com.apple.screenIsLocked"
+        applyDesktopSessionState()
+    }
+
+    private func applyDesktopSessionState() {
         refreshSettingsExposure()
-        modules?.workRect?.setOrdinaryHold("session", active: screenAsleep || sessionInactive || screenLocked)
-        panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
+        modules?.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
+        panels?.setSuspended(sessionUnavailable)
+        host?.setDesktopPause(.screensAsleep, paused: screenAsleep)
         host?.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
         updatePanels()
     }
@@ -442,18 +464,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         case NSWorkspace.screensDidWakeNotification: screenAsleep = false
         case NSWorkspace.sessionDidResignActiveNotification: sessionInactive = true
         case NSWorkspace.sessionDidBecomeActiveNotification: sessionInactive = false
-        default: break
+        default:
+            host?.invalidateDesktop()
+            return
         }
-        refreshSettingsExposure()
-        modules?.workRect?.setOrdinaryHold("session", active: screenAsleep || sessionInactive || screenLocked)
-        panels?.setSuspended(screenAsleep || sessionInactive || screenLocked)
-        switch note.name {
-        case NSWorkspace.screensDidSleepNotification: host?.setDesktopPause(.screensAsleep, paused: true)
-        case NSWorkspace.screensDidWakeNotification: host?.setDesktopPause(.screensAsleep, paused: false)
-        case NSWorkspace.sessionDidResignActiveNotification: host?.setDesktopPause(.inactiveSession, paused: true)
-        case NSWorkspace.sessionDidBecomeActiveNotification: host?.setDesktopPause(.inactiveSession, paused: screenLocked)
-        default: host?.invalidateDesktop()
-        }
+        applyDesktopSessionState()
     }
 
     private func updatePanels() {
@@ -534,7 +549,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsPreview.update(visible: window.isVisible && window.occlusionState.contains(.visible),
                                miniaturized: window.isMiniaturized, appHidden: NSApp.isHidden,
-                               sessionUnavailable: screenLocked || screenAsleep || sessionInactive)
+                               sessionUnavailable: sessionUnavailable)
     }
 
     private func updateSettingsContent() {

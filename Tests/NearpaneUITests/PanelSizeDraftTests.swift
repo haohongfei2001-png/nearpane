@@ -3,7 +3,32 @@ import NearpaneCore
 import Testing
 @testable import NearpaneUI
 
+@MainActor private final class FieldWithInputMethod: PanelDimensionTextField {
+    let input = NSTextView(frame: .zero)
+    override func currentEditor() -> NSText? { input }
+}
+
 @MainActor struct PanelSizeDraftTests {
+    @Test func layoutRefreshAndAXLeaveMarkedTextWithTheInputMethodUntilCommit() {
+        let field = FieldWithInputMethod(frame: .zero)
+        field.isEditable = true
+        var edits: [String] = []
+        field.edited = { edits.append($0) }
+        field.display("10")
+        let entireField = NSRange(location: 0, length: 2)
+        field.input.setMarkedText("十", selectedRange: NSRange(location: 1, length: 0), replacementRange: entireField)
+        let changed = Notification(name: NSControl.textDidChangeNotification, object: field)
+        field.controlTextDidChange(changed)
+        field.display("10")
+        field.setAccessibilityValue("80")
+        #expect(field.input.hasMarkedText() && field.input.string == "十" && edits.isEmpty)
+        field.input.insertText("12", replacementRange: field.input.markedRange())
+        field.controlTextDidChange(changed)
+        #expect(!field.input.hasMarkedText() && edits == ["12"])
+        field.setAccessibilityValue("12.5")
+        #expect(field.input.string == "12.5" && edits == ["12", "12.5"])
+    }
+
     @Test func successiveNativeFieldEditsReachOneDraftBeforeFocusChangesOrApply() throws {
         let saved = DisplaySettings()
         let session = PanelSizeEditing(saved)

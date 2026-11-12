@@ -53,6 +53,30 @@ def check_sample(receipt, pid):
                 confirmedRows=len(evidence["rows"]), cgErrors=errors, axErrors=ax_errors)
 
 
+def expected_outlines(receipt):
+    """Compute percentages from the owner's fixtures and their independent CG stacking order."""
+    snap = receipt["snapshot"]
+    display = snap["displays"][1]
+    frame, usable = display["frame"], display["usable"]
+    left, top = frame["x"] + usable["x"], frame["y"] + usable["y"]
+    windows = sorted(snap["windows"], key=lambda w: w["metadata"]["frontToBack"])
+    rows = [r for r in snap["native"]["rows"] if r["displayID"] == display["id"]]
+    if rows:
+        se.require(len(rows) == 1, "Expected a single marked display row")
+        windows = [w for w in windows if rows[0]["recordID"] in w["membership"].get("known", {}).get("recordIDs", [])]
+    owners = {f["number"]: f["expectedCG"] for f in receipt["fixtures"]}
+    result = []
+    for i, window in enumerate(windows, start=1):
+        r = owners[window["metadata"]["number"]]
+        x, y = max(r["x"], left), max(r["y"], top)
+        w = min(r["x"] + r["width"], left + usable["width"]) - x
+        h = min(r["y"] + r["height"], top + usable["height"]) - y
+        values = [int(0.5 + 100 * n / d) for n, d in [(x-left, usable["width"]), (y-top, usable["height"]),
+                                                         (w, usable["width"]), (h, usable["height"])]]
+        result.append(f"窗口 {i}，左距 {values[0]}%，上距 {values[1]}%，宽 {values[2]}%，高 {values[3]}%")
+    return result
+
+
 def preserved_domains(before, startup, end):
     expected = before.copy()
     if not before["voiceAvailable"]:
@@ -86,9 +110,10 @@ def main():
     parser.add_argument("--app", type=Path, default=ROOT/"build/release/Nearpane.app")
     parser.add_argument("--capture", action="store_true", help="Take per-window ScreenCaptureKit images using existing permission")
     parser.add_argument("--replay", action="store_true", help="Evaluate a completed marked run from its durable receipts, without launching any process or taking images")
+    parser.add_argument("--inspect-layout", action="store_true", help="Read the marked panel's static accessibility outlines")
     args = parser.parse_args()
-    if args.replay and args.capture:
-        parser.error("--replay cannot capture")
+    if args.replay and (args.capture or args.inspect_layout):
+        parser.error("Replay reads saved receipts only")
     se.require(str(uuid.UUID(args.session)) == args.session, "Invalid session")
     path = ROOT/"build/native-acceptance"/args.session
     app = args.app.resolve(strict=True)
@@ -114,6 +139,10 @@ def main():
         return
     se.require(not list(path.glob("events-*")), "Fresh isolated session required")
     observations, captures, seen, attempted = [], {}, set(), set()
+    layout_reads = []
+    if args.inspect_layout:
+        subprocess.run(["xcrun", "swiftc", "-module-cache-path", path/"compiler-cache",
+                        ROOT/"scripts/acceptance/fullscreen-controls.swift", "-o", path/"layout-reader"], check=True)
     command = [sys.executable, "-B", str(ROOT/"scripts/native-acceptance.py"), "launch", "--app", str(app),
                "--session", args.session, "--secondary-only", "--desktop-fixture"]
     with (path/"desktop-supervisor.log").open("x") as log, subprocess.Popen(command, stdout=log, stderr=log) as supervisor:
@@ -144,6 +173,14 @@ def main():
                 observations.append(summary)
                 seen.add(file.name)
                 phase = summary["status"]
+                if args.inspect_layout and summary["freshness"] == "fresh" and summary["windows"] == 2:
+                    expected = expected_outlines(receipt)
+                    if expected and not any(r["matches"] and r["status"] == phase for r in layout_reads):
+                        reading = subprocess.run([path/"layout-reader", str(state["pid"]), str(state["windowID"]),
+                                                  binary, "read-desktop-outlines"], capture_output=True, text=True, timeout=5)
+                        actual = json.loads(reading.stdout) if reading.returncode == 0 else []
+                        layout_reads.append(dict(status=phase, expected=expected, actual=actual, matches=actual == expected,
+                                                 error=reading.stderr[-160:]))
                 if args.capture and phase in ("disabled", "observed") and phase not in attempted and summary["freshness"] == "fresh":
                     attempted.add(phase)
                     time.sleep(0.35)
@@ -163,9 +200,13 @@ def main():
                   observations=observations, singleWindowCaptures=captures, drained=True, exitCode=stamp["exitCode"],
                   domainsPreserved=True, assets=len(stamp["postExit"]["assetOrder"]), starts=stamp["postExit"]["starts"],
                   attempts=stamp["postExit"]["attempts"])
+    if args.inspect_layout:
+        result["accessibleLayout"] = layout_reads
     se.put(path/"desktop-result.json", result)
     print(json.dumps(result, indent=2))
     se.require(any(r["freshness"] == "fresh" and r["windows"] == 2 for r in observations), "No complete pair measured")
+    if args.inspect_layout:
+        se.require(any(r["matches"] and len(r["actual"]) == 2 for r in layout_reads), "AX outlines lack matching owner evidence")
 
 
 if __name__ == "__main__":
