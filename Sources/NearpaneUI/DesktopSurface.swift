@@ -107,10 +107,14 @@ struct DesktopSurface: View {
         let session: UUID, revision: UInt64, screen: String?, visible: Bool
     }
 
+    private var previewGradient: Gradient {
+        // The reference uses a daylight-blue desktop behind each fitted window.
+        Gradient(colors: [Color(red: 0.76, green: 0.78, blue: 0.97),
+                          Color(red: 0.40, green: 0.58, blue: 0.96)])
+    }
+
     private var previewBackground: LinearGradient {
-        LinearGradient(colors: [Color(red: 0.44, green: 0.45, blue: 0.92).opacity(0.60),
-                                Color(red: 0.24, green: 0.40, blue: 0.90).opacity(0.65)],
-            startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(gradient: previewGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     private func drawing(_ preview: DesktopPreview, windows: [WindowObservation], showImages: Bool) -> some View {
@@ -122,7 +126,7 @@ struct DesktopSurface: View {
                 let desktopRect = CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height)
                 let shape = Path(roundedRect: desktopRect, cornerRadius: min(8, desktop.width * 0.035))
                 context.fill(shape, with: .linearGradient(
-                    Gradient(colors: [.indigo.opacity(0.45), .blue.opacity(0.40)]),
+                    previewGradient,
                     startPoint: desktopRect.origin, endPoint: CGPoint(x: desktopRect.maxX, y: desktopRect.maxY)))
                 for window in row.windows.reversed() {
                     let r = window.frame
