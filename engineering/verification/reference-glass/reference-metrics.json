@@ -1,0 +1,113 @@
+{
+  "referenceSHA256": "c15bc20b8bd33e1f99f21638b81234748d1e17f2c3aefea518d9c2989e750ca2",
+  "referenceImagePixels": [
+    1672,
+    941
+  ],
+  "referenceOuterPixelRect": [
+    1347,
+    29,
+    1672,
+    941
+  ],
+  "referenceVoicePixelRect": [
+    1362,
+    54,
+    1657,
+    195
+  ],
+  "referenceTrayPixelRect": [
+    1362,
+    210,
+    1657,
+    389
+  ],
+  "referenceWorkspacePixelRect": [
+    1362,
+    406,
+    1657,
+    909
+  ],
+  "referencePaneWidthFraction": 0.194377990430622,
+  "referenceVoiceAspect": 2.0921985815602837,
+  "referenceInnerRelativeToOuterWidth": [
+    0.046153846153846156,
+    0.07692307692307693,
+    0.9538461538461539,
+    0.5107692307692308
+  ],
+  "composite": "All three images uniformly scaled to 325 pixels outer width",
+  "nativeHosts": {
+    "Saytile": {
+      "outerCG": [
+        1680,
+        0,
+        240,
+        128
+      ],
+      "innerRelativeCG": [
+        11.076923076923094,
+        18.461538461538566,
+        217.84615384615384,
+        103.63076923076923
+      ],
+      "widthFraction": 0.125,
+      "relativeToRailWidth": [
+        0.046153846153846226,
+        0.07692307692307736,
+        0.9538461538461539,
+        0.5087179487179492
+      ],
+      "voiceAspect": 2.1021377672209027,
+      "imagePixels": [
+        480,
+        256
+      ],
+      "physicalDisplayBackingScale": 2
+    },
+    "Nearpane": {
+      "outerCG": [
+        1680,
+        0,
+        240,
+        1080
+      ],
+      "innerRelativeCG": [
+        11.076923076923094,
+        18.461538461538566,
+        217.84615384615384,
+        103.63076923076923
+      ],
+      "widthFraction": 0.125,
+      "relativeToRailWidth": [
+        0.046153846153846226,
+        0.07692307692307736,
+        0.9538461538461539,
+        0.5087179487179492
+      ],
+      "voiceAspect": 2.1021377672209027,
+      "imagePixels": [
+        480,
+        2160
+      ],
+      "physicalDisplayBackingScale": 2,
+      "workspaceThumbnailAXCount": 4
+    }
+  },
+  "artworkWidthNearpane": {
+    "outerCG": [
+      1546,
+      0,
+      374,
+      1080
+    ],
+    "visibleAppKit": [
+      0,
+      0,
+      1920,
+      1080
+    ],
+    "voiceAspect": 2.108229988726043,
+    "workspaceThumbnailAXCount": 4
+  }
+}

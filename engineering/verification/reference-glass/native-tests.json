@@ -1,0 +1,21 @@
+{
+  "integrated": {
+    "status": "PASS",
+    "passed": 314,
+    "failed": 0,
+    "suites": 52,
+    "seconds": 2.218,
+    "logSHA256": "179d19f14ad11c1b98b12d8b360ee1c44436ab5d088c5a7146df552813ac88af"
+  },
+  "foundation": {
+    "status": "PASS",
+    "passed": 251,
+    "failed": 0,
+    "suites": 41,
+    "seconds": 1.254,
+    "logSHA256": "dfbc1a5e8fde6345cabdd649b1b240b25eda8cfed04b7e1c694c3901043ec77b"
+  },
+  "sourceCommit": "45093101e904de5af0784656db062f7e47ad7b6d",
+  "build": "26A428",
+  "arch": "arm64"
+}
