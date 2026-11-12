@@ -42,15 +42,20 @@ def run(t, documents, palette, *, out, check, put):
           "launching second independent application changed original geometry")
     t.start_host()
     t.press("admission-open")
-    t.press("admission-ordinary-app-" + str(t.fixture.pid))
-    put(out/"document-choices.json", t.ui())
-    t.press("admission-window-" + str(first))
-    t.press("admission-ordinary-app-" + str(t.peer.fixture.pid))
-    put(out/"palette-choices.json", t.ui())
-    t.press("admission-window-" + str(second))
-    t.press("admission-read")
+    selection = "Standard documents #" + str(first) + "、Standard palette #" + str(second)
+    def preview(label):
+        for owner, name, number in ((t,"documents",first),(t.peer,"palette",second)):
+            t.press("admission-ordinary-app-" + str(owner.fixture.pid))
+            put(out/(label+"-"+name+"-choices.json"), t.ui())
+            t.press("admission-window-" + str(number))
+        check(t.ui().get("admission-selection", {}).get("value") == selection, "mixed selection changed")
+        t.press("admission-read")
+    def confirm():
+        check(t.ui().get("admission-selection", {}).get("value") == selection, "mixed grant scope changed")
+        t.press("ordinary-confirm")
+    preview("initial")
     expect("mixed-preview-before-consent", {}, set())
-    t.press("ordinary-confirm")
+    confirm()
     expect("mixed-half", half, {first, second})
     t.press("ordinary-pair")
     expect("mixed-saved-ratio", custom, {first, second})
@@ -61,8 +66,10 @@ def run(t, documents, palette, *, out, check, put):
     t.press("ordinary-stop")
     expect("both-restored", {}, {first, second})
     check(not (t.records/"journal.json").exists(), "journal remains after normal restoration")
-    t.press("admission-read")
-    t.press("ordinary-confirm")
+    # Stopping releases the old AX handles. Explicitly reselect both windows from their
+    # current process inventories; a previously selected row may already have expired.
+    preview("renewal")
+    confirm()
     expect("explicitly-regranted", half, {first, second})
     t.press("ordinary-exclude-" + str(second))
     expected = {first:whole, second:half[second]}

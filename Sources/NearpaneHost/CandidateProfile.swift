@@ -54,16 +54,16 @@ enum CandidateProfile {
                 try ProfileLease.checkPath(URL(fileURLWithPath: url.path + suffix))
             }
             var db: OpaquePointer?
-            guard sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOFOLLOW, nil) == SQLITE_OK else {
-                sqlite3_close(db)
-                throw CocoaError(.fileReadCorruptFile)
-            }
+            let opened = sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOFOLLOW, nil)
             defer { sqlite3_close(db) }
+            guard opened == SQLITE_OK else { throw inspectionError(opened) }
             func integer(_ sql: String) throws -> Int {
                 var stmt: OpaquePointer?
-                guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { throw CocoaError(.fileReadCorruptFile) }
+                let prepared = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
                 defer { sqlite3_finalize(stmt) }
-                guard sqlite3_step(stmt) == SQLITE_ROW else { throw CocoaError(.fileReadCorruptFile) }
+                guard prepared == SQLITE_OK else { throw inspectionError(prepared) }
+                let stepped = sqlite3_step(stmt)
+                guard stepped == SQLITE_ROW else { throw inspectionError(stepped) }
                 return Int(sqlite3_column_int64(stmt, 0))
             }
             guard try integer("PRAGMA user_version") == version else {
@@ -72,6 +72,24 @@ enum CandidateProfile {
             if counts { result[table] = try integer("SELECT count(*) FROM " + table) }
         }
         return result
+    }
+
+    private static func inspectionError(_ code: Int32) -> NSError {
+        let description: String
+        switch code & 0xff {
+        case SQLITE_CANTOPEN, SQLITE_READONLY, SQLITE_PERM, SQLITE_AUTH:
+            description = "无法以只读方式核对数据库。请检查资料目录的读取权限；从备份恢复时，请使用完整的资料目录。"
+        case SQLITE_BUSY, SQLITE_LOCKED:
+            description = "数据库正在使用，请先正常退出占用这份资料的应用，再重新打开。"
+        case SQLITE_CORRUPT:
+            description = "SQLite 报告数据库结构损坏。请保留原件并检查完整备份。"
+        case SQLITE_NOTADB:
+            description = "SQLite 无法识别此数据库文件。请保留原件并核对资料来源。"
+        default:
+            description = "资料库的只读检查未能完成。已停止打开这份资料。"
+        }
+        return NSError(domain: "Nearpane.Profile.SQLite", code: Int(code),
+                       userInfo: [NSLocalizedDescriptionKey: description])
     }
 
     @MainActor static func prepareFixture(in parent: URL, examples: Bool = false) async throws -> URL {

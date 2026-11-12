@@ -177,7 +177,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var modules: EmbeddedModules?
     private var panels: DisplayPanels?
     private var screenAsleep = false, sessionInactive = false, screenLocked = false
-    private var sessionUnavailable: Bool { screenAsleep || sessionInactive || screenLocked }
+    private var hasAwakeDisplay = false
+    private var desktopAsleep: Bool { screenAsleep || !hasAwakeDisplay }
+    private var sessionUnavailable: Bool { desktopAsleep || sessionInactive || screenLocked }
     private var surface: EdgeWindowController?
     private let settingsScreens = SettingsScreenInventory()
     private let settingsPreview = SettingsPreviewExposure()
@@ -210,7 +212,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         sessionInactive = console?[kCGSessionOnConsoleKey as String] as? Bool != true ||
             console?[kCGSessionLoginDoneKey as String] as? Bool != true
         screenLocked = console?["CGSSessionScreenIsLocked"] as? Bool == true
-        screenAsleep = !NSScreen.screens.contains { screen in
+        refreshAwakeDisplays()
+    }
+
+    private func refreshAwakeDisplays() {
+        hasAwakeDisplay = NSScreen.screens.contains { screen in
             guard let id = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber else { return false }
             return CGDisplayIsAsleep(id.uint32Value) == 0
         }
@@ -308,7 +314,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
         let session = modules.makeHost(store: store, provider: provider)
         host = session
-        session.setDesktopPause(.screensAsleep, paused: screenAsleep)
+        session.setDesktopPause(.screensAsleep, paused: desktopAsleep)
         session.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
         await session.start()
         guard !Task.isCancelled else { return }
@@ -453,7 +459,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         refreshSettingsExposure()
         modules?.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         panels?.setSuspended(sessionUnavailable)
-        host?.setDesktopPause(.screensAsleep, paused: screenAsleep)
+        host?.setDesktopPause(.screensAsleep, paused: desktopAsleep)
         host?.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
         updatePanels()
     }
@@ -461,7 +467,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     @objc private func desktopChanged(_ note: Notification) {
         switch note.name {
         case NSWorkspace.screensDidSleepNotification: screenAsleep = true
-        case NSWorkspace.screensDidWakeNotification: screenAsleep = false
+        case NSWorkspace.screensDidWakeNotification:
+            screenAsleep = false
+            refreshAwakeDisplays()
         case NSWorkspace.sessionDidResignActiveNotification: sessionInactive = true
         case NSWorkspace.sessionDidBecomeActiveNotification: sessionInactive = false
         default:
@@ -489,8 +497,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func screensChanged() {
-        host?.invalidateDesktop()
-        updatePanels()
+        let wasAvailable = hasAwakeDisplay
+        refreshAwakeDisplays()
+        if wasAvailable != hasAwakeDisplay {
+            applyDesktopSessionState()
+        } else {
+            host?.invalidateDesktop()
+            updatePanels()
+        }
         if settings != nil { settingsScreens.update(SystemScreens.geometry()) }
     }
 
