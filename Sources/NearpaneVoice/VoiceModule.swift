@@ -87,6 +87,8 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private let openStore: () throws -> SaytileStore
     @ObservationIgnored private let makeInput: MakeInput
     @ObservationIgnored private var store: SaytileStore?
+    @ObservationIgnored private var panelWriter: NearpanePanelWriter?
+    private(set) var panelEditIssue: String?
     @ObservationIgnored private var panelReads = 0
     @ObservationIgnored private var waitingForPanelReads: CheckedContinuation<Void, Never>?
     @ObservationIgnored private var input: (any VoiceInput)?
@@ -202,6 +204,7 @@ public final class VoiceModule: HostModule {
         let closingGeneration = generation
         let previous = transition, oldInput = input, oldStore = store, writes = draftWrite
         draftWrite = nil
+        panelWriter = nil; panelEditIssue = nil
         input = nil; store = nil; rows = []; history = VoiceHistoryProjection(); capture = .paused; control = .init(.paused, 0)
         busy = false; hasEarlier = false; issue = nil; limit = 60
         transition = Task {
@@ -318,6 +321,28 @@ public final class VoiceModule: HostModule {
             hasEarlier = count > result.count
         } catch { if generation == epoch { issue = "暂时无法读取文字；保留上次内容。" } }
     }
+    func applyPanelEdits(_ edits: [VoicePanelEdit]) throws {
+        guard active, let store else { throw CancellationError() }
+        do {
+            let writer = try panelWriter ?? NearpanePanelWriter(store: store)
+            panelWriter = writer
+            let start = Int(history.entries.first?.position ?? 0)
+            let saved = try writer.apply(edits.map { PanelRowEdit(id: $0.id, before: $0.before, after: $0.after) },
+                                         visible: rows)
+            // A read admitted before this synchronous commit may finish afterwards.
+            refreshID += 1
+            rows = saved
+            history = VoiceHistoryProjection(saved, startPosition: start)
+            panelEditIssue = nil
+            acceptanceEvent?("userEdit")
+            didPublish(generation)
+        } catch {
+            panelEditIssue = "未能保存修改，请重试。"
+            didPublish(generation)
+            throw error
+        }
+    }
+
     /// The gesture captures both the visible revisions and its foreground field before any await.
     @discardableResult func insertDisplayedText() -> Task<Void, Never>? {
         guard active, !inserting, let store, let makeManualInput else { return nil }

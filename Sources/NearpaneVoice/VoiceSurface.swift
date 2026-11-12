@@ -24,13 +24,16 @@ public struct VoiceSurface: View {
 
     private var capture: VoicePanelCapture { module.control.surface(running: module.capture.isRunning) }
 
+    private func document(_ history: VoiceHistoryProjection) -> PanelTimelineDocument<VoiceHistoryEntry> {
+        PanelTimelineDocument(entries: history.entries, tailGroup: history.entries.last?.group,
+                              idle: idle && module.capture != .speaking, reading: reading,
+                              older: module.hasEarlier)
+    }
+
     public var body: some View {
         let history = module.history
-        let document = PanelTimelineDocument(entries: history.entries, tailGroup: history.entries.last?.group,
-                                             idle: idle && module.capture != .speaking, reading: reading,
-                                             older: module.hasEarlier)
         let empty = history.entries.allSatisfy { $0.displayText.isEmpty }
-        VoiceSurfacePanel(document: document, access: access, capture: capture,
+        VoiceSurfacePanel(document: document(history), access: access, capture: capture,
             canCopy: !selected.isEmpty || !history.copyText.isEmpty, selectedText: selected,
             onCopy: {
                 let selection = access.view?.selectionSnapshot ?? ""
@@ -47,9 +50,14 @@ public struct VoiceSurface: View {
             onSelectionChange: { selected = $0 }, onFollowChange: { reading = !$0 },
             editing: editing != nil, latestRequest: latestRequest, fillContextMenu: fillMenu,
             onEdit: empty ? nil : { @MainActor in editSelection() },
-            notice: module.issue ?? module.insertionNotice,
+            applyEdits: { edits in
+                try module.applyPanelEdits(edits)
+                return document(module.history)
+            },
+            notice: module.panelEditIssue ?? module.issue ?? module.insertionNotice,
             placeholder: empty ? (module.capture == .paused ? "点右下角，开始说话。" : "说一句话试试。") : nil,
             captureDisabled: module.busy || !module.active) { secondaryActions }
+            .onAppear { access.view?.transcriptView.commandPasteboard = pasteboard }
             .task(id: history.idleDeadline) {
                 guard let deadline = history.idleDeadline else { idle = false; return }
                 let remaining = deadline.timeIntervalSinceNow

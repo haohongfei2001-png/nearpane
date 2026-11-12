@@ -40,7 +40,7 @@ if full {
         .target(name: "CAudio", path: saytile + "CAudio",
                 exclude: ["WEBRTC-LICENSE.txt", "webrtc/common_audio/signal_processing/dot_product_with_scale.cc"],
                 cSettings: [.headerSearchPath("."), .define("WEBRTC_POSIX")]),
-        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key,
+        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key + "-" + surface.key,
                 resources: [.copy("Upstream/Resources/ConnectionSample.pcm")]),
         .target(name: "RiftletCore", dependencies: ["CSQLite"], path: riftlet + "RiftletCore",
                 swiftSettings: [.swiftLanguageMode(.v5)]),
