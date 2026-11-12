@@ -4,12 +4,13 @@
   "backdrop": "generated violet-to-blue gradient, 32 by 512, projected over the entire visible frame",
   "Saytile": {
     "bundle": "app.saytile.testing.reference-shell.20261113",
-    "sourceCheckoutSHA": "ce2d5cfa3f36166850a667063cd51c3ea55c6d25",
-    "embeddedSourceSHA": "ce2d5cfa3f36166850a667063cd51c3ea55c6d25",
-    "sourceTree": "611f3fc6ab295ca95208f065a3dbce1612ae7f25",
+    "sourceCheckoutSHA": "cde27aed528f0fe306c13ebfda4685c606130f21",
+    "embeddedSourceSHA": "d3ddafcd4d410fc763ae2a5badfaefa21ceb48fc",
+    "sourceTree": "0b83a0a02af75b4f678ce72b5cd3dd6610f5bc73",
     "signature": "codesign --verify --strict --deep PASS",
     "sourceCheckoutChanges": "",
-    "exeSHA256": "69315df83c1327775f6d9581cc645e0022ba54361180fc96243be85e7889828f",
+    "speakingFrameAdditionalSettleSeconds": 1.8,
+    "exeSHA256": "d068b8d633492ce3fb66b087a4da6d9daf72a798a570efb9151d04b210f68f82",
     "scenes": {
       "panel-paused": {
         "accessibility": {
@@ -209,12 +210,13 @@
   },
   "Nearpane": {
     "bundle": "com.holdsnow.nearpane.host",
-    "sourceCheckoutSHA": "45093101e904de5af0784656db062f7e47ad7b6d",
+    "sourceCheckoutSHA": "044b659f64146db0832f7c45a2d232512d7ddba5",
     "embeddedSourceSHA": null,
     "sourceTree": "12aab541edae9e73928812a7f93a26cf6bf2d5e8",
     "signature": "codesign --verify --strict --deep PASS",
     "sourceCheckoutChanges": "",
-    "exeSHA256": "febf6895e2ad3f967cf8fd6d5fb3e59d1983831b4536fe4c4e76f9a1c423d680",
+    "speakingFrameAdditionalSettleSeconds": 1.8,
+    "exeSHA256": "3bc40e7f7db8de8254b6f1ee0de2cdaae503e018bafa91c94a452dd59d0543d0",
     "scenes": {
       "panel-paused": {
         "accessibility": {
@@ -438,12 +440,13 @@
   },
   "artworkWidthNearpane": {
     "bundle": "com.holdsnow.nearpane.host",
-    "sourceCheckoutSHA": "45093101e904de5af0784656db062f7e47ad7b6d",
+    "sourceCheckoutSHA": "044b659f64146db0832f7c45a2d232512d7ddba5",
     "embeddedSourceSHA": null,
     "sourceTree": "12aab541edae9e73928812a7f93a26cf6bf2d5e8",
     "signature": "codesign --verify --strict --deep PASS",
     "sourceCheckoutChanges": "",
-    "exeSHA256": "febf6895e2ad3f967cf8fd6d5fb3e59d1983831b4536fe4c4e76f9a1c423d680",
+    "speakingFrameAdditionalSettleSeconds": 1.8,
+    "exeSHA256": "3bc40e7f7db8de8254b6f1ee0de2cdaae503e018bafa91c94a452dd59d0543d0",
     "scenes": {
       "panel-speaking": {
         "accessibility": {
@@ -569,12 +572,12 @@
         ]
       ],
       "commonPixelRGBMeanAbsoluteDifference": [
-        1.9135310020830563,
-        1.7796613925453175,
-        1.0428799361786996
+        1.503745069361344,
+        1.370540265035678,
+        0.5780592119842219
       ],
       "commonDifferentPixelFraction": 0.8373554048663742,
-      "fractionWithAnyChannelDeltaAbove8": 0.016165846740238445
+      "fractionWithAnyChannelDeltaAbove8": 0.016043965784691753
     },
     "panel-speaking": {
       "geometryDeltaPoints": [
@@ -594,12 +597,12 @@
         ]
       ],
       "commonPixelRGBMeanAbsoluteDifference": [
-        1.7352634844657182,
-        1.6011168727562823,
-        0.8235496166289944
+        1.3063090014625716,
+        1.1656805389354252,
+        0.33713380312901653
       ],
-      "commonDifferentPixelFraction": 0.8298652661436865,
-      "fractionWithAnyChannelDeltaAbove8": 0.016143686566502682
+      "commonDifferentPixelFraction": 0.826009395913664,
+      "fractionWithAnyChannelDeltaAbove8": 0.001495811727163941
     }
   },
   "result": "PASS",

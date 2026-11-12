@@ -4,18 +4,18 @@
     "passed": 314,
     "failed": 0,
     "suites": 52,
-    "seconds": 2.218,
-    "logSHA256": "179d19f14ad11c1b98b12d8b360ee1c44436ab5d088c5a7146df552813ac88af"
+    "seconds": 1.814,
+    "logSHA256": "6eb1226e421298b55fefa0f69241e6341ad169eea11b607da35a0ea2ad6739a8"
   },
   "foundation": {
     "status": "PASS",
     "passed": 251,
     "failed": 0,
     "suites": 41,
-    "seconds": 1.254,
-    "logSHA256": "dfbc1a5e8fde6345cabdd649b1b240b25eda8cfed04b7e1c694c3901043ec77b"
+    "seconds": 2.685,
+    "logSHA256": "5524bd67754120559cba0c372f9ca52c360887d4307cb54c9a0556966cd57072"
   },
-  "sourceCommit": "45093101e904de5af0784656db062f7e47ad7b6d",
+  "sourceCommit": "044b659f64146db0832f7c45a2d232512d7ddba5",
   "build": "26A428",
   "arch": "arm64"
 }
