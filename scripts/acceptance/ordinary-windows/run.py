@@ -81,12 +81,15 @@ DENSITY_SLOTS = {
 }
 
 class Trial:
-    def __init__(self, candidate):
+    def __init__(self, candidate, *, palette=False):
+        self.out = OUT / "palette" if palette else OUT
+        self.out.mkdir(exist_ok=True, mode=0o700)
         self.candidate = candidate
-        self.app = Path((WORK/"fixture-path.txt").read_text().strip())
-        self.exe = self.app / "Contents/MacOS/StandardWindows"
+        self.app = Path((WORK/("palette-path.txt" if palette else "fixture-path.txt")).read_text().strip())
+        self.exe = self.app / "Contents/MacOS" / ("StandardPalette" if palette else "StandardWindows")
+        self.bundle = "net.example.standard-palette" if palette else "net.example.standard-documents"
         check(self.app.parent.parent == Path("/private/tmp") and self.app.parent.name.startswith("nearpane-standard-windows."), "fixture location")
-        sp.run(["/usr/bin/codesign","--verify","--strict",'-R=identifier "net.example.standard-documents"',self.app], check=True)
+        sp.run(["/usr/bin/codesign","--verify","--strict",f'-R=identifier "{self.bundle}"',self.app], check=True)
         # Wait for a quiet existing desktop before creating any GUI object.
         samples=[]; since=None; deadline=time.monotonic()+8
         while time.monotonic()<deadline:
@@ -96,10 +99,10 @@ class Trial:
             samples.append(each)
             if time.monotonic()-since>=2: break
             time.sleep(.22)
-        put(OUT/"quiet-preflight.json",samples)
+        put(self.out/"quiet-preflight.json",samples)
         check(time.monotonic()-since>=2,"no stable foreground window before launch")
         self.run_focus = samples[-1]
-        put(OUT/"initial.json",self.run_focus)
+        put(self.out/"initial.json",self.run_focus)
         self.pipes = tempfile.TemporaryDirectory(prefix="np-window-pipes-",dir="/private/tmp")
         io = Path(self.pipes.name)
         for n in ("requests","reports"): os.mkfifo(io/n,0o600)
@@ -110,7 +113,7 @@ class Trial:
         ticket.write_text(str(io))
         launched = reply(OFF+[WORK/"observe","launch",str(self.app),str(io)])
         self.fixture = type("Fixture",(),{})()
-        put(OUT/"launch.json",launched)
+        put(self.out/"launch.json",launched)
         self.fixture.pid = launched["subjectPID"]
         self.fixture.stdin = os.fdopen(req,"w",buffering=1)
         self.fixture.stdout = os.fdopen(reports)
@@ -129,7 +132,7 @@ class Trial:
         self.fixture.stdin.write(value+"\n")
         self.fixture.stdin.flush()
         r = line(self.fixture)
-        if "exit" in r: put(OUT/"fixture-final.json",r)
+        if "exit" in r: put(self.out/"fixture-final.json",r)
         check("exit" not in r or value=="quit",str(r))
         self.all_windows.update(row["number"] for row in r.get("windows",[]))
         return r
@@ -145,11 +148,11 @@ class Trial:
             result["controllerResources"] = [record for child in children.stdout.split()
                                              if child.isdigit() and (record := resources(int(child),helper))]
         self.checkpoints.append(result)
-        put(OUT/"geometry.json",self.checkpoints)
+        put(self.out/"geometry.json",self.checkpoints)
         check(system["side"]==self.run_focus["side"] and self.focus(system) and owner["focusEvents"]==0,
               "focus or display changed")
         check(len(owner["windows"])==len(system["windows"]), "incomplete independent readback")
-        check(system["ownerRegular"] and not system["ownerTerminated"] and
+        check(system["ownerBundle"] == self.bundle and system["ownerRegular"] and not system["ownerTerminated"] and
               system["ownerLaunch"] == self.checkpoints[0]["system"]["ownerLaunch"], "fixture identity changed")
         for w, z in zip(owner["windows"],system["windows"]):
             check(w["number"]==z["number"] and not w["key"] and not w["main"],"key/main or window identity changed")
@@ -200,6 +203,8 @@ class Trial:
         env=dict(os.environ,NEARPANE_ACCEPTANCE_RUN=self.epoch, NEARPANE_MANAGEMENT_ACCEPTANCE=self.sid,
                  NEARPANE_ADMISSION_ACCEPTANCE=self.sid, NEARPANE_ORDINARY_ACCEPTANCE=self.sid,
                  NEARPANE_ORDINARY_PID=str(self.fixture.pid))
+        if getattr(self, "peer", None) is not None:
+            env["NEARPANE_PALETTE_PID"] = str(self.peer.fixture.pid)
         if getattr(self,"idle_review",False):
             env["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"]=self.sid
         log=(OUT/("host-"+self.epoch+".log")).open("wb")
@@ -207,7 +212,7 @@ class Trial:
         self.hostpid=self.host.pid
         self.settings=wait(lambda:json.loads((self.session/("management-panel-"+self.epoch+".json")).read_text()))
         check(se.process_path(self.hostpid)==self.hostexe,"wrong host")
-        put(OUT/("host-session-"+self.epoch+".json"),dict(session=self.sid,epoch=self.epoch,exe=marker["executableSHA256"],pid=self.hostpid,window=self.settings))
+        put(self.out/("host-session-"+self.epoch+".json"),dict(session=self.sid,epoch=self.epoch,exe=marker["executableSHA256"],pid=self.hostpid,window=self.settings))
 
     def ui(self):
         proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,"read","--ordinary-secondary"],
@@ -248,13 +253,18 @@ class Trial:
             wait(lambda:len(list(self.records.glob("action-*.json")))>=counts)
         time.sleep(.18)
         actual=self.sample(label)
+        if getattr(self, "peer", None):
+            other = self.peer.sample(label)
+            check(actual.keys().isdisjoint(other), "window number collision")
+            actual.update(other)
         check(set(actual)==set(expected) and all(same_rect(actual[k],expected[k]) for k in expected),label+" geometry mismatch")
         actions=[json.loads(f.read_text()) for f in self.records.glob("action-*.json")]
         max_error=0
         operations=set()
+        subjects = [self, self.peer] if getattr(self, "peer", None) else [self]
         for a in actions:
             ident=a["id"]
-            check(a["operation"] not in operations and ident["pid"]==self.fixture.pid and ident["number"] in self.all_windows,
+            check(a["operation"] not in operations and any(ident["pid"] == t.fixture.pid and ident["number"] in t.all_windows for t in subjects),
                   "wrong action identity")
             operations.add(a["operation"])
             for snap in a["readback"].values():
@@ -267,7 +277,7 @@ class Trial:
         check(max_error<=1,"receipt outside geometry tolerance")
         result=dict(label=label,expected=expected,actual=actual,actions=actions,maxErrorPt=max_error,status=self.ui().get("ordinary-status"))
         self.receipts.append(result)
-        put(OUT/"manager.json",self.receipts)
+        put(self.out/"manager.json",self.receipts)
         return actions
 
     def select(self,number):
@@ -275,7 +285,7 @@ class Trial:
         self.press("admission-read")
         try: self.press("ordinary-confirm")
         except Exception:
-            put(OUT/"refused.json",self.ui()); raise
+            put(self.out/"refused.json",self.ui()); raise
 
     def density(self, original):
         first, sibling = list(original)
@@ -308,7 +318,7 @@ class Trial:
             summary.append(dict(stage=label, members=list(managed), writes=len(new),
                                 unapprovedSibling=sibling, maxIndependentFrameErrorPt=max_frame_error,
                                 maximumAXCGStepError=self.receipts[-1]["maxErrorPt"]))
-            put(OUT/"density.json", dict(session=self.sid, stages=summary))
+            put(self.out/"density.json", dict(session=self.sid, stages=summary))
             receipts.update(current)
             previous.update(expected)
 
@@ -363,7 +373,7 @@ class Trial:
             self.press("ordinary-stop");self.checkpoint("restored-from-display-changes",retained,8)
             after={n:sorted(a["operation"] for a in self.receipts[-1]["actions"] if a["id"]["number"]==n) for n in original}
             check(before[n2]==after[n2] and not after[n3],"write to excluded or unauthorized sibling")
-            put(OUT/"native-result.json",dict(result="completed listed checkpoints",session=self.sid,
+            put(self.out/"native-result.json",dict(result="completed listed checkpoints",session=self.sid,
                  actionsBeforeFurtherChanges=before,actionsAfterStop=after))
             return
         if mode == "floating":
@@ -440,7 +450,7 @@ class Trial:
         time.sleep(.45)
         check(self.action_ids()==before_edit and (self.records/"journal.json").exists(),
               "new writes or lost unresolved record after application exit")
-        put(OUT/"native-result.json",dict(result="completed listed checkpoints",session=self.sid,
+        put(self.out/"native-result.json",dict(result="completed listed checkpoints",session=self.sid,
             beforeEditReceipts=sorted(before_edit),afterProcessExitReceipts=sorted(self.action_ids()),
             recovery=json.loads((self.records/"journal.json").read_text())))
 
@@ -462,7 +472,7 @@ class Trial:
         try: alive=self.fixture.poll() is None
         except ValueError: alive=False
         if alive:
-            put(OUT/"pre-cleanup-focus.json",self.observe())
+            put(self.out/"pre-cleanup-focus.json",self.observe())
             try: self.command("quit")
             except (BrokenPipeError, ValueError, RuntimeError): pass
             self.fixture.stdin.close()
@@ -482,7 +492,7 @@ class Trial:
         cleanup={"fixtureGone":True,"fixturePID":self.fixture.pid,"windowIDs":sorted(self.all_windows),
                  "finalFocus":post,"sameFocus":self.focus(post),"CGResidual":vanished['residual']}
         if self.host is not None: cleanup.update(hostPID=self.hostpid, launcherExit=self.host.poll())
-        put(OUT/"cleanup.json",cleanup)
+        put(self.out/"cleanup.json",cleanup)
         check(cleanup["sameFocus"],"foreground/focused window changed during run")
 
 if __name__ == "__main__":
@@ -490,15 +500,27 @@ if __name__ == "__main__":
     p.add_argument("--candidate",type=Path,default=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app")
     mode=p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--probe",action="store_true")
-    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle"])
+    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed"])
     args=p.parse_args()
+    if not args.probe:
+        sp.run(["/usr/bin/codesign", "--verify", "--strict", "--deep", '-R=identifier "com.holdsnow.nearpane.alpha"',
+                args.candidate.resolve()], check=True)
     with (OUT/"run.txt").open("w") as fp: fp.write("probe" if args.probe else args.mode)
     print(OUT,flush=True)
     t=Trial(args.candidate.resolve())
     try:
-        count = 2 if args.mode == "closure-probe" else (1 if args.mode in ("fault","floating") else 3)
+        count = 2 if args.mode in ("closure-probe","mixed") else (1 if args.mode in ("fault","floating") else 3)
         original=t.baseline(count, density=args.mode=="density")
-        if args.mode=="density": t.density(original)
+        if args.mode=="mixed":
+            from mixed import run as run_mixed
+            t.peer = Trial(args.candidate.resolve(), palette=True)
+            try:
+                run_mixed(t, original, t.peer.baseline(2), out=OUT, check=check, put=put)
+            except Exception:
+                if t.host is not None and t.host.poll() is None and t.focus(t.observe()):
+                    put(OUT/"mixed-refusal.json",t.ui())
+                raise
+        elif args.mode=="density": t.density(original)
         elif args.mode=="exclusion-idle":
             from exclusion_idle import run
             run(t, original, check=check, wait=wait, put=put, out=OUT, work=WORK)
@@ -519,4 +541,8 @@ if __name__ == "__main__":
                 put(OUT/"refusal-readback-failure.json",dict(error=str(sample_error)))
         raise
     finally:
-        t.close()
+        try:
+            t.close()  # Let the Host finish its recovery while both process identities still exist.
+        finally:
+            if getattr(t, "peer", None) is not None:
+                t.peer.close()

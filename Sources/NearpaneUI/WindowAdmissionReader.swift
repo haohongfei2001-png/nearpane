@@ -3,6 +3,33 @@ import CryptoKit
 import Darwin
 import NearpaneCore
 
+/// The passive acceptance panel lists only the separately enrolled fixture processes.
+public struct AdmissionFixtureOwner {
+    public enum Kind: String {
+        case documents = "net.example.standard-documents"
+        case palette = "net.example.standard-palette"
+    }
+    public let pid: Int32
+    public let launch: UInt64
+    public let kind: Kind
+    public init?(kind: Kind, pid: Int32, launch: UInt64, bundle: String?, resolvedExecutable: URL) {
+        let tail = kind == .documents
+            ? "Standard documents.app/Contents/MacOS/StandardWindows"
+            : "Standard palette.app/Contents/MacOS/StandardPalette"
+        let parts = resolvedExecutable.pathComponents
+        let base = parts.prefix(2) == ["/", "tmp"] ? 2 : 3
+        guard pid > 1, launch > 0, bundle == kind.rawValue,
+              base == 2 || parts.prefix(3) == ["/", "private", "tmp"],
+              parts.count == base + 5,
+              parts[base].range(of: #"^nearpane-standard-windows\.[A-Za-z0-9]{8}$"#, options: .regularExpression) != nil,
+              parts.suffix(4).joined(separator: "/") == tail else { return nil }
+        self.kind = kind; self.pid = pid; self.launch = launch
+    }
+    func matches(pid: Int32, launch: UInt64, bundle: String) -> Bool {
+        self.pid == pid && self.launch == launch && kind.rawValue == bundle
+    }
+}
+
 struct AdmissionApplication: Identifiable, Equatable {
     let pid: Int32, launch: UInt64, bundle: String, name: String
     var id: Int32 { pid }
@@ -25,8 +52,7 @@ private enum AdmissionReadFailure: LocalizedError {
 /// Every entry point follows a user selection. Nothing here can dispatch a management action.
 @MainActor final class WindowAdmissionReader {
     private let root: URL, fixtureOnly: Bool
-    private let scopedPID: Int32?
-    private let scopedStart: UInt64?
+    private let owners: [AdmissionFixtureOwner]
     private var directories = [Int32: OrdinaryWindowDirectory]()
     private var listings = [Int32: UUID]()
     func releaseChoices() { directories.removeAll(); listed.removeAll(); listings.removeAll() }
@@ -35,9 +61,8 @@ private enum AdmissionReadFailure: LocalizedError {
         return directories[app.pid]?.handles[choice.id]
     }
     private var listed = [Int32:(AdmissionApplication,[AdmissionWindowChoice])]()
-    init(support: URL, fixtureOnly: Bool, scopedPID: Int32? = nil, scopedStart: UInt64? = nil) {
-        self.scopedStart = scopedStart
-        self.scopedPID = scopedPID
+    init(support: URL, fixtureOnly: Bool, owners: [AdmissionFixtureOwner] = []) {
+        self.owners = owners
         self.root = support.appendingPathComponent("WorkRect")
         self.fixtureOnly = fixtureOnly
     }
@@ -49,14 +74,15 @@ private enum AdmissionReadFailure: LocalizedError {
     func applications() -> [AdmissionApplication] {
         releaseChoices()
         var result = [AdmissionApplication]()
-        if scopedPID == nil, let f = AdmissionFixture.read(root) {
+        if owners.isEmpty, let f = AdmissionFixture.read(root) {
             result.append(.init(pid: f.owner.owner.pid, launch: f.owner.owner.start, bundle: AdmissionFixture.bundle, name: "随包兼容应用"))
         }
-        guard !fixtureOnly || scopedPID != nil else { return result }
-        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular && !app.isTerminated {
-            guard (scopedPID == nil || scopedPID == app.processIdentifier), app.processIdentifier != getpid(), let id = app.bundleIdentifier, id != Bundle.main.bundleIdentifier,
+        guard !fixtureOnly || !owners.isEmpty else { return result }
+        let targets = owners.isEmpty ? NSWorkspace.shared.runningApplications : owners.compactMap { NSRunningApplication(processIdentifier: $0.pid) }
+        for app in targets where app.activationPolicy == .regular && !app.isTerminated {
+            guard app.processIdentifier != getpid(), let id = app.bundleIdentifier, id != Bundle.main.bundleIdentifier,
                   id != AdmissionFixture.bundle, !id.hasPrefix("org.nearpane."), !id.hasPrefix("com.holdsnow.nearpane"), let b = AdmissionBirth.read(app.processIdentifier) else { continue }
-            guard scopedPID == nil || (id == "net.example.standard-documents" && b.start == scopedStart) else { continue }
+            guard !fixtureOnly || owners.contains(where: { $0.matches(pid: b.pid, launch: b.start, bundle: id) }) else { continue }
             result.append(.init(pid: b.pid, launch: b.start, bundle: id, name: app.localizedName ?? id))
         }
         return result.sorted { ($0.name,$0.pid) < ($1.name,$1.pid) }
@@ -66,7 +92,7 @@ private enum AdmissionReadFailure: LocalizedError {
             guard let f = fixture(app) else { throw AdmissionReadFailure.changed }
             return f
         }
-        guard scopedPID == nil || (app.bundle == "net.example.standard-documents" && app.launch == scopedStart), (!fixtureOnly || scopedPID == app.pid), (scopedPID == nil || scopedPID == app.pid), app.pid != getpid(), AdmissionBirth.read(app.pid)?.start == app.launch,
+        guard (!fixtureOnly || owners.contains(where: { $0.matches(pid: app.pid, launch: app.launch, bundle: app.bundle) })), app.pid != getpid(), AdmissionBirth.read(app.pid)?.start == app.launch,
               let running = NSRunningApplication(processIdentifier: app.pid), running.activationPolicy == .regular,
               running.bundleIdentifier == app.bundle, !running.isTerminated else { throw AdmissionReadFailure.changed }
         return nil

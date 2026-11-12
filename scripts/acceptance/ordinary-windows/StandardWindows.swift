@@ -25,7 +25,11 @@ for (name, target, flags) in [("requests", STDIN_FILENO,O_RDONLY),("reports",STD
     guard fd>=0, dup2(fd,target)>=0 else { exit(2) }; if fd != target { close(fd) }
 }
 let app = NSApplication.shared
+#if PALETTE_FIXTURE
+let regular = Bundle.main.bundleIdentifier == "net.example.standard-palette"
+#else
 let regular = Bundle.main.bundleIdentifier == "net.example.standard-documents"
+#endif
 guard regular,
       let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
       front != getpid(), !app.isActive, NSScreen.screens.count == 2,
@@ -67,8 +71,19 @@ var history = [UInt32]()
     w.isRestorable = false
     w.ignoresMouseEvents = true
     w.title = "Sample \(n)"
+    #if PALETTE_FIXTURE
+    // An independent drawing palette is eligible to share another app's Stage Manager set.
+    // The test still requires a standard layer-zero window and matching AX, CG and owner frames.
+    w.collectionBehavior = [.canJoinAllApplications]
+    let localChoice = NSPopUpButton()
+    localChoice.addItems(withTitles: ["Point", "Line", "Circle"])
+    let tools = NSStackView(views: [NSTextField(labelWithString: "Drawing tool"), localChoice])
+    tools.orientation = .vertical
+    w.contentView = tools
+    #else
     w.collectionBehavior = n == 1 ? [.primary] : [.auxiliary]
     w.contentView = NSTextField(labelWithString:"Blank sample \(n)")
+    #endif
     w.setFrame(rect, display:false)
     guard safe(), secondary.frame.contains(w.frame) else { finish("before display",2) }
     w.orderFrontRegardless()

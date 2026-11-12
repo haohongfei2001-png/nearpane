@@ -40,6 +40,33 @@ import NearpaneCore
         #expect(reader.safeguards(app).storedLayout == nil)
     }
 
+    @Test func mixedAcceptanceRequiresEachNamedExecutableAtItsOwnBundlePath() {
+        let docs = "Standard documents.app/Contents/MacOS/StandardWindows"
+        let palette = "Standard palette.app/Contents/MacOS/StandardPalette"
+        let stage = "/private/tmp/nearpane-standard-windows.Abc12098/"
+        func owner(_ kind: AdmissionFixtureOwner.Kind, _ bundle: String, _ path: String) -> AdmissionFixtureOwner? {
+            .init(kind: kind, pid: 90, launch: 100, bundle: bundle, resolvedExecutable: URL(fileURLWithPath: path))
+        }
+        #expect(owner(.documents, "net.example.standard-documents", stage + docs) != nil)
+        #expect(owner(.palette, "net.example.standard-palette", stage + palette) != nil)
+        #expect(owner(.palette, "net.example.standard-documents", stage + palette) == nil)
+        #expect(owner(.documents, "other.application", stage + docs) == nil)
+        #expect(owner(.palette, "net.example.standard-palette", stage + docs) == nil)
+        #expect(owner(.documents, "net.example.standard-documents", stage + docs + "-copy") == nil)
+        #expect(owner(.documents, "net.example.standard-documents", "/Applications/" + docs) == nil)
+        #expect(owner(.palette, "net.example.standard-palette", stage + "other/" + palette) == nil)
+    }
+
+    @Test func mixedAcceptanceDoesNotTransferGrantToReusedPIDOrAnotherApplication() throws {
+        let path = URL(fileURLWithPath: "/tmp/nearpane-standard-windows.Abc12098/Standard palette.app/Contents/MacOS/StandardPalette")
+        let owner = try #require(AdmissionFixtureOwner(kind: .palette, pid: 71, launch: 1234,
+                                                      bundle: "net.example.standard-palette", resolvedExecutable: path))
+        #expect(owner.matches(pid: 71, launch: 1234, bundle: "net.example.standard-palette"))
+        #expect(!owner.matches(pid: 71, launch: 1235, bundle: "net.example.standard-palette"))
+        #expect(!owner.matches(pid: 72, launch: 1234, bundle: "net.example.standard-palette"))
+        #expect(!owner.matches(pid: 71, launch: 1234, bundle: "net.example.standard-documents"))
+    }
+
     @Test func settledHistoryAndRecoveryStatusUseOneObservationEvenWhenEvidenceChanges() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)

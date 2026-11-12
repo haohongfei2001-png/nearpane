@@ -9,15 +9,23 @@ swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/admis
 swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/ordinary-windows/SystemReadback.swift -o "$out/observe"
 swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/ordinary-windows/ResourceCounters.swift -o "$out/counters"
 swiftc -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/ordinary-windows/StandardWindows.swift -o "$out/standard-windows"
-stage=$(mktemp -d /private/tmp/nearpane-standard-windows.XXXXXXXX)
-app="$stage/Standard documents.app"
-mkdir -p "$app/Contents/MacOS"
-cp "$out/standard-windows" "$app/Contents/MacOS/StandardWindows"
-python3 - "$app" <<'PY'
+swiftc -D PALETTE_FIXTURE -swift-version 5 -module-cache-path "$out/cache" scripts/acceptance/ordinary-windows/StandardWindows.swift -o "$out/standard-palette"
+package_fixture() {
+    local name="$1" identifier="$2" executable="$3" source="$4" path_file="$5"
+    local stage app
+    stage=$(mktemp -d /private/tmp/nearpane-standard-windows.XXXXXXXX)
+    app="$stage/$name.app"
+    mkdir -p "$app/Contents/MacOS"
+    cp "$source" "$app/Contents/MacOS/$executable"
+    python3 - "$app" "$name" "$identifier" "$executable" <<'PLIST'
 from pathlib import Path
 import plistlib,sys
-app = Path(sys.argv[1])
-(app/'Contents/Info.plist').write_bytes(plistlib.dumps(dict(CFBundlePackageType='APPL',CFBundleExecutable='StandardWindows', CFBundleIdentifier='net.example.standard-documents', CFBundleName='Standard documents', CFBundleVersion='1',LSUIElement=False,NSHighResolutionCapable=True)))
-PY
-codesign -fs - "$app"
-printf "%s\n" "$app" > "$out/fixture-path.txt"
+app, name, identifier, executable = sys.argv[1:]
+(Path(app)/'Contents/Info.plist').write_bytes(plistlib.dumps(dict(CFBundlePackageType='APPL', CFBundleExecutable=executable,
+    CFBundleIdentifier=identifier, CFBundleName=name, CFBundleVersion='1', LSUIElement=False, NSHighResolutionCapable=True)))
+PLIST
+    codesign -fs - "$app"
+    printf "%s\n" "$app" > "$path_file"
+}
+package_fixture "Standard documents" net.example.standard-documents StandardWindows "$out/standard-windows" "$out/fixture-path.txt"
+package_fixture "Standard palette" net.example.standard-palette StandardPalette "$out/standard-palette" "$out/palette-path.txt"

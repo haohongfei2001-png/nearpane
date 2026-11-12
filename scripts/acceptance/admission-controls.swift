@@ -78,7 +78,8 @@ if command == "read" {
 } else {
     let suffix = command.hasPrefix("admission-window-") ? String(command.dropFirst("admission-window-".count)) : ""
     let excluded = command.hasPrefix("ordinary-exclude-") ? String(command.dropFirst("ordinary-exclude-".count)) : ""
-    guard fixed.contains(command) || ((!profile || ordinary) && UInt32(suffix).map({String($0) == suffix}) == true)
+    let enrolledApp = command.hasPrefix("admission-ordinary-app-") ? String(command.dropFirst("admission-ordinary-app-".count)) : ""
+    guard fixed.contains(command) || (ordinary && Int32(enrolledApp).map { $0 > 1 && String($0) == enrolledApp } == true) || ((!profile || ordinary) && UInt32(suffix).map({String($0) == suffix}) == true)
             || (ordinary && UInt32(excluded).map({String($0) == excluded}) == true) else { stop("control not allowed") }
     if profile && (app.isActive || NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) { stop("unexpected activation") }
     let matches = nodes.filter { identifier($0) == command }

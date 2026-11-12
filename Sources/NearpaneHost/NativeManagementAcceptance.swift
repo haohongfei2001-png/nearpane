@@ -27,13 +27,18 @@ private final class PassiveManagementPanel: NSPanel {
         let admission = ProcessInfo.processInfo.environment["NEARPANE_ADMISSION_ACCEPTANCE"] == session.directory.lastPathComponent
         let env = ProcessInfo.processInfo.environment
         let trial = env["NEARPANE_ORDINARY_ACCEPTANCE"] == session.directory.lastPathComponent
-        var selectedPID: Int32?
-        var selectedStart: UInt64?
+        var owners = [AdmissionFixtureOwner]()
         if trial {
-            guard admission, !sizing, let raw = env["NEARPANE_ORDINARY_PID"], let pid = Int32(raw),
-                  let start = Self.birth(pid), Self.ownedStandardFixture(pid: pid), Self.birth(pid) == start else { throw CocoaError(.featureUnsupported) }
-            selectedStart = start
-            selectedPID = pid
+            guard admission, !sizing, let first = env["NEARPANE_ORDINARY_PID"] else { throw CocoaError(.featureUnsupported) }
+            var targets: [(String, AdmissionFixtureOwner.Kind)] = [(first, .documents)]
+            if let peer = env["NEARPANE_PALETTE_PID"] {
+                targets.append((peer, .palette))
+            }
+            for (raw, kind) in targets {
+                guard let pid = Int32(raw), pid > 1, !owners.contains(where: { $0.pid == pid }),
+                      let owner = Self.ownedStandardFixture(pid: pid, kind: kind) else { throw CocoaError(.featureUnsupported) }
+                owners.append(owner)
+            }
             manager.restrictOrdinaryAcceptance(to: display)
         }
         let originalSizes = host.configuration.displays[display] ?? .init()
@@ -56,7 +61,7 @@ private final class PassiveManagementPanel: NSPanel {
                 request: { _ in }, dismiss: { _ in }, initialMetric: moduleSizing ? .modulePadding : .reservedWidth,
                 stillCurrent: { SystemScreens.geometry().last == $0 }))
         } else {
-            let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission, ordinaryPID: selectedPID, ordinaryStart: selectedStart))
+            let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission, owners: owners))
             if admission { content.sizingOptions = [] }
             panel.contentView = content
         }
@@ -146,18 +151,17 @@ private final class PassiveManagementPanel: NSPanel {
               b.pbi_pid == UInt32(pid), b.pbi_uid == getuid() else { return nil }
         return b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec
     }
-    private static func ownedStandardFixture(pid: Int32) -> Bool {
-        guard pid > 1, let app = NSRunningApplication(processIdentifier: pid),
-              app.bundleIdentifier == "net.example.standard-documents", app.activationPolicy == .regular,
+    private static func ownedStandardFixture(pid: Int32, kind: AdmissionFixtureOwner.Kind) -> AdmissionFixtureOwner? {
+        guard let launch = birth(pid), let app = NSRunningApplication(processIdentifier: pid), app.activationPolicy == .regular,
               !app.isTerminated, let executable = app.executableURL?.resolvingSymlinksInPath(),
-              executable.path.range(of: #"^/(?:private/)?tmp/nearpane-standard-windows\.[a-zA-Z0-9]{8}/Standard documents\.app/Contents/MacOS/StandardWindows$"#,
-                                    options: .regularExpression) != nil else { return false }
+              let owner = AdmissionFixtureOwner(kind: kind, pid: pid, launch: launch, bundle: app.bundleIdentifier,
+                                                resolvedExecutable: executable) else { return nil }
         var guest: SecCode?, disk: SecStaticCode?, live: SecStaticCode?
         let flags = SecCSFlags()
         guard SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid as String: pid] as CFDictionary, flags, &guest) == errSecSuccess,
               let guest, SecCodeCheckValidity(guest, flags, nil) == errSecSuccess,
               SecCodeCopyStaticCode(guest, flags, &live) == errSecSuccess,
-              SecStaticCodeCreateWithPath(executable as CFURL, flags, &disk) == errSecSuccess else { return false }
+              SecStaticCodeCreateWithPath(executable as CFURL, flags, &disk) == errSecSuccess else { return nil }
         func digest(_ code: SecStaticCode?) -> Data? {
             guard let code else { return nil }
             var info: CFDictionary?
@@ -165,8 +169,8 @@ private final class PassiveManagementPanel: NSPanel {
                   let row = info as? [String:Any], row[kSecCodeInfoIdentifier as String] as? String == app.bundleIdentifier else { return nil }
             return row[kSecCodeInfoUnique as String] as? Data
         }
-        guard let identity = digest(live), !identity.isEmpty else { return false }
-        return identity == digest(disk)
+        guard let identity = digest(live), !identity.isEmpty, identity == digest(disk), birth(pid) == launch else { return nil }
+        return owner
     }
     func stop() { timer?.invalidate(); panel.orderOut(nil); panel.close() }
 }

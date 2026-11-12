@@ -109,18 +109,16 @@ private typealias ViewState<T> = State<T>
 public struct CandidateWorkRectView: View {
     let session: CandidateWorkRect, host: HostSession
     private let admissionFixtureOnly: Bool
-    private let ordinaryPID: Int32?
-    private let ordinaryStart: UInt64?
+    private let owners: [AdmissionFixtureOwner]
     private let previewExposure: SettingsPreviewExposure?
     @ViewState private var confirm = false
     @AppStorage("managementPairPercent") private var percent = 60
     @AppStorage("managementPairSwap") private var swap = false
 
-    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false, ordinaryPID: Int32? = nil, ordinaryStart: UInt64? = nil,
+    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false, owners: [AdmissionFixtureOwner] = [],
                 previewExposure: SettingsPreviewExposure? = nil) {
         self.previewExposure = previewExposure
-        self.ordinaryStart = ordinaryStart
-        self.ordinaryPID = ordinaryPID
+        self.owners = owners
         self.session = session
         self.host = host
         self.admissionFixtureOnly = admissionFixtureOnly
@@ -129,7 +127,7 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, scopedPID: ordinaryPID, scopedStart: ordinaryStart,
+                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, owners: owners,
                                         exposure: previewExposure)
                 Divider()
                 Text("随包兼容应用 · 自动管理").font(.headline)

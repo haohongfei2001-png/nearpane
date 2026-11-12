@@ -37,11 +37,12 @@ guard screens.count == 2, let side = screens.last,
 var output:[String:Any] = ["side":CFUUIDCreateString(nil,uuid) as String,"bounds":rect(CGDisplayBounds(display.uint32Value)),
                             "front":front,"focus":focusedNumber,"time":ProcessInfo.processInfo.systemUptime]
 let strings = Array(CommandLine.arguments.dropFirst())
+let fixtureApps = ["Standard documents.app":"net.example.standard-documents", "Standard palette.app":"net.example.standard-palette"]
 if strings.first == "launch" {
     guard strings.count == 3 else { die("launch parameters") }
     let url=URL(fileURLWithPath: strings[1])
-    guard url.path.hasPrefix("/private/tmp/nearpane-standard-windows."), url.lastPathComponent == "Standard documents.app",
-          let id=Bundle(url:url)?.bundleIdentifier, id == "net.example.standard-documents",
+    guard url.path.hasPrefix("/private/tmp/nearpane-standard-windows."), let expected = fixtureApps[url.lastPathComponent],
+          let id=Bundle(url:url)?.bundleIdentifier, id == expected,
           NSRunningApplication.runningApplications(withBundleIdentifier:id).isEmpty else { die("fixture scope") }
     let c=NSWorkspace.OpenConfiguration()
     c.activates=false; c.addsToRecentItems=false; c.createsNewApplicationInstance=true
@@ -66,7 +67,7 @@ if strings.first == "launch" {
 } else if !strings.isEmpty {
     guard strings.count >= 2, let pid = Int32(strings[0]),let app = NSRunningApplication(processIdentifier:pid),
           app.executableURL?.standardizedFileURL.path == URL(fileURLWithPath:strings[1]).standardizedFileURL.path,
-          let id = app.bundleIdentifier,id == "net.example.standard-documents"
+          let id = app.bundleIdentifier, let name = app.bundleURL?.lastPathComponent, fixtureApps[name] == id
     else { die("wrong subject") }
     var identity = proc_bsdinfo()
     let identityBytes = Int32(MemoryLayout.size(ofValue: identity))

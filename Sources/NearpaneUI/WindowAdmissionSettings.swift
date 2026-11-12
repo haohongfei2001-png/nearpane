@@ -247,20 +247,20 @@ enum AdmissionPlacement: String, CaseIterable {
     let host: HostSession
     let manager: CandidateWorkRect
     let fixtureOnly: Bool
-    let scopedPID: Int32?
+    let owners: [AdmissionFixtureOwner]
     @ViewState private var selection: AdmissionSelection
     @ViewState private var scenario = AdmissionPlacement.current
     @ViewState private var custom = false
     @ViewState private var ratio = 60
     @ViewState private var swap = false
 
-    init(host: HostSession, manager: CandidateWorkRect, fixtureOnly: Bool, scopedPID: Int32? = nil, scopedStart: UInt64? = nil,
+    init(host: HostSession, manager: CandidateWorkRect, fixtureOnly: Bool, owners: [AdmissionFixtureOwner] = [],
          exposure: SettingsPreviewExposure?) {
-        self.scopedPID = scopedPID
+        self.owners = owners
         self.host = host
         self.manager = manager
         self.fixtureOnly = fixtureOnly
-        let reader = WindowAdmissionReader(support: manager.support, fixtureOnly: fixtureOnly, scopedPID: scopedPID, scopedStart: scopedStart)
+        let reader = WindowAdmissionReader(support: manager.support, fixtureOnly: fixtureOnly, owners: owners)
         let scope = AdmissionSelection(reader: reader, exposure: exposure)
         scope.cancelOrdinaryPreview = { [weak manager] in manager?.ordinary.cancelPreview() }
         _selection = State(initialValue: scope)
@@ -303,7 +303,7 @@ enum AdmissionPlacement: String, CaseIterable {
             if fixtureOnly {
                 ForEach(selection.apps, id: \.pid) { app in
                     Button("\(app.name) · PID \(String(app.pid))") { Task { await selection.select(app) } }
-                        .accessibilityIdentifier(scopedPID == nil ? "admission-fixture-app" : "admission-ordinary-app")
+                        .accessibilityIdentifier(owners.isEmpty ? "admission-fixture-app" : "admission-ordinary-app" + (owners.count > 1 ? "-" + String(app.pid) : ""))
                 }
             } else {
                 Menu(selection.app.map { "\($0.name) · PID \($0.pid)" } ?? "选择应用…") {
