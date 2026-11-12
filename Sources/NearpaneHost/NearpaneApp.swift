@@ -120,7 +120,7 @@ struct NearpaneApp {
         if args.first == "--native-acceptance-shared-voice" {
             guard args.count == 2, let session = try? NativeAcceptanceSession(id: args[1], prepare: false) else { exit(2) }
             let app = NSApplication.shared
-            app.setActivationPolicy(.accessory)
+            app.setActivationPolicy(.prohibited)
             Task { @MainActor in
                 do { try await SharedVoiceReview.run(session); exit(0) }
                 catch { FileHandle.standardError.write(Data("Voice comparison failed: \(error)\n".utf8)); exit(3) }
