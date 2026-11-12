@@ -17,7 +17,8 @@ private typealias ViewState<T> = State<T>
             if !session.activeIDs.isEmpty {
                 ForEach(session.activeIDs, id: \.self) { id in
                     HStack {
-                        Text("窗口 #\(String(id.number)) · " + (session.verifiedIDs.contains(id) ? "布局已读回" : "待核对"))
+                        Text(session.managedWindowLabel(id) + " · " + (session.verifiedIDs.contains(id) ? "布局已读回" : "待核对"))
+                            .accessibilityIdentifier("ordinary-owner-\(id.number)")
                         Button("排除并停止管理") { perform { try await session.exclude(id, context: try current()) } }
                             .disabled(session.blocked).accessibilityIdentifier("ordinary-exclude-\(id.number)")
                     }.font(.caption)

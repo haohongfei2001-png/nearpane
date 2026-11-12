@@ -101,7 +101,7 @@ private actor OrdinaryWindowChannel {
             guard let id else { return .init(id: UUID(), number: nil, index: index + 1) }
             guard id.pid == app.pid, id.launch == app.launch, id.number != 0, next[id.element] == nil
             else { throw OrdinaryWindowFailure("无法核对窗口清单身份。") }
-            next[id.element] = handles[id.element] ?? OrdinaryWindowAX(id: id, bundle: app.bundle, channel: channel)
+            next[id.element] = handles[id.element] ?? OrdinaryWindowAX(id: id, application: app, channel: channel)
             return .init(id: id.element, number: id.number, index: index + 1)
         }
         handles = next
@@ -110,14 +110,15 @@ private actor OrdinaryWindowChannel {
 }
 
 @MainActor final class OrdinaryWindowAX {
-    let id: ManagedWindowID, bundle: String
+    let id: ManagedWindowID, bundle: String, applicationName: String
     private let channel: OrdinaryWindowChannel
     private var closed = false
     private(set) var lastWriteSteps = [OrdinaryWindowStep]()
 
-    fileprivate init(id: ManagedWindowID, bundle: String, channel: OrdinaryWindowChannel) {
+    fileprivate init(id: ManagedWindowID, application: AdmissionApplication, channel: OrdinaryWindowChannel) {
         self.id = id
-        self.bundle = bundle
+        self.bundle = application.bundle
+        self.applicationName = application.name
         self.channel = channel
     }
 

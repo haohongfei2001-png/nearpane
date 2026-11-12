@@ -7,6 +7,7 @@ import Testing
     let id = ManagedWindowID(pid: getpid(), launch: UInt64.random(in: 2000...UInt64.max),
                              number: UInt32.random(in: 100...UInt32.max), element: UUID())
     var bundle = "test.sample.ordinary"
+    var applicationName = "Sample"
     let token = UUID()
     let original = SurfaceRect(x: 20, y: 30, width: 100, height: 160)
     var frame = SurfaceRect(x: 20, y: 30, width: 100, height: 160)
@@ -69,6 +70,24 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func managedLabelsUseOnlyGrantedOwnersAndDisambiguateEqualApplicationNames() async throws {
+        let scope = OrdinaryScope(), manager = scope.manager(), first = WindowDouble(), second = WindowDouble()
+        second.applicationName = "sample"
+        second.bundle = "test.sample.palette"
+        let preview = try await manager.prepare([first, second], context: scope.context)
+        #expect(manager.managedWindowLabel(first.id) == "窗口 #\(first.id.number)")
+        try await manager.confirm(preview, context: scope.context)
+        let prior = (first.writes, second.writes)
+        #expect(manager.managedWindowLabel(first.id) == "Sample（test.sample.ordinary） · 窗口 #\(first.id.number)")
+        #expect(manager.managedWindowLabel(second.id) == "sample（test.sample.palette） · 窗口 #\(second.id.number)")
+        #expect((first.writes,second.writes) == prior)
+        try await manager.exclude(second.id, context: scope.context)
+        #expect(manager.managedWindowLabel(first.id) == "Sample · 窗口 #\(first.id.number)")
+        #expect(manager.managedWindowLabel(second.id) == "窗口 #\(second.id.number)")
+        try await manager.stop()
+        #expect(manager.managedWindowLabel(first.id) == "窗口 #\(first.id.number)")
+    }
+
     @Test func appExclusionRetiresOnlyItsMembersAndRespectsSpecificWindowRuleWhilePaused() async throws {
         let scope = OrdinaryScope(), m = scope.manager(), a = WindowDouble(), b = WindowDouble(), c = WindowDouble()
         a.bundle = "test.sample.another"

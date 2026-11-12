@@ -5,6 +5,7 @@ import Observation
 @MainActor protocol OrdinaryWindowObserving: AnyObject {
     var id: ManagedWindowID { get }
     var bundle: String { get }
+    var applicationName: String { get }
     func invalidate()
     var lastWriteSteps: [OrdinaryWindowStep] { get }
     func prepare() async throws -> AdmissionPair
@@ -82,6 +83,19 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     func report(_ error: Error) { message = error.localizedDescription }
+    /// Labels use the application metadata captured when the user selected this exact window.
+    func managedWindowLabel(_ id: ManagedWindowID) -> String {
+        let number = "窗口 #\(id.number)"
+        guard let owner = handles[id], let entry = entries[id], entry.bundle == owner.bundle else { return number }
+        let name = owner.applicationName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return "\(entry.bundle) · \(number)" }
+        let ambiguous = handles.values.contains { other in
+            other.bundle != entry.bundle && other.applicationName.trimmingCharacters(in: .whitespacesAndNewlines)
+                .localizedCaseInsensitiveCompare(name) == .orderedSame
+        }
+        let label = ambiguous && name != entry.bundle ? "\(name)（\(entry.bundle)）" : name
+        return "\(label) · \(number)"
+    }
     func cancelPreview() { previewRevision += 1; pending = nil }
 
     /// Accept at most one explicit request during a passive read. A changed selection, lost
