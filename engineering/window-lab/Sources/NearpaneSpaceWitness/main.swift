@@ -254,6 +254,23 @@ import WindowLab
     }
     return (pid, el)
   }
+  // AX window frames use global Quartz points. Only the display classification leaves this check.
+  func focusRegion(_ element: AXUIElement, secondary: NSScreen) -> String {
+    guard let display = secondary.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
+          let p = labAttribute(element, kAXPositionAttribute), let s = labAttribute(element, kAXSizeAttribute),
+          CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(s) == AXValueGetTypeID() else { return "unknown" }
+    let position = p as! AXValue, size = s as! AXValue
+    var point = CGPoint.zero, dimensions = CGSize.zero
+    guard AXValueGetType(position) == .cgPoint, AXValueGetType(size) == .cgSize,
+          AXValueGetValue(position, .cgPoint, &point), AXValueGetValue(size, .cgSize, &dimensions),
+          point.x.isFinite, point.y.isFinite, dimensions.width.isFinite, dimensions.height.isFinite,
+          dimensions.width > 0, dimensions.height > 0 else { return "unknown" }
+    let frame = CGRect(origin: point, size: dimensions)
+    if CGDisplayBounds(display.uint32Value).contains(frame) { return "secondary" }
+    if CGDisplayBounds(CGMainDisplayID()).intersects(frame) { return "protected-main" }
+    return "unknown"
+  }
+
   func sample(_ label: String) throws -> Position {
     try scope()
     guard let w = windows[label] else { throw Refusal("unknown window") }
@@ -505,6 +522,11 @@ import WindowLab
       app.setActivationPolicy(.accessory) && AXIsProcessTrusted(),
       "test GUI Accessibility unavailable")
     let original = try focusedWindow()
+    if consoleTrial {
+      let (secondary, _) = try screen()
+      try require(focusRegion(original.1, secondary: secondary) == "secondary",
+                  "starting the trial would leave protected or unlocated focus")
+    }
     initialFocus = original
     try writeJSON(["frontPID": original.0], dir, "initial-focus.json")
     gui = app
@@ -645,20 +667,34 @@ do {
     trial.announce("RUN " + trial.dir.path)
     struct CheckReceipt: Encodable {
       let run: UUID, outcome: String, reason: String?
+      let accessibilityTrusted: Bool, initialFocusAvailable: Bool?, initialFocusRegion: String?
       let windowsCreated = 0, inputsPosted = 0
+    }
+    var initialFocusAvailable: Bool?, initialFocusRegion: String?
+    func record(_ outcome: String, reason: String? = nil) throws {
+      try writeJSON(CheckReceipt(run: trial.run, outcome: outcome, reason: reason, accessibilityTrusted: AXIsProcessTrusted(),
+                                 initialFocusAvailable: initialFocusAvailable, initialFocusRegion: initialFocusRegion), trial.dir, "preflight.json")
     }
     do {
       try trial.scope()
       if trial.consoleTrial {
-        let (_, display) = try trial.screen()
+        let (secondary, display) = try trial.screen()
         _ = try trial.consoleEndpoint("A", display: display)
+        // Exercise the same read-only prerequisites as runTrial before reporting readiness.
+        // No prompt, enrollment, app activation or focus change occurs in check mode.
+        try require(AXIsProcessTrusted(), "frozen witness lacks Accessibility for the original focus check")
+        initialFocusAvailable = false
+        let (_, element) = try trial.focusedWindow()
+        initialFocusAvailable = true
+        let region = trial.focusRegion(element, secondary: secondary)
+        initialFocusRegion = region
+        try require(region == "secondary", "starting the trial would leave protected or unlocated focus")
       }
       let result = trial.consoleTrial ? "CONSOLE_SCOPE_ONLY" : "ISOLATED_GUI_CANDIDATE"
-      try writeJSON(CheckReceipt(run: trial.run, outcome: result, reason: nil), trial.dir, "preflight.json")
+      try record(result)
       trial.announce(result)
     } catch {
-      try writeJSON(CheckReceipt(run: trial.run, outcome: "REFUSED", reason: String(describing: error)),
-                    trial.dir, "preflight.json")
+      try record("REFUSED", reason: String(describing: error))
       throw error
     }
     exit(0)
