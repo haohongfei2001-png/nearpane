@@ -225,8 +225,8 @@
     },
     "saytileVoiceUI": {
       "repository": "haohongfei2001-png/saytile",
-      "commit": "c4adf967799c7faee90b70c74184b2e4179edc0e",
-      "treeSHA256": "06f843a3427be85229b9439027806853901ef8a020a06ed7f8c272f4227b2be5",
+      "commit": "3ad3e272be9d72e8d94fa407eedf982aa4878db4",
+      "treeSHA256": "d3bf57ca7044454df0aca179c33d982949879dfe010671f2414b36dc578a7935",
       "sources": [
         "Sources/SaytileVoiceUI"
       ],
@@ -238,10 +238,9 @@
       ],
       "files": {
         "Sources/SaytileKit/PanelEditTransaction.swift": "1513cf40cd6b6896a79a8d1fb5c1b893b646e22018d7b2d472b216a4d4306d74",
-        "Sources/SaytileVoiceUI/CompactTranscriptView.swift": "f6b22df125a441c88820fd72564a64018190e80ce49bf931bb4233687ba2631d",
+        "Sources/SaytileVoiceUI/CompactTranscriptView.swift": "6c40e36117822d108c7cc1ea357f95e0ef210fb4dca59c7b4d6a379e2b005238",
         "Sources/SaytileVoiceUI/PanelTimelineDocument.swift": "138bc0cd37bdaa44a2448d29290e7a754eb2c8eac476881e7b82be37e59fc2e6",
         "Sources/SaytileVoiceUI/ReferencePanelStyle.swift": "c6c74b5f1e9a4bd201241dfa186e6ec65089084df003d2ca4105a994058cb18b",
-        "Sources/SaytileVoiceUI/TranscriptScroller.swift": "3c0418646bce4f30de687d5d46f82f53bfebd86992151ca849b79a84b217c01c",
         "Sources/SaytileVoiceUI/VoiceCaptureGlyph.swift": "11fd566d2c9162fc6989b5642f1ea8128960e072aa5361ed40fe5e7f1395604b",
         "Sources/SaytileVoiceUI/VoiceRailProportions.swift": "61df18612ecb0e6d29f33cc436de5983ab57ee2fe604277333e06ff376c2e892",
         "Sources/SaytileVoiceUI/VoiceSurfacePanel.swift": "95d112f4ff166a1213d3f8829b443ef2c28022b379acfaae0a9783f2e8647a95",
