@@ -39,7 +39,6 @@ private struct EmbeddedEditorWindow {
         #expect(text.performKeyEquivalent(with: event))
     }
 
-    // Reading mode may add a civil-time header before the first selectable row.
     func visibleRowText() throws -> [String] {
         let scroll = try #require(text.enclosingScrollView as? CompactTranscriptScrollView<VoiceHistoryEntry>)
         let rendered = text.string as NSString
@@ -100,6 +99,31 @@ extension VoiceTests {
         #expect(restored.rows.count == 1 && restored.rows.first?.id == id && restored.transcript.isEmpty)
         restored.stop()
         await restored.waitForTransition()
+    }
+
+    @Test func separateDaysAndSpeechPausesPresentOneEditableSurface() async throws {
+        let path = directory()
+        defer { try? FileManager.default.removeItem(at: path) }
+        let store = try SaytileStore(directory: path)
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        for (offset, text) in [(0.0, "先说中文。"), (86_400, "Saytile"), (86_410, "works"), (86_420, "\n保留手动换行")] {
+            let row = try await store.createRecording(createdAt: start.addingTimeInterval(offset))
+            _ = try await store.saveEdit(recordingID: row.id, text: text)
+        }
+        let module = VoiceModule(openStore: { store }, makeInput: { _, callback in ScriptedInput(callback) })
+        try module.start()
+        await module.waitForTransition()
+        let window = try EmbeddedEditorWindow(module)
+        defer { window.close() }
+        let text = "先说中文。Saytile works\n保留手动换行"
+        #expect(window.text.string == text && module.transcript == text)
+        let selected = (text as NSString).range(of: "中文。Saytile")
+        window.text.setSelectedRange(selected)
+        #expect(window.text.string == text && window.text.selectedRange() == selected)
+        module.copyLatestGroup(snapshot: [:], to: window.board)
+        #expect(window.board.string(forType: .string) == "Saytile works\n保留手动换行")
+        module.stop()
+        await module.waitForTransition()
     }
 
     @Test func crossRecordingEditRejectsStaleHumanRevisionWithoutPartialWrites() async throws {

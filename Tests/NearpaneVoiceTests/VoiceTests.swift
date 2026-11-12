@@ -111,7 +111,7 @@ struct VoiceTests {
         _ = try await store.applyRecognition(ticket: next, text: "第二段", isFinal: false)
         try await store.failRecognition(ticket: next, message: "synthetic interruption")
         await module.refresh()
-        let expected = "原话🪴\n第二段"
+        let expected = "原话🪴第二段"
         #expect(module.transcript == expected)
         #expect(module.rows.last?.recognitionState == .failed)
         let pasteboard = NSPasteboard.withUniqueName()
@@ -327,7 +327,7 @@ extension VoiceTests {
         while board.string(forType: .string) == nil && ContinuousClock.now < deadline { await Task.yield() }
         let expected = (0..<63).compactMap { i -> String? in
             switch i { case 3: "读到的修订"; case 4: nil; default: "段\(i)" }
-        }.joined(separator: "\n")
+        }.joined()
         #expect(board.string(forType: .string) == expected)
         let next = try await store.createRecording(createdAt: base.addingTimeInterval(1000))
         _ = try await store.saveEdit(recordingID: next.id, text: "下一组")

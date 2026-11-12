@@ -11,7 +11,6 @@ public struct VoiceSurface: View {
     @StateObject private var access = PanelTranscriptAccess<VoiceHistoryEntry>()
     @ViewState private var selected = ""
     @ViewState private var reading = false
-    @ViewState private var idle = false
     @ViewState private var latestRequest = 0
     @ViewState private var editing: UUID?
     @ViewState private var draft = ""
@@ -24,16 +23,10 @@ public struct VoiceSurface: View {
 
     private var capture: VoicePanelCapture { module.control.surface(running: module.capture.isRunning) }
 
-    private func document(_ history: VoiceHistoryProjection) -> PanelTimelineDocument<VoiceHistoryEntry> {
-        PanelTimelineDocument(entries: history.entries, tailGroup: history.entries.last?.group,
-                              idle: idle && module.capture != .speaking, reading: reading,
-                              older: module.hasEarlier)
-    }
-
     public var body: some View {
         let history = module.history
         let empty = history.entries.allSatisfy { $0.displayText.isEmpty }
-        VoiceSurfacePanel(document: document(history), access: access, capture: capture,
+        VoiceSurfacePanel(document: history.document, access: access, capture: capture,
             canCopy: !selected.isEmpty || !history.copyText.isEmpty, selectedText: selected,
             onCopy: {
                 let selection = access.view?.selectionSnapshot ?? ""
@@ -52,20 +45,12 @@ public struct VoiceSurface: View {
             onEdit: empty ? nil : { @MainActor in editSelection() },
             applyEdits: { edits in
                 try module.applyPanelEdits(edits)
-                return document(module.history)
+                return module.history.document
             },
             notice: module.panelEditIssue ?? module.issue ?? module.insertionNotice,
             placeholder: empty ? (module.capture == .paused ? "点右下角，开始说话。" : "说一句话试试。") : nil,
             captureDisabled: module.busy || !module.active) { secondaryActions }
             .onAppear { access.view?.transcriptView.commandPasteboard = pasteboard }
-            .task(id: history.idleDeadline) {
-                guard let deadline = history.idleDeadline else { idle = false; return }
-                let remaining = deadline.timeIntervalSinceNow
-                idle = remaining <= 0
-                if remaining > 0 {
-                    do { try await Task.sleep(for: .seconds(remaining)); idle = true } catch {}
-                }
-            }
             .popover(isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
                 if let id = editing {
                     VStack(alignment: .leading) {

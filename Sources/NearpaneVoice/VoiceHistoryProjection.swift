@@ -16,10 +16,10 @@ struct VoiceHistoryEntry: GroupedVoiceTranscriptEntry {
 struct VoiceHistoryProjection: Equatable {
     static let idleInterval: TimeInterval = 120
     let entries: [VoiceHistoryEntry]
-    let idleDeadline: Date?
+    let document: PanelTimelineDocument<VoiceHistoryEntry>
     let copyText: String
 
-    init(_ rows: [Recording] = [], startPosition: Int = 0, calendar: Calendar = .current) {
+    init(_ rows: [Recording] = [], startPosition: Int = 0, hasEarlier: Bool = false, calendar: Calendar = .current) {
         var entries: [VoiceHistoryEntry] = []
         var group = Int64(startPosition)
         var start = Date.distantPast
@@ -40,7 +40,7 @@ struct VoiceHistoryProjection: Equatable {
             previous = row
         }
         self.entries = entries
-        idleDeadline = previous.map { $0.createdAt.addingTimeInterval(max(0, $0.duration) + Self.idleInterval) }
-        copyText = entries.filter { $0.group == group && !$0.displayText.isEmpty }.map(\.displayText).joined(separator: "\n")
+        document = PanelTimelineDocument(entries: entries, older: hasEarlier)
+        copyText = VoiceTranscriptFlow.join(entries.filter { $0.group == group }.map(\.displayText))
     }
 }

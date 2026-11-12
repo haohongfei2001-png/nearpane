@@ -121,7 +121,7 @@ public final class VoiceModule: HostModule {
     private(set) var rows: [Recording] = []
     private(set) var hasEarlier = false
     private(set) var issue: String?
-    public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
+    public var transcript: String { VoiceTranscriptFlow.join(rows.map(\.text)) }
 
     public convenience init(directory: URL, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false, allowManualInsertion: Bool = false) {
         let credentials = allowAPISettings && !requireExistingPermissions
@@ -313,8 +313,8 @@ public final class VoiceModule: HostModule {
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
             let start = max(0, count - result.count)
-            if ordered != rows || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
-                history = VoiceHistoryProjection(ordered, startPosition: start)
+            if ordered != rows || hasEarlier != (count > result.count) || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
+                history = VoiceHistoryProjection(ordered, startPosition: start, hasEarlier: count > result.count)
                 rows = ordered
                 acceptanceEvent?("voiceRows")
             }
@@ -332,7 +332,7 @@ public final class VoiceModule: HostModule {
             // A read admitted before this synchronous commit may finish afterwards.
             refreshID += 1
             rows = saved
-            history = VoiceHistoryProjection(saved, startPosition: start)
+            history = VoiceHistoryProjection(saved, startPosition: start, hasEarlier: hasEarlier)
             panelEditIssue = nil
             acceptanceEvent?("userEdit")
             didPublish(generation)
@@ -399,7 +399,7 @@ public final class VoiceModule: HostModule {
         guard active, let tail = rows.last, let group = history.entries.last?.group else { return }
         let members = history.entries.filter { $0.group == group }
         if !hasEarlier || members.count < rows.count {
-            let text = members.map { displayed[$0.id] ?? $0.displayText }.filter { !$0.isEmpty }.joined(separator: "\n")
+            let text = VoiceTranscriptFlow.join(members.map { displayed[$0.id] ?? $0.displayText })
             if !text.isEmpty { pasteboard.clearContents(); pasteboard.setString(text, forType: .string) }
             return
         }
@@ -409,10 +409,11 @@ public final class VoiceModule: HostModule {
         let change = pasteboard.changeCount
         Task {
             do {
-                let text = try await withPanelRead { store in
-                    try await store.nearpaneGroupText(through: tail.id, snapshot: snapshot,
+                let segments = try await withPanelRead { store in
+                    try await store.nearpaneGroupSegments(through: tail.id, snapshot: snapshot,
                                                       idleInterval: VoiceHistoryProjection.idleInterval)
                 }
+                let text = VoiceTranscriptFlow.join(segments)
                 guard active, epoch == generation, !text.isEmpty, change == pasteboard.changeCount else { return }
                 pasteboard.clearContents()
                 pasteboard.setString(text, forType: .string)

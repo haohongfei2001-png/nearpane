@@ -82,7 +82,7 @@ struct IntegratedHostTests {
         await host.start(); await domains.voice.waitForTransition()
         #expect(host.registry.states[BuiltinCatalog.voice] == .resident && host.registry.states[BuiltinCatalog.screenshots] == .resident)
         #expect(!domains.tray.connected && !domains.tray.collectionEnabled && !domains.tray.mayAttach)
-        #expect(domains.voice.transcript == firstLine + "\n" + secondLine)
+        #expect(domains.voice.transcript == firstLine + secondLine)
         await domains.tray.connect()
         try #require(domains.tray.connected && domains.tray.captureEntry)
         let queue = domains.tray.rows.map(\.id)
@@ -98,7 +98,7 @@ struct IntegratedHostTests {
         #expect(host.handle(.setEnabled(BuiltinCatalog.voice, true)) == .accepted)
         await domains.voice.waitForTransition()
         #expect(await domains.voice.editText(id) == draft)
-        #expect(domains.voice.transcript == "已校对的原话。\n" + secondLine)
+        #expect(domains.voice.transcript == "已校对的原话。" + secondLine)
         host.setPlacement(edge: .left, displayID: "fixture-display")
         await host.selectFixture(.threeDisplays)
         let target = DesktopTarget(sessionID: UUID(), revision: 1, runtimeID: "fixture-only")
@@ -213,7 +213,7 @@ struct IntegratedHostTests {
             let order = domains.tray.rows.map(\.id)
             if initialOrder == nil { initialOrder = order }
             #expect(Set(order) == ids && order == initialOrder)
-            #expect(domains.voice.transcript == [firstLine, secondLine].joined(separator: "\n"))
+            #expect(domains.voice.transcript == firstLine + secondLine)
             #expect(domains.voice.capture == .paused && !domains.tray.mayAttach && !domains.tray.collectionEnabled)
             #expect(try fixtureDescriptorCount() > 0)
             #expect(throws: LibraryError.busy) { try ExistingLibrary.open(trayRoot) }
@@ -391,7 +391,7 @@ struct IntegratedHostTests {
             let current = try await domains.voice.withPanelRead { $0 }
             #expect(current === store && domains.voice.capture == .paused)
             #expect(await domains.voice.editText(recording) == draft)
-            #expect(domains.voice.transcript == [edited, secondLine].joined(separator: "\n"))
+            #expect(domains.voice.transcript == edited + secondLine)
             #expect(domains.tray.visibleIDs == order && domains.tray.collectionEnabled && !domains.tray.mayAttach)
             #expect(throws: LibraryError.busy) { try ExistingLibrary.open(root.appendingPathComponent("Riftlet")) }
             #expect(await watcher.starts == 1)
