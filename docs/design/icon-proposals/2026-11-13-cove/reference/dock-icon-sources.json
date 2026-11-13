@@ -1,0 +1,200 @@
+[
+  {
+    "application": "Things 3",
+    "app_store_id": 904280696,
+    "source_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/d2/3f/be/d23fbe94-1436-69fe-2661-5f4b2ad745f0/AppIcon-0-0-85-220-0-0-6-0-2x.png/512x512bb.png",
+    "official_listing_url": "https://apps.apple.com/us/app/things-3/id904280696?mt=12&uo=4",
+    "retrieved_at_utc": "2026-11-13T06:46:35.584816+00:00",
+    "local_path": "/workspace/scratch/6c577159803a/nearpane-icon-work/research/dock-icons/things-3.png",
+    "format": "PNG",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "corner_rgba": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256": "276735e4f1bcd25bebf1a84d8d0c82db3751b4a6c227b351fda53b0273a8dba1",
+    "source_type": "Apple App Store official artworkUrl512 API field; Mac software listing",
+    "modifications": "none",
+    "alpha_128_bbox": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "visual_inspection": {
+      "status": "passed",
+      "notes": "Recognizable official icon; transparent corners; no separate presentation frame; checked full view and 64px contact-sheet preview."
+    }
+  },
+  {
+    "application": "Slack for Desktop",
+    "app_store_id": 803453959,
+    "source_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/7f/67/17/7f671789-d087-288e-bac2-4e74f3a40ae4/electron.png/512x512bb.png",
+    "official_listing_url": "https://apps.apple.com/us/app/slack-for-desktop/id803453959?mt=12&uo=4",
+    "retrieved_at_utc": "2026-11-13T06:46:35.511547+00:00",
+    "local_path": "/workspace/scratch/6c577159803a/nearpane-icon-work/research/dock-icons/slack.png",
+    "format": "PNG",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "corner_rgba": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256": "0f3997a75f79015e44382954b97d8f491312531f45fce56a21d81f405edb91aa",
+    "source_type": "Apple App Store official artworkUrl512 API field; Mac software listing",
+    "modifications": "none",
+    "alpha_128_bbox": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "visual_inspection": {
+      "status": "passed",
+      "notes": "Recognizable official icon; transparent corners; no separate presentation frame; checked full view and 64px contact-sheet preview."
+    }
+  },
+  {
+    "application": "Bear: Markdown Notes & Journal",
+    "app_store_id": 1091189122,
+    "source_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/68/b6/33/68b63360-c8e2-aac0-597c-5484d684117f/AppIcon-26-0-0-85-220-0-0-6-0-2x-sRGB-0-0-0.png/512x512bb.png",
+    "official_listing_url": "https://apps.apple.com/us/app/bear-markdown-notes-journal/id1091189122?mt=12&uo=4",
+    "retrieved_at_utc": "2026-11-13T06:46:35.604484+00:00",
+    "local_path": "/workspace/scratch/6c577159803a/nearpane-icon-work/research/dock-icons/bear.png",
+    "format": "PNG",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "corner_rgba": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256": "524e62b2ca1e087064afba5fd7763ffe47ad59c7a3a627700742532a90c514d2",
+    "source_type": "Apple App Store official artworkUrl512 API field; Mac software listing",
+    "modifications": "none",
+    "alpha_128_bbox": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "visual_inspection": {
+      "status": "passed",
+      "notes": "Recognizable official icon; transparent corners; no separate presentation frame; checked full view and 64px contact-sheet preview."
+    }
+  },
+  {
+    "application": "Pixelmator Pro",
+    "app_store_id": 1289583905,
+    "source_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/a1/e9/19/a1e91908-afba-6b30-d789-b03300253ab2/AppIcon-0-0-85-220-0-0-5-0-2x-0-0-0.png/512x512bb.png",
+    "official_listing_url": "https://apps.apple.com/us/app/pixelmator-pro/id1289583905?mt=12&uo=4",
+    "retrieved_at_utc": "2026-11-13T06:46:35.604402+00:00",
+    "local_path": "/workspace/scratch/6c577159803a/nearpane-icon-work/research/dock-icons/pixelmator-pro.png",
+    "format": "PNG",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "corner_rgba": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256": "287ecb189f75a998b5a8d34e33b6b1f33ab5d1c7fda2322c492894e63808720f",
+    "source_type": "Apple App Store official artworkUrl512 API field; Mac software listing",
+    "modifications": "none",
+    "alpha_128_bbox": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "visual_inspection": {
+      "status": "passed",
+      "notes": "Recognizable official icon; transparent corners; no separate presentation frame; checked full view and 64px contact-sheet preview."
+    }
+  },
+  {
+    "application": "BBEdit",
+    "app_store_id": 404009241,
+    "source_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/fb/e5/cc/fbe5cc4d-6b90-87d9-1641-52caa7b4edaa/BBEditApplication-0-0-85-220-0-0-6-0-2x.png/512x512bb.png",
+    "official_listing_url": "https://apps.apple.com/us/app/bbedit/id404009241?mt=12&uo=4",
+    "retrieved_at_utc": "2026-11-13T06:46:41.985643+00:00",
+    "local_path": "/workspace/scratch/6c577159803a/nearpane-icon-work/research/dock-icons/bbedit.png",
+    "format": "PNG",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "corner_rgba": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256": "145ecdb0564b3b9436614f580241be06013f965175d39fbd2d6e6b10726797d6",
+    "source_type": "Apple App Store official artworkUrl512 API field; Mac software listing",
+    "modifications": "none",
+    "alpha_128_bbox": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "visual_inspection": {
+      "status": "passed",
+      "notes": "Recognizable official icon; transparent corners; no separate presentation frame; checked full view and 64px contact-sheet preview."
+    }
+  },
+  {
+    "application": "Todoist: To-Do List & Calendar",
+    "app_store_id": 585829637,
+    "source_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/e8/78/f8/e878f8cc-30da-8e12-cb30-b0316da470dd/AppIcon-0-0-85-220-0-0-6-0-2x.png/512x512bb.png",
+    "official_listing_url": "https://apps.apple.com/us/app/todoist-to-do-list-calendar/id585829637?mt=12&uo=4",
+    "retrieved_at_utc": "2026-11-13T06:46:41.990134+00:00",
+    "local_path": "/workspace/scratch/6c577159803a/nearpane-icon-work/research/dock-icons/todoist.png",
+    "format": "PNG",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "corner_rgba": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sha256": "5f1e13550d9f85daa9aee9da2daaab9b376d61a8523874a6e8639d4c795cbf53",
+    "source_type": "Apple App Store official artworkUrl512 API field; Mac software listing",
+    "modifications": "none",
+    "alpha_128_bbox": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "visual_inspection": {
+      "status": "passed",
+      "notes": "Recognizable official icon; transparent corners; no separate presentation frame; checked full view and 64px contact-sheet preview."
+    }
+  }
+]

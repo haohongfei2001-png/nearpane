@@ -1,0 +1,14 @@
+{
+  "id": "A",
+  "folder": "A_Cove",
+  "name": "Cove",
+  "name_zh": "回湾",
+  "principle": "单一完整实体，开放的弯曲切隙",
+  "optical_offset": [
+    -12,
+    2
+  ],
+  "components": 1,
+  "recommendation": "Preferred candidate, not approved brand authority",
+  "risk": "可能读成鸟首、山路或户外品牌；白色切隙尖端在16px被简化。"
+}

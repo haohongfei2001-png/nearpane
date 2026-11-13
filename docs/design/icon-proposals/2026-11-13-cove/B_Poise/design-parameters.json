@@ -1,0 +1,14 @@
+{
+  "id": "B",
+  "folder": "B_Poise",
+  "name": "Poise",
+  "name_zh": "相依",
+  "principle": "两块不等质量的曲面，约3.9:1的主从关系",
+  "optical_offset": [
+    24,
+    -8
+  ],
+  "components": 2,
+  "area_ratio_approx": 3.9,
+  "risk": "种子、植物或引号联想较强；缺乏A的单一整体记忆。"
+}

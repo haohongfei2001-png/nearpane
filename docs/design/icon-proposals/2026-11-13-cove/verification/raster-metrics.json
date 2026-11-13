@@ -1,0 +1,82 @@
+{
+  "scope": "measured raster/vector properties, not trademark or perceptual proof",
+  "candidates": {
+    "A": {
+      "path_count": 1,
+      "filled_area_vector_units": 206493.6721871771,
+      "raster_components": {
+        "16": {
+          "component_count": 1,
+          "component_areas_pixels": [
+            51
+          ]
+        },
+        "32": {
+          "component_count": 1,
+          "component_areas_pixels": [
+            209
+          ]
+        },
+        "64": {
+          "component_count": 1,
+          "component_areas_pixels": [
+            807
+          ]
+        }
+      }
+    },
+    "B": {
+      "path_count": 2,
+      "filled_area_vector_units": 203303.53641791522,
+      "raster_components": {
+        "16": {
+          "component_count": 2,
+          "component_areas_pixels": [
+            40,
+            11
+          ]
+        },
+        "32": {
+          "component_count": 2,
+          "component_areas_pixels": [
+            162,
+            41
+          ]
+        },
+        "64": {
+          "component_count": 2,
+          "component_areas_pixels": [
+            628,
+            161
+          ]
+        }
+      }
+    },
+    "C": {
+      "path_count": 1,
+      "filled_area_vector_units": 222463.35052129813,
+      "raster_components": {
+        "16": {
+          "component_count": 1,
+          "component_areas_pixels": [
+            57
+          ]
+        },
+        "32": {
+          "component_count": 1,
+          "component_areas_pixels": [
+            224
+          ]
+        },
+        "64": {
+          "component_count": 1,
+          "component_areas_pixels": [
+            869
+          ]
+        }
+      }
+    }
+  },
+  "old_orange_line_width_at_16_original_px": 0.75,
+  "normalized_max_extent": 610
+}

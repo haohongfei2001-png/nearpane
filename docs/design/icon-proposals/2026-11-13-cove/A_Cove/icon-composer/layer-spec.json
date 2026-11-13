@@ -1,0 +1,17 @@
+{
+  "status": "import-ready source, not compiled .icon",
+  "canvas": [
+    1024,
+    1024
+  ],
+  "background": {
+    "light": "#F7F8FA",
+    "dark": "#24272D",
+    "set_in": "Icon Composer, full bleed, system mask"
+  },
+  "foreground": "01-symbol.svg",
+  "default_fill": "#EB5D3B",
+  "dark_fill": "#FF7955",
+  "mono_fill": "system primary",
+  "effects": "Start fully opaque. No imported shadow, blur or specular highlight. Preview effects in Icon Composer before shipping."
+}

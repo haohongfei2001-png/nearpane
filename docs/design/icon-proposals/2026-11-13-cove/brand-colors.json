@@ -1,0 +1,20 @@
+{
+  "profile": "sRGB IEC61966-2.1",
+  "primary": {
+    "name": "Nearpane Vermilion - proposed",
+    "hex": "#EB5D3B",
+    "rgb": [
+      235,
+      93,
+      59
+    ]
+  },
+  "small_light": "#DD4C2E",
+  "dark_foreground": "#FF7955",
+  "ink": "#16191E",
+  "light_surface": "#F7F8FA",
+  "dark_surface": "#24272D",
+  "enamel_top": "#F66B47",
+  "enamel_base": "#E65334",
+  "approved": false
+}

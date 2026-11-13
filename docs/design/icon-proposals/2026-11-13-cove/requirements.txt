@@ -1,0 +1,3 @@
+Pillow
+svgpathtools
+# Also install Inkscape CLI for rendering.
