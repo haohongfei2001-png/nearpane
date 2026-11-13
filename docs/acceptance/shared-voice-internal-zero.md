@@ -87,3 +87,14 @@ In [native job 131654963266](https://github.com/haohongfei2001-png/nearpane/acti
 A controlled test started the lock child's handshake immediately after publication and delayed the child's ready byte by 2.35 seconds. The voice test alone passed in 0.124 seconds. With the old synchronous pipe read, the voice assertion failed after 2.424 seconds and the lock check passed after 2.428 seconds. Moving the read and child exit wait off the main actor let the voice test pass after 0.120 seconds under the same delay. The lock check still passed after 2.488 seconds.
 
 Both tests retain their original assertions, including the two-second transcript deadline, exact text, row count, paused state, unopened microphone, lock exclusion, and reacquisition. The exit status is now checked too. With the diagnostic handshake removed, the complete parallel offline suite passed all 319 tests. All data in this experiment came from isolated fixtures.
+
+### Saytile 内测 0.9 · 紧凑语音板
+
+Nearpane 从 Saytile 的同一提交引入紧凑语音板。72 × 44 逻辑点的最小板内，播放三角、待命圆点和音量竖条共用居中的单个收音控件。边框开关决定玻璃轮廓是否可见。独立窗口的拖动、缩放、展开和位置记忆由 Saytile 管理，Nearpane 继续使用侧栏宿主。[共享源码](https://github.com/haohongfei2001-png/saytile/tree/3ce0cf56f07813031ba602eb18993103860291d0/Sources/SaytileVoiceUI)
+
+| 本机 Apple Silicon 验证 | 结果 |
+| --- | --- |
+| 离线依赖解析与缓存完整性 | PASS · 6/6，固定文件校验通过，语音引擎 93 个、共享视图 10 个、托盘 78 个 |
+| 桌面会话运行完整并行原生测试，使用隔离资料 | PASS · 52 组 319/319，含语音编辑、托盘、Spaces 和宿主生命周期 |
+| 同一测试在受限沙盒中的预跑 | BLOCKED · 系统服务连接受限，测试进程收到 signal 5 |
+| 此提交的 Nearpane 安装和宿主原生视觉比对 | NOT_RUN |

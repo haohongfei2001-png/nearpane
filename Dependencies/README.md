@@ -6,7 +6,7 @@
 | --- | ---: | --- |
 | [Saytile](https://github.com/haohongfei2001-png/saytile/tree/2bd114f526013e6ccb422a26e17f4514e9d63836) | 93 | `5c65697b855ae9ec74e3d4b073df3cc6e5481e8c84448c10706dedbc30502ff5` |
 | [Riftlet](https://github.com/haohongfei2001-png/Riftlet/tree/5c0e3da8ae2339910321fa9211dc6c5d6d6a3a7d) | 78 | `7d8e3c7058a20eeb848c4827370c82bb086d1eb1239a9380054c55a01fa4dd26` |
-| [Saytile Voice UI](https://github.com/haohongfei2001-png/saytile/tree/c331ecb2b62dd4a21d0088ccca96ea3564d1641e/Sources/SaytileVoiceUI) | 10 | `6d38fbc6c74fa70673950bb6206c52154ea64432be2180981fbdf7adb3e6eb64` |
+| [Saytile Voice UI](https://github.com/haohongfei2001-png/saytile/tree/3ce0cf56f07813031ba602eb18993103860291d0/Sources/SaytileVoiceUI) | 10 | `0e9321ecffcdfc78e72517db477de4907e1053928b5028b35378cd287147b053` |
 
 Saytile 的提交包含既定的单 ASR 专家和 GPT-6 核心。Riftlet 的提交提供 SQLite 队列、截图、转移和回执。Host 的两个 SQLite 模块声明须逐字节相同。语音面板、TextKit 文稿、玻璃样式和状态图形来自独立锁定的 SaytileVoiceUI；升级视图时可以保留现有 SQLite、录音与识别引擎的锁。
 
