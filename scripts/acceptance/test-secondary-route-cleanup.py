@@ -259,7 +259,7 @@ class RouteCleanup(unittest.TestCase):
         self.set_sole_display()
         self.assert_cleanup()
         s = self.session
-        with patch.object(route, "utcnow", return_value=s.start), patch.object(route.sp, "run") as run:
+        with patch.object(route, "utcnow", return_value=s.start), patch.object(route.sp, "run", return_value=Mock(returncode=0)) as run:
             route.Session.panel(s, "remove")
             cmd = run.call_args.args[0]
             self.assertEqual(cmd[1:4], ["--current-display", SECONDARY, "10"])
@@ -291,10 +291,24 @@ class RouteCleanup(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "insufficient time"):
                 route.Session.panel(s, "create")
             run.assert_not_called()
-        with patch.object(route, "utcnow", return_value=cutoff - dt.timedelta(seconds=31)), patch.object(route.sp, "run") as run:
+        with patch.object(route, "utcnow", return_value=cutoff - dt.timedelta(seconds=31)), patch.object(route.sp, "run", return_value=Mock(returncode=0)) as run:
             route.Session.panel(s, "create")
             self.assertEqual(run.call_args.args[0][4], cutoff.strftime(route.STAMP))
             self.assertEqual(run.call_args.kwargs["env"]["NEARPANE_PRIMARY_OVERVIEW_UNTIL"], cutoff.strftime(route.STAMP))
+
+    def test_panel_reports_fixture_and_observer_refusals_and_stops(self):
+        s = self.session
+        s.args.kit = self.prior
+        s.args.allow_primary_overview = True
+        def refused(command, *, stdout, stderr, env):
+            stdout.write(b'{"event":"refused","reason":"fixture refused"}\n'
+                         b'{"event":"externalRefusal","reason":"original focus not verified"}\n')
+            return Mock(returncode=2)
+        with patch.object(route, "utcnow", return_value=s.start), patch.object(route.sp, "run", side_effect=refused) as run:
+            with self.assertRaisesRegex(ValueError, "observe: fixture refused / original focus not verified"):
+                route.Session.panel(s, "observe")
+            run.assert_called_once()
+        self.assertFalse((s.out / "complete.json").exists())
 
     def setup_unlaunched_route(self):
         s = self.session
@@ -408,6 +422,31 @@ class BlankTargetCalibration(unittest.TestCase):
 
     def calibrate(self):
         self.session.calibrate("enroll-B", self.root, self.run, self.child)
+
+    def test_inactive_original_desktop_blocks_before_route_witness(self):
+        now = route.utcnow()
+        s = self.session
+        s.end = now + dt.timedelta(minutes=5)
+        s.provisioned = pair(1, ["10", "11"], ["10", "11"])
+        observation = dict(event="focusHome", pid=42, birth="123", window=99, display=PRIMARY, desktop="1")
+        with patch.object(route.sp, "run", return_value=Mock(returncode=0, stdout=json.dumps(observation))), \
+             patch.object(route.sp, "Popen") as spawn:
+            with self.assertRaisesRegex(ValueError, "original focus belongs to a different desktop"):
+                s.rounds()
+            spawn.assert_not_called()
+        self.assertFalse((s.out / "witness.log").exists())
+
+    def test_focus_checkpoint_compares_window_and_process_generation(self):
+        s = self.session
+        s.provisioned = pair(1, ["10", "11"], ["10", "11"])
+        observation = dict(event="focusHome", pid=42, birth="123", window=99, display=PRIMARY, desktop="2")
+        def read_home(tag, **updates):
+            with patch.object(route.sp, "run", return_value=Mock(returncode=0, stdout=json.dumps(dict(observation, **updates)))):
+                return s.route_focus_home(tag)
+        anchor = read_home("before")
+        self.assertEqual(anchor, read_home("stable"))
+        self.assertNotEqual(anchor, read_home("recreated", birth="124"))
+        self.assertNotEqual(anchor, read_home("changed-window", window=100))
 
     def test_clear_target_reaches_one_calibration_after_double_occupancy_read(self):
         with patch.object(route.sp, "run", return_value=Mock(returncode=0, stdout=json.dumps(self.proof))) as call:

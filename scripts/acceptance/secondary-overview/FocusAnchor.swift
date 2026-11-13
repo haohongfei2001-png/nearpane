@@ -35,6 +35,8 @@ struct FocusAnchor {
   let number: UInt32
   let axFrame: CGRect
   let cgFrame: CGRect
+  let homeDisplay: String
+  let homeDesktop: UInt64
 
   init() throws {
     let (pid, focused) = try currentFocus()
@@ -51,7 +53,37 @@ struct FocusAnchor {
     self.number = number
     axFrame = ax
     cgFrame = cg
+    let screens = NSScreen.screens.compactMap { screen -> String? in
+      guard let display = (screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value,
+            CGDisplayIsInMirrorSet(display) == 0, CGDisplayBounds(display).contains(ax),
+            CGDisplayBounds(display).contains(cg),
+            let uuid = CGDisplayCreateUUIDFromDisplayID(display)?.takeRetainedValue() else { return nil }
+      return CFUUIDCreateString(nil, uuid) as String
+    }
+    guard screens.count == 1, let display = screens.first,
+          let desktop = Self.currentHome(number, display) else {
+      throw Refusal("original focused window is not proven on its display's current ordinary desktop")
+    }
+    homeDisplay = display
+    homeDesktop = desktop
     guard isIntact && isFocused else { throw Refusal("original focus changed at enrollment") }
+  }
+
+  static func currentHome(_ number: UInt32, _ display: String) -> UInt64? {
+    guard let scopes = NPReadInventory() as? [[String: Any]],
+          let memberships = NPReadWindowSpaces(number) as? [NSNumber] else { return nil }
+    return homeDesktopID(in: scopes, display: display, memberships: memberships)
+  }
+
+  static func homeDesktopID(in scopes: [[String: Any]], display: String, memberships: [NSNumber]) -> UInt64? {
+    let matched = scopes.filter { $0["Display Identifier"] as? String == display }
+    guard matched.count == 1, let scope = matched.first,
+          let current = (scope["Current Space"] as? [String: Any])?["id64"] as? NSNumber,
+          current.uint64Value > 0, current.stringValue == String(current.uint64Value),
+          memberships == [current], let records = scope["Spaces"] as? [[String: Any]] else { return nil }
+    let recordsForCurrent = records.filter { $0["id64"] as? NSNumber == current }
+    guard recordsForCurrent.count == 1, recordsForCurrent[0]["type"] as? Int == 0 else { return nil }
+    return current.uint64Value
   }
 
   static func geometry(_ number: UInt32, _ pid: pid_t) -> CGRect? {
@@ -66,7 +98,7 @@ struct FocusAnchor {
 
   var logicalFrameIntact: Bool {
     !owner.isTerminated && owner.launchDate == birth && NPReadAXWindowNumber(element) == number
-      && frame(element) == axFrame
+      && frame(element) == axFrame && Self.currentHome(number, homeDisplay) == homeDesktop
   }
   var isIntact: Bool {
     logicalFrameIntact && Self.geometry(number, owner.processIdentifier) == cgFrame
@@ -81,6 +113,8 @@ struct FocusAnchor {
       "NEARPANE_RETURN_PID": String(owner.processIdentifier),
       "NEARPANE_RETURN_BIRTH": String(birth.timeIntervalSince1970.bitPattern),
       "NEARPANE_RETURN_WINDOW": String(number),
+      "NEARPANE_RETURN_DISPLAY": homeDisplay,
+      "NEARPANE_RETURN_DESKTOP": String(homeDesktop),
     ]
   }
 }

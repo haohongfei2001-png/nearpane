@@ -302,8 +302,23 @@ class Session:
                 env["NEARPANE_REHEARSED_WINDOW"] = str(anchor["originalWindow"])
                 env["NEARPANE_REHEARSED_PID"] = str(anchor["originalPID"])
                 env["NEARPANE_REHEARSED_BIRTH"] = str(anchor["originalProcessStart"])
-            sp.run([self.args.kit/"focus-return", *selector, self.secondary,self.a,self.args.starts,ends,*action],
-                   stdout=log, stderr=err, check=True, env=env)
+            result = sp.run([self.args.kit/"focus-return", *selector, self.secondary,self.a,self.args.starts,ends,*action],
+                            stdout=log, stderr=err, env=env)
+        if result.returncode:
+            # The child and the independent observer use the same append-only stream.
+            # Keep both reasons, especially when control identification and focus return differ.
+            reasons = []
+            for line in (self.out / (operation + ".jsonl")).read_text().splitlines():
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(row, dict) and row.get("event") in ("refused", "externalRefusal"):
+                    reason = row.get("reason")
+                    if isinstance(reason, str) and reason and reason not in reasons:
+                        reasons.append(reason)
+            detail = " / ".join(reasons) or f"focus observer exited with status {result.returncode}"
+            raise ValueError(f"{operation}: {detail}")
 
     def calibrate(self, step, cache, run, child):
         if step == "enroll-B":
@@ -359,6 +374,8 @@ class Session:
         end = min(now + dt.timedelta(seconds=120), self.end-dt.timedelta(seconds=CLEANUP_SECONDS))
         if (end-now).total_seconds() <= MIN_ROUTE_SECONDS:
             raise RouteNotStarted("insufficient time for route and separate cleanup")
+        # A changed return anchor also bars a new cleanup input.
+        original_focus = self.route_focus_home("before-witness")
         log = self.out/"witness.log"
         def wait_until(child, condition, limit, reason):
             while not condition():
@@ -377,6 +394,8 @@ class Session:
                 key = str(uuid.UUID(cache.name.removeprefix("Nearpane-P431-"))).upper()
                 need(cache == Path.home()/"Library"/"Caches"/("Nearpane-P431-"+key), "unexpected run cache")
                 wait_until(child,lambda:(cache/"request-unattended-consent.json").exists(),time.monotonic()+15,"no consent request")
+                need(self.route_focus_home("before-consent") == original_focus,
+                     "original focus identity changed before route consent")
                 ptrlog=(self.out/"pointer.log").open("xb")
                 try:
                     pointer_args = ["--current-display"] if self.current_display else []
@@ -416,6 +435,18 @@ class Session:
                     restored = rc == 0 and lines[-1:] == ["original pointer restored"]
                     save(self.out / "pointer-exit.json", dict(exit=rc, returned=restored or no_loan, noLoan=no_loan))
                     need(restored or no_loan,"pointer restoration unconfirmed")
+
+    def route_focus_home(self, checkpoint):
+        probe = sp.run([self.args.kit / "focus-return", "--check-focus-home"],
+                       capture_output=True, timeout=6)
+        row = json.loads(probe.stdout)
+        save(self.out / ("focus-" + checkpoint + ".json"), row)
+        need(probe.returncode == 0 and row.get("event") == "focusHome",
+             row.get("reason") or "no verified desktop for the original focus")
+        currents = {scope["displayID"]: [item["id"] for item in scope["records"] if item["isCurrent"]]
+                    for scope in self.provisioned[1]["scopes"]}
+        need(currents.get(row["display"]) == [row["desktop"]], "original focus belongs to a different desktop")
+        return tuple(row[key] for key in ("pid", "birth", "window", "display", "desktop"))
 
     def check_added(self, before, after, restored=None):
         if self.current_display:

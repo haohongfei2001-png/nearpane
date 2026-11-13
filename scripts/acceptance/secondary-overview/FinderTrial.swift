@@ -7,18 +7,47 @@ struct Plan: Decodable {
     let directory, repository, display, python: String
     let helpersSHA256, witnessSHA256: String
     let scripts: [String: String]
-    let secondarySource: String?
+    let secondarySource, existingTarget: String?
     let displayFingerprints: [String]?
 
-    var route: [String] {
-        if let secondarySource { return ["--allow-primary-overview", "--source", secondarySource] }
-        return ["--current-display", "--provision-current", "--source", "rightmost-current"]
+    static func ordinaryID(_ text: String) -> Bool {
+        UInt64(text).map { $0 > 0 && String($0) == text } == true
+    }
+
+    func route() throws -> [String] {
+        if let secondarySource {
+            try checked(Self.ordinaryID(secondarySource), "副屏来源桌面编号无效。")
+            if let existingTarget {
+                try checked(Self.ordinaryID(existingTarget) && existingTarget != secondarySource,
+                            "副屏目标必须是另一个有效的普通桌面。")
+                return ["--source", secondarySource, "--existing-target", existingTarget]
+            }
+            return ["--check-overview-first", "--allow-primary-overview", "--source", secondarySource]
+        }
+        try checked(existingTarget == nil, "指定既有目标桌面还需要指定副屏来源。")
+        return ["--check-overview-first", "--current-display", "--provision-current", "--source", "rightmost-current"]
+    }
+
+    func accepts(_ completion: Completion, origin: Origin) -> Bool {
+        let scopes = origin.scopes.filter { $0.displayID == display }
+        guard scopes.count == 1, (try? route()) != nil,
+              scopes[0].records.filter(\.isCurrent).map(\.id) == [completion.source],
+              let ordinary = origin.ordinaryRecordsByDisplay[display], ordinary.contains(completion.source),
+              Self.ordinaryID(completion.source), Self.ordinaryID(completion.target),
+              completion.source != completion.target, completion.roundTrips == 3,
+              secondarySource == nil || secondarySource == completion.source else { return false }
+        let order = scopes[0].records.map(\.id)
+        guard order == ordinary, Set(order).count == order.count else { return false }
+        if let existingTarget {
+            return !completion.createdAndRemoved && completion.target == existingTarget
+                && Set(order) == Set([completion.source, existingTarget])
+        }
+        return completion.createdAndRemoved && !order.contains(completion.target) && order.last == completion.source
+            && (secondarySource == nil || order.count == 1)
     }
 
     func verifySecondaryScreens() throws {
-        guard let secondarySource else { return }
-        try checked(UInt64(secondarySource).map { $0 > 0 && String($0) == secondarySource } == true,
-                    "未指定有效的副屏普通桌面。")
+        guard secondarySource != nil else { return }
         let screens = NSScreen.screens
         try checked(screens.count == 2, "副屏验收需要两块独立显示器。")
         var fingerprints = Set<String>()
@@ -35,6 +64,22 @@ struct Plan: Decodable {
         try checked(expectedSecondary && fingerprints.count == 2 && fingerprints == Set(displayFingerprints ?? []),
                     "显示器身份或主副屏归属已改变。")
     }
+}
+
+struct Completion: Decodable {
+    let roundTrips: Int
+    let source, target: String
+    let createdAndRemoved: Bool
+}
+
+struct Origin: Decodable {
+    struct Scope: Decodable {
+        struct Record: Decodable { let id: String; let isCurrent: Bool }
+        let displayID: String
+        let records: [Record]
+    }
+    let scopes: [Scope]
+    let ordinaryRecordsByDisplay: [String: [String]]
 }
 
 struct Refusal: LocalizedError {
@@ -63,6 +108,7 @@ struct Delivery {
     }
 
     func verify() throws {
+        _ = try plan.route()
         func fingerprint(_ file: URL) throws -> String {
             SHA256.hash(data: try Data(contentsOf: file)).map { String(format: "%02x", $0) }.joined()
         }
@@ -97,8 +143,7 @@ struct Delivery {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: plan.python)
             p.currentDirectoryURL = repository
-            p.arguments = ["-I", "-B", repository.appendingPathComponent("scripts/acceptance/secondary-overview/run-route.py").path,
-                           "--check-overview-first"] + plan.route +
+            p.arguments = try ["-I", "-B", repository.appendingPathComponent("scripts/acceptance/secondary-overview/run-route.py").path] + plan.route() +
                           ["--display", plan.display, "--kit", folder.appendingPathComponent("tools/overview").path,
                            "--witness", folder.appendingPathComponent("tools/witness").path, "--witness-manifest", plan.witnessSHA256,
                            "--starts", clock.string(from:begin), "--ends", clock.string(from:finish)]
@@ -120,10 +165,14 @@ struct Delivery {
                         "收据目录无法确认。请查看 supervisor.log。")
             let complete = trial.appendingPathComponent("complete.json")
             let stopped = trial.appendingPathComponent("stopped.json")
+            let decoder = JSONDecoder()
             if p.terminationReason == .exit, p.terminationStatus == 0,
-               let receipt = try? JSONSerialization.jsonObject(with: Data(contentsOf: complete)) as? [String:Any],
-               receipt["roundTrips"] as? Int == 3, receipt["createdAndRemoved"] as? Bool == true {
-                try status("通过。三轮原生桌面往返已核实，临时桌面已清理。\n收据：" + trial.path)
+               !FileManager.default.fileExists(atPath: stopped.path),
+               let receipt = try? decoder.decode(Completion.self, from: Data(contentsOf: complete)),
+               let origin = try? decoder.decode(Origin.self, from: Data(contentsOf: trial.appendingPathComponent("origin-2.json"))),
+               plan.accepts(receipt, origin: origin) {
+                let disposition = receipt.createdAndRemoved ? "临时桌面已清理。" : "已返回来源桌面，既有目标桌面保留。"
+                try status("通过。三轮原生桌面往返已核实。" + disposition + "\n收据：" + trial.path)
             } else {
                 let receipt = try? JSONSerialization.jsonObject(with: Data(contentsOf: stopped)) as? [String:Any]
                 let reason = receipt?["reason"] as? String ?? "结果尚未确认，请检查 supervisor.log。"
@@ -133,7 +182,10 @@ struct Delivery {
     }
 }
 
-@main final class FinderTrial: NSObject, NSApplicationDelegate {
+#if !FINDER_TRIAL_TESTS
+@main
+#endif
+final class FinderTrial: NSObject, NSApplicationDelegate {
     var accepted = false
 
     // Read only the owner of the window at the last hardware click.

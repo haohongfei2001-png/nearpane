@@ -28,7 +28,44 @@ import CryptoKit
       print("6 ordered focus ownership cases passed")
       return
     }
-    do { try run() } catch {
+    if CommandLine.arguments.dropFirst().elementsEqual(["--test-return-desktop"]) {
+      let primary: [String: Any] = ["Display Identifier":"primary", "Current Space":["id64":1309],
+                                    "Spaces":[["id64":1130,"type":0],["id64":1309,"type":0]]]
+      let side: [String: Any] = ["Display Identifier":"secondary", "Current Space":["id64":4568],
+                                 "Spaces":[["id64":4568,"type":0]]]
+      let invalid: [[String: Any]] = [
+        ["Display Identifier":"primary", "Current Space":["id64":1309], "Spaces":[["id64":1309,"type":4]]],
+        ["Display Identifier":"primary", "Current Space":["id64":1309], "Spaces":[]],
+        ["Display Identifier":"primary", "Current Space":["id64":1309], "Spaces":[["id64":1309,"type":0],["id64":1309,"type":0]]]
+      ]
+      let scopes = [primary, side]
+      guard FocusAnchor.homeDesktopID(in: scopes, display: "primary", memberships: [1309]) == 1309,
+            FocusAnchor.homeDesktopID(in: scopes, display: "secondary", memberships: [4568]) == 4568,
+            [[], [1130], [4568], [1130,1309], [1309,1309]].allSatisfy({
+              FocusAnchor.homeDesktopID(in: scopes, display: "primary", memberships: $0) == nil
+            }), (invalid.map { [$0] } + [[side], [primary, primary]]).allSatisfy({
+              FocusAnchor.homeDesktopID(in: $0, display: "primary", memberships: [1309]) == nil
+            }) else { exit(2) }
+      print("12 original focus desktop membership cases passed")
+      return
+    }
+    do {
+      if CommandLine.arguments.dropFirst().elementsEqual(["--check-focus-home"]) {
+        guard AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1 else {
+          throw Refusal("read-only focus or desktop information unavailable")
+        }
+        let anchor = try FocusAnchor()
+        Thread.sleep(forTimeInterval: 0.15)
+        guard anchor.isFocused && anchor.isIntact else {
+          throw Refusal("original focus changed during desktop confirmation")
+        }
+        record(["event":"focusHome", "pid":anchor.owner.processIdentifier,
+                "window":anchor.number, "birth":String(anchor.birth.timeIntervalSince1970.bitPattern),
+                "display":anchor.homeDisplay, "desktop":String(anchor.homeDesktop)])
+        return
+      }
+      try run()
+    } catch {
       record([
         "event": "externalRefusal",
         "reason": (error as? Refusal)?.reason ?? String(describing: error),
@@ -87,6 +124,7 @@ import CryptoKit
       "event": "externalFocusArmed", "observer": getpid(), "run": uuid,
       "originalPID": anchor.owner.processIdentifier,
       "originalWindow": anchor.number, "originalProcessStart": anchor.birth.timeIntervalSince1970,
+      "originalDisplay": anchor.homeDisplay, "originalDesktop": String(anchor.homeDesktop),
       "fixtureSHA256": sha,
     ])
     let child = Process()

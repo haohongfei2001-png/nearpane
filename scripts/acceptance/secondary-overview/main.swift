@@ -532,22 +532,48 @@ func live(_ supplied: [String]) throws {
     }
   } catch { failure = error }
   // Dismiss only our known overview; never post an Escape or activate the previous user app.
-  if toggled, end.timeIntervalSinceNow > 3, anchor.logicalFrameIntact,
-    (try? scoped(sideID, source, currentDisplay:currentDisplay)) == expectedScopes,
-    NSEvent.pressedMouseButtons == 0,
-    let retained = ownedOverview,
-    let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
-      .first,
-    let m = try? children(AXUIElementCreateApplication(dock.processIdentifier), named: "mc"),
-    m.count == 1, CFEqual(retained,m[0]),
-    let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-    (front == getpid() || overviewOwner(front) || (front == focus.0 && isOriginal()))
-  {
+  if toggled, let retained = ownedOverview {
     do {
-      try toggleOverview()
+      func confirmDismissalGrant() throws {
+        let docks = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
+        guard end.timeIntervalSinceNow > 3, let loan = pointerLoanBegan,
+              docks.count == 1, let dock = docks.first,
+              overviewHost(dock.processIdentifier) == "com.apple.dock",
+              let current = try? children(AXUIElementCreateApplication(dock.processIdentifier), named: "mc"),
+              current.count == 1, CFEqual(retained, current[0]),
+              protectedPresentation(FocusAnchor.geometry(anchor.number, focus.0)),
+              (try? scoped(sideID, source, currentDisplay:currentDisplay)) == expectedScopes,
+              let now = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              (now == getpid() || overviewOwner(now) || (now == focus.0 && isOriginal())),
+              physicalMouseIdle(since: loan), keyboardAndScrollIdle(since: loan),
+              NSEvent.pressedMouseButtons == 0, near(try point(), landed),
+              CGEventSource.flagsState(.combinedSessionState).intersection([.maskCommand,.maskShift,.maskControl,.maskAlternate]).isEmpty,
+              Date() >= start, end.timeIntervalSinceNow > 3 else {
+          throw Refusal("dismissal authority, retained overview, focus, input, or display changed")
+        }
+      }
+      try confirmDismissalGrant()
+      let first = enrolledAX.flatMap { fixtureDismissalTile(on: width, fixture: $0, number: num, run: run) }
+      if let first, let enrolledAX {
+        guard let second = fixtureDismissalTile(on: width, fixture: enrolledAX, number: num, run: run),
+              first.matches(second),
+              w.isOnActiveSpace, w.screen == side, w.windowNumber == Int(num),
+              (NPReadWindowSpaces(num) as? [NSNumber])?.map(\.stringValue) == [source]
+        else { throw Refusal("fixture overview link or membership changed") }
+        try confirmDismissalGrant()
+        let outcome = AXUIElementPerformAction(second.button, kAXPressAction as CFString)
+        emit(["event":"overviewDismissal","route":"linkedFixtureButton","axResult":outcome.rawValue])
+        // A timed-out press may still have reached the host. Observe only.
+      } else {
+        try confirmDismissalGrant()
+        emit(["event":"overviewDismissal","route":"systemToggle","linkedFixtureButton":false])
+        try toggleOverview()
+      }
       spin(0.75)
       verifiedClosed = (try observe(display, currentDisplay:currentDisplay)["state"] as? String == "overviewNotExposed")
-    } catch {}
+    } catch {
+      emit(["event":"overviewDismissalRefused","reason":(error as? Refusal)?.reason ?? "system request failed"])
+    }
   }
   if toggled && !verifiedClosed {
     verifiedClosed = (try? observe(display, currentDisplay:currentDisplay)["state"] as? String) == "overviewNotExposed"
@@ -656,7 +682,30 @@ func onlyScreen(_ uuid: String, currentDisplay: Bool) throws -> NSScreen {
   guard list.count == 1 else { throw Refusal("secondary display absent") }
   return list[0]
 }
-do { try live(Array(CommandLine.arguments.dropFirst())) } catch {
+do {
+  let args = Array(CommandLine.arguments.dropFirst())
+  if args == ["--self-test-fixture-dismissal"] {
+    // Opaque references only. No attributes, system action, or GUI session needed.
+    let fixture = AXUIElementCreateApplication(getpid())
+    let foreign = AXUIElementCreateApplication(getppid())
+    let examples: [(CFTypeRef?, Bool)] = [
+      (nil, false), ([] as NSArray, false), (["not-an-element"] as NSArray, false),
+      ([foreign] as NSArray, false), ([fixture, foreign] as NSArray, false),
+      ([fixture, fixture] as NSArray, false), ([fixture] as NSArray, true),
+    ]
+    for (value, expected) in examples {
+      try need(linksOnlyToFixture(value, fixture: fixture) == expected, "fixture link check failed")
+    }
+    let tile = FixtureDismissalTile(pid: getpid(), birth: Date(), container: fixture, button: foreign)
+    try need(tile.matches(tile), "retained fixture tile lost identity")
+    try need(!tile.matches(.init(pid: tile.pid, birth: tile.birth, container: tile.container, button: fixture))
+             && !tile.matches(.init(pid: tile.pid, birth: tile.birth.advanced(by: 1), container: tile.container, button: tile.button)),
+             "replaced fixture tile or host generation accepted")
+    emit(["event":"fixtureDismissalSelfTest","pass":true,"systemInputs":0])
+  } else {
+    try live(args)
+  }
+} catch {
   emit(["event": "refused", "reason": (error as? Refusal)?.reason ?? String(describing: error)])
   exit(2)
 }

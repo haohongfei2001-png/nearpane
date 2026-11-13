@@ -682,6 +682,63 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     return actions
   }
 
+  // AXWindow describes a control's containing window. Only an explicit
+  // AXLinkedUIElements relationship can identify the window represented by a tile.
+  func linksOnlyToFixture(_ value: CFTypeRef?, fixture: AXUIElement) -> Bool {
+    guard let links = value as? [AnyObject], links.count == 1,
+          CFGetTypeID(links[0]) == AXUIElementGetTypeID() else { return false }
+    return CFEqual(links[0], fixture)
+  }
+
+  struct FixtureDismissalTile {
+    let pid: pid_t
+    let birth: Date
+    let container: AXUIElement
+    let button: AXUIElement
+
+    func matches(_ other: Self) -> Bool {
+      pid == other.pid && birth == other.birth &&
+        CFEqual(container, other.container) && CFEqual(button, other.button)
+    }
+  }
+
+  func fixtureDismissalTile(on display: CGDirectDisplayID, fixture: AXUIElement,
+                            number: UInt32, run: String) -> FixtureDismissalTile? {
+    var fixturePID: pid_t = 0
+    guard AXUIElementGetPid(fixture, &fixturePID) == .success, fixturePID == getpid(),
+          attr(fixture, kAXRoleAttribute) as? String == kAXWindowRole,
+          attr(fixture, kAXIdentifierAttribute) as? String == run,
+          number > 0, NPReadAXWindowNumber(fixture) == number else { return nil }
+    let hosts = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.WindowManager")
+    guard hosts.count == 1, let host = hosts.first,
+          overviewHost(host.processIdentifier) == "com.apple.WindowManager",
+          let birth = host.verifiedSystemBirth else { return nil }
+    let pid = host.processIdentifier
+    func owned(_ node: AXUIElement, role: String) -> Bool {
+      var owner: pid_t = 0
+      return AXUIElementGetPid(node, &owner) == .success && owner == pid &&
+        attr(node, kAXRoleAttribute) as? String == role
+    }
+    let root = AXUIElementCreateApplication(pid)
+    AXUIElementSetMessagingTimeout(root, 0.2)
+    guard let displays = try? children(root, named: "mc.display"),
+          let container = try? only(displays.filter {
+            (attr($0, "AXDisplayID") as? NSNumber)?.uint32Value == display
+          }, "fixture display"), owned(container, role: kAXGroupRole), childOf(container, root),
+          systemControlFrame(container) == CGDisplayBounds(display),
+          let controls = attr(container, kAXChildrenAttribute) as? [AXUIElement],
+          controls.count <= 64 else { return nil }
+    let buttons = controls.filter { node in
+      owned(node, role: kAXButtonRole) && childOf(node, container) &&
+        linksOnlyToFixture(attr(node, kAXLinkedUIElementsAttribute), fixture: fixture)
+    }
+    guard buttons.count == 1, let button = buttons.first,
+          attr(button, kAXEnabledAttribute) as? Bool == true,
+          (try? actionsOf(button))?.contains(kAXPressAction) == true,
+          host.verifiedSystemBirth == birth else { return nil }
+    return FixtureDismissalTile(pid: pid, birth: birth, container: container, button: button)
+  }
+
   // Diagnostic only. Enumerate the Dock's immediate system containers, then descend exclusively
   // through the confirmed secondary spaces bar. Never request names, labels, descriptions or pixels.
   func overviewSkeleton(_ display: UUID, currentDisplay: Bool = false) -> [String: Any] {

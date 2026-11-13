@@ -36,10 +36,15 @@ def main():
     parser.add_argument("--display", type=uuid.UUID, required=True)
     parser.add_argument("--secondary-source", type=int, metavar="SPACE_ID",
                         help="test this ordinary desktop on the named secondary display")
+    parser.add_argument("--existing-target", type=int, metavar="SPACE_ID",
+                        help="use this explicitly designated existing adjacent secondary desktop and preserve it")
     for kit in ("overview", "witness"):
         parser.add_argument("--" + kit, required=True, type=Path)
         parser.add_argument("--" + kit + "-sha", required=True)
     args = parser.parse_args()
+    if args.existing_target is not None and (args.secondary_source is None or
+            not 0 < args.existing_target < 2**64 or args.existing_target == args.secondary_source):
+        parser.error("--existing-target requires a distinct positive Space ID and --secondary-source")
     os.umask(0o077)
     OUTPUT.mkdir(parents=True, exist_ok=True)
     # A spent package is immutable. A new delivery gets a different receipt directory.
@@ -62,8 +67,9 @@ def main():
     python = Path(shutil.which("python3")).resolve(strict=True)
     supervisor = ROOT / SCRIPTS[0]
     help_text = subprocess.check_output([python, "-I", "-B", supervisor, "--help"], text=True)
-    if "--check-overview-first" not in help_text:
-        raise ValueError("Supervisor is missing the return rehearsal")
+    required_option = "--existing-target" if args.existing_target is not None else "--check-overview-first"
+    if required_option not in help_text:
+        raise ValueError("Supervisor is missing " + required_option)
     # Documents is File Provider backed on this Mac and reintroduces FinderInfo
     # on signed helpers. Keep executable copies on the local volume for this boot.
     stage = Path(tempfile.mkdtemp(prefix="Nearpane-Finder-Space.", dir="/private/tmp"))
@@ -93,6 +99,8 @@ def main():
                     scripts={path: sha(ROOT / path) for path in SCRIPTS})
         if args.secondary_source is not None:
             spec.update(secondarySource=str(args.secondary_source), displayFingerprints=monitors)
+        if args.existing_target is not None:
+            spec["existingTarget"] = str(args.existing_target)
         (resources / "trial.json").write_text(json.dumps(spec, sort_keys=True))
         info = dict(CFBundleName="Nearpane 原生桌面验收", CFBundleExecutable=binary.name,
                     CFBundleIdentifier="org.nearpane.lab.FinderSpaceTrial", CFBundleVersion="1",
@@ -111,6 +119,8 @@ def main():
             (final / "tools").symlink_to(tools, target_is_directory=True)
             scope = ("副屏测试桌面；主屏可能短暂显示系统调度中心"
                      if args.secondary_source is not None else "当前屏幕的测试桌面")
+            if args.existing_target is not None:
+                scope = f"副屏已有测试桌面 {args.secondary_source} 和 {args.existing_target}，往返后两者均保留"
             (final / "验收结果.txt").write_text(f"尚未启动。无人使用时在 Finder 中双击本目录的验收应用，临时借用键盘和鼠标，最长 10 分钟。范围为{scope}。\n")
             final.rename(folder)
     except BaseException:

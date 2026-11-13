@@ -1,5 +1,17 @@
 # 副屏调度中心的添加按钮与普通桌面验收
 
+## 13:20 副屏测试与焦点归属
+
+**普通桌面往返 0/3，跨空间移窗 0 次。** 12:56 和本次启动前的 Reader 双采样均显示主屏当前为 1309、副屏仅有普通桌面 4568。13:20 在新授权的无人时段内实际创建了副屏窗口 193049。它通过了本进程 AX、CG、显示器和桌面核对，AppKit 请求后仍未取得前台或 key。程序在打开调度中心之前停止。创建桌面、删除桌面和方向输入均为零。[启动前双采样](../../build/verification/secondary-route-followup/1ef746d0-9d32-404c-aa08-4c1df777ee37/origin-2.json) · [实际窗口及退出过程](../../build/verification/secondary-route-followup/1ef746d0-9d32-404c-aa08-4c1df777ee37/observe.jsonl)
+
+子进程退出时，独立观察器确认原 AX 窗口 185257 的身份、几何和键盘焦点。13:21:49 再次独立采样两次，测试窗口已消失，概览已关闭，两屏 current 未变。两次均读到 185257 归属主屏非当前桌面 1130，前台与指针已改变。此次没有借用指针。现场证据不能确定焦点何时、因何改变，也不能倒推出启动瞬间的窗口归属。至此已归还控制，本次不再派发桌面输入。[最终双采样](../../build/verification/secondary-route-followup/1ef746d0-9d32-404c-aa08-4c1df777ee37/postflight.jsonl)
+
+据此修复了原焦点登记的缺口。控制器现在核对原窗口 AX/CG 所在显示器、该屏当前普通桌面和原窗口唯一 membership，在预演、概览清理及归还时复核。普通往返的监督器在启动见证程序前和签发操作许可前各核对一次，要求两个检查点的进程代际、窗口号、显示器和桌面一致。13:27 新工具实际只读确认当时前台窗口 184630 属于当前桌面 1309。此前 185257/1130 的反例纳入回归。[现场只读核对](../../build/verification/secondary-route-followup/1ef746d0-9d32-404c-aa08-4c1df777ee37/updated-readonly-gate.jsonl) · [焦点归属实现](../../scripts/acceptance/secondary-overview/FocusAnchor.swift) · [监督器](../../scripts/acceptance/secondary-overview/run-route.py)
+
+概览退出另可识别系统按钮直接关联的本轮测试窗。仅在两次读取都唯一关联同一 AX 对象时尝试一次按压；已派发但结果不明时仅观察。没有这项正向关联时，保留原来核对受控概览后再关闭的路径。此次没有进入概览，实际系统是否提供这个关联仍待验。Finder 验收入口支持分别固定已知 A、B，既有桌面验收不会创建或删除桌面。目前交付的入口按副屏只有 4568 装配，使用真实概览预演、临时建 B 和清理路径。[控件关联](../../scripts/acceptance/observe-secondary-space-controls.swift) · [Finder 入口](../../build/verification/finder-native-space/69c5007d-5f33-403d-901c-83656990bbbc)
+
+最终验收工具由本机 Swift 编译，六份工具指纹、实验应用和 Finder 入口签名通过；Finder 入口 SHA-256 为 `c164c082459ec2bc5d289e8ac67cb4d3a457194df94f4cc1905246b2e5660ca3`，工具清单为 `c08192bb2bf362a004cb90cb674e36f0a49e86aca659b7a1cc6d52de2a95405c`。离线通过监督与清理 40 项、桌面拓扑 6 项、授权检查点 14 项、Finder 路线及完成判定 21 项、焦点归属 12 项、原焦点所有权 6 项、控件和桌面顺序 50 项，以及控件关联自检。产品代码及 Alpha 未改动，已安装 P5.7 签名复验通过。[检查收据目录](../../build/verification/secondary-route-followup/d55504e8-31b9-48d8-bd19-24f3468d0f10) · [此前已通过的副屏全屏与工具开合](NATIVE-FULLSCREEN-OVERLAY-RESULT.md)
+
 ## 12:18–12:25 重连副屏实测
 
 副屏“添加桌面”控件的归属已在 macOS 27.0 (26A428) 上取得系统证据。**两次退出概览的焦点归还结果分别为成功、失败。两次均在创建之前停止。** 主屏当前桌面为 1309，旋转副屏的唯一普通桌面为 4568。没有生成创建或删除意图，普通桌面往返 0/3，跨空间移窗 0 次。
