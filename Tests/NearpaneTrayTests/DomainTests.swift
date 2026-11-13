@@ -302,12 +302,18 @@ struct TrayDomainTests {
         process.standardInput = input; process.standardOutput = signal
         try process.run()
         defer { if process.isRunning { process.terminate() } }
-        try #require(try signal.fileHandleForReading.read(upToCount: 1) == Data("1".utf8))
+        // The child may take seconds to start on a cold runner. Other native
+        // modules share this main actor and must keep processing their UI events.
+        let reader = signal.fileHandleForReading
+        let lockAcquired = try await Task.detached { try reader.read(upToCount: 1) }.value
+        try #require(lockAcquired == Data("1".utf8))
         let module = TrayModule(existingRoot: dir)
         try module.start(); await module.connect()
         #expect(!module.connected && module.issue == LibraryError.busy.localizedDescription)
         #expect(try Data(contentsOf: database) == before)
-        try input.fileHandleForWriting.close(); process.waitUntilExit()
+        try input.fileHandleForWriting.close()
+        await Task.detached { process.waitUntilExit() }.value
+        #expect(process.terminationStatus == 0)
         await module.connect()
         #expect(module.connected && module.rows.isEmpty && !module.mayAttach)
         module.disconnect(); await module.finishStopping()

@@ -79,3 +79,11 @@ The embedded voice board displays the editable transcript, the copy control and 
 ### Saytile 0.7: target the entire voice button
 
 Pin SaytileVoiceUI to `c331ecb2b62dd4a21d0088ccca96ea3564d1641e`. The copy and capture buttons retain their outlines but accept clicks within their entire rectangular controls. The canonical native panel probe reproduced eight unhandled corner clicks on the previous revision; all eight now invoke the expected action exactly once. On the updated Nearpane pin, the native serial suite passed 319 tests, and all six offline dependency checks passed. No new Nearpane application was installed.
+
+### Idle transcript delivery while another fixture starts a child process
+
+In [native job 131654963266](https://github.com/haohongfei2001-png/nearpane/actions/runs/43355040112/job/131654963266), the tray's process-lock fixture and the idle transcript test ran concurrently on the same main actor. The tray fixture took 2.940 seconds while the voice fixture failed after 2.957 seconds. Of the nine native runs visible for this branch through that SHA, this was the only failed run. These counts describe CI and do not measure user transcription failures.
+
+A controlled test started the lock child's handshake immediately after publication and delayed the child's ready byte by 2.35 seconds. The voice test alone passed in 0.124 seconds. With the old synchronous pipe read, the voice assertion failed after 2.424 seconds and the lock check passed after 2.428 seconds. Moving the read and child exit wait off the main actor let the voice test pass after 0.120 seconds under the same delay. The lock check still passed after 2.488 seconds.
+
+Both tests retain their original assertions, including the two-second transcript deadline, exact text, row count, paused state, unopened microphone, lock exclusion, and reacquisition. The exit status is now checked too. With the diagnostic handshake removed, the complete parallel offline suite passed all 319 tests. All data in this experiment came from isolated fixtures.
