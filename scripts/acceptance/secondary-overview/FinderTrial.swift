@@ -7,6 +7,34 @@ struct Plan: Decodable {
     let directory, repository, display, python: String
     let helpersSHA256, witnessSHA256: String
     let scripts: [String: String]
+    let secondarySource: String?
+    let displayFingerprints: [String]?
+
+    var route: [String] {
+        if let secondarySource { return ["--allow-primary-overview", "--source", secondarySource] }
+        return ["--current-display", "--provision-current", "--source", "rightmost-current"]
+    }
+
+    func verifySecondaryScreens() throws {
+        guard let secondarySource else { return }
+        try checked(UInt64(secondarySource).map { $0 > 0 && String($0) == secondarySource } == true,
+                    "未指定有效的副屏普通桌面。")
+        let screens = NSScreen.screens
+        try checked(screens.count == 2, "副屏验收需要两块独立显示器。")
+        var fingerprints = Set<String>()
+        var expectedSecondary = false
+        for screen in screens {
+            guard let id = (screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value,
+                  CGDisplayIsInMirrorSet(id) == 0,
+                  let uuid = CGDisplayCreateUUIDFromDisplayID(id)?.takeRetainedValue()
+            else { throw Refusal("无法确认两块显示器的独立身份。") }
+            let identity = (CFUUIDCreateString(nil, uuid) as String).uppercased()
+            fingerprints.insert(SHA256.hash(data: Data(identity.utf8)).map { String(format: "%02x", $0) }.joined())
+            if id != CGMainDisplayID() && identity == display { expectedSecondary = true }
+        }
+        try checked(expectedSecondary && fingerprints.count == 2 && fingerprints == Set(displayFingerprints ?? []),
+                    "显示器身份或主副屏归属已改变。")
+    }
 }
 
 struct Refusal: LocalizedError {
@@ -64,13 +92,14 @@ struct Delivery {
         try handle.close()
         do {
             try verify()
+            try plan.verifySecondaryScreens()
             try status("正在验收，最晚结束时间为 " + clock.string(from:finish) + "。结果将写在此处。")
             let p = Process()
             p.executableURL = URL(fileURLWithPath: plan.python)
             p.currentDirectoryURL = repository
             p.arguments = ["-I", "-B", repository.appendingPathComponent("scripts/acceptance/secondary-overview/run-route.py").path,
-                           "--check-overview-first", "--current-display", "--provision-current", "--source", "rightmost-current",
-                           "--display", plan.display, "--kit", folder.appendingPathComponent("tools/overview").path,
+                           "--check-overview-first"] + plan.route +
+                          ["--display", plan.display, "--kit", folder.appendingPathComponent("tools/overview").path,
                            "--witness", folder.appendingPathComponent("tools/witness").path, "--witness-manifest", plan.witnessSHA256,
                            "--starts", clock.string(from:begin), "--ends", clock.string(from:finish)]
             p.standardInput = FileHandle.nullDevice
@@ -106,20 +135,40 @@ struct Delivery {
 
 @main final class FinderTrial: NSObject, NSApplicationDelegate {
     var accepted = false
+
+    // Read only the owner of the window at the last hardware click.
+    static func clickedFinder(at point: NSPoint, finder: NSRunningApplication) -> Bool {
+        guard finder.bundleIdentifier == "com.apple.finder",
+              finder.executableURL?.resolvingSymlinksInPath().path == "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
+              !finder.isTerminated,
+              let window = UInt32(exactly: NSWindow.windowNumber(at:point, belowWindowWithWindowNumber:0)), window > 0,
+              let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, window) as? [[String:Any]],
+              rows.count == 1, rows[0][kCGWindowNumber as String] as? UInt32 == window,
+              rows[0][kCGWindowOwnerPID as String] as? Int32 == finder.processIdentifier,
+              NSEvent.mouseLocation == point,
+              NSWorkspace.shared.frontmostApplication?.processIdentifier == finder.processIdentifier
+        else { return false }
+        return true
+    }
     func applicationDidFinishLaunching(_ note: Notification) {
         defer { NSApp.terminate(nil) }
         do {
             let delivery = try Delivery()
             if FileManager.default.fileExists(atPath:delivery.folder.appendingPathComponent("started.json").path) { return }
             guard note.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? Bool == true,
-                  NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder",
+                  let finder = NSWorkspace.shared.frontmostApplication,
+                  finder.bundleIdentifier == "com.apple.finder",
                   !accepted, CommandLine.arguments.count == 1 else {
                 try delivery.status("尚未启动验收。请在 Finder 中直接双击本目录的验收应用。")
                 return
             }
             let lastUp = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType:.leftMouseUp)
             let lastDown = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType:.leftMouseDown)
-            guard lastUp.isFinite, lastDown.isFinite, lastUp >= 0, lastUp <= lastDown, lastDown <= 4 else {
+            let point = NSEvent.mouseLocation
+            guard lastUp.isFinite, lastDown.isFinite, lastUp >= 0, lastUp <= lastDown, lastDown <= 4,
+                  [.mouseMoved, .leftMouseDragged, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel].allSatisfy({
+                    CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType:$0) >= lastUp
+                  }), NSEvent.pressedMouseButtons == 0, Self.clickedFinder(at:point, finder:finder) else {
                 try delivery.status("尚未启动验收。没有检测到此次 Finder 打开的近期鼠标输入。")
                 return
             }

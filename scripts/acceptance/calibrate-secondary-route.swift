@@ -167,10 +167,10 @@ func perform(kit: URL, run: UUID, step: String, currentDisplay: String?, manifes
                   reader:"a294d6baf1c981bd6a8a0509ca175cd32dc81d0deb54d9ac3b0db3bb63145be1",
                   "SessionProbe":"264a9392061250325c919e75601fbd38d92ea86e5f1bcb2e37e4d54550fa55fe",
                   "space-checkpoint.py":"ad729bc032263e2e27cd5c53c2335ef286bbbdd8700a54ee930ec404579ce72f"]
-    if currentDisplay != nil {
+    if let manifestDigest {
         let data = try Data(contentsOf: kit.appendingPathComponent("SHA256SUMS"))
-        guard let manifestDigest, SHA256.hash(data: data).map({String(format:"%02x",$0)}).joined() == manifestDigest,
-              let manifest = String(data:data, encoding:.utf8) else { throw Refusal("current-display manifest changed") }
+        guard SHA256.hash(data: data).map({String(format:"%02x",$0)}).joined() == manifestDigest,
+              let manifest = String(data:data, encoding:.utf8) else { throw Refusal("frozen witness manifest changed") }
         let paths = Set(hashes.keys).union(["protected.json", "NearpaneSpaceWitness.app/Contents/Info.plist",
                                            "NearpaneSpaceWitness.app/Contents/_CodeSignature/CodeResources"])
         hashes.removeAll()
@@ -341,9 +341,11 @@ func perform(kit: URL, run: UUID, step: String, currentDisplay: String?, manifes
 do {
     let args = CommandLine.arguments
     let current = args.count == 7 && args[4] == "--current-display" && UUID(uuidString:args[5])?.uuidString == args[5]
-    guard args.count == 4 || current, let run = UUID(uuidString: args[2]) else { throw Refusal("expected FROZEN_KIT RUN_UUID enroll-B|return-A [--current-display UUID MANIFEST_SHA256]") }
+    let pinnedSecondary = args.count == 6 && args[4] == "--witness-manifest"
+    guard args.count == 4 || current || pinnedSecondary, let run = UUID(uuidString: args[2]) else { throw Refusal("expected FROZEN_KIT RUN_UUID enroll-B|return-A [--current-display UUID MANIFEST_SHA256 | --witness-manifest MANIFEST_SHA256]") }
+    let digest = (current || pinnedSecondary) ? args.last : nil
     try perform(kit:URL(fileURLWithPath:args[1]).standardizedFileURL,run:run,step:args[3],
-                currentDisplay:current ? args[5] : nil,manifestDigest:current ? args[6] : nil)
+                currentDisplay:current ? args[5] : nil,manifestDigest:digest)
 } catch { FileHandle.standardError.write(Data("REFUSED: \(error)\n".utf8)); exit(2) }
 #else
 // Run with: swift -D CALIBRATION_READBACK_TEST scripts/acceptance/calibrate-secondary-route.swift

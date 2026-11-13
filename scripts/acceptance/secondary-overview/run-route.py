@@ -19,10 +19,18 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPTS = ROOT / "scripts/acceptance"
-VERIFY = runpy.run_path(str(SCRIPTS / "verify-secondary-provision.py"))["verify"]
+_provision = runpy.run_path(str(SCRIPTS / "verify-secondary-provision.py"))
+VERIFY = _provision["verify"]
 STAMP = "%Y-%m-%dT%H:%M:%SZ"
 UTC = dt.timezone.utc
 WITNESS_MANIFEST = "35ad31052d8e3ce196924f307548209609e4e9ea3d5073bc89e224ebec723add"
+WITNESS_INPUTS = {
+    "SessionProbe", "protected.json", "space-checkpoint.py",
+    "NearpaneSpaceWitness.app/Contents/Info.plist",
+    "NearpaneSpaceWitness.app/Contents/MacOS/NearpaneSpaceWitness",
+    "NearpaneSpaceWitness.app/Contents/Helpers/NearpaneDesktopReader",
+    "NearpaneSpaceWitness.app/Contents/_CodeSignature/CodeResources",
+}
 MIN_ROUTE_SECONDS = 65
 CLEANUP_SECONDS = 45
 # Two independent six-second Reader calls and their spacing, after the create helper exits.
@@ -53,6 +61,32 @@ def verify_leg(intent, posted, confirmed, run, source, target):
 
 def read(file):
     return json.loads(file.read_bytes())
+
+
+def check_display_binding(frozen, sample, expected_count):
+    displays = [item["id"] for item in sample["displays"]]
+    need(len(displays) == len(set(displays)) == expected_count and
+         all(str(uuid.UUID(item)).upper() == item for item in displays),
+         "frozen topology requires the designated displays")
+    observed = sorted(hashlib.sha256(item.encode("ascii")).hexdigest() for item in displays)
+    need(isinstance(frozen, list) and sorted(frozen) == observed,
+         "Reader display identities differ from the signed-off witness baseline")
+
+
+def frozen_witness_displays(folder, expected_digest):
+    manifest = (folder / "SHA256SUMS").read_bytes()
+    need(hashlib.sha256(manifest).hexdigest() == expected_digest, "wrong frozen witness")
+    entries = {}
+    for line in manifest.decode("ascii").splitlines():
+        checksum, separator, name = line.partition("  ")
+        need(separator and name in WITNESS_INPUTS and name not in entries and
+             len(checksum) == 64 and all(c in "0123456789abcdef" for c in checksum),
+             "unexpected frozen witness manifest entry")
+        entries[name] = checksum
+    need(entries.keys() == WITNESS_INPUTS, "frozen witness manifest is incomplete")
+    baseline = (folder / "protected.json").read_bytes()
+    need(hashlib.sha256(baseline).hexdigest() == entries["protected.json"], "display baseline checksum changed")
+    return json.loads(baseline)["displays"]
 
 
 def save(file, value):
@@ -190,15 +224,16 @@ class Session:
 
     def verify_kit(self):
         witness, kit = self.args.witness, self.args.kit
-        manifest = self.args.witness_manifest if self.current_display else WITNESS_MANIFEST
-        need(hashlib.sha256((witness / "SHA256SUMS").read_bytes()).hexdigest() == manifest, "wrong frozen witness")
+        manifest = self.args.witness_manifest or WITNESS_MANIFEST
+        displays = frozen_witness_displays(witness, manifest)
         for root in (witness, kit):
             sp.run(["shasum", "-a", "256", "-c", "SHA256SUMS"], cwd=root, check=True, stdout=sp.DEVNULL)
         for app in (self.witness.parents[2], kit / "Nearpane Secondary Overview.app"):
             sp.run(["codesign", "--verify", "--deep", "--strict", app], check=True)
+        return displays
 
     def setup(self):
-        self.verify_kit()
+        frozen = self.verify_kit()
         self.origin = self.pair("origin")
         s = self.origin[1]
         self.secondary = str(uuid.UUID(self.args.display)).upper()
@@ -209,6 +244,8 @@ class Session:
                  [d["displayID"] for d in s["scopes"]] == [self.secondary], "selected display must be the sole live display")
         else:
             self.primary, = [d["id"] for d in s["displays"] if d["id"] != self.secondary and (d["frame"]["x"],d["frame"]["y"]) == (0,0)]
+            _provision["scope_state"](s, self.primary, self.secondary)
+        check_display_binding(frozen, s, 1 if self.current_display else 2)
         side, = [d for d in s["scopes"] if d["displayID"] == self.secondary]
         self.a, = [r["id"] for r in side["records"] if r["isCurrent"]]
         from_live_right_edge = (self.current_display and getattr(self.args, "provision_current", False) and
@@ -228,6 +265,9 @@ class Session:
             return
         need(order == s["ordinaryRecordsByDisplay"][self.secondary] and len(order) in (1,2),
              "two endpoints must be identifiable in the complete ordinary order")
+        if getattr(self.args, "check_overview_first", False):
+            need(order == [self.a] and self.args.existing_target is None,
+                 "secondary creation rehearsal requires one ordinary source and no existing target")
         if len(order) == 2:
             self.b, = [r for r in order if r != self.a]
             need(self.b == self.args.existing_target, "existing destination must be the designated test desktop")
@@ -306,7 +346,11 @@ class Session:
                 type(proof.get(k)) is type(v) and proof[k] == v for k, v in required.items()
             ), "blank secondary B not verified; no calibration input")
         with (self.out / (step + "-calibration.log")).open("xb") as log:
-            selector = ["--current-display", self.secondary, self.args.witness_manifest] if self.current_display else []
+            selector = []
+            if self.current_display:
+                selector = ["--current-display", self.secondary, self.args.witness_manifest]
+            elif getattr(self.args, "witness_manifest", None):
+                selector = ["--witness-manifest", self.args.witness_manifest]
             sp.run([self.args.kit / "calibrate-route", self.args.witness, run, step, *selector],
                    stdout=log, stderr=log, check=True)
 
@@ -432,7 +476,7 @@ class Session:
         self.pair("creation-readback")
 
     def recover_prepared(self, prior):
-        self.verify_kit()
+        frozen = self.verify_kit()
         root = ROOT / "build/verification/secondary-route-followup"
         need(prior.parent == root and str(uuid.UUID(prior.name)) == prior.name, "expected an original route trial")
         need(self.args.existing_target is None, "an existing desktop is outside preparation cleanup")
@@ -460,9 +504,11 @@ class Session:
             tag = "added" if (prior / "added-2.json").exists() else "creation-readback"
             self.provisioned = stored(tag)
             # Validate the two original samples *and* a fresh pair from this distinct invocation.
-            for pair in (self.provisioned, self.pair("current")):
+            current = self.pair("current")
+            for pair in (self.provisioned, current):
                 proof = self.check_added(self.origin, pair)
                 need(proof["source"] == self.a and proof["target"] == self.b, "adjacent created desktop not confirmed")
+            check_display_binding(frozen, current[1], 1 if self.current_display else 2)
             # The signed controller rechecks boot, Dock birth, creation lifetime, original AX tiles,
             # positive A witness and live target occupancy before its exclusive remove-intent.
             save(prior / "recovery-attempt.json",dict(trial=self.out.name,target=self.b))
@@ -485,18 +531,19 @@ def main():
     parser.add_argument("--provision-current", action="store_true", help="create and remove only a new adjacent desktop on the explicitly designated sole display")
     parser.add_argument("--check-overview-first", action="store_true",
                         help="require a successful real overview and passive focus return before creating a desktop")
-    parser.add_argument("--witness-manifest", help="SHA-256 of the independently frozen current-display witness manifest")
+    parser.add_argument("--witness-manifest", help="SHA-256 of the independently frozen witness manifest for the observed displays")
     parser.add_argument("--cleanup-run", type=lambda value:Path(value).resolve(strict=True),
                         help="within a current loan, remove only the evidenced new B from this stopped trial")
     args = parser.parse_args()
-    if args.check_overview_first and (not args.current_display or not args.provision_current or args.cleanup_run):
-        parser.error("--check-overview-first requires a new single-display provisioning trial")
+    if args.check_overview_first and (args.existing_target is not None or args.cleanup_run or
+                                      (args.current_display and not args.provision_current)):
+        parser.error("--check-overview-first requires a new desktop provisioning trial")
     if args.current_display:
         modes = (args.existing_target is not None, args.provision_current, args.cleanup_run is not None)
         if sum(modes) != 1 or args.allow_primary_overview or not args.witness_manifest:
             parser.error("--current-display needs a frozen witness manifest and exactly one of --existing-target, --provision-current or --cleanup-run")
-    elif args.witness_manifest or args.provision_current:
-        parser.error("--witness-manifest is only valid with --current-display")
+    elif args.provision_current:
+        parser.error("--provision-current requires --current-display")
     s=Session(args)
     try:
         with exclusive_console(s.out.parent), exclusive_trial(s.out):

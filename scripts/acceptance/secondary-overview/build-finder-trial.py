@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble an inert, one-use Finder launcher for an already frozen current-display route."""
+"""Assemble a one-use Finder launcher for a frozen single- or secondary-display route."""
 import argparse
 import hashlib
 import json
@@ -34,6 +34,8 @@ def validated_kit(root, digest, app):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--display", type=uuid.UUID, required=True)
+    parser.add_argument("--secondary-source", type=int, metavar="SPACE_ID",
+                        help="test this ordinary desktop on the named secondary display")
     for kit in ("overview", "witness"):
         parser.add_argument("--" + kit, required=True, type=Path)
         parser.add_argument("--" + kit + "-sha", required=True)
@@ -48,8 +50,15 @@ def main():
     overview = validated_kit(args.overview, args.overview_sha, overview_app)
     witness = validated_kit(args.witness, args.witness_sha, witness_app)
     baseline = json.loads((witness / "protected.json").read_bytes())
-    if baseline["displays"] != [hashlib.sha256(display.encode()).hexdigest()]:
-        raise ValueError("Frozen protected session does not match the designated sole display")
+    target_hash = hashlib.sha256(display.encode()).hexdigest()
+    monitors = baseline["displays"]
+    if args.secondary_source is None:
+        if monitors != [target_hash]:
+            raise ValueError("Frozen protected session does not match the designated sole display")
+    elif (not 0 < args.secondary_source < 2**64 or len(monitors) != 2 or
+          len(set(monitors)) != 2 or target_hash not in monitors or
+          not all(len(digest) == 64 and all(c in "0123456789abcdef" for c in digest) for digest in monitors)):
+        raise ValueError("A secondary trial requires a valid source and two distinct frozen display identities")
     python = Path(shutil.which("python3")).resolve(strict=True)
     supervisor = ROOT / SCRIPTS[0]
     help_text = subprocess.check_output([python, "-I", "-B", supervisor, "--help"], text=True)
@@ -82,6 +91,8 @@ def main():
         spec = dict(directory=str(folder), repository=str(ROOT), display=display, python=str(python),
                     helpersSHA256=args.overview_sha, witnessSHA256=args.witness_sha,
                     scripts={path: sha(ROOT / path) for path in SCRIPTS})
+        if args.secondary_source is not None:
+            spec.update(secondarySource=str(args.secondary_source), displayFingerprints=monitors)
         (resources / "trial.json").write_text(json.dumps(spec, sort_keys=True))
         info = dict(CFBundleName="Nearpane 原生桌面验收", CFBundleExecutable=binary.name,
                     CFBundleIdentifier="org.nearpane.lab.FinderSpaceTrial", CFBundleVersion="1",
@@ -98,7 +109,9 @@ def main():
             final.mkdir(mode=0o700)
             (final / app.name).symlink_to(app, target_is_directory=True)
             (final / "tools").symlink_to(tools, target_is_directory=True)
-            (final / "验收结果.txt").write_text("尚未启动。无人使用时在 Finder 中双击本目录的验收应用，将在当前屏幕测试临时桌面往返，最长 10 分钟。\n")
+            scope = ("副屏测试桌面；主屏可能短暂显示系统调度中心"
+                     if args.secondary_source is not None else "当前屏幕的测试桌面")
+            (final / "验收结果.txt").write_text(f"尚未启动。无人使用时在 Finder 中双击本目录的验收应用，临时借用键盘和鼠标，最长 10 分钟。范围为{scope}。\n")
             final.rename(folder)
     except BaseException:
         shutil.rmtree(stage)

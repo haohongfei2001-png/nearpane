@@ -77,7 +77,7 @@ import CryptoKit
     guard quiet() else { throw Refusal("physical input still active; fixture not launched") }
     let anchor = try FocusAnchor()
     let env = ProcessInfo.processInfo.environment
-    if currentDisplay && args.count == 6 && args[4] == "create", let window = env["NEARPANE_REHEARSED_WINDOW"] {
+    if args.count == 6 && args[4] == "create", let window = env["NEARPANE_REHEARSED_WINDOW"] {
       guard UInt32(window) == anchor.number, Int32(env["NEARPANE_REHEARSED_PID"] ?? "") == anchor.owner.processIdentifier,
             Double(env["NEARPANE_REHEARSED_BIRTH"] ?? "") == anchor.birth.timeIntervalSince1970
       else { throw Refusal("original window or process changed after the overview rehearsal") }

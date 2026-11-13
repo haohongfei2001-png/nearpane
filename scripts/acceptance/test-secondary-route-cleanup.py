@@ -1,6 +1,7 @@
 """Exercise the route supervisor's rollback using only temporary receipts and scope samples."""
 
 import datetime as dt
+import hashlib
 import importlib.util
 import json
 import runpy
@@ -18,6 +19,11 @@ route = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(route)
 fixtures = runpy.run_path(str(SCRIPTS / "test-secondary-provision.py"))
 SECONDARY, pair = fixtures["SECONDARY"], fixtures["pair"]
+PRIMARY = fixtures["PRIMARY"]
+
+
+def frozen_displays(*identities):
+    return sorted(hashlib.sha256(value.encode("ascii")).hexdigest() for value in identities)
 
 
 def write(path, data):
@@ -50,7 +56,7 @@ class CurrentDisplayRoute(unittest.TestCase):
         self.session = route.Session.__new__(route.Session)
         self.session.args = SimpleNamespace(display=SECONDARY, source="20", existing_target="19",
             current_display=True, cleanup_run=None, allow_primary_overview=False, provision_current=False)
-        self.session.verify_kit = Mock()
+        self.session.verify_kit = Mock(return_value=frozen_displays(SECONDARY))
         self.sample = dict(displays=[dict(id=SECONDARY)], ordinaryRecordsByDisplay={SECONDARY: ["18", "19", "20"]},
                            scopes=[dict(displayID=SECONDARY, records=[dict(id=i, isCurrent=i=="20") for i in ("18","19","20")])])
         self.session.pair = Mock(return_value=[self.sample, self.sample])
@@ -83,6 +89,64 @@ class CurrentDisplayRoute(unittest.TestCase):
             row["isCurrent"] = row["id"] == "19"
         with self.assertRaisesRegex(ValueError, "rightmost"):
             self.session.setup()
+
+
+class DualDisplaySetup(unittest.TestCase):
+    def setUp(self):
+        self.session = route.Session.__new__(route.Session)
+        self.session.args = SimpleNamespace(display=SECONDARY, source="10", existing_target=None,
+                                           check_overview_first=True)
+        self.session.verify_kit = Mock(return_value=frozen_displays(PRIMARY, SECONDARY))
+        self.session.pair = Mock(return_value=pair(1, ["10"], ["10"]))
+        self.session.b = None
+        self.session.panel = Mock()
+
+    def test_single_secondary_source_matches_independently_frozen_pair(self):
+        self.session.setup()
+        self.assertEqual((self.session.primary, self.session.secondary, self.session.a, self.session.b),
+                         (PRIMARY, SECONDARY, "10", None))
+
+    def test_substituted_display_from_same_number_of_scopes_stops_before_overview(self):
+        self.session.verify_kit.return_value = frozen_displays(str(uuid.uuid4()).upper(), SECONDARY)
+        with self.assertRaisesRegex(ValueError, "differ from"):
+            self.session.execute()
+        self.session.panel.assert_not_called()
+
+    def test_existing_target_cannot_turn_creation_rehearsal_into_existing_route(self):
+        self.session.args.existing_target = "11"
+        self.session.pair.return_value = pair(1, ["10", "11"], ["10", "11"])
+        with self.assertRaisesRegex(ValueError, "one ordinary source"):
+            self.session.execute()
+        self.session.panel.assert_not_called()
+
+    def test_malformed_primary_scope_stops_before_overview(self):
+        for sample in self.session.pair.return_value:
+            sample["scopes"][0]["records"][0]["isCurrent"] = True
+        with self.assertRaisesRegex(ValueError, "inconsistent current"):
+            self.session.execute()
+        self.session.panel.assert_not_called()
+
+    def test_manifest_must_cover_reader_and_every_frozen_witness_input(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            baseline = json.dumps({"displays": frozen_displays(PRIMARY, SECONDARY)}).encode()
+            (root / "protected.json").write_bytes(baseline)
+            sums = {name: "1" * 64 for name in route.WITNESS_INPUTS}
+            sums["protected.json"] = hashlib.sha256(baseline).hexdigest()
+            def pin():
+                data = "".join(f"{checksum}  {name}\n" for name, checksum in sums.items()).encode()
+                (root / "SHA256SUMS").write_bytes(data)
+                return hashlib.sha256(data).hexdigest()
+            digest = pin()
+            self.assertEqual(route.frozen_witness_displays(root, digest), frozen_displays(PRIMARY, SECONDARY))
+            with self.assertRaisesRegex(ValueError, "wrong frozen witness"):
+                route.frozen_witness_displays(root, "0" * 64)
+            (root / "protected.json").write_bytes(baseline + b" ")
+            with self.assertRaisesRegex(ValueError, "checksum changed"):
+                route.frozen_witness_displays(root, digest)
+            del sums["NearpaneSpaceWitness.app/Contents/Helpers/NearpaneDesktopReader"]
+            with self.assertRaisesRegex(ValueError, "incomplete"):
+                route.frozen_witness_displays(root, pin())
 
 
 class RouteCleanup(unittest.TestCase):
@@ -119,7 +183,7 @@ class RouteCleanup(unittest.TestCase):
                 existing_target=None, display=SECONDARY, source="10", cleanup_run=self.prior, witness=root,
             ))
         self.live = {"current": pair(5, ["10", "11"], ["10", "11"]), "restored": pair(7, ["10"], ["10"])}
-        self.session.verify_kit = Mock()
+        self.session.verify_kit = Mock(return_value=frozen_displays(PRIMARY, SECONDARY))
         self.session.pair = Mock(side_effect=self.live.__getitem__)
         self.session.panel = Mock()
 
@@ -173,6 +237,7 @@ class RouteCleanup(unittest.TestCase):
             self.session.rounds.assert_not_called()
 
     def set_sole_display(self):
+        self.session.verify_kit.return_value = frozen_displays(SECONDARY)
         self.session.args.current_display = True
         self.session.args.provision_current = False
         self.session.args.allow_primary_overview = False
@@ -350,6 +415,12 @@ class BlankTargetCalibration(unittest.TestCase):
         self.assertEqual([c.args[0][0].name for c in call.call_args_list], ["occupancy", "calibrate-route"])
         self.assertEqual(call.call_args_list[0].args[0][1:], ["--scoped","2345","99","main","side","1","10","11"])
         self.assertEqual(route.read(self.root / "target-occupancy.json")["sample"], self.proof)
+
+    def test_dual_display_explicit_pin_reaches_external_calibrator(self):
+        self.session.args.witness_manifest = "a" * 64
+        with patch.object(route.sp, "run", return_value=Mock(returncode=0, stdout=json.dumps(self.proof))) as call:
+            self.calibrate()
+        self.assertEqual(call.call_args.args[0][-2:], ["--witness-manifest", self.session.args.witness_manifest])
 
     def test_occupied_changed_unreadable_or_shared_target_gets_zero_calibration_calls(self):
         for delta, code in (({"blockingWindows":1},0), ({"corroboratedShared":1},0), ({"scopeSamples":1},0),
