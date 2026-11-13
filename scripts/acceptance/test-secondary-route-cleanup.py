@@ -25,6 +25,16 @@ def write(path, data):
 
 
 class PresentationGrant(unittest.TestCase):
+    def test_console_is_claimed_across_different_candidate_entry_points(self):
+        with tempfile.TemporaryDirectory() as directory:
+            trials = Path(directory)
+            with route.exclusive_console(trials):
+                with self.assertRaisesRegex(ValueError, "another Native Spaces trial"):
+                    with route.exclusive_console(trials):
+                        self.fail("concurrent trial acquired the console")
+            with route.exclusive_console(trials):
+                pass
+
     def test_permission_is_local_to_the_current_invocation(self):
         session = route.Session.__new__(route.Session)
         session.args = SimpleNamespace(allow_primary_overview=False, ends="2026-11-12T20:56:45Z")
@@ -58,6 +68,20 @@ class CurrentDisplayRoute(unittest.TestCase):
         self.session.args.existing_target = "19"
         self.sample["displays"].append(dict(id=fixtures["PRIMARY"]))
         with self.assertRaisesRegex(ValueError, "sole live display"):
+            self.session.setup()
+
+    def test_live_source_selector_requires_real_rehearsal_and_rightmost_source(self):
+        self.session.args.source = "rightmost-current"
+        self.session.args.existing_target = None
+        self.session.args.provision_current = True
+        with self.assertRaisesRegex(ValueError, "source is not current"):
+            self.session.setup()
+        self.session.args.check_overview_first = True
+        self.session.setup()
+        self.assertEqual(self.session.a, "20")
+        for row in self.sample["scopes"][0]["records"]:
+            row["isCurrent"] = row["id"] == "19"
+        with self.assertRaisesRegex(ValueError, "rightmost"):
             self.session.setup()
 
 
@@ -130,6 +154,67 @@ class RouteCleanup(unittest.TestCase):
 
     def test_cleanup_from_original_paired_receipts(self):
         self.assert_cleanup()
+
+    def test_observe_requires_original_focus_and_zero_desktop_changes(self):
+        self.session.setup = Mock()
+        self.session.args.check_overview_first = True
+        self.session.b = None
+        self.session.rounds = Mock()
+        log = self.session.out / "observe.jsonl"
+        rows = [json.loads(line) for line in self.creation_receipts.read_text().splitlines()]
+        for mutations, focused in ((1, True), (0, False)):
+            rows[1]["verifiedSpaceMutations"] = mutations
+            rows[2]["sameAXObjectFocusedAfterExit"] = focused
+            log.write_text("\n".join(map(json.dumps, rows)))
+            with self.assertRaisesRegex(ValueError, "post-exit focus"):
+                self.session.execute()
+            self.session.panel.assert_called_once_with("observe")
+            self.session.panel.reset_mock()
+            self.session.rounds.assert_not_called()
+
+    def set_sole_display(self):
+        self.session.args.current_display = True
+        self.session.args.provision_current = False
+        self.session.args.allow_primary_overview = False
+        self.session.args.kit = self.prior
+        def single_pair(offset, order):
+            samples = pair(offset, order, order)
+            for sample in samples:
+                sample["displays"] = sample["displays"][1:]
+                sample["displays"][0]["frame"]["x"] = 0
+                sample["scopes"] = sample["scopes"][1:]
+                del sample["ordinaryRecordsByDisplay"][fixtures["PRIMARY"]]
+            return samples
+        for tag, offset, order in (("origin", 1, ["9","10"]), ("added", 3, ["9","10","11"])):
+            for index, sample in enumerate(single_pair(offset, order), 1):
+                write(self.prior / f"{tag}-{index}.json", sample)
+        self.live.update(current=single_pair(5, ["9","10","11"]), restored=single_pair(7, ["9","10"]))
+
+    def test_sole_display_cleanup_binds_receipts_and_all_original_desktops(self):
+        self.set_sole_display()
+        self.assert_cleanup()
+        s = self.session
+        with patch.object(route, "utcnow", return_value=s.start), patch.object(route.sp, "run") as run:
+            route.Session.panel(s, "remove")
+            cmd = run.call_args.args[0]
+            self.assertEqual(cmd[1:4], ["--current-display", SECONDARY, "10"])
+            self.assertEqual(cmd[-2:], ["remove", self.ledger])
+            self.assertEqual(run.call_args.kwargs["env"]["NEARPANE_PRIMARY_OVERVIEW_UNTIL"], cmd[5])
+            with self.assertRaisesRegex(ValueError, "recovery may only remove"):
+                route.Session.panel(s, "create")
+            run.assert_called_once()
+
+    def test_sole_display_cleanup_refuses_changed_peer_or_unknown_focus(self):
+        self.set_sole_display()
+        self.record_route()
+        path = self.prior / "witness/stopped.json"
+        stopped = route.read(path)
+        write(path, dict(stopped, focusReturn="unverified"))
+        self.assert_refusal("route did not prove a safe stop")
+        write(path, stopped)
+        self.live["current"] = pair(5, ["9","10","11"], ["9","10","11"])
+        self.assert_refusal("designated displays required")
+        self.assertFalse((self.prior / "recovery-attempt.json").exists())
 
     def test_create_helper_deadline_reserves_route_readbacks_and_cleanup(self):
         s = self.session

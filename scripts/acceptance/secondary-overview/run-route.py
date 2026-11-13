@@ -5,6 +5,7 @@ import base64
 import contextlib
 import fcntl
 import datetime as dt
+import errno
 import hashlib
 import json
 import os
@@ -77,8 +78,27 @@ def exclusive_trial(folder):
         os.close(fd)
 
 
-def creation_returned(folder):
-    rows = [json.loads(line) for line in (folder / "create.jsonl").read_text().splitlines()]
+@contextlib.contextmanager
+def exclusive_console(trials):
+    # All entry points for this checkout share the same graphical console.
+    fd = os.open(trials / ".console.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    try:
+        info = os.fstat(fd)
+        need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.getuid()
+             and stat.S_IMODE(info.st_mode) == 0o600, "untrusted console lock")
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            if error.errno in (errno.EAGAIN, errno.EACCES):
+                raise ValueError("another Native Spaces trial is using this console") from error
+            raise
+        yield
+    finally:
+        os.close(fd)
+
+
+def overview_returned(folder, operation, expected_mutations):
+    rows = [json.loads(line) for line in (folder / (operation + ".jsonl")).read_text().splitlines()]
     def only(event):
         matches = [row for row in rows if row.get("event") == event]
         need(len(matches) == 1, "missing or ambiguous " + event)
@@ -90,7 +110,13 @@ def creation_returned(folder):
          exited.get("originalPID") == armed.get("originalPID") and
          all(exited.get(k) is True for k in ("childExited","sameAXObjectFocusedAfterExit","originalIdentityAndGeometry")) and
          all(cleanup.get(k) is True for k in ("windowAbsent","originalPointer","overviewDismissed","scopesMatchVerifiedOperation")) and
-         cleanup.get("verifiedSpaceMutations") == 1, "creation cleanup or post-exit focus return unconfirmed")
+         type(cleanup.get("verifiedSpaceMutations")) is int and cleanup["verifiedSpaceMutations"] == expected_mutations,
+         "overview cleanup or post-exit focus return unconfirmed")
+    return armed
+
+
+def creation_returned(folder):
+    overview_returned(folder, "create", 1)
 
 
 def require_safe_route_stop(folder):
@@ -185,7 +211,10 @@ class Session:
             self.primary, = [d["id"] for d in s["displays"] if d["id"] != self.secondary and (d["frame"]["x"],d["frame"]["y"]) == (0,0)]
         side, = [d for d in s["scopes"] if d["displayID"] == self.secondary]
         self.a, = [r["id"] for r in side["records"] if r["isCurrent"]]
-        need(self.a == self.args.source and self.a in s["ordinaryRecordsByDisplay"][self.secondary], "designated source is not current")
+        from_live_right_edge = (self.current_display and getattr(self.args, "provision_current", False) and
+                                getattr(self.args, "check_overview_first", False) and self.args.source == "rightmost-current")
+        need((self.a == self.args.source or from_live_right_edge) and self.a in s["ordinaryRecordsByDisplay"][self.secondary],
+             "designated source is not current")
         order = [r["id"] for r in side["records"]]
         if self.current_display:
             if self.args.provision_current:
@@ -208,12 +237,17 @@ class Session:
     def panel_environment(self, ends=None):
         env = os.environ.copy()
         env.pop("NEARPANE_PRIMARY_OVERVIEW_UNTIL", None)
-        if self.args.allow_primary_overview or getattr(self.args,"provision_current",False):
+        if self.args.allow_primary_overview or getattr(self.args,"provision_current",False) or (self.current_display and self.args.cleanup_run):
             env["NEARPANE_PRIMARY_OVERVIEW_UNTIL"] = ends or self.args.ends
         return env
 
     def panel(self, operation):
-        need(not self.current_display or self.args.provision_current, "existing endpoints cannot be created or removed")
+        if self.current_display:
+            if self.args.cleanup_run:
+                need(operation == "remove" and self.ledger == self.args.cleanup_run / "provision",
+                     "recovery may only remove the provisioned desktop from the selected trial")
+            else:
+                need(self.args.provision_current, "existing endpoints cannot be created or removed")
         deadline = self.end
         if operation == "create":
             deadline -= dt.timedelta(seconds=MIN_ROUTE_SECONDS + CLEANUP_SECONDS + ADDED_READBACK_SECONDS)
@@ -221,8 +255,15 @@ class Session:
         ends = deadline.strftime(STAMP)
         with (self.out / (operation+".jsonl")).open("xb") as log, (self.out/(operation+"-stderr.log")).open("xb") as err:
             selector = ["--current-display"] if self.current_display else []
-            sp.run([self.args.kit/"focus-return", *selector, self.secondary,self.a,self.args.starts,ends,operation,self.ledger],
-                   stdout=log, stderr=err, check=True, env=self.panel_environment(ends))
+            action = [] if operation == "observe" else [operation, self.ledger]
+            env = self.panel_environment(ends)
+            if operation == "create" and getattr(self.args, "check_overview_first", False):
+                anchor = overview_returned(self.out, "observe", 0)
+                env["NEARPANE_REHEARSED_WINDOW"] = str(anchor["originalWindow"])
+                env["NEARPANE_REHEARSED_PID"] = str(anchor["originalPID"])
+                env["NEARPANE_REHEARSED_BIRTH"] = str(anchor["originalProcessStart"])
+            sp.run([self.args.kit/"focus-return", *selector, self.secondary,self.a,self.args.starts,ends,*action],
+                   stdout=log, stderr=err, check=True, env=env)
 
     def calibrate(self, step, cache, run, child):
         if step == "enroll-B":
@@ -341,6 +382,13 @@ class Session:
         self.setup()
         created = self.b is None
         if created:
+            if getattr(self.args, "check_overview_first", False):
+                self.panel("observe")
+                overview_returned(self.out, "observe", 0)
+                fresh = self.pair("after-observe")
+                keys = ("displays", "scopes", "topologyFingerprint", "ordinaryRecordsByDisplay")
+                need(all(fresh[1][k] == self.origin[1][k] for k in keys),
+                     "desktop changed during the focus rehearsal")
             self.panel("create")
             self.provisioned = self.pair("added")
             proof = self.check_added(self.origin,self.provisioned)
@@ -406,14 +454,14 @@ class Session:
             def stored(tag):
                 return [read(prior / f"{tag}-{n}.json") for n in (1,2)]
             self.origin = stored("origin")
-            protected, = [d["id"] for d in self.origin[0]["displays"]
-                          if d["id"] != self.secondary and d["frame"]["x"] == d["frame"]["y"] == 0]
-            self.primary = protected
+            if not self.current_display:
+                self.primary, = [d["id"] for d in self.origin[0]["displays"]
+                                 if d["id"] != self.secondary and d["frame"]["x"] == d["frame"]["y"] == 0]
             tag = "added" if (prior / "added-2.json").exists() else "creation-readback"
             self.provisioned = stored(tag)
             # Validate the two original samples *and* a fresh pair from this distinct invocation.
             for pair in (self.provisioned, self.pair("current")):
-                proof = VERIFY(self.primary, self.secondary, self.origin, pair)
+                proof = self.check_added(self.origin, pair)
                 need(proof["source"] == self.a and proof["target"] == self.b, "adjacent created desktop not confirmed")
             # The signed controller rechecks boot, Dock birth, creation lifetime, original AX tiles,
             # positive A witness and live target occupancy before its exclusive remove-intent.
@@ -433,20 +481,25 @@ def main():
         parser.add_argument("--"+key, required=True)
     parser.add_argument("--allow-primary-overview", action="store_true", help="owner permits transient system overview presentation on the primary during this timed trial")
     parser.add_argument("--existing-target")
-    parser.add_argument("--current-display", action="store_true", help="route only across existing desktops on the named sole display")
+    parser.add_argument("--current-display", action="store_true", help="bind the requested route, provision, or cleanup to the named sole display")
     parser.add_argument("--provision-current", action="store_true", help="create and remove only a new adjacent desktop on the explicitly designated sole display")
+    parser.add_argument("--check-overview-first", action="store_true",
+                        help="require a successful real overview and passive focus return before creating a desktop")
     parser.add_argument("--witness-manifest", help="SHA-256 of the independently frozen current-display witness manifest")
     parser.add_argument("--cleanup-run", type=lambda value:Path(value).resolve(strict=True),
                         help="within a current loan, remove only the evidenced new B from this stopped trial")
     args = parser.parse_args()
+    if args.check_overview_first and (not args.current_display or not args.provision_current or args.cleanup_run):
+        parser.error("--check-overview-first requires a new single-display provisioning trial")
     if args.current_display:
-        if bool(args.existing_target) == args.provision_current or args.cleanup_run or args.allow_primary_overview or not args.witness_manifest:
-            parser.error("--current-display needs a frozen witness manifest and exactly one existing target or an explicit provision request")
+        modes = (args.existing_target is not None, args.provision_current, args.cleanup_run is not None)
+        if sum(modes) != 1 or args.allow_primary_overview or not args.witness_manifest:
+            parser.error("--current-display needs a frozen witness manifest and exactly one of --existing-target, --provision-current or --cleanup-run")
     elif args.witness_manifest or args.provision_current:
         parser.error("--witness-manifest is only valid with --current-display")
     s=Session(args)
     try:
-        with exclusive_trial(s.out):
+        with exclusive_console(s.out.parent), exclusive_trial(s.out):
             if s.args.cleanup_run:
                 s.recover_prepared(s.args.cleanup_run)
             else:

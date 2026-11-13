@@ -52,7 +52,7 @@ struct SecondarySpacesBar {
   let spaces: AXUIElement
   let add: AXUIElement
   let container: AXUIElement
-  fileprivate let addLocation: ControlLocation
+  fileprivate let addProof: AddProof
   let primaryContainer: Bool
 }
 
@@ -102,6 +102,72 @@ fileprivate enum ControlLocation: Equatable {
       return area.contains(point) && exactHit(element, owner: owner)(point)
     }
   }
+}
+
+// A semantic press addresses the retained accessibility object. The physical point
+// here witnesses the owning strip only and is never a click coordinate.
+fileprivate enum AddProof {
+  case located(ControlLocation)
+  case semantic(stripPoint: CGPoint, ownerBirth: Date)
+
+  var method: String {
+    switch self {
+    case .located(.frame): return "containedFrame"
+    case .located(.hit): return "repeatedExactPhysicalHit"
+    case .semantic: return "soleDisplaySemanticAXPress"
+    }
+  }
+}
+
+private func optionalAttribute(_ element: AXUIElement, _ key: String) throws -> CFTypeRef? {
+  var value: CFTypeRef?
+  switch AXUIElementCopyAttributeValue(element, key as CFString, &value) {
+  case .success:
+    guard let value else { throw Refusal("missing reported system control attribute") }
+    return value
+  case .attributeUnsupported: return nil
+  default: throw Refusal("system control visibility unreadable")
+  }
+}
+
+private func semanticVisible(hidden: Bool?, visibleMatches: Int?) -> Bool {
+  hidden != true && (visibleMatches == nil || visibleMatches == 1)
+}
+
+private func visibleWhenExposed(_ add: AXUIElement, in spaces: AXUIElement) throws -> Bool {
+  let h = try optionalAttribute(add,"AXHidden"), v = try optionalAttribute(spaces,kAXVisibleChildrenAttribute)
+  var count: Int?
+  if let v {
+    guard let list = v as? [AXUIElement], list.count <= 256 else { return false }
+    count = list.filter { CFEqual($0,add) }.count
+  }
+  guard h == nil || CFGetTypeID(h!) == CFBooleanGetTypeID() else { return false }
+  return semanticVisible(hidden:h as? Bool, visibleMatches:count)
+}
+
+private func hitsSpacesStrip(_ point: CGPoint, spaces: AXUIElement, container: AXUIElement, owner: pid_t) -> Bool {
+  var hit: AXUIElement?
+  let system = AXUIElementCreateSystemWide()
+  AXUIElementSetMessagingTimeout(system,0.20)
+  guard AXUIElementCopyElementAtPosition(system,Float(point.x),Float(point.y),&hit) == .success,
+        var node = hit else { return false }
+  for _ in 0..<8 {
+    var pid: pid_t = 0
+    guard AXUIElementGetPid(node,&pid) == .success, pid == owner else { return false }
+    if CFEqual(node,spaces) { return childOf(spaces,container) }
+    guard let parent = attr(node,kAXParentAttribute), CFGetTypeID(parent) == AXUIElementGetTypeID() else { return false }
+    node = parent as! AXUIElement
+  }
+  return false
+}
+
+private func semanticStripPoint(in area: CGRect, hit: (CGPoint) -> Bool) -> CGPoint? {
+  guard area.width >= 4, area.height >= 4 else { return nil }
+  for fx: CGFloat in [0.5,0.25,0.75] {
+    let point = CGPoint(x:area.minX + area.width * fx, y:area.midY)
+    if hit(point) && hit(point) { return point }
+  }
+  return nil
 }
 
 private func exactHit(_ element: AXUIElement, owner: pid_t) -> (CGPoint) -> Bool {
@@ -247,8 +313,13 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
     if mc.count==1 {roots.append((host,mc[0]))}
   }
   var bars:[SecondarySpacesBar]=[]
+  var displayContainers: [AXUIElement] = []
   for (owner,scope) in roots {
     let containers=try children(scope,named:"mc.display")
+    if currentDisplay {
+      for c in containers where !displayContainers.contains(where:{ CFEqual($0,c) }) { displayContainers.append(c) }
+      guard displayContainers.count <= 1 else { throw Refusal("conflicting sole-display overview containers") }
+    }
     for container in containers where (attr(container,"AXDisplayID") as? NSNumber)?.uint32Value==side {
       let spaces=try only(children(container,named:"mc.spaces"),"secondary spaces bar")
       let add=try only(children(spaces,named:"mc.spaces.add"),"secondary add button")
@@ -260,14 +331,25 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
           systemControlFrame(container)==CGDisplayBounds(side),
           childOf(add,spaces), childOf(spaces,container),
           attr(add,kAXRoleAttribute) as? String == kAXButtonRole,
-          attr(add,kAXEnabledAttribute) as? Bool == true,
-          let location=locate(add,owner:owner.processIdentifier,in:strip,add:true)
+          attr(add,kAXEnabledAttribute) as? Bool == true
         else {throw Refusal("secondary control geometry, physical hit or owner unconfirmed")}
       var actions:CFArray?
       guard AXUIElementCopyActionNames(add,&actions) == .success,
             (actions as? [String])?.contains(kAXPressAction as String)==true else {throw Refusal("no affirmative add action")}
+      let proof: AddProof
+      if let location = locate(add,owner:owner.processIdentifier,in:strip,add:true) {
+        proof = .located(location)
+      } else {
+        let frames = reportedFrames(add)
+        guard currentDisplay, let birth = owner.launchDate, displayContainers.count == 1,
+              frames.direct == nil || frames.split == nil || frames.direct == frames.split,
+              try visibleWhenExposed(add,in:spaces),
+              let point = semanticStripPoint(in:strip,hit:{hitsSpacesStrip($0,spaces:spaces,container:container,owner:owner.processIdentifier)})
+        else { throw Refusal("add not independently located or bound to one visible system strip") }
+        proof = .semantic(stripPoint:point,ownerBirth:birth)
+      }
       if !bars.contains(where:{CFEqual($0.add,add)}) {
-        bars.append(SecondarySpacesBar(dock:dock,owner:owner,side:side,spaces:spaces,add:add,container:container,addLocation:location,
+        bars.append(SecondarySpacesBar(dock:dock,owner:owner,side:side,spaces:spaces,add:add,container:container,addProof:proof,
           primaryContainer:containers.contains{ (attr($0,"AXDisplayID") as? NSNumber)?.uint32Value==CGMainDisplayID() }))
       }
     }
@@ -286,9 +368,11 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
   if let bar {
     report["primaryOverviewContainerPresent"]=bar.primaryContainer
     report["systemControlOwner"]=bar.owner.bundleIdentifier
-    switch bar.addLocation {
-    case .frame: report["secondaryCommandProof"]="containedFrame"
-    case .hit(let p): report["secondaryCommandProof"]="repeatedExactPhysicalHit"; report["confirmedSecondaryPoint"]=[p.x,p.y]
+    report["secondaryCommandProof"]=bar.addProof.method
+    switch bar.addProof {
+    case .located(.frame): break
+    case .located(.hit(let p)): report["confirmedSecondaryPoint"]=[p.x,p.y]
+    case .semantic(let p,_): report["confirmedStripPoint"]=[p.x,p.y]
     }
   }
   return report
@@ -309,6 +393,23 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
           guard cases.allSatisfy({ (try? newlyAddedDesktop(before: $0.0, after: $0.1, source: "a", currentDisplay: $0.2)) == $0.3 })
           else { exit(2) }
           print("\(cases.count) existing inventory and append-only creation cases passed")
+          return
+        }
+        if CommandLine.arguments.dropFirst().elementsEqual(["--test-semantic-add"]) {
+          let strip = CGRect(x:0,y:0,width:1470,height:72)
+          let center = CGPoint(x:735,y:36)
+          var hits = 0
+          let cases = [
+            semanticVisible(hidden:nil,visibleMatches:nil), semanticVisible(hidden:false,visibleMatches:1),
+            !semanticVisible(hidden:true,visibleMatches:nil), !semanticVisible(hidden:false,visibleMatches:0),
+            !semanticVisible(hidden:nil,visibleMatches:2),
+            semanticStripPoint(in:strip,hit:{ $0 == center }) == center,
+            semanticStripPoint(in:strip,hit:{ _ in false }) == nil,
+            semanticStripPoint(in:strip,hit:{ p in hits += 1; return hits == 1 && p == center }) == nil,
+            semanticStripPoint(in:.zero,hit:{ _ in true }) == nil
+          ]
+          guard cases.allSatisfy({$0}) else { exit(2) }
+          print("\(cases.count) sole-display Add visibility and physical strip witness cases passed")
           return
         }
         if CommandLine.arguments.dropFirst().elementsEqual(["--test-command-geometry"]) {
@@ -712,7 +813,11 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     let tiles: [AXUIElement]
     let locations: [ControlLocation]
     let labels: [String]
+    let display: UUID
+    let identifiedAt: TimeInterval
     init(display: UUID, count: Int, currentDisplay: Bool) throws {
+      identifiedAt = ProcessInfo.processInfo.systemUptime
+      self.display = display
       guard let observed = try secondarySpacesBar(display, currentDisplay: currentDisplay), !observed.dock.isTerminated, !observed.owner.isTerminated
       else { throw Refusal("secondary add button frame or Dock identity unavailable") }
       let list = try only(
@@ -767,12 +872,29 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
             let listFrame = systemControlFrame(list), !listFrame.isEmpty, strip.contains(listFrame),
             let current = attr(list,kAXChildrenAttribute) as? [AXUIElement], current.count == tiles.count,
             attr(bar.add,kAXEnabledAttribute) as? Bool == true,
-            bar.addLocation.recheck(bar.add, owner:owner, in:strip),
             tiles.indices.allSatisfy({ i in
               CFEqual(current[i], tiles[i]) && childOf(tiles[i],list) &&
                 attr(tiles[i],kAXEnabledAttribute) as? Bool == true &&
                 locations[i].recheck(tiles[i],owner:owner,in:listFrame)
             }) else { throw Refusal("secondary command or desktop tiles lost their physical proof") }
+      switch bar.addProof {
+      case .located(let location):
+        guard location.recheck(bar.add,owner:owner,in:strip) else { throw Refusal("add lost its physical proof") }
+      case .semantic(let p,let birth):
+        guard let current = try secondarySpacesBar(display,currentDisplay:true),
+              current.owner.processIdentifier == owner, current.owner.launchDate == birth,
+              current.dock == bar.dock, CFEqual(current.container,bar.container), CFEqual(current.spaces,bar.spaces),
+              CFEqual(current.add,bar.add), try visibleWhenExposed(bar.add,in:bar.spaces),
+              strip.contains(p), hitsSpacesStrip(p,spaces:bar.spaces,container:bar.container,owner:owner)
+        else { throw Refusal("sole-display semantic Add lost its strip, identity or generation") }
+        let elapsed = ProcessInfo.processInfo.systemUptime - identifiedAt
+        let types: [CGEventType] = [.keyDown,.keyUp,.flagsChanged,.mouseMoved,.leftMouseDown,.rightMouseDown,
+          .otherMouseDown,.leftMouseUp,.rightMouseUp,.otherMouseUp,.leftMouseDragged,.rightMouseDragged,
+          .otherMouseDragged,.scrollWheel]
+        guard elapsed >= 0, NSEvent.pressedMouseButtons == 0, types.allSatisfy({
+          CGEventSource.secondsSinceLastEventType(.hidSystemState,eventType:$0) >= elapsed
+        }) else { throw Refusal("physical input intervened during semantic Add proof") }
+      }
     }
   }
 
@@ -831,6 +953,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       guard CFEqual(initialUI.bar.add, ui.bar.add), initialUI.labels == ui.labels,
         (try state()) == original
       else { throw Refusal("secondary add control changed") }
+      emit(["event":"preparedAddMethod","method":ui.bar.addProof.method,"retainedButton":true])
       try folder.put(intent, "create-intent.json")
       try ui.recheckBeforeInput()
       try requireAuthorizedAction()

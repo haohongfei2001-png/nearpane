@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Assemble an inert, one-use Finder launcher for an already frozen current-display route."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import plistlib
+import shutil
+import subprocess
+import tempfile
+import uuid
+
+ROOT = Path(__file__).resolve().parents[3]
+SOURCES = Path(__file__).resolve().parent
+OUTPUT = ROOT / "build/verification/finder-native-space"
+SCRIPTS = ("scripts/acceptance/secondary-overview/run-route.py",
+           "scripts/acceptance/verify-secondary-provision.py", "scripts/acceptance/space-checkpoint.py")
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def validated_kit(root, digest, app):
+    root = root.resolve(strict=True)
+    if sha(root / "SHA256SUMS") != digest:
+        raise ValueError("Frozen manifest digest mismatch: " + root.name)
+    subprocess.run(["/usr/bin/shasum", "-a", "256", "-c", "SHA256SUMS"], cwd=root, check=True)
+    subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", root / app], check=True)
+    return root
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--display", type=uuid.UUID, required=True)
+    for kit in ("overview", "witness"):
+        parser.add_argument("--" + kit, required=True, type=Path)
+        parser.add_argument("--" + kit + "-sha", required=True)
+    args = parser.parse_args()
+    os.umask(0o077)
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    # A spent package is immutable. A new delivery gets a different receipt directory.
+    folder = OUTPUT / str(uuid.uuid4())
+    display = str(args.display).upper()
+    overview_app = "Nearpane Secondary Overview.app"
+    witness_app = "NearpaneSpaceWitness.app"
+    overview = validated_kit(args.overview, args.overview_sha, overview_app)
+    witness = validated_kit(args.witness, args.witness_sha, witness_app)
+    baseline = json.loads((witness / "protected.json").read_bytes())
+    if baseline["displays"] != [hashlib.sha256(display.encode()).hexdigest()]:
+        raise ValueError("Frozen protected session does not match the designated sole display")
+    python = Path(shutil.which("python3")).resolve(strict=True)
+    supervisor = ROOT / SCRIPTS[0]
+    help_text = subprocess.check_output([python, "-I", "-B", supervisor, "--help"], text=True)
+    if "--check-overview-first" not in help_text:
+        raise ValueError("Supervisor is missing the return rehearsal")
+    # Documents is File Provider backed on this Mac and reintroduces FinderInfo
+    # on signed helpers. Keep executable copies on the local volume for this boot.
+    stage = Path(tempfile.mkdtemp(prefix="Nearpane-Finder-Space.", dir="/private/tmp"))
+    try:
+        tools = stage / "tools"
+        for source, subdir, digest, app_name in (
+                (overview, "overview", args.overview_sha, overview_app),
+                (witness, "witness", args.witness_sha, witness_app)):
+            fresh = tools / subdir
+            fresh.mkdir(parents=True)
+            manifest = source / "SHA256SUMS"
+            shutil.copy(manifest, fresh)
+            for line in manifest.read_text().splitlines():
+                _, name = line.split("  ", 1)
+                if Path(name).parts[0] != app_name:
+                    shutil.copy(source / name, fresh / name)
+            subprocess.run(["/usr/bin/ditto", "--norsrc", "--noextattr", source / app_name, fresh / app_name], check=True)
+            validated_kit(fresh, digest, app_name)
+
+        app = stage / "开始原生桌面往返验收.app"
+        binary = app / "Contents/MacOS/NearpaneFinderTrial"
+        binary.parent.mkdir(parents=True)
+        resources = app / "Contents/Resources"
+        resources.mkdir()
+        spec = dict(directory=str(folder), repository=str(ROOT), display=display, python=str(python),
+                    helpersSHA256=args.overview_sha, witnessSHA256=args.witness_sha,
+                    scripts={path: sha(ROOT / path) for path in SCRIPTS})
+        (resources / "trial.json").write_text(json.dumps(spec, sort_keys=True))
+        info = dict(CFBundleName="Nearpane 原生桌面验收", CFBundleExecutable=binary.name,
+                    CFBundleIdentifier="org.nearpane.lab.FinderSpaceTrial", CFBundleVersion="1",
+                    CFBundlePackageType="APPL", LSBackgroundOnly=True,
+                    NSDisableAutomaticTermination=True, NSDisableSuddenTermination=True)
+        (app / "Contents/Info.plist").write_bytes(plistlib.dumps(info))
+        subprocess.run(["xcrun", "swiftc", "-O", "-warnings-as-errors", "-parse-as-library",
+                        "-module-cache-path", ROOT / "build/secondary-overview/modules",
+                        SOURCES / "FinderTrial.swift", "-o", binary], check=True)
+        subprocess.run(["/usr/bin/codesign", "--sign", "-", "--force", app], check=True)
+        subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", app], check=True)
+        with tempfile.TemporaryDirectory(dir=OUTPUT) as pending:
+            final = Path(pending) / "delivery"
+            final.mkdir(mode=0o700)
+            (final / app.name).symlink_to(app, target_is_directory=True)
+            (final / "tools").symlink_to(tools, target_is_directory=True)
+            (final / "验收结果.txt").write_text("尚未启动。无人使用时在 Finder 中双击本目录的验收应用，将在当前屏幕测试临时桌面往返，最长 10 分钟。\n")
+            final.rename(folder)
+    except BaseException:
+        shutil.rmtree(stage)
+        raise
+    print(folder / app.name)
+
+
+if __name__ == "__main__":
+    main()

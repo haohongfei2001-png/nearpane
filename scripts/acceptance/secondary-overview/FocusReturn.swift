@@ -76,6 +76,12 @@ import CryptoKit
     }
     guard quiet() else { throw Refusal("physical input still active; fixture not launched") }
     let anchor = try FocusAnchor()
+    let env = ProcessInfo.processInfo.environment
+    if currentDisplay && args.count == 6 && args[4] == "create", let window = env["NEARPANE_REHEARSED_WINDOW"] {
+      guard UInt32(window) == anchor.number, Int32(env["NEARPANE_REHEARSED_PID"] ?? "") == anchor.owner.processIdentifier,
+            Double(env["NEARPANE_REHEARSED_BIRTH"] ?? "") == anchor.birth.timeIntervalSince1970
+      else { throw Refusal("original window or process changed after the overview rehearsal") }
+    }
     let uuid = UUID().uuidString
     record([
       "event": "externalFocusArmed", "observer": getpid(), "run": uuid,
@@ -87,11 +93,11 @@ import CryptoKit
     child.executableURL = exe
     child.arguments = supplied
     child.standardInput = FileHandle.nullDevice
-    var env = ProcessInfo.processInfo.environment
-    for (k, v) in anchor.environment { env[k] = v }
-    env["NEARPANE_RETURN_RUN"] = uuid
-    env["NEARPANE_RETURN_OBSERVER"] = String(getpid())
-    child.environment = env
+    var childEnvironment = env
+    for (k, v) in anchor.environment { childEnvironment[k] = v }
+    childEnvironment["NEARPANE_RETURN_RUN"] = uuid
+    childEnvironment["NEARPANE_RETURN_OBSERVER"] = String(getpid())
+    child.environment = childEnvironment
     guard anchor.isIntact && anchor.isFocused else {
       throw Refusal("original focus changed before fixture launch")
     }

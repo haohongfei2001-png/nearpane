@@ -186,6 +186,12 @@ func live(_ supplied: [String]) throws {
       CGEventSource.secondsSinceLastEventType(.hidSystemState,eventType:$0) > elapsed
     }
   }
+  func keyboardAndScrollIdle(since time: Double) -> Bool {
+    let elapsed = ProcessInfo.processInfo.systemUptime - time
+    return [CGEventType.keyDown, .keyUp, .flagsChanged, .scrollWheel].allSatisfy {
+      CGEventSource.secondsSinceLastEventType(.hidSystemState,eventType:$0) > elapsed
+    }
+  }
   var movedPointer = false
   var toggled = false
   var ownedOverview: AXUIElement?
@@ -208,6 +214,30 @@ func live(_ supplied: [String]) throws {
     return true
   }
   func isOriginal() -> Bool { anchor.isFocused }
+
+  // Exercise exactly the same release sequence before and after Mission Control.
+  // Closing the last NSWindow first can change the frontmost app during the handoff.
+  func relinquishAndObserve(_ phase: String) -> Bool {
+    w.orderOut(nil)
+    app.hide(nil)
+    let deadline = ProcessInfo.processInfo.systemUptime + 2
+    var since: Double?
+    var confirmed = false
+    repeat {
+      spin(0.04)
+      let now = ProcessInfo.processInfo.systemUptime
+      if isOriginal() && anchor.isIntact {
+        if let since, now - since >= 0.15 { confirmed = true; break }
+        if since == nil { since = now }
+      } else {
+        since = nil
+      }
+    } while ProcessInfo.processInfo.systemUptime < deadline
+    emit(["event":"passiveHandoff","phase":phase,"originalFocusWhileFixtureRetained":confirmed,
+          "originalProcessFrontmost":NSWorkspace.shared.frontmostApplication?.processIdentifier == focus.0,
+          "fixtureOrderedOut":!w.isVisible])
+    return confirmed
+  }
   func within() throws {
     try need(Date() >= start && end.timeIntervalSinceNow > 8, "time expired")
     if toggled {
@@ -220,6 +250,7 @@ func live(_ supplied: [String]) throws {
     try need(try scoped(sideID, source, currentDisplay:currentDisplay) == expectedScopes, "display state changed")
   }
   var num: UInt32 = 0
+  var enrolledAX: AXUIElement?
   do {
     try within()
     try need(
@@ -249,7 +280,7 @@ func live(_ supplied: [String]) throws {
         "own geometry or membership not confirmed")
       return ax
     }
-    try exactWindow()
+    enrolledAX = try exactWindow()
     try within()
     let observed = try? currentFocus()
     emit([
@@ -305,11 +336,8 @@ func live(_ supplied: [String]) throws {
     }
     _ = try acquire()
     // Verify passive return before invoking any system overview.
-    w.orderOut(nil)
-    app.hide(nil)
-    spin(0.55)
+    try need(relinquishAndObserve("rehearsal"), "passive return rehearsal failed")
     try within()
-    try need(isOriginal(), "passive return rehearsal failed")
     app.unhideWithoutActivation()
     w.orderFrontRegardless()
     spin(0.25)
@@ -449,6 +477,10 @@ func live(_ supplied: [String]) throws {
       }
       func checkAction() throws {
         try need(start <= Date() && end.timeIntervalSinceNow > 10,"late provision action")
+        if currentDisplay {
+          guard let since = pointerLoanBegan, physicalMouseIdle(since:since), keyboardAndScrollIdle(since:since)
+          else { throw Refusal("physical input resumed during the current-display loan") }
+        }
         try need(protectedPresentation(FocusAnchor.geometry(anchor.number,anchor.owner.processIdentifier)),
                  "protected owner, logical layout, membership or overview presentation changed")
         let latest = try scoped(sideID,source, currentDisplay:currentDisplay)
@@ -554,11 +586,21 @@ func live(_ supplied: [String]) throws {
       }
     }
   }
-  w.orderOut(nil)
+  // Revalidate the retained object immediately before releasing focus. Do not hide
+  // an unrelated app or activate the original app to manufacture a successful readback.
+  if (!toggled || verifiedClosed), Date() < end, let enrolledAX, anchor.isIntact,
+     w.isKeyWindow, w.windowNumber == Int(num), NPReadAXWindowNumber(enrolledAX) == num,
+     (try? scoped(sideID,source,currentDisplay:currentDisplay)) == expectedScopes,
+     (NPReadWindowSpaces(num) as? [NSNumber])?.map(\.stringValue) == [source],
+     let exact = try? currentFocus(), exact.0 == getpid(), CFEqual(exact.1,enrolledAX) {
+    if !relinquishAndObserve("cleanup"), failure == nil {
+      failure = Refusal("original focus not confirmed before closing the hidden fixture")
+    }
+  } else {
+    w.orderOut(nil)
+    if NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid() { app.hide(nil) }
+  }
   w.close()
-  // orderFrontRegardless or AppKit startup can alter focus before an explicit activate(). Relinquish
-  // only our own process, even on that early refusal; never raise the user's original window.
-  if NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid() { app.hide(nil) }
   let passiveEnd = ProcessInfo.processInfo.systemUptime + 2
   repeat { spin(0.08) } while !isOriginal() && ProcessInfo.processInfo.systemUptime < passiveEnd
   if movedPointer, let spent = pointerLoanBegan, Date() < end, near(try? point(),landed), physicalMouseIdle(since:spent) {
