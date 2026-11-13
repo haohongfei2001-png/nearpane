@@ -67,13 +67,12 @@ func run() throws {
   let currentDisplay = a.count == 6 && a.last == "--current-display"
   guard a.count == 5 || currentDisplay, let pid = Int32(a[0]), let run = UUID(uuidString: a[1]),
     let end = ISO8601DateFormatter().date(from: a[4]),
-    end.timeIntervalSinceNow > 10 && end.timeIntervalSinceNow <= 900,
-    let app = NSRunningApplication(processIdentifier: pid),
-    app.bundleIdentifier == "org.nearpane.lab.NearpaneSpaceWitness",
-    app.executableURL?.resolvingSymlinksInPath()
-      == URL(fileURLWithPath: a[2]).resolvingSymlinksInPath(),
-    app.launchDate != nil, AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1
-  else { throw Stop("frozen live owner or interval unavailable") }
+    end.timeIntervalSinceNow > 10 && end.timeIntervalSinceNow <= 900
+  else { throw Stop("invalid witness arguments or interval") }
+  guard AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1 else { throw Stop("pointer observer AX or Space reader unavailable") }
+  guard let app = FrozenWitnessOwner.enroll(pid,executable:URL(fileURLWithPath:a[2]),before:end) else {
+    throw Stop("frozen witness kernel generation, executable or live signature unconfirmed")
+  }
   let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
     "Library/Caches/Nearpane-P431-" + run.uuidString)
   let original = try pointer()
@@ -81,7 +80,7 @@ func run() throws {
   note("original", original)
   let start = now()
   func locate() throws -> (PointerDisplay, CGRect, UInt32)? {
-    guard let c = try? Data(contentsOf: dir.appendingPathComponent("unattended-consent.ready")),
+    guard app.sameProcess, let c = try? Data(contentsOf: dir.appendingPathComponent("unattended-consent.ready")),
       let grant = try JSONSerialization.jsonObject(with: c) as? [String: Any],
       grant["run"] as? String == run.uuidString, grant["ends"] as? String == a[4],
       grant["secondaryDisplay"] as? String == a[3],
@@ -117,17 +116,23 @@ func run() throws {
     return (try PointerDisplay(side[0]), rect, n)
   }
   var target: (PointerDisplay, CGRect, UInt32)?
-  while !app.isTerminated && end.timeIntervalSinceNow > 10 && now() - start < 40 {
+  while app.sameProcess && end.timeIntervalSinceNow > 10 && now() - start < 40 {
     if let found = try locate() {
       target = found
       break
     }
-    Thread.sleep(forTimeInterval: 0.025)
+    RunLoop.current.run(until: Date(timeIntervalSinceNow:0.025))
   }
   guard let (side, rect, number) = target else {
     // The route may refuse before showing A. No placement call is reachable above
     // this point. Attest unchanged cursor only after the fixture has really exited.
-    guard app.isTerminated else { throw Stop("A did not acquire the expected foreground window") }
+    // The kernel may expose a zombie briefly while the parent reaps the witness.
+    // This is read-only; a reused or still-live PID never proves absence.
+    let reapDeadline = min(end, Date(timeIntervalSinceNow: 1))
+    while !app.confirmedAbsent && Date() < reapDeadline {
+      RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.025))
+    }
+    guard app.confirmedAbsent else { throw Stop("A did not acquire the expected foreground window or its owner changed") }
     for index in 0..<2 {
       let p = try pointer()
       guard p == original, try PointerDisplay(point: p) == originalDisplay else {
@@ -140,7 +145,7 @@ func run() throws {
   }
   let dest = CGPoint(x: rect.midX.rounded(), y: rect.midY.rounded())
   try required(
-    !heldButtons() && (try pointer()) == original, "pointer or modifiers changed before loan")
+    app.verified && !heldButtons() && (try pointer()) == original, "witness, pointer or modifiers changed before loan")
   let spent = now()
   try side.move(to: dest)
   var sampled: CGPoint?
@@ -166,7 +171,7 @@ func run() throws {
       try required(now() < limit, "stable landing on owned window not confirmed")
       Thread.sleep(forTimeInterval: 0.04)
     } while true
-    while !app.isTerminated && end.timeIntervalSinceNow > 2 { Thread.sleep(forTimeInterval: 0.05) }
+    while app.sameProcess && end.timeIntervalSinceNow > 2 { RunLoop.current.run(until: Date(timeIntervalSinceNow:0.05)) }
   } catch { observationError = error }
   let current = try pointer()
   note("before-return", current)

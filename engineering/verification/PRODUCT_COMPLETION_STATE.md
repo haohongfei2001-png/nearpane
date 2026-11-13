@@ -6,6 +6,10 @@
 
 **当前可打开的版本**　[Nearpane P5.7 Alpha](</Users/hhf/Applications/Nearpane P5.7/Nearpane P5.7 Alpha.app>)。回退时正常退出当前版本，再打开 [P5.6 Alpha](</Users/hhf/Applications/Nearpane P5.6/Nearpane P5.6 Alpha.app>)。两个版本沿用稳定资料身份，普通用户窗口自动接管默认关闭。
 
+## 副屏 A/B 实机 · 2026-11-14
+
+首次实机创建相邻副屏普通桌面 B（4632），A（4568）保持当前，创建时主屏仍在 1130。双采样确认建 B 后概览关闭，原主屏窗口的精确焦点和几何已恢复。后续见证器在发出方向键前发现焦点离开登记窗口，普通桌面往返为 0/3。副屏保留 A、B，最后只读观察时在 A。产品空间行点击和跨空间拖放仍关闭。[建 B、焦点和后续验收](NATIVE-SECONDARY-WINDOWMANAGER-RESULT.md)
+
 ## 副屏实机接续 · 2026-11-13 23:27
 
 两次只读核对确认副屏仍只有普通桌面 4568，原焦点归属主屏 1309。已修复验收器对副屏原窗口误用主屏边界的问题，完成无界面回归和签封。普通桌面往返仍为 0/3，空间行和跨空间移窗保持关闭。[现场记录与单次启动入口](NATIVE-SECONDARY-WINDOWMANAGER-RESULT.md#2322-只读复核及归还窗口的显示器边界)

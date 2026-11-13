@@ -200,9 +200,7 @@ func perform(kit: URL, run: UUID, step: String, currentDisplay: String?, manifes
     guard let pid = origin["frontPID"] as? Int32, let n = origin["number"] as? UInt32, let frame = origin["frame"] as? Object,
           enrolled["window"] as? String == String(n), enrolled["frontPID"] as? String == String(pid),
           enrolled["run"] as? String == id, enrolled["label"] as? String == label, origin["record"] as? String == source,
-          let app = NSRunningApplication(processIdentifier: pid), let birth = app.launchDate,
-          app.bundleIdentifier == "org.nearpane.lab.NearpaneSpaceWitness",
-          app.executableURL?.resolvingSymlinksInPath().path == kit.appendingPathComponent(witness).resolvingSymlinksInPath().path,
+          let app = FrozenWitnessOwner.enroll(pid,executable:kit.appendingPathComponent(witness),before:ends),
           let screen = NSScreen.screens.first(where: { s in
               guard let d = (s.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value,
                     (currentDisplay == nil ? d != CGMainDisplayID() : d == CGMainDisplayID()), CGDisplayIsInMirrorSet(d) == 0,
@@ -251,8 +249,8 @@ func perform(kit: URL, run: UUID, step: String, currentDisplay: String?, manifes
     let modifiers: CGEventFlags = [.maskControl,.maskAlternate,.maskCommand,.maskShift,.maskSecondaryFn]
     func focused() throws -> AXUIElement {
         try pending()
-        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid, !app.isTerminated, NSEvent.pressedMouseButtons == 0,
-              app.launchDate == birth, screen.frame.contains(NSEvent.mouseLocation), CGPreflightPostEventAccess(), AXIsProcessTrusted(),
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid, app.verified, NSEvent.pressedMouseButtons == 0,
+              screen.frame.contains(NSEvent.mouseLocation), CGPreflightPostEventAccess(), AXIsProcessTrusted(),
               CGEventSource.flagsState(.combinedSessionState).intersection(modifiers).isEmpty,
               let state = CGSessionCopyCurrentDictionary() as? [String:Any], state["CGSSessionScreenIsLocked"] as? Bool != true,
               state[kCGSessionOnConsoleKey as String] as? Bool == true,
@@ -284,7 +282,8 @@ func perform(kit: URL, run: UUID, step: String, currentDisplay: String?, manifes
     down.flags = .maskControl; up.flags = .maskControl
     let operation = UUID().uuidString
     let receipt: Object = ["run":id,"checkpoint":step,"operation":operation,"window":n,"pid":pid,
-                           "source":source,"target":target,"direction":direction,"ownerLaunch":birth.timeIntervalSince1970]
+                           "source":source,"target":target,"direction":direction,"ownerLaunch":Double(app.startMicroseconds)/1_000_000,
+                           "ownerStartMicroseconds":String(app.startMicroseconds)]
     try publishOnce(file("external-" + step + "-intent.json"), receipt)
     try check(CFEqual(first, try focused()), "focused AX object changed before input")
     let initialHID = hardwareCounters()

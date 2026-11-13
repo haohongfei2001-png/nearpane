@@ -160,6 +160,7 @@ func live(_ supplied: [String]) throws {
   let anchor = try FocusAnchor()
   let focus = (anchor.owner.processIdentifier, anchor.element)
   let env = ProcessInfo.processInfo.environment
+  let protectedOriginal = try ProtectedReturnWindow.fromEnvironment(env)
   guard env["NEARPANE_RETURN_OBSERVER"] == String(getppid()),
     let run = env["NEARPANE_RETURN_RUN"], UUID(uuidString:run) != nil,
     anchor.environment.allSatisfy({env[$0.key] == $0.value}),
@@ -234,13 +235,16 @@ func live(_ supplied: [String]) throws {
   ).origin
   func originalUnchanged() throws {
     try need(anchor.isIntact,"original focus owner or geometry changed")
+    try need(protectedOriginal?.intact(overview:false) != false, "protected primary window changed")
   }
   func protectedPresentation(_ geometry: CGRect?) -> Bool {
     guard CGMainDisplayID() == mainDisplay else { return false }
     let now = Date()
+    let inOverview = overviewGrant && toggled && ownedOverview != nil && now >= start && now < end
+    guard protectedOriginal?.intact(overview:inOverview) != false else { return false }
     return returnScreen.accepts(frame: geometry, original: anchor.cgFrame,
       logicalWindowIntact: anchor.logicalFrameIntact, liveDisplay: .read(returnScreen.id),
-      authorizedOverview: overviewGrant && toggled && ownedOverview != nil && now >= start && now < end)
+      authorizedOverview: inOverview)
   }
   func isOriginal() -> Bool { anchor.isFocused }
 

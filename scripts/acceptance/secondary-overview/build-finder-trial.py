@@ -16,6 +16,7 @@ SOURCES = Path(__file__).resolve().parent
 OUTPUT = ROOT / "build/verification/finder-native-space"
 SCRIPTS = ("scripts/acceptance/secondary-overview/run-route.py",
            "scripts/acceptance/verify-secondary-provision.py", "scripts/acceptance/space-checkpoint.py")
+SESSION_APP = "Nearpane Secondary Session.app"
 
 
 def sha(path):
@@ -24,11 +25,22 @@ def sha(path):
 
 def validated_kit(root, digest, app):
     root = root.resolve(strict=True)
-    if sha(root / "SHA256SUMS") != digest:
+    manifest = root / "SHA256SUMS"
+    if sha(manifest) != digest:
         raise ValueError("Frozen manifest digest mismatch: " + root.name)
+    apps = [app]
+    names = [Path(line.split("  ", 1)[1]) for line in manifest.read_text().splitlines()]
+    session_entries = {name for name in names if name.parts[0] == SESSION_APP}
+    if session_entries:
+        if app != "Nearpane Secondary Overview.app" or not {
+                Path(SESSION_APP, "Contents/Info.plist"),
+                Path(SESSION_APP, "Contents/MacOS/SecondarySession")} <= session_entries:
+            raise ValueError("Incomplete or misplaced secondary session manifest")
+        apps.append(SESSION_APP)
     subprocess.run(["/usr/bin/shasum", "-a", "256", "-c", "SHA256SUMS"], cwd=root, check=True)
-    subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", root / app], check=True)
-    return root
+    for bundle in apps:
+        subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", root / bundle], check=True)
+    return root, apps
 
 
 def main():
@@ -52,8 +64,8 @@ def main():
     display = str(args.display).upper()
     overview_app = "Nearpane Secondary Overview.app"
     witness_app = "NearpaneSpaceWitness.app"
-    overview = validated_kit(args.overview, args.overview_sha, overview_app)
-    witness = validated_kit(args.witness, args.witness_sha, witness_app)
+    overview, overview_bundles = validated_kit(args.overview, args.overview_sha, overview_app)
+    witness, witness_bundles = validated_kit(args.witness, args.witness_sha, witness_app)
     baseline = json.loads((witness / "protected.json").read_bytes())
     target_hash = hashlib.sha256(display.encode()).hexdigest()
     monitors = baseline["displays"]
@@ -75,19 +87,20 @@ def main():
     stage = Path(tempfile.mkdtemp(prefix="Nearpane-Finder-Space.", dir="/private/tmp"))
     try:
         tools = stage / "tools"
-        for source, subdir, digest, app_name in (
-                (overview, "overview", args.overview_sha, overview_app),
-                (witness, "witness", args.witness_sha, witness_app)):
+        for source, subdir, digest, bundles in (
+                (overview, "overview", args.overview_sha, overview_bundles),
+                (witness, "witness", args.witness_sha, witness_bundles)):
             fresh = tools / subdir
             fresh.mkdir(parents=True)
             manifest = source / "SHA256SUMS"
             shutil.copy(manifest, fresh)
             for line in manifest.read_text().splitlines():
                 _, name = line.split("  ", 1)
-                if Path(name).parts[0] != app_name:
+                if Path(name).parts[0] not in bundles:
                     shutil.copy(source / name, fresh / name)
-            subprocess.run(["/usr/bin/ditto", "--norsrc", "--noextattr", source / app_name, fresh / app_name], check=True)
-            validated_kit(fresh, digest, app_name)
+            for bundle in bundles:
+                subprocess.run(["/usr/bin/ditto", "--norsrc", "--noextattr", source / bundle, fresh / bundle], check=True)
+            validated_kit(fresh, digest, bundles[0])
 
         app = stage / "开始原生桌面往返验收.app"
         binary = app / "Contents/MacOS/NearpaneFinderTrial"

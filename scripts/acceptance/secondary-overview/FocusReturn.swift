@@ -81,6 +81,28 @@ import CryptoKit
       return
     }
     do {
+      if CommandLine.arguments.dropFirst().elementsEqual(["--test-unfocused-return"]) {
+        let errors: [AXError] = [.success, .noValue, .cannotComplete, .attributeUnsupported,
+                                 .apiDisabled, .invalidUIElement, .illegalArgument]
+        for error in errors {
+          guard UnfocusedMainWindow.explicitlyEmpty(error, value:nil) == (error == .noValue),
+                !UnfocusedMainWindow.explicitlyEmpty(error, value:NSNumber(value:true)) else {
+            throw Refusal("unfocused desktop accepted an ambiguous AX result")
+          }
+        }
+        print("\(errors.count * 2) explicit AX absence cases passed")
+        return
+      }
+      if CommandLine.arguments.dropFirst().elementsEqual(["--check-desktop-return"]) {
+        guard AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1 else {
+          throw Refusal("read-only AX or desktop information unavailable")
+        }
+        let original = try OriginalDesktopReturn.capture()
+        RunLoop.current.run(until: Date(timeIntervalSinceNow:0.20))
+        guard original.intact && original.restored else { throw Refusal("desktop return state changed during sampling") }
+        record(["event":"desktopReturnState", "identity":original.identity, "restored":true, "systemInputs":0])
+        return
+      }
       if CommandLine.arguments.dropFirst().elementsEqual(["--test-system-focus"]) {
         try testSystemFocus()
         return
@@ -149,6 +171,17 @@ import CryptoKit
     guard quiet() else { throw Refusal("physical input still active; fixture not launched") }
     let anchor = try FocusAnchor()
     let env = ProcessInfo.processInfo.environment
+    if let parentPID = env["NEARPANE_SESSION_BOUND_PID"] {
+      guard String(anchor.owner.processIdentifier) == parentPID,
+            env["NEARPANE_SESSION_BOUND_WINDOW"] == String(anchor.number),
+            env["NEARPANE_SESSION_BOUND_BIRTH"] == String(anchor.birth.timeIntervalSince1970.bitPattern),
+            env["NEARPANE_SESSION_BOUND_DESKTOP"] == String(anchor.homeDesktop),
+            env["NEARPANE_SESSION_BOUND_DISPLAY"] == anchor.homeDisplay,
+            display.uuidString == anchor.homeDisplay,
+            let run = env["NEARPANE_SESSION_BOUND_RUN"], UUID(uuidString: run) != nil,
+            attr(anchor.element, kAXIdentifierAttribute) as? String == run
+      else { throw Refusal("focus no longer belongs to the enrolled secondary session window") }
+    }
     if args.count == 6 && args[4] == "create", let window = env["NEARPANE_REHEARSED_WINDOW"] {
       guard UInt32(window) == anchor.number, Int32(env["NEARPANE_REHEARSED_PID"] ?? "") == anchor.owner.processIdentifier,
             Double(env["NEARPANE_REHEARSED_BIRTH"] ?? "") == anchor.birth.timeIntervalSince1970

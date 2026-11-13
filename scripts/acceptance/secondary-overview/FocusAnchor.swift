@@ -1,6 +1,17 @@
 import AppKit
 import ApplicationServices
 
+// The synthetic regular app can lack a Launch Services date even while it owns
+// keyboard focus. Use the same kernel generation inside it and in peer observers.
+extension NSRunningApplication {
+  var returnAnchorBirth: Date? {
+    if bundleIdentifier == "org.nearpane.lab.SecondarySession" || executableURL?.lastPathComponent == "SecondarySession" {
+      return kernelBirth
+    }
+    return verifiedSystemBirth
+  }
+}
+
 func currentFocus(
   frontmostPID: () -> pid_t? = { NSWorkspace.shared.frontmostApplication?.processIdentifier },
   read: (AXUIElement, String) -> CFTypeRef? = attr
@@ -55,7 +66,7 @@ struct FocusAnchor {
     let (pid, focused) = try currentFocus()
     let number = NPReadAXWindowNumber(focused)
     guard number > 0, let owner = NSRunningApplication(processIdentifier: pid),
-      let birth = owner.launchDate,
+      let birth = owner.returnAnchorBirth,
       attr(focused, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
       attr(focused, kAXMinimizedAttribute) as? Bool == false,
       let ax = frame(focused), let cg = Self.geometry(number, pid)
@@ -110,7 +121,7 @@ struct FocusAnchor {
   }
 
   var logicalFrameIntact: Bool {
-    !owner.isTerminated && owner.launchDate == birth && NPReadAXWindowNumber(element) == number
+    !owner.isTerminated && owner.returnAnchorBirth == birth && NPReadAXWindowNumber(element) == number
       && frame(element) == axFrame && Self.currentHome(number, homeDisplay) == homeDesktop
   }
   var isIntact: Bool {

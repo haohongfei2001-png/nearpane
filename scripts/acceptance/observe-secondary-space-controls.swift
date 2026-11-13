@@ -5,16 +5,23 @@ import Security
 
 // Background macOS agents can omit NSRunningApplication.launchDate. Take the
 // kernel start time for the signed live PID in that case; ambiguity refuses input.
-private extension NSRunningApplication {
+extension NSRunningApplication {
   var verifiedSystemBirth: Date? {
     guard !isTerminated else { return nil }
-    if let launchDate { return launchDate }
-    let pid = processIdentifier
+    return launchDate ?? kernelBirth
+  }
+
+  var kernelBirth: Date? {
+    guard !isTerminated else { return nil }
+    return Self.kernelBirth(pid: processIdentifier)
+  }
+
+  static func kernelBirth(pid: pid_t) -> Date? {
     var info = proc_bsdinfo()
     let size = Int32(MemoryLayout.size(ofValue: info))
     guard pid > 0, proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size,
           info.pbi_pid == UInt32(pid), info.pbi_start_tvsec > 0,
-          info.pbi_start_tvusec < 1_000_000, !isTerminated else { return nil }
+          info.pbi_start_tvusec < 1_000_000 else { return nil }
     return Date(timeIntervalSince1970: Double(info.pbi_start_tvsec) + Double(info.pbi_start_tvusec) / 1_000_000)
   }
 }
@@ -249,6 +256,37 @@ private func probePoints(in area: CGRect, add: Bool) -> [CGPoint] {
   return [0.5, 0.25, 0.75, 0.125, 0.875].flatMap { fraction in
     xs.map { CGPoint(x: $0, y: area.minY + area.height * fraction) }
   }.filter { area.contains($0) }
+}
+
+// The child order does not partition the entire strip into equally wide buttons.
+// WindowManager can move A towards the centre and expose the button below the AX list.
+// Probe only within the observed display, never issue pointer input at a probe point.
+private func pairedSourceProbes(list: CGRect, display: CGRect, location: ControlLocation,
+                        reportedFrame: CGRect?, activation: CGPoint?) -> [CGPoint] {
+  guard display.contains(list), !list.isEmpty else { return [] }
+  let strip = CGRect(x:list.minX, y:list.minY, width:list.width, height:list.height + 8).intersection(display)
+  var result = [CGPoint]()
+  func add(_ point: CGPoint) {
+    if strip.contains(point), !result.contains(point) { result.append(point) }
+  }
+  if let activation { add(activation) }
+  var positions = [CGFloat]()
+  switch location {
+  case .hit(let point): add(point); positions.append(point.x)
+  case .frame(let rect): positions.append(rect.midX)
+  }
+  if let rect = reportedFrame, display.contains(rect) {
+    add(CGPoint(x: rect.midX, y: rect.midY))
+    positions += [rect.midX, rect.minX + rect.width * 0.25, rect.minX + rect.width * 0.75]
+  }
+  // Centre and the real child bounds precede the limited strip search. A sibling hit can never match.
+  for step in [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7] {
+    positions.append(list.midX + CGFloat(step) * list.width / 16)
+  }
+  for y in [list.maxY + 4, list.midY] {
+    for x in positions { add(CGPoint(x:x, y:y)) }
+  }
+  return result
 }
 
 private func confirmedHit(_ points: [CGPoint], until deadline: TimeInterval, matches: (CGPoint) -> Bool,
@@ -516,6 +554,12 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
           let expired = confirmedHit([edge], until:0, matches:{ _ in calls += 1; return true },settle:{})
           let tilePoints = probePoints(in:expanded,add:false)
           let a = CGPoint(x:-500,y:85), b = CGPoint(x:-300,y:85)
+          let observedSide = CGRect(x:-800,y:0,width:800,height:1280)
+          let aFrame = CGRect(x:-499,y:2,width:62,height:34), aHit = CGPoint(x:-468,y:44)
+          let bHit = CGPoint(x:-400,y:44)
+          let paired = pairedSourceProbes(list:compact,display:observedSide,location:.frame(aFrame),
+                                          reportedFrame:aFrame,activation:CGPoint(x:60,y:40))
+          let exactA = confirmedHit(paired, until:deadline, matches: { $0 == aHit }, settle:{})
           let currentStrip = CGRect(x:0,y:0,width:1470,height:72)
           let checks = [
             overviewHoverPoint(in:currentStrip, edge:true) == CGPoint(x:1460,y:70),
@@ -527,7 +571,11 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
             expired == nil && calls == 0, confirmedHit(candidates,until:deadline,matches:{_ in false},settle:{}) == nil,
             tilePoints.contains(a) && tilePoints.contains(b), inTileOrder([.hit(a),.hit(b)]),
             !inTileOrder([.hit(b),.hit(a)]), !inTileOrder([.hit(b),.hit(b)]),
-            !inTileOrder([.frame(CGRect(x:-500,y:0,width:225,height:80)),.hit(b)])
+            !inTileOrder([.frame(CGRect(x:-500,y:0,width:225,height:80)),.hit(b)]),
+            paired.contains(bHit) && exactA == .hit(aHit),
+            paired.allSatisfy(observedSide.contains),
+            confirmedHit(paired, until:deadline, matches:{ _ in false }, settle:{}) == nil,
+            pairedSourceProbes(list:compact,display:currentStrip,location:.hit(bHit),reportedFrame:nil,activation:nil).isEmpty
           ]
           guard checks.allSatisfy({$0}) else { exit(2) }
           print("\(checks.count) secondary physical command hit cases passed")
@@ -1055,6 +1103,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     return [list.midY, list.maxY + 4].map { CGPoint(x: x, y: $0) }.filter(display.contains)
   }
 
+
   struct CurrentDesktopDismissal {
     private let state: ProvisionState
     private let boot: String
@@ -1088,7 +1137,18 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       else { throw Refusal("current secondary desktop has no unique actionable tile") }
       self.list = list
       self.tile = tile
-      let points = currentTileHitPoints(list: listFrame, display: CGDisplayBounds(bar.side), count: items.count)
+      let bounds = CGDisplayBounds(bar.side)
+      let points: [CGPoint]
+      if items.count == 2 {
+        let pair = try ProvisionControls(display: display, count: 2, currentDisplay: false)
+        guard pair.bar.owner.processIdentifier == pid, pair.bar.side == bar.side,
+              CFEqual(list, pair.list), items.indices.allSatisfy({ CFEqual(items[$0], pair.tiles[$0]) })
+        else { throw Refusal("secondary source tile or its ordered sibling changed") }
+        points = pairedSourceProbes(list:listFrame, display:bounds, location:pair.locations[0],
+                                    reportedFrame:systemControlFrame(tile), activation:activationPoint(tile))
+      } else {
+        points = currentTileHitPoints(list:listFrame, display:bounds, count:items.count)
+      }
       guard case .hit(let point) = confirmedHit(points, until: ProcessInfo.processInfo.systemUptime + 0.5,
            matches: exactHit(tile, owner: pid), settle: { Thread.sleep(forTimeInterval: 0.045) }) else {
         throw Refusal("current desktop tile did not receive two exact hit tests")
@@ -1108,8 +1168,12 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         throw Refusal("current desktop tile or its display changed before overview dismissal")
       }
       try confirmGrant()
+      guard exactHit(tile, owner: current.bar.owner.processIdentifier)(current.point),
+            try ProvisionState(display, source:source, currentDisplay:false) == current.state
+      else { throw Refusal("source desktop lost its final AX hit or membership") }
       let status = AXUIElementPerformAction(tile, kAXPressAction as CFString)
       emit(["event":"overviewDismissal", "route":"currentSecondaryDesktopTile", "source":source,
+            "ordinaryOrder":current.state.sideOrder, "display":display.uuidString,
             "hit":[current.point.x,current.point.y], "axResult":status.rawValue])
     }
   }

@@ -31,6 +31,27 @@ def write(path, data):
 
 
 class PresentationGrant(unittest.TestCase):
+    def test_secondary_anchor_belongs_to_this_parent_display_and_desktop(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "session-anchor.json"
+            original = {"mode":"unfocusedMainWindow", "pid":"24", "display":PRIMARY}
+            valid = dict(pid=25, window=40, birth="91", display=SECONDARY, desktop="10",
+                         run=str(uuid.uuid4()), protectedOriginal=original)
+            write(path, valid)
+            path.chmod(0o600)
+            anchor = route.secondary_session_anchor(path, 25, SECONDARY, "10")
+            self.assertEqual(json.loads(anchor["original"]), original)
+            for change in ({"pid":27}, {"window":0}, {"birth":"00"}, {"display":PRIMARY},
+                           {"desktop":"11"}, {"protectedOriginal":dict(original, pid="25")},
+                           {"protectedOriginal":dict(original, display=SECONDARY)}):
+                with self.subTest(change=change), self.assertRaises(ValueError):
+                    write(path, dict(valid, **change))
+                    route.secondary_session_anchor(path, 25, SECONDARY, "10")
+            write(path, valid)
+            path.chmod(0o644)
+            with self.assertRaises(ValueError):
+                route.secondary_session_anchor(path, 25, SECONDARY, "10")
+
     def test_console_is_claimed_across_different_candidate_entry_points(self):
         with tempfile.TemporaryDirectory() as directory:
             trials = Path(directory)

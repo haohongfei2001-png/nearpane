@@ -62,6 +62,28 @@ def verify_leg(intent, posted, confirmed, run, source, target):
 def read(file):
     return json.loads(file.read_bytes())
 
+def secondary_session_anchor(path, parent, display, source):
+    file = Path(path)
+    with exclusive_trial(file.parent):
+        fd = os.open(file, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(fd)
+            need(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_nlink == 1
+                 and info.st_mode & 0o077 == 0 and 0 < info.st_size <= 4096, "untrusted session anchor")
+            record = json.load(stream)
+    need(type(record["pid"]) is int and record["pid"] == parent and parent > 1
+         and type(record["window"]) is int and 0 < record["window"] < 2**32
+         and record["display"] == display and record["desktop"] == source
+         and isinstance(record["birth"], str) and record["birth"] == str(int(record["birth"])) and 0 < int(record["birth"]) < 2**64
+         and str(uuid.UUID(record["run"])).upper() == record["run"].upper(),
+         "return anchor differs from the parent test window")
+    original = record["protectedOriginal"]
+    need(isinstance(original, dict) and original.get("mode") in ("focusedWindow", "unfocusedMainWindow")
+         and original.get("display") != display and original.get("pid") != str(parent),
+         "protected original must be distinct from the secondary test anchor")
+    return {**{k:record[k] for k in ("pid","window","birth","display","desktop","run")},
+            "original":json.dumps(original, separators=(",", ":"))}
+
 
 def check_display_binding(frozen, sample, expected_count):
     displays = [item["id"] for item in sample["displays"]]
@@ -207,6 +229,7 @@ class Session:
         self.reader = args.witness / "NearpaneSpaceWitness.app/Contents/Helpers/NearpaneDesktopReader"
         self.witness = args.witness / "NearpaneSpaceWitness.app/Contents/MacOS/NearpaneSpaceWitness"
         self.primary = self.secondary = self.a = self.b = None
+        self.anchor = None
         print(self.out, flush=True)
 
     def pair(self, tag):
@@ -284,12 +307,19 @@ class Session:
 
     def panel_environment(self, ends=None):
         env = os.environ.copy()
+        for key in list(env):
+            if key.startswith("NEARPANE_SESSION_BOUND_"):
+                del env[key]
+        for key, value in (getattr(self, "anchor", None) or {}).items():
+            env["NEARPANE_SESSION_BOUND_" + key.upper()] = str(value)
         env.pop("NEARPANE_PRIMARY_OVERVIEW_UNTIL", None)
         if self.args.allow_primary_overview or getattr(self.args,"provision_current",False) or (self.current_display and self.args.cleanup_run):
             env["NEARPANE_PRIMARY_OVERVIEW_UNTIL"] = ends or self.args.ends
         return env
 
     def panel(self, operation):
+        if getattr(self, "anchor", None):
+            need(os.getppid() == self.anchor["pid"], "secondary session owner exited")
         if self.current_display:
             if self.args.cleanup_run:
                 need(operation == "remove" and self.ledger == self.args.cleanup_run / "provision",
@@ -411,6 +441,12 @@ class Session:
                                         end.strftime(STAMP),*pointer_args],stdout=ptrlog,stderr=ptrlog)
                 finally:
                     ptrlog.close()
+                # A started helper alone does not establish the return position. It
+                # flushes this checkpoint after validating the owner and display.
+                def pointer_ready():
+                    need(pointer.poll() is None, "pointer observer exited before recording the original position")
+                    return any(line.startswith("original x=") for line in (self.out / "pointer.log").read_text().splitlines())
+                wait_until(child, pointer_ready, time.monotonic() + 6, "missing original pointer checkpoint")
                 grant_args = ["--current-display", self.secondary] if self.current_display else []
                 sp.run([self.args.witness/"space-checkpoint.py",key,"consent","--source",self.a,"--target",self.b,
                         "--starts",now.strftime(STAMP),"--ends",end.strftime(STAMP),"--allow-temporary-focus",*grant_args],check=True)
@@ -442,7 +478,11 @@ class Session:
                     no_loan = rc == 0 and lines[-1:] == ["original pointer unchanged; no loan"]
                     restored = rc == 0 and lines[-1:] == ["original pointer restored"]
                     save(self.out / "pointer-exit.json", dict(exit=rc, returned=restored or no_loan, noLoan=no_loan))
-                    need(restored or no_loan,"pointer restoration unconfirmed")
+                    if not (restored or no_loan):
+                        stop = self.out / "witness" / "stopped.json"
+                        reason = read(stop).get("reason") if stop.is_file() else None
+                        detail = f"{reason}; " if isinstance(reason, str) and reason else ""
+                        raise ValueError(detail + "pointer restoration unconfirmed")
 
     def route_focus_home(self, checkpoint):
         probe = sp.run([self.args.kit / "focus-return", "--check-focus-home"],
@@ -451,6 +491,9 @@ class Session:
         save(self.out / ("focus-" + checkpoint + ".json"), row)
         need(probe.returncode == 0 and row.get("event") == "focusHome",
              row.get("reason") or "no verified desktop for the original focus")
+        if getattr(self, "anchor", None):
+            need(all(row.get(key) == self.anchor[key] for key in ("pid","window","birth","display","desktop"))
+                 and os.getppid() == self.anchor["pid"], "foreground differs from the session return anchor")
         currents = {scope["displayID"]: [item["id"] for item in scope["records"] if item["isCurrent"]]
                     for scope in self.provisioned[1]["scopes"]}
         need(currents.get(row["display"]) == [row["desktop"]], "original focus belongs to a different desktop")
@@ -463,6 +506,9 @@ class Session:
 
     def execute(self):
         self.setup()
+        if path := os.environ.get("NEARPANE_SESSION_ANCHOR_FILE"):
+            need(not self.current_display and not self.args.cleanup_run, "unexpected session mode")
+            self.anchor = secondary_session_anchor(path, os.getppid(), self.secondary, self.a)
         created = self.b is None
         if created:
             if getattr(self.args, "check_overview_first", False):
