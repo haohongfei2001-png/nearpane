@@ -43,8 +43,6 @@ public struct VoiceSurface: View {
                 try module.applyPanelEdits(edits)
                 return module.history.document
             },
-            notice: module.panelEditIssue ?? module.issue ?? module.insertionNotice,
-            placeholder: empty ? (module.capture == .paused ? "点右下角，开始说话。" : "说一句话试试。") : nil,
             captureDisabled: module.busy || !module.active) { secondaryActions }
             .onAppear { access.view?.transcriptView.commandPasteboard = pasteboard }
             .popover(isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {

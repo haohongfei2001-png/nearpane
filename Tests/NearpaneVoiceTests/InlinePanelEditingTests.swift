@@ -193,6 +193,8 @@ extension VoiceTests {
                      VoicePanelEdit(id: second.id, before: "声音乙", after: "")]
         _ = try await store.saveEdit(recordingID: second.id, text: "另一处刚保存的修改")
         #expect(throws: StoreError.self) { try module.applyPanelEdits(cross) }
+        #expect(module.operationMessages == ["未能保存修改，请重试。"])
+        #expect(!window.text.string.contains("未能保存修改"))
         #expect(try await store.recording(id: first.id)?.text == "声音甲")
         #expect(try await store.recording(id: second.id)?.text == "另一处刚保存的修改")
         try module.applyPanelEdits([cross[0]])

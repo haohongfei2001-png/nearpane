@@ -121,6 +121,10 @@ public final class VoiceModule: HostModule {
     private(set) var rows: [Recording] = []
     private(set) var hasEarlier = false
     private(set) var issue: String?
+    var operationMessages: [String] {
+        var seen = Set<String>()
+        return [panelEditIssue, issue, insertionNotice].compactMap { $0 }.filter { seen.insert($0).inserted }
+    }
     public var transcript: String { VoiceTranscriptFlow.join(rows.map(\.text)) }
 
     public convenience init(directory: URL, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false, allowManualInsertion: Bool = false) {

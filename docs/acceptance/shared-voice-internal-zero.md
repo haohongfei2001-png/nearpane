@@ -63,3 +63,15 @@ Nearpane uses the shared voice surface from Saytile `059fd4a43b262b2ce2e9e0c260d
 | Source inventory and offline cache | PASS · all 10 files matched the final Git blobs and the resolver passed 6 tests |
 | Complete offline native Swift suite on the final pin | PASS · 319 tests in 52 suites, including the embedded editor and host lifecycle |
 | Installed Nearpane or an independent cross-host visual comparison at this pin | NOT_RUN |
+
+## Saytile 内测 0.6
+
+The embedded voice board displays the editable transcript, the copy control and the capture control. The host presents edit failures, capture issues and insertion results in the Voice settings tab. Host configurations that only expose module settings display this feedback in the voice module row.
+
+| Verification on Apple Silicon | Result |
+| --- | --- |
+| Full serial offline suite in the desktop session, using the final Saytile pin (inventory SHA-256 `2b1121d1e1b968cbaf574ed53aebf423c615bbc850411fabde604317a8844ea7`) | PASS · 319 tests in 52 suites |
+| Offline dependency resolver | PASS · 6 tests |
+| Sandboxed preliminary run | BLOCKED · the runner terminated while checking the native editor's private pasteboard. The same editor assertion passed in the desktop session. |
+| Final upstream commit pin | PASS · all 10 files match the Git blobs at Saytile `0dc49d8306e1fe09ec97140f69965aa4b144d60e` and the tested inventory |
+| Nearpane installation or new cross-host visual capture | NOT_RUN |

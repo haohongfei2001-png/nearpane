@@ -62,6 +62,7 @@ public struct VoiceInputSettings: View {
                 }
                 Button("重新检查") { Task { await refresh() } }.disabled(preparing)
             }
+            VoiceOperationFeedback(module: module)
             if let error { Text(error).foregroundStyle(.secondary).textSelection(.enabled) }
         }.formStyle(.grouped).task { await refresh() }
         .task {
@@ -125,6 +126,20 @@ public struct VoiceInputSettings: View {
         case .denied: "请在系统设置的「隐私与安全性 → 麦克风」中允许"
         case .restricted: "系统已限制访问"
         @unknown default: "状态未知"
+        }
+    }
+}
+
+/// User-initiated edits, dictation and insertions report their outcomes in the host settings.
+package struct VoiceOperationFeedback: View {
+    let module: VoiceModule
+    package init(module: VoiceModule) { self.module = module }
+
+    package var body: some View {
+        ForEach(module.operationMessages, id: \.self) { message in
+            Text(message)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
     }
 }

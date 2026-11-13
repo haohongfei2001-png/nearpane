@@ -134,6 +134,11 @@ public struct SettingsView: View {
                                     Button("重新启动模块") { host.handle(.setEnabled(pref.id, true)) }
                                 }
                             }
+                            #if canImport(NearpaneVoice)
+                            if pref.id == BuiltinCatalog.voice, let domains, !domains.candidate {
+                                VoiceOperationFeedback(module: domains.voice)
+                            }
+                            #endif
                         }
                         Divider()
                     }
