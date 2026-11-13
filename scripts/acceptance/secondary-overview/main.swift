@@ -78,6 +78,29 @@ func overviewOwner(_ pid: pid_t?) -> Bool {
   guard let pid, let host = overviewHost(pid) else { return false }
   return host == "com.apple.dock" || host == "com.apple.WindowManager"
 }
+
+// Mission Control can transform the CG presentation while AX still describes the
+// original window on its original desktop. This never becomes a new return frame.
+private struct OverviewReturnDisplay {
+  let id: CGDirectDisplayID
+  let uuid: String
+  let bounds: CGRect
+
+  func accepts(frame: CGRect?, original: CGRect, logicalWindowIntact: Bool,
+               liveDisplay: OverviewReturnDisplay?, authorizedOverview: Bool) -> Bool {
+    guard logicalWindowIntact, let liveDisplay,
+          liveDisplay.id == id, liveDisplay.uuid == uuid, liveDisplay.bounds == bounds,
+          let frame, !frame.isNull, !frame.isInfinite, frame.size.width > 0, frame.size.height > 0,
+          bounds.contains(original), bounds.contains(frame) else { return false }
+    return frame == original || authorizedOverview
+  }
+
+  static func read(_ id: CGDirectDisplayID) -> Self? {
+    guard CGDisplayIsActive(id) != 0, CGDisplayIsInMirrorSet(id) == 0,
+          let uuid = CGDisplayCreateUUIDFromDisplayID(id)?.takeRetainedValue() else { return nil }
+    return Self(id: id, uuid: CFUUIDCreateString(nil, uuid) as String, bounds: CGDisplayBounds(id))
+  }
+}
 // A hover is delivered only to Apple's Spaces bar on the enrolled physical display.
 // The resulting mouse position never identifies or presses an Add or Remove button.
 private func systemStrip(at point: CGPoint, display: CGDirectDisplayID, currentDisplay: Bool) -> (pid: pid_t, frame: CGRect)? {
@@ -143,17 +166,22 @@ func live(_ supplied: [String]) throws {
     let width = (side.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value,
     [CGMainDisplayID(),width].contains(where:{CGDisplayBounds($0).contains(anchor.axFrame)})
   else { throw Refusal("external focus observer or original identity changed") }
-  let allowPrimaryOverview = env["NEARPANE_PRIMARY_OVERVIEW_UNTIL"] == args[3]
-    && CGDisplayBounds(CGMainDisplayID()).contains(anchor.axFrame)
-    && CGDisplayBounds(CGMainDisplayID()).contains(anchor.cgFrame)
-  let baseMembership = (NPReadWindowSpaces(anchor.number) as? [NSNumber])?.map(\.stringValue).sorted()
+  let mainDisplay = CGMainDisplayID()
+  let returnScreens = Set([mainDisplay, width]).compactMap(OverviewReturnDisplay.read).filter {
+    $0.uuid == anchor.homeDisplay && $0.bounds.contains(anchor.axFrame) && $0.bounds.contains(anchor.cgFrame)
+  }
+  guard returnScreens.count == 1, let returnScreen = returnScreens.first else {
+    throw Refusal("unable to bind original window to its enrolled physical display")
+  }
+  let overviewGrant = env["NEARPANE_PRIMARY_OVERVIEW_UNTIL"] == args[3]
   let birth = anchor.birth
   let pointer = try point()
   let originalNumber = anchor.number
   emit([
     "event": "original", "run": run, "process": focus.0,
     "processBirth": birth.timeIntervalSince1970,
-    "window": originalNumber, "primaryOverviewAllowed":allowPrimaryOverview, "source": source, "side": sideID, "originalPointer":[pointer.x,pointer.y],
+    "window": originalNumber, "primaryOverviewAllowed":overviewGrant, "returnDisplay":returnScreen.uuid,
+    "source": source, "side": sideID, "originalPointer":[pointer.x,pointer.y],
   ])
   app.finishLaunching()
   let rect = CGRect(
@@ -208,14 +236,11 @@ func live(_ supplied: [String]) throws {
     try need(anchor.isIntact,"original focus owner or geometry changed")
   }
   func protectedPresentation(_ geometry: CGRect?) -> Bool {
-    guard anchor.logicalFrameIntact, let geometry else { return false }
-    if geometry == anchor.cgFrame { return true }
-    guard toggled, allowPrimaryOverview, let baseMembership, !baseMembership.isEmpty,
-          geometry.width > 0, geometry.height > 0,
-          CGDisplayBounds(CGMainDisplayID()).contains(geometry),
-          (NPReadWindowSpaces(anchor.number) as? [NSNumber])?.map(\.stringValue).sorted() == baseMembership
-    else { return false }
-    return true
+    guard CGMainDisplayID() == mainDisplay else { return false }
+    let now = Date()
+    return returnScreen.accepts(frame: geometry, original: anchor.cgFrame,
+      logicalWindowIntact: anchor.logicalFrameIntact, liveDisplay: .read(returnScreen.id),
+      authorizedOverview: overviewGrant && toggled && ownedOverview != nil && now >= start && now < end)
   }
   func isOriginal() -> Bool { anchor.isFocused }
 
@@ -717,7 +742,36 @@ func onlyScreen(_ uuid: String, currentDisplay: Bool) throws -> NSScreen {
 }
 do {
   let args = Array(CommandLine.arguments.dropFirst())
-  if args == ["--self-test-current-desktop-dismissal"] {
+  if args == ["--self-test-overview-return-display"] {
+    let primary = OverviewReturnDisplay(id:2, uuid:"primary", bounds:CGRect(x:0,y:0,width:1920,height:1080))
+    let side = OverviewReturnDisplay(id:3, uuid:"secondary", bounds:CGRect(x:-800,y:0,width:800,height:1280))
+    let original = CGRect(x:-700,y:120,width:500,height:400)
+    let thumbnail = CGRect(x:-350,y:250,width:160,height:90)
+    let onPrimary = thumbnail.offsetBy(dx:800,dy:0)
+    let straddled = CGRect(x:-20,y:100,width:40,height:90)
+    func accepts(_ frame: CGRect?, on enrolled: OverviewReturnDisplay = side, originalFrame: CGRect = original,
+                 live: OverviewReturnDisplay? = side, grant: Bool = true, intact: Bool = true) -> Bool {
+      enrolled.accepts(frame:frame, original:originalFrame, logicalWindowIntact:intact,
+                       liveDisplay:live, authorizedOverview:grant)
+    }
+    let scopes: [[String:Any]] = [["Display Identifier":"secondary", "Current Space":["id64":4568],
+                                   "Spaces":[["id64":4568,"type":0]]]]
+    let staleHome = FocusAnchor.homeDesktopID(in:scopes,display:"secondary",memberships:[1309]) == 4568
+    let cases = [
+      accepts(original, grant:false), accepts(thumbnail),
+      accepts(onPrimary,on:primary,originalFrame:original.offsetBy(dx:800,dy:0),live:primary),
+      !accepts(thumbnail,grant:false), !accepts(onPrimary), !accepts(straddled),
+      !accepts(thumbnail,on:primary,originalFrame:onPrimary,live:primary),
+      !accepts(thumbnail,intact:staleHome), !accepts(original,intact:false),
+      !accepts(thumbnail,live:nil), !accepts(nil),
+      !accepts(thumbnail,live:.init(id:3,uuid:"replacement",bounds:side.bounds)),
+      !accepts(thumbnail,live:.init(id:4,uuid:side.uuid,bounds:side.bounds)),
+      !accepts(thumbnail,live:.init(id:3,uuid:side.uuid,bounds:side.bounds.insetBy(dx:1,dy:0))),
+      !accepts(thumbnail,originalFrame:onPrimary), !accepts(.zero), !accepts(.infinite),
+    ]
+    try need(cases.allSatisfy { $0 }, "overview return display or presentation mismatch")
+    emit(["event":"overviewReturnDisplaySelfTest","cases":cases.count,"systemInputs":0])
+  } else if args == ["--self-test-current-desktop-dismissal"] {
     let side = CGRect(x:-800,y:0,width:800,height:1280)
     let list = CGRect(x:-800,y:0,width:800,height:40)
     let cases = [
