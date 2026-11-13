@@ -3,6 +3,22 @@ import AppKit
 import ApplicationServices
 import Security
 
+// Background macOS agents can omit NSRunningApplication.launchDate. Take the
+// kernel start time for the signed live PID in that case; ambiguity refuses input.
+private extension NSRunningApplication {
+  var verifiedSystemBirth: Date? {
+    guard !isTerminated else { return nil }
+    if let launchDate { return launchDate }
+    let pid = processIdentifier
+    var info = proc_bsdinfo()
+    let size = Int32(MemoryLayout.size(ofValue: info))
+    guard pid > 0, proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size,
+          info.pbi_pid == UInt32(pid), info.pbi_start_tvsec > 0,
+          info.pbi_start_tvusec < 1_000_000, !isTerminated else { return nil }
+    return Date(timeIntervalSince1970: Double(info.pbi_start_tvsec) + Double(info.pbi_start_tvusec) / 1_000_000)
+  }
+}
+
 struct Refusal: Error {
   let reason: String
   init(_ reason: String) { self.reason = reason }
@@ -106,15 +122,49 @@ fileprivate enum ControlLocation: Equatable {
 
 // A semantic press addresses the retained accessibility object. The physical point
 // here witnesses the owning strip only and is never a click coordinate.
+fileprivate struct PrimaryControls {
+  let container, strip, add: AXUIElement
+  func matches(_ other: PrimaryControls) -> Bool {
+    CFEqual(container,other.container) && CFEqual(strip,other.strip) && CFEqual(add,other.add)
+  }
+}
+
+private func pairedDisplays(_ ids: [CGDirectDisplayID?], main: CGDirectDisplayID, side: CGDirectDisplayID) -> Bool {
+  main != side && ids.count == 2 && ids.contains(main) && ids.contains(side)
+}
+
+private func primaryControls(_ containers: [AXUIElement], scope: AXUIElement, side: CGDirectDisplayID,
+                             sideContainer: AXUIElement, sideStrip: AXUIElement, sideAdd: AXUIElement,
+                             owner: pid_t) throws -> PrimaryControls {
+  let main = CGMainDisplayID()
+  let ids = containers.map { (attr($0,"AXDisplayID") as? NSNumber)?.uint32Value }
+  guard pairedDisplays(ids,main:main,side:side), let i = ids.firstIndex(of: main),
+        childOf(sideContainer,scope) else { throw Refusal("expected distinct primary and secondary display groups") }
+  let container = containers[i]
+  let strip = try only(children(container,named:"mc.spaces"),"primary desktop strip")
+  let add = try only(children(strip,named:"mc.spaces.add"),"primary Add sibling")
+  guard [container,strip,add].allSatisfy({ node in
+    var pid: pid_t=0
+    return AXUIElementGetPid(node,&pid) == .success && pid == owner
+  }), childOf(container,scope), childOf(strip,container), childOf(add,strip),
+      !CFEqual(container,sideContainer), !CFEqual(strip,sideStrip), !CFEqual(add,sideAdd),
+      systemControlFrame(container) == CGDisplayBounds(main),
+      let frame = systemControlFrame(strip), !frame.isEmpty, CGDisplayBounds(main).contains(frame),
+      attr(add,kAXRoleAttribute) as? String == kAXButtonRole
+  else { throw Refusal("primary Add sibling ownership or display geometry is ambiguous") }
+  return PrimaryControls(container:container,strip:strip,add:add)
+}
+
 fileprivate enum AddProof {
   case located(ControlLocation)
-  case semantic(stripPoint: CGPoint, ownerBirth: Date)
+  case semantic(stripPoint: CGPoint, ownerBirth: Date, primary: PrimaryControls?)
 
   var method: String {
     switch self {
     case .located(.frame): return "containedFrame"
     case .located(.hit): return "repeatedExactPhysicalHit"
-    case .semantic: return "soleDisplaySemanticAXPress"
+    case .semantic(_,_,nil): return "soleDisplaySemanticAXPress"
+    case .semantic: return "distinctDisplaySemanticAXPress"
     }
   }
 }
@@ -325,10 +375,8 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
   var displayContainers: [AXUIElement] = []
   for (owner,scope) in roots {
     let containers=try children(scope,named:"mc.display")
-    if currentDisplay {
-      for c in containers where !displayContainers.contains(where:{ CFEqual($0,c) }) { displayContainers.append(c) }
-      guard displayContainers.count <= 1 else { throw Refusal("conflicting sole-display overview containers") }
-    }
+    for c in containers where !displayContainers.contains(where:{ CFEqual($0,c) }) { displayContainers.append(c) }
+    guard displayContainers.count <= (currentDisplay ? 1 : 2) else { throw Refusal("conflicting overview display containers") }
     for container in containers where (attr(container,"AXDisplayID") as? NSNumber)?.uint32Value==side {
       let spaces=try only(children(container,named:"mc.spaces"),"secondary spaces bar")
       let add=try only(children(spaces,named:"mc.spaces.add"),"secondary add button")
@@ -350,16 +398,22 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
         proof = .located(location)
       } else {
         let frames = reportedFrames(add)
-        guard currentDisplay else { throw Refusal("secondary Add has no confirmed physical location") }
-        guard let birth = owner.launchDate else { throw Refusal("Add owner has no process start time") }
-        guard displayContainers.count == 1 else { throw Refusal("Add is not bound to a unique display") }
+        let primary: PrimaryControls?
+        if currentDisplay {
+          guard displayContainers.count == 1 else { throw Refusal("Add is not bound to a unique display") }
+          primary = nil
+        } else {
+          primary = try primaryControls(containers,scope:scope,side:side,sideContainer:container,
+                                        sideStrip:spaces,sideAdd:add,owner:owner.processIdentifier)
+        }
+        guard let birth = owner.verifiedSystemBirth else { throw Refusal("Add owner has no process start time") }
         if let direct = frames.direct, let split = frames.split, direct != split {
           throw Refusal("system Add frame readings disagree")
         }
         try requireVisibleWhenExposed(add,in:spaces)
         guard let point = semanticStripPoint(in:strip,hit:{hitsSpacesStrip($0,spaces:spaces,container:container,owner:owner.processIdentifier)})
         else { throw Refusal("same system desktop strip was not hit twice") }
-        proof = .semantic(stripPoint:point,ownerBirth:birth)
+        proof = .semantic(stripPoint:point,ownerBirth:birth,primary:primary)
       }
       if !bars.contains(where:{CFEqual($0.add,add)}) {
         bars.append(SecondarySpacesBar(dock:dock,owner:owner,side:side,spaces:spaces,add:add,container:container,addProof:proof,
@@ -385,7 +439,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     switch bar.addProof {
     case .located(.frame): break
     case .located(.hit(let p)): report["confirmedSecondaryPoint"]=[p.x,p.y]
-    case .semantic(let p,_): report["confirmedStripPoint"]=[p.x,p.y]
+    case .semantic(let p,_,_): report["confirmedStripPoint"]=[p.x,p.y]
     }
   }
   return report
@@ -395,6 +449,16 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
   @main struct ObserverMain {
     static func main() {
       do {
+        if CommandLine.arguments.dropFirst().elementsEqual(["--check-system-owners"]) {
+          for id in ["com.apple.WindowManager", "com.apple.dock"] {
+            let apps = NSRunningApplication.runningApplications(withBundleIdentifier:id)
+            guard apps.count == 1, let app = apps.first, overviewHost(app.processIdentifier) == id,
+                  let birth = app.verifiedSystemBirth, app.verifiedSystemBirth == birth
+            else { throw Refusal("system process generation unavailable: " + id) }
+            print(id + " process identity and start time confirmed")
+          }
+          return
+        }
         if CommandLine.arguments.dropFirst().elementsEqual(["--test-append-order"]) {
           let cases: [([String], [String], Bool, String?)] = [
             (["a"], ["b","a"], false, "b"), (["p","a"], ["p","a","b"], false, nil),
@@ -413,6 +477,9 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
           let center = CGPoint(x:735,y:36)
           var hits = 0
           let cases = [
+            pairedDisplays([2,3],main:2,side:3), pairedDisplays([3,2],main:2,side:3),
+            !pairedDisplays([2,2],main:2,side:3), !pairedDisplays([2,nil],main:2,side:3),
+            !pairedDisplays([2,3,3],main:2,side:3), !pairedDisplays([3,3],main:3,side:3),
             semanticVisible(hidden:nil,visibleMatches:nil), semanticVisible(hidden:false,visibleMatches:1),
             !semanticVisible(hidden:true,visibleMatches:nil), !semanticVisible(hidden:false,visibleMatches:0),
             !semanticVisible(hidden:nil,visibleMatches:2),
@@ -422,7 +489,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
             semanticStripPoint(in:.zero,hit:{ _ in true }) == nil
           ]
           guard cases.allSatisfy({$0}) else { exit(2) }
-          print("\(cases.count) sole-display Add visibility and physical strip witness cases passed")
+          print("\(cases.count) Add visibility, paired display ownership and strip witness cases passed")
           return
         }
         if CommandLine.arguments.dropFirst().elementsEqual(["--test-command-geometry"]) {
@@ -893,13 +960,17 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       switch bar.addProof {
       case .located(let location):
         guard location.recheck(bar.add,owner:owner,in:strip) else { throw Refusal("add lost its physical proof") }
-      case .semantic(let p,let birth):
-        guard let current = try secondarySpacesBar(display,currentDisplay:true),
-              current.owner.processIdentifier == owner, current.owner.launchDate == birth,
+      case .semantic(let p,let birth,let primary):
+        guard let current = try secondarySpacesBar(display,currentDisplay:primary == nil),
+              current.owner.processIdentifier == owner, current.owner.verifiedSystemBirth == birth,
               current.dock == bar.dock, CFEqual(current.container,bar.container), CFEqual(current.spaces,bar.spaces),
               CFEqual(current.add,bar.add),
               strip.contains(p), hitsSpacesStrip(p,spaces:bar.spaces,container:bar.container,owner:owner)
-        else { throw Refusal("sole-display semantic Add lost its strip, identity or generation") }
+        else { throw Refusal("semantic Add lost its strip, identity or generation") }
+        if let primary {
+          guard case .semantic(_,_,let fresh?) = current.addProof, primary.matches(fresh)
+          else { throw Refusal("primary Add sibling changed before secondary dispatch") }
+        }
         try requireVisibleWhenExposed(bar.add,in:bar.spaces)
         let elapsed = ProcessInfo.processInfo.systemUptime - identifiedAt
         let types: [CGEventType] = [.keyDown,.keyUp,.flagsChanged,.mouseMoved,.leftMouseDown,.rightMouseDown,
@@ -955,7 +1026,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         throw Refusal("source must be the last ordinary desktop in the authorized original inventory")
       }
       let initialUI = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
-      guard let birth = initialUI.bar.dock.launchDate, let ownerBirth = initialUI.bar.owner.launchDate, let ownerID = initialUI.bar.owner.bundleIdentifier else {
+      guard let birth = initialUI.bar.dock.verifiedSystemBirth, let ownerBirth = initialUI.bar.owner.verifiedSystemBirth, let ownerID = initialUI.bar.owner.bundleIdentifier else {
         throw Refusal("missing Dock generation")
       }
       try requireSafeOccupancy(nil)
@@ -983,7 +1054,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       if let pair = try? ProvisionControls(display: display, count: after.sideOrder.count, currentDisplay: currentDisplay),
         let a = after.sideOrder.firstIndex(of: source),
         let b = after.sideOrder.firstIndex(of: target),
-        pair.bar.dock.launchDate == birth, CFEqual(ui.tiles[sourceIndex], pair.tiles[a]),
+        pair.bar.dock.verifiedSystemBirth == birth, CFEqual(ui.tiles[sourceIndex], pair.tiles[a]),
         !CFEqual(ui.tiles[sourceIndex], pair.tiles[b])
       {
         try folder.put(
@@ -1009,7 +1080,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         "created desktop receipt no longer matches original display, boot, order or source")
     }
     let first = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
-    guard first.bar.dock.launchDate == intent.dockBirth, first.bar.owner.launchDate==intent.ownerBirth,
+    guard first.bar.dock.verifiedSystemBirth == intent.dockBirth, first.bar.owner.verifiedSystemBirth==intent.ownerBirth,
           first.bar.owner.bundleIdentifier==intent.ownerID else {
       throw Refusal("original system Dock restarted")
     }
@@ -1028,7 +1099,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     let ui = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
     var actions: CFArray?
     let remove = "AXRemoveDesktop"
-    guard ui.bar.dock.launchDate == intent.dockBirth, ui.bar.owner.launchDate==intent.ownerBirth,
+    guard ui.bar.dock.verifiedSystemBirth == intent.dockBirth, ui.bar.owner.verifiedSystemBirth==intent.ownerBirth,
           ui.bar.owner.bundleIdentifier==intent.ownerID, ui.labels == first.labels,
       CFEqual(first.tiles[b], ui.tiles[b]), (try state()) == original,
       AXUIElementCopyActionNames(ui.tiles[b], &actions) == .success,

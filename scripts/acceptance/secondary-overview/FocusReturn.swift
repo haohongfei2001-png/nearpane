@@ -139,8 +139,9 @@ import CryptoKit
       "originalWindow": anchor.number, "originalIdentityAndGeometry": anchor.isIntact,
       "sameAXObjectFocusedAfterExit": stable,
     ])
-    guard child.terminationReason == .exit && child.terminationStatus == 0 && stable else {
-      throw Refusal("fixture or post-exit focus return not verified")
+    guard stable else { throw Refusal("original focus not verified after fixture exit") }
+    guard child.terminationReason == .exit && child.terminationStatus == 0 else {
+      throw Refusal("original focus returned; fixture did not complete its operation")
     }
   }
 }

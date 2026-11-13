@@ -479,10 +479,8 @@ func live(_ supplied: [String]) throws {
       }
       func checkAction() throws {
         try need(start <= Date() && end.timeIntervalSinceNow > 10,"late provision action")
-        if currentDisplay {
-          guard let since = pointerLoanBegan, physicalMouseIdle(since:since), keyboardAndScrollIdle(since:since)
-          else { throw Refusal("physical input resumed during the current-display loan") }
-        }
+        guard let since = pointerLoanBegan, physicalMouseIdle(since:since), keyboardAndScrollIdle(since:since)
+        else { throw Refusal("physical input resumed during the display loan") }
         try need(protectedPresentation(FocusAnchor.geometry(anchor.number,anchor.owner.processIdentifier)),
                  "protected owner, logical layout, membership or overview presentation changed")
         let latest = try scoped(sideID,source, currentDisplay:currentDisplay)
