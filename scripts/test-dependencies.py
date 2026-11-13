@@ -90,13 +90,21 @@ class DependencyTests(unittest.TestCase):
     def test_voice_bridge_refuses_redirected_upstream_inputs(self):
         domain = self.cache / resolver.key(self.pin) / "Sources/SaytileKit"
         domain.mkdir(parents=True)
-        resolver.voice_bindings(self.cache, self.pin)
-        link = self.cache / ("voice-" + resolver.key(self.pin)) / "Upstream"
+        edit_file = "Sources/PanelEditTransaction.swift"
+        surface = dict(self.pin, commit="b"*40, hostSources=[edit_file])
+        edit = self.cache / resolver.key(surface) / edit_file
+        edit.parent.mkdir(parents=True)
+        edit.write_text("fixture")
+        resolver.voice_bindings(self.cache, self.pin, surface)
+        directory = self.cache / ("voice-" + resolver.key(self.pin) + "-" + resolver.key(surface))
+        shared = directory / "PanelEditTransaction.swift"
+        self.assertEqual(shared.resolve(strict=True), edit)
+        link = directory / "Upstream"
         self.assertEqual(link.resolve(strict=True), domain)
         link.unlink()
         link.symlink_to(self.cache)
         with self.assertRaisesRegex(resolver.DependencyError, "Invalid SaytileKit bridge"):
-            resolver.voice_bindings(self.cache, self.pin)
+            resolver.voice_bindings(self.cache, self.pin, surface)
 
 
 if __name__ == "__main__":

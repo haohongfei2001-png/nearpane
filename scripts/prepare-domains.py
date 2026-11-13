@@ -202,12 +202,16 @@ def tray_bindings(cache, pin):
         require((dest / path).is_symlink() and (dest / path).resolve(strict=True) == target, f"Invalid bridge link: {path}")
 
 
-def voice_bindings(cache, pin):
+def voice_bindings(cache, pin, surface):
     # Keep the domain's internal dependency-injection API in its own Swift module.
     # The verified upstream directory remains byte-for-byte intact.
-    dest = cache / ("voice-" + key(pin))
+    dest = cache / ("voice-" + key(pin) + "-" + key(surface))
     links = {"Upstream": cache / key(pin) / "Sources/SaytileKit",
              "Nearpane": ROOT / "Sources/NearpaneSaytileBridge"}
+    for source in surface["hostSources"]:
+        name = PurePosixPath(source).name
+        require(name not in links, f"Duplicate voice bridge source: {name}")
+        links[name] = cache / key(surface) / source
     if not dest.exists():
         with tempfile.TemporaryDirectory(prefix=".bindings-", dir=cache) as work:
             stage = Path(work) / "voice"
@@ -299,7 +303,7 @@ def main():
             require(len({(directories[name] / "Sources/CSQLite" / filename).read_bytes() for name in ("saytile", "riftlet")}) == 1,
                     "Pinned SQLite module definitions no longer match")
         tray_bindings(cache, pins["riftlet"])
-        voice_bindings(cache, pins["saytile"])
+        voice_bindings(cache, pins["saytile"], pins["saytileVoiceUI"])
         if args.package_resources:
             package_resources(args.package_resources, pins, directories)
 

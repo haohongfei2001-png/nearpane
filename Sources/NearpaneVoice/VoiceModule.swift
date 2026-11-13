@@ -87,6 +87,8 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private let openStore: () throws -> SaytileStore
     @ObservationIgnored private let makeInput: MakeInput
     @ObservationIgnored private var store: SaytileStore?
+    @ObservationIgnored private var panelWriter: NearpanePanelWriter?
+    private(set) var panelEditIssue: String?
     @ObservationIgnored private var panelReads = 0
     @ObservationIgnored private var waitingForPanelReads: CheckedContinuation<Void, Never>?
     @ObservationIgnored private var input: (any VoiceInput)?
@@ -119,7 +121,11 @@ public final class VoiceModule: HostModule {
     private(set) var rows: [Recording] = []
     private(set) var hasEarlier = false
     private(set) var issue: String?
-    public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
+    var operationMessages: [String] {
+        var seen = Set<String>()
+        return [panelEditIssue, issue, insertionNotice].compactMap { $0 }.filter { seen.insert($0).inserted }
+    }
+    public var transcript: String { VoiceTranscriptFlow.join(rows.map(\.text)) }
 
     public convenience init(directory: URL, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false, allowManualInsertion: Bool = false) {
         let credentials = allowAPISettings && !requireExistingPermissions
@@ -202,6 +208,7 @@ public final class VoiceModule: HostModule {
         let closingGeneration = generation
         let previous = transition, oldInput = input, oldStore = store, writes = draftWrite
         draftWrite = nil
+        panelWriter = nil; panelEditIssue = nil
         input = nil; store = nil; rows = []; history = VoiceHistoryProjection(); capture = .paused; control = .init(.paused, 0)
         busy = false; hasEarlier = false; issue = nil; limit = 60
         transition = Task {
@@ -295,7 +302,9 @@ public final class VoiceModule: HostModule {
         let request = refreshID
         do {
             let requested = limit
-            let (result, count) = try await withPanelRead { store in
+            // Re-read origin only for a changed preferred revision of the active recording.
+            let oldTail = rows.last, priorLive = history.document.liveTailID
+            let (result, count, liveID) = try await withPanelRead { store in
                 var result: [Recording] = []
                 while result.count < requested {
                     let batch = min(1_000, requested - result.count)
@@ -305,19 +314,50 @@ public final class VoiceModule: HostModule {
                     if page.count < batch { break }
                 }
                 let count = try await store.panelRecordingCount(createdSince: .distantPast, includingIDs: [])
-                return (result, count)
+                var live: UUID?
+                if let tail = result.first, tail.isRecording, tail.recognitionState == .running, let preferred = tail.preferredRevisionID {
+                    if oldTail?.id == tail.id, oldTail?.preferredRevisionID == preferred {
+                        live = priorLive
+                    } else if try await store.revisions(recordingID: tail.id).first(where: { $0.id == preferred })?.origin == .partial {
+                        live = tail.id
+                    }
+                }
+                return (result, count, live)
             }
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
             let start = max(0, count - result.count)
-            if ordered != rows || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
-                history = VoiceHistoryProjection(ordered, startPosition: start)
+            if ordered != rows || liveID != history.document.liveTailID || hasEarlier != (count > result.count) || history.entries.first?.position != ordered.first.map({ _ in Int64(start) }) {
+                history = VoiceHistoryProjection(ordered, startPosition: start, hasEarlier: count > result.count, liveTailID: liveID)
                 rows = ordered
                 acceptanceEvent?("voiceRows")
             }
             hasEarlier = count > result.count
         } catch { if generation == epoch { issue = "暂时无法读取文字；保留上次内容。" } }
     }
+    func applyPanelEdits(_ edits: [VoicePanelEdit]) throws {
+        guard active, let store else { throw CancellationError() }
+        do {
+            let writer = try panelWriter ?? NearpanePanelWriter(store: store)
+            panelWriter = writer
+            let start = Int(history.entries.first?.position ?? 0)
+            let saved = try writer.apply(edits.map { PanelRowEdit(id: $0.id, before: $0.before, after: $0.after) },
+                                         visible: rows)
+            // A read admitted before this synchronous commit may finish afterwards.
+            refreshID += 1
+            rows = saved
+            let liveID = history.document.liveTailID.flatMap { id in edits.contains(where: { $0.id == id }) ? nil : id }
+            history = VoiceHistoryProjection(saved, startPosition: start, hasEarlier: hasEarlier, liveTailID: liveID)
+            panelEditIssue = nil
+            acceptanceEvent?("userEdit")
+            didPublish(generation)
+        } catch {
+            panelEditIssue = "未能保存修改，请重试。"
+            didPublish(generation)
+            throw error
+        }
+    }
+
     /// The gesture captures both the visible revisions and its foreground field before any await.
     @discardableResult func insertDisplayedText() -> Task<Void, Never>? {
         guard active, !inserting, let store, let makeManualInput else { return nil }
@@ -374,7 +414,7 @@ public final class VoiceModule: HostModule {
         guard active, let tail = rows.last, let group = history.entries.last?.group else { return }
         let members = history.entries.filter { $0.group == group }
         if !hasEarlier || members.count < rows.count {
-            let text = members.map { displayed[$0.id] ?? $0.displayText }.filter { !$0.isEmpty }.joined(separator: "\n")
+            let text = VoiceTranscriptFlow.join(members.map { displayed[$0.id] ?? $0.displayText })
             if !text.isEmpty { pasteboard.clearContents(); pasteboard.setString(text, forType: .string) }
             return
         }
@@ -384,10 +424,11 @@ public final class VoiceModule: HostModule {
         let change = pasteboard.changeCount
         Task {
             do {
-                let text = try await withPanelRead { store in
-                    try await store.nearpaneGroupText(through: tail.id, snapshot: snapshot,
+                let segments = try await withPanelRead { store in
+                    try await store.nearpaneGroupSegments(through: tail.id, snapshot: snapshot,
                                                       idleInterval: VoiceHistoryProjection.idleInterval)
                 }
+                let text = VoiceTranscriptFlow.join(segments)
                 guard active, epoch == generation, !text.isEmpty, change == pasteboard.changeCount else { return }
                 pasteboard.clearContents()
                 pasteboard.setString(text, forType: .string)

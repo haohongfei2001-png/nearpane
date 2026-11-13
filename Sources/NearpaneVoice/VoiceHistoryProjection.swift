@@ -16,10 +16,20 @@ struct VoiceHistoryEntry: GroupedVoiceTranscriptEntry {
 struct VoiceHistoryProjection: Equatable {
     static let idleInterval: TimeInterval = 120
     let entries: [VoiceHistoryEntry]
-    let idleDeadline: Date?
+    let document: PanelTimelineDocument<VoiceHistoryEntry>
     let copyText: String
 
-    init(_ rows: [Recording] = [], startPosition: Int = 0, calendar: Calendar = .current) {
+    /// Positions can shift after an edit or prepend. Read each visible range by
+    /// its rendered recording ID, even while an older selection pins the view.
+    func copySnapshot(rendered: PanelTimelineDocument<VoiceHistoryEntry>) -> [UUID: String] {
+        var snapshot = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, "") })
+        for span in rendered.spans {
+            snapshot[span.entry.id] = rendered.displayed[span.entry.position]
+        }
+        return snapshot
+    }
+
+    init(_ rows: [Recording] = [], startPosition: Int = 0, hasEarlier: Bool = false, liveTailID: UUID? = nil, calendar: Calendar = .current) {
         var entries: [VoiceHistoryEntry] = []
         var group = Int64(startPosition)
         var start = Date.distantPast
@@ -40,7 +50,9 @@ struct VoiceHistoryProjection: Equatable {
             previous = row
         }
         self.entries = entries
-        idleDeadline = previous.map { $0.createdAt.addingTimeInterval(max(0, $0.duration) + Self.idleInterval) }
-        copyText = entries.filter { $0.group == group && !$0.displayText.isEmpty }.map(\.displayText).joined(separator: "\n")
+        var page = PanelTimelineDocument(entries: entries, older: hasEarlier)
+        page.liveTailID = liveTailID == entries.last?.id ? liveTailID : nil
+        document = page
+        copyText = VoiceTranscriptFlow.join(entries.filter { $0.group == group }.map(\.displayText))
     }
 }

@@ -97,6 +97,7 @@ import Testing
     @Test func directGestureConfirmsSelectedRevisionsAndReleasesTarget() async throws {
         let (module, field, dir) = try await fixture()
         defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(module.operationMessages.isEmpty)
         #expect(field.readCount == 0 && field.observed == nil && field.sent.isEmpty)
         let action = try #require(module.insertDisplayedText())
         #expect(module.insertDisplayedText() == nil)
@@ -111,6 +112,7 @@ import Testing
         defer { try? FileManager.default.removeItem(at: dir) }
         await module.insertDisplayedText()?.value
         #expect(field.sent == ["合成一"] && module.insertionNotice == NativeInputResult.unverified.message)
+        #expect(module.operationMessages == [NativeInputResult.unverified.message])
         module.stop(); await module.waitForTransition()
         let restarted = VoiceModule(directory: dir, requireExistingPermissions: true, allowManualInsertion: true)
         try restarted.start(); await restarted.waitForTransition()

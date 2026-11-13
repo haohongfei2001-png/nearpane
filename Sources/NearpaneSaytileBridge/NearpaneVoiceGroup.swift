@@ -10,8 +10,8 @@ extension Recording {
 extension SaytileStore {
     /// All pages are read on the store actor in a single synchronous turn. Only
     /// one page of recordings and the text the user actually wants are retained.
-    public func nearpaneGroupText(through tail: UUID, snapshot: [UUID: String],
-                                  idleInterval: TimeInterval, calendar: Calendar = .current) throws -> String {
+    public func nearpaneGroupSegments(through tail: UUID, snapshot: [UUID: String],
+                                  idleInterval: TimeInterval, calendar: Calendar = .current) throws -> [String] {
         var next: Recording?
         var offset = 0
         var pieces: [String] = []
@@ -21,13 +21,13 @@ extension SaytileStore {
             for row in rows {
                 if next == nil && row.id != tail { continue }
                 if let next, !next.nearpaneContinues(row, idleInterval: idleInterval, calendar: calendar) {
-                    return pieces.reversed().joined(separator: "\n")
+                    return Array(pieces.reversed())
                 }
                 let text = snapshot[row.id] ?? row.text
                 if !text.isEmpty { pieces.append(text) }
                 next = row
             }
-            if rows.count < batchSize { return pieces.reversed().joined(separator: "\n") }
+            if rows.count < batchSize { return Array(pieces.reversed()) }
             offset += rows.count
         }
     }
