@@ -75,3 +75,7 @@ The embedded voice board displays the editable transcript, the copy control and 
 | Sandboxed preliminary run | BLOCKED · the runner terminated while checking the native editor's private pasteboard. The same editor assertion passed in the desktop session. |
 | Final upstream commit pin | PASS · all 10 files match the Git blobs at Saytile `0dc49d8306e1fe09ec97140f69965aa4b144d60e` and the tested inventory |
 | Nearpane installation or new cross-host visual capture | NOT_RUN |
+
+### Saytile 0.7: target the entire voice button
+
+Pin SaytileVoiceUI to `c331ecb2b62dd4a21d0088ccca96ea3564d1641e`. The copy and capture buttons retain their outlines but accept clicks within their entire rectangular controls. The canonical native panel probe reproduced eight unhandled corner clicks on the previous revision; all eight now invoke the expected action exactly once. On the updated Nearpane pin, the native serial suite passed 319 tests, and all six offline dependency checks passed. No new Nearpane application was installed.
