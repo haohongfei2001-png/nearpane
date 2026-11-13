@@ -1,14 +1,27 @@
 import AppKit
 import ApplicationServices
 
-func currentFocus() throws -> (pid_t, AXUIElement) {
-  guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-    let value = attr(AXUIElementCreateApplication(pid), kAXFocusedWindowAttribute),
+func currentFocus(
+  frontmostPID: () -> pid_t? = { NSWorkspace.shared.frontmostApplication?.processIdentifier },
+  read: (AXUIElement, String) -> CFTypeRef? = attr
+) throws -> (pid_t, AXUIElement) {
+  guard let pid = frontmostPID(),
+    let systemApp = read(AXUIElementCreateSystemWide(), kAXFocusedApplicationAttribute),
+    CFGetTypeID(systemApp) == AXUIElementGetTypeID()
+  else { throw Refusal("system keyboard focus unavailable") }
+  let app = systemApp as! AXUIElement
+  var appPID: pid_t = 0
+  guard AXUIElementGetPid(app, &appPID) == .success, appPID == pid else {
+    throw Refusal("system keyboard focus and frontmost application disagree")
+  }
+  guard let value = read(app, kAXFocusedWindowAttribute),
     CFGetTypeID(value) == AXUIElementGetTypeID()
   else { throw Refusal("no exact AX focus") }
   let element = value as! AXUIElement
   var owner: pid_t = 0
-  guard AXUIElementGetPid(element, &owner) == .success && owner == pid else {
+  guard AXUIElementGetPid(element, &owner) == .success, owner == pid,
+        let finalApp = read(AXUIElementCreateSystemWide(), kAXFocusedApplicationAttribute),
+        CFEqual(finalApp, app), frontmostPID() == pid else {
     throw Refusal("focus owner conflict")
   }
   return (pid, element)

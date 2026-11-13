@@ -12,6 +12,37 @@ import CryptoKit
       FileHandle.standardOutput.write(data + Data([10]))
     }
   }
+  static func testSystemFocus() throws {
+    // Opaque handles only. Both the AppKit query and all AX attribute reads are injected.
+    let pid = getpid(), otherPID = getppid()
+    let ours = AXUIElementCreateApplication(pid), other = AXUIElementCreateApplication(otherPID)
+    let system = AXUIElementCreateSystemWide()
+    func sample(_ front: [pid_t], _ apps: [AXUIElement], window: AXUIElement?) -> (pid_t, AXUIElement)? {
+      var fronts = front.makeIterator(), focusedApps = apps.makeIterator()
+      return try? currentFocus(frontmostPID: { fronts.next() }, read: { receiver, name in
+        if name == kAXFocusedApplicationAttribute && CFEqual(system, receiver) {
+          return focusedApps.next()
+        }
+        if name == kAXFocusedWindowAttribute && CFEqual(ours, receiver) {
+          return window
+        }
+        return nil
+      })
+    }
+    let matched = sample([pid, pid], [ours, ours], window: ours)
+    let cases = [
+      ("matched system focus", matched.map { $0.0 == pid && CFEqual($0.1, ours) } == true),
+      ("frontmost disagrees", sample([otherPID, otherPID], [ours, ours], window: ours) == nil),
+      ("frontmost changed", sample([pid, otherPID], [ours, ours], window: ours) == nil),
+      ("system application changed", sample([pid, pid], [ours, other], window: ours) == nil),
+      ("no system focus", sample([pid, pid], [], window: ours) == nil),
+      ("system focus disappeared", sample([pid, pid], [ours], window: ours) == nil),
+      ("no focused window", sample([pid, pid], [ours, ours], window: nil) == nil),
+      ("window belongs to another process", sample([pid, pid], [ours, ours], window: other) == nil),
+    ]
+    for (label, passed) in cases where !passed { throw Refusal("system focus self-test: " + label) }
+    print("\(cases.count) system focus identity cases passed")
+  }
   static func main() {
     if CommandLine.arguments.dropFirst().elementsEqual(["--self-test"]) {
       let cases: [(Bool, Bool, Bool, OrderedFocus)] = [
@@ -50,12 +81,16 @@ import CryptoKit
       return
     }
     do {
+      if CommandLine.arguments.dropFirst().elementsEqual(["--test-system-focus"]) {
+        try testSystemFocus()
+        return
+      }
       if CommandLine.arguments.dropFirst().elementsEqual(["--check-focus-home"]) {
         guard AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1 else {
           throw Refusal("read-only focus or desktop information unavailable")
         }
         let anchor = try FocusAnchor()
-        Thread.sleep(forTimeInterval: 0.15)
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.15))
         guard anchor.isFocused && anchor.isIntact else {
           throw Refusal("original focus changed during desktop confirmation")
         }
@@ -109,7 +144,7 @@ import CryptoKit
       }
     }
     while !quiet() && ProcessInfo.processInfo.systemUptime < idleDeadline {
-      Thread.sleep(forTimeInterval:0.12)
+      RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.12))
     }
     guard quiet() else { throw Refusal("physical input still active; fixture not launched") }
     let anchor = try FocusAnchor()
@@ -142,13 +177,13 @@ import CryptoKit
     try child.run()
     let deadline = ProcessInfo.processInfo.systemUptime + until.timeIntervalSinceNow
     while child.isRunning && ProcessInfo.processInfo.systemUptime < deadline {
-      Thread.sleep(forTimeInterval: 0.08)
+      RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.08))
     }
     if child.isRunning {
       child.terminate()
       let cleanupEnd = ProcessInfo.processInfo.systemUptime + 2
       while child.isRunning && ProcessInfo.processInfo.systemUptime < cleanupEnd {
-        Thread.sleep(forTimeInterval: 0.05)
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
       }
       guard !child.isRunning else { throw Refusal("fixture exit unconfirmed at deadline") }
     }
@@ -167,7 +202,8 @@ import CryptoKit
       } else {
         first = nil
       }
-      Thread.sleep(forTimeInterval: 0.05)
+      // AppKit can refresh running-application state between stable focus samples.
+      RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
     } while ProcessInfo.processInfo.systemUptime < cutoff
     record([
       "event": "externalAfterExit", "observer": getpid(), "run": uuid,

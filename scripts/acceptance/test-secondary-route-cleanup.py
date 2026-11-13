@@ -219,6 +219,26 @@ class RouteCleanup(unittest.TestCase):
     def test_cleanup_from_original_paired_receipts(self):
         self.assert_cleanup()
 
+    def test_later_exact_focus_does_not_clear_a_witnessed_escape_or_refusal(self):
+        self.session.setup = Mock()
+        self.session.args.check_overview_first = True
+        self.session.b = None
+        self.session.rounds = Mock()
+        rows = [json.loads(line) for line in self.creation_receipts.read_text().splitlines()]
+        armed, cleanup, returned = rows
+        cleanup["verifiedSpaceMutations"] = 0
+        for event in (dict(event="dismissedFocus", frontmost="other"),
+                      dict(event="dismissedFocus", frontmost="original", focusEscaped=True),
+                      dict(event="refused"), dict(event="externalRefusal")):
+            with self.subTest(event=event):
+                evidence = [armed, event, cleanup, returned]
+                (self.session.out / "observe.jsonl").write_text("\n".join(map(json.dumps, evidence)))
+                with self.assertRaisesRegex(ValueError, "focus escaped|refused continuation"):
+                    self.session.execute()
+                self.session.panel.assert_called_once_with("observe")
+                self.session.panel.reset_mock()
+                self.session.rounds.assert_not_called()
+
     def test_observe_requires_original_focus_and_zero_desktop_changes(self):
         self.session.setup = Mock()
         self.session.args.check_overview_first = True

@@ -613,13 +613,21 @@ func live(_ supplied: [String]) throws {
     if overviewHost(front) == "com.apple.exposelauncher" { return "missionControlLauncher" }
     return overviewOwner(front) ? "overview" : "other"
   }
+  var focusEscaped = false
   if toggled && verifiedClosed {
     let limit = min(end, Date().addingTimeInterval(1.5))
     while Date() < limit, anchor.logicalFrameIntact, !anchor.isIntact,
           ["original", "fixture", "overview"].contains(returnOwner()) { spin(0.05) }
     let observed = try? currentFocus()
-    emit(["event":"dismissedFocus","frontmost":returnOwner(),
-          "originalAXFocused":isOriginal(), "fixtureAXFocused":observed.map { now in
+    let owner = returnOwner()
+    let originalFocused = observed.map { $0.0 == focus.0 && CFEqual($0.1, anchor.element) } ?? false
+    focusEscaped = owner == "other" ||
+      (owner == "original" && observed != nil && !originalFocused)
+    if focusEscaped, failure == nil {
+      failure = Refusal("focus escaped the enrolled windows after overview dismissal")
+    }
+    emit(["event":"dismissedFocus","frontmost":owner, "focusEscaped":focusEscaped,
+          "originalAXFocused":originalFocused, "fixtureAXFocused":observed.map { now in
             now.0 == getpid() && enrolledAX.map { CFEqual(now.1, $0) } == true
           } ?? false, "axFocusReadable":observed != nil, "fixtureKey":w.isKeyWindow,
           "originalLogicalFrameIntact":anchor.logicalFrameIntact, "originalAXCGIntact":anchor.isIntact,
@@ -629,7 +637,7 @@ func live(_ supplied: [String]) throws {
   }
   // Mission Control can leave keyboard focus with Dock. Let only our retained test window
   // become key again after a verified dismissal, then use the rehearsed passive return.
-  if toggled && verifiedClosed && !isOriginal() && Date() < end && anchor.isIntact &&
+  if !focusEscaped && toggled && verifiedClosed && !isOriginal() && Date() < end && anchor.isIntact &&
       (try? scoped(sideID,source, currentDisplay:currentDisplay)) == expectedScopes && w.isOnActiveSpace &&
       (NPReadWindowSpaces(num) as? [NSNumber])?.map(\.stringValue) == [source] {
     let front = NSWorkspace.shared.frontmostApplication
@@ -662,7 +670,7 @@ func live(_ supplied: [String]) throws {
   }
   // Revalidate the retained object immediately before releasing focus. Do not hide
   // an unrelated app or activate the original app to manufacture a successful readback.
-  if (!toggled || verifiedClosed), Date() < end, let enrolledAX, anchor.isIntact,
+  if !focusEscaped, (!toggled || verifiedClosed), Date() < end, let enrolledAX, anchor.isIntact,
      w.isKeyWindow, w.windowNumber == Int(num), NPReadAXWindowNumber(enrolledAX) == num,
      (try? scoped(sideID,source,currentDisplay:currentDisplay)) == expectedScopes,
      (NPReadWindowSpaces(num) as? [NSNumber])?.map(\.stringValue) == [source],
@@ -677,7 +685,7 @@ func live(_ supplied: [String]) throws {
   w.close()
   let passiveEnd = ProcessInfo.processInfo.systemUptime + 2
   repeat { spin(0.08) } while !isOriginal() && ProcessInfo.processInfo.systemUptime < passiveEnd
-  if movedPointer, let spent = pointerLoanBegan, Date() < end, near(try? point(),landed), physicalMouseIdle(since:spent) {
+  if !focusEscaped, movedPointer, let spent = pointerLoanBegan, Date() < end, near(try? point(),landed), physicalMouseIdle(since:spent) {
     _ = place(pointer,on:returnDisplay)
     spin(0.06)
   }

@@ -138,6 +138,14 @@ def overview_returned(folder, operation, expected_mutations):
         need(len(matches) == 1, "missing or ambiguous " + event)
         return matches[0]
     armed, cleanup, exited = [only(k) for k in ("externalFocusArmed", "cleanup", "externalAfterExit")]
+    # A later focus sample can document recovery. It cannot authorize more input
+    # after the overview explicitly reported an unrelated foreground application.
+    for row in rows:
+        if row.get("event") == "dismissedFocus":
+            need(row.get("frontmost") != "other" and row.get("focusEscaped") is not True,
+                 "focus escaped after overview dismissal")
+    need(not any(row.get("event") in ("refused", "externalRefusal") for row in rows),
+         "overview or external observer refused continuation")
     need(exited.get("run") == armed.get("run") and armed.get("run") and
          exited.get("observer") == armed.get("observer") and
          exited.get("originalWindow") == armed.get("originalWindow") == cleanup.get("originalWindow") and
