@@ -62,7 +62,9 @@ func emit(_ fields: [String: Any]) {
 func toggleOverview() throws {
   let request = Process()
   request.executableURL = URL(fileURLWithPath:"/usr/bin/open")
-  request.arguments = ["-a","/System/Applications/Mission Control.app"]
+  // Keep the launcher out of the activation history used by the passive return.
+  // The caller verifies the resulting system overview separately.
+  request.arguments = ["-g","-a","/System/Applications/Mission Control.app"]
   request.standardInput = FileHandle.nullDevice
   request.standardOutput = FileHandle.nullDevice
   request.standardError = FileHandle.nullDevice
@@ -552,6 +554,29 @@ func live(_ supplied: [String]) throws {
   if toggled && !verifiedClosed {
     verifiedClosed = (try? observe(display, currentDisplay:currentDisplay)["state"] as? String) == "overviewNotExposed"
     if !verifiedClosed { emit(["event":"overviewAtCleanup","structure":overviewSkeleton(display, currentDisplay:currentDisplay)]) }
+  }
+  // Dismissal can precede restoration of the original CG frame. Observe that
+  // transition before deciding whether a passive handoff is still possible.
+  // An unrelated frontmost process ends this wait; it never qualifies for input.
+  func returnOwner() -> String {
+    guard let front = NSWorkspace.shared.frontmostApplication?.processIdentifier else { return "unknown" }
+    if front == getpid() { return "fixture" }
+    if front == focus.0 { return "original" }
+    return overviewOwner(front) ? "overview" : "other"
+  }
+  if toggled && verifiedClosed {
+    let limit = min(end, Date().addingTimeInterval(1.5))
+    while Date() < limit, anchor.logicalFrameIntact, !anchor.isIntact,
+          ["original", "fixture", "overview"].contains(returnOwner()) { spin(0.05) }
+    let observed = try? currentFocus()
+    emit(["event":"dismissedFocus","frontmost":returnOwner(),
+          "originalAXFocused":isOriginal(), "fixtureAXFocused":observed.map { now in
+            now.0 == getpid() && enrolledAX.map { CFEqual(now.1, $0) } == true
+          } ?? false, "axFocusReadable":observed != nil, "fixtureKey":w.isKeyWindow,
+          "originalLogicalFrameIntact":anchor.logicalFrameIntact, "originalAXCGIntact":anchor.isIntact,
+          "fixtureActiveSpace":w.isOnActiveSpace,
+          "pointerAtLoanPosition":near(try? point(),landed),
+          "physicalMouseQuiet":pointerLoanBegan.map(physicalMouseIdle(since:)) ?? false])
   }
   // Mission Control can leave keyboard focus with Dock. Let only our retained test window
   // become key again after a verified dismissal, then use the rehearsed passive return.

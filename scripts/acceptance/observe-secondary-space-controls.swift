@@ -121,12 +121,13 @@ fileprivate enum AddProof {
 
 private func optionalAttribute(_ element: AXUIElement, _ key: String) throws -> CFTypeRef? {
   var value: CFTypeRef?
-  switch AXUIElementCopyAttributeValue(element, key as CFString, &value) {
+  let status = AXUIElementCopyAttributeValue(element, key as CFString, &value)
+  switch status {
   case .success:
     guard let value else { throw Refusal("missing reported system control attribute") }
     return value
   case .attributeUnsupported: return nil
-  default: throw Refusal("system control visibility unreadable")
+  default: throw Refusal("cannot read \(key) on the system control (AX \(status.rawValue))")
   }
 }
 
@@ -134,15 +135,23 @@ private func semanticVisible(hidden: Bool?, visibleMatches: Int?) -> Bool {
   hidden != true && (visibleMatches == nil || visibleMatches == 1)
 }
 
-private func visibleWhenExposed(_ add: AXUIElement, in spaces: AXUIElement) throws -> Bool {
+private func requireVisibleWhenExposed(_ add: AXUIElement, in spaces: AXUIElement) throws {
   let h = try optionalAttribute(add,"AXHidden"), v = try optionalAttribute(spaces,kAXVisibleChildrenAttribute)
   var count: Int?
   if let v {
-    guard let list = v as? [AXUIElement], list.count <= 256 else { return false }
+    guard let list = v as? [AXUIElement], list.count <= 256 else {
+      throw Refusal("desktop strip visible children have an unsupported representation")
+    }
     count = list.filter { CFEqual($0,add) }.count
   }
-  guard h == nil || CFGetTypeID(h!) == CFBooleanGetTypeID() else { return false }
-  return semanticVisible(hidden:h as? Bool, visibleMatches:count)
+  if let h, CFGetTypeID(h) != CFBooleanGetTypeID() {
+    throw Refusal("Add hidden state is not a boolean")
+  }
+  let hidden = h as? Bool
+  guard semanticVisible(hidden:hidden,visibleMatches:count) else {
+    if hidden == true { throw Refusal("system reports Add is hidden") }
+    throw Refusal("desktop strip lists \(count ?? 0) visible matches for the retained Add")
+  }
 }
 
 private func hitsSpacesStrip(_ point: CGPoint, spaces: AXUIElement, container: AXUIElement, owner: pid_t) -> Bool {
@@ -341,11 +350,15 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
         proof = .located(location)
       } else {
         let frames = reportedFrames(add)
-        guard currentDisplay, let birth = owner.launchDate, displayContainers.count == 1,
-              frames.direct == nil || frames.split == nil || frames.direct == frames.split,
-              try visibleWhenExposed(add,in:spaces),
-              let point = semanticStripPoint(in:strip,hit:{hitsSpacesStrip($0,spaces:spaces,container:container,owner:owner.processIdentifier)})
-        else { throw Refusal("add not independently located or bound to one visible system strip") }
+        guard currentDisplay else { throw Refusal("secondary Add has no confirmed physical location") }
+        guard let birth = owner.launchDate else { throw Refusal("Add owner has no process start time") }
+        guard displayContainers.count == 1 else { throw Refusal("Add is not bound to a unique display") }
+        if let direct = frames.direct, let split = frames.split, direct != split {
+          throw Refusal("system Add frame readings disagree")
+        }
+        try requireVisibleWhenExposed(add,in:spaces)
+        guard let point = semanticStripPoint(in:strip,hit:{hitsSpacesStrip($0,spaces:spaces,container:container,owner:owner.processIdentifier)})
+        else { throw Refusal("same system desktop strip was not hit twice") }
         proof = .semantic(stripPoint:point,ownerBirth:birth)
       }
       if !bars.contains(where:{CFEqual($0.add,add)}) {
@@ -884,9 +897,10 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         guard let current = try secondarySpacesBar(display,currentDisplay:true),
               current.owner.processIdentifier == owner, current.owner.launchDate == birth,
               current.dock == bar.dock, CFEqual(current.container,bar.container), CFEqual(current.spaces,bar.spaces),
-              CFEqual(current.add,bar.add), try visibleWhenExposed(bar.add,in:bar.spaces),
+              CFEqual(current.add,bar.add),
               strip.contains(p), hitsSpacesStrip(p,spaces:bar.spaces,container:bar.container,owner:owner)
         else { throw Refusal("sole-display semantic Add lost its strip, identity or generation") }
+        try requireVisibleWhenExposed(bar.add,in:bar.spaces)
         let elapsed = ProcessInfo.processInfo.systemUptime - identifiedAt
         let types: [CGEventType] = [.keyDown,.keyUp,.flagsChanged,.mouseMoved,.leftMouseDown,.rightMouseDown,
           .otherMouseDown,.leftMouseUp,.rightMouseUp,.otherMouseUp,.leftMouseDragged,.rightMouseDragged,
