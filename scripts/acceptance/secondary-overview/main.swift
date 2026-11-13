@@ -130,6 +130,8 @@ func live(_ supplied: [String]) throws {
   let inv = try scoped(sideID, source, currentDisplay:currentDisplay)
   var expectedScopes = inv
   var verifiedOperation: String?
+  var createdDesktop: String?
+  var originalDesktopTile: CurrentDesktopDismissal?
   let mode = args.count == 6 ? args[4] : "observe"
   let kit = Bundle.main.bundleURL.deletingLastPathComponent()
   let anchor = try FocusAnchor()
@@ -468,6 +470,13 @@ func live(_ supplied: [String]) throws {
     } while Date() < cutoff
     guard let evidence else { throw Refusal("secondary add control not independently identified") }
     emit(evidence)
+    if !currentDisplay && (mode == "observe" || mode == "create" || mode == "prepare-and-restore") {
+      do {
+        originalDesktopTile = try CurrentDesktopDismissal(display: display, source: source)
+      } catch {
+        emit(["event":"currentDesktopTileUnavailable", "reason":(error as? Refusal)?.reason ?? "read failed"])
+      }
+    }
     if mode != "observe" {
       guard let primaryUUID = CGDisplayCreateUUIDFromDisplayID(CGMainDisplayID())?.takeRetainedValue() else {
         throw Refusal("missing primary display UUID")
@@ -518,8 +527,18 @@ func live(_ supplied: [String]) throws {
       let destination = try provisionSecondaryDesktop(firstOperation, directory:URL(fileURLWithPath:args[5]), display:display,
           source:source, currentDisplay:currentDisplay, requireAuthorizedAction:checkAction, requireSafeOccupancy:occupancy)
       verifiedOperation = firstOperation
+      if firstOperation == "create" { createdDesktop = destination }
       expectedScopes = try scoped(sideID,source, currentDisplay:currentDisplay)
       emit(["event":"verifiedProvision","operation":firstOperation,"source":source,"target":destination])
+      if firstOperation == "remove" && !currentDisplay {
+        // Once removal is independently read back only A can remain in this list.
+        // Removal authorization still comes exclusively from the provision journal.
+        do {
+          originalDesktopTile = try CurrentDesktopDismissal(display: display, source: source)
+        } catch {
+          emit(["event":"currentDesktopTileUnavailable", "reason":(error as? Refusal)?.reason ?? "read failed"])
+        }
+      }
       if mode == "prepare-and-restore" {
         try within()
         let removed = try provisionSecondaryDesktop("remove",directory:URL(fileURLWithPath:args[5]),display:display,
@@ -527,6 +546,7 @@ func live(_ supplied: [String]) throws {
         expectedScopes = try scoped(sideID,source, currentDisplay:currentDisplay)
         try need(removed == destination && expectedScopes == inv,"original test topology did not return")
         verifiedOperation = "createAndRemove"
+        createdDesktop = nil
         emit(["event":"verifiedProvision","operation":"remove","source":source,"target":removed])
       }
     }
@@ -564,6 +584,9 @@ func live(_ supplied: [String]) throws {
         let outcome = AXUIElementPerformAction(second.button, kAXPressAction as CFString)
         emit(["event":"overviewDismissal","route":"linkedFixtureButton","axResult":outcome.rawValue])
         // A timed-out press may still have reached the host. Observe only.
+      } else if let originalDesktopTile {
+        try originalDesktopTile.dismiss(display: display, source: source, created: createdDesktop,
+                                       confirmGrant: confirmDismissalGrant)
       } else {
         try confirmDismissalGrant()
         emit(["event":"overviewDismissal","route":"systemToggle","linkedFixtureButton":false])
@@ -586,6 +609,8 @@ func live(_ supplied: [String]) throws {
     guard let front = NSWorkspace.shared.frontmostApplication?.processIdentifier else { return "unknown" }
     if front == getpid() { return "fixture" }
     if front == focus.0 { return "original" }
+    // Diagnostic only. The launcher is never an authorized focus owner for input.
+    if overviewHost(front) == "com.apple.exposelauncher" { return "missionControlLauncher" }
     return overviewOwner(front) ? "overview" : "other"
   }
   if toggled && verifiedClosed {
@@ -684,7 +709,26 @@ func onlyScreen(_ uuid: String, currentDisplay: Bool) throws -> NSScreen {
 }
 do {
   let args = Array(CommandLine.arguments.dropFirst())
-  if args == ["--self-test-fixture-dismissal"] {
+  if args == ["--self-test-current-desktop-dismissal"] {
+    let side = CGRect(x:-800,y:0,width:800,height:1280)
+    let list = CGRect(x:-800,y:0,width:800,height:40)
+    let cases = [
+      admitsCurrentTileOrder(["4568"],source:"4568",created:nil),
+      !admitsCurrentTileOrder(["1309"],source:"4568",created:nil),
+      !admitsCurrentTileOrder(["4568","4569"],source:"4568",created:nil),
+      admitsCurrentTileOrder(["4568","4569"],source:"4568",created:"4569"),
+      !admitsCurrentTileOrder(["4569","4568"],source:"4568",created:"4569"),
+      !admitsCurrentTileOrder(["4568","4569"],source:"4568",created:"4570"),
+      !admitsCurrentTileOrder(["4568","4568"],source:"4568",created:"4568"),
+      currentTileHitPoints(list:list,display:side,count:1) == [CGPoint(x:-400,y:20),CGPoint(x:-400,y:44)],
+      currentTileHitPoints(list:list,display:side,count:2).allSatisfy { side.contains($0) && $0.x == -600 },
+      currentTileHitPoints(list:list,display:side,count:3).isEmpty,
+      currentTileHitPoints(list:list.offsetBy(dx:800,dy:0),display:side,count:1).isEmpty,
+      currentTileHitPoints(list:list,display:list,count:1) == [CGPoint(x:-400,y:20)]
+    ]
+    try need(cases.allSatisfy { $0 }, "source desktop eligibility or hit boundary failed")
+    emit(["event":"currentDesktopDismissalSelfTest","cases":cases.count,"systemInputs":0])
+  } else if args == ["--self-test-fixture-dismissal"] {
     // Opaque references only. No attributes, system action, or GUI session needed.
     let fixture = AXUIElementCreateApplication(getpid())
     let foreign = AXUIElementCreateApplication(getppid())

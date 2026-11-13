@@ -1040,6 +1040,80 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     }
   }
 
+  // A tile retained while A is the only ordinary desktop remains eligible after
+  // this trial's confirmed creation only if A stays current and first in [A,B].
+  func admitsCurrentTileOrder(_ order: [String], source: String, created: String?) -> Bool {
+    if let created { return created != source && order == [source, created] }
+    return order == [source]
+  }
+
+  // On the witnessed 40 pt bar, WindowManager hit-tests the desktop tile 4 pt
+  // below the list's reported frame. Only the retained tile can satisfy a hit.
+  func currentTileHitPoints(list: CGRect, display: CGRect, count: Int) -> [CGPoint] {
+    guard (1...2).contains(count), list.width >= 4, list.height >= 4, display.contains(list) else { return [] }
+    let x = list.minX + list.width / (2 * CGFloat(count))
+    return [list.midY, list.maxY + 4].map { CGPoint(x: x, y: $0) }.filter(display.contains)
+  }
+
+  struct CurrentDesktopDismissal {
+    private let state: ProvisionState
+    private let boot: String
+    private let ownerBirth, dockBirth: Date
+    private let bar: SecondarySpacesBar
+    private let list, tile: AXUIElement
+    private let point: CGPoint
+
+    init(display: UUID, source: String, created: String? = nil) throws {
+      state = try ProvisionState(display, source: source, currentDisplay: false)
+      boot = try currentBoot()
+      guard admitsCurrentTileOrder(state.sideOrder, source: source, created: created),
+            let bar = try secondarySpacesBar(display), bar.primaryContainer,
+            let ownerBirth = bar.owner.verifiedSystemBirth, let dockBirth = bar.dock.verifiedSystemBirth else {
+        throw Refusal("current secondary desktop or overview generation unavailable")
+      }
+      self.bar = bar
+      self.ownerBirth = ownerBirth
+      self.dockBirth = dockBirth
+      let list = try only(children(bar.spaces, named: "mc.spaces.list"), "secondary desktop list")
+      var pid: pid_t = 0
+      guard childOf(list, bar.spaces), AXUIElementGetPid(list, &pid) == .success,
+            pid == bar.owner.processIdentifier, attr(list, kAXRoleAttribute) as? String == kAXListRole,
+            let listFrame = systemControlFrame(list), let strip = systemControlFrame(bar.spaces),
+            strip.contains(listFrame), let items = attr(list, kAXChildrenAttribute) as? [AXUIElement],
+            items.count == state.sideOrder.count, let tile = items.first,
+            !items.dropFirst().contains(where: { CFEqual($0, tile) }), !CFEqual(tile, bar.add),
+            childOf(tile, list), AXUIElementGetPid(tile, &pid) == .success, pid == bar.owner.processIdentifier,
+            attr(tile, kAXRoleAttribute) as? String == kAXButtonRole,
+            attr(tile, kAXEnabledAttribute) as? Bool == true, try actionsOf(tile).contains(kAXPressAction as String)
+      else { throw Refusal("current secondary desktop has no unique actionable tile") }
+      self.list = list
+      self.tile = tile
+      let points = currentTileHitPoints(list: listFrame, display: CGDisplayBounds(bar.side), count: items.count)
+      guard case .hit(let point) = confirmedHit(points, until: ProcessInfo.processInfo.systemUptime + 0.5,
+           matches: exactHit(tile, owner: pid), settle: { Thread.sleep(forTimeInterval: 0.045) }) else {
+        throw Refusal("current desktop tile did not receive two exact hit tests")
+      }
+      self.point = point
+    }
+
+    func dismiss(display: UUID, source: String, created: String?, confirmGrant: () throws -> Void) throws {
+      let current = try Self(display: display, source: source, created: created)
+      guard state.sideOrder == [source], current.state.primaryScope == state.primaryScope,
+            current.state.geometry == state.geometry, current.boot == boot,
+            bar.owner.processIdentifier == current.bar.owner.processIdentifier, current.ownerBirth == ownerBirth,
+            bar.dock.processIdentifier == current.bar.dock.processIdentifier, current.dockBirth == dockBirth,
+            bar.side == current.bar.side, CFEqual(bar.container, current.bar.container),
+            CFEqual(bar.spaces, current.bar.spaces), CFEqual(list, current.list), CFEqual(tile, current.tile),
+            created != nil || point == current.point else {
+        throw Refusal("current desktop tile or its display changed before overview dismissal")
+      }
+      try confirmGrant()
+      let status = AXUIElementPerformAction(tile, kAXPressAction as CFString)
+      emit(["event":"overviewDismissal", "route":"currentSecondaryDesktopTile", "source":source,
+            "hit":[current.point.x,current.point.y], "axResult":status.rawValue])
+    }
+  }
+
   // This function is entered only by the timed secondary fixture while its own overview is visible.
   // The caller authenticates the user's current loan (including original focus) immediately before
   // each irreversible AX action. The occupancy callback runs live for the named target.

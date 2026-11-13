@@ -1,5 +1,17 @@
 # 副屏调度中心的添加按钮与普通桌面验收
 
+## 14:23 从已确认的当前桌面出发
+
+14:20，两次零输入读取均确认副屏只有普通桌面 4568，主屏当前桌面为 1309。独立只读程序确认原焦点窗口 184630 属于主屏 1309。14:23:38 进入本轮授权时段后，再次在准备窗口之前核对了同一进程代际、同一窗口及其当前桌面。[开始前的双采样和焦点](../../build/verification/secondary-route-followup/a91671fb-66a3-4560-b183-0a08484c832c) · [限时验收原始记录](../../build/verification/secondary-route-followup/b1451ff8-7f39-4e28-a285-621a490f2ceb/observe.jsonl)
+
+副屏合成窗口 193611 成功取得焦点，隐藏窗口的预演也成功归还了原焦点。打开调度中心后，系统再次给出可唯一归于副屏桌面栏的添加按钮。系统没有提供足以把某个窗口缩略图唯一关联到测试窗的 AX 证据，程序沿已登记的系统入口关闭概览。随后键盘焦点落到了登记范围外的进程；记录没有识别该进程，也没有对它采取动作。此轮可以排除“初始焦点属于非当前桌面”和“副屏测试窗未能取得焦点”两项原因。[焦点、添加控件及退出事件](../../build/verification/secondary-route-followup/b1451ff8-7f39-4e28-a285-621a490f2ceb/observe.jsonl)
+
+**本轮添加桌面 0 次，普通桌面往返 0/3，跨空间移窗 0 次。** 14:24:25 两次独立读取均确认测试窗口已消失、概览已关闭、指针归位，两屏当前桌面保持为 1309 和 4568。原窗口仍在 1309，未取得键盘焦点。此次授权的桌面输入到此结束。[最终双采样](../../build/verification/secondary-route-followup/b1451ff8-7f39-4e28-a285-621a490f2ceb/postflight.jsonl) · [停止原因](../../build/verification/secondary-route-followup/b1451ff8-7f39-4e28-a285-621a490f2ceb/stopped.json)
+
+本轮现场曾在副屏坐标 (−400, 44) 读到一个属于桌面列表的系统按钮。为避开概览退出后再次选择前台进程的问题，验收工具新增了选择已登记的当前副屏桌面 A 来关闭概览的路径。只在两次命中同一 AX 对象、核实副屏桌面栏、当前桌面和系统进程代际后尝试一次；没有使用该坐标发送点击。自行建 B 后还须证实 A 仍当前、桌面顺序为 [A, 本轮 B] 且 A 按钮仍是同一对象。此路径尚未在真实概览执行，焦点归还继续待验。[代码](../../scripts/acceptance/observe-secondary-space-controls.swift) · [12 项新离线检查及原夹具关联自检](../../build/verification/secondary-route-followup/b1451ff8-7f39-4e28-a285-621a490f2ceb/current-tile-tests.log)
+
+最终签封的工具清单 SHA-256 为 `643944849c7a2c49a796c938cca210bbcac04aa24b54a274d799c9dc9ccf81fc`。Finder 启动器 SHA-256 为 `fe61ffec897d32cbcdbb191123ca43a274c03b16351729b277e65c8ab4c9caf7`，通过严格签名和无界面自检。监督程序 40 项及桌面拓扑 6 项回归均通过。成品仍为 P5.7；本次交付是只操作专用窗口和桌面的本机验收工具。[自动建 B 的本机验收入口](../../build/verification/finder-native-space/2fbd4c6b-de64-4b12-8887-cc4ff8fd4731) · [监督回归](../../build/verification/secondary-route-followup/b1451ff8-7f39-4e28-a285-621a490f2ceb/supervisor-tests.log) · [拓扑回归](../../build/verification/secondary-route-followup/b1451ff8-7f39-4e28-a285-621a490f2ceb/provision-tests.log)
+
 ## 13:20 副屏测试与焦点归属
 
 **普通桌面往返 0/3，跨空间移窗 0 次。** 12:56 和本次启动前的 Reader 双采样均显示主屏当前为 1309、副屏仅有普通桌面 4568。13:20 在新授权的无人时段内实际创建了副屏窗口 193049。它通过了本进程 AX、CG、显示器和桌面核对，AppKit 请求后仍未取得前台或 key。程序在打开调度中心之前停止。创建桌面、删除桌面和方向输入均为零。[启动前双采样](../../build/verification/secondary-route-followup/1ef746d0-9d32-404c-aa08-4c1df777ee37/origin-2.json) · [实际窗口及退出过程](../../build/verification/secondary-route-followup/1ef746d0-9d32-404c-aa08-4c1df777ee37/observe.jsonl)
