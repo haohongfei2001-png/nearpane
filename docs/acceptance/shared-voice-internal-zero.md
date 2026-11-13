@@ -53,3 +53,13 @@ Nearpane uses the shared editor at Saytile commit `7d575dc2437e5e1e9489e47ad093d
 | Serial Swift suite | PASS · 319 tests in 52 suites, including expanding the history page, copying a group spanning pages, and editing the embedded transcript |
 | Worktree debug bundle | PASS · native host and helper executables built, signatures checked, packaged Saytile and Riftlet resources verified |
 | Installed Nearpane or fresh cross-host scroll capture | NOT_RUN |
+
+## Saytile 内测 0.5
+
+Nearpane uses the shared voice surface from Saytile `059fd4a43b262b2ce2e9e0c260d442bdc3f96a61`. Its 10 inventoried inputs have combined SHA-256 `417b9c7f343b3db57487a92fe94d47f2bb4da880fb6b80ddd5921d650cf4dff2`. Within the voice slot, text and controls retain their size as the sidebar narrows. The copy button hides below 112 pt of card width. At 80 pt or less of outer width the voice slot displays its single state control. The standalone app manages its own floating window and menu.
+
+| Verification on Apple Silicon | Result |
+| --- | --- |
+| Source inventory and offline cache | PASS · all 10 files matched the final Git blobs and the resolver passed 6 tests |
+| Complete offline native Swift suite on the final pin | PASS · 319 tests in 52 suites, including the embedded editor and host lifecycle |
+| Installed Nearpane or an independent cross-host visual comparison at this pin | NOT_RUN |
