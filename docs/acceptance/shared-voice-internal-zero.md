@@ -98,3 +98,9 @@ Nearpane 从 Saytile 的同一提交引入紧凑语音板。72 × 44 逻辑点�
 | 桌面会话运行完整并行原生测试，使用隔离资料 | PASS · 52 组 319/319，含语音编辑、托盘、Spaces 和宿主生命周期 |
 | 同一测试在受限沙盒中的预跑 | BLOCKED · 系统服务连接受限，测试进程收到 signal 5 |
 | 此提交的 Nearpane 安装和宿主原生视觉比对 | NOT_RUN |
+
+## Internal 0.10 · continuous voice panel geometry
+
+The SaytileVoiceUI inventory is pinned to `da27ec7608ea96aaddc6d25626c5e91cca289964` (10 files, inventory SHA-256 `be3362b3b031063eec889ab1f62c2231263417963ccb9a2cd4181beb31b8e959`). The shared slot positions the capture control at the lower right and fades its bezel as the available width decreases. The editor stays mounted while the usable area changes. Saytile supplies standalone resizing and Nearpane supplies its sidebar layout.
+
+Local acceptance used the Apple Silicon desktop session and the offline source inventory. All six resolver checks and all 319 native Swift tests across 52 suites passed. The hidden native host test mounted both domains and resized their container. Paired on-screen host screenshot comparison and installation of Nearpane were not run in this iteration.

@@ -225,8 +225,8 @@
     },
     "saytileVoiceUI": {
       "repository": "haohongfei2001-png/saytile",
-      "commit": "3ce0cf56f07813031ba602eb18993103860291d0",
-      "treeSHA256": "0e9321ecffcdfc78e72517db477de4907e1053928b5028b35378cd287147b053",
+      "commit": "da27ec7608ea96aaddc6d25626c5e91cca289964",
+      "treeSHA256": "be3362b3b031063eec889ab1f62c2231263417963ccb9a2cd4181beb31b8e959",
       "sources": [
         "Sources/SaytileVoiceUI"
       ],
@@ -238,13 +238,13 @@
       ],
       "files": {
         "Sources/SaytileKit/PanelEditTransaction.swift": "1513cf40cd6b6896a79a8d1fb5c1b893b646e22018d7b2d472b216a4d4306d74",
-        "Sources/SaytileVoiceUI/CompactTranscriptView.swift": "35373063b98dc744b944c3df01a1a5e5c2228b01a2177d229cb6c436462322e8",
+        "Sources/SaytileVoiceUI/CompactTranscriptView.swift": "d81ee3d5ed7d4a83ddb2c52f179652ef5614c9842b9f02331390a309e27f2555",
         "Sources/SaytileVoiceUI/PanelTimelineDocument.swift": "ae0e95cfd3efb376f533393fd1f8b60762f5986496d9e0428a0beb30bd8f514b",
         "Sources/SaytileVoiceUI/ReaderTextContainer.swift": "fc11bc54440d568cb08d9fca379674abdc06887545917d5ff832d639f38cdcc8",
-        "Sources/SaytileVoiceUI/ReferencePanelStyle.swift": "0730f30aa943aa2245432c40e733af89e30f70ab86fc2c98ad4b4ad619d068c1",
+        "Sources/SaytileVoiceUI/ReferencePanelStyle.swift": "da32c1859a42f2b744ce3941789b1e47efef05ad568163502fb80db16cfec76e",
         "Sources/SaytileVoiceUI/VoiceCaptureGlyph.swift": "1c24d847c73e67737ceaddca40e38b745ee601a4342451b304313874ea560236",
-        "Sources/SaytileVoiceUI/VoiceRailProportions.swift": "2c59b3001aa3f55c8e8adb86dbc427d632cbfb3867304e37a4f28f2109d897cf",
-        "Sources/SaytileVoiceUI/VoiceSurfacePanel.swift": "0594530ce29c1ad75d16dff0cddb6824682ba5a23bff239f8a1d239058ee4548",
+        "Sources/SaytileVoiceUI/VoiceRailProportions.swift": "6aa3e15edaf48dd811a8057b875045da60ff06d5c5c51ed60ff843897e389ead",
+        "Sources/SaytileVoiceUI/VoiceSurfacePanel.swift": "37068ec082f5485a7abe28bc2c2791f859340e7d6baf01d070ba98ae7a213ea2",
         "Sources/SaytileVoiceUI/VoiceTranscriptFlow.swift": "d38caa7beb81d2ae4f39cda8cffd85dc1754aee0ee31008da601f13a361934f4",
         "THIRD_PARTY_NOTICES.md": "3c79110e5716c60355be23f357b36715a434437a53fabb2e54b052c5fccb8cdf"
       }
