@@ -5,6 +5,7 @@ import Foundation
 package struct ConsoleSpaceConsent: Codable {
     package let run: UUID
     package let boot, secondaryDisplay, source, target: String
+    package let currentDisplayID: String?
     package let securityID: UInt32
     package let starts, ends: Date
     package let permitsCalibrationAndThreeRoundTrips: Bool

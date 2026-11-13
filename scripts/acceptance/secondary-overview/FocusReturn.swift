@@ -37,7 +37,9 @@ import CryptoKit
     }
   }
   static func run() throws {
-    let args = Array(CommandLine.arguments.dropFirst())
+    let supplied = Array(CommandLine.arguments.dropFirst())
+    let currentDisplay = supplied.first == "--current-display"
+    let args = Array(supplied.dropFirst(currentDisplay ? 1 : 0))
     guard args.count >= 4, let display = UUID(uuidString: args[0]),
       let from = ISO8601DateFormatter().date(from: args[2]),
       let until = ISO8601DateFormatter().date(from: args[3]),
@@ -57,7 +59,7 @@ import CryptoKit
     let app = NSApplication.shared
     guard app.activationPolicy() == .prohibited || app.setActivationPolicy(.prohibited),
       AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1,
-      try observe(display)["state"] as? String == "overviewNotExposed"
+      try observe(display, currentDisplay:currentDisplay)["state"] as? String == "overviewNotExposed"
     else { throw Refusal("read-only external observer unavailable") }
     // The system approval panel or a person can still be using the pointer when this CLI starts.
     // Wait before opening any test window, and give up without taking focus on a busy console.
@@ -83,7 +85,7 @@ import CryptoKit
     ])
     let child = Process()
     child.executableURL = exe
-    child.arguments = args
+    child.arguments = supplied
     child.standardInput = FileHandle.nullDevice
     var env = ProcessInfo.processInfo.environment
     for (k, v) in anchor.environment { env[k] = v }

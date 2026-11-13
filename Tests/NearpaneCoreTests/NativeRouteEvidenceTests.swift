@@ -2,6 +2,14 @@ import Testing
 @testable import NearpaneCore
 
 struct NativeRouteEvidenceTests {
+    @Test(arguments: [true, false])
+    func singleScreenRequiresExplicitTopology(currentDisplayOnly: Bool) {
+        let evidence = NativeRouteEvidence(topology: "one-screen", currents: ["main": "1309"],
+            orders: ["main": ["1130", "1309"]], membership: [7: "1309", 8: "1130"])
+        #expect(evidence.validates(display: "main", source: "1309", sourceWindow: 7, target: "1130", targetWindow: 8,
+            sourceCurrents: ["main": "1309"], targetCurrents: ["main": "1130"], frozenOrder: ["1130", "1309"],
+            frozenTopology: "one-screen", right: false, isolatedDisplays: false, currentDisplayOnly: currentDisplayOnly) == currentDisplayOnly)
+    }
     @Test(arguments: ["valid", "missing", "moved", "other-display", "source-changed", "reordered", "nonadjacent", "reversed", "new-topology", "id-reused", "isolated-coupled", "coupled-record-gone"])
     func adjacentRouteRequiresLiveDestinationAndOtherDisplay(caseName: String) {
         let source: UInt32 = 7, target: UInt32 = caseName == "id-reused" ? 7 : 8

@@ -8,9 +8,14 @@ package struct TrialDisplayState: Equatable {
     package let orders: [String: [String]]
     private let scopeIDs: [String: String]
 
-    package init(_ snapshot: DesktopSnapshot) throws {
+    package init(_ snapshot: DesktopSnapshot, soleDisplay: String? = nil) throws {
         var currents = [String: String](), orders = [String: [String]](), ids = [String: String]()
-        guard snapshot.separateSpaces == true, snapshot.scopes.count == 2 else {
+        if let soleDisplay {
+            guard snapshot.scopes.count == 1, snapshot.scopes[0].displayID == soleDisplay,
+                  snapshot.displays.count == 1, snapshot.displays[0].id == soleDisplay else {
+                throw Refusal("selected display is not the sole observed physical display and scope")
+            }
+        } else if snapshot.separateSpaces != true || snapshot.scopes.count != 2 {
             throw Refusal("two independently observable display scopes required")
         }
         for scope in snapshot.scopes {

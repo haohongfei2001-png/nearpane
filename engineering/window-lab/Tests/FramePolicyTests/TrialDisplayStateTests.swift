@@ -34,6 +34,24 @@ struct TrialDisplayStateTests {
         #expect(try origin == TrialDisplayState(snapshot("X", "A")))
     }
 
+    @Test func soleDisplayRequiresExplicitMatchingPhysicalAndScopeIdentity() throws {
+        let snapshot = DesktopFixture.singleDisplay.makeSnapshot()
+        let id = snapshot.displays[0].id
+        let baseline = try TrialDisplayState(snapshot, soleDisplay: id)
+        let endpoint = snapshot.scopes[0].records[1].id
+        var changed = snapshot
+        changed.scopes[0] = .init(id: snapshot.scopes[0].id, displayID: id,
+            records: snapshot.scopes[0].records.map { .init(id: $0.id, isCurrent: $0.id == endpoint) })
+        #expect(try baseline.permits(TrialDisplayState(changed, soleDisplay: id), secondary: id, endpoint: endpoint))
+        #expect(throws: (any Error).self) { try TrialDisplayState(snapshot) }
+        #expect(throws: (any Error).self) { try TrialDisplayState(snapshot, soleDisplay: "unapproved") }
+        changed.displays.append(DesktopFixture.twoDisplays.makeSnapshot().displays[1])
+        #expect(throws: (any Error).self) { try TrialDisplayState(changed, soleDisplay: id) }
+        changed = snapshot
+        changed.scopes[0] = .init(id: snapshot.scopes[0].id, displayID: "unapproved", records: snapshot.scopes[0].records)
+        #expect(throws: (any Error).self) { try TrialDisplayState(changed, soleDisplay: id) }
+    }
+
     @Test func ambiguousScopesCannotServeAsReturnEvidence() {
         var missing = snapshot("X", "")
         #expect(throws: (any Error).self) { try TrialDisplayState(missing) }

@@ -24,6 +24,16 @@ int main(void) { @autoreleasepool {
         NSUInteger total = [result[@"blocking"] count] + [result[@"desktop"] count] + [result[@"shared"] count];
         if ((absent && total != 0) || (!absent && (total != 1 || ![result[c[6]] isEqual:w]))) return 1;
     }
+    NSArray *crossChecks = @[
+        @[AB, @{@42:AB}, @{@"A":w,@"B":w}, @YES],
+        @[AB, @{@42:B}, @{@"A":w,@"B":w}, @NO],
+        @[AB, @{@42:AB}, @{@"A":empty,@"B":w}, @NO],
+        @[empty, @{}, @{}, @NO],
+    ];
+    for (NSArray *c in crossChecks) {
+        if (verifiedOnAllDesktopRecords(c[0], @42, c[1], c[2]) != [c[3] boolValue]) return 1;
+    }
+    printf("%lu current-display shared membership cases passed\n",(unsigned long)crossChecks.count);
     printf("%lu target occupancy cases passed\n", (unsigned long)cases.count);
     return 0;
 }}

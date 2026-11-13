@@ -17,10 +17,11 @@ public struct NativeRouteEvidence: Codable, Equatable, Sendable {
 
     public func validates(display: String, source: String, sourceWindow: UInt32, target: String, targetWindow: UInt32,
                           sourceCurrents: [String: String], targetCurrents: [String: String],
-                          frozenOrder: [String], frozenTopology: String, right: Bool, isolatedDisplays: Bool) -> Bool {
+                          frozenOrder: [String], frozenTopology: String, right: Bool, isolatedDisplays: Bool,
+                          currentDisplayOnly: Bool = false) -> Bool {
         var expected = sourceCurrents
         expected[display] = target
-        guard currents.count == 2, currents == sourceCurrents, currents[display] == source,
+        guard currents.count == (currentDisplayOnly ? 1 : 2), currents == sourceCurrents, currents[display] == source,
               targetCurrents[display] == target, Set(currents.keys) == Set(targetCurrents.keys),
               Set(currents.keys) == Set(orders.keys),
               targetCurrents.allSatisfy({ orders[$0.key]?.contains($0.value) == true }),

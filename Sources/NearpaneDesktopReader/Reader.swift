@@ -228,9 +228,10 @@ struct Reader {
                 if !reply.matchesCheckpoint { exit(3) }
                 return
             }
-            if arguments.count == 4, arguments[0] == "--enrolled-route",
+            if arguments.count == 4, ["--enrolled-route", "--enrolled-current-route"].contains(arguments[0]),
                let source = UInt32(arguments[2]), let target = UInt32(arguments[3]) {
-                let result = try EnrolledRoute.sample(display: arguments[1], numbers: [source, target])
+                let result = try EnrolledRoute.sample(display: arguments[1], numbers: [source, target],
+                                                      currentDisplayOnly: arguments[0] == "--enrolled-current-route")
                 FileHandle.standardOutput.write(try JSONEncoder().encode(result))
                 return
             }

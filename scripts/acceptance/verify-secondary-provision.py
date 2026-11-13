@@ -23,19 +23,21 @@ def rect(value):
     return coords
 
 
-def scope_state(sample, primary, secondary):
+def scope_state(sample, primary, secondary, current_display=False):
     native = sample["native"]
     require(sample["source"] == "macos-window-server" and sample["freshness"] == "fresh"
             and sample["topologyConsistent"] is True and sample["separateSpaces"] is True
             and native["population"] == "markedFixture" and native["spaces"] == "observed"
             and sample["windows"] == [] and native["rows"] == [] and native["windowLimitReached"] is False,
             "expected a stable scope-only Reader sample")
-    require(primary != secondary and len(sample["displays"]) == len(sample["scopes"]) == 2
-            and set(sample["ordinaryRecordsByDisplay"]) == {primary, secondary}, "two designated displays required")
+    expected = {secondary} if current_display else {primary, secondary}
+    require((primary is None if current_display else primary != secondary and primary is not None)
+            and len(sample["displays"]) == len(sample["scopes"]) == len(expected)
+            and set(sample["ordinaryRecordsByDisplay"]) == expected, "designated displays required")
     geometry = {}
     for d in sample["displays"]:
         frame = rect(d["frame"])
-        require((d["id"] == primary) == (frame[:2] == (0, 0)), "primary display does not match Quartz origin")
+        require((d["id"] == (secondary if current_display else primary)) == (frame[:2] == (0, 0)), "primary display does not match Quartz origin")
         require(number(d["backingScale"]) and d["backingScale"] > 0 and number(d["rotationDegrees"]),
                 "invalid display scale or rotation")
         geometry[d["id"]] = (frame, rect(d["usable"]), d["rotationDegrees"], d["backingScale"])
@@ -57,12 +59,12 @@ def scope_state(sample, primary, secondary):
         require(len(active) == 1 and tuple(i for i in order if i in ordinary) == ordinary,
                 "inconsistent current or ordinary record order")
         scopes[display] = (order, ordinary, active[0])
-    require(geometry.keys() == scopes.keys() == {primary, secondary}, "display-to-scope mapping changed")
+    require(geometry.keys() == scopes.keys() == expected, "display-to-scope mapping changed")
     require(sample["sourceBuild"] and sample["topologyFingerprint"], "missing build or topology evidence")
-    return (sample["sourceBuild"], sample["topologyFingerprint"], geometry, scopes[primary]), scopes[secondary]
+    return (sample["sourceBuild"], sample["topologyFingerprint"], geometry, None if current_display else scopes[primary]), scopes[secondary]
 
 
-def verify(primary, secondary, before, after, restored=None):
+def verify(primary, secondary, before, after, restored=None, *, current_display=False):
     """Require temporally distinct stable pairs and an exact one-record insertion next to A."""
     last_times = None
     revisions = {}
@@ -82,7 +84,7 @@ def verify(primary, secondary, before, after, restored=None):
             require(last_times is None or all(a > b for a, b in zip(starts, last_times)),
                     "samples overlap or are out of order")
             last_times = ends
-            checkpoint_state.append(scope_state(sample, primary, secondary))
+            checkpoint_state.append(scope_state(sample, primary, secondary, current_display))
         require(checkpoint_state[0] == checkpoint_state[1], "unstable checkpoint")
         states.append(checkpoint_state[0])
 
@@ -98,11 +100,14 @@ def verify(primary, secondary, before, after, restored=None):
             "existing order/types changed or new record is not ordinary")
     offset = new_order.index(target) - new_order.index(source)
     require(abs(offset) == 1, "new record is not adjacent in complete secondary order")
+    if current_display:
+        require(old_order[-1] == source and new_order == (*old_order, target),
+                "new desktop did not exclusively append to the authorized rightmost source")
     if restored is not None:
         require(states[0] == states[2], "original topology and currents were not restored")
     return dict(observation="oneAdjacentOrdinaryRecordAdded", secondary=secondary, primary=primary,
                 source=source, target=target, direction="right" if offset == 1 else "left",
-                primaryCurrent=base[3][2], originalScopesRestored=True if restored is not None else None,
+                primaryCurrent=None if current_display else base[3][2], originalScopesRestored=True if restored is not None else None,
                 creatorProven=False, emptyDesktopProven=False, deletionAuthorized=False)
 
 

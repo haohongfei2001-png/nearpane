@@ -35,6 +35,32 @@ class PresentationGrant(unittest.TestCase):
             self.assertEqual(session.panel_environment()[key], session.args.ends)
 
 
+class CurrentDisplayRoute(unittest.TestCase):
+    def setUp(self):
+        self.session = route.Session.__new__(route.Session)
+        self.session.args = SimpleNamespace(display=SECONDARY, source="20", existing_target="19",
+            current_display=True, cleanup_run=None, allow_primary_overview=False, provision_current=False)
+        self.session.verify_kit = Mock()
+        self.sample = dict(displays=[dict(id=SECONDARY)], ordinaryRecordsByDisplay={SECONDARY: ["18", "19", "20"]},
+                           scopes=[dict(displayID=SECONDARY, records=[dict(id=i, isCurrent=i=="20") for i in ("18","19","20")])])
+        self.session.pair = Mock(return_value=[self.sample, self.sample])
+
+    def test_selects_designated_adjacent_pair_without_touching_previous_desktops(self):
+        self.session.setup()
+        self.assertEqual((self.session.a, self.session.b), ("20", "19"))
+        with self.assertRaisesRegex(ValueError, "cannot be created or removed"):
+            self.session.panel("create")
+
+    def test_refuses_nonadjacent_target_or_additional_display(self):
+        self.session.args.existing_target = "18"
+        with self.assertRaisesRegex(ValueError, "not adjacent"):
+            self.session.setup()
+        self.session.args.existing_target = "19"
+        self.sample["displays"].append(dict(id=fixtures["PRIMARY"]))
+        with self.assertRaisesRegex(ValueError, "sole live display"):
+            self.session.setup()
+
+
 class RouteCleanup(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()

@@ -25,8 +25,11 @@ import WindowLab
   private var admitted: SessionIdentity?
   var consoleBoot: String? { admitted?.boot }
   var authorizedUntil: Double { min(deadline, consentExpiresUptime ?? deadline) }
+  var currentRouteCalibrationBegan: Double?
   var originDisplay: String?
   let deadline = ProcessInfo.processInfo.systemUptime + 600
+  let selectedDisplay: UUID?
+  var scopeCount: Int { selectedDisplay == nil ? 2 : 1 }
   let consoleTrial: Bool
   let fullscreenOnly, observeTools: Bool
   var toolObservationResult: String?
@@ -42,7 +45,8 @@ import WindowLab
   private var consentExpiresUptime: Double?
   var enrolledRead: String { consoleTrial ? "--read-enrolled-console" : "--read-encoded" }
 
-  init(consoleTrial: Bool, fullscreenOnly: Bool = false, observeTools: Bool = false) throws {
+  init(consoleTrial: Bool, fullscreenOnly: Bool = false, observeTools: Bool = false, selectedDisplay: UUID? = nil) throws {
+    self.selectedDisplay = selectedDisplay
     self.consoleTrial = consoleTrial
     self.fullscreenOnly = fullscreenOnly
     self.observeTools = observeTools
@@ -80,9 +84,10 @@ import WindowLab
   func scope(cleanupRead: Bool = false) throws {
     try require(cleanupRead || ProcessInfo.processInfo.systemUptime < deadline, "trial expired")
     let url = dir.appendingPathComponent("scope-" + UUID().uuidString + ".json")
-    try helper(
-      kit.appendingPathComponent("SessionProbe"),
-      [consoleTrial ? "check-console" : "check", kit.appendingPathComponent("protected.json").path], output: url)
+    let baseline = kit.appendingPathComponent("protected.json").path
+    let args = selectedDisplay.map { ["check-current-console", baseline, $0.uuidString] }
+      ?? [consoleTrial ? "check-console" : "check", baseline]
+    try helper(kit.appendingPathComponent("SessionProbe"), args, output: url)
     struct Check: Decodable { let caller: SessionIdentity, verdict: String }
     let check = try JSONDecoder().decode(Check.self, from: Data(contentsOf: url))
     try require(
@@ -142,6 +147,16 @@ import WindowLab
     fflush(stdout)
   }
   func screen() throws -> (NSScreen, String) {
+    if let selectedDisplay {
+      guard NSScreen.screens.count == 1, let only = NSScreen.screens.first,
+            let number = only.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
+            number.uint32Value == CGMainDisplayID(), CGDisplayIsInMirrorSet(number.uint32Value) == 0,
+            let id = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue(),
+            CFUUIDCreateString(nil, id) as String == selectedDisplay.uuidString
+      else { throw Refusal("selected display is no longer the sole physical display") }
+      originDisplay = selectedDisplay.uuidString
+      return (only, selectedDisplay.uuidString)
+    }
     guard NSScreen.screens.count == 2,
       let secondary = NSScreen.screens.first(where: {
         ($0.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value
@@ -153,6 +168,9 @@ import WindowLab
     try require(originDisplay == nil || originDisplay == display, "test display changed")
     originDisplay = display
     return (secondary, display)
+  }
+  func displayState(_ snapshot: DesktopSnapshot) throws -> TrialDisplayState {
+    try TrialDisplayState(snapshot, soleDisplay: selectedDisplay?.uuidString)
   }
   // Scope-only snapshot. No AX tree or WindowServer descriptions are requested.
   func consoleScopes() throws -> DesktopSnapshot {
@@ -169,7 +187,7 @@ import WindowLab
     let s = try decoder.decode(DesktopSnapshot.self, from: bytes)
     guard s.isStructurallyValid, s.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime),
           s.sessionID == run, s.revision == revision, s.windows.isEmpty, s.native?.population == .markedFixture,
-          s.native?.spaces == .observed, s.scopes.count == 2,
+          s.native?.spaces == .observed, s.scopes.count == scopeCount,
           s.scopes.allSatisfy({ $0.records.filter(\.isCurrent).count == 1 })
     else { throw Refusal("scope-only observation unavailable") }
     try require(s.separateSpaces == true, "shared Spaces: independent secondary A/B cannot be attested")
@@ -192,7 +210,7 @@ import WindowLab
       let required = onSource ? consent.source : consent.target
       try require(scope.records.first(where: \.isCurrent)?.id == required, "console is not at the specified test desktop")
       if let originScopes {
-        try require(try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: required),
+        try require(try originScopes.permits(displayState(s), secondary: display, endpoint: required),
                     "display topology, record order or protected current changed during calibration")
       }
     }
@@ -202,9 +220,11 @@ import WindowLab
   func awaitConsoleConsent() throws {
     guard let session = admitted else { throw Refusal("missing console identity") }
     let (_, display) = try screen()
-    originScopes = try TrialDisplayState(consoleEndpoint("A", display: display))
-    try writeJSON(["run": run.uuidString, "boot": session.boot, "securityID": String(session.securityID),
-                   "secondaryDisplay": display, "focusLoanProtocol": "1", "procedure": observeTools ? "fullscreen-tools" : fullscreenOnly ? "fullscreen" : "route"], dir, "console-scope.json")
+    originScopes = try displayState(consoleEndpoint("A", display: display))
+    var context = ["run": run.uuidString, "boot": session.boot, "securityID": String(session.securityID),
+                   "secondaryDisplay": display, "focusLoanProtocol": "1", "procedure": observeTools ? "fullscreen-tools" : fullscreenOnly ? "fullscreen" : "route"]
+    context["currentDisplayID"] = selectedDisplay?.uuidString
+    try writeJSON(context, dir, "console-scope.json")
     try awaitCheckpoint("unattended-consent")
     let file = dir.appendingPathComponent("unattended-consent.ready")
     let fd = open(file.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
@@ -218,7 +238,9 @@ import WindowLab
     let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
     let consent = try decoder.decode(ConsoleSpaceConsent.self, from: try handle.read(upToCount: 4097) ?? Data())
     let now = Date()
-    guard consent.allows(run: run, boot: session.boot, securityID: session.securityID, display: display, at: now, fullscreenOnly: fullscreenOnly, observeTools: observeTools)
+    guard consent.currentDisplayID == selectedDisplay?.uuidString,
+          selectedDisplay == nil || consent.permitsTemporarySecondaryFocus == true,
+          consent.allows(run: run, boot: session.boot, securityID: session.securityID, display: display, at: now, fullscreenOnly: fullscreenOnly, observeTools: observeTools)
     else { throw Refusal("missing current consent for these two test desktops") }
     consoleConsent = consent
     consentExpiresUptime = ProcessInfo.processInfo.systemUptime + consent.ends.timeIntervalSince(now)
@@ -290,7 +312,7 @@ import WindowLab
   func focusRegion(_ element: AXUIElement, secondary: NSScreen) -> String {
     guard let display = secondary.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
           let frame = ConsoleFocusLoan.frame(element) else { return "unknown" }
-    if CGDisplayBounds(display.uint32Value).contains(frame) { return "secondary" }
+    if selectedDisplay == nil && CGDisplayBounds(display.uint32Value).contains(frame) { return "secondary" }
     if CGDisplayBounds(CGMainDisplayID()).contains(frame) { return "protected-main" }
     return "unknown"
   }
@@ -341,7 +363,7 @@ import WindowLab
     else { throw Refusal("no independent Space/window witness") }
     if let consent = consoleConsent {
       guard let originScopes, row.recordID == (label == "B" ? consent.target : consent.source),
-            try originScopes.permits(TrialDisplayState(s), secondary: display, endpoint: row.recordID)
+            try originScopes.permits(displayState(s), secondary: display, endpoint: row.recordID)
       else { throw Refusal("test endpoint or protected display departed the authorized baseline") }
     }
     var currents = [String: String]()
@@ -353,7 +375,7 @@ import WindowLab
       currents[scope.displayID] = active[0].id
     }
     try require(
-      currents.count == 2 && currents[display] == row.recordID && (try placement()) == frame,
+      currents.count == scopeCount && currents[display] == row.recordID && (try placement()) == frame,
       "unstable frame or scopes")
     try ownedAX(label)
     let (after, focusAfter) = try focusedWindow()
@@ -406,10 +428,10 @@ import WindowLab
           try require(clicked.contains(destination) || enrolledByAppKit.contains(destination), "endpoint foreground not witnessed")
           _ = try stable(destination, "observed-" + name)
         }
-        let first = try TrialDisplayState(consoleEndpoint(destination, display: display))
+        let first = try displayState(consoleEndpoint(destination, display: display))
         let until = ProcessInfo.processInfo.systemUptime + 0.25
         while ProcessInfo.processInfo.systemUptime < until { pump() }
-        let latest = try TrialDisplayState(consoleEndpoint(destination, display: display))
+        let latest = try displayState(consoleEndpoint(destination, display: display))
         try require(first == latest, "calibration observation was unstable")
         try writeJSON(["run": run.uuidString, "checkpoint": name, "token": probe.token.uuidString,
                        "endpoint": latest.currents[display], "revision": String(revision)],
@@ -459,6 +481,7 @@ import WindowLab
                   && screen.frame.contains(NSEvent.mouseLocation),
                   "calibration requires the focused secondary fixture and pointer")
     }
+    if selectedDisplay != nil && name == "enroll-B" { currentRouteCalibrationBegan = ProcessInfo.processInfo.systemUptime }
     try awaitCheckpoint(name)
   }
 
@@ -490,13 +513,13 @@ import WindowLab
           UInt32(targetWindow.windowNumber) == target.number else { throw Refusal("window generation changed") }
     let proof = dir.appendingPathComponent(checkpoint + "-route.json")
     try helper(Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader"),
-               ["--enrolled-route", display, String(origin.number), String(target.number)], output: proof)
+               [selectedDisplay == nil ? "--enrolled-route" : "--enrolled-current-route", display, String(origin.number), String(target.number)], output: proof)
     let evidence = try JSONDecoder().decode(NativeRouteEvidence.self, from: Data(contentsOf: proof))
     try require(evidence.validates(display: display, source: origin.record, sourceWindow: origin.number,
                                    target: target.record, targetWindow: target.number,
                                    sourceCurrents: origin.currents, targetCurrents: target.currents,
                                    frozenOrder: origin.recordOrder, frozenTopology: origin.topology, right: direction == .right,
-                                   isolatedDisplays: !consoleTrial),
+                                   isolatedDisplays: !consoleTrial, currentDisplayOnly: selectedDisplay != nil),
                 "inactive target, other display, or calibrated order changed")
     try checkControlArrows(checkpoint + "-shortcuts.json")
     let (pid, currentFocus) = try focusedWindow()
@@ -548,6 +571,7 @@ import WindowLab
       return try stable(label, "origin-" + label)
     }
     guard let window = windows[label], let display = originDisplay else { throw Refusal("missing own window") }
+    try enrollBlankArrivalIfNeeded(label)
     let before = try sample(label, beforeAcquiringFocus: true)
     let independently = try sample(label, beforeAcquiringFocus: true)
     try require(before == independently, "fixture membership, identity, focus or geometry changed before activation")
@@ -695,7 +719,7 @@ import WindowLab
         && s.native?.population == .markedFixture && s.native?.spaces == .observed
         && s.sessionID == run && s.revision == revision && s.windows.isEmpty,
       "final scope observation unavailable")
-    let final = try TrialDisplayState(s)
+    let final = try displayState(s)
     if let original = originScopes {
       try require(final == original, "original display scopes not restored after cleanup")
     } else if let a = baseline["A"] {
@@ -765,10 +789,12 @@ import WindowLab
 
 do {
   let args = Array(CommandLine.arguments.dropFirst())
+  let currentMode = args.first == "--three-rounds-current-display"
+  let selected = currentMode && args.count == 2 ? UUID(uuidString: args[1]) : nil
   try require(
-    args.count == 1 && ["--check", "--three-rounds", "--check-console", "--three-rounds-console", "--check-fullscreen-console", "--fullscreen-console", "--check-fullscreen-tools-console", "--fullscreen-tools-console"].contains(args[0]), "unknown witness command")
-  let trial = try Trial(consoleTrial: args[0].hasSuffix("-console"), fullscreenOnly: args[0].contains("fullscreen"),
-                        observeTools: args[0].contains("fullscreen-tools"))
+    selected != nil || (args.count == 1 && ["--check", "--three-rounds", "--check-console", "--three-rounds-console", "--check-fullscreen-console", "--fullscreen-console", "--check-fullscreen-tools-console", "--fullscreen-tools-console"].contains(args[0])), "unknown witness command")
+  let trial = try Trial(consoleTrial: selected != nil || args[0].hasSuffix("-console"), fullscreenOnly: args[0].contains("fullscreen"),
+                        observeTools: args[0].contains("fullscreen-tools"), selectedDisplay: selected)
   if args[0].hasPrefix("--check") {
     trial.announce("RUN " + trial.dir.path)
     struct CheckReceipt: Encodable {

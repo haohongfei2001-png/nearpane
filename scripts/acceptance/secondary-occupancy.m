@@ -34,17 +34,23 @@ static NSString *displayUUID(CGDirectDisplayID d) {
 
 static NSDictionary *inventory(NSString *primary, NSString *secondary) {
     CGDirectDisplayID ids[3]; uint32_t count = 0;
-    need(CGGetActiveDisplayList(3, ids, &count) == kCGErrorSuccess && count == 2 &&
-         [displayUUID(CGMainDisplayID()) isEqual:primary] &&
-         [(@[displayUUID(ids[0]),displayUUID(ids[1])]) containsObject:secondary] &&
-         ![primary isEqual:secondary], @"display roles or active display count changed");
+    need(CGGetActiveDisplayList(3, ids, &count) == kCGErrorSuccess && count > 0 && count <= 2,
+         @"unsupported active display count");
+    NSMutableSet *active = [NSMutableSet new];
+    for (uint32_t index = 0; index < count; index++) {
+        need(!CGDisplayIsInMirrorSet(ids[index]), @"mirrored display");
+        [active addObject:displayUUID(ids[index])];
+    }
+    need(active.count == count && [active containsObject:secondary], @"display UUID no longer active");
+    if (primary) need(count == 2 && [displayUUID(CGMainDisplayID()) isEqual:primary] &&
+                      ![primary isEqual:secondary], @"protected display changed");
     NSArray *scopes = CFBridgingRelease(NPReadInventory());
-    need(scopes.count == 2, @"two scopes required");
+    need(scopes.count == count, @"physical displays and scope inventory differ");
     NSMutableDictionary *state = [NSMutableDictionary new];
     NSMutableSet *seen = [NSMutableSet new];
     for (NSDictionary *scope in scopes) {
         NSString *d = scope[@"Display Identifier"];
-        need(([d isEqual:primary] || [d isEqual:secondary]) && !state[d], @"unknown or duplicate scope");
+        need([active containsObject:d] && !state[d], @"unknown or duplicate scope");
         NSString *current = spaceID(scope[@"Current Space"][@"id64"]);
         NSMutableArray *order = [NSMutableArray new], *types = [NSMutableArray new];
         for (NSDictionary *row in scope[@"Spaces"]) {
@@ -178,6 +184,27 @@ static NSDictionary *classifyTargetWindows(NSSet *targetIDs, NSSet *all, NSSet *
     return @{@"desktop":desktop, @"shared":shared, @"blocking":blocking};
 }
 
+// Quartz can describe an inactive or suppressed window by its exact numeric ID even when
+// kCGWindowListOptionIncludingWindow does not enumerate it. Keep owner metadata in memory.
+static NSDictionary *exactWindowOwner(NSNumber *number) {
+    const void *id = (const void *)(uintptr_t)number.unsignedIntValue;
+    CFArrayRef ids = CFArrayCreate(NULL, &id, 1, NULL);
+    if (!ids) return nil;
+    NSArray *rows = CFBridgingRelease(CGWindowListCreateDescriptionFromArray(ids));
+    CFRelease(ids);
+    if (rows.count != 1 || ![rows[0][(__bridge NSString *)kCGWindowNumber] isEqual:number]) return nil;
+    pid_t owner = [rows[0][(__bridge NSString *)kCGWindowOwnerPID] intValue];
+    struct proc_bsdinfo info = {0};
+    if (owner <= 0 || proc_pidinfo(owner, PROC_PIDTBSDINFO, 0, &info, sizeof(info)) != sizeof(info)) return nil;
+    return @{@"pid":@(owner), @"birthSeconds":@(info.pbi_start_tvsec), @"birthUsec":@(info.pbi_start_tvusec)};
+}
+
+static BOOL verifiedOnAllDesktopRecords(NSSet *records, NSNumber *number, NSDictionary *membership, NSDictionary *reverse) {
+    if (!records.count || ![records isSubsetOfSet:membership[number] ?: [NSSet set]]) return NO;
+    for (NSString *sid in records) if (![reverse[sid] containsObject:number]) return NO;
+    return YES;
+}
+
 // Return only the facts relevant to an enrolled A witness and to B. Transient objects
 // on other displays or outside both queries do not decide whether removing B moves a window.
 static NSDictionary *scopedSample(NSString *p, NSString *s, NSString *pc, NSString *a, NSString *b,
@@ -185,32 +212,37 @@ static NSDictionary *scopedSample(NSString *p, NSString *s, NSString *pc, NSStri
     NSDictionary *scopes = inventory(p, s);
     NSArray *order = scopes[s][@"order"], *types = scopes[s][@"types"];
     NSUInteger ai = [order indexOfObject:a], bi = b ? [order indexOfObject:b] : NSNotFound;
-    need([scopes[p][@"current"] isEqual:pc] && [scopes[s][@"current"] isEqual:a] &&
+    need((!p || [scopes[p][@"current"] isEqual:pc]) && [scopes[s][@"current"] isEqual:a] &&
          ai != NSNotFound && [types[ai] isEqual:@0], @"enrolled primary current and ordinary secondary source required");
     if (b) need(bi != NSNotFound && [types[bi] isEqual:@0] && labs((long)ai - (long)bi) == 1,
                 @"target must be a distinct inactive adjacent ordinary desktop");
 
     struct proc_bsdinfo process = {0};
-    need(pid > 0 && proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &process, sizeof(process)) == sizeof(process)
-         && process.pbi_uid == getuid(), @"missing witness process identity");
-    NSArray *record = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, anchor.unsignedIntValue));
-    need(record.count == 1 && [record[0][(__bridge NSString *)kCGWindowNumber] isEqual:anchor] &&
-         [record[0][(__bridge NSString *)kCGWindowOwnerPID] intValue] == pid &&
-         [record[0][(__bridge NSString *)kCGWindowLayer] isEqual:@0], @"enrolled ordinary witness owner/number changed");
+    if (anchor) {
+        need(pid > 0 && proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &process, sizeof(process)) == sizeof(process)
+             && process.pbi_uid == getuid(), @"missing witness process identity");
+        NSArray *record = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, anchor.unsignedIntValue));
+        need(record.count == 1 && [record[0][(__bridge NSString *)kCGWindowNumber] isEqual:anchor] &&
+             [record[0][(__bridge NSString *)kCGWindowOwnerPID] intValue] == pid &&
+             [record[0][(__bridge NSString *)kCGWindowLayer] isEqual:@0], @"enrolled ordinary witness owner/number changed");
+    }
     NSSet *all = windowNumbers(kCGWindowListOptionAll);
     NSSet *nonDesktop = windowNumbers(kCGWindowListOptionAll | kCGWindowListExcludeDesktopElements);
-    need([nonDesktop containsObject:anchor] && [all containsObject:anchor], @"A witness missing in Quartz");
-    NSSet *sids = [NSSet setWithArray:[scopes[p][@"order"] arrayByAddingObjectsFromArray:order]];
+    if (anchor) need([nonDesktop containsObject:anchor] && [all containsObject:anchor], @"A witness missing in Quartz");
+    NSMutableSet *sids = [NSMutableSet new];
+    for (NSDictionary *scope in scopes.allValues) [sids addObjectsFromArray:scope[@"order"]];
     NSMutableDictionary<NSString *,NSSet *> *reverse = [NSMutableDictionary new];
     for (NSString *sid in sids) {
         NSSet *items = windowsInSpace(sid, 7);
         need([windowsInSpace(sid, 2) isSubsetOfSet:items], @"inconsistent per-Space coverage");
-        need([items containsObject:anchor] == [a isEqual:sid], @"A witness not exclusively in A in per-Space read");
+        if (anchor) need([items containsObject:anchor] == [a isEqual:sid], @"A witness not exclusively in A in per-Space read");
         reverse[sid] = items;
     }
     NSMutableSet *targetIDs = b ? [reverse[b] mutableCopy] : [NSMutableSet new];
     NSMutableDictionary *membership = [NSMutableDictionary new];
-    for (NSNumber *wid in all) {
+    NSMutableSet *inspect = [all mutableCopy];
+    if (!p) [inspect unionSet:targetIDs];
+    for (NSNumber *wid in inspect) {
         NSArray *raw = CFBridgingRelease(NPReadWindowSpaces(wid.unsignedIntValue));
         if (![raw isKindOfClass:NSArray.class]) continue;
         NSMutableSet *set = [NSMutableSet new];
@@ -222,11 +254,34 @@ static NSDictionary *scopedSample(NSString *p, NSString *s, NSString *pc, NSStri
         if (b && [set containsObject:b]) [targetIDs addObject:wid];
         if ([targetIDs containsObject:wid] || [anchor isEqual:wid]) membership[wid] = set;
     }
-    need([membership[anchor] isEqual:[NSSet setWithObject:a]], @"A witness forward read unavailable");
+    if (anchor) need([membership[anchor] isEqual:[NSSet setWithObject:a]], @"A witness forward read unavailable");
     NSDictionary *classified = classifyTargetWindows(targetIDs, all, nonDesktop, order, reverse, membership);
+    NSMutableDictionary *verifiedOwners = [NSMutableDictionary new];
+    if (!p && b) {
+        // Existing B is still required to have zero shared non-desktop objects. Only a
+        // caller with its own creation receipt may use the no-relocation verdict for B.
+        NSMutableSet *blocking = [classified[@"blocking"] mutableCopy];
+        NSMutableSet *shared = [classified[@"shared"] mutableCopy];
+        NSMutableSet *other = [blocking mutableCopy];
+        [other unionSet:shared];
+        NSSet *records = [NSSet setWithArray:order];
+        for (NSNumber *number in other) {
+            NSDictionary *owner = exactWindowOwner(number);
+            if (owner && verifiedOnAllDesktopRecords(records, number, membership, reverse)) {
+                verifiedOwners[number] = owner;
+                [shared addObject:number];
+                [blocking removeObject:number];
+            } else {
+                [blocking addObject:number];
+                [shared removeObject:number];
+            }
+        }
+        classified = @{@"desktop":classified[@"desktop"], @"blocking":blocking, @"shared":shared};
+    }
     need([inventory(p,s) isEqual:scopes], @"desktop arrangement changed during occupancy observation");
     NSMutableDictionary *sample = [classified mutableCopy];
     sample[@"scopes"] = scopes;
+    sample[@"corroboratedOwners"] = verifiedOwners;
     sample[@"pidStartSeconds"] = @(process.pbi_start_tvsec);
     sample[@"pidStartUsec"] = @(process.pbi_start_tvusec);
     return sample;
@@ -239,6 +294,39 @@ static void emit(NSDictionary *report) {
 
 int main(int argc, const char **argv) { @autoreleasepool {
     @try {
+        BOOL candidate = argc > 1 && strcmp(argv[1], "--candidate-current") == 0;
+        BOOL enrolled = argc > 1 && strcmp(argv[1], "--scoped-current") == 0;
+        BOOL removal = argc > 1 && strcmp(argv[1], "--removal-current") == 0;
+        if (candidate || enrolled || removal) {
+            need((candidate && argc == 5) || (enrolled && (argc == 6 || argc == 7)) || (removal && argc == 7),
+                 @"expected [PID WID] DISPLAY A [B]");
+            need(NPReadOnlySpacesOpen() == 1, @"unsupported OS build or Reader unavailable");
+            int offset = candidate ? 2 : 4;
+            NSString *display = @(argv[offset]), *a = @(argv[offset + 1]), *b = argc > offset + 2 ? @(argv[offset + 2]) : nil;
+            pid_t pid = 0;
+            NSNumber *window = nil;
+            if (!candidate) {
+                long long owner = [@(argv[2]) longLongValue], number = [@(argv[3]) longLongValue];
+                need(owner > 0 && owner <= INT32_MAX && number > 0 && number <= UINT32_MAX &&
+                     [@(owner).stringValue isEqual:@(argv[2])] && [@(number).stringValue isEqual:@(argv[3])],
+                     @"invalid enrolled process or window number");
+                pid = (pid_t)owner;
+                window = @(number);
+            }
+            NSDictionary *first = scopedSample(nil, display, nil, a, b, pid, window);
+            usleep(220000);
+            NSDictionary *second = scopedSample(nil, display, nil, a, b, pid, window);
+            need([first isEqual:second], @"target occupancy, witness generation or arrangement changed");
+            NSUInteger blocking = [second[@"blocking"] count], shared = [second[@"shared"] count];
+            BOOL clear = blocking == 0 && (removal || shared == 0);
+            NSString *result = !b ? @"SOURCE_WITNESSED" : (removal ? @"NO_RELOCATION_OBSERVED" : @"OBSERVED_EMPTY");
+            emit(@{@"occupancy": clear ? result : @"REFUSED", @"display":display,
+                   @"source":a, @"target":b ?: NSNull.null, @"scopeSamples":@2, @"scopeCount":@([second[@"scopes"] count]),
+                   @"desktopElements":@([second[@"desktop"] count]), @"blockingWindows":@(blocking),
+                   @"corroboratedShared":@(shared), @"sourcePID":@(pid), @"sourceWindow":window ?: NSNull.null,
+                   @"systemInputs":@0, @"deletionAuthorized":@NO});
+            return clear ? 0 : 2;
+        }
         if (argc > 1 && strcmp(argv[1], "--scoped") == 0) {
             need(argc == 8 || argc == 9, @"expected --scoped A_PID A_WINDOW PRIMARY_UUID SECONDARY_UUID PRIMARY_CURRENT A [B]");
             need(NPReadOnlySpacesOpen() == 1, @"unsupported OS build or Reader unavailable");

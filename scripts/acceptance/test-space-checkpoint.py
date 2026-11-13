@@ -120,6 +120,33 @@ class TestCheckpoint(unittest.TestCase):
         ctl.grant(self.folder, self.run, self.args)
         self.assertTrue(ctl.load(self.folder / "unattended-consent.ready")["permitsTemporarySecondaryFocus"])
 
+    def test_current_display_grant_requires_explicit_sole_scope_and_focus_loan(self):
+        context = ctl.load(self.folder / "console-scope.json")
+        (self.folder / "console-scope.json").unlink()
+        self.put("console-scope.json", dict(context, currentDisplayID="side", focusLoanProtocol="1"))
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        self.args.current_display = "side"
+        self.args.allow_temporary_focus = True
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        self.origin["scopes"] = self.origin["scopes"][1:]
+        self.origin["ordinaryRecordsByDisplay"].pop("main")
+        (self.folder / "scope-snapshot-1.json").unlink()
+        self.put("scope-snapshot-1.json", self.origin)
+        self.args.allow_temporary_focus = False
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        self.args.allow_temporary_focus = True
+        self.args.current_display = "other"
+        with self.assertRaises(ctl.Refusal):
+            ctl.grant(self.folder, self.run, self.args)
+        self.args.current_display = "side"
+        ctl.grant(self.folder, self.run, self.args)
+        receipt = ctl.load(self.folder / "unattended-consent.ready")
+        self.assertEqual(receipt["currentDisplayID"], "side")
+        self.assertTrue(receipt["permitsTemporarySecondaryFocus"])
+
     def test_chord_conflicting_with_order_and_missing_click_rejected(self):
         ctl.grant(self.folder, self.run, self.args)
         self.request("enroll-B")

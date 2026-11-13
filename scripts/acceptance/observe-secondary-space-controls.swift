@@ -159,6 +159,15 @@ private func locate(_ element: AXUIElement, owner: pid_t, in area: CGRect, add: 
                       matches: exactHit(element, owner: owner), settle: { Thread.sleep(forTimeInterval: 0.045) })
 }
 
+// Constrain both hovers to the observed system strip, including its collapsed height.
+func overviewHoverPoint(in strip: CGRect, edge: Bool) -> CGPoint? {
+  guard !strip.isNull, strip.width >= 20, strip.height >= 4,
+        strip.minX.isFinite, strip.minY.isFinite, strip.width.isFinite, strip.height.isFinite else { return nil }
+  let x = edge ? strip.maxX - 10 : strip.midX
+  let y = min(strip.minY + (edge ? 74 : 12), strip.maxY - 2)
+  return CGPoint(x:x, y:y)
+}
+
 private func inTileOrder(_ locations: [ControlLocation]) -> Bool {
   zip(locations, locations.dropFirst()).allSatisfy { a, b in
     if case .frame = a, case .frame = b { return a.right <= b.left }
@@ -173,22 +182,47 @@ private func compatibleFrames(_ direct:CGRect?,_ split:CGRect?,inside bounds:CGR
     && rect.width > 0 && rect.height > 0 && bounds.contains(rect)
 }
 
-func secondarySpacesBar(_ displayUUID: UUID) throws -> SecondarySpacesBar? {
+private func provisionDisplay(_ uuid: UUID, currentDisplay: Bool) -> CGDirectDisplayID? {
+  let ids = NSScreen.screens.compactMap {
+    ($0.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value
+  }
+  let main = CGMainDisplayID()
+  guard ids.count == NSScreen.screens.count, Set(ids).count == ids.count,
+        ids.contains(main), ids.allSatisfy({ CGDisplayIsInMirrorSet($0) == 0 }) else { return nil }
+  let target: CGDirectDisplayID
+  if currentDisplay {
+    guard ids == [main] else { return nil }
+    target = main
+  } else {
+    guard ids.count == 2, let side = ids.first(where: { $0 != main }),
+          !CGDisplayBounds(side).intersects(CGDisplayBounds(main)) else { return nil }
+    target = side
+  }
+  guard let raw = CGDisplayCreateUUIDFromDisplayID(target)?.takeRetainedValue(),
+        UUID(uuidString: CFUUIDCreateString(nil, raw) as String) == uuid else { return nil }
+  return target
+}
+
+private func newlyAddedDesktop(before: [String], after: [String], source: String, currentDisplay: Bool) throws -> String {
+  guard before.last == source, Set(before).count == before.count, Set(after).count == after.count,
+        after.count == before.count + 1 else { throw Refusal("original desktop order or size changed") }
+  if currentDisplay {
+    guard after.dropLast().elementsEqual(before), let target = after.last, !before.contains(target)
+    else { throw Refusal("expected exactly one new ordinary desktop appended after the source") }
+    return target
+  }
+  guard before == [source], after.contains(source), let target = after.first(where: { $0 != source })
+  else { throw Refusal("change is not one adjacent ordinary secondary desktop") }
+  return target
+}
+
+func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> SecondarySpacesBar? {
   guard AXIsProcessTrusted(), let state = CGSessionCopyCurrentDictionary() as? [String: Any],
     state["kCGSSessionOnConsoleKey"] as? Bool == true,
     state["CGSSessionScreenIsLocked"] as? Bool != true
   else { throw Refusal("unlocked console and existing AX permission required") }
-  let displays = NSScreen.screens.compactMap {
-    ($0.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value
-  }
-  guard displays.count == 2, Set(displays).count == 2, displays.contains(CGMainDisplayID()),
-    let side = displays.first(where: { $0 != CGMainDisplayID() }),
-    CGDisplayIsInMirrorSet(side) == 0,
-    !CGDisplayBounds(side).intersects(CGDisplayBounds(CGMainDisplayID())),
-    let raw = CGDisplayCreateUUIDFromDisplayID(side)?.takeRetainedValue(),
-    UUID(uuidString: CFUUIDCreateString(nil, raw) as String) == displayUUID
-  else {
-    throw Refusal("secondary identity or topology changed")
+  guard let side = provisionDisplay(displayUUID, currentDisplay: currentDisplay) else {
+    throw Refusal("authorized display identity or topology changed")
   }
   let apps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
   guard apps.count == 1, let dock = apps.first, !dock.isTerminated,
@@ -242,8 +276,8 @@ func secondarySpacesBar(_ displayUUID: UUID) throws -> SecondarySpacesBar? {
   return bars[0]
 }
 
-func observe(_ displayUUID: UUID) throws -> [String: Any] {
-  let bar = try secondarySpacesBar(displayUUID)
+func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [String: Any] {
+  let bar = try secondarySpacesBar(displayUUID, currentDisplay: currentDisplay)
   var report: [String: Any] = [
     "state": bar == nil ? "overviewNotExposed" : "secondaryAddControlObserved",
     "display": displayUUID.uuidString, "systemInputs": 0,
@@ -264,6 +298,19 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
   @main struct ObserverMain {
     static func main() {
       do {
+        if CommandLine.arguments.dropFirst().elementsEqual(["--test-append-order"]) {
+          let cases: [([String], [String], Bool, String?)] = [
+            (["a"], ["b","a"], false, "b"), (["p","a"], ["p","a","b"], false, nil),
+            (["a"], ["a","b"], true, "b"), (["p","a"], ["p","a","b"], true, "b"),
+            (["p","a"], ["p","b","a"], true, nil), (["p","a"], ["q","a","b"], true, nil),
+            (["p","q","a"], ["q","p","a","b"], true, nil), (["a","p"], ["a","p","b"], true, nil),
+            (["p","a"], ["p","a","p"], true, nil), (["p","a"], ["p","a"], true, nil)
+          ]
+          guard cases.allSatisfy({ (try? newlyAddedDesktop(before: $0.0, after: $0.1, source: "a", currentDisplay: $0.2)) == $0.3 })
+          else { exit(2) }
+          print("\(cases.count) existing inventory and append-only creation cases passed")
+          return
+        }
         if CommandLine.arguments.dropFirst().elementsEqual(["--test-command-geometry"]) {
           let side=CGRect(x:-800,y:0,width:800,height:1280)
           let tile=CGRect(x:-120,y:20,width:60,height:44)
@@ -288,7 +335,12 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
           let expired = confirmedHit([edge], until:0, matches:{ _ in calls += 1; return true },settle:{})
           let tilePoints = probePoints(in:expanded,add:false)
           let a = CGPoint(x:-500,y:85), b = CGPoint(x:-300,y:85)
+          let currentStrip = CGRect(x:0,y:0,width:1470,height:72)
           let checks = [
+            overviewHoverPoint(in:currentStrip, edge:true) == CGPoint(x:1460,y:70),
+            overviewHoverPoint(in:compact, edge:true) == CGPoint(x:-10,y:38),
+            overviewHoverPoint(in:expanded, edge:true) == CGPoint(x:-10,y:74),
+            overviewHoverPoint(in:.zero, edge:true) == nil,
             candidates.allSatisfy { expanded.contains($0) }, compactPoints.allSatisfy { compact.contains($0) },
             compactPoints.contains(CGPoint(x:-2,y:20)), stable == .hit(edge), changed == nil,
             expired == nil && calls == 0, confirmedHit(candidates,until:deadline,matches:{_ in false},settle:{}) == nil,
@@ -321,18 +373,18 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
   import CryptoKit
   import Darwin
 
-  // Before-state A has exactly one ordinary desktop. The same two display scopes and complete
-  // order must be witnessed immediately after the explicit Add press and again before removal.
+  // Preserve every original desktop, every peer scope and the complete display geometry.
+  // A sole-display session may append one desktop at the rightmost ordinary source.
   private struct ProvisionState: Codable, Equatable {
-    let primaryScope: String
+    let primaryScope: String?
     let geometry: [String]
     let sideOrder: [String]
-    init(_ display: UUID, source: String) throws {
+    init(_ display: UUID, source: String, currentDisplay: Bool) throws {
       let uuid = display.uuidString
-      let scopes = try scoped(uuid, source)
+      let scopes = try scoped(uuid, source, currentDisplay: currentDisplay)
       let sides = scopes.filter { $0.hasPrefix(uuid + ":") }
       let main = scopes.filter { !$0.hasPrefix(uuid + ":") }
-      guard sides.count == 1, main.count == 1 else { throw Refusal("ambiguous provision scopes") }
+      guard sides.count == 1, main.count == (currentDisplay ? 0 : 1) else { throw Refusal("ambiguous provision scopes") }
       let fields = sides[0].components(separatedBy: ":")
       guard fields.count == 3, fields[1] == source else { throw Refusal("not on source desktop") }
       let ids = try fields[2].components(separatedBy: ",").map { value -> String in
@@ -345,7 +397,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
       guard Set(ids).count == ids.count, ids.contains(source) else {
         throw Refusal("ambiguous secondary desktop identity")
       }
-      primaryScope = main[0]
+      primaryScope = main.first
       sideOrder = ids
       geometry = try NSScreen.screens.map { screen in
         guard let n = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
@@ -359,12 +411,10 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     }
 
     func addition(to before: Self, source: String) throws -> String {
-      let difference = sideOrder.filter { !before.sideOrder.contains($0) }
-      guard primaryScope == before.primaryScope, geometry == before.geometry,
-        before.sideOrder == [source],
-        sideOrder.count == 2, difference.count == 1
-      else { throw Refusal("change is not one adjacent ordinary secondary desktop") }
-      return difference[0]
+      guard primaryScope == before.primaryScope, geometry == before.geometry
+      else { throw Refusal("unrelated display or geometry changed") }
+      return try newlyAddedDesktop(before: before.sideOrder, after: sideOrder, source: source,
+                                   currentDisplay: primaryScope == nil)
     }
   }
 
@@ -453,15 +503,13 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
 
   // Diagnostic only. Enumerate the Dock's immediate system containers, then descend exclusively
   // through the confirmed secondary spaces bar. Never request names, labels, descriptions or pixels.
-  func overviewSkeleton(_ display: UUID) -> [String: Any] {
+  func overviewSkeleton(_ display: UUID, currentDisplay: Bool = false) -> [String: Any] {
     var report: [String: Any] = ["display": display.uuidString, "systemInputs": 0]
     let state = CGSessionCopyCurrentDictionary() as? [String: Any]
     guard AXIsProcessTrusted(), state?["kCGSSessionOnConsoleKey"] as? Bool == true,
           state?["CGSSessionScreenIsLocked"] as? Bool != true else { report["state"]="consoleUnavailable"; return report }
-    let ids = NSScreen.screens.compactMap { ($0.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value }
-    guard ids.count == 2, let side = ids.first(where: { $0 != CGMainDisplayID() }),
-          let raw = CGDisplayCreateUUIDFromDisplayID(side)?.takeRetainedValue(),
-          UUID(uuidString: CFUUIDCreateString(nil, raw) as String) == display else { report["state"]="displayMismatch"; return report }
+    guard let side = provisionDisplay(display, currentDisplay: currentDisplay)
+    else { report["state"]="displayMismatch"; return report }
     let docks = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
     guard docks.count == 1, let dock=docks.first, !dock.isTerminated,
           dock.executableURL?.resolvingSymlinksInPath().path == "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
@@ -559,7 +607,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         return add
       }
       let overviewRoots = [wmRoot] + ((try? children(wmRoot,named:"mc")) ?? [])
-      for scope in overviewRoots {
+      for scope in overviewRoots where !currentDisplay {
         guard let a = addCommand(scope,side), let b = addCommand(scope,CGMainDisplayID()) else { continue }
         var comparison: [String:Any] = ["distinct": !CFEqual(a,b), "primaryDisplay":CGMainDisplayID(),"secondaryDisplay":side]
         for (key, command) in [("secondary",a),("primary",b)] {
@@ -664,8 +712,8 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     let tiles: [AXUIElement]
     let locations: [ControlLocation]
     let labels: [String]
-    init(display: UUID, count: Int) throws {
-      guard let observed = try secondarySpacesBar(display), !observed.dock.isTerminated, !observed.owner.isTerminated
+    init(display: UUID, count: Int, currentDisplay: Bool) throws {
+      guard let observed = try secondarySpacesBar(display, currentDisplay: currentDisplay), !observed.dock.isTerminated, !observed.owner.isTerminated
       else { throw Refusal("secondary add button frame or Dock identity unavailable") }
       let list = try only(
         children(observed.spaces, named: "mc.spaces.list"), "secondary desktop list")
@@ -732,7 +780,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
   // The caller authenticates the user's current loan (including original focus) immediately before
   // each irreversible AX action. The occupancy callback runs live for the named target.
   func provisionSecondaryDesktop(
-    _ action: String, directory: URL, display: UUID, source: String,
+    _ action: String, directory: URL, display: UUID, source: String, currentDisplay: Bool = false,
     requireAuthorizedAction: () throws -> Void,
     requireSafeOccupancy: (_ target: String?) throws -> Void
   ) throws -> String {
@@ -741,7 +789,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
     }
     let folder = try ReceiptFolder(directory)
     defer { close(folder.fd) }
-    let state = { try ProvisionState(display, source: source) }
+    let state = { try ProvisionState(display, source: source, currentDisplay: currentDisplay) }
     let boot = try currentBoot()
     func observeChange<T: Equatable>(
       from origin: ProvisionState, _ project: (ProvisionState) throws -> T
@@ -766,19 +814,20 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
 
     let original = try state()
     if action == "create" {
-      guard original.sideOrder == [source] else {
-        throw Refusal("additional desktop already exists; creation refused")
+      guard original.sideOrder.last == source, currentDisplay || original.sideOrder == [source],
+            let sourceIndex = original.sideOrder.firstIndex(of: source) else {
+        throw Refusal("source must be the last ordinary desktop in the authorized original inventory")
       }
-      let initialUI = try ProvisionControls(display: display, count: 1)
+      let initialUI = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
       guard let birth = initialUI.bar.dock.launchDate, let ownerBirth = initialUI.bar.owner.launchDate, let ownerID = initialUI.bar.owner.bundleIdentifier else {
         throw Refusal("missing Dock generation")
       }
       try requireSafeOccupancy(nil)
       let intent = ProvisionIntent(
         operation: UUID(), display: display, source: source, initial: original,
-        sourceTileLabel: initialUI.labels[0], boot: boot,
+        sourceTileLabel: initialUI.labels[sourceIndex], boot: boot,
         issuedUptime: ProcessInfo.processInfo.systemUptime, dockBirth: birth, ownerID:ownerID, ownerBirth:ownerBirth)
-      let ui = try ProvisionControls(display: display, count: 1)
+      let ui = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
       guard CFEqual(initialUI.bar.add, ui.bar.add), initialUI.labels == ui.labels,
         (try state()) == original
       else { throw Refusal("secondary add control changed") }
@@ -794,11 +843,11 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
       try folder.put(ProvisionResult(intent: intent, target: target, after: after), "created.json")
       // A retained element can survive the Add even if its displayed ordinal changes. Preserve its
       // identity and the unique new sibling if they are still visible in this same overview.
-      if let pair = try? ProvisionControls(display: display, count: 2),
+      if let pair = try? ProvisionControls(display: display, count: after.sideOrder.count, currentDisplay: currentDisplay),
         let a = after.sideOrder.firstIndex(of: source),
         let b = after.sideOrder.firstIndex(of: target),
-        pair.bar.dock.launchDate == birth, CFEqual(ui.tiles[0], pair.tiles[a]),
-        !CFEqual(ui.tiles[0], pair.tiles[b])
+        pair.bar.dock.launchDate == birth, CFEqual(ui.tiles[sourceIndex], pair.tiles[a]),
+        !CFEqual(ui.tiles[sourceIndex], pair.tiles[b])
       {
         try folder.put(
           TilePair(
@@ -822,7 +871,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
       throw Refusal(
         "created desktop receipt no longer matches original display, boot, order or source")
     }
-    let first = try ProvisionControls(display: display, count: 2)
+    let first = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
     guard first.bar.dock.launchDate == intent.dockBirth, first.bar.owner.launchDate==intent.ownerBirth,
           first.bar.owner.bundleIdentifier==intent.ownerID else {
       throw Refusal("original system Dock restarted")
@@ -839,7 +888,7 @@ func observe(_ displayUUID: UUID) throws -> [String: Any] {
         "cannot identify the original A tile after reopening overview")
     }
     try requireSafeOccupancy(created.target)
-    let ui = try ProvisionControls(display: display, count: 2)
+    let ui = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
     var actions: CFArray?
     let remove = "AXRemoveDesktop"
     guard ui.bar.dock.launchDate == intent.dockBirth, ui.bar.owner.launchDate==intent.ownerBirth,

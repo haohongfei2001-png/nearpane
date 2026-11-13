@@ -64,7 +64,8 @@ func note(_ action: String, _ p: CGPoint) {
 }
 func run() throws {
   let a = Array(CommandLine.arguments.dropFirst())
-  guard a.count == 5, let pid = Int32(a[0]), let run = UUID(uuidString: a[1]),
+  let currentDisplay = a.count == 6 && a.last == "--current-display"
+  guard a.count == 5 || currentDisplay, let pid = Int32(a[0]), let run = UUID(uuidString: a[1]),
     let end = ISO8601DateFormatter().date(from: a[4]),
     end.timeIntervalSinceNow > 10 && end.timeIntervalSinceNow <= 900,
     let app = NSRunningApplication(processIdentifier: pid),
@@ -84,6 +85,7 @@ func run() throws {
       let grant = try JSONSerialization.jsonObject(with: c) as? [String: Any],
       grant["run"] as? String == run.uuidString, grant["ends"] as? String == a[4],
       grant["secondaryDisplay"] as? String == a[3],
+      grant["currentDisplayID"] as? String == (currentDisplay ? a[3] : nil),
       grant["permitsTemporarySecondaryFocus"] as? Bool == true,
       grant["permitsCalibrationAndThreeRoundTrips"] as? Bool == true,
       let ax = attribute(AXUIElementCreateApplication(pid), kAXFocusedWindowAttribute),
@@ -98,7 +100,7 @@ func run() throws {
     let side = NSScreen.screens.compactMap {
       ($0.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value
     }.filter {
-      guard $0 != CGMainDisplayID(),
+      guard (currentDisplay ? NSScreen.screens.count == 1 && $0 == CGMainDisplayID() : $0 != CGMainDisplayID()),
         let id = CGDisplayCreateUUIDFromDisplayID($0)?.takeRetainedValue()
       else { return false }
       return CFUUIDCreateString(nil, id) as String == a[3]

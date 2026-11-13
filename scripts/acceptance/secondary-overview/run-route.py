@@ -121,6 +121,10 @@ def require_safe_route_stop(folder):
 
 
 class Session:
+    @property
+    def current_display(self):
+        return getattr(self.args, "current_display", False)
+
     def __init__(self, args):
         self.args = args
         self.start = dt.datetime.strptime(args.starts, STAMP).replace(tzinfo=UTC)
@@ -160,7 +164,8 @@ class Session:
 
     def verify_kit(self):
         witness, kit = self.args.witness, self.args.kit
-        need(hashlib.sha256((witness / "SHA256SUMS").read_bytes()).hexdigest() == WITNESS_MANIFEST, "wrong frozen witness")
+        manifest = self.args.witness_manifest if self.current_display else WITNESS_MANIFEST
+        need(hashlib.sha256((witness / "SHA256SUMS").read_bytes()).hexdigest() == manifest, "wrong frozen witness")
         for root in (witness, kit):
             sp.run(["shasum", "-a", "256", "-c", "SHA256SUMS"], cwd=root, check=True, stdout=sp.DEVNULL)
         for app in (self.witness.parents[2], kit / "Nearpane Secondary Overview.app"):
@@ -171,11 +176,27 @@ class Session:
         self.origin = self.pair("origin")
         s = self.origin[1]
         self.secondary = str(uuid.UUID(self.args.display)).upper()
-        self.primary, = [d["id"] for d in s["displays"] if d["id"] != self.secondary and (d["frame"]["x"],d["frame"]["y"]) == (0,0)]
+        if self.current_display:
+            need((self.args.existing_target or self.args.provision_current) and not self.args.cleanup_run and not self.args.allow_primary_overview,
+                 "current display route only supports existing designated desktops")
+            need([d["id"] for d in s["displays"]] == [self.secondary] and
+                 [d["displayID"] for d in s["scopes"]] == [self.secondary], "selected display must be the sole live display")
+        else:
+            self.primary, = [d["id"] for d in s["displays"] if d["id"] != self.secondary and (d["frame"]["x"],d["frame"]["y"]) == (0,0)]
         side, = [d for d in s["scopes"] if d["displayID"] == self.secondary]
         self.a, = [r["id"] for r in side["records"] if r["isCurrent"]]
         need(self.a == self.args.source and self.a in s["ordinaryRecordsByDisplay"][self.secondary], "designated source is not current")
         order = [r["id"] for r in side["records"]]
+        if self.current_display:
+            if self.args.provision_current:
+                need(order[-1] == self.a and order == s["ordinaryRecordsByDisplay"][self.secondary],
+                     "new desktop requires a rightmost ordinary source and complete ordinary inventory")
+                return
+            self.b = self.args.existing_target
+            need(len(order) == len(set(order)) and self.b in s["ordinaryRecordsByDisplay"][self.secondary]
+                 and self.b in order and abs(order.index(self.a) - order.index(self.b)) == 1,
+                 "designated existing desktop is not adjacent in the complete order")
+            return
         need(order == s["ordinaryRecordsByDisplay"][self.secondary] and len(order) in (1,2),
              "two endpoints must be identifiable in the complete ordinary order")
         if len(order) == 2:
@@ -187,18 +208,20 @@ class Session:
     def panel_environment(self, ends=None):
         env = os.environ.copy()
         env.pop("NEARPANE_PRIMARY_OVERVIEW_UNTIL", None)
-        if self.args.allow_primary_overview:
+        if self.args.allow_primary_overview or getattr(self.args,"provision_current",False):
             env["NEARPANE_PRIMARY_OVERVIEW_UNTIL"] = ends or self.args.ends
         return env
 
     def panel(self, operation):
+        need(not self.current_display or self.args.provision_current, "existing endpoints cannot be created or removed")
         deadline = self.end
         if operation == "create":
             deadline -= dt.timedelta(seconds=MIN_ROUTE_SECONDS + CLEANUP_SECONDS + ADDED_READBACK_SECONDS)
         need((deadline-utcnow()).total_seconds() > 30, "insufficient time for setup, route and return")
         ends = deadline.strftime(STAMP)
         with (self.out / (operation+".jsonl")).open("xb") as log, (self.out/(operation+"-stderr.log")).open("xb") as err:
-            sp.run([self.args.kit/"focus-return", self.secondary,self.a,self.args.starts,ends,operation,self.ledger],
+            selector = ["--current-display"] if self.current_display else []
+            sp.run([self.args.kit/"focus-return", *selector, self.secondary,self.a,self.args.starts,ends,operation,self.ledger],
                    stdout=log, stderr=err, check=True, env=self.panel_environment(ends))
 
     def calibrate(self, step, cache, run, child):
@@ -211,23 +234,39 @@ class Session:
                  enrollment["method"] == "appkit-key-window" and enrollment["window"] == str(window) and
                  enrollment["frontPID"] == str(child.pid) and source["frontPID"] == child.pid and
                  source["record"] == source["currents"][self.secondary] == self.a, "unbound occupancy fixture")
-            primary_current = source["currents"][self.primary]
-            sample = sp.run([self.args.kit / "occupancy", "--scoped", str(child.pid), str(window),
-                             self.primary, self.secondary, primary_current, self.a, self.b],
-                            capture_output=True, timeout=6)
+            if self.current_display:
+                created_target = getattr(self.args, "provision_current", False)
+                if created_target:
+                    issuance = read(self.ledger / "created.json")
+                    claim = read(self.ledger / "create-intent.json")
+                    proof = self.check_added(self.origin, self.provisioned)
+                    need(issuance["intent"] == claim and claim["display"] == self.secondary
+                         and claim["source"] == proof["source"] == self.a and issuance["target"] == proof["target"] == self.b,
+                         "new desktop not attributable to this trial")
+                occupancy_args = ["--removal-current" if created_target else "--scoped-current", str(child.pid), str(window), self.secondary, self.a, self.b]
+                display_proof = dict(occupancy="NO_RELOCATION_OBSERVED" if created_target else "OBSERVED_EMPTY", display=self.secondary)
+            else:
+                primary_current = source["currents"][self.primary]
+                occupancy_args = ["--scoped", str(child.pid), str(window), self.primary, self.secondary,
+                                  primary_current, self.a, self.b]
+                display_proof = dict(occupancy="NO_RELOCATION_OBSERVED", primary=self.primary,
+                                     secondary=self.secondary, primaryCurrent=primary_current)
+            sample = sp.run([self.args.kit / "occupancy", *occupancy_args], capture_output=True, timeout=6)
             proof = json.loads(sample.stdout)
             save(self.out / "target-occupancy.json", dict(run=run, exit=sample.returncode, sample=proof))
             # The removal helper allows shared non-desktop windows since removal would not
             # relocate them. An initially blank test B cannot make that exemption.
-            required = dict(occupancy="NO_RELOCATION_OBSERVED", source=self.a, target=self.b,
-                            sourcePID=child.pid, sourceWindow=window, primary=self.primary,
-                            secondary=self.secondary, primaryCurrent=primary_current, scopeSamples=2,
-                            blockingWindows=0, corroboratedShared=0)
+            required = dict(**display_proof, source=self.a, target=self.b,
+                            sourcePID=child.pid, sourceWindow=window, scopeSamples=2,
+                            blockingWindows=0)
+            if not (self.current_display and getattr(self.args, "provision_current", False)):
+                required["corroboratedShared"] = 0
             need(sample.returncode == 0 and child.poll() is None and all(
                 type(proof.get(k)) is type(v) and proof[k] == v for k, v in required.items()
             ), "blank secondary B not verified; no calibration input")
         with (self.out / (step + "-calibration.log")).open("xb") as log:
-            sp.run([self.args.kit / "calibrate-route", self.args.witness, run, step],
+            selector = ["--current-display", self.secondary, self.args.witness_manifest] if self.current_display else []
+            sp.run([self.args.kit / "calibrate-route", self.args.witness, run, step, *selector],
                    stdout=log, stderr=log, check=True)
 
     def rounds(self):
@@ -242,7 +281,8 @@ class Session:
                 need(time.monotonic()<limit, reason)
                 time.sleep(.04)
         with log.open("xb") as stream:
-            child = sp.Popen([self.witness,"--three-rounds-console"], stdout=stream, stderr=sp.STDOUT)
+            witness_args = ["--three-rounds-current-display", self.secondary] if self.current_display else ["--three-rounds-console"]
+            child = sp.Popen([self.witness,*witness_args], stdout=stream, stderr=sp.STDOUT)
             pointer = None
             cache = None
             try:
@@ -254,11 +294,14 @@ class Session:
                 wait_until(child,lambda:(cache/"request-unattended-consent.json").exists(),time.monotonic()+15,"no consent request")
                 ptrlog=(self.out/"pointer.log").open("xb")
                 try:
-                    pointer = sp.Popen([self.args.kit/"route-pointer",str(child.pid),key,self.witness,self.secondary,end.strftime(STAMP)],stdout=ptrlog,stderr=ptrlog)
+                    pointer_args = ["--current-display"] if self.current_display else []
+                    pointer = sp.Popen([self.args.kit/"route-pointer",str(child.pid),key,self.witness,self.secondary,
+                                        end.strftime(STAMP),*pointer_args],stdout=ptrlog,stderr=ptrlog)
                 finally:
                     ptrlog.close()
+                grant_args = ["--current-display", self.secondary] if self.current_display else []
                 sp.run([self.args.witness/"space-checkpoint.py",key,"consent","--source",self.a,"--target",self.b,
-                        "--starts",now.strftime(STAMP),"--ends",end.strftime(STAMP),"--allow-temporary-focus"],check=True)
+                        "--starts",now.strftime(STAMP),"--ends",end.strftime(STAMP),"--allow-temporary-focus",*grant_args],check=True)
                 for step in ("enroll-B","return-A"):
                     wait_until(child,lambda:(cache/("request-"+step+".json")).exists(),time.monotonic()+35,"no "+step+" request")
                     self.calibrate(step, cache, key, child)
@@ -289,13 +332,18 @@ class Session:
                     save(self.out / "pointer-exit.json", dict(exit=rc, returned=restored or no_loan, noLoan=no_loan))
                     need(restored or no_loan,"pointer restoration unconfirmed")
 
+    def check_added(self, before, after, restored=None):
+        if self.current_display:
+            return VERIFY(self.primary,self.secondary,before,after,restored,current_display=True)
+        return VERIFY(self.primary,self.secondary,before,after,restored)
+
     def execute(self):
         self.setup()
         created = self.b is None
         if created:
             self.panel("create")
             self.provisioned = self.pair("added")
-            proof = VERIFY(self.primary,self.secondary,self.origin,self.provisioned)
+            proof = self.check_added(self.origin,self.provisioned)
             self.b = str(read(self.ledger/"created.json")["target"])
             need(self.b==proof["target"],"AX creation receipt and independent Reader disagree")
         else:
@@ -311,7 +359,7 @@ class Session:
             if not created:
                 raise
             creation_returned(self.out)
-            current = VERIFY(self.primary, self.secondary, self.origin, self.pair("before-remove"))
+            current = self.check_added(self.origin,self.pair("before-remove"))
             need((current["source"], current["target"]) == (self.a, self.b), "created desktop changed before cleanup")
             route_error = str(e)
         except (ValueError,KeyError,TypeError,OSError,sp.SubprocessError) as e:
@@ -322,7 +370,7 @@ class Session:
             # Stop inputs on focus escape or uncertain return. A simple route refusal may be
             # cleaned only with an explicit witness receipt for scopes, focus and fixture cleanup.
             self.panel("remove")
-            reset = VERIFY(self.primary,self.secondary,self.origin,self.provisioned,self.pair("restored"))
+            reset = self.check_added(self.origin,self.provisioned,self.pair("restored"))
             need(reset["originalScopesRestored"],"original inventory not restored")
         need(route_error is None,route_error or "route failed")
         save(self.out/"complete.json",dict(roundTrips=3,source=self.a,target=self.b,createdAndRemoved=created))
@@ -371,7 +419,7 @@ class Session:
             # positive A witness and live target occupancy before its exclusive remove-intent.
             save(prior / "recovery-attempt.json",dict(trial=self.out.name,target=self.b))
             self.panel("remove")
-            restored = VERIFY(self.primary,self.secondary,self.origin,self.provisioned,self.pair("restored"))
+            restored = self.check_added(self.origin,self.provisioned,self.pair("restored"))
             need(restored["originalScopesRestored"], "original topology not restored")
             save(self.out / "cleanup-complete.json",dict(originalTrial=prior.name,source=self.a,target=self.b,
                                                          restored=True,roundTripsPerformed=0))
@@ -385,9 +433,18 @@ def main():
         parser.add_argument("--"+key, required=True)
     parser.add_argument("--allow-primary-overview", action="store_true", help="owner permits transient system overview presentation on the primary during this timed trial")
     parser.add_argument("--existing-target")
+    parser.add_argument("--current-display", action="store_true", help="route only across existing desktops on the named sole display")
+    parser.add_argument("--provision-current", action="store_true", help="create and remove only a new adjacent desktop on the explicitly designated sole display")
+    parser.add_argument("--witness-manifest", help="SHA-256 of the independently frozen current-display witness manifest")
     parser.add_argument("--cleanup-run", type=lambda value:Path(value).resolve(strict=True),
                         help="within a current loan, remove only the evidenced new B from this stopped trial")
-    s=Session(parser.parse_args())
+    args = parser.parse_args()
+    if args.current_display:
+        if bool(args.existing_target) == args.provision_current or args.cleanup_run or args.allow_primary_overview or not args.witness_manifest:
+            parser.error("--current-display needs a frozen witness manifest and exactly one existing target or an explicit provision request")
+    elif args.witness_manifest or args.provision_current:
+        parser.error("--witness-manifest is only valid with --current-display")
+    s=Session(args)
     try:
         with exclusive_trial(s.out):
             if s.args.cleanup_run:

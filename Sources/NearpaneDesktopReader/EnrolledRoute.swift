@@ -5,7 +5,7 @@ import NearpaneCore
 
 /// Reads only the named windows of the fixture parent, including inactive anchors.
 @MainActor enum EnrolledRoute {
-    static func sample(display: String, numbers: [UInt32]) throws -> NativeRouteEvidence {
+    static func sample(display: String, numbers: [UInt32], currentDisplayOnly: Bool = false) throws -> NativeRouteEvidence {
         guard (2...3).contains(numbers.count), Set(numbers).count == numbers.count, !numbers.contains(0), getppid() > 1,
               NPReadOnlySpacesOpen() == 1 else { throw DesktopActionError.unsupported }
         func once() throws -> NativeRouteEvidence {
@@ -14,7 +14,8 @@ import NearpaneCore
                   session[kCGSessionLoginDoneKey as String] as? Bool == true,
                   session["CGSSessionScreenIsLocked"] as? Bool != true else { throw DesktopActionError.unsupported }
             let topology = try Topology()
-            guard topology.separateSpaces, topology.displays.count == 2, topology.geometry.primary.displayID != display,
+            guard topology.separateSpaces, topology.displays.count == (currentDisplayOnly ? 1 : 2),
+                  (topology.geometry.primary.displayID == display) == currentDisplayOnly,
                   topology.displays.contains(where: { $0.id == display }) else { throw DesktopActionError.unsupported }
             for number in numbers {
                 guard let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String: Any]],

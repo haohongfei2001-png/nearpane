@@ -103,6 +103,12 @@ def grant(run_dir, run, args):
     procedure = "fullscreen-tools" if tools else "fullscreen" if fullscreen else "route"
     require(context.get("procedure", "route") == procedure, "consent does not match trial procedure")
     focus_loan = getattr(args, "allow_temporary_focus", False)
+    current_display = getattr(args, "current_display", None)
+    require(context.get("currentDisplayID") == current_display, "current display grant does not match witness")
+    if current_display:
+        require(not fullscreen and focus_loan and context["secondaryDisplay"] == current_display
+                and [s["displayID"] for s in origin["scopes"]] == [current_display],
+                "current display route requires the sole observed display and a focus loan")
     require(not focus_loan or context.get("focusLoanProtocol") == "1",
             "this frozen witness cannot verify a temporary foreground loan")
     if fullscreen:
@@ -120,7 +126,8 @@ def grant(run_dir, run, args):
                  secondaryDisplay=context["secondaryDisplay"], source=args.source, target=args.target or "",
                  starts=format_utc(starts), ends=format_utc(ends), permitsCalibrationAndThreeRoundTrips=not fullscreen,
                  permitsSingleWindowFullscreen=fullscreen, permitsTemporarySecondaryFocus=focus_loan,
-                 permitsFullscreenToolObservation=tools))
+                 permitsFullscreenToolObservation=tools,
+                 **({"currentDisplayID": current_display} if current_display else {})))
 
 
 def ack(run_dir, run, args, *, timeout=20):
@@ -202,6 +209,8 @@ def main():
     for key in ("source", "starts", "ends"):
         consent.add_argument("--" + key, required=True)
     consent.add_argument("--target", help="required destination for a route trial")
+    consent.add_argument("--current-display", type=lambda v: str(uuid.UUID(v)).upper(),
+                         help="grant the route on the single explicitly selected physical display")
     consent.add_argument("--fullscreen-only", action="store_true", help="grant only one native fullscreen entry and return on A")
     consent.add_argument("--observe-tools", action="store_true",
                          help="hold an enrolled fullscreen fixture while the isolated Host is observed")

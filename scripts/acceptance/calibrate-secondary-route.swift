@@ -4,6 +4,7 @@
 import AppKit
 import ApplicationServices
 import CryptoKit
+import Security
 import Darwin
 
 struct Refusal: Error, CustomStringConvertible { let description: String; init(_ message: String) { description = message } }
@@ -60,6 +61,42 @@ func windowNumber(_ el: AXUIElement) -> UInt32? {
     var n: UInt32 = 0
     return unsafeBitCast(fn, to: ReadNumber.self)(el, &n) == 0 && n > 0 ? n : nil
 }
+// Read only system process identity, window roles and window numbers. No Finder content or titles.
+private func emptyFinderDesktop(front: NSRunningApplication, absentSource: UInt32) -> Bool {
+    guard front.bundleIdentifier == "com.apple.finder", !front.isTerminated,
+          front.bundleURL?.resolvingSymlinksInPath().path == "/System/Library/CoreServices/Finder.app"
+    else { return false }
+    let pid = front.processIdentifier
+    var code: SecCode?, requirement: SecRequirement?
+    guard SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid: NSNumber(value:pid)] as CFDictionary,
+                                        [], &code) == errSecSuccess, let code,
+          SecRequirementCreateWithString("anchor apple and identifier \"com.apple.finder\"" as CFString,
+                                         [], &requirement) == errSecSuccess, let requirement,
+          SecCodeCheckValidity(code, [], requirement) == errSecSuccess else { return false }
+    let finder = AXUIElementCreateApplication(pid)
+    AXUIElementSetMessagingTimeout(finder, 0.25)
+    var focus: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(finder, kAXFocusedWindowAttribute as CFString, &focus) == .noValue,
+          let numbers = NSWindow.windowNumbers(options:.allApplications),
+          let windows = ax(finder,kAXWindowsAttribute) as? [AXUIElement], windows.count <= 128 else { return false }
+    let visible = Set(numbers.compactMap { UInt32(exactly:$0.int64Value) })
+    guard !visible.contains(absentSource) else { return false }
+    for window in windows {
+        var owner: pid_t = 0
+        guard AXUIElementGetPid(window, &owner) == .success, owner == pid,
+              let role = ax(window,kAXRoleAttribute) as? String, role == kAXWindowRole,
+              let subrole = ax(window,kAXSubroleAttribute) as? String else { return false }
+        if subrole == kAXStandardWindowSubrole {
+            guard let number = windowNumber(window), !visible.contains(number) else { return false }
+        }
+    }
+    return NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+}
+private func hardwareCounters() -> [UInt32] {
+    let types: [CGEventType] = [.mouseMoved,.leftMouseDown,.rightMouseDown,.otherMouseDown,.leftMouseDragged,
+        .rightMouseDragged,.otherMouseDragged,.scrollWheel,.keyDown,.keyUp,.flagsChanged]
+    return types.map { CGEventSource.counterForEventType(.hidSystemState,eventType:$0) }
+}
 func bounds(_ data: Object) throws -> CGRect {
     guard let x = data["x"] as? Double, let y = data["y"] as? Double,
           let w = data["width"] as? Double, let h = data["height"] as? Double,
@@ -82,7 +119,8 @@ struct Snapshot: Decodable {
                   sessionID == session && revision == serial && native.beganUptime >= began &&
                   native.endedUptime >= native.beganUptime && age >= 0 && age < 2 &&
                   topologyFingerprint == initial.topologyFingerprint && !topologyFingerprint.isEmpty &&
-                  ordinaryRecordsByDisplay == initial.ordinaryRecordsByDisplay && scopes.count == 2, "live scope proof unavailable")
+                  ordinaryRecordsByDisplay == initial.ordinaryRecordsByDisplay &&
+                  scopes.count == initial.scopes.count && scopes.contains(where: { $0.displayID == secondary }), "live scope proof unavailable")
         for original in initial.scopes {
             let matches = scopes.filter { $0.displayID == original.displayID }
             guard matches.count == 1, let here = matches.first,
@@ -94,7 +132,7 @@ struct Snapshot: Decodable {
 }
 
 #if !CALIBRATION_READBACK_TEST
-func perform(kit: URL, run: UUID, step: String) throws {
+func perform(kit: URL, run: UUID, step: String, currentDisplay: String?, manifestDigest: String?) throws {
     let forward = step == "enroll-B", label = forward ? "A" : "B", id = run.uuidString
     try check(forward || step == "return-A", "expected enroll-B or return-A")
     let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/Nearpane-P431-" + id)
@@ -117,26 +155,45 @@ func perform(kit: URL, run: UUID, step: String) throws {
           context["procedure"] as? String == "route", consent["permitsCalibrationAndThreeRoundTrips"] as? Bool == true,
           consent["permitsTemporarySecondaryFocus"] as? Bool == true, consent["permitsSingleWindowFullscreen"] as? Bool == false,
           let secondary = consent["secondaryDisplay"] as? String, context["secondaryDisplay"] as? String == secondary,
+          context["currentDisplayID"] as? String == currentDisplay, consent["currentDisplayID"] as? String == currentDisplay,
+          currentDisplay == nil || currentDisplay == secondary,
           let a = consent["source"] as? String, let b = consent["target"] as? String, a != b,
           Date() >= starts, ends.timeIntervalSince(starts) <= 900, ends.timeIntervalSinceNow > 30
     else { throw Refusal("missing current route and focus grant with return time") }
     let source = forward ? a : b, target = forward ? b : a
     let witness = "NearpaneSpaceWitness.app/Contents/MacOS/NearpaneSpaceWitness"
     let reader = "NearpaneSpaceWitness.app/Contents/Helpers/NearpaneDesktopReader"
-    let hashes = [witness:"6aafe8228517e97ca223b8b1f665fd313a77e5b5cef3f0d7e250f3d3f48a98c8",
+    var hashes = [witness:"6aafe8228517e97ca223b8b1f665fd313a77e5b5cef3f0d7e250f3d3f48a98c8",
                   reader:"a294d6baf1c981bd6a8a0509ca175cd32dc81d0deb54d9ac3b0db3bb63145be1",
                   "SessionProbe":"264a9392061250325c919e75601fbd38d92ea86e5f1bcb2e37e4d54550fa55fe",
                   "space-checkpoint.py":"ad729bc032263e2e27cd5c53c2335ef286bbbdd8700a54ee930ec404579ce72f"]
+    if currentDisplay != nil {
+        let data = try Data(contentsOf: kit.appendingPathComponent("SHA256SUMS"))
+        guard let manifestDigest, SHA256.hash(data: data).map({String(format:"%02x",$0)}).joined() == manifestDigest,
+              let manifest = String(data:data, encoding:.utf8) else { throw Refusal("current-display manifest changed") }
+        let paths = Set(hashes.keys).union(["protected.json", "NearpaneSpaceWitness.app/Contents/Info.plist",
+                                           "NearpaneSpaceWitness.app/Contents/_CodeSignature/CodeResources"])
+        hashes.removeAll()
+        for line in manifest.split(separator:"\n") {
+            let parts = String(line).components(separatedBy:"  ")
+            guard parts.count == 2, parts[0].count == 64, paths.contains(parts[1]), hashes[parts[1]] == nil
+            else { throw Refusal("unexpected entry in frozen manifest") }
+            hashes[parts[1]] = parts[0]
+        }
+        try check(Set(hashes.keys) == paths, "frozen manifest is incomplete")
+    }
     for (name, expected) in hashes {
         let data = try Data(contentsOf: kit.appendingPathComponent(name))
         try check(SHA256.hash(data: data).map { String(format:"%02x", $0) }.joined() == expected, "frozen helper changed")
     }
     let original = try JSONDecoder().decode(Snapshot.self, from: JSONSerialization.data(withJSONObject: load(file("scope-snapshot-1.json"))))
     let own = original.scopes.filter { $0.displayID == secondary }
-    guard original.sessionID == id, original.scopes.count == 2, Set(original.scopes.map(\.displayID)).count == 2, own.count == 1,
-          let order = own.first?.records.map(\.id), order.count == 2, Set(order) == Set([a,b]),
-          original.ordinaryRecordsByDisplay[secondary] == order, own.first?.records.filter(\.isCurrent).map(\.id) == [a],
-          let i = order.firstIndex(of: source), let j = order.firstIndex(of: target)
+    let screenCount = currentDisplay == nil ? 2 : 1
+    guard original.sessionID == id, original.scopes.count == screenCount, Set(original.scopes.map(\.displayID)).count == screenCount, own.count == 1,
+          let order = own.first?.records.map(\.id), Set(order).count == order.count,
+          let ordinary = original.ordinaryRecordsByDisplay[secondary], ordinary.contains(a), ordinary.contains(b),
+          currentDisplay != nil || (order.count == 2 && ordinary == order), own.first?.records.filter(\.isCurrent).map(\.id) == [a],
+          let i = order.firstIndex(of: source), let j = order.firstIndex(of: target), abs(i-j) == 1
     else { throw Refusal("two adjacent ordinary test desktops required") }
     let direction = j > i ? "right" : "left"
     let enrolled = try load(file("enrolled-" + label + ".json")), origin = try load(file("origin-" + label + ".json"))
@@ -148,15 +205,16 @@ func perform(kit: URL, run: UUID, step: String) throws {
           app.executableURL?.resolvingSymlinksInPath().path == kit.appendingPathComponent(witness).resolvingSymlinksInPath().path,
           let screen = NSScreen.screens.first(where: { s in
               guard let d = (s.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value,
-                    d != CGMainDisplayID(), CGDisplayIsInMirrorSet(d) == 0,
+                    (currentDisplay == nil ? d != CGMainDisplayID() : d == CGMainDisplayID()), CGDisplayIsInMirrorSet(d) == 0,
                     let uuid = CGDisplayCreateUUIDFromDisplayID(d)?.takeRetainedValue() else { return false }
               return CFUUIDCreateString(nil, uuid) as String == secondary
-          }), NSScreen.screens.count == 2
+          }), NSScreen.screens.count == screenCount
     else { throw Refusal("enrolled live secondary fixture not confirmed") }
     let expectedFrame = try bounds(frame)
     let originalFocus = try load(file("initial-focus.json"))
     let originalPID = (originalFocus["frontPID"] as? Int32) ?? (originalFocus["frontPID"] as? String).flatMap(Int32.init)
     guard let originalPID, originalPID > 1 else { throw Refusal("original focus owner missing") }
+    if currentDisplay != nil { try check(originalFocus["region"] as? String == "protected-main", "missing current-display return anchor") }
     if originalFocus["region"] as? String == "protected-main" {
         let rehearsal = try load(file("focus-return-rehearsal.json"))
         guard let token = originalFocus["focusToken"] as? String, UUID(uuidString: token) != nil,
@@ -229,28 +287,40 @@ func perform(kit: URL, run: UUID, step: String) throws {
                            "source":source,"target":target,"direction":direction,"ownerLaunch":birth.timeIntervalSince1970]
     try publishOnce(file("external-" + step + "-intent.json"), receipt)
     try check(CFEqual(first, try focused()), "focused AX object changed before input")
+    let initialHID = hardwareCounters()
     down.post(tap:.cgSessionEventTap); up.post(tap:.cgSessionEventTap)
     try publishOnce(file("external-" + step + "-posted.json"), receipt)
     // Only observe after the single chord. An existing animation can report the source for several samples.
-    func checkForeground() throws {
-        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        try check(front == pid || front == originalPID, "focus escaped enrolled pair during calibration")
+    var confirmedBlankArrival = false
+    func checkForeground(at endpoint: String) throws {
+        guard let front = NSWorkspace.shared.frontmostApplication else { throw Refusal("no foreground owner") }
+        if front.processIdentifier == pid || front.processIdentifier == originalPID { return }
+        guard forward, currentDisplay != nil, endpoint == target, hardwareCounters() == initialHID,
+              emptyFinderDesktop(front: front, absentSource: n) else {
+            throw Refusal("focus escaped enrolled pair during calibration")
+        }
+        confirmedBlankArrival = true
     }
     let settle = ProcessInfo.processInfo.systemUptime + 4
     var reached = false
     while ProcessInfo.processInfo.systemUptime < settle {
-        try checkForeground()
         let endpoint = try observe(allowed: reached ? [target] : [source,target])
+        try checkForeground(at: endpoint)
         if reached && endpoint == target { break }
         reached = endpoint == target
         let pause = ProcessInfo.processInfo.systemUptime + 0.25
         repeat {
-            try checkForeground()
+            try checkForeground(at: endpoint)
             Thread.sleep(forTimeInterval: 0.025)
         } while ProcessInfo.processInfo.systemUptime < pause
     }
     try check(reached && ProcessInfo.processInfo.systemUptime < settle, "stable target not confirmed; input remains spent")
-    try checkForeground()
+    try checkForeground(at: target)
+    if confirmedBlankArrival {
+        try publishOnce(file("external-blank-arrival.json"), ["run":id,"checkpoint":step,"operation":operation,
+                        "display":secondary,"source":source,"target":target,"sourceWindow":n,
+                        "systemDesktopForeground":true,"hardwareUnchanged":true])
+    }
     try pending()
     // The frozen Python supervisor takes this same lock and issues its own independent challenge.
     try check(flock(lock, LOCK_UN) == 0, "cannot transfer the checkpoint lock")
@@ -270,8 +340,10 @@ func perform(kit: URL, run: UUID, step: String) throws {
 
 do {
     let args = CommandLine.arguments
-    guard args.count == 4, let run = UUID(uuidString: args[2]) else { throw Refusal("expected FROZEN_KIT RUN_UUID enroll-B|return-A") }
-    try perform(kit:URL(fileURLWithPath:args[1]).standardizedFileURL,run:run,step:args[3])
+    let current = args.count == 7 && args[4] == "--current-display" && UUID(uuidString:args[5])?.uuidString == args[5]
+    guard args.count == 4 || current, let run = UUID(uuidString: args[2]) else { throw Refusal("expected FROZEN_KIT RUN_UUID enroll-B|return-A [--current-display UUID MANIFEST_SHA256]") }
+    try perform(kit:URL(fileURLWithPath:args[1]).standardizedFileURL,run:run,step:args[3],
+                currentDisplay:current ? args[5] : nil,manifestDigest:current ? args[6] : nil)
 } catch { FileHandle.standardError.write(Data("REFUSED: \(error)\n".utf8)); exit(2) }
 #else
 // Run with: swift -D CALIBRATION_READBACK_TEST scripts/acceptance/calibrate-secondary-route.swift

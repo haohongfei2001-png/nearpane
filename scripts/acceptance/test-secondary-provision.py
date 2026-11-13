@@ -75,6 +75,25 @@ class Provision(unittest.TestCase):
             with self.subTest(), self.assertRaises(ValueError):
                 verify(PRIMARY, SECONDARY, before, after, restored)
 
+    def test_sole_display_only_appends_and_removes_its_own_last_target(self):
+        def samples(start, order):
+            result = pair(start, order, order)
+            for row in result:
+                row["displays"] = row["displays"][1:]
+                row["displays"][0]["frame"]["x"] = 0
+                row["scopes"] = row["scopes"][1:]
+                del row["ordinaryRecordsByDisplay"][PRIMARY]
+            return result
+        before = samples(1, ["9","10"])
+        added = samples(3, ["9","10","11"])
+        restore = samples(5, ["9","10"])
+        self.assertTrue(verify(None,SECONDARY,before,added,restore,current_display=True)["originalScopesRestored"])
+        for after in (samples(3, ["9","11","10"]), samples(3, ["10","11"]), samples(3, ["10","9","11"])):
+            with self.assertRaises(ValueError):
+                verify(None,SECONDARY,before,after,current_display=True)
+        with self.assertRaises(ValueError):
+            verify(PRIMARY,SECONDARY,before,added)
+
     def test_swapped_display_and_duplicate_global_record(self):
         with self.assertRaises(ValueError):
             verify(SECONDARY, PRIMARY, self.before, self.after)

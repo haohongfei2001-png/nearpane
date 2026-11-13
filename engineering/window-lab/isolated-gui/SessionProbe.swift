@@ -121,17 +121,20 @@ do {
     session.graphical && session.isConsole && session.uid == session.consoleUID
   {
     try output(session)
-  } else if args.count == 2 && ["check", "check-console"].contains(args[0]) {
+  } else if (args.count == 2 && ["check", "check-console"].contains(args[0])) ||
+              (args.count == 3 && args[0] == "check-current-console" && UUID(uuidString: args[2]) != nil) {
     let original = try JSONDecoder().decode(
       Session.self, from: Data(contentsOf: URL(fileURLWithPath: args[1])))
-    let checkingConsole = args[0] == "check-console"
+    let checkingCurrent = args[0] == "check-current-console"
+    let checkingConsole = args[0] == "check-console" || checkingCurrent
     let failures: [String]
     if checkingConsole {
       let same = original.graphical && original.isConsole && original.uid == original.consoleUID
         && session.graphical && session.isConsole && session.uid == session.consoleUID
         && session.uid == original.uid && session.securityID == original.securityID
-        && session.boot == original.boot && session.displays.count == 2 && session.displays == original.displays
-      failures = same ? [] : ["console differs from frozen two-display baseline"]
+        && session.boot == original.boot && session.displays == original.displays
+        && (checkingCurrent ? session.displays == [token(args[2].uppercased())] : session.displays.count == 2)
+      failures = same ? [] : ["console differs from the frozen display selection"]
     } else { failures = session.blockers(relativeTo: original) }
     struct Result: Encodable { let caller: Session, blockers: [String], verdict: String }
     try output(
