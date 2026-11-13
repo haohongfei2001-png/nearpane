@@ -1,6 +1,12 @@
+# REJECTED — historical Nearpane icon proposals
+
+The user rejected this round with “非常差”. The prior recommendation of A / Cove is withdrawn. Cove, Poise, and Enfold must not be treated as approved or recommended brand assets. Files remain only as an historical design record. Production website and app icons were not changed.
+
+---
+
 # Nearpane icon proposals - 2026-11-13
 
-Status: unapproved design candidates. Preferred: A / Cove. Production website and app icons are unchanged.
+Historical status before rejection: unapproved proposals. The preference recorded below is withdrawn.
 
 ![Fair comparison](comparison.svg)
 
@@ -15,7 +21,7 @@ This branch preserves editable vector sources, actual optical paths, color value
 
 ## Source candidates
 
-- [A Cove](A_Cove/source/mark-color.svg) - preferred
+- [A Cove](A_Cove/source/mark-color.svg) - rejected
 - [B Poise](B_Poise/source/mark-color.svg)
 - [C Enfold](C_Enfold/source/mark-color.svg)
 
