@@ -64,6 +64,9 @@ def rehearse(source):
             info = plistlib.loads(plist.read_bytes())
             info["NearpaneAutomationSHA256"]["Helpers/NearpaneAutomation"] = sha(automation)
             plist.write_bytes(plistlib.dumps(info))
+        if (temp / gate.update_runtime.FRAMEWORK).exists():
+            for relative, identifier in gate.update_runtime.COMPONENTS:
+                sign(temp / relative, identifier)
         for bundle in (fixture, ctl, temp):
             identifier = plistlib.loads((bundle / "Contents/Info.plist").read_bytes())["CFBundleIdentifier"]
             sign(bundle, identifier)

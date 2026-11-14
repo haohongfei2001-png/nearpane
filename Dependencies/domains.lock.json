@@ -114,7 +114,7 @@
     "riftlet": {
       "repository": "haohongfei2001-png/Riftlet",
       "commit": "44f745a15ecb3682a9da0bda17f17a5d9fc1f07e",
-      "treeSHA256": "cb0a150197db707df71531f5627e1146690340f88742135e1e8161ecadfe207b",
+      "treeSHA256": "67ee240827accc16f956ecf8f3c8c035e34581a830840773a7758fb37463e2db",
       "sources": [
         "Sources/RiftletCore",
         "Sources/RiftletCapture",
@@ -127,7 +127,8 @@
         "Sources/RiftletUI/MagnetFlightPresenter.swift",
         "Sources/RiftletUI/RiftThumbnailAppearance.swift",
         "Sources/RiftletUI/RiftWindChimeLayout.swift",
-        "Sources/RiftletUI/RiftTrayGlass.swift"
+        "Sources/RiftletUI/RiftTrayGlass.swift",
+        "Sources/RiftletFeedback"
       ],
       "hostSources": [
         "Sources/RiftletApp/ArrivalMotionPreferences.swift",
@@ -213,6 +214,12 @@
         "Sources/RiftletCore/SQLiteDatabase.swift": "9f4ad90c2299b85a9c62b1a85349e05d04d116f2835147347d37a212ab20588b",
         "Sources/RiftletCore/TargetArmScheduler.swift": "af5c412b4b2bd7cbad1e1bde6e6fb30dcd5f8785996338915fb581140898dc38",
         "Sources/RiftletCore/TransferCoordinator.swift": "d5997bd79f0c6b96578a898da3ad40b6853bd64e2ac1adfc1fb1aeaee8b835f9",
+        "Sources/RiftletFeedback/FeedbackDiagnostics.swift": "1679b37ce237106f5870ffae1f7cd089463e19ebc030a716de61b1b263d16bd8",
+        "Sources/RiftletFeedback/FeedbackEngine.swift": "88c9794bb836447627f46438b81104643f55c0fd28e30d4e7bbe2c1aceb81c7d",
+        "Sources/RiftletFeedback/FeedbackModels.swift": "3c446e5957618146fc1168a1bbeb0c1c421d5c98fb023b358b5bcbce3bb54e74",
+        "Sources/RiftletFeedback/FeedbackStore.swift": "81a88a4236cb1ee3d637d2e57914884a4671f314ebfd8a83a548e6ff04c9cf69",
+        "Sources/RiftletFeedback/FeedbackTransport.swift": "0d17876ac65a13b4d29292b4a0975857e632daac302922b71f7ce31930c42222",
+        "Sources/RiftletFeedback/ReportSecrets.swift": "73da2e45ced293e2f8cddd00db9617a19b9ed51c841e6c3aff82289e83ecaf86",
         "Sources/RiftletUI/ArrivalMotionMode.swift": "8706b4ad813ae4bd9afcb45d8c9ca971faae39f7dc2f77d87e49f7f29e479201",
         "Sources/RiftletUI/MagnetFlightPresenter.swift": "8fd69e0f63003b1869c9ab1375c31c999c2843103e9367c8903fc25d82afd775",
         "Sources/RiftletUI/MagnetMotionPlan.swift": "4da7f75823263d6ebc945e5af843f6d39a09b36e0a48ac2186b578ac4ee86384",

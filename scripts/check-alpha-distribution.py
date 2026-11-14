@@ -2,11 +2,16 @@
 """Inspect the entire frozen Alpha without launching it, changing TCC or contacting Apple."""
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import plistlib
 import re
 import subprocess
+
+_update_spec = importlib.util.spec_from_file_location("update_runtime", Path(__file__).with_name("prepare-update-runtime.py"))
+update_runtime = importlib.util.module_from_spec(_update_spec)
+_update_spec.loader.exec_module(update_runtime)
 
 MAGICS = {bytes.fromhex(hexstr) for hexstr in ("feedfacf", "cffaedfe", "feedface", "cefaedfe",
                                               "cafebabe", "bebafeca", "cafebabf", "bfbafeca")}
@@ -32,6 +37,8 @@ def inspect(app):
     for path in sorted(contents.rglob("*")):
         if path.is_symlink() and contents not in path.resolve(strict=True).parents:
             raise ValueError("Link leaves the signed bundle: " + str(path))
+        if path.is_symlink():
+            continue
         if not path.is_file():
             continue
         with path.open("rb") as stream:
@@ -55,6 +62,29 @@ def inspect(app):
                               minimumOS=target[0], distributionSignatureFields=release)
     if "MacOS/" + info["CFBundleExecutable"] not in inventory:
         raise ValueError("Host missing from inventory")
+    if version(info["CFBundleShortVersionString"]) >= (5, 9, 0):
+        update_runtime.validate_layout(app)
+        for relative, identifier in update_runtime.COMPONENTS:
+            signature = cmd("/usr/bin/codesign", "-dv", str(app / relative))
+            if "Identifier=" + identifier not in signature.splitlines():
+                raise ValueError("Wrong Sparkle signature identity: " + relative)
+        required = {str(Path(item).relative_to("Contents")) for item in update_runtime.EXECUTABLES}
+        actual = {item for item in inventory if item.startswith("Frameworks/")}
+        if actual != required:
+            raise ValueError("Unexpected embedded updater executable inventory")
+        host = contents / "MacOS" / info["CFBundleExecutable"]
+        linked = cmd("/usr/bin/otool", "-arch", "arm64", "-L", str(host))
+        if "@rpath/Sparkle.framework/Versions/B/Sparkle" not in linked:
+            raise ValueError("Host is not linked to embedded Sparkle")
+        load = cmd("/usr/bin/otool", "-arch", "arm64", "-l", str(host))
+        runpaths = set(re.findall(r"cmd LC_RPATH\s+cmdsize \d+\s+path (.+?) \(offset", load))
+        if "@executable_path/../Frameworks" not in runpaths or runpaths - {"@executable_path/../Frameworks", "/usr/lib/swift"}:
+            raise ValueError("Host contains a development framework runpath")
+        for key, expected in {"SURequireSignedFeed": True, "SUVerifyUpdateBeforeExtraction": True,
+                              "SUSignedFeedFailureExpirationInterval": 0, "SUAllowsAutomaticUpdates": False,
+                              "SUAutomaticallyUpdate": False, "SUScheduledCheckInterval": 86400}.items():
+            if info.get(key) != expected:
+                raise ValueError("Unsafe update setting: " + key)
     automation = contents / "Helpers/NearpaneAutomation"
     if version(info["CFBundleShortVersionString"]) >= (5, 8, 0):
         bound = info.get("NearpaneAutomationSHA256", {})

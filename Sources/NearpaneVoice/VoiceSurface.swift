@@ -27,12 +27,14 @@ public struct VoiceSurface: View {
     }
     private func content(size: CGSize) -> some View {
         let fontSize = settings.readableFontSize(.textSize, in: size.height)
+        let lineSpacing = settings.measures[.lineGap]?.points(in: size.height)
         let buttonWidth = settings.points(.voiceButtonWidth,in:size.width)
         let buttonHeight = settings.points(.voiceButtonHeight,in:size.height)
         return VStack(alignment: .leading, spacing: 4) {
             if let id = editing {
-                TextEditor(text: Binding(get: { draft }, set: { draft = $0; module.stageDraft(id, text: $0) }))
-                    .font(fontSize.map { .system(size:$0) } ?? .body).disabled(settling)
+                TranscriptEditor(text: Binding(get: { draft }, set: { draft = $0; module.stageDraft(id, text: $0) }),
+                                 fontSize: fontSize, lineSpacing: lineSpacing)
+                    .disabled(settling)
                     .onDisappear {
                         releaseEditorFocus?()
                         releaseEditorFocus = nil
@@ -61,7 +63,7 @@ public struct VoiceSurface: View {
                         }
                         ForEach(module.rows) { row in
                             if !row.text.isEmpty {
-                                TranscriptLine(text: row.text, fontSize:fontSize) { panel in
+                                TranscriptLine(text: row.text, fontSize:fontSize, lineSpacing:lineSpacing) { panel in
                                     Task { [weak panel] in
                                         guard let text = await module.editText(row.id) else { return }
                                         releaseEditorFocus = { [weak panel] in
@@ -117,10 +119,25 @@ public struct VoiceSurface: View {
     }
 }
 
+/// Explicit spacing applies to both reading and editing. An unset value preserves
+/// the existing system typography used by the factory appearance.
+struct TranscriptEditor: View {
+    @Binding var text: String
+    let fontSize: Double?
+    let lineSpacing: Double?
+
+    var body: some View {
+        TextEditor(text: $text)
+            .font(fontSize.map { .system(size: $0) } ?? .body)
+            .lineSpacing(lineSpacing ?? 0)
+    }
+}
+
 /// AppKit supplies the selection menu for selectable text. Add the row's edit action to that same menu.
 struct TranscriptLine: NSViewRepresentable {
     let text: String
     var fontSize: Double? = nil
+    var lineSpacing: Double? = nil
     let edit: (NSWindow?) -> Void
 
     final class TextView: NSTextView {
@@ -165,7 +182,19 @@ struct TranscriptLine: NSViewRepresentable {
         let font = fontSize.map { NSFont.systemFont(ofSize:max(1,$0)) } ?? NSFont.preferredFont(forTextStyle:.body)
         if view.font != font { view.font = font }
         view.editLine = { [weak view] in edit(view?.window) }
-        if view.string != text { view.string = text }
+        let textChanged = view.string != text
+        if textChanged { view.string = text }
+        if let spacing = lineSpacing.map({ CGFloat($0) }), textChanged || view.defaultParagraphStyle?.lineSpacing != spacing {
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineSpacing = spacing
+            view.defaultParagraphStyle = paragraph
+            view.textStorage?.addAttribute(.paragraphStyle, value: paragraph,
+                                          range: NSRange(location: 0, length: view.string.utf16.count))
+        } else if lineSpacing == nil, view.defaultParagraphStyle != nil {
+            view.defaultParagraphStyle = nil
+            view.textStorage?.removeAttribute(.paragraphStyle,
+                                             range: NSRange(location: 0, length: view.string.utf16.count))
+        }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: TextView, context: Context) -> CGSize? {

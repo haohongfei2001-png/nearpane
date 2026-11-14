@@ -2,7 +2,9 @@
 
 个人 Alpha 的固定安装位置是 `~/Applications/Nearpane.app`，应用标识为 `com.holdsnow.nearpane.alpha`。正常退出 Nearpane 后运行 `scripts/build-candidate.sh`，脚本会检查候选包的签名与领域资源，再原子替换原位置的应用。默认安装的包收据在 `build/candidate/package.json`。需要单独冻结某次工程交付时，可用 `NEARPANE_CANDIDATE_OUTPUT` 指定独立目录。各版沿用资料格式 1 和单写锁。[Alpha 使用帮助](ALPHA-HELP.md)
 
-用户安装 P5.8 时只需完整的 App。窗口管理和资料导入共用签封在包内的 NearpaneAutomation。用于维护本仓库的构建工具仍在开发机上运行。为最终包验证运行环境时可从终端执行 `"<Alpha.app>/Contents/MacOS/NearpaneHost" --check-helper-runtime`。首次构建所用的 CPython 来源和 SHA-256 见[运行环境来源锁](../Dependencies/automation-runtime.json)。
+用户安装当前 Alpha 时只需完整的 App。窗口管理和资料导入共用签封在包内的 NearpaneAutomation。用于维护本仓库的构建工具仍在开发机上运行。为最终包验证运行环境时可从终端执行 `"<Alpha.app>/Contents/MacOS/NearpaneHost" --check-helper-runtime`。首次构建所用的 CPython 来源和 SHA-256 见[运行环境来源锁](../Dependencies/automation-runtime.json)。
+
+P5.9 增加 Nearpane 独立反馈记录及应用内更新入口。反馈本机库位于稳定资料容器的 `Feedback` 目录，处于各个 `generations` 之外，资料导入与回退保留反馈草稿和原回执。更新框架固定在[更新来源锁](../Dependencies/update-runtime.json)，完整嵌入后共有 12 个 Mach-O。Nearpane 签名发布通道就绪后才允许联网检查，所需发布配置及安装边界见[应用内更新](APPLICATION-UPDATES.md)。
 
 交付前在本机对冻结的 Alpha 运行以下离线检查。
 

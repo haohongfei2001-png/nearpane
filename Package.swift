@@ -14,7 +14,7 @@ struct DomainLock: Decodable {
     let domains: [String: DomainPin]
     let saytileUpdates: DomainPin
 }
-let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray"] : []
+let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray", "RiftletFeedback"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
 var targets: [Target] = [
     .target(name: "WindowGeometryCore"),
@@ -23,7 +23,8 @@ var targets: [Target] = [
     .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture"] : [])),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
+        linkerSettings: full ? [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])] : []),
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
     .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController"]),
     .testTarget(name: "NearpaneDesktopReaderTests", dependencies: ["NearpaneDesktopReader", "NearpaneCore"]),
@@ -35,10 +36,12 @@ if full {
     let lock = try JSONDecoder().decode(DomainLock.self, from: Data(contentsOf: manifest.appendingPathComponent("Dependencies/domains.lock.json")))
     guard let speech = lock.domains["saytile"], let tray = lock.domains["riftlet"] else { fatalError("Incomplete domain lock") }
     let run = Context.environment["NEARPANE_RUN_ID"] ?? ""
+    let updateCache = (run.isEmpty ? ".build" : "build/standalone." + run + "/cache") + "/update-runtime/Sparkle.xcframework"
     let cache = (run.isEmpty ? ".build" : "build/standalone." + run + "/cache") + "/domain-cache-v1/"
     let saytile = cache + speech.key + "/Sources/"
     let riftlet = cache + tray.key + "/Sources/"
     targets += [
+        .binaryTarget(name: "Sparkle", path: updateCache),
         .systemLibrary(name: "CSQLite", path: saytile + "CSQLite"),
         .target(name: "CAudio", path: saytile + "CAudio",
                 exclude: ["WEBRTC-LICENSE.txt", "webrtc/common_audio/signal_processing/dot_product_with_scale.cc"],
@@ -47,6 +50,8 @@ if full {
                 exclude: lock.saytileUpdates.sources.map { "Upstream/" + URL(fileURLWithPath: $0).lastPathComponent },
                 resources: [.copy("Upstream/Resources/ConnectionSample.pcm")]),
         .target(name: "RiftletCore", dependencies: ["CSQLite"], path: riftlet + "RiftletCore",
+                swiftSettings: [.swiftLanguageMode(.v5)]),
+        .target(name: "RiftletFeedback", dependencies: ["CSQLite"], path: riftlet + "RiftletFeedback",
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "RiftletCapture", dependencies: ["RiftletCore"], path: riftlet + "RiftletCapture",
                 swiftSettings: [.swiftLanguageMode(.v5)]),

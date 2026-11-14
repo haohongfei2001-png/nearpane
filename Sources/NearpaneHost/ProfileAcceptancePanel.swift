@@ -10,6 +10,14 @@ import NearpaneUI
     private var safetyTimer: Timer?
 
     static func present(options: ProfileImportOptions, session: NativeAcceptanceSession, displayID: String) throws -> NSWindowController {
+        try present(contents: AnyView(ScrollView {
+            ProfileImportSettings(options: options, initiallyExpanded: true).padding(18)
+        }), session: session, displayID: displayID, recordPrefix: "profile-settings-")
+    }
+
+    static func present(contents: AnyView, session: NativeAcceptanceSession, displayID: String,
+                        recordPrefix: String) throws -> NSWindowController {
+        guard ["profile-settings-", "application-services-"].contains(recordPrefix) else { throw CocoaError(.featureUnsupported) }
         let screens = NSScreen.screens, geometry = SystemScreens.geometry()
         guard screens.count == 2, geometry.count == 2, geometry.last?.id == displayID,
               let side = screens.last, let primary = screens.first, !side.frame.intersects(primary.frame),
@@ -25,9 +33,7 @@ import NearpaneUI
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: ScrollView {
-            ProfileImportSettings(options: options, initiallyExpanded: true).padding(18)
-        })
+        panel.contentView = NSHostingView(rootView: contents)
         panel.setFrame(frame, display: false)
         guard side.visibleFrame.contains(panel.frame), !NSApp.isActive else { throw CocoaError(.featureUnsupported) }
         panel.orderFrontRegardless()
@@ -39,7 +45,7 @@ import NearpaneUI
         }
         let info: [String: Any] = ["pid": getpid(), "windowNumber": panel.windowNumber, "display": displayID, "frontPID": front]
         let data = try JSONSerialization.data(withJSONObject: info)
-        try data.write(to: session.directory.appendingPathComponent("profile-settings-" + UUID().uuidString.lowercased() + ".json"),
+        try data.write(to: session.directory.appendingPathComponent(recordPrefix + UUID().uuidString.lowercased() + ".json"),
                        options: .withoutOverwriting)
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak panel] _ in
             MainActor.assumeIsolated {

@@ -6,7 +6,8 @@ func stop(_ s:String)->Never {FileHandle.standardError.write(Data((s+"\n").utf8)
 let a=Array(CommandLine.arguments.dropFirst())
 let ordinary = a.count == 5 && a[4] == "--ordinary-secondary"
 let sizing = a.count == 5 && a[4] == "--sizes-secondary"
-guard (a.count == 4 || ordinary || sizing), let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
+let services = a.count == 5 && a[4] == "--services-secondary"
+guard (a.count == 4 || ordinary || sizing || services), let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
 let exe=URL(fileURLWithPath:a[2]).resolvingSymlinksInPath()
 guard let app=NSRunningApplication(processIdentifier:pid),app.executableURL?.resolvingSymlinksInPath().path==exe.path,
       let bundle=app.bundleURL, let candidateID = Bundle(url:bundle)?.bundleIdentifier,
@@ -46,30 +47,32 @@ func label(_ e:AXUIElement)->String {[string(e,"AXTitle"),string(e,"AXDescriptio
 
 let command = a[3]
 let profile = candidateID == "com.holdsnow.nearpane.alpha"
-guard !(ordinary || sizing) || profile else { stop("candidate identity") }
+guard !(ordinary || sizing || services) || profile else { stop("candidate identity") }
 let ordinaryFixed = ["admission-open", "admission-ordinary-app", "admission-read",
                      "ordinary-confirm", "ordinary-stop", "ordinary-pause", "ordinary-resume", "ordinary-pair", "ordinary-keep-current",
                      "nearpane-open-panel", "nearpane-close-panel"]
 let sizeFixed = ["sizes-reset-group", "sizes-reset-display", "sizes-reset-cancel", "sizes-reset-apply",
                  "com.holdsnow.nearpane.clock-sample", "nearpane-module-close"]
-let fixed = sizing ? sizeFixed : ordinary ? ordinaryFixed : profile ? ["np.profile.preview", "np.profile.import", "np.profile.quit"] : ["admission-open", "admission-fixture-app", "admission-read", "admission-docked", "admission-current", "admission-custom",
+let fixed = services ? ["np.feedback.open", "np.feedback.preview", "np.services.quit"] : sizing ? sizeFixed : ordinary ? ordinaryFixed : profile ? ["np.profile.preview", "np.profile.import", "np.profile.quit"] : ["admission-open", "admission-fixture-app", "admission-read", "admission-docked", "admission-current", "admission-custom",
              "admission-floating", "admission-refresh", "nearpane-open-panel", "nearpane-close-panel"]
 func identifier(_ e: AXUIElement) -> String { string(e, "AXIdentifier") }
 if command == "read" {
     let facts = nodes.compactMap { e -> [String: Any]? in
         let id = identifier(e)
-        guard ((!profile || ordinary) && id.hasPrefix("admission-")) || (ordinary && id.hasPrefix("ordinary-")) || fixed.contains(id) || (sizing && id == "clock-local-time") else { return nil }
+        guard ((!profile || ordinary) && id.hasPrefix("admission-")) || (ordinary && id.hasPrefix("ordinary-")) || fixed.contains(id) || (sizing && id == "clock-local-time") || (services && (id.hasPrefix("np.feedback.") || id.hasPrefix("np.update."))) else { return nil }
         var fact: [String:Any] = ["id": id, "role": string(e, "AXRole"), "name": label(e), "value": string(e, "AXValue"), "enabled": ax(e,"AXEnabled") as? Bool ?? false]
-        if sizing { fact["contained"] = box(e).map { !$0.isEmpty && rect.contains($0) } ?? false }
+        if sizing || services { fact["contained"] = box(e).map { !$0.isEmpty && rect.contains($0) } ?? false }
         return fact
     }
     print(String(decoding: try JSONSerialization.data(withJSONObject: ["bounds": [rect.minX,rect.minY,rect.width,rect.height],
           "frontPID": NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1, "nodes": facts]), as: UTF8.self))
-} else if sizing && command == "scroll-settings-end" {
+} else if (sizing || services) && command == "scroll-settings-end" {
     guard !app.isActive, NSWorkspace.shared.frontmostApplication?.processIdentifier != pid,
-          nodes.contains(where: { identifier($0) == "sizes-reset-display" }) else { stop("unverified size controls") }
+          nodes.contains(where: { identifier($0) == (services ? "np.feedback.open" : "sizes-reset-display") }) else { stop("unverified settings controls") }
     let bars = nodes.filter { string($0,"AXRole") == "AXScrollArea" }.compactMap { node -> AXUIElement? in
-        guard let frame = box(node), rect.intersects(frame), let bar = ax(node,"AXVerticalScrollBar"),
+        guard let frame = box(node), rect.intersects(frame),
+              !services || frame.height > 150, // the services text editor is limited to 140 pt
+              let bar = ax(node,"AXVerticalScrollBar"),
               CFGetTypeID(bar) == AXUIElementGetTypeID() else { return nil }
         return (bar as! AXUIElement)
     }
@@ -88,7 +91,7 @@ if command == "read" {
           (ax(e,"AXEnabled") as? Bool) == true else { stop("missing, disabled or ambiguous: "+command) }
     guard profile ? rect.contains(f) : rect.intersects(f) else { stop("control outside panel: "+command+" "+NSStringFromRect(f)) }
     let result = AXUIElementPerformAction(e, kAXPressAction as CFString)
-    if profile && command == "np.profile.quit" && result == .cannotComplete {
+    if profile && ["np.profile.quit", "np.services.quit"].contains(command) && result == .cannotComplete {
         // AppKit may destroy this element before replying. The driver must independently wait for exit 0.
         print("quit requested; awaiting process exit")
     } else if result != .success {

@@ -40,6 +40,7 @@ isolated "$offline" evidence-tests python3 -B scripts/test-native-acceptance.py 
 isolated "$offline" foundation env NEARPANE_FOUNDATION_ONLY=1 NEARPANE_OFFLINE=1 scripts/test.sh
 test ! -e "$build_root/domain-cache-v1"
 isolated "$profile" bootstrap python3 scripts/prepare-domains.py
+isolated "$profile" updater-bootstrap python3 scripts/prepare-update-runtime.py
 for domain in saytile Riftlet; do
   /usr/bin/grep -Eq "/$domain@.+GitHub," "$run/logs/bootstrap.log"
 done

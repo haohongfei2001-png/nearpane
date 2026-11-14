@@ -9,15 +9,17 @@ public struct SettingsView: View {
     private let host: HostSession
     private let domains: EmbeddedModules?
     private let profileImport: AnyView?
+    private let applicationServices: AnyView?
     private let inventory: SettingsScreenInventory
     private let previewExposure: SettingsPreviewExposure
     private var screens: [ScreenGeometry] { inventory.screens }
     private let dismissSpaces: (String) -> Void
     private let requestSecondary: (String) -> Void
     private let placementChanged: () -> Void
-    public init(host: HostSession, inventory: SettingsScreenInventory, previewExposure: SettingsPreviewExposure, domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+    public init(host: HostSession, inventory: SettingsScreenInventory, previewExposure: SettingsPreviewExposure, domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, applicationServices: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
         self.previewExposure = previewExposure
         self.profileImport = profileImport
+        self.applicationServices = applicationServices
         self.dismissSpaces = dismissSpaces
         self.requestSecondary = requestSecondary
         self.domains = domains; self.host = host; self.inventory = inventory; self.placementChanged = placementChanged
@@ -82,6 +84,7 @@ public struct SettingsView: View {
             WorkspacePolicySettings(host:host).tabItem { Text("窗口规则") }
             if let lab = domains?.workRect { CandidateWorkRectView(session: lab, host: host, previewExposure: previewExposure).tabItem { Text("窗口管理") } }
             desktopOptions.tabItem { Text("空间观察") }
+            if let applicationServices { applicationServices.tabItem { Text("应用") } }
             if domains?.candidate != true { mockSettings.tabItem { Text("Mock & diagnostics") } }
         }
         .padding(16)
@@ -129,7 +132,7 @@ public struct SettingsView: View {
                                 }
                             }
                             HStack {
-                                Text(host.registry.states[pref.id]?.rawValue ?? "available").font(.caption).foregroundStyle(.secondary)
+                                Text(moduleStatus(host.registry.states[pref.id] ?? .available)).font(.caption).foregroundStyle(.secondary)
                                 if host.registry.states[pref.id] == .degraded {
                                     Button("重新启动模块") { host.handle(.setEnabled(pref.id, true)) }
                                 }
@@ -141,6 +144,19 @@ public struct SettingsView: View {
                 Text(domains?.candidate == true ? "固定时钟后，点击主驻留屏的时间可选择额外时区。" : "语音、托盘和空间的顺序固定。箭头仅调整可选模块。")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(8)
+        }
+    }
+
+    private func moduleStatus(_ state: ModuleState) -> String {
+        switch state {
+        case .available: "可启用"
+        case .enabling: "正在启动"
+        case .permissionRequired: "需要授权"
+        case .resident: "已启用"
+        case .expanded: "已展开"
+        case .suspended: "已暂停"
+        case .degraded: "暂不可用"
+        case .disabled: "已关闭"
         }
     }
 

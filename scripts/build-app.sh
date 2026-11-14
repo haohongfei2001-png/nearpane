@@ -3,6 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/build-paths.sh
 python3 scripts/prepare-domains.py
+if [ "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]; then
+  python3 scripts/prepare-update-runtime.py
+fi
 configuration="${1:-debug}"
 case "$configuration" in debug|release) ;; *) echo "Usage: $0 [debug|release]" >&2; exit 2 ;; esac
 scratch="$build_root/app-native"
@@ -62,10 +65,16 @@ else
   # Saytile first asks the main bundle. This also prevents its SwiftPM development fallback from being used.
   ln -s Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm "$resources/ConnectionSample.pcm"
   python3 scripts/prepare-domains.py --package-resources "$resources"
+  cmp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
+  python3 scripts/prepare-update-runtime.py --embed "$stage" --sign-development
+  # Removing development-only runpaths changes the load commands. Sign that exact
+  # standalone image, then put it back for the later candidate bundle seal.
+  cp "$stage/Contents/MacOS/NearpaneHost" "$staging_dir/NearpaneHost"
+  /usr/bin/codesign --force --sign - --identifier com.holdsnow.nearpane.host "$staging_dir/NearpaneHost"
+  mv "$staging_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 fi
 /usr/bin/plutil -lint "$stage/Contents/Info.plist"
 "$stage/Contents/MacOS/NearpaneHost" --verify-bundled-resources
-cmp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 # After an exchange the stage holds the former bundle. Only the publisher may dispose of it.
 trap - EXIT
 python3 - "$stage" "$bundle" <<'PY'

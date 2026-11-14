@@ -3,6 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/build-paths.sh
 python3 scripts/prepare-domains.py
+if [ "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]; then
+  python3 scripts/prepare-update-runtime.py
+fi
 # No app launch and no visible window. SwiftPM caches stay in this worktree.
 # CLT 6.4 ships Testing as a framework. Its native SwiftPM engine needs the explicit
 # framework/plugin paths; it builds a CLI test runner instead of signing XCTest bundles.

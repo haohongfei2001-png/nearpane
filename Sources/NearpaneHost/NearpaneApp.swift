@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import NearpaneCore
 import NearpaneUI
@@ -162,6 +163,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var profileLease: ProfileLease?
     private var profileOptions: ProfileImportOptions?
     private var profileSwitch: Task<ProfileReply, Error>?
+    private var feedback: ProductFeedbackController?
+    private var servicesTrial: Bool {
+        guard CandidateProfile.selected, passiveDisplayID != nil, let acceptanceSession else { return false }
+        return ProcessInfo.processInfo.environment["NEARPANE_SERVICES_ACCEPTANCE"] == acceptanceSession.directory.lastPathComponent
+    }
     var acceptanceSession: NativeAcceptanceSession?
     var requestsDesktopFixture = false
     private var desktopFixture: DesktopAcceptanceFixture?
@@ -211,6 +217,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var passiveShutdownTimer: Timer?
     private var startupTask: Task<Void, Never>?
+    private var terminationTask: Task<Void, Never>?
+    private var updater: ApplicationUpdater?
+    private var updateMenuObservation: AnyCancellable?
     // A passive material observation must not create a menu, move the pointer, or fall back to the main display.
     var passiveDisplayID: String?
 
@@ -252,7 +261,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.
             var duration = 25.0
             #if canImport(SaytileKit)
-            if managementTrial || profileTrial { duration = 100 } else if fullscreenTrial || enrolledFullscreenTrial { duration = 65 }
+            if managementTrial || profileTrial || servicesTrial { duration = 100 } else if fullscreenTrial || enrolledFullscreenTrial { duration = 65 }
             if managementTrial, let id = acceptanceSession?.directory.lastPathComponent,
                ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_ACCEPTANCE"] == id,
                ProcessInfo.processInfo.environment["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"] == id { duration = 225 }
@@ -351,6 +360,38 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         await session.start()
         traceFullscreenStartup("host-started")
         guard !Task.isCancelled else { return }
+        let updater = ApplicationUpdater(allowNetwork: testSession == nil && candidate) { [weak self] in
+            guard let self, self.host?.isRunning == true else { return "Nearpane 正在启动或停止，请稍后更新。" }
+            #if canImport(SaytileKit)
+            if self.profileSwitch != nil { return "资料切换正在进行，请完成后重新打开 Nearpane 再更新。" }
+            if self.feedback?.busy == true { return "反馈操作正在完成，请稍后更新。" }
+            #endif
+            return nil
+        }
+        self.updater = updater
+        updater.start()
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        let feedbackRoot = (profileLease?.root ?? testSession ?? support).appendingPathComponent("Feedback", isDirectory: true)
+        feedback = ProductFeedbackController(directory: feedbackRoot,
+            appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版",
+            networkAllowed: testSession == nil && candidate)
+        if servicesTrial, let acceptanceSession, let display = passiveDisplayID, let feedback {
+            // Only a binary-bound synthetic session seeds this text. The same public
+            // editor and preview controls are shown with transport disabled.
+            await feedback.start()
+            feedback.expanded = true
+            feedback.edit { $0.text = "Nearpane 合成反馈预览，仅用于本机界面验收。" }
+            do {
+                settings = try ProfileAcceptancePanel.present(contents: AnyView(VStack(spacing: 0) {
+                    applicationServices
+                    Button("结束隔离验收") { NSApp.terminate(nil) }
+                        .accessibilityIdentifier("np.services.quit").padding(8)
+                }),
+                    session: acceptanceSession, displayID: display, recordPrefix: "application-services-")
+            } catch { NSApp.terminate(nil) }
+            return
+        }
+        #endif
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if (passiveDisplayID != nil && acceptanceSession != nil) || (candidate && acceptanceSession == nil && session.configuration.candidateTrayConnected) {
             // Show the explicitly scoped fixture's gallery without opening Settings on the user's desktop.
@@ -457,24 +498,30 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // The existing termination owns the drain. A second terminate while AppKit is
         // waiting for our reply can bypass the remaining work.
-        passiveShutdownTimer?.invalidate()
-        passiveShutdownTimer = nil
-        settingsPreview.withdraw()
-        #if canImport(SaytileKit)
-        if let profileSwitch {
-            Task {
+        guard terminationTask == nil else { return .terminateLater }
+        terminationTask = Task {
+            #if canImport(SaytileKit)
+            if let feedback, !(await feedback.prepareForTermination()) {
+                terminationTask = nil
+                sender.reply(toApplicationShouldTerminate: false)
+                return
+            }
+            #endif
+            updater?.stop()
+            passiveShutdownTimer?.invalidate()
+            passiveShutdownTimer = nil
+            settingsPreview.withdraw()
+            #if canImport(SaytileKit)
+            if let profileSwitch {
                 _ = await profileSwitch.result
                 sender.reply(toApplicationShouldTerminate: true)
+                return
             }
-            return .terminateLater
-        }
-        #endif
-        startupTask?.cancel()
-        panels?.stop()
-        host?.stop()
-        guard let modules else { return .terminateNow }
-        Task {
-            await modules.finishStopping()
+            #endif
+            startupTask?.cancel()
+            panels?.stop()
+            host?.stop()
+            await modules?.finishStopping()
             await host?.waitForDesktopStop()
             #if canImport(RiftletCore) && canImport(SaytileKit)
             fullscreenFixture?.stop()
@@ -488,6 +535,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        updater?.stop()
+        updateMenuObservation?.cancel()
         passiveShutdownTimer?.invalidate()
         passiveShutdownTimer = nil
         startupTask?.cancel()
@@ -506,14 +555,31 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: "Nearpane controls")
         let menu = NSMenu()
+        menu.autoenablesItems = false
         for (title, action) in [("显示或隐藏侧栏", #selector(toggleSurface)), ("设置…", #selector(showSettings)), ("退出 Nearpane", #selector(quit))] {
             let entry = NSMenuItem(title: title, action: action, keyEquivalent: "")
             entry.target = self
             menu.addItem(entry)
         }
+        let update = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "")
+        update.target = self
+        update.isEnabled = false
+        menu.insertItem(update, at: 2)
         item.menu = menu
         statusItem = item
+        if let updater {
+            updateMenuObservation = updater.$offeredVersion.combineLatest(updater.$canCheck).sink { [weak item, weak update] version, canCheck in
+                update?.title = version.map { "查看 Nearpane \($0) 更新…" } ?? "检查更新…"
+                update?.isEnabled = canCheck
+                item?.length = version == nil ? NSStatusItem.squareLength : 38
+                item?.button?.imagePosition = .imageLeading
+                item?.button?.title = version == nil ? "" : "•"
+                item?.button?.toolTip = version.map { "Nearpane \($0) 可用，点击菜单查看更新。" } ?? "Nearpane"
+            }
+        }
     }
+
+    @objc private func checkForUpdates() { updater?.check() }
 
     @objc private func lockChanged(_ note: Notification) {
         screenLocked = note.name.rawValue == "com.apple.screenIsLocked"
@@ -639,14 +705,32 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let importer: AnyView? = nil
         #endif
         guard let host else { return }
-        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,previewExposure:settingsPreview,domains:modules,profileImport:importer,
+        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,previewExposure:settingsPreview,domains:modules,profileImport:importer,applicationServices:AnyView(applicationServices),
             requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
             dismissSpaces: { [weak self] id in self?.panels?.dismiss(id); self?.updatePanels() },
             placementChanged: { [weak self] in self?.updatePanels() }))
     }
 
+    private var applicationServices: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                if let updater { ApplicationUpdateSettings(updater: updater) }
+                #if canImport(RiftletCore) && canImport(SaytileKit)
+                if let feedback {
+                    Divider()
+                    ProductFeedbackSettings(controller: feedback)
+                }
+                #endif
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
+        }
+    }
+
     #if canImport(SaytileKit)
     private func switchProfile(_ action: String, source: URL?, groups: [String], token: String) async throws -> ProfileReply {
+        guard updater?.canSwitchProfile != false else {
+            throw NSError(domain: "com.holdsnow.nearpane.profile", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "请先完成或取消应用更新，再切换资料。"])
+        }
         guard profileSwitch == nil, let root = profileLease?.root, let host, let modules else { throw CancellationError() }
         let operation = Task { @MainActor () throws -> ProfileReply in
             // Retire every action surface before releasing the global writer lease.
