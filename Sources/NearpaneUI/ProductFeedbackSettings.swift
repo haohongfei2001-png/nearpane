@@ -207,14 +207,16 @@ public struct ProductFeedbackSettings: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            DisclosureGroup("反馈与建议", isExpanded: $controller.expanded) {
+            DisclosureGroup(isExpanded: $controller.expanded) {
                 if controller.expanded {
                     editor.task {
                         await controller.start()
                         await controller.observeVisibleRecords()
                     }
                 }
-            }.accessibilityIdentifier("np.feedback.open")
+            } label: {
+                Text("反馈与建议").accessibilityIdentifier("np.feedback.open")
+            }
         }
         .confirmationDialog("申请删除这条反馈？已经进入私有反馈中心的副本需要维护者处理，结果以服务回执为准。",
                             isPresented: Binding(get: { deletionID != nil }, set: { if !$0 { deletionID = nil } })) {

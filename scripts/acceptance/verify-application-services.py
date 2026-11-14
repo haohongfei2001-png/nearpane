@@ -23,7 +23,8 @@ def verify(app):
     out.mkdir(parents=True, mode=0o700)
     for source, name in [("admission-controls.swift", "controls"), ("capture-panel.swift", "capture"),
                          ("ordinary-windows/SystemReadback.swift", "focus")]:
-        subprocess.run(["/usr/bin/xcrun", "swiftc", ROOT / "scripts/acceptance" / source,
+        flags = ["-parse-as-library"] if source == "capture-panel.swift" else []
+        subprocess.run(["/usr/bin/xcrun", "swiftc", *flags, ROOT / "scripts/acceptance" / source,
                         "-module-cache-path", out / "module-cache", "-o", out / name], check=True)
 
     def focus():
