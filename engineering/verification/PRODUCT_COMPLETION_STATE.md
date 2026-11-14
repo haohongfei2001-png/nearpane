@@ -4,7 +4,13 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.8 Alpha，稳定标识 `com.holdsnow.nearpane.alpha`。成品源码 `b2c849b6ff0f643191bf42bb76e2478c89517c33`，Host SHA-256 `ee8edf7832f2e17a185de842dae2ff0bba7a3cbd73730be5bea52ca3ec09f23b`。七个原生可执行文件和 26 项资源通过最终包校验，Launch Services 实际启动副屏隔离实例并正常退出。原 5.7 包已校验归档，个人资料保持原状，资料代际及回退沿用原管理器。[当前交付](P5.8-RUNTIME-AND-UPSTREAM-DELIVERY.md) · [5.7 回退包](../../build/verification/p58/rollback/Nearpane-5.7.zip)
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.9 Alpha，稳定标识 `com.holdsnow.nearpane.alpha`。主体实现 `1d68c48`、实际控件修复 `f10ccf1`、最终验收接线 `c1c06e2104bf4cd61d244dcaf5f30fd7c7f99414`。Host SHA-256 `c7a941776025695c30b4c45b0cb513aaa1fdbe032e61e1cde8dc1ef2f1af9e50`。十二个可执行文件和 28 项资源通过最终包校验；保持唯一安装入口。原 5.8 已核验归档，个人资料未迁移或覆盖。[当前交付](P5.9-APPLICATION-SERVICES-DELIVERY.md) · [5.8 回退包](../../build/verification/p59/rollback/Nearpane-5.8.zip)
+
+## P5.9 独立反馈、用户同意的更新与外观
+
+Settings 新增 Nearpane 独立反馈入口，共享私有反馈库并按产品和模块区分。预览后明确确认才可投递，拥有自己的草稿、回执和凭据空间；副屏实际预览和退出通过，真实远端投递未执行。复用 Sparkle 2.10.1，用户可选择每日检查，安装需同意；后台提示不抢焦点，安装与资料切换互斥。**签名 feed、公钥及正式 Release 尚未发布，当前实际检查关闭，不能宣称在线自动升级已可用。**
+
+实际浅深色原图、默认几何对照、反馈设置与隔离资料导入均通过。修复正文和编辑器未应用显式行距、反馈子控件身份被覆盖、退出保存竞态等实际问题。集成 335/335、独立 Host 256/256、固定领域源 184 项，Debug/Release 通过。5.8 ↔ 5.9 同资料代际往返、重复导入、原件及 UNKNOWN 保留通过。hardened ad-hoc 副本因 Sparkle Team ID 的 library validation 被拒，正式同 Team 签名、公证与线上更新验收仍是发布前置。桌面往返、真人语音和真实草稿上传继续搁置。[原生外观与限制](P5.9-VISUAL-FIDELITY.md)
 
 ## P5.8 随包运行环境与兼容领域更新
 
@@ -154,7 +160,9 @@ P5.6 第一份安装包的 Host 为 `a708574915fb44e5d9627ad56a55387de6b305aebe3
 | 首次使用、权限说明和故障处置 | IMPLEMENTED · 安装包内提供可离线阅读的使用帮助；设置显示授权范围、拒绝原因及待处理恢复 | [随包帮助](../../docs/ALPHA-HELP.md)。当前系统的隔离运行已验证；新设备的 TCC 首次授权和不同辅助技术用户的上手体验未实测。 |
 | 升级、资料契约、备份、失败回退 | VERIFIED · P5.2 → P5.3 隔离副本实测，P5.4、P5.5 沿用相同格式和身份；旧操作、TCC 和窗口票据不继承 | [升级回退](P5.3-UPGRADE-ROLLBACK-ACCEPTANCE.md)，`cc36d14`。更早版本按标记和真实 schema 拒绝不兼容；本轮不迁移个人资料。 |
 | 驻留、退出屏障、权限及资源 | PARTIAL · 领域进程排空、关闭观察器、睡眠/唤醒和历史一小时驻留有证据；不是普通窗口观察长期电量基准 | [P3.7](P3.7-hardening-closeout.md)、[P5.2](P5.2-MULTIDISPLAY-ACCEPTANCE.md)。新加入的长期观察以限定目标、有限采样和退出清理测量。 |
-| Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，7 个 Mach-O 为 arm64，macOS 26 起；正式签名、公证和另一台干净设备验收待完成 | 包内运行环境已在禁止开发工具和外部 Python 的沙箱中通过。最终 App 实际 Launch Services 启动、嵌套验签、资源指纹和原包不变的签名演练通过。未使用发布凭据。[当前交付及限制](P5.8-RUNTIME-AND-UPSTREAM-DELIVERY.md) · [最终签名检查](../../build/verification/p58/installed-distribution.json) · [签名演练](../../build/verification/p58/signing-rehearsal.json) |
+| 独立用户反馈 | PARTIAL · 原生预览、独立草稿和退出通过，原接收器协议离线通过；真实远端投递与删除未验 | Nearpane 使用自己的标记与凭据，共用私有 Riftlet-Feedback。远端 Issue 标题仍沿用 Riftlet。[反馈范围](P5.9-FEEDBACK-INTEGRATION.md) |
+| 每日检查与同意后更新 | PARTIAL · 随包更新组件、每日偏好、被动提示和安装准入已实现；正式签名 feed 和独立公钥缺失，联网检查关闭 | 没有执行线上下载、替换与重启。首个正式通道需要独立密钥与发行包验收。[更新流程](../../docs/APPLICATION-UPDATES.md) |
+| Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，12 个 Mach-O 均包含 arm64，macOS 26 起；正式签名、公证和干净设备验收待完成 | 包内运行环境已在禁止开发工具和外部 Python 的沙箱中通过。当前包嵌套验签和资源核验通过；hardened ad-hoc 副本因 Sparkle Team ID 被拒，尚未验证正式同 Team 签名运行。[当前交付及限制](P5.9-APPLICATION-SERVICES-DELIVERY.md) · [最终签名检查](../../build/verification/p59/installed-distribution.json) |
 
 ## P5.5 交付记录
 
