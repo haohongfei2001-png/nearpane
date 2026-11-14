@@ -20,7 +20,22 @@ import UniformTypeIdentifiers
               running.executableURL?.resolvingSymlinksInPath().path == executable.path,
               running.bundleURL?.resolvingSymlinksInPath().path == bundle.path,
               let disk = Bundle(url: bundle), disk.bundleIdentifier == expectedID,
-              disk.executableURL?.resolvingSymlinksInPath().path == executable.path else { return false }
+              disk.executableURL?.resolvingSymlinksInPath().path == executable.path else {
+            // Only this explicitly supplied test process is inspected. Keep the
+            // individual identity failures observable; never weaken the guard.
+            let kernelPath = String(decoding: path.prefix { $0 != 0 }, as: UTF8.self)
+            let facts: [String: Any] = ["pid": running.processIdentifier, "kernelPathBytes": size,
+                "kernelPathMatches": URL(fileURLWithPath: kernelPath).resolvingSymlinksInPath().path == executable.path,
+                "runningExecutableMatches": running.executableURL?.resolvingSymlinksInPath().path == executable.path,
+                "runningBundleMatches": running.bundleURL?.resolvingSymlinksInPath().path == bundle.path,
+                "diskExecutableMatches": Bundle(url: bundle)?.executableURL?.resolvingSymlinksInPath().path == executable.path,
+                "diskIdentifierMatches": Bundle(url: bundle)?.bundleIdentifier == expectedID,
+                "terminated": running.isTerminated]
+            if let data = try? JSONSerialization.data(withJSONObject: facts, options: [.sortedKeys]) {
+                FileHandle.standardError.write(data + Data("\n".utf8))
+            }
+            return false
+        }
         // A directly supervised .app can lack a LaunchServices identifier.
         return running.bundleIdentifier.map { $0 == expectedID } ?? true
     }
@@ -30,8 +45,10 @@ import UniformTypeIdentifiers
         let secondaryOnly = args.count == 5 && args.last == "--secondary-only"
         guard args.count == 4 || secondaryOnly, let pid = Int32(args[0]), pid > 0, let number = UInt32(args[1]), number != 0 else { throw Failure.arguments }
         let executable = URL(fileURLWithPath: args[2]).resolvingSymlinksInPath()
-        guard executable.path == args[2],
-              let running = NSRunningApplication(processIdentifier: pid),
+        // Foundation canonicalizes /private/tmp to /tmp on this system. Compare
+        // the canonical executable with the kernel, running app, and bundle;
+        // the caller's alternate spelling is not a different process identity.
+        guard let running = NSRunningApplication(processIdentifier: pid),
               owns(running, executable: executable) else { throw Failure.hostIdentity }
         guard CGPreflightScreenCaptureAccess() else { throw Failure.screenCapturePermission }
         // A supervised command-line client needs a WindowServer connection before constructing the filter.

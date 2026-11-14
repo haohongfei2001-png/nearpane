@@ -25,7 +25,7 @@ def verify(app):
                          ("ordinary-windows/SystemReadback.swift", "focus")]:
         flags = ["-parse-as-library"] if source == "capture-panel.swift" else []
         subprocess.run(["/usr/bin/xcrun", "swiftc", *flags, ROOT / "scripts/acceptance" / source,
-                        "-module-cache-path", out / "module-cache", "-o", out / name], check=True)
+                        "-module-cache-path", out.parent / "module-cache", "-o", out / name], check=True)
 
     def focus():
         value = json.loads(run([out / "focus"]))
@@ -79,11 +79,15 @@ def verify(app):
                 return TOOLS["sha"](file.read_bytes())
 
             receipt["settingsImageSHA256"] = capture("application-settings.png")
-            run(prefix + ["scroll-settings-end", "--services-secondary"])
+            if not nodes["np.feedback.preview"]["contained"]:
+                run(prefix + ["scroll-settings-end", "--services-secondary"])
+            wait(lambda: read().get("np.feedback.preview", {}).get("contained"))
             run(prefix + ["np.feedback.preview", "--services-secondary"])
             nodes = wait(lambda: containing("np.feedback.send"))
             require(not nodes["np.feedback.send"]["enabled"], "Synthetic feedback send became available")
-            run(prefix + ["scroll-settings-end", "--services-secondary"])
+            if not nodes["np.feedback.send"]["contained"]:
+                run(prefix + ["scroll-settings-end", "--services-secondary"])
+                wait(lambda: read().get("np.feedback.send", {}).get("contained"))
             receipt["previewImageSHA256"] = capture("feedback-preview.png")
             # The helper's action whitelist does not include send, even in the offline fixture.
             refused = subprocess.run(sandbox + list(map(str, prefix + ["np.feedback.send", "--services-secondary"])),

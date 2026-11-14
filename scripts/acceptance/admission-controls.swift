@@ -76,8 +76,27 @@ if command == "read" {
               CFGetTypeID(bar) == AXUIElementGetTypeID() else { return nil }
         return (bar as! AXUIElement)
     }
-    guard bars.count == 1, let upper = ax(bars[0],"AXMaxValue") as? NSNumber else { stop("ambiguous settings scrollbar") }
-    guard AXUIElementSetAttributeValue(bars[0],"AXValue" as CFString,upper) == .success else { stop("settings scroll refused") }
+    guard bars.count == 1 else {
+        let details = nodes.filter { string($0,"AXRole") == "AXScrollArea" }.map { node in
+            "frame=\(box(node).map(NSStringFromRect) ?? "unknown") bar=\(ax(node,"AXVerticalScrollBar") != nil)"
+        }
+        stop("ambiguous settings scrollbar: candidates=\(bars.count); " + details.joined(separator: "; "))
+    }
+    if let upper = ax(bars[0],"AXMaxValue") as? NSNumber {
+        guard AXUIElementSetAttributeValue(bars[0],"AXValue" as CFString,upper) == .success else { stop("settings scroll refused") }
+    } else {
+        // SwiftUI can expose page actions on the scroll area instead of a
+        // numeric scrollbar range. Execute only the action actually advertised.
+        let areas = nodes.filter { string($0,"AXRole") == "AXScrollArea" &&
+            box($0).map { $0.height > 150 && rect.contains($0) } == true }
+        guard services, areas.count == 1, !app.isTerminated, !app.isActive else { stop("settings page unavailable") }
+        var raw: CFArray?
+        guard AXUIElementCopyActionNames(areas[0], &raw) == .success else { stop("settings page actions unavailable") }
+        let names = raw as? [String] ?? []
+        guard names.contains("AXScrollDownByPage") else { stop("settings page cannot scroll: " + names.joined(separator: ",")) }
+        guard AXUIElementPerformAction(areas[0], "AXScrollDownByPage" as CFString) == .success else { stop("settings page scroll refused") }
+        print("one advertised AXScrollDownByPage action")
+    }
 } else {
     let suffix = command.hasPrefix("admission-window-") ? String(command.dropFirst("admission-window-".count)) : ""
     let excluded = command.hasPrefix("ordinary-exclude-") ? String(command.dropFirst("ordinary-exclude-".count)) : ""

@@ -26,7 +26,12 @@ import NearpaneUI
             throw CocoaError(.featureUnsupported)
         }
         let work = side.visibleFrame
-        let frame = NSRect(x: work.midX - 260, y: work.midY - 212, width: 520, height: 424)
+        // The services page includes both an editor and its full confirmation.
+        // Keep them observable in this non-key fixture without borrowing focus
+        // for scrolling. Ordinary Settings retains its existing 632×572 frame.
+        let height: CGFloat = recordPrefix == "application-services-" ? min(820, work.height - 32) : 424
+        guard recordPrefix != "application-services-" || height >= 700 else { throw CocoaError(.featureUnsupported) }
+        let frame = NSRect(x: work.midX - 260, y: work.midY - height / 2, width: 520, height: height)
         let panel = ProfileAcceptancePanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel],
                                           backing: .buffered, defer: false)
         panel.animationBehavior = .none
