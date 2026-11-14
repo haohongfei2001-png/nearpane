@@ -202,12 +202,25 @@ def tray_bindings(cache, pin):
         require((dest / path).is_symlink() and (dest / path).resolve(strict=True) == target, f"Invalid bridge link: {path}")
 
 
-def voice_bindings(cache, pin):
+def validate_voice_updates(pin, updates):
+    validate(updates)
+    require(updates["repository"] == pin["repository"] and not updates["hostSources"]
+            and updates["notices"] and updates["sources"], "Invalid Saytile update source")
+    sources = updates["sources"]
+    require(len(set(sources)) == len(sources) and set(updates["files"]) == set(sources + updates["notices"])
+            and all(re.fullmatch(r"Sources/SaytileKit/[A-Za-z0-9_]+\.swift", p) and p in pin["files"] for p in sources),
+            "Updates must replace exact locked Saytile sources")
+
+
+def voice_bindings(cache, pin, updates=None):
     # Keep the domain's internal dependency-injection API in its own Swift module.
     # The verified upstream directory remains byte-for-byte intact.
-    dest = cache / ("voice-" + key(pin))
+    dest = cache / ("voice-" + key(pin) + ("-" + key(updates) if updates else ""))
     links = {"Upstream": cache / key(pin) / "Sources/SaytileKit",
              "Nearpane": ROOT / "Sources/NearpaneSaytileBridge"}
+    if updates:
+        # SwiftPM excludes these originals and discovers only these verified replacements.
+        links.update({PurePosixPath(path).name: cache / key(updates) / path for path in updates["sources"]})
     if not dest.exists():
         with tempfile.TemporaryDirectory(prefix=".bindings-", dir=cache) as work:
             stage = Path(work) / "voice"
@@ -222,7 +235,7 @@ def voice_bindings(cache, pin):
                 f"Invalid SaytileKit bridge link: {name}")
 
 
-def package_resources(resources, pins, directories):
+def package_resources(resources, pins, directories, updates, update_directory):
     bundled = {
         "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
         "riftlet": {"Sources/RiftletAdapters/Resources/" + p: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + p
@@ -239,13 +252,19 @@ def package_resources(resources, pins, directories):
             notice.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(directories[name] / path, notice)
         provenance = {k: pin[k] for k in ("repository", "commit", "treeSHA256", "notices")}
+        if name == "saytile":
+            provenance["updates"] = updates
+            for path in updates["notices"]:
+                target = dest / "updates" / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(update_directory / path, target)
         (dest / "source.json").write_text(json.dumps(provenance, indent=2) + "\n")
     shutil.copyfile(directories["saytile"] / "Sources/CAudio/WEBRTC-LICENSE.txt", resources / "WEBRTC-LICENSE.txt")
 
 
 def propose(lock, domain, revision, output):
     require(re.fullmatch(r"[0-9a-f]{40}", revision), "A full immutable Git commit is required")
-    pin = lock["domains"][domain]
+    pin = lock["saytileUpdates"] if domain == "saytileUpdates" else lock["domains"][domain]
     pin["commit"] = revision
     url = f"https://api.github.com/repos/{pin['repository']}/git/trees/{revision}?recursive=1"
     with remote(url) as response:
@@ -283,9 +302,12 @@ def main():
     pins = lock["domains"]
     for pin in pins.values():
         validate(pin)
+    updates = lock["saytileUpdates"]
+    validate_voice_updates(pins["saytile"], updates)
     if args.propose:
         domain, revision, path = args.propose
-        require(domain in pins and not args.offline, "Choose saytile or riftlet for an online proposal")
+        require((domain in pins or domain == "saytileUpdates") and not args.offline,
+                "Choose saytile, saytileUpdates or riftlet for an online proposal")
         propose(lock, domain, revision, Path(path))
         return
     cache = cache_root()
@@ -294,13 +316,14 @@ def main():
         fcntl.flock(guard, fcntl.LOCK_EX)
         offline = args.offline or args.package_resources is not None or os.environ.get("NEARPANE_OFFLINE") == "1"
         directories = {name: prepare(cache, pin, offline) for name, pin in pins.items()}
+        update_directory = prepare(cache, updates, offline)
         for filename in ("module.modulemap", "shim.h"):
             require(len({(p / "Sources/CSQLite" / filename).read_bytes() for p in directories.values()}) == 1,
                     "Pinned SQLite module definitions no longer match")
         tray_bindings(cache, pins["riftlet"])
-        voice_bindings(cache, pins["saytile"])
+        voice_bindings(cache, pins["saytile"], updates)
         if args.package_resources:
-            package_resources(args.package_resources, pins, directories)
+            package_resources(args.package_resources, pins, directories, updates, update_directory)
 
 
 if __name__ == "__main__":

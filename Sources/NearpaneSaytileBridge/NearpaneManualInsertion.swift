@@ -140,13 +140,25 @@ import ApplicationServices
     }
     func dispatch(_ text: String, to expected: InputTargetSnapshot) throws -> Bool {
         guard try snapshot() == expected else { return false }
-        let accepted = try access.dispatch(text, to: expected)
-        if accepted { dispatched = true }
-        return accepted
+        do {
+            let accepted = try access.dispatch(text, to: expected)
+            if accepted { dispatched = true }
+            return accepted
+        } catch let timeout as AXTextWriteTimeout {
+            // The single setter may already have moved the caret. Allow the
+            // domain to settle this mutation by readback on the frozen target.
+            dispatched = true
+            throw timeout
+        }
     }
     func verify(_ text: String, at before: InputTargetSnapshot) -> InputTargetSnapshot? {
-        guard hasPermission else { return nil }
-        return access.verify(text, at: before)
+        guard (try? snapshot()) != nil, let after = access.verify(text, at: before),
+              (try? snapshot()) == after else { return nil }
+        return after
+    }
+    func textWitness(at expected: InputTargetSnapshot) -> String? {
+        guard (try? snapshot()) == expected else { return nil }
+        return access.textWitness(at: expected)
     }
     func observe(_ expected: InputTargetSnapshot, onChange: @escaping @MainActor (InputTargetChange) -> Void) -> InputObservationSupport {
         domainObserving = true

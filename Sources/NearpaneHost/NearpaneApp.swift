@@ -13,12 +13,17 @@ struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
         if args == ["--check-helper-runtime"] {
-            if AppleHelperRuntime.python != nil {
-                print("Verified installed Apple Python for window and profile helpers.")
-                return
+            do {
+                let child = Process()
+                child.executableURL = try BundledAutomation.executable()
+                child.arguments = ["--self-check"]
+                try child.run()
+                child.waitUntilExit()
+                exit(child.terminationStatus)
+            } catch {
+                print(error.localizedDescription)
+                exit(3)
             }
-            print(AppleHelperRuntime.Missing.interpreter.localizedDescription)
-            exit(3)
         }
         #if canImport(SaytileKit)
         if args.first == "--validate-import-configuration" {

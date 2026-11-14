@@ -19,14 +19,10 @@ struct ProfileReply: Decodable, Sendable {
 enum ProfileHelper {
     static func run(_ action: String, root: URL, source: URL? = nil, sections: [String] = [],
                     token: String? = nil) async throws -> ProfileReply {
-        guard let script = Bundle.main.resourceURL?.appendingPathComponent("Profile/profile-migration.py") else {
-            throw CocoaError(.fileNoSuchFile)
-        }
         return try await Task.detached {
             let child = Process(), pipe = Pipe()
-            guard let python = AppleHelperRuntime.python else { throw AppleHelperRuntime.Missing.interpreter }
-            child.executableURL = python
-            var arguments = ["-I", "-B", script.path, action, "--container", root.path]
+            child.executableURL = try BundledAutomation.executable()
+            var arguments = ["profile", action, "--container", root.path]
             if let source { arguments += ["--source", source.path, "--sections", sections.joined(separator: ",")] }
             if let token { arguments += ["--token", token] }
             child.arguments = arguments

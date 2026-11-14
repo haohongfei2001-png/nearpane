@@ -61,6 +61,34 @@ private actor Transport: AttachmentAdapter {
     }
 }
 
+/// The browser adapter returns from the click before its bounded observation completes.
+private actor GatedFileInput: IndependentFileInputAdapter {
+    nonisolated let id = "simulation"
+    let target = TargetLease(adapterID: "simulation", surface: .simulation, applicationID: "fixture",
+                             sessionID: "test", windowID: "1", documentID: "one", composerID: "one", draftGeneration: "1")
+    private(set) var attempts = 0
+    private(set) var waiting = false
+    private var finish: CheckedContinuation<Void, Never>?
+    func captureTarget() async throws -> TargetLease { target }
+    func validate(_ value: TargetLease) async throws -> Bool { value == target }
+    func append(_ request: TransferRequest) async throws -> TransferReceipt { throw LibraryError.incompatible }
+    func append(_ request: TransferRequest, onInputConfirmed: @escaping @Sendable (TransferReceipt) async -> Void)
+        async throws -> TransferReceipt { throw LibraryError.incompatible }
+    func append(_ request: TransferRequest, onInputExecutionReturned: @escaping @Sendable () async -> Void)
+        async throws -> TransferReceipt {
+        attempts += 1
+        await onInputExecutionReturned()
+        waiting = true
+        await withCheckedContinuation { finish = $0 }
+        return try await reconcile(request)
+    }
+    func release() { finish?.resume(); finish = nil }
+    func reconcile(_ request: TransferRequest) async throws -> TransferReceipt {
+        .init(operationID: request.operation.id, assetID: request.asset.id, attempt: request.operation.attempt,
+              assetSHA256: request.asset.sha256, target: request.operation.target, outcome: .unknown, profileID: "simulation-v1")
+    }
+}
+
 @MainActor @Suite(.serialized)
 struct TrayDomainTests {
     @Test func chromeScriptRefusalIsDiagnosedOnlyAtTheGuardBeforeAnyInput() async throws {
@@ -394,6 +422,124 @@ struct TrayDomainTests {
         #expect(await location.stops == stops)
         module.stop(); await module.finishStopping()
         #expect(await location.stops > stops)
+    }
+
+    @Test func disconnectKeepsQueueExclusiveUntilTheDirectoryImportFinishes() async throws {
+        let base = root(); defer { try? FileManager.default.removeItem(at: base) }
+        let library = base.appendingPathComponent("library"), source = base.appendingPathComponent("source")
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        let store = try QueueStore(databaseURL: library.appendingPathComponent("queue.sqlite"))
+        let location = Location(source)
+        var holdImport = false
+        var pendingImport: CheckedContinuation<Void, Never>?
+        let tray = TrayModule { change, error in
+            TrayOwner(store: store, root: library, adapter: UnavailableAdapter(), policy: .init(), captureEntry: true,
+                      ownership: try ApplicationInstanceOwnership(root: library), pin: { throw LibraryError.incompatible },
+                      permission: { _, _ in .denied }, notify: {
+                          if holdImport {
+                              holdImport = false
+                              await withCheckedContinuation { pendingImport = $0 }
+                          }
+                          await change()
+                      }, report: error)
+        }
+        try tray.start(); await tray.connect()
+        await tray.collect(from: source, provider: location)
+        try #require(tray.collectionEnabled)
+        holdImport = true
+        let png = source.appendingPathComponent("synthetic.png")
+        try makePNG(png)
+        let marker = try PropertyListSerialization.data(fromPropertyList: true, format: .binary, options: 0)
+        try #require(marker.withUnsafeBytes {
+            setxattr(png.path, "com.apple.metadata:kMDItemIsScreenCapture", $0.baseAddress, $0.count, 0, 0)
+        } == 0)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(6))
+        while pendingImport == nil, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+        let release = try #require(pendingImport)
+        let ids = try await store.assets().map(\.id)
+        #expect(ids.count == 1)
+        tray.disconnect()
+        var drained = false
+        let stopping = Task { await tray.finishStopping(); drained = true }
+        let stopDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while await location.stops == 0, ContinuousClock.now < stopDeadline { await Task.yield() }
+        #expect(await location.stops == 1)
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(!drained)
+        #expect(throws: ApplicationInstanceOwnership.Failure.self) { try ApplicationInstanceOwnership(root: library) }
+        release.resume()
+        await stopping.value
+        #expect(drained)
+        let successor = try ApplicationInstanceOwnership(root: library)
+        successor.close()
+        await tray.connect()
+        #expect(tray.connected && tray.visibleIDs == ids)
+        tray.stop(); await tray.finishStopping()
+    }
+
+    @Test func unsupportedScreenshotReportsTheFileIssueAndKeepsTheDirectoryWatch() async throws {
+        let base = root(); defer { try? FileManager.default.removeItem(at: base) }
+        let library = base.appendingPathComponent("library"), source = base.appendingPathComponent("source")
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        let store = try QueueStore(databaseURL: library.appendingPathComponent("queue.sqlite"))
+        let tray = TrayModule { change, error in
+            TrayOwner(store: store, root: library, adapter: UnavailableAdapter(), policy: .init(), captureEntry: false,
+                      pin: { throw LibraryError.incompatible }, permission: { _, _ in .denied }, notify: change, report: error)
+        }
+        try tray.start(); await tray.connect()
+        await tray.collect(from: source, provider: Location(source))
+        try #require(tray.collectionEnabled)
+        let unsupported = source.appendingPathComponent("synthetic.png")
+        let bytes = Data("%PDF-1.7\n%%EOF\n".utf8)
+        try bytes.write(to: unsupported)
+        let marker = try PropertyListSerialization.data(fromPropertyList: true, format: .binary, options: 0)
+        try #require(marker.withUnsafeBytes {
+            setxattr(unsupported.path, "com.apple.metadata:kMDItemIsScreenCapture", $0.baseAddress, $0.count, 0, 0)
+        } == 0)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(6))
+        while tray.issue == nil, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(tray.issue == CaptureDiagnostic(code: .unsupportedFormat).userMessage)
+        #expect(tray.collectionEnabled && tray.rows.isEmpty)
+        #expect(try Data(contentsOf: unsupported) == bytes)
+        tray.stop(); await tray.finishStopping()
+    }
+
+    @Test func stopWaitsForTheOriginalPhasedAppendButDoesNotReplayDurableUnknown() async throws {
+        let dir = root(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let media = dir.appendingPathComponent("media")
+        try FileManager.default.createDirectory(at: media, withIntermediateDirectories: true)
+        let image = ImportedAsset(sourceKey: "fixture", fileName: "fixture.png", sha256: String(repeating: "a", count: 64),
+                                  byteCount: 7, pixelWidth: 40, pixelHeight: 17, mediaType: "image/png", origin: .synthetic)
+        try Data("fixture".utf8).write(to: media.appendingPathComponent(image.fileName))
+        let row = try await store.importAsset(image)
+        let adapter = GatedFileInput()
+        let tray = TrayModule { change, error in
+            TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+                      ownership: try ApplicationInstanceOwnership(root: dir), pin: { Task { try await adapter.captureTarget() } },
+                      permission: { _, _ in .granted }, notify: change, report: error)
+        }
+        try tray.start(); await tray.connect(); await tray.authorizeAttachments()
+        let press = try #require(tray.beginPress(row))
+        await tray.finishPress(press)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while await !adapter.waiting, ContinuousClock.now < deadline { await Task.yield() }
+        try #require(await adapter.waiting)
+        tray.stop()
+        var drained = false
+        let stopping = Task { await tray.finishStopping(); drained = true }
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(!drained)
+        #expect(throws: ApplicationInstanceOwnership.Failure.self) { try ApplicationInstanceOwnership(root: dir) }
+        await adapter.release()
+        await stopping.value
+        #expect(drained)
+        let id = try #require(try await store.asset(id: row.id)?.activeOperationID)
+        #expect(try await store.operation(id: id)?.phase == .unknown)
+        try tray.start(); await tray.connect()
+        #expect(tray.connected && !tray.mayAttach)
+        tray.stop(); await tray.finishStopping()
+        #expect(await adapter.attempts == 1)
     }
 
     @Test func realImporterAndThumbnailUseSameExistingLibraryAndPreserveMediaAcrossReconnect() async throws {

@@ -101,16 +101,12 @@ import SwiftUI
         }
     }
     public func start() {
-        guard process == nil, let folder = Bundle.main.resourceURL else { return }
+        guard process == nil else { return }
         supervisorReady = false
         let child = Process(), commands = Pipe(), replies = Pipe()
-        guard let python = AppleHelperRuntime.python else {
-            message = AppleHelperRuntime.Missing.interpreter.localizedDescription
-            blocked = true
-            return
-        }
-        child.executableURL = python
-        child.arguments = ["-I", "-B", "-u", folder.appendingPathComponent("WorkRect/window-management.py").path, support.path]
+        do { child.executableURL = try BundledAutomation.executable() }
+        catch { message = error.localizedDescription; blocked = true; return }
+        child.arguments = ["workrect", support.path]
         child.standardInput = commands; child.standardOutput = replies
         do { try child.run() } catch { message = error.localizedDescription; blocked = true; return }
         process = child; input = commands.fileHandleForWriting

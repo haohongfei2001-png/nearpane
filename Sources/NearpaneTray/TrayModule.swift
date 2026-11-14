@@ -151,7 +151,7 @@ public final class TrayModule: HostModule {
         guard let current = collection else { return }
         collection = nil; collectionEnabled = false
         let pin = owner, previous = collectionDrain
-        collectionDrain = Task { await previous?.value; await current.binding.stop(); withExtendedLifetime(pin) {} }
+        collectionDrain = Task { await previous?.value; await current.finish(); withExtendedLifetime(pin) {} }
     }
     public func finishStopping() async {
         await connectionTask?.value
@@ -237,9 +237,12 @@ public final class TrayModule: HostModule {
         observing?.cancel(); observe = nil; consentSave = nil
         if let owner {
             owner.close()
-            if owner.hasPendingWork || observing != nil || saving != nil {
-                let previous = ownerDrain
-                ownerDrain = Task { await previous?.value; await observing?.value; _ = await saving?.value; await owner.finishWork() }
+            let previous = ownerDrain
+            ownerDrain = Task {
+                await previous?.value
+                await observing?.value
+                _ = await saving?.value
+                await owner.finishWork()
             }
         }
         owner = nil

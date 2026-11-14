@@ -155,8 +155,14 @@ final class TrayOwner {
         for waiter in waiters { waiter.resume() }
     }
     func finishWork() async {
-        guard hasPendingWork else { return }
-        await withCheckedContinuation { drainWaiters.append($0) }
+        if hasPendingWork {
+            await withCheckedContinuation { drainWaiters.append($0) }
+        }
+        // A phased adapter can return the click before its original append has
+        // committed the result. Durable UNKNOWN rows are not in-flight work.
+        while await transfer.hasInFlightAttachmentWork {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
     }
     func close() {
         guard !cancelled else { return }

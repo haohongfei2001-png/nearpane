@@ -55,6 +55,26 @@ def inspect(app):
                               minimumOS=target[0], distributionSignatureFields=release)
     if "MacOS/" + info["CFBundleExecutable"] not in inventory:
         raise ValueError("Host missing from inventory")
+    automation = contents / "Helpers/NearpaneAutomation"
+    if version(info["CFBundleShortVersionString"]) >= (5, 8, 0):
+        bound = info.get("NearpaneAutomationSHA256", {})
+        required = {"Helpers/NearpaneAutomation", "Resources/Automation/stdlib.zip",
+                    "Resources/Profile/profile-migration.py", "Resources/Profile/profile_domains.py",
+                    "Resources/WorkRect/window-management.py"}
+        if set(bound) != required:
+            raise ValueError("Incomplete bundled automation identity")
+        for relative, expected in bound.items():
+            item = contents / relative
+            if item.resolve() != item or hashlib.sha256(item.read_bytes()).hexdigest() != expected:
+                raise ValueError("Automation fingerprint mismatch: " + relative)
+        deps = cmd("/usr/bin/otool", "-L", str(automation)).splitlines()[1:]
+        allowed = ("/usr/lib/libSystem.B.dylib", "/usr/lib/libsqlite3.dylib", "/usr/lib/libz.1.dylib",
+                   "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation")
+        if any(line.strip().split(" (", 1)[0] not in allowed for line in deps):
+            raise ValueError("Automation depends on an external runtime")
+        for name in ("source.json", "build.json", "PYTHON-LICENSE.txt", "PYTHON-THIRD-PARTY-NOTICES.rst"):
+            if not (contents / "Resources/Automation" / name).is_file():
+                raise ValueError("Missing runtime provenance: " + name)
     return dict(bundle=info["CFBundleIdentifier"], version=info["CFBundleShortVersionString"],
                 minimumOS=deployment, binaries=inventory, missingDistributionSignatures=issues,
                 notarization="NOT_TESTED", cleanMacInstall="NOT_TESTED", publicRelease="NOT_ADMITTED")

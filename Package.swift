@@ -7,9 +7,13 @@ let full = Context.environment["NEARPANE_FOUNDATION_ONLY"] != "1"
 struct DomainPin: Decodable {
     let commit: String
     let treeSHA256: String
+    let sources: [String]
     var key: String { commit + "-" + treeSHA256 }
 }
-struct DomainLock: Decodable { let domains: [String: DomainPin] }
+struct DomainLock: Decodable {
+    let domains: [String: DomainPin]
+    let saytileUpdates: DomainPin
+}
 let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
 var targets: [Target] = [
@@ -39,7 +43,8 @@ if full {
         .target(name: "CAudio", path: saytile + "CAudio",
                 exclude: ["WEBRTC-LICENSE.txt", "webrtc/common_audio/signal_processing/dot_product_with_scale.cc"],
                 cSettings: [.headerSearchPath("."), .define("WEBRTC_POSIX")]),
-        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key,
+        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key + "-" + lock.saytileUpdates.key,
+                exclude: lock.saytileUpdates.sources.map { "Upstream/" + URL(fileURLWithPath: $0).lastPathComponent },
                 resources: [.copy("Upstream/Resources/ConnectionSample.pcm")]),
         .target(name: "RiftletCore", dependencies: ["CSQLite"], path: riftlet + "RiftletCore",
                 swiftSettings: [.swiftLanguageMode(.v5)]),

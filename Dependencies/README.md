@@ -5,7 +5,7 @@
 | 领域和固定提交 | 文件数 | 选定内容 SHA-256 |
 | --- | ---: | --- |
 | [Saytile](https://github.com/haohongfei2001-png/saytile/tree/2bd114f526013e6ccb422a26e17f4514e9d63836) | 93 | `5c65697b855ae9ec74e3d4b073df3cc6e5481e8c84448c10706dedbc30502ff5` |
-| [Riftlet](https://github.com/haohongfei2001-png/Riftlet/tree/5c0e3da8ae2339910321fa9211dc6c5d6d6a3a7d) | 78 | `7d8e3c7058a20eeb848c4827370c82bb086d1eb1239a9380054c55a01fa4dd26` |
+| [Riftlet](https://github.com/haohongfei2001-png/Riftlet/tree/44f745a15ecb3682a9da0bda17f17a5d9fc1f07e) | 81 | `cb0a150197db707df71531f5627e1146690340f88742135e1e8161ecadfe207b` |
 
 Saytile 的提交包含既定的单 ASR 专家和 GPT-6 核心。Riftlet 的提交提供 SQLite 队列、截图、转移和回执。Host 的两个 SQLite 模块声明须逐字节相同。原先已纳入 Nearpane 的单个语音按钮图形与 Saytile 此提交的 `Sources/SaytileApp/VoiceCaptureGlyph.swift` 相同，Git blob 为 `b48928c129b6dfb2f1a874628c57f72d128c27e8`。
 
@@ -23,3 +23,5 @@ git diff --no-index Dependencies/domains.lock.json build/saytile-candidate.lock.
 ```
 
 审查新增或移除的源文件、接口、许可证和桥接文件，明确采纳后替换锁文件并运行 `scripts/verify-standalone.sh`。升级 Riftlet 使用域名参数 `riftlet`。项目本身的 SwiftPM 定义、未公开组件的接口或许可范围发生变化时也要审查相应目标。不存在轮询分支或自动更新版本的任务。
+
+Saytile 当前以已封存 RC2 的 `492e0aff9baf4bf8dd5fb9d7f331dd5a6bc07a84` 为领域基线。锁文件的 `saytileUpdates` 独立固定 `46c676fc86de11411e11c239e435ecb5897c20bc` 的 `InputAccessibility.swift`、`InputCoordinator.swift`、`SpeechResultAccumulator.swift` 及原始声明。准备器校验两份来源，SwiftPM 明确排除基线的三份同名文件，只编译经校验的替换文件。缓存键同时包含两份来源的 commit 与清单指纹，重定向链接和未列出的源码会被拒绝。成品 Saytile 的 `source.json` 附带完整的更新清单，更新提交的声明保存在 `updates/`。后续使用 `--propose saytileUpdates <40位提交> <新锁文件>` 只提议这三份明确文件的升级，并独立核对接口、资料格式和专项回归。

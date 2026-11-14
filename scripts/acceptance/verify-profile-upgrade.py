@@ -15,6 +15,9 @@ import uuid
 from contextlib import closing, nullcontext
 
 ROOT = Path(__file__).resolve().parents[2]
+NO_EXTERNAL_RUNTIME = ('(deny file-read* (subpath "/Library/Developer") (subpath "/Applications/Xcode.app")'
+                       ' (subpath "/opt/homebrew") (subpath "/usr/local") (literal "/usr/bin/python3"))'
+                       '(deny process-exec (literal "/usr/bin/xcrun") (literal "/usr/bin/xcode-select"))')
 SANDBOX = ["/usr/bin/sandbox-exec", "-p",
            '(version 1)(allow default)(deny network-outbound)'
            '(deny file-read* file-write* (regex #"/Library/Application Support/(Nearpane|Saytile|Riftlet)"))']
@@ -34,8 +37,15 @@ def tree(root):
     return sha(json.dumps(manifest, sort_keys=True).encode())
 
 
-def run(args, *, reply=False):
-    proc = subprocess.run(SANDBOX + [str(x) for x in args], cwd=ROOT, capture_output=True, text=True, timeout=45)
+def run(args, *, reply=False, standalone=False, stdin=None):
+    policy = SANDBOX.copy()
+    env = None
+    if standalone:
+        policy[-1] += NO_EXTERNAL_RUNTIME
+        env = dict(os.environ, PATH="/usr/bin:/bin:/usr/sbin:/sbin",
+                   PYTHONHOME="/nonexistent/nearpane-python", PYTHONPATH="/nonexistent/nearpane-modules")
+    proc = subprocess.run(policy + [str(x) for x in args], cwd=ROOT, capture_output=True, text=True,
+                          input=stdin, timeout=45, env=env)
     if proc.returncode:
         raise ValueError(proc.stderr[-500:] or proc.stdout[-500:])
     if not reply:
@@ -161,10 +171,51 @@ def verify_read_errors(app):
                             databaseSHA256BeforeAndAfter=before))
     print(json.dumps({"hostSHA256":sha(host.read_bytes()), "refusals":results}, ensure_ascii=False, indent=2))
 
-def verify(old, new):
-    before, after = binary(old, "com.holdsnow.nearpane.candidate.p52"), binary(new, "com.holdsnow.nearpane.alpha")
-    legacy, fresh = prepare(before, False), prepare(after, True)
-    old_root = legacy / "support"
+def archived_fixture(receipt):
+    # Reuse the original synthetic import SOURCE, whose whole-tree fingerprint was
+    # recorded after the historical UNKNOWN was added. Never open its SQLite in place.
+    data = json.loads(receipt.read_bytes())
+    legacy = ROOT / "build/native-acceptance" / str(uuid.UUID(data["newSession"]))
+    marker = json.loads((legacy / "session.json").read_bytes())
+    require(str(uuid.UUID(marker["session"])) == legacy.name and marker["executableSHA256"] == data["newAppSHA256"],
+            "Archived session identity mismatch")
+    source = legacy / "Nearpane Alpha P5.2"
+    require(tree(source) == data["beforeSourceSHA256"] == data["afterSourceSHA256"] and
+            (source / "profile.version").read_bytes() == b"Nearpane P5.2\n", "Archived fixture differs")
+    return source, data["oldAppSHA256"]
+
+
+def reopen_previous(previous, container, reference, expected):
+    """Read the very same isolated generation with the actual previous and new binaries."""
+    before = binary(previous, "com.holdsnow.nearpane.alpha")
+    previous_session = prepare(before, True)
+    moved = previous_session / container.name
+    require(not moved.exists(), "Previous binary session is not empty")
+    key = reference.stat().st_dev, reference.stat().st_ino
+    container.rename(moved)
+    try:
+        report = run([before, "--verify-bundled-resources", "--profile-acceptance-open", previous_session.name],
+                     reply=True)
+        opened = Path(report["path"])
+        require(opened == moved / reference.relative_to(container) and
+                (opened.stat().st_dev, opened.stat().st_ino) == key, "Previous Host opened a different generation")
+        require(projection(evidence(opened)) == expected and report["counts"] == {"assets": 5, "recordings": 1},
+                "Previous Host changed data or could not read the two domains")
+    finally:
+        moved.rename(container)
+    require((reference.stat().st_dev, reference.stat().st_ino) == key, "Generation changed during round trip")
+    return dict(executableSHA256=sha(before.read_bytes()), session=previous_session.name, generation=report["generation"])
+
+
+def verify(old, new, fixture_receipt=None, previous=None):
+    after = binary(new, "com.holdsnow.nearpane.alpha")
+    if fixture_receipt:
+        old_root, old_hash = archived_fixture(fixture_receipt)
+    else:
+        before = binary(old, "com.holdsnow.nearpane.candidate.p52")
+        old_root, old_hash = prepare(before, False) / "support", sha(before.read_bytes())
+    legacy = old_root.parent
+    fresh = prepare(after, True)
     source = fresh / "Nearpane Alpha P5.2"
     original = tree(old_root)
     shutil.copytree(old_root, source)
@@ -172,22 +223,29 @@ def verify(old, new):
     # Add one historical, unresolved operation only to the verified copy. No transport is involved.
     q = source / "Riftlet/queue.sqlite"
     with closing(sqlite3.connect(q)) as db:
-        asset = db.execute("SELECT id FROM assets ORDER BY sequence LIMIT 1").fetchone()[0]
+        historical = db.execute("SELECT asset_id FROM operations WHERE phase='unknown'").fetchall()
+        asset = (historical[0][0] if historical else
+                 db.execute("SELECT id FROM assets ORDER BY sequence LIMIT 1").fetchone()[0])
         lease = json.dumps(dict(adapterID="chatgpt-web", surface="webChat", applicationID="com.google.Chrome",
                                 sessionID="synthetic", windowID="1", tabID="2", documentID="test-doc",
                                 composerID="test-editor", draftGeneration="test-generation"),sort_keys=True)
         op = str(uuid.uuid4()).upper()
         with db:
-            db.execute("""INSERT INTO operations(id,asset_id,attempt,target_key,target_json,phase,created_at,updated_at,reason)
-                          VALUES(?,?,1,?,?,'unknown',1,1,'isolated fixture')""", (op, asset, lease, lease))
-            db.execute("UPDATE assets SET status='unknown',active_operation_id=? WHERE id=?", (op, asset))
+            # An archived import source already contains the verified historical operation.
+            if historical:
+                require(len(historical) == 1 and db.execute("SELECT count(*) FROM operations").fetchone() == (1,),
+                        "Unexpected archived operation history")
+            else:
+                db.execute("""INSERT INTO operations(id,asset_id,attempt,target_key,target_json,phase,created_at,updated_at,reason)
+                              VALUES(?,?,1,?,?,'unknown',1,1,'isolated fixture')""", (op, asset, lease, lease))
+                db.execute("UPDATE assets SET status='unknown',active_operation_id=? WHERE id=?", (op, asset))
     # Preserve the user's settings for an offline display without assigning them to a different UUID.
     config_path = source / "Nearpane/host-configuration.json"
     config = json.loads(config_path.read_bytes())
     offline_display = str(uuid.uuid4()).upper()
     config["preferredDisplayID"] = offline_display
-    config["displays"][offline_display] = {"placement":"floating", "measures":[
-        "panelWidth", {"value":20, "unit":"pt"}, "panelHeight", {"value":20, "unit":"pt"}]}
+    config["displays"] = {offline_display: {"placement":"floating", "measures":[
+        "panelWidth", {"value":20, "unit":"pt"}, "panelHeight", {"value":20, "unit":"pt"}]}}
     config_path.write_text(json.dumps(config))
     fingerprint = tree(source)
     baseline = evidence(source)
@@ -196,15 +254,17 @@ def verify(old, new):
 
     container = fresh / "Nearpane Alpha Profiles"
     entry = [after, "--verify-bundled-resources", "--profile-acceptance-open", fresh.name]
-    helper = new / "Contents/Resources/Profile/profile-migration.py"
+    helper = new / "Contents/Helpers/NearpaneAutomation"
+    require(helper.is_file(), "Candidate lacks its packaged runtime")
+    runtime_check = run([after, "--check-helper-runtime"], standalone=True).strip()
     def migrate(action, *options):
-        value = run(["/usr/bin/python3", "-I", "-B", helper, action, "--container", container, *options], reply=True)
+        value = run([helper, "profile", action, "--container", container, *options], reply=True, standalone=True)
         require(value["ok"], "Profile operation failed")
         return value
     def active():
         identifier = json.loads((container / "profile-index.json").read_bytes())["active"]
         return container / "generations" / str(uuid.UUID(identifier))
-    first = run(entry, reply=True)
+    first = run(entry, reply=True, standalone=True)
     empty = evidence(active())
     require(empty["voice"]["recordings"]["count"] == 0 and not empty["tray"]["order"], "New profile already contains data")
     options = ("--source", source, "--sections", "voice,tray,settings")
@@ -223,14 +283,21 @@ def verify(old, new):
     require((imported_path/"Riftlet/imported-attachment-holds"/asset.lower()).is_file(), "Imported operation can be replayed")
     again = migrate("import", *options, "--token", plan["token"])
     require(again.get("duplicate") and active() == imported_path, "Duplicate import switched profiles")
-    reopened = run(entry, reply=True)
+    fallback = reopen_previous(previous, container, imported_path, projection(baseline)) if previous else None
+    reopened = run(entry, reply=True, standalone=True)
+    require(Path(reopened["path"]) == imported_path, "Re-upgrade selected another generation")
     require(projection(evidence(imported_path)) == projection(baseline), "Reopening the Alpha changed imported records")
     rollback = migrate("rollback", "--token", migrate("status")["rollbackToken"])
-    restored = run(entry, reply=True)
+    restored = run(entry, reply=True, standalone=True)
     require(projection(evidence(active())) == projection(empty), "Rollback failed to restore the previous profile")
     require(projection(evidence(imported_path)) == projection(baseline), "Rollback lost the imported generation")
     require(tree(source) == fingerprint and tree(old_root) == original, "Source changed")
-    receipt = dict(oldAppSHA256=sha(before.read_bytes()), newAppSHA256=sha(after.read_bytes()),
+    management = run([helper, "workrect", active()], reply=True, standalone=True, stdin="quit\n")
+    require(management["mode"] == "off" and not management["blocked"] and not management["members"]
+            and not management["windows"] and not list((active() / "WorkRect").rglob("action-*.json")),
+            "Empty profile unexpectedly managed a window")
+    receipt = dict(oldAppSHA256=old_hash, newAppSHA256=sha(after.read_bytes()), previousUnifiedHost=fallback,
+                   runtimeCheck=runtime_check, developerToolsDenied=True, workrect=management,
                    oldSession=legacy.name, newSession=fresh.name, beforeSourceSHA256=fingerprint,
                    afterSourceSHA256=tree(source), oldOriginalSHA256=original, preservedOfflineDisplay=offline_display,
                    originalFixtureIntact=tree(old_root)==original, old=baseline, imported=imported, empty=empty,
@@ -242,16 +309,19 @@ def verify(old, new):
     print(out/"packaged-upgrade.json")
 
 
-def verify_settings(old, new):
-    old_exe = binary(old, "com.holdsnow.nearpane.candidate.p52")
+def verify_settings(old, new, fixture_receipt=None):
     new_exe = binary(new, "com.holdsnow.nearpane.alpha")
     require(subprocess.run(["pgrep", "-x", "NearpaneHost"], stdout=subprocess.DEVNULL).returncode == 1,
             "Other Nearpane process is running or process inventory unavailable")
-    legacy, fresh = prepare(old_exe, False), prepare(new_exe, True)
+    if fixture_receipt:
+        legacy_source, _ = archived_fixture(fixture_receipt)
+    else:
+        legacy_source = prepare(binary(old, "com.holdsnow.nearpane.candidate.p52"), False) / "support"
+    fresh = prepare(new_exe, True)
     source = fresh / "Nearpane Alpha P5.2"
-    shutil.copytree(legacy / "support", source)
+    shutil.copytree(legacy_source, source)
     before = tree(source)
-    require(before == tree(legacy / "support"), "Synthetic Settings source is incomplete")
+    require(before == tree(legacy_source), "Synthetic Settings source is incomplete")
     run_id = str(uuid.uuid4())
     out = ROOT/"build/verification/p53"/fresh.name
     out.mkdir(parents=True, mode=0o700)
@@ -270,7 +340,8 @@ def verify_settings(old, new):
         raise ValueError("Settings checkpoint timed out")
     records = []
     with (out/"settings.log").open("xb") as log:
-        child = subprocess.Popen(SANDBOX + [str(new_exe), "--native-acceptance-secondary", fresh.name],
+        policy = SANDBOX[:-1] + [SANDBOX[-1] + NO_EXTERNAL_RUNTIME]
+        child = subprocess.Popen(policy + [str(new_exe), "--native-acceptance-secondary", fresh.name],
                                  cwd=ROOT, env=env, stdout=log, stderr=log)
         try:
             file = wait(lambda: next(fresh.glob("profile-settings-*.json"), None))
@@ -311,7 +382,9 @@ def verify_settings(old, new):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old", type=Path, default=Path.home()/"Applications/Nearpane P5.2/Nearpane P5.2 Alpha.app")
-    parser.add_argument("--new", type=Path, default=Path.home()/"Applications/Nearpane P5.3/Nearpane P5.3 Alpha.app")
+    parser.add_argument("--new", type=Path, default=Path.home()/"Applications/Nearpane.app")
+    parser.add_argument("--fixture-receipt", type=Path, help="Use a verified legacy synthetic fixture after retiring its app")
+    parser.add_argument("--previous-unified", type=Path, help="Also verify downgrade and re-upgrade on the same generation")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--settings", action="store_true", help="Press the real Settings controls in the marked secondary panel")
     mode.add_argument("--read-errors", action="store_true", help="Check the installed Host's profile refusal reasons without GUI")
@@ -319,5 +392,7 @@ if __name__ == "__main__":
     os.umask(0o077)
     if args.read_errors:
         verify_read_errors(args.new.resolve(strict=True))
+    elif args.settings:
+        verify_settings(args.old, args.new.resolve(strict=True), args.fixture_receipt)
     else:
-        (verify_settings if args.settings else verify)(args.old.resolve(strict=True), args.new.resolve(strict=True))
+        verify(args.old, args.new.resolve(strict=True), args.fixture_receipt, args.previous_unified)

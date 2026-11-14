@@ -45,7 +45,9 @@ def rehearse(source):
         ctl = helpers / "NearpaneFrameController.app"
         readers = (helpers / "NearpaneDesktopReader", fixture / "Contents/Helpers/NearpaneDesktopReader")
         writer = helpers / "NearpaneOrdinaryWindowController"
-        for binary in (*readers, writer):
+        automation = helpers / "NearpaneAutomation"
+        additional = [automation] if automation.exists() else []
+        for binary in (*readers, writer, *additional):
             if binary.is_symlink() or not binary.is_file():
                 raise ValueError("Expected regular helper binary")
             # Keep the existing designated identifier of each standalone executable.
@@ -57,10 +59,17 @@ def rehearse(source):
         pin(fixture, "NearpaneDesktopReaderSHA256", readers[1])
         pin(temp, "NearpaneDesktopReaderSHA256", readers[0])
         pin(temp, "NearpaneOrdinaryWindowControllerSHA256", writer)
+        if additional:
+            plist = temp / "Contents/Info.plist"
+            info = plistlib.loads(plist.read_bytes())
+            info["NearpaneAutomationSHA256"]["Helpers/NearpaneAutomation"] = sha(automation)
+            plist.write_bytes(plistlib.dumps(info))
         for bundle in (fixture, ctl, temp):
             identifier = plistlib.loads((bundle / "Contents/Info.plist").read_bytes())["CFBundleIdentifier"]
             sign(bundle, identifier)
         after = gate.inspect(temp)
+        if additional:
+            gate.cmd(str(temp / "Contents/MacOS/NearpaneHost"), "--check-helper-runtime")
         if set(original["binaries"]) != set(after["binaries"]):
             raise ValueError("Binary inventory changed")
         for bundle, key, executable in ((temp, "NearpaneDesktopReaderSHA256", readers[0]),
@@ -74,7 +83,7 @@ def rehearse(source):
                 raise ValueError("Expected only a hardened rehearsal signature: " + rel)
         if signed_tree != {p.relative_to(source): sha(p) for p in source.rglob("*") if p.is_file()}:
             raise ValueError("Input candidate changed")
-        return dict(inputUnchanged=True, sealedBinaries=len(after["binaries"]), refreshedHelperPins=3,
+        return dict(inputUnchanged=True, sealedBinaries=len(after["binaries"]), refreshedHelperPins=3+len(additional),
                     developerIDUsed=False, uploaded=False, notarization="NOT_TESTED", outcome="LOCAL_REHEARSAL_ONLY")
 
 

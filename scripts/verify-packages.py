@@ -81,7 +81,14 @@ def verify(app, lock, sandbox):
                 raise ValueError("Unexpected profile migration resource: " + name)
     for name,pin in lock["domains"].items():
         provenance = json.loads((root/"Upstream"/name/"source.json").read_text())
-        if provenance != {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}:
+        expected = {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}
+        if name == "saytile":
+            updates = lock["saytileUpdates"]
+            expected["updates"] = updates
+            for notice in updates["notices"]:
+                if digest(root/"Upstream"/name/"updates"/notice) != updates["files"][notice]:
+                    raise ValueError("Incorrect packaged Saytile update notice: "+notice)
+        if provenance != expected:
             raise ValueError("Incorrect packaged provenance: "+name)
         checks = {**RESOURCE_PATHS[name], **{n: "Upstream/"+name+"/"+n for n in pin["notices"]}}
         for src,out in checks.items():

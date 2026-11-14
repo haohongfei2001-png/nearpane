@@ -3,6 +3,7 @@
 import argparse
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -15,9 +16,10 @@ import tempfile
 import uuid
 from contextlib import contextmanager
 
-# The signed launcher uses -I -B. Only load the module shipped beside this entry.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import profile_domains as domains
+# Only this verified sibling is importable. Keep the script directory off sys.path.
+_domain_spec = importlib.util.spec_from_file_location("profile_domains", Path(__file__).with_name("profile_domains.py"))
+domains = importlib.util.module_from_spec(_domain_spec)
+_domain_spec.loader.exec_module(domains)
 
 MARKER = b"Nearpane P5.3\n"
 LEGACY = {"Nearpane P" + v for v in ("4.8", "4.8.1", "4.9", "5.0", "5.1", "5.2")}

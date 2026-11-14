@@ -14,8 +14,16 @@ import Testing
     var evidence = true
     var readCount = 0
     var sent = [String]()
+    var fieldText = ""
+    var timeoutOnFirstWrite = false
+    var afterTimeoutRead: ((SelectedField) throws -> Void)?
+    var witnessedFirstEdit = false
     var observed: (@MainActor (InputTargetChange) -> Void)?
-    func snapshot() throws -> InputTargetSnapshot { readCount += 1; return target }
+    func snapshot() throws -> InputTargetSnapshot {
+        readCount += 1
+        if witnessedFirstEdit { try afterTimeoutRead?(self) }
+        return target
+    }
     func observe(_ expected: InputTargetSnapshot, onChange: @escaping @MainActor (InputTargetChange) -> Void) -> InputObservationSupport {
         observed = onChange
         return .init(focus: true, content: true, page: true)
@@ -24,8 +32,15 @@ import Testing
     func dispatch(_ text: String, to expected: InputTargetSnapshot) throws -> Bool {
         guard expected == target else { return false }
         sent.append(text)
+        fieldText += text
         target.selectionLocation += text.utf16.count
+        if timeoutOnFirstWrite && sent.count == 1 { throw AXTextWriteTimeout() }
         return true
+    }
+    func textWitness(at expected: InputTargetSnapshot) -> String? {
+        guard expected == target else { return nil }
+        witnessedFirstEdit = timeoutOnFirstWrite && sent.count == 1
+        return fieldText
     }
     func verify(_ text: String, at before: InputTargetSnapshot) -> InputTargetSnapshot? { evidence ? target : nil }
     func matchesText(_ text: String, utf16Start: Int, at expected: InputTargetSnapshot) -> Bool? {
@@ -117,6 +132,36 @@ import Testing
         #expect(!restarted.offersManualInput && restarted.insertDisplayedText() == nil && restarted.rows.count == 2)
         #expect(field.sent.count == 1)
         restarted.stop(); await restarted.waitForTransition()
+    }
+
+    @Test(arguments: ["stable", "unreadable", "edited", "focusABA", "foreignText"])
+    func singleTimedOutMutationCanOnlySettleOnTheOriginalUnchangedField(scenario: String) async throws {
+        var readsAfterWitness = 0
+        let (module, field, dir) = try await fixture(prepare: { field in
+            field.timeoutOnFirstWrite = true
+            field.afterTimeoutRead = { field in
+                readsAfterWitness += 1
+                if readsAfterWitness == 1 || scenario == "unreadable" { throw NativeInputError.unsupported }
+                if readsAfterWitness == 2 {
+                    switch scenario {
+                    case "edited": field.observed?(.contentOrSelection)
+                    case "focusABA": field.observed?(.focusOrDocument)
+                    case "foreignText": field.fieldText = "另一段"
+                    default: break
+                    }
+                }
+            }
+        })
+        defer { try? FileManager.default.removeItem(at: dir) }
+        await module.insertDisplayedText()?.value
+        if scenario == "stable" {
+            #expect(readsAfterWitness >= 3)
+            #expect(field.sent == ["合成一", "第二段"] && module.insertionNotice == "已插入 2 段文字。")
+        } else {
+            #expect(field.sent == ["合成一"] && module.insertionNotice == NativeInputResult.unverified.message)
+        }
+        #expect(field.observed == nil)
+        module.stop(); await module.waitForTransition()
     }
 
     @Test(arguments: ["field", "window", "caret", "revoked", "expired", "shutdown"])

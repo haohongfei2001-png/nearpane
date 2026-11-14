@@ -31,6 +31,7 @@ private final class FolderGrant: @unchecked Sendable {
 @MainActor
 final class TrayCollection {
     let binding: CaptureSourceBinding
+    private let service: CaptureService
     init(owner: TrayOwner, selected: URL, provider: any CaptureLocationProviding, consent: CaptureFolderConsent? = nil,
          invalidated: @escaping @MainActor @Sendable () -> Void = {}) throws {
         let grant = try FolderGrant(selected)
@@ -42,7 +43,7 @@ final class TrayCollection {
         let change = owner.notify, report = owner.report
         let magnet = owner.magnetEnabled
         let arrival: @MainActor @Sendable (TrayArrival) -> Void = { [weak owner] in owner?.arrived?($0) }
-        let service = CaptureService(store: owner.store, privateRoot: owner.root, sourceDirectory: selected,
+        service = CaptureService(store: owner.store, privateRoot: owner.root, sourceDirectory: selected,
             permitsRead: { grant.permits($0) && consent?.resolves($0) != false }, onChange: { await change() },
             onImported: { row, observation in
                 guard magnet else { return }
@@ -51,8 +52,15 @@ final class TrayCollection {
                     await arrival(.init(id: row.id, ready: observation.readyUptime, source: .system(metadata)))
                 }
             },
-            onIssue: { _ in await report("系统截图目录暂不可用；已保留原队列。") })
+            onDiagnostic: { diagnostic in await report(diagnostic.userMessage) })
         binding = CaptureSourceBinding(service: service, provider: provider, permitsSource: { grant.permits($0) && consent?.resolves($0) != false },
             onIssue: { _ in await invalidated() })
+    }
+
+    func finish() async {
+        await binding.stop()
+        // A filesystem scan can still be awaiting an import or its journal callback.
+        // Keep this collection's store and exclusive lock alive through that work.
+        await service.finishForApplicationExit()
     }
 }

@@ -86,6 +86,34 @@ class DependencyTests(unittest.TestCase):
             bad = dict(pin, treeSHA256="f"*64)
             with self.assertRaisesRegex(resolver.DependencyError, "inventory SHA"):
                 resolver.validate(bad)
+        resolver.validate_voice_updates(lock["domains"]["saytile"], lock["saytileUpdates"])
+
+    def test_voice_update_only_replaces_the_named_locked_sources(self):
+        lock = json.loads(resolver.LOCK.read_text())
+        base, updates = lock["domains"]["saytile"], lock["saytileUpdates"]
+        for bad in (dict(updates, repository="different/Upstream"),
+                    dict(updates, sources=["Sources/SaytileKit"]),
+                    dict(updates, sources=updates["sources"] * 2)):
+            with self.subTest(), self.assertRaises(resolver.DependencyError):
+                resolver.validate_voice_updates(base, bad)
+
+    def test_voice_updates_are_exact_compiler_inputs_and_reject_redirection(self):
+        upstream = self.cache / resolver.key(self.pin) / "Sources/SaytileKit"
+        upstream.mkdir(parents=True)
+        updates = dict(fixture(), commit="b"*40, sources=["Sources/one.swift", "Sources/two.swift"])
+        for path, contents in FILES.items():
+            target = self.cache / resolver.key(updates) / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(contents)
+        resolver.voice_bindings(self.cache, self.pin, updates)
+        bound = self.cache / ("voice-" + resolver.key(self.pin) + "-" + resolver.key(updates))
+        for path, contents in FILES.items():
+            self.assertEqual((bound / Path(path).name).read_bytes(), contents)
+        replacement = bound / "one.swift"
+        replacement.unlink()
+        replacement.symlink_to(self.cache / resolver.key(updates) / "Sources/two.swift")
+        with self.assertRaisesRegex(resolver.DependencyError, "Invalid SaytileKit bridge"):
+            resolver.voice_bindings(self.cache, self.pin, updates)
 
     def test_voice_bridge_refuses_redirected_upstream_inputs(self):
         domain = self.cache / resolver.key(self.pin) / "Sources/SaytileKit"

@@ -5,6 +5,18 @@ import CAudio
 @testable import SaytileKit
 
 struct PCMPipelineTests {
+    @Test func finalMandarinPunctuationIsBoundToItsRangeAndSurvivesRedelivery() {
+        var transcript = SpeechResultAccumulator()
+        _ = transcript.apply(start: 0, end: 1, text: "第一句 ，", isFinal: false)
+        let otherRange = transcript.apply(start: 2, end: 2, text: "。", isFinal: true)
+        #expect(otherRange.stableText == "" && otherRange.fullText == "第一句，")
+        _ = transcript.apply(start: 1, end: 2, text: "第二句", isFinal: false)
+        let final = transcript.apply(start: 2, end: 2, text: "。", isFinal: true, finalizedThrough: 2)
+        #expect(final.fullText == "第一句，第二句。" && final.stableText == final.fullText && final.isCompletelyFinal)
+        #expect(transcript.apply(start: 2, end: 2, text: "。", isFinal: true) == final)
+        #expect(transcript.apply(start: 2, end: 2, text: "别的文字", isFinal: true) == final)
+    }
+
     @Test func injectedSamplesDrainThroughTheDomainRingAndJournalWithoutRecognition() async throws {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data")

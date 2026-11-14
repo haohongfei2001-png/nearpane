@@ -6,8 +6,8 @@ source scripts/build-paths.sh
 app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
-version=5.7
-build_number=57
+version=5.8
+build_number=58
 name="Nearpane P$version Alpha.app"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications}"
 if [[ "${delivery%/}" == "$HOME/Applications" ]]; then
@@ -35,8 +35,10 @@ cp scripts/window-management.py "$candidate/Contents/Resources/WorkRect/"
 mkdir "$candidate/Contents/Resources/Profile"
 install -m 644 scripts/profile-migration.py scripts/profile_domains.py "$candidate/Contents/Resources/Profile/"
 install -m 644 docs/ALPHA-HELP.md "$candidate/Contents/Resources/AlphaHelp.md"
+python3 -B scripts/build-helper-runtime.py "$candidate"
 codesign --force --sign - --identifier com.holdsnow.nearpane.alpha "$candidate"
 codesign --verify --strict --deep "$candidate"
 "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
+"$candidate/Contents/MacOS/NearpaneHost" --check-helper-runtime
 python3 scripts/check-alpha-distribution.py "$candidate" > "$stage/package.json"
 python3 -I -B scripts/publish-candidate.py "$candidate" "$delivery/$name" "$receipt"
