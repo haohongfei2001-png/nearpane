@@ -4,7 +4,11 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.7 Alpha。2026-11-14 归并安装时使用原签名包，Host SHA-256 为 `7f07b68da4bcf720545ee2ea63e4bccc722d0bf7249c93a1286fb4945a20a833`。六个原生可执行文件的指纹和交付清单一致。Launch Services 按稳定标识 `com.holdsnow.nearpane.alpha` 返回此路径。旧安装目录及其内置备份已移至本机废纸篓，历史验收文档中的安装路径仅记录当时的交付。资料代际及其回退入口继续由原资料管理器维护。[本机归并清单](../../build/verification/install-consolidation/manifest.json) · [旧版实拍与收据](../../build/verification/install-consolidation/旧版交付资料)
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.8 Alpha，稳定标识 `com.holdsnow.nearpane.alpha`。成品源码 `b2c849b6ff0f643191bf42bb76e2478c89517c33`，Host SHA-256 `ee8edf7832f2e17a185de842dae2ff0bba7a3cbd73730be5bea52ca3ec09f23b`。七个原生可执行文件和 26 项资源通过最终包校验，Launch Services 实际启动副屏隔离实例并正常退出。原 5.7 包已校验归档，个人资料保持原状，资料代际及回退沿用原管理器。[当前交付](P5.8-RUNTIME-AND-UPSTREAM-DELIVERY.md) · [5.7 回退包](../../build/verification/p58/rollback/Nearpane-5.7.zip)
+
+## P5.8 随包运行环境与兼容领域更新
+
+窗口管理及资料导入通过已签封的包内助手运行。在禁止开发工具、外部 Python 和网络的环境中完成随包入口、升级、重复导入、回退和实际 Settings 操作。旧 5.7 与新 5.8 依次读回同一隔离代际，文字、五图、媒体摘要、顺序与 UNKNOWN 保留。Riftlet 更新截图收录排空、附件生命周期与诊断；Saytile 更新兼容识别配置、中文最终标点及单次输入超时读回。共 178 项固定源，继续 Saytile schema 5 和 Riftlet schema 4。集成 317/317，独立 Host 250/250，Debug / Release 通过。Saytile 新时间线、多模型和 schema 6 尚未迁入。桌面往返、真人语音、真实草稿上传继续搁置。[完整验证及边界](P5.8-RUNTIME-AND-UPSTREAM-DELIVERY.md) · [Saytile 采用与延期范围](P5.8-SAYTILE-INTEGRATION.md)
 
 ## 副屏 A/B 实机 · 2026-11-14
 
@@ -150,7 +154,7 @@ P5.6 第一份安装包的 Host 为 `a708574915fb44e5d9627ad56a55387de6b305aebe3
 | 首次使用、权限说明和故障处置 | IMPLEMENTED · 安装包内提供可离线阅读的使用帮助；设置显示授权范围、拒绝原因及待处理恢复 | [随包帮助](../../docs/ALPHA-HELP.md)。当前系统的隔离运行已验证；新设备的 TCC 首次授权和不同辅助技术用户的上手体验未实测。 |
 | 升级、资料契约、备份、失败回退 | VERIFIED · P5.2 → P5.3 隔离副本实测，P5.4、P5.5 沿用相同格式和身份；旧操作、TCC 和窗口票据不继承 | [升级回退](P5.3-UPGRADE-ROLLBACK-ACCEPTANCE.md)，`cc36d14`。更早版本按标记和真实 schema 拒绝不兼容；本轮不迁移个人资料。 |
 | 驻留、退出屏障、权限及资源 | PARTIAL · 领域进程排空、关闭观察器、睡眠/唤醒和历史一小时驻留有证据；不是普通窗口观察长期电量基准 | [P3.7](P3.7-hardening-closeout.md)、[P5.2](P5.2-MULTIDISPLAY-ACCEPTANCE.md)。新加入的长期观察以限定目标、有限采样和退出清理测量。 |
-| Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，6 个 Mach-O 均有 arm64，按各自部署下限验签；正式签名、公证、干净设备验收仍 BLOCKED | [打包检查](../../scripts/check-alpha-distribution.py)、[发布门禁](../../build/verification/product/distribution-gate.json)。[Apple 公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)：按授权签名并加固、时间戳、公证、干净机安装验证。已在一次性副本按嵌套顺序加固、重新计算 3 项助手指纹、重新封签 6 个 Mach-O；[原包保持一致](../../build/verification/product/signing-rehearsal.json)。未使用发布凭据或上传；窗口/资料助手仅使用已安装的 Apple 签名 Python，缺失时拒绝、不触发安装。 |
+| Apple Silicon、安装及公开发行 | PARTIAL · 本地开发签名，7 个 Mach-O 为 arm64，macOS 26 起；正式签名、公证和另一台干净设备验收待完成 | 包内运行环境已在禁止开发工具和外部 Python 的沙箱中通过。最终 App 实际 Launch Services 启动、嵌套验签、资源指纹和原包不变的签名演练通过。未使用发布凭据。[当前交付及限制](P5.8-RUNTIME-AND-UPSTREAM-DELIVERY.md) · [最终签名检查](../../build/verification/p58/installed-distribution.json) · [签名演练](../../build/verification/p58/signing-rehearsal.json) |
 
 ## P5.5 交付记录
 
