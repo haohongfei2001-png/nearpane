@@ -20,6 +20,7 @@ mkdir -p "$destination"
 /usr/bin/codesign --verify --strict "$binary_dir/NearpaneHost"
 # A fresh stage avoids carrying old resources/signatures into a development bundle.
 staging_dir="$(mktemp -d "$PWD/$destination/.Nearpane-stage.XXXXXX")"
+trap 'rm -rf "$staging_dir"' EXIT
 stage="$staging_dir/Nearpane.app"
 mkdir -p "$stage/Contents/MacOS" "$stage/Contents/Resources"
 cp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
@@ -64,11 +65,68 @@ else
 fi
 /usr/bin/plutil -lint "$stage/Contents/Info.plist"
 "$stage/Contents/MacOS/NearpaneHost" --verify-bundled-resources
-if [ -e "$bundle" ]; then
-  previous="$(mktemp -d "$PWD/$destination/previous.XXXXXX")"
-  mv "$bundle" "$previous/Nearpane.app"
-fi
-mv "$stage" "$bundle"
-rmdir "$staging_dir"
-cmp "$binary_dir/NearpaneHost" "$bundle/Contents/MacOS/NearpaneHost"
+cmp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
+# After an exchange the stage holds the former bundle. Only the publisher may dispose of it.
+trap - EXIT
+python3 - "$stage" "$bundle" <<'PY'
+import ctypes
+import fcntl
+import os
+from pathlib import Path
+import plistlib
+import shutil
+import stat
+import subprocess
+import sys
+
+stage, product = (Path(p).absolute() for p in sys.argv[1:])
+new = stage.stat()
+
+def entries(folder):
+    return {path.relative_to(folder): stat.S_IFMT(path.lstat().st_mode) for path in folder.rglob("*")}
+
+def verify_previous():
+    if product.is_symlink() or not product.is_dir():
+        raise SystemExit(f"Unexpected build output at {product}; preserved.")
+    expected = entries(stage)
+    previous = entries(product)
+    for path, kind in previous.items():
+        if (expected.get(path) != kind or kind not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK)
+                or (kind == stat.S_IFLNK and os.readlink(product / path) != os.readlink(stage / path))):
+            raise SystemExit(f"Unexpected entry in prior development build: {path}; preserved.")
+    info = plistlib.loads((product / "Contents/Info.plist").read_bytes())
+    if (info.get("CFBundleIdentifier"), info.get("CFBundleExecutable")) != ("com.holdsnow.nearpane.host", "NearpaneHost"):
+        raise SystemExit(f"Unrecognized development bundle at {product}; preserved.")
+    executables = [product / path for path, kind in previous.items()
+                   if kind == stat.S_IFREG and os.access(product / path, os.X_OK)]
+    if not executables:
+        raise SystemExit(f"Missing executable in prior development bundle at {product}; preserved.")
+    users = subprocess.run(["/usr/sbin/lsof", "-nP", "-t", "-d", "txt", "-a", "--", *executables],
+                           capture_output=True)
+    if users.stdout or users.stderr or users.returncode != 1:
+        raise SystemExit(f"Prior development bundle is running or its use could not be checked: {product}")
+
+# Darwin swaps nonempty directories atomically. A failed publish leaves the original at its path.
+def rename(flag):
+    darwin = ctypes.CDLL(None, use_errno=True)
+    if darwin.renamex_np(os.fsencode(stage), os.fsencode(product), flag) != 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error), str(product))
+
+directory = os.open(product.parent, os.O_RDONLY | os.O_DIRECTORY)
+try:
+    fcntl.flock(directory, fcntl.LOCK_EX)
+    if os.path.lexists(product):
+        verify_previous()
+        rename(0x2)  # RENAME_SWAP
+        shutil.rmtree(stage)
+    else:
+        rename(0x4)  # RENAME_EXCL
+finally:
+    os.close(directory)
+    if stage.exists() and os.path.samestat(stage.lstat(), new):
+        shutil.rmtree(stage)
+    if not os.path.lexists(stage):
+        stage.parent.rmdir()
+PY
 echo "Built $bundle (development executable signature and offline resources verified; no GUI launch)."

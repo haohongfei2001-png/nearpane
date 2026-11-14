@@ -1,6 +1,6 @@
 # 本地 Alpha 与公开发行的边界
 
-个人 Alpha 使用固定标识 `com.holdsnow.nearpane.alpha`、资料格式 1 和单写锁。构建新版本时保留上一版应用，不在旧应用上重新签名，也不让两版同时使用活动资料。实际启动方式和遇到问题时的处理见[使用帮助](ALPHA-HELP.md)。
+个人 Alpha 的固定安装位置是 `~/Applications/Nearpane.app`，应用标识为 `com.holdsnow.nearpane.alpha`。正常退出 Nearpane 后运行 `scripts/build-candidate.sh`，脚本会检查候选包的签名与领域资源，再原子替换原位置的应用。默认安装的包收据在 `build/candidate/package.json`。需要单独冻结某次工程交付时，可用 `NEARPANE_CANDIDATE_OUTPUT` 指定独立目录。各版沿用资料格式 1 和单写锁。[Alpha 使用帮助](ALPHA-HELP.md)
 
 在本机可以离线运行两项检查（参数是已经冻结的 Alpha 路径）：
 

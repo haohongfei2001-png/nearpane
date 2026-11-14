@@ -9,10 +9,17 @@ lab="$(cat build/window-lab/apps-path.txt)"
 version=5.7
 build_number=57
 name="Nearpane P$version Alpha.app"
-delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications/Nearpane P$version}"
+delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications}"
+if [[ "${delivery%/}" == "$HOME/Applications" ]]; then
+    name="Nearpane.app"
+    receipt="$product_root/candidate/package.json"
+else
+    receipt="$delivery/package.json"
+fi
+[[ ! -L "${delivery%/}" ]] || { echo "Installation directory is a symlink: $delivery" >&2; exit 1; }
 mkdir -p "$delivery"
-stage="$(mktemp -d "$delivery/.stage.XXXXXXXX")"
-trap 'rm -rf "$stage"' EXIT
+stage="$(mktemp -d "$delivery/.nearpane-stage.XXXXXXXX")"
+trap 'if [[ ! -e "$stage/keep-for-recovery" ]]; then rm -rf "$stage"; fi' EXIT
 candidate="$stage/$name"
 ditto --norsrc --noextattr "$app" "$candidate"
 /usr/bin/plutil -replace CFBundleIdentifier -string com.holdsnow.nearpane.alpha "$candidate/Contents/Info.plist"
@@ -32,13 +39,4 @@ codesign --force --sign - --identifier com.holdsnow.nearpane.alpha "$candidate"
 codesign --verify --strict --deep "$candidate"
 "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
 python3 scripts/check-alpha-distribution.py "$candidate" > "$stage/package.json"
-previous=""
-if [[ -e "$delivery/$name" ]]; then
-    previous="$(mktemp -d "$delivery/.previous.XXXXXXXX")"
-    mv "$delivery/$name" "$previous/"
-fi
-if ! mv "$candidate" "$delivery/"; then
-    if [[ -n "$previous" ]]; then mv "$previous/$name" "$delivery/"; fi
-    exit 1
-fi
-mv "$stage/package.json" "$delivery/package.json"
+python3 -I -B scripts/publish-candidate.py "$candidate" "$delivery/$name" "$receipt"

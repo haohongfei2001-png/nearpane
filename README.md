@@ -10,7 +10,7 @@
 
 侧栏以屏幕宽度的 1/8 贴合可用边缘；语音与截图合计占可用高度的 3/8，其余 5/8 留给空间区。菜单栏提供显示、隐藏、设置和退出。Host 配置、摆放与隐藏意图单独保存。语音内容留在 Nearpane 的 Voice 领域库；截图和未确认的附加操作留在已有的 Riftlet 资料库。退出或停用不会删除领域数据，也不会把权限写进 Host 配置。
 
-[个人 Alpha 使用帮助](docs/ALPHA-HELP.md) · [当前能力、验收和接续工作](engineering/verification/PRODUCT_COMPLETION_STATE.md)
+日常使用请在 Finder 打开 `~/Applications/Nearpane.app`。以后更新沿用这个入口和已有 Alpha 资料。[个人 Alpha 使用帮助](docs/ALPHA-HELP.md) · [当前能力和验收记录](engineering/verification/PRODUCT_COMPLETION_STATE.md)
 
 ## 当前正式产品权威（2026-11-09）
 本工程分支使用本仓库内的 **[PRODUCT_DEFINITION.md](PRODUCT_DEFINITION.md)**、**[视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)** 与 **[交互规范](design/INTERACTION-SPEC.md)** 作为产品实施依据。细化决策见 [ADR-010](decisions/ADR-010-DUAL-WORKSPACE-MODES.md)、[ADR-011](decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)、[ADR-012](decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)、**[ADR-013](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)**。相互冲突时以用户更新、更具体的 **ADR-013** 为准；旧原型、旧测试和早期文档仅保留历史参考地位。

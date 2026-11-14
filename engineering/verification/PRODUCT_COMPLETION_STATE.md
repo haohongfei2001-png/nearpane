@@ -4,7 +4,7 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前可打开的版本**　[Nearpane P5.7 Alpha](</Users/hhf/Applications/Nearpane P5.7/Nearpane P5.7 Alpha.app>)。回退时正常退出当前版本，再打开 [P5.6 Alpha](</Users/hhf/Applications/Nearpane P5.6/Nearpane P5.6 Alpha.app>)。两个版本沿用稳定资料身份，普通用户窗口自动接管默认关闭。
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.7 Alpha。2026-11-14 归并安装时使用原签名包，Host SHA-256 为 `7f07b68da4bcf720545ee2ea63e4bccc722d0bf7249c93a1286fb4945a20a833`。六个原生可执行文件的指纹和交付清单一致。Launch Services 按稳定标识 `com.holdsnow.nearpane.alpha` 返回此路径。旧安装目录及其内置备份已移至本机废纸篓，历史验收文档中的安装路径仅记录当时的交付。资料代际及其回退入口继续由原资料管理器维护。[本机归并清单](../../build/verification/install-consolidation/manifest.json) · [旧版实拍与收据](../../build/verification/install-consolidation/旧版交付资料)
 
 ## 副屏 A/B 实机 · 2026-11-14
 
