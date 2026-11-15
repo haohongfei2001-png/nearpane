@@ -292,7 +292,9 @@ struct IntegratedHostTests {
         let frame = SurfaceRect(width: 1920, height: 960)
         controller.place(screens: [.init(id: "fixture", frame: frame, visibleFrame: frame)])
         let window = try #require(controller.window), content = try #require(window.contentView)
-        content.appearance = NSAppearance(named: .aqua)
+        let darkExport = ProcessInfo.processInfo.environment["NEARPANE_RENDER_FIXTURES"] == "1"
+            && ProcessInfo.processInfo.environment["NEARPANE_RENDER_DARK"] == "1"
+        content.appearance = NSAppearance(named: darkExport ? .darkAqua : .aqua)
         content.layoutSubtreeIfNeeded()
         #expect(window.frame.width == 240 && window.frame.height == 960 && !window.isVisible)
         let hosting = try #require(content.subviews.first)
@@ -316,7 +318,7 @@ struct IntegratedHostTests {
                     bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
                     bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
                 let pixels = CGRect(x: 0, y: 0, width: source.width, height: source.height)
-                flat.setFillColor(CGColor(gray: 0.95, alpha: 1)); flat.fill(pixels)
+                flat.setFillColor(CGColor(gray: darkExport ? 0.13 : 0.95, alpha: 1)); flat.fill(pixels)
                 flat.draw(source, in: pixels)
                 // No other content is expected near the center of the bottom 5/8.
                 // The area must actually contain the unknown-state label, not a clipped empty view.
@@ -334,7 +336,7 @@ struct IntegratedHostTests {
                 let data = try #require(bitmap.representation(using: .png, properties: [:]))
                 let folder = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("build/verification/hidden")
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                try data.write(to: folder.appendingPathComponent("host-\(state).png"))
+                try data.write(to: folder.appendingPathComponent("host-\(state)\(darkExport ? "-dark" : "").png"))
             }
         }
         #expect(!window.isVisible && !window.isKeyWindow && !window.isMainWindow)

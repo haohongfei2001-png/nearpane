@@ -4,7 +4,11 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.9 Alpha，稳定标识 `com.holdsnow.nearpane.alpha`。主体实现 `1d68c48`、实际控件修复 `f10ccf1`、最终验收接线 `c1c06e2104bf4cd61d244dcaf5f30fd7c7f99414`。Host SHA-256 `c7a941776025695c30b4c45b0cb513aaa1fdbe032e61e1cde8dc1ef2f1af9e50`。十二个可执行文件和 28 项资源通过最终包校验；保持唯一安装入口。原 5.8 已核验归档，个人资料未迁移或覆盖。[当前交付](P5.9-APPLICATION-SERVICES-DELIVERY.md) · [5.8 回退包](../../build/verification/p59/rollback/Nearpane-5.8.zip)
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.10 Alpha/build60，稳定标识 `com.holdsnow.nearpane.alpha`。产品实现 `8d5e69029d2b884901f2e12e37ddeb3416f70112`，Host SHA-256 `12d0f7630c2f640d6c6b8d1ee1482ded550f41c923d79481aeecffb1a7744050`。十二个可执行文件、30 项资源及三份 App 图标通过最终包校验；保持唯一安装入口。旧 5.9 已核验归档，个人资料未读取、迁移或覆盖。[当前交付](P5.10-VISUAL-AUTHORITY-AND-DELIVERY.md) · [5.9 回退包](../../build/verification/p510/rollback/Nearpane-5.9.zip)
+
+## P5.10 原图、图标与玻璃层次
+
+用户重新上传的原图无损归档 V2；480×270 损坏历史图停用。修复实际缺少 bundle 应用图标的问题，安装包和最小形态统一黑橙图标；正式面板继续无 Header/Logo。语音、截图与空间容器增加薄玻璃圆角、细边和柔影，复制/语音/截图入口统一层级，保持尺寸设置、Fit 与领域语义。337/337 集成、258/258 Host、184 固定源通过，5.9↔5.10 隔离升级回退保留文字、五图和 UNKNOWN。现阶段仅一块主显示器，副屏可见验收在预检处停止；实际组件离屏浅深色和展开检查通过，不能替代动态模糊与实拍。桌面往返、真人语音和真实草稿上传继续搁置。
 
 ## P5.9 独立反馈、用户同意的更新与外观
 
