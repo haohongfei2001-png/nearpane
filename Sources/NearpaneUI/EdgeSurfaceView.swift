@@ -26,9 +26,9 @@ public struct EdgeSurfaceView: View {
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight:display?.referenceHeight)
             ZStack(alignment: .topLeading) {
-                if layout.voice.height > 0 { voice.place(in:layout.voice) }
-                if layout.screenshots.height > 0 { screenshots.place(in:layout.screenshots) }
-                if layout.desktop.height > 0 { desktop.place(in:layout.desktop) }
+                if layout.voice.height > 0 { voice.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.voice) }
+                if layout.screenshots.height > 0 { screenshots.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.screenshots) }
+                if layout.desktop.height > 0 { desktop.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.desktop) }
                 if display?.secondary != true, let rect = layout.expanded, let id = host.registry.expandedID {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())

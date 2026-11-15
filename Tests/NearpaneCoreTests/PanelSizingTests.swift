@@ -69,6 +69,48 @@ struct PanelSizingTests {
         #expect(throws: ConfigurationError.invalid) { try configuration.validated() }
     }
 
+    @Test func voiceControlsFoldBeforeTheirGlassHitAreasOverlap() {
+        var settings = DisplaySettings()
+        func form(_ width: Double) -> PanelSizeForm {
+            settings.sizeForm(width:width,height:1280,content:.voiceOnly,voice:true,tray:false)
+        }
+        // 16 pt text padding + 32 pt voice + 26 pt copy + two 8 pt gaps,
+        // inside the card's two 4%-width insets. The factory 100 pt panel fits.
+        #expect(form(97.5) == .compact)
+        #expect(form(98) == .full)
+        #expect(form(100) == .full)
+        settings.measures[.voiceButtonHeight] = .init(40)
+        #expect(form(113) == .compact)
+        #expect(form(113.5) == .full)
+        // A larger copy glyph must still fit; none of these checks change the
+        // requested type size or stored control dimensions to squeeze it in.
+        settings.measures[.copySize] = .init(48)
+        #expect(form(121.5) == .compact)
+        #expect(form(122) == .full)
+        #expect(settings.measures[.voiceButtonHeight] == .init(40))
+        #expect(settings.measures[.copySize] == .init(48))
+    }
+
+    @Test func voiceCardInsetsCannotConsumeTheLastReadableLine() {
+        var settings = DisplaySettings()
+        func form(_ height: Double = 1280) -> PanelSizeForm {
+            settings.sizeForm(width:100,height:height,content:.voiceOnly,voice:true,tray:false,
+                              referenceHeight:1280)
+        }
+        // 63 pt previously passed the control/line check, but leaves only 55 pt
+        // inside the card. Inspect the actual slot, not the panel's tall frame.
+        settings.measures[.voiceHeight] = .init(63)
+        #expect(form() == .compact)
+        settings.measures[.voiceHeight] = .init(70.5)
+        #expect(form() == .compact)
+        settings.measures[.voiceHeight] = .init(71)
+        #expect(form() == .full)
+        // A saved sufficient section still cannot fit when its actual panel is
+        // shorter. It must fold without changing the saved section height.
+        #expect(form(63) == .compact)
+        #expect(settings.measures[.voiceHeight] == .init(71))
+    }
+
     @Test func relativeTextFoldsBeforeItBecomesUnreadableAndKeepsItsSavedScale() {
         var settings = DisplaySettings()
         settings.measures[.textSize] = .init(5, .percent)

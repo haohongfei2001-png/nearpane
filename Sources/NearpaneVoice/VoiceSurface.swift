@@ -30,6 +30,7 @@ public struct VoiceSurface: View {
         let lineSpacing = settings.measures[.lineGap]?.points(in: size.height)
         let buttonWidth = settings.points(.voiceButtonWidth,in:size.width)
         let buttonHeight = settings.points(.voiceButtonHeight,in:size.height)
+        let copySide = max(buttonHeight, settings.points(.copySize,in:size.height))
         return VStack(alignment: .leading, spacing: 4) {
             if let id = editing {
                 TranscriptEditor(text: Binding(get: { draft }, set: { draft = $0; module.stageDraft(id, text: $0) }),
@@ -90,7 +91,13 @@ public struct VoiceSurface: View {
             HStack(spacing:settings.points(.buttonGap,in:size.width)) {
                 Button {
                     copied = copy(module.transcript, to: pasteboard)
-                } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc").font(settings.measures[.copySize].map { .system(size:$0.points(in:size.height)) } ?? .body) }
+                } label: {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(settings.measures[.copySize].map { .system(size:$0.points(in:size.height)) } ?? .body)
+                        .frame(minWidth:copySide,minHeight:buttonHeight)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(VoiceGlassControlStyle())
                 .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字").help("复制当前文字")
                 .onChange(of: module.transcript) { copied = false }
                 .contextMenu {
@@ -101,21 +108,50 @@ public struct VoiceSurface: View {
                 }
                 Spacer()
                 Button { Task { await module.toggle() } } label: {
-                    VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).frame(minWidth:buttonWidth,minHeight:buttonHeight).contentShape(Rectangle())
+                    VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).frame(minWidth:buttonWidth,minHeight:buttonHeight).contentShape(Capsule())
                 }
+                .buttonStyle(VoiceGlassControlStyle(prominent:true))
                 .disabled(module.busy || !module.active)
                 .help(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
                 .accessibilityLabel(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
                 .accessibilityValue(module.control.state == .standby ? "待命" : module.control.state == .recognizing ? "正在识别" : "暂停")
-            }.buttonStyle(.plain)
+            }
         }
-        .padding(settings.points(.textPadding,in:size.width)).background(.white.opacity(0.12))
+        .padding(settings.points(.textPadding,in:size.width))
     }
 
     func copy(_ text: String, to pasteboard: NSPasteboard) -> Bool {
         guard !text.isEmpty else { return false }
         pasteboard.clearContents()
         return pasteboard.setString(text, forType: .string)
+    }
+}
+
+/// Quiet glass controls share the existing panel material; the chrome adds no
+/// layout padding, so saved glyph and control dimensions retain their meaning.
+private struct VoiceGlassControlStyle: ButtonStyle {
+    var prominent = false
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func makeBody(configuration: Configuration) -> some View {
+        let dark = colorScheme == .dark
+        let tint = prominent ? Color.indigo : Color.primary
+        configuration.label
+            .foregroundStyle(Color.primary.opacity(0.8))
+            .background {
+                Capsule()
+                    .fill(reduceTransparency ? Color(nsColor:.controlBackgroundColor) : Color.white.opacity(dark ? 0.08 : 0.34))
+                Capsule()
+                    .fill(tint.opacity(configuration.isPressed ? 0.18 : prominent ? (dark ? 0.16 : 0.07) : 0.02))
+            }
+            .overlay {
+                Capsule().strokeBorder(.white.opacity(dark ? 0.14 : 0.5),lineWidth:0.6)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color:.black.opacity(enabled && !configuration.isPressed ? (dark ? 0.13 : 0.06) : 0),radius:2,y:1)
+            .opacity(enabled ? 1 : 0.4)
     }
 }
 
@@ -130,6 +166,7 @@ struct TranscriptEditor: View {
         TextEditor(text: $text)
             .font(fontSize.map { .system(size: $0) } ?? .body)
             .lineSpacing(lineSpacing ?? 0)
+            .scrollContentBackground(.hidden)
     }
 }
 

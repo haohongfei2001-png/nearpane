@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "revision": "2026-11-15-v2",
+  "source": "User-provided original image attachments, re-uploaded in this Nearpane engineering conversation.",
+  "policy": "Original files are archived byte-for-byte. Derivatives must reference this manifest and must not replace originals.",
+  "assets": [
+    {
+      "file": "interface-reference-original.png",
+      "originalFilename": "e0ce629f-6e38-4bba-b188-3130d00eaf8a.png",
+      "role": "authoritative-interface-reference",
+      "sha256": "c15bc20b8bd33e1f99f21638b81234748d1e17f2c3aefea518d9c2989e750ca2",
+      "byteLength": 1684073,
+      "pixelWidth": 1672,
+      "pixelHeight": 941,
+      "transformation": "none"
+    },
+    {
+      "file": "brand-reference-original.png",
+      "originalFilename": "e098cd08-a5ec-455e-b0c0-7be22c4fd51a.png",
+      "role": "authoritative-brand-reference",
+      "sha256": "6357d42368b38e2d7a79d10256e2a29234d7a87fe50012a14e8b6a2b455ed6f7",
+      "byteLength": 1046426,
+      "pixelWidth": 1254,
+      "pixelHeight": 1254,
+      "transformation": "none"
+    },
+    {
+      "file": "app-icon-derived.png",
+      "role": "application-icon-source-derivative",
+      "sha256": "0c45f018683689efe118a51812e949718fa8a2c3c3258fdfea1628ad778981b8",
+      "byteLength": 985356,
+      "pixelWidth": 1254,
+      "pixelHeight": 1254,
+      "derivedFrom": "brand-reference-original.png",
+      "transformation": "Imagegen edit from the user-provided brand reference: symbol-only application icon, without the wordmark. Reviewed against the supplied symbol in this task. The immutable brand reference remains authoritative.",
+      "generator": "OpenAI imagegen",
+      "generationReference": "exec-ff7f8077-7ee6-40bb-876b-634838535a3c",
+      "status": "packaging-derivative-not-original"
+    }
+  ],
+  "supersedes": {
+    "file": "../nearpane-visual-authority.webp",
+    "sha256": "c9857f2d1050576241f9a835706efcde325f97764f752f6fade5443b2f835071",
+    "byteLength": 7648,
+    "pixelWidth": 480,
+    "pixelHeight": 270,
+    "status": "superseded-damaged",
+    "reason": "Retained for historical evidence. Local rendering contains severe blocks and color corruption; not a reliable visual acceptance reference. Its original conversion process and exact source provenance are unverified."
+  },
+  "packagedIcon": {
+    "file": "../../../Resources/Nearpane.icns",
+    "bundleResource": "Nearpane.icns",
+    "source": "app-icon-derived.png",
+    "sourceSHA256": "0c45f018683689efe118a51812e949718fa8a2c3c3258fdfea1628ad778981b8",
+    "sha256": "8c503980af7fd106c752b58d8b0bd21e885e1dfc654e0b3e3cee84880e636786",
+    "byteLength": 1086174,
+    "generator": "macOS sips raster resizing; lossless ICNS PNG-member container assembly; verified by native iconutil extraction",
+    "members": [
+      {
+        "type": "icp4",
+        "pixelWidth": 16,
+        "pixelHeight": 16,
+        "sha256": "26519e699339545e51a55796edcf6991672bc7f750487ad7546c6ff450401541"
+      },
+      {
+        "type": "ic11",
+        "pixelWidth": 32,
+        "pixelHeight": 32,
+        "sha256": "8c88ed374981ab4df084efaac37624f1aa4812372832b1b868ba9276c008ceb6"
+      },
+      {
+        "type": "icp5",
+        "pixelWidth": 32,
+        "pixelHeight": 32,
+        "sha256": "8c88ed374981ab4df084efaac37624f1aa4812372832b1b868ba9276c008ceb6"
+      },
+      {
+        "type": "ic12",
+        "pixelWidth": 64,
+        "pixelHeight": 64,
+        "sha256": "381cb317dd504beca60a48c004b8eb094d011a7442390321cc2a6ac1dfe1c372"
+      },
+      {
+        "type": "ic07",
+        "pixelWidth": 128,
+        "pixelHeight": 128,
+        "sha256": "05dd084acab97c176573679eb57ce23a804b4d46658c87cc0506095eae7dc63d"
+      },
+      {
+        "type": "ic13",
+        "pixelWidth": 256,
+        "pixelHeight": 256,
+        "sha256": "e5bf7b13d97fcfadfec034974ba6d4619a159731ff1c6a8838ef79c595d98aa0"
+      },
+      {
+        "type": "ic08",
+        "pixelWidth": 256,
+        "pixelHeight": 256,
+        "sha256": "e5bf7b13d97fcfadfec034974ba6d4619a159731ff1c6a8838ef79c595d98aa0"
+      },
+      {
+        "type": "ic14",
+        "pixelWidth": 512,
+        "pixelHeight": 512,
+        "sha256": "0de982eeebda7eeb928c4a6e561b9a59bb50d96351064b022a7b732570265fa9"
+      },
+      {
+        "type": "ic09",
+        "pixelWidth": 512,
+        "pixelHeight": 512,
+        "sha256": "0de982eeebda7eeb928c4a6e561b9a59bb50d96351064b022a7b732570265fa9"
+      },
+      {
+        "type": "ic10",
+        "pixelWidth": 1024,
+        "pixelHeight": 1024,
+        "sha256": "a2a50569286f0db8f184f1d364fadd128fc8c6cec9f65656e842ec3f3ae2c1d0"
+      }
+    ]
+  }
+}

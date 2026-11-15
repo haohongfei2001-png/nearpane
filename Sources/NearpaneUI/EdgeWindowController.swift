@@ -91,6 +91,9 @@ public final class EdgeWindowController: NSWindowController {
         material.material = .sidebar
         material.blendingMode = .behindWindow
         material.state = .active
+        material.wantsLayer = true
+        material.layer?.cornerRadius = 22
+        material.layer?.masksToBounds = true
         let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules, display: display))
         contentView = content
         contentBottom = content.bottomAnchor.constraint(equalTo: material.bottomAnchor)
@@ -297,8 +300,8 @@ public final class EdgeWindowController: NSWindowController {
             }
             folded = shouldFold
             material.wantsLayer = true
-            material.layer?.cornerRadius = shouldFold ? DisplayMetric.cornerRadius.factory.value : 0
-            material.layer?.masksToBounds = shouldFold
+            material.layer?.cornerRadius = shouldFold ? DisplayMetric.cornerRadius.factory.value : 22
+            material.layer?.masksToBounds = true
             if window?.isVisible == true { updateInteraction(hidden: folded) }
         }
         // Keep the same mounted module views, including the current text editor and draft.

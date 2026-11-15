@@ -12,6 +12,9 @@ import subprocess
 _update_spec = importlib.util.spec_from_file_location("update_runtime", Path(__file__).with_name("prepare-update-runtime.py"))
 update_runtime = importlib.util.module_from_spec(_update_spec)
 _update_spec.loader.exec_module(update_runtime)
+_icon_spec = importlib.util.spec_from_file_location("app_icon", Path(__file__).with_name("prepare-app-icon.py"))
+app_icon = importlib.util.module_from_spec(_icon_spec)
+_icon_spec.loader.exec_module(app_icon)
 
 MAGICS = {bytes.fromhex(hexstr) for hexstr in ("feedfacf", "cffaedfe", "feedface", "cefaedfe",
                                               "cafebabe", "bebafeca", "cafebabf", "bfbafeca")}
@@ -34,6 +37,13 @@ def inspect(app):
     cmd("/usr/bin/codesign", "--verify", "--deep", "--strict", str(app))
     deployment = info["LSMinimumSystemVersion"]
     issues, inventory = [], {}
+    icons = {}
+    # Rollback packages keep their original resource contract; new bundles may not
+    # silently fall back to the generic macOS icon, including bundled test helpers.
+    if version(info["CFBundleShortVersionString"]) >= (5, 10, 0):
+        icons["."] = app_icon.verify(app)
+        for helper in sorted((contents / "Helpers").glob("*.app")):
+            icons[str(helper.relative_to(app))] = app_icon.verify(helper)
     for path in sorted(contents.rglob("*")):
         if path.is_symlink() and contents not in path.resolve(strict=True).parents:
             raise ValueError("Link leaves the signed bundle: " + str(path))
@@ -106,7 +116,7 @@ def inspect(app):
             if not (contents / "Resources/Automation" / name).is_file():
                 raise ValueError("Missing runtime provenance: " + name)
     return dict(bundle=info["CFBundleIdentifier"], version=info["CFBundleShortVersionString"],
-                minimumOS=deployment, binaries=inventory, missingDistributionSignatures=issues,
+                minimumOS=deployment, binaries=inventory, appIcons=icons, missingDistributionSignatures=issues,
                 notarization="NOT_TESTED", cleanMacInstall="NOT_TESTED", publicRelease="NOT_ADMITTED")
 
 

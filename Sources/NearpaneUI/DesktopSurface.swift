@@ -59,7 +59,6 @@ struct DesktopSurface: View {
                 }
             } else { status(enabled ? "空间归属尚未确认" : "空间预览已停用") }
         }
-        .overlay(alignment: .top) { Divider().opacity(0.4) }
         .accessibilityHint("只读预览")
         .accessibilityIdentifier("desktop-reserved-region")
     }
@@ -68,16 +67,19 @@ struct DesktopSurface: View {
         Canvas { context, _ in
             for row in preview.rows {
                 let desktop = row.desktop
-                let path = Path(CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height))
-                context.fill(path, with: .color(.secondary.opacity(0.08)))
+                let path = Path(roundedRect: CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height),
+                                cornerRadius: min(12, min(desktop.width, desktop.height) / 8))
+                context.fill(path, with: .linearGradient(Gradient(colors: [.indigo.opacity(0.14), .blue.opacity(0.22)]),
+                    startPoint: CGPoint(x: desktop.x, y: desktop.y), endPoint: CGPoint(x: desktop.x, y: desktop.y + desktop.height)))
                 for window in row.windows.reversed() {
                     let r = window.frame
-                    let outline = Path(CGRect(x: r.x, y: r.y, width: r.width, height: r.height))
+                    let outline = Path(roundedRect: CGRect(x: r.x, y: r.y, width: r.width, height: r.height),
+                                       cornerRadius: min(4, min(r.width, r.height) / 8))
                     context.fill(outline, with: .color(Color(nsColor: .controlBackgroundColor)))
                     context.stroke(outline, with: .color(.secondary.opacity(0.85)), style: .init(lineWidth: settings.points(.borderWidth,in:row.rowFrame.width),
                         dash: window.confidence == .corroboratedMetadata ? [] : [2, 1]))
                 }
-                context.stroke(path, with: .color(.secondary.opacity(0.5)), lineWidth: 0.7)
+                context.stroke(path, with: .color(.white.opacity(0.5)), lineWidth: 0.7)
             }
         }
         .accessibilityChildren {

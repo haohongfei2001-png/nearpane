@@ -23,6 +23,7 @@ with open(sys.argv[1], "wb") as f:
                        CFBundleVersion="1", LSMinimumSystemVersion="14.0"), f)
 PY
     install -m 755 "$bin/$name" "$app/Contents/MacOS/$name"
+    python3 scripts/prepare-app-icon.py --embed "$app"
     if [[ "$name" == NearpaneFixtureWindows && $# == 1 ]]; then
         reader="$1/Contents/Helpers/NearpaneDesktopReader"
         expected="$(/usr/bin/plutil -extract NearpaneDesktopReaderSHA256 raw -o - "$1/Contents/Info.plist")"

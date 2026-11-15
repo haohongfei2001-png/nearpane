@@ -28,6 +28,7 @@ stage="$staging_dir/Nearpane.app"
 mkdir -p "$stage/Contents/MacOS" "$stage/Contents/Resources"
 cp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 cp Resources/Info.plist "$stage/Contents/Info.plist"
+python3 scripts/prepare-app-icon.py --embed "$stage"
 # The optional private getter symbols live only in this disposable, separately verified executable.
 reader="$binary_dir/NearpaneDesktopReader"
 /usr/bin/codesign --verify --strict "$reader"

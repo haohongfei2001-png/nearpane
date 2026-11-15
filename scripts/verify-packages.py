@@ -2,6 +2,7 @@
 """Verify independent full packages, including their upstream notices, with source caches inaccessible."""
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import plistlib
@@ -11,6 +12,9 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+_icon_spec = importlib.util.spec_from_file_location("app_icon", ROOT / "scripts/prepare-app-icon.py")
+app_icon = importlib.util.module_from_spec(_icon_spec)
+_icon_spec.loader.exec_module(app_icon)
 RESOURCE_PATHS = {
     "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
     "riftlet": {"Sources/RiftletAdapters/Resources/" + file: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + file
@@ -25,6 +29,10 @@ def digest(path):
 def verify(app, lock, sandbox):
     contents = app / "Contents"
     plist = plistlib.loads((contents/"Info.plist").read_bytes())
+    package_version = tuple(int(part) for part in plist["CFBundleShortVersionString"].split("."))
+    if (plist["CFBundleIdentifier"] == "com.holdsnow.nearpane.host"
+            or package_version >= (5, 10) or "NearpaneVisualAssetRevision" in plist):
+        app_icon.verify(app)
     if plist["LSMinimumSystemVersion"] != "26.0" or plist["NearpaneNativeAcceptanceSchema"] != 2:
         raise ValueError("Unexpected full package metadata")
     binary = contents / "MacOS" / plist["CFBundleExecutable"]

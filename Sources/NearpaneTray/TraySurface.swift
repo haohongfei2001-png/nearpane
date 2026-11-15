@@ -9,6 +9,8 @@ public struct TraySurface: View {
     let module: TrayModule
     let left: Bool
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.colorScheme) private var colorScheme
     @Namespace private var morph
     let settings: DisplaySettings
     public init(_ module: TrayModule, left: Bool) { self.init(module,left:left,settings:.init()) }
@@ -33,9 +35,10 @@ public struct TraySurface: View {
                                 if module.captureEntry && !module.expanded {
                                     Button { module.toggleMenu() } label: {
                                         Image(systemName: "camera").matchedGeometryEffect(id: "systemCamera", in: morph)
+                                            .fontWeight(.medium)
                                             .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
                                     }.frame(width: cell.width, height: cell.height)
-                                    .buttonStyle(.plain).accessibilityLabel("展开截图方式")
+                                    .buttonStyle(TrayCaptureStyle()).accessibilityLabel("展开截图方式")
                                 }
                             }
                             .padding(.top, layout.cells.first?.frame.minY ?? 0)
@@ -50,14 +53,14 @@ public struct TraySurface: View {
                                             if action == .system {
                                                 Image(systemName: action.symbol).matchedGeometryEffect(id: "systemCamera", in: morph)
                                             } else { Image(systemName: action.symbol) }
-                                        }.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
+                                        }.fontWeight(.medium)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
                                     }
                                     .accessibilityLabel(action.label).help(action.label)
                                     .accessibilityAction(named: "收起截图方式") { module.collapseMenu() }
                                 }
                             }
-                            .buttonStyle(.plain).frame(height:layout.menu?.height)
-                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
+                            .buttonStyle(TrayCaptureStyle(radius: 6)).frame(height:layout.menu?.height)
                             .contextMenu { Button("收起截图方式") { module.toggleMenu() } }
                         }
                     }
@@ -73,9 +76,8 @@ public struct TraySurface: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .font(settings.measures[.trayButtonSize].map { .system(size:$0.points(in:outer.size.height)) } ?? .body)
+        .font(.system(size:settings.points(.trayButtonSize,in:outer.size.height)))
         .padding(settings.points(.trayPadding,in:outer.size.width))
-        .background(.indigo.opacity(0.045), in: RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:outer.size.width) ?? 8))
         .overlay(alignment: .bottomLeading) {
             if let message = module.issue ?? module.attachmentFeedback {
                 Text(message).font(.caption2).lineLimit(2).help(message)
@@ -90,11 +92,19 @@ public struct TraySurface: View {
                                      cell: .init(width: max(0, cell.width - 2), height: max(0, cell.height - 2)))
         let leaving = module.swallowing.contains(row.id)
         return ZStack {
+            // Decoration belongs to the fixed cell, not the image or its input region.
+            // Keep every source pixel fitted and the existing mouse-down binding intact.
+            TrayTileBackground(radius: 7)
+                .allowsHitTesting(false).accessibilityHidden(true)
             TrayImage(row: row, size: size, module: module)
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 1.5, y: 1)
                 .opacity(module.flyingID == row.id ? 0 : 1)
                 .overlay(alignment: .bottomTrailing) {
                     if let symbol = statusSymbol(row.status) {
-                        Image(systemName: symbol).font(.caption2).padding(2).background(.regularMaterial, in: Circle())
+                        Image(systemName: symbol).font(.caption2.weight(.medium)).padding(3)
+                            .background(.regularMaterial, in: Circle())
+                            .overlay(Circle().strokeBorder(.primary.opacity(contrast == .increased ? 0.5 : 0.1), lineWidth: 0.5))
+                            .allowsHitTesting(false)
                     }
                 }
                 .frame(width: size.width, height: size.height)
@@ -112,6 +122,47 @@ public struct TraySurface: View {
         case .transferring: "ellipsis"
         case .used, .pending: nil
         }
+    }
+}
+
+/// A passive backing for the reference's fixed, rounded thumbnail cells. It never
+/// clips image pixels, changes Fit geometry, or participates in attachment input.
+private struct TrayTileBackground: View {
+    let radius: CGFloat
+    var capture = false
+    var pressed = false
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.displayScale) private var scale
+
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
+    var body: some View {
+        shape.fill(reduceTransparency ? Color(nsColor: .controlBackgroundColor) : Color.white.opacity(colorScheme == .dark ? 0.06 : 0.24))
+            .overlay {
+                shape.fill(LinearGradient(colors: [
+                    Color.indigo.opacity(capture ? (pressed ? 0.20 : 0.11) : 0.025),
+                    Color.purple.opacity(capture ? 0.13 : 0.055)
+                ], startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .overlay {
+                shape.strokeBorder(contrast == .increased ? Color.primary.opacity(0.55) : Color.white.opacity(colorScheme == .dark ? 0.25 : 0.6),
+                                   lineWidth: contrast == .increased ? 1 : 1 / max(1, scale))
+            }
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.12 : 0.055), radius: pressed ? 0.5 : 1.5, y: pressed ? 0 : 1)
+    }
+}
+
+private struct TrayCaptureStyle: ButtonStyle {
+    var radius: CGFloat = 7
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.colorScheme) private var colorScheme
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(contrast == .increased ? Color.primary : Color(red: colorScheme == .dark ? 0.78 : 0.52,
+                                                                         green: colorScheme == .dark ? 0.70 : 0.36,
+                                                                         blue: 0.98))
+            .background { TrayTileBackground(radius: radius, capture: true, pressed: configuration.isPressed).allowsHitTesting(false) }
     }
 }
 

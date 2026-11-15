@@ -76,6 +76,7 @@ public enum PanelSizeMetrics {
     public static let iconSide = 16.0
     public static let glassInset = 2.0
     public static var minimumSide: Double { iconSide + 2 * glassInset }
+    public static func cardInset(width: Double) -> Double { min(8, max(2, width * 0.04)) }
 }
 
 public struct PanelPosition: Codable, Equatable, Sendable {
@@ -269,7 +270,11 @@ extension DisplaySettings {
         let compactSpan = 2 * minimum + 2 * PanelSizeMetrics.glassInset
         guard width.isFinite, height.isFinite, min(width, height) >= minimum,
               max(width, height) >= compactSpan else { return .icon }
-        let sections = contentHeights(referenceHeight ?? height, content: content, voice: voice, tray: tray)
+        let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
+            settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
+        let sections = (voice: max(0, layout.voice.height - 8), tray: max(0, layout.screenshots.height - 8),
+                        spaces: max(0, layout.desktop.height - 8))
+        let width = max(0, width - 2 * PanelSizeMetrics.cardInset(width: width))
         if voice && [.full, .compact, .voiceOnly].contains(content) {
             let pad = points(.textPadding, in: width)
             let requestedFont = points(.textSize, in: sections.voice)
@@ -278,7 +283,8 @@ extension DisplaySettings {
             let waveformWidth = points(.waveformSize, in: width)
             let copySize = points(.copySize, in: sections.voice)
             let buttonHeight = max(points(.voiceButtonHeight, in: sections.voice), waveformWidth * 24 / 28, copySize)
-            let rowWidth = max(points(.voiceButtonWidth, in: width), waveformWidth) + copySize
+            let rowWidth = max(points(.voiceButtonWidth, in: width), waveformWidth)
+                + max(copySize, points(.voiceButtonHeight, in: sections.voice))
                 + 2 * points(.buttonGap, in: width)
             if width < 2 * pad + max(rowWidth, 2 * font)
                 || min(height, sections.voice) < 2 * pad + buttonHeight + font * 1.3 + 4 { return .compact }
