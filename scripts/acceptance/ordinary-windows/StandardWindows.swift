@@ -30,11 +30,13 @@ let regular = Bundle.main.bundleIdentifier == "net.example.standard-palette"
 #else
 let regular = Bundle.main.bundleIdentifier == "net.example.standard-documents"
 #endif
+let single = FileManager.default.fileExists(atPath: io.appendingPathComponent("single-display").path)
+let expectedCount = single ? 1 : 2
 guard regular,
       let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-      front != getpid(), !app.isActive, NSScreen.screens.count == 2,
+      front != getpid(), !app.isActive, NSScreen.screens.count == expectedCount,
       let secondary = NSScreen.screens.last, let primary = NSScreen.screens.first,
-      !secondary.frame.intersects(primary.frame) else { emit(["refused":"isolated secondary required"]); exit(2) }
+      single || !secondary.frame.intersects(primary.frame) else { emit(["refused":"isolated secondary required"]); exit(2) }
 let safeSecondaryFrame = secondary.frame
 let primaryTop = primary.frame.maxY
 let policy: NSApplication.ActivationPolicy = .regular
@@ -48,7 +50,7 @@ var history = [UInt32]()
     emit(["exit":reason,"numbers":history,"focusEvents":focusEvents]); exit(status)
 }
 @MainActor func safe() -> Bool {
-    NSScreen.screens.count == 2 && safeSecondaryFrame == NSScreen.screens.last?.frame &&
+    NSScreen.screens.count == expectedCount && safeSecondaryFrame == NSScreen.screens.last?.frame &&
     NSWorkspace.shared.frontmostApplication?.processIdentifier == front && !app.isActive &&
     windows.values.allSatisfy { !$0.isKeyWindow && !$0.isMainWindow && safeSecondaryFrame.contains($0.frame) } &&
     focusEvents == 0
@@ -61,6 +63,9 @@ var history = [UInt32]()
         // A real, small initial window fits the existing four-column template without a special AX minimum.
         rect = CGRect(x: visible.minX + 95 + CGFloat((n - 1) % 3) * 165,
                       y: visible.minY + 110 + CGFloat((n - 1) / 3) * 180, width: 150, height: 128)
+    } else if single {
+        rect = CGRect(x: visible.minX + 80 + CGFloat((n - 1) % 2) * 260,
+                      y: visible.minY + 70 + CGFloat((n - 1) / 2) * 178, width: 240, height: 152)
     } else {
         rect = CGRect(x: visible.minX + 95, y: visible.minY + 110 + CGFloat(n - 1) * 205, width: 240, height: 152)
     }
@@ -81,12 +86,12 @@ var history = [UInt32]()
     tools.orientation = .vertical
     w.contentView = tools
     #else
-    w.collectionBehavior = n == 1 ? [.primary] : [.auxiliary]
+    w.collectionBehavior = single ? [.canJoinAllApplications] : n == 1 ? [.primary] : [.auxiliary]
     w.contentView = NSTextField(labelWithString:"Blank sample \(n)")
     #endif
     w.setFrame(rect, display:false)
     guard safe(), secondary.frame.contains(w.frame) else { finish("before display",2) }
-    w.orderFrontRegardless()
+    if single { w.orderBack(nil) } else { w.orderFrontRegardless() }
     windows[n] = w
     history.append(UInt32(w.windowNumber))
 }

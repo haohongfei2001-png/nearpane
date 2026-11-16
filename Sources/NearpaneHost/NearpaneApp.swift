@@ -166,6 +166,14 @@ struct NearpaneApp {
                 delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
                 switch command {
                 case "--native-acceptance-session": break
+                case "--native-acceptance-single-ordinary":
+                    let env = ProcessInfo.processInfo.environment
+                    let screens = SystemScreens.geometry()
+                    guard CandidateProfile.selected, screens.count == 1, let id = screens.first?.id,
+                          UUID(uuidString: id) != nil,
+                          ["NEARPANE_ORDINARY_ACCEPTANCE", "NEARPANE_ADMISSION_ACCEPTANCE", "NEARPANE_MANAGEMENT_ACCEPTANCE"].allSatisfy({ env[$0] == args[1] }),
+                          let pid = env["NEARPANE_ORDINARY_PID"].flatMap(Int32.init), pid > 1 else { exit(2) }
+                    delegate.passiveDisplayID = id
                 case "--native-acceptance-secondary", "--native-acceptance-secondary-desktop", "--native-acceptance-secondary-fullscreen":
                     delegate.enrolledFullscreenTrial = command == "--native-acceptance-secondary-fullscreen"
                     delegate.requestsDesktopFixture = command == "--native-acceptance-secondary-desktop"

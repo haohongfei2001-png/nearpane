@@ -31,7 +31,7 @@ def run(trial, original, *, check, wait, put, out):
     trial.press("admission-open")
     trial.press("admission-ordinary-app")
     first, second, third = original
-    x, y, width, height = trial.run_focus["bounds"]
+    x, y, width, height = trial.run_focus["usableQuartz"]
     left, work = x + 160, width - 160
     half, split = work / 2, round(work * 0.6)
     pair = {first: [left, y, half, height], second: [left + half, y, half, height]}
@@ -110,7 +110,7 @@ def new_window_scope(trial, original, *, check, wait, put, out):
     trial.press("admission-open")
     trial.press("admission-ordinary-app")
     anchor, sibling = original
-    x, y, width, height = trial.run_focus["bounds"]
+    x, y, width, height = trial.run_focus["usableQuartz"]
     work = [x + 160, y, width - 160, height]
     trial.select(anchor)
     single = {**original, anchor: work}

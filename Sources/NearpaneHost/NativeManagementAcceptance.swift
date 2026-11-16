@@ -10,7 +10,7 @@ private final class PassiveManagementPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
-/// Explicit, marked secondary-only acceptance runs drive the same service and Settings content as Finder launches.
+/// Explicit, marked acceptance runs drive the same service and Settings content as Finder launches.
 @MainActor final class NativeManagementAcceptance {
     private let panel: NSPanel
     private var timer: Timer?
@@ -18,15 +18,18 @@ private final class PassiveManagementPanel: NSPanel {
     private struct Request: Decodable { let run: String, sequence: Int, action: String }
 
     init(session: NativeAcceptanceSession, display: String, host: HostSession, manager: CandidateWorkRect) throws {
+        let single = CommandLine.arguments.dropFirst().first == "--native-acceptance-single-ordinary"
+        let expectedCount = single ? 1 : 2
         guard let epoch = ProcessInfo.processInfo.environment["NEARPANE_ACCEPTANCE_RUN"],
-              UUID(uuidString: epoch) != nil, NSScreen.screens.count == 2, let screen = NSScreen.screens.last,
+              UUID(uuidString: epoch) != nil, NSScreen.screens.count == expectedCount, let screen = NSScreen.screens.last,
               SystemScreens.geometry().last?.id == display,
-              screen.frame.intersection(NSScreen.screens[0].frame).isEmpty else { throw CocoaError(.featureUnsupported) }
+              single || screen.frame.intersection(NSScreen.screens[0].frame).isEmpty else { throw CocoaError(.featureUnsupported) }
         let sizing = ProcessInfo.processInfo.environment["NEARPANE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
         let moduleSizing = sizing && ProcessInfo.processInfo.environment["NEARPANE_MODULE_SIZE_ACCEPTANCE"] == session.directory.lastPathComponent
         let admission = ProcessInfo.processInfo.environment["NEARPANE_ADMISSION_ACCEPTANCE"] == session.directory.lastPathComponent
         let env = ProcessInfo.processInfo.environment
         let trial = env["NEARPANE_ORDINARY_ACCEPTANCE"] == session.directory.lastPathComponent
+        guard !single || trial && admission && !sizing else { throw CocoaError(.featureUnsupported) }
         var owners = [AdmissionFixtureOwner]()
         if trial {
             guard admission, !sizing, let first = env["NEARPANE_ORDINARY_PID"] else { throw CocoaError(.featureUnsupported) }
@@ -49,7 +52,7 @@ private final class PassiveManagementPanel: NSPanel {
         let safeAdmissionWidth = min(580, screen.visibleFrame.width - 2 * 100)
         guard !admission || safeAdmissionWidth >= 480 else { throw CocoaError(.featureUnsupported) }
         let width = admission ? safeAdmissionWidth : sizing ? min(610, screen.visibleFrame.width) : 540
-        let height = admission ? min(1080, screen.visibleFrame.height) : sizing ? min(900, screen.visibleFrame.height) : 400
+        let height = admission ? min(1080, screen.visibleFrame.height - (single ? 100 : 0)) : sizing ? min(900, screen.visibleFrame.height) : 400
         let rect = CGRect(x: screen.visibleFrame.midX - width / 2, y: screen.visibleFrame.midY - height / 2,
                           width: width, height: height).integral
         guard screen.visibleFrame.contains(rect) else { throw CocoaError(.featureUnsupported) }
@@ -67,14 +70,19 @@ private final class PassiveManagementPanel: NSPanel {
         }
         panel.setFrame(rect, display: false)
         guard screen.visibleFrame.contains(panel.frame) else { throw CocoaError(.featureUnsupported) }
-        panel.orderFrontRegardless()
+        if single {
+            panel.collectionBehavior = [.canJoinAllApplications]
+            panel.orderBack(nil)
+        } else {
+            panel.orderFrontRegardless()
+        }
         let directory = session.directory
         let id = panel.windowNumber
         try JSONEncoder().encode(id).write(to: directory.appendingPathComponent("management-panel-" + epoch + ".json"), options: .withoutOverwriting)
         let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                guard NSScreen.screens.count == 2, SystemScreens.geometry().last?.id == display,
+                guard NSScreen.screens.count == expectedCount, SystemScreens.geometry().last?.id == display,
                       NSScreen.screens.last?.visibleFrame.contains(self.panel.frame) == true, !self.panel.isKeyWindow, !self.panel.isMainWindow
                 else {
                     if admission {
@@ -111,8 +119,8 @@ private final class PassiveManagementPanel: NSPanel {
                     manager.send(req.action)
                 case "hide","show": host.setSurfaceHidden(req.action == "hide")
                 case "docked", "floating":
-                    guard let main = SystemScreens.geometry().first?.id, main != display else { return }
-                    host.setPlacement(edge: host.configuration.edge, displayID: main)
+                    guard let main = SystemScreens.geometry().first?.id, single || main != display else { return }
+                    if !single { host.setPlacement(edge: host.configuration.edge, displayID: main) }
                     var settings = host.configuration.displays[display] ?? .init()
                     settings.placement = req.action == "floating" ? .floating : .docked
                     host.setDisplaySettings(settings, id: display)
