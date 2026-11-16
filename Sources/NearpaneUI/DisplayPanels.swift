@@ -10,6 +10,7 @@ import NearpaneCore
     private var suspended = false
     private var localMouse: Any?, externalMouse: Any?
     private var clickLease: UUID?
+    private var pendingSpaceOpenings = Set<String>()
     private var observedTransientWindows = Set<ObjectIdentifier>()
     private let fullscreen: FullscreenPresentation
     public var refresh: (() -> Void)? {
@@ -41,10 +42,12 @@ import NearpaneCore
         }
     }
     public func request(_ display: String) {
+        pendingSpaceOpenings.insert(display)
         coordinator.request(display)
         setDismissed(false, on: display)
     }
     public func dismiss(_ display: String) {
+        pendingSpaceOpenings.remove(display)
         coordinator.dismiss(display)
         setDismissed(true, on: display)
     }
@@ -61,6 +64,10 @@ import NearpaneCore
         fullscreen.sessionBoundary(uptime: ProcessInfo.processInfo.systemUptime)
     }
     public func update(screens: [ScreenGeometry], presentingOnly displayID: String? = nil) {
+        // A click may unfold the panel once. Later observation ticks must leave it
+        // folded if the user subsequently closes the temporary expansion.
+        let explicitOpenings = pendingSpaceOpenings
+        pendingSpaceOpenings.removeAll()
         let now = Date()
         let uptime = ProcessInfo.processInfo.systemUptime
         let prefs = host.registry.preferences
@@ -103,8 +110,7 @@ import NearpaneCore
         // Withdraw or move the unique domain panel before its old display presents a Space-only panel.
         if visiblePlans.contains(main), main.content != .hidden,
            let screen = identified.first(where: { $0.id == main.id }) {
-            primary.place(on: screen, primary: main.id, content: main.content)
-            present(primary)
+            place(primary, on: screen, plan: main)
         } else { primary.removePlacement() }
         for plan in spacesPlans {
             guard let screen = identified.first(where: { $0.id == plan.id }) else { continue }
@@ -117,14 +123,22 @@ import NearpaneCore
                 controller.usePointer(pointer)
                 secondary[plan.id] = controller
             }
-            controller.place(on: screen, primary: main.id, content: plan.content)
-            present(controller)
+            place(controller, on: screen, plan: plan)
         }
         observeClicksIfNeeded()
         if let screen = screens.first(where: { $0.id == main.id }),
            displayID == nil || main.id == displayID {
             fullscreen.present(on: screen, allowed: !suspended && !primary.captureSuppressed)
         } else { fullscreen.hide() }
+
+        func place(_ controller: EdgeWindowController, on screen: ScreenGeometry, plan: DisplaySurfacePlan) {
+            controller.place(on: screen, primary: main.id, content: plan.content)
+            if explicitOpenings.contains(screen.id), plan.content == .full || plan.content == .spacesOnly,
+               !controller.temporarilyExpanded {
+                controller.toggleTemporaryExpansion()
+            }
+            present(controller)
+        }
     }
     // Observe mouse-down only while an on-demand destination is actually shown.
     // The external handler never reads a click location, window name or owning app.
@@ -168,6 +182,7 @@ import NearpaneCore
     }
 
     public func stop() {
+        pendingSpaceOpenings.removeAll()
         stopObservingClicks()
         fullscreen.hide()
         host.updatePanelContents([:])

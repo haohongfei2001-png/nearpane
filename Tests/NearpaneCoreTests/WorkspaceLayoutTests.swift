@@ -150,4 +150,33 @@ struct WorkspaceLayoutTests {
         #expect(plans(["C": pinned], .init(spaces: 1, windows: 1, complete: true)) == [.hidden, .compact, .spacesOnly])
         #expect(plans(["C": pinned], .init(blocked: true)) == [.hidden, .hidden, .hidden])
     }
+
+    @Test func requestedSingleDesktopHonorsDismissalFullscreenAndChangesOfResidentDisplay() {
+        let screens = ["A", "B"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
+        let single = DisplayDemand(spaces: 1, windows: 1, complete: true)
+        let multiple = DisplayDemand(spaces: 1, windows: 2, complete: true)
+        var coordinator = MultiDisplayPresentationCoordinator()
+        func plans(primary: String = "A", first: DisplayDemand? = nil, enabled: Bool = true, hidden: Bool = false) -> [PanelContent] {
+            coordinator.resolve(screens: screens, preferred: primary, settings: [:], demand: ["A": first ?? single, "B": single],
+                hidden: hidden, voice: true, tray: true, spacesEnabled: enabled, uptime: 10).map(\.content)
+        }
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans() == [.full, .hidden])
+        coordinator.dismiss("A")
+        #expect(plans(first: multiple) == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(first: .init(blocked: true)) == [.hidden, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(enabled: false) == [.compact, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(hidden: true) == [.hidden, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        coordinator.request("B")
+        #expect(plans(primary: "B", first: multiple) == [.hidden, .compact])
+        #expect(plans() == [.compact, .hidden])
+    }
 }
