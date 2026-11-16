@@ -36,6 +36,8 @@ guard screens.count == 2, let side = screens.last,
       let focusedNumber = number(focused as! AXUIElement) else { die("secondary display, console, existing AX permission or focus unavailable") }
 var output:[String:Any] = ["side":CFUUIDCreateString(nil,uuid) as String,"bounds":rect(CGDisplayBounds(display.uint32Value)),
                             "front":front,"focus":focusedNumber,"time":ProcessInfo.processInfo.systemUptime]
+let usable = side.visibleFrame
+output["usableQuartz"] = [usable.minX, screens[0].frame.maxY - usable.maxY, usable.width, usable.height]
 let strings = Array(CommandLine.arguments.dropFirst())
 let fixtureApps = ["Standard documents.app":"net.example.standard-documents", "Standard palette.app":"net.example.standard-palette"]
 if strings.first == "launch" {

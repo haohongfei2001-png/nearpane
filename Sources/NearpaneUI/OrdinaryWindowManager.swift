@@ -11,6 +11,17 @@ import Observation
     func prepare() async throws -> AdmissionPair
     func verify(expected: SurfaceRect) async throws -> AdmissionPair
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair
+    func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation
+    func acknowledgeBoundary(_ observation: OrdinaryBoundaryObservation) async throws -> AdmissionPair
+}
+extension OrdinaryWindowObserving {
+    // Older adapters cannot acquire this capability by merely returning a changed frame.
+    func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
+        .init(pair: try await verify(expected: expected), previous: expected, revision: nil, settled: true)
+    }
+    func acknowledgeBoundary(_ observation: OrdinaryBoundaryObservation) async throws -> AdmissionPair {
+        throw OrdinaryRefusal.lost
+    }
 }
 extension OrdinaryWindowAX: OrdinaryWindowObserving {}
 
@@ -62,6 +73,8 @@ enum OrdinaryRefusal: LocalizedError {
     @ObservationIgnored private var afterRead: CheckedContinuation<Void, Never>?
     var unavailableForUserAction: Bool { closing || userActionReserved || (busy && !passiveRead) }
     private var appliedArea: SurfaceRect?
+    private var lastCorrection = [ManagedWindowID: TimeInterval]()
+    @ObservationIgnored var correctionUptime: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     private var grantedGeometry: ScreenGeometry?
     private(set) var activeDisplay: String?
     private(set) var verifiedIDs = Set<ManagedWindowID>()
@@ -138,12 +151,21 @@ enum OrdinaryRefusal: LocalizedError {
         }
     }
 
-    private func sample(_ pair: AdmissionPair, for handle: any OrdinaryWindowObserving, in ctx: AdmissionContext) throws -> SurfaceRect {
+    private func sample(_ pair: AdmissionPair, for handle: any OrdinaryWindowObserving, in ctx: AdmissionContext,
+                        boundaryOverflow: Bool = false) throws -> SurfaceRect {
         let a = pair.first, b = pair.second
         guard a.liveObservation != nil, a.liveObservation == b.liveObservation,
               a.minimum == b.minimum, a.stageManager == b.stageManager else { throw OrdinaryRefusal.lost }
-        guard let f = b.cgFrame, f.geometry.isValid, a.cgFrame == f, a.axFrame == f, b.axFrame == f,
-              ctx.usable.geometry.intersection(f.geometry) == f.geometry else { throw OrdinaryRefusal.ambiguous }
+        guard let f = b.cgFrame, f.geometry.isValid, a.cgFrame == f, a.axFrame == f, b.axFrame == f else {
+            throw OrdinaryRefusal.ambiguous
+        }
+        if boundaryOverflow {
+            // Only a retained, already-authorized monitor may supply this read. Its native
+            // observer separately excludes crossings into another display and invisible windows.
+            guard ctx.screen.geometry.intersection(f.geometry) != nil else { throw OrdinaryRefusal.ambiguous }
+        } else {
+            guard ctx.usable.geometry.intersection(f.geometry) == f.geometry else { throw OrdinaryRefusal.ambiguous }
+        }
         let now = ProcessInfo.processInfo.systemUptime
         guard b.uptime - a.uptime >= 0.075, now >= b.uptime, now - b.uptime <= 3 else { throw OrdinaryRefusal.stale }
         for item in [a, b] {
@@ -263,7 +285,13 @@ enum OrdinaryRefusal: LocalizedError {
         try checkedScope(context, grant: h)
         guard target.geometry.isValid,
               context.usable.geometry.intersection(target.geometry) == target.geometry else { throw OrdinaryRefusal.minimum }
-        guard try sample(await h.verify(expected: e.confirmed), for: h, in: context) == e.confirmed else { throw OrdinaryRefusal.lost }
+        if kind != "restore" {
+            let work = try area(context)
+            guard work.geometry.intersection(target.geometry) == target.geometry else { throw OrdinaryRefusal.minimum }
+        }
+        guard try sample(await h.verify(expected: e.confirmed), for: h, in: context,
+                         boundaryOverflow: kind == "boundary" && e.retainsExternalLayout == true) == e.confirmed
+        else { throw OrdinaryRefusal.lost }
         if target == e.confirmed { return }
         guard kind == "restore" || !closing else { throw OrdinaryRefusal.stale }
         try checkedScope(context, grant: h)
@@ -396,6 +424,7 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func detach(_ id: ManagedWindowID) {
+        lastCorrection.removeValue(forKey: id)
         entries.removeValue(forKey: id); handles.removeValue(forKey: id); leases.removeValue(forKey: id)
         activeIDs.removeAll { $0 == id }
     }
@@ -440,10 +469,20 @@ enum OrdinaryRefusal: LocalizedError {
         guard !activeIDs.isEmpty else { return }
         var failed: Error?
         var closed = [OrdinaryJournal.ClosedMember]()
+        var retainedExternal = false
         // Independent targets can still be restored when another grant has lost continuity.
         for id in activeIDs {
             guard let e = entries[id] else { continue }
             do {
+                if e.retainsExternalLayout == true {
+                    guard let saved = e.externalLayout else {
+                        throw OrdinaryRefusal.lost
+                    }
+                    try await move(id, to: saved, context: ctx, kind: "restore")
+                    if e.confirmed != saved { restoredIDs.insert(id) }
+                    retainedExternal = true
+                    continue
+                }
                 try await move(id, to: e.original, context: ctx, kind: "restore")
                 if e.confirmed != e.original { restoredIDs.insert(id) }
             } catch let witness as OrdinaryWindowClosure {
@@ -460,7 +499,7 @@ enum OrdinaryRefusal: LocalizedError {
         }
         if let failed { fail(failed); throw failed }
         guard !activeIDs.isEmpty else { return }
-        try finishRecord("restored")
+        try finishRecord(retainedExternal ? "stopped-retaining-external" : "restored")
     }
 
     private func finishRecord(_ outcome: String) throws {
@@ -482,6 +521,7 @@ enum OrdinaryRefusal: LocalizedError {
 
     private func reset() {
         monitoring?.cancel(); monitoring = nil
+        lastCorrection.removeAll()
         cancelPreview(); activeIDs.removeAll(); handles.removeAll(); entries.removeAll(); leases.removeAll()
         tiler = .init(workspace: nil); activeDisplay = nil; appliedArea = nil; grantedGeometry = nil
         journalLease = nil; blocked = false; paused = false; unsavedRevocation = nil
@@ -508,6 +548,10 @@ enum OrdinaryRefusal: LocalizedError {
                 guard let h = handles[id], let e = entries[id] else { throw OrdinaryRefusal.lost }
                 do {
                     try checkedScope(ctx, grant: h)
+                    if !paused {
+                        guard try await maintainBoundary(id, in: ctx) else { return }
+                        continue
+                    }
                     guard try sample(await h.verify(expected: e.confirmed), for: h, in: ctx) == e.confirmed else {
                         throw OrdinaryRefusal.lost
                     }
@@ -527,6 +571,77 @@ enum OrdinaryRefusal: LocalizedError {
                 try await reflow(ctx)
             }
         } catch { fail(error) }
+    }
+
+    /// A bounded correction after a witnessed drag/resize, never an unbounded frame war.
+    /// This consumes a fresh native observation, not a synthetic editing-generation counter.
+    private func maintainBoundary(_ id: ManagedWindowID, in context: AdmissionContext) async throws -> Bool {
+        guard let h = handles[id], var entry = entries[id], entry.intended == nil, entry.refusal == nil else {
+            throw OrdinaryRefusal.lost
+        }
+        let observation = try await h.observeBoundary(expected: entry.confirmed)
+        guard observation.previous == entry.confirmed else { throw OrdinaryRefusal.stale }
+        guard observation.settled else {
+            message = "等待窗口拖动结束，暂不调整位置。"
+            return false
+        }
+        guard let pair = observation.pair else { throw OrdinaryRefusal.lost }
+        guard let revision = observation.revision else {
+            guard try sample(pair, for: h, in: context) == entry.confirmed else { throw OrdinaryRefusal.lost }
+            return true
+        }
+        guard !paused, !closing, !userActionReserved else { return false }
+        try checkedScope(context, grant: h)
+        let observed = try sample(pair, for: h, in: context, boundaryOverflow: true)
+        if observed == entry.confirmed {
+            // Some apps deliver another notification after their frame has already
+            // settled. A notification alone cannot replace the exit recovery frame.
+            let verified = try await h.acknowledgeBoundary(observation)
+            guard try sample(verified, for: h, in: context) == observed,
+                  verified.second.liveObservation == pair.second.liveObservation else { throw OrdinaryRefusal.lost }
+            return true
+        }
+        // Retire restoration authority before acknowledging any external geometry, including
+        // a geometry that later cannot be corrected. The old baseline remains evidence only.
+        entry.retainsExternalLayout = true
+        entry.externalLayout = nil
+        entries[id] = entry
+        try save()
+        try journal.record(.init(session: session, id: id, revision: revision, previous: entry.confirmed, observed: pair))
+        var others = [SurfaceRect]()
+        for other in activeIDs where other != id {
+            guard let handle = handles[other], let sibling = entries[other], sibling.refusal == nil,
+                  sibling.intended == nil else { throw OrdinaryRefusal.lost }
+            try checkedScope(context, grant: handle)
+            others.append(try sample(await handle.verify(expected: sibling.confirmed), for: handle, in: context))
+        }
+        guard let minimum = pair.second.minimum else { throw OrdinaryRefusal.minimum }
+        let correction = try ManagedWindowBoundary.correction(frame: observed, in: area(context), minimum: minimum, others: others)
+        if correction != nil, let previous = lastCorrection[id], correctionUptime() - previous < 5 {
+            throw OrdinaryWindowFailure("窗口在纠正后五秒内再次越界，可能有其他程序正在调整它。已暂停，请核对位置。")
+        }
+        guard !paused, !closing, !userActionReserved else { return false }
+        try checkedScope(context, grant: h)
+        let acknowledged = try await h.acknowledgeBoundary(observation)
+        guard try sample(acknowledged, for: h, in: context, boundaryOverflow: true) == observed,
+              acknowledged.second.liveObservation == pair.second.liveObservation else { throw OrdinaryRefusal.lost }
+        entry.confirmed = observed
+        if correction == nil { entry.externalLayout = observed }
+        if correction != nil { entry.boundaryCorrections = (entry.boundaryCorrections ?? 0) + 1 }
+        entries[id] = entry
+        try save()
+        if let correction {
+            guard !closing, !userActionReserved, !paused else { throw OrdinaryRefusal.stale }
+            passiveRead = false
+            try await move(id, to: correction, context: context, kind: "boundary")
+            entries[id]?.externalLayout = correction
+            try save()
+            lastCorrection[id] = correctionUptime()
+            message = "已在拖动结束后将授权窗口约束回工作区域；退出时保留这次新布局。"
+        } else {
+            message = "已保留工作区内的新布局；旧的自动恢复位置不再覆盖它。"
+        }
+        return true
     }
 
     private func startMonitoring() {

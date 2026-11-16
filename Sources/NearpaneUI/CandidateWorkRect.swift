@@ -66,10 +66,17 @@ import SwiftUI
             guard host.setWorkspacePreferences(preferences) else { throw OrdinaryRefusal.storage }
         }
     }
+    /// A saved acceptance scope is a restriction, never a fallback to the remaining screen.
+    static func selectedDisplay(_ id: String, on screens: [ScreenGeometry], restrictedTo scope: String?) -> ScreenGeometry? {
+        guard !id.isEmpty, scope == nil || scope == id else { return nil }
+        let matches = screens.filter { $0.id == id }
+        return matches.count == 1 ? matches[0] : nil
+    }
+
     func context(for display: String) -> AdmissionContext? {
         let screens = SystemScreens.geometry()
-        guard let host, host.unsavedWorkspacePreferences == nil, let first = screens.first, let target = screens.dropFirst().first(where: { $0.id == display }),
-              scopedDisplay == nil || scopedDisplay == display, !suspended,
+        guard let host, host.unsavedWorkspacePreferences == nil, let first = screens.first,
+              let target = Self.selectedDisplay(display, on: screens, restrictedTo: scopedDisplay), !suspended,
               permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime),
               supervisorReady, !blocked, mode == "off" else { return nil }
         func quartz(_ r: SurfaceRect) -> SurfaceRect {
@@ -165,6 +172,10 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                Text(session.ordinary.activeIDs.isEmpty && session.mode == "off"
+                     ? "边界尚未生效：当前仅显示侧栏，没有窗口获得管理授权。"
+                     : "边界只约束已授权窗口；暂停、排除及系统受保护窗口不受自动调整。")
+                    .font(.caption).foregroundStyle(.secondary)
                 WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, owners: owners,
                                         exposure: previewExposure)
                 Divider()

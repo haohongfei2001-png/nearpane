@@ -114,13 +114,29 @@ class ProductManagementTests(unittest.TestCase):
         measures["reservedWidth"] = {"value": 12.5, "unit": "%"}
         self.assertEqual(key(), factory)
         measures["panelWidth"] = {"value": 97, "unit": "%"}
-        self.assertEqual(key(), factory)
+        with self.assertRaisesRegex(ValueError, "独立预留宽度"):
+            key()
+        self.assertEqual(measures["reservedWidth"], {"value":12.5, "unit":"%"})
         settings["placement"] = "floating"
         floating = key()
         self.assertEqual(floating[-1], 0)
         settings["edge"] = "left"
         measures.clear()
         self.assertEqual(key(), floating)
+
+    def test_committed_edge_inset_is_part_of_the_layout_key(self):
+        measures = {"sideInset": {"value": 3.125, "unit": "%"}}
+        self.host["displays"] = {"display": {"measures": measures}}
+        def width():
+            return wm.plan_key(self.owner, self.host, "display", 800)[-1]
+        self.assertEqual(width(), 125)
+        measures["reservedWidth"] = {"value": 124.75, "unit": "pt"}
+        with self.assertRaisesRegex(ValueError, "独立预留宽度"):
+            width()
+        del measures["reservedWidth"]
+        measures["sideInset"] = {"value": 16000, "unit": "pt"}
+        with self.assertRaisesRegex(ValueError, "没有给普通窗口留下"):
+            width()
 
     def test_replaced_member_after_debounce_gets_no_ticket_or_controller_call(self):
         self.m.mode = "active"

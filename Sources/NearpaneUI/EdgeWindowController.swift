@@ -92,7 +92,7 @@ public final class EdgeWindowController: NSWindowController {
         material.blendingMode = .behindWindow
         material.state = .active
         material.wantsLayer = true
-        material.layer?.cornerRadius = 22
+        material.layer?.cornerCurve = .continuous
         material.layer?.masksToBounds = true
         let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules, display: display))
         contentView = content
@@ -251,6 +251,12 @@ public final class EdgeWindowController: NSWindowController {
             requestedFrame = frame
             placedFrame = window?.frame
         }
+        // This borderless panel fills its frame with the material. Read the frame
+        // AppKit accepted; the backing view may still be unlaid-out while hidden.
+        // A settings change can also update the corner without resizing the panel.
+        let radius = folded ? CGFloat(DisplayMetric.cornerRadius.factory.value)
+            : SurfaceCardGeometry.shellRadius(settings: config, size: window?.frame.size ?? frame.size)
+        if material.layer?.cornerRadius != radius { material.layer?.cornerRadius = radius }
         hasPlacement = true
     }
 
@@ -299,9 +305,6 @@ public final class EdgeWindowController: NSWindowController {
                 NSApp.deactivate()
             }
             folded = shouldFold
-            material.wantsLayer = true
-            material.layer?.cornerRadius = shouldFold ? DisplayMetric.cornerRadius.factory.value : 22
-            material.layer?.masksToBounds = true
             if window?.isVisible == true { updateInteraction(hidden: folded) }
         }
         // Keep the same mounted module views, including the current text editor and draft.

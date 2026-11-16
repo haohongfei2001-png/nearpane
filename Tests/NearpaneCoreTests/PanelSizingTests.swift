@@ -149,12 +149,41 @@ struct PanelSizingTests {
         #expect(try work().width == usable.width - PanelSizeMetrics.minimumSide)
         settings.measures[.reservedWidth] = .init(6)
         settings.measures[.panelWidth] = .init(340)
-        #expect(try work().width == 794)
+        #expect(throws: DesktopWorkArea.ReservationError.narrowerThanPanel) { try work() }
+        #expect(settings.measures[.reservedWidth] == .init(6))
+        settings.measures[.reservedWidth] = .init(360)
+        #expect(try work().width == 440)
+        settings.measures[.panelWidth] = .init(200)
+        #expect(try work().width == 440)
         settings.placement = .floating
         #expect(try work() == usable)
         settings.placement = .docked
         settings.measures[.reservedWidth] = nil
         settings.measures[.panelWidth] = .init(100, .percent)
         #expect(throws: WorkspaceFailure.minimumSize) { try work() }
+    }
+
+    @Test func ordinaryWindowsCannotEnterTheSideInsetOfTheCommittedPanel() throws {
+        var settings = DisplaySettings()
+        settings.measures[.sideInset] = .init(3.125, .percent)
+        for edge in [SurfaceEdge.left, .right] {
+            settings.edge = edge
+            let panel = try #require(settings.panel(on: portrait, fallbackEdge: .right))
+            let work = try DesktopWorkArea(display: portrait.id, screen: usable, usable: usable, primary: false,
+                                           settings: settings, fallbackEdge: .right).ordinary
+            #expect(work.width == 675 && work.geometry.intersection(panel.geometry) == nil)
+            #expect(edge == .left ? work.x == panel.geometry.maxX : work.geometry.maxX == panel.x)
+        }
+        settings.measures[.reservedWidth] = .init(124.75)
+        #expect(throws: DesktopWorkArea.ReservationError.narrowerThanPanel) {
+            try DesktopWorkArea(display: portrait.id, screen: usable, usable: usable, primary: false,
+                                settings: settings, fallbackEdge: .right)
+        }
+        settings.measures[.reservedWidth] = nil
+        settings.measures[.sideInset] = .init(16000)
+        #expect(throws: WorkspaceFailure.minimumSize) {
+            try DesktopWorkArea(display: portrait.id, screen: usable, usable: usable, primary: false,
+                                settings: settings, fallbackEdge: .right)
+        }
     }
 }

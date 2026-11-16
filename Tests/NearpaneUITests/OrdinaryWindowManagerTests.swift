@@ -18,6 +18,11 @@ import Testing
     var lastWriteSteps = [OrdinaryWindowStep]()
     var nextVerify: (() async -> Void)?
     var immediatelyBeforeWrite: (() throws -> Void)?
+    var boundaryRevision: UUID?
+    var boundaryPrevious: SurfaceRect?
+    var boundarySettled = true
+    var beforeBoundaryAcknowledgement: (() throws -> Void)?
+    var boundaryAcknowledgements = 0
     func invalidate() { valid = false }
 
     func prepare() async throws -> AdmissionPair {
@@ -38,6 +43,27 @@ import Testing
         if let delay = nextVerify { nextVerify = nil; await delay() }
         if let closedWitness { throw closedWitness }
         guard frame == expected else { throw WorkspaceFailure.stale }
+        return try await prepare()
+    }
+    func externalChange(to next: SurfaceRect) {
+        boundaryPrevious = frame
+        frame = next
+        boundaryRevision = UUID()
+    }
+    func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
+        guard let revision = boundaryRevision, let previous = boundaryPrevious else {
+            return .init(pair: try await verify(expected: expected), previous: expected, revision: nil, settled: true)
+        }
+        return .init(pair: boundarySettled ? try await prepare() : nil, previous: previous,
+                     revision: revision, settled: boundarySettled)
+    }
+    func acknowledgeBoundary(_ observation: OrdinaryBoundaryObservation) async throws -> AdmissionPair {
+        try beforeBoundaryAcknowledgement?()
+        guard valid, boundarySettled, observation.revision == boundaryRevision,
+              observation.previous == boundaryPrevious, observation.pair?.second.cgFrame == frame else {
+            throw WorkspaceFailure.stale
+        }
+        boundaryRevision = nil; boundaryPrevious = nil; boundaryAcknowledgements += 1
         return try await prepare()
     }
     func witnessClosure(of other: ManagedWindowID? = nil) {
@@ -70,6 +96,155 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func primaryWindowNeedsTheSelectedDisplayAndNeverInheritsASecondaryAcceptanceScope() {
+        let frame = SurfaceRect(width: 1470, height: 956)
+        let primary = ScreenGeometry(id: "main", frame: frame, visibleFrame: frame)
+        let side = ScreenGeometry(id: "side", frame: frame, visibleFrame: frame)
+        #expect(CandidateWorkRect.selectedDisplay("main", on: [primary], restrictedTo: nil) == primary)
+        #expect(CandidateWorkRect.selectedDisplay("main", on: [primary], restrictedTo: "side") == nil)
+        #expect(CandidateWorkRect.selectedDisplay("side", on: [primary], restrictedTo: "side") == nil)
+        #expect(CandidateWorkRect.selectedDisplay("side", on: [primary, side], restrictedTo: "side") == side)
+        #expect(CandidateWorkRect.selectedDisplay("main", on: [primary, primary], restrictedTo: nil) == nil)
+    }
+
+    @Test func laterIndependentGesturesCanBeCorrectedWithoutRegrantingTheWindow() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        var time: TimeInterval = 100
+        manager.correctionUptime = { time }
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        let work = a.frame
+        for offset in [10.0, 20, -30] {
+            var beyond = work; beyond.x += offset
+            a.externalChange(to: beyond)
+            await manager.poll()
+            #expect(!manager.blocked && a.frame == work)
+            time += 10
+        }
+        #expect(a.writes == 4 && a.boundaryAcknowledgements == 3)
+        try await manager.stop()
+        #expect(a.writes == 4)
+    }
+
+    @Test func stoppingAfterAutomaticReflowRestoresTheLastObservedUserLayout() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        let chosen = SurfaceRect(x: 100, y: 100, width: 400, height: 320)
+        a.externalChange(to: chosen)
+        await manager.poll()
+        #expect(a.writes == 1)
+        s.context.settings.placement = .docked
+        try await manager.update(context: s.context)
+        #expect(a.frame != chosen && a.writes == 2)
+        try await manager.stop()
+        #expect(a.frame == chosen && a.writes == 3 && manager.restoredIDs == [a.id])
+    }
+
+    @Test func lateUnchangedNotificationCannotDiscardExitRecovery() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        a.externalChange(to: a.frame)
+        await manager.poll()
+        #expect(!manager.blocked && a.writes == 1 && a.boundaryAcknowledgements == 1)
+        try await manager.stop()
+        #expect(a.frame == a.original && a.writes == 2)
+    }
+
+    @Test func boundaryCorrectionIsJournaledOnceAndNeverRestoresOverExternalLayout() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        let work = a.frame, initialWrites = a.writes
+        var beyond = work; beyond.x = 100
+        a.externalChange(to: beyond)
+        a.beforeBoundaryAcknowledgement = {
+            let record = try JSONDecoder().decode(OrdinaryJournal.Record.self, from: Data(contentsOf: s.journal))
+            #expect(record.entries.first?.retainsExternalLayout == true)
+            #expect(record.entries.first?.original == a.original)
+        }
+        await manager.poll()
+        #expect(!manager.blocked && a.frame == work && a.writes == initialWrites + 1)
+        #expect(a.boundaryAcknowledgements == 1)
+        await manager.poll()
+        #expect(a.writes == initialWrites + 1)
+        try await manager.stop()
+        #expect(a.frame == work && a.writes == initialWrites + 1 && manager.activeIDs.isEmpty)
+    }
+
+    @Test func boundaryWaitsForSettledObservationAndPausedManagementNeverCorrects() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        var next = a.frame; next.y = -20
+        a.externalChange(to: next); a.boundarySettled = false
+        await manager.poll()
+        #expect(!manager.blocked && a.writes == 1 && a.boundaryAcknowledgements == 0)
+        a.boundarySettled = true
+        await manager.poll()
+        #expect(!manager.blocked && a.frame.y == 0 && a.writes == 2)
+        try manager.pause()
+        next = a.frame; next.x = 50
+        a.externalChange(to: next)
+        await manager.poll()
+        #expect(manager.blocked && a.writes == 2 && a.boundaryAcknowledgements == 1)
+        try manager.keepCurrent()
+    }
+
+    @Test func repeatedBoundaryViolationStopsWithoutAFrameWarOrOldRestore() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        var next = a.frame; next.x = 10
+        a.externalChange(to: next); await manager.poll()
+        #expect(a.writes == 2 && !manager.blocked)
+        next = a.frame; next.x = 30
+        a.externalChange(to: next); await manager.poll(); await manager.poll()
+        #expect(manager.blocked && a.writes == 2)
+        await #expect(throws: (any Error).self) { try await manager.stop() }
+        #expect(a.frame == next && a.writes == 2)
+        try manager.keepCurrent()
+    }
+
+    @Test func changedInBoundsLayoutIsRetainedWithoutAnyWindowWrite() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        let changed = SurfaceRect(x: 100, y: 100, width: 300, height: 300)
+        a.externalChange(to: changed); await manager.poll()
+        #expect(!manager.blocked && a.writes == 1 && a.frame == changed)
+        try await manager.stop()
+        #expect(a.writes == 1 && a.frame == changed)
+    }
+
+    @Test func changedObservationBetweenDurableRecordAndAcknowledgementCannotWrite() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        var next = a.frame; next.x = 20
+        a.externalChange(to: next)
+        a.beforeBoundaryAcknowledgement = { a.frame.x += 1; a.boundaryRevision = UUID() }
+        await manager.poll()
+        #expect(manager.blocked && a.writes == 1 && a.boundaryAcknowledgements == 0)
+        let restarted = s.manager()
+        #expect(restarted.blocked)
+        await restarted.poll()
+        #expect(a.writes == 1)
+        try manager.keepCurrent()
+    }
+
+    @Test func correctionCannotMoveAnUnauthorizedSiblingOrOverlapManagedSibling() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), manager = s.manager(), untouched = WindowDouble()
+        try await manager.confirm(manager.prepare([a,b], context: s.context), context: s.context)
+        let other = b.frame, original = untouched.frame
+        var next = a.frame; next.x = 700
+        a.externalChange(to: next); await manager.poll()
+        #expect(manager.blocked && a.writes == 1 && b.writes == 1 && b.frame == other)
+        #expect(untouched.writes == 0 && untouched.frame == original)
+        try manager.keepCurrent()
+    }
+
+    @Test func unobservedDriftStillCannotAcquireBoundaryCorrectionAuthority() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), manager = s.manager()
+        try await manager.confirm(manager.prepare([a], context: s.context), context: s.context)
+        a.frame.x = 50 // No retained native-event witness.
+        await manager.poll()
+        #expect(manager.blocked && a.writes == 1 && a.boundaryAcknowledgements == 0)
+        try manager.keepCurrent()
+    }
     @Test func anExpiredOrWithdrawnDesktopWitnessStopsOrdinaryWindowWrites() {
         let scope = OrdinaryScope(), candidate = CandidateWorkRect(support: scope.support)
         let now = ProcessInfo.processInfo.systemUptime

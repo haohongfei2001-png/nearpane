@@ -57,7 +57,7 @@ if full {
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "RiftletAdapters", dependencies: ["RiftletCore"], path: riftlet + "RiftletAdapters",
                 resources: [.process("Resources")], swiftSettings: [.swiftLanguageMode(.v5)]),
-        .target(name: "RiftletUI", dependencies: ["RiftletCore"], path: riftlet + "RiftletUI",
+        .target(name: "RiftletUI", dependencies: ["RiftletCore", "RiftletCapture"], path: riftlet + "RiftletUI",
                 exclude: ["ThumbnailCache.swift"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "NearpaneTray", dependencies: ["NearpaneCore", "RiftletCore", "RiftletCapture", "RiftletAdapters", "RiftletUI", "CSQLite"],
                 path: cache + "tray-" + tray.key, sources: ["Host", "Upstream"],

@@ -39,6 +39,11 @@ struct OrdinaryJournal {
         var intended: SurfaceRect?
         var operation: UUID?
         var refusal: String?
+        // A system move/resize event has no trustworthy author. Once observed, an old
+        // pre-management frame must never overwrite the newly chosen layout on exit.
+        var retainsExternalLayout: Bool?
+        var externalLayout: SurfaceRect?
+        var boundaryCorrections: Int?
     }
     struct Record: Codable {
         let version: Int
@@ -81,6 +86,14 @@ struct OrdinaryJournal {
     }
     func record(_ receipt: Receipt) throws {
         try persist(receipt, to: directory.appendingPathComponent("action-\(receipt.operation.uuidString).json"))
+    }
+    struct BoundaryRead: Codable {
+        let session: UUID, id: ManagedWindowID, revision: UUID
+        let previous: SurfaceRect
+        let observed: AdmissionPair
+    }
+    func record(_ read: BoundaryRead) throws {
+        try persist(read, to: directory.appendingPathComponent("boundary-\(read.revision.uuidString).json"))
     }
     struct ClosedMember: Codable {
         let session: UUID, entry: Entry, witness: OrdinaryWindowClosure

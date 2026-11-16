@@ -272,8 +272,9 @@ extension DisplaySettings {
               max(width, height) >= compactSpan else { return .icon }
         let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
             settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
-        let sections = (voice: max(0, layout.voice.height - 8), tray: max(0, layout.screenshots.height - 8),
-                        spaces: max(0, layout.desktop.height - 8))
+        let cardPadding = 2 * PanelSizeMetrics.cardInset(width: width)
+        let sections = (voice: max(0, layout.voice.height - cardPadding), tray: max(0, layout.screenshots.height - cardPadding),
+                        spaces: max(0, layout.desktop.height - cardPadding))
         let width = max(0, width - 2 * PanelSizeMetrics.cardInset(width: width))
         if voice && [.full, .compact, .voiceOnly].contains(content) {
             let pad = points(.textPadding, in: width)

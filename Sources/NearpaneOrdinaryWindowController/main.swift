@@ -73,6 +73,18 @@ final class Worker {
                       let m = windowsByID[id] else { throw Refusal("窗口未在本次选择中登记。") }
                 switch r.action {
                 case .prepare: reply.pair = try m.prepare()
+                case .observeBoundary:
+                    guard let expected = r.expected else { throw Refusal("缺少已授权窗口基线。") }
+                    do { reply.boundary = try m.observeBoundary(expected) }
+                    catch let original as Refusal {
+                        do { reply.closure = try m.closure(expected: expected) }
+                        catch { throw original }
+                    }
+                case .acknowledgeBoundary:
+                    guard let expected = r.expected, let current = r.destination, let revision = r.boundaryRevision else {
+                        throw Refusal("边界观测缺少对应窗口事件。")
+                    }
+                    reply.pair = try m.acknowledgeBoundary(from: expected, current: current, revision: revision)
                 case .verify:
                     guard let expected = r.expected else { throw Refusal("缺少窗口基线。") }
                     do { reply.pair = try m.verify(expected) }

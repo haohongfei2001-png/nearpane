@@ -194,6 +194,9 @@ class Trial:
             check(self.start_config["preferredDisplayID"]==side,"unexpected secondary")
             self.start_config["displays"][side]=dict(edge="left", placement="docked", policy="onDemand",
                                                  spacesDismissed=False, anchor="top", measures=["reservedWidth",{"unit":"pt","value":160}])
+            if getattr(self, "boundary_review", False):
+                self.start_config["displays"][side]["measures"] += [
+                    "panelWidth", {"unit":"pt","value":148}, "sideInset", {"unit":"pt","value":8}]
             put(cfg,self.start_config)
             self.receipts=[]
         marker=json.loads((self.session/"session.json").read_text())
@@ -354,6 +357,9 @@ class Trial:
         pair={**original,n1:[rx,y,half,h],n2:[rx+half,y,half,h]}
         triple={n1:[rx+half,y,half,h/2],n2:[rx+half,y+h/2,half,h/2],n3:[rx,y,half,h]}
         custom={**original,n1:[rx,y,round(rw*.6),h],n2:[rx+round(rw*.6),y,rw-round(rw*.6),h]}
+        if mode == "boundary":
+            self.boundary(original, n1)
+            return
         if mode == "exclude-display":
             for n in (n1,n2): self.press("admission-window-"+str(n))
             self.press("admission-read");self.press("ordinary-confirm")
@@ -421,6 +427,48 @@ class Trial:
         others={**original,n3:triple[n3]}
         self.checkpoint("regranted-for-display", {**others,n1:full})
         self.external_edit_and_crash(original,n1)
+
+    def boundary(self, original, number):
+        # Keep one ungranted sibling and stay fully inside the fixture's physical display.
+        x, y, width, height = self.run_focus["usableQuartz"]
+        full = [x + 160, y, width - 160, height]
+        check(full[2] - 48 >= 240 and height - 40 >= 152, "secondary cannot fit the tested layout")
+        self.select(number)
+        grant = self.checkpoint("authorized-inside-docked-boundary", {**original, number:full}, 1)
+        check(len(grant) == 1 and grant[0]["id"]["number"] == number, "unexpected grant write")
+
+        breach = [full[0] - 24, y + 24, full[2] - 48, height - 40]
+        safe = [full[0], *breach[1:]]
+        owner = self.command("cross-reservation")
+        edited = {w["number"]:w["frame"] for w in owner["windows"]}
+        check(edited.keys() == original.keys() and same_rect(edited[number], breach)
+              and all(edited[n] == original[n] for n in original if n != number), "unexpected fixture edit")
+        put(self.out/"external-boundary-stimulus.json", owner)
+
+        expected = {**original, number:safe}
+        receipts = self.checkpoint("boundary-corrected", expected, 2)
+        reads = [json.loads(p.read_text()) for p in self.records.glob("boundary-*.json")]
+        corrections = [r for r in receipts if r["kind"] == "boundary"]
+        check(len(receipts) == 2 and len(corrections) == len(reads) == 1, "missing or repeated boundary correction")
+        correction, witness = corrections[0], reads[0]
+        check(correction["id"] == witness["id"] == grant[0]["id"]
+              and correction["session"] == witness["session"] == grant[0]["session"], "mismatched window or session")
+        keys = ["x", "y", "width", "height"]
+        def matches(rect, wanted):
+            return same_rect([rect[key] for key in keys], wanted)
+        check(matches(correction["previous"], breach) and matches(correction["requested"], safe),
+              "wrong boundary correction")
+        for sample in witness["observed"].values():
+            check(sample["display"] == self.run_focus["side"] and sample["number"] == sample["axNumber"] == number
+                  and sample["element"] == witness["id"]["element"] and sample["launch"] == witness["id"]["launch"]
+                  and matches(sample["axFrame"], breach) and matches(sample["cgFrame"], breach),
+                  "missing independent AX/CG confirmation of original breach")
+        self.press("ordinary-stop")
+        final = self.checkpoint("stopped-preserving-corrected-layout", expected)
+        check(len(final) == 2 and not (self.records/"journal.json").exists(), "stop replayed or left an open transaction")
+        put(self.out/"native-result.json", dict(session=self.sid, subject=number, externalFrame=breach,
+            correctedFrame=safe, observation=witness["revision"], operation=correction["operation"],
+            maximumAXCGErrorPt=self.receipts[-1]["maxErrorPt"], writes=2, stopWrites=0))
 
     def external_edit_and_crash(self,original,n1):
         before_edit=self.action_ids()
@@ -500,16 +548,20 @@ if __name__ == "__main__":
     p.add_argument("--candidate",type=Path,default=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app")
     mode=p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--probe",action="store_true")
-    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed"])
+    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed","boundary"])
     args=p.parse_args()
     if not args.probe:
         sp.run(["/usr/bin/codesign", "--verify", "--strict", "--deep", '-R=identifier "com.holdsnow.nearpane.alpha"',
                 args.candidate.resolve()], check=True)
     with (OUT/"run.txt").open("w") as fp: fp.write("probe" if args.probe else args.mode)
     print(OUT,flush=True)
+    if args.mode == "boundary":
+        # Require a free Host slot before even launching the disposable fixture.
+        check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode == 1, "existing Host in use")
     t=Trial(args.candidate.resolve())
     try:
-        count = 2 if args.mode in ("closure-probe","mixed") else (1 if args.mode in ("fault","floating") else 3)
+        t.boundary_review = args.mode == "boundary"
+        count = 2 if args.mode in ("closure-probe","mixed","boundary") else (1 if args.mode in ("fault","floating") else 3)
         original=t.baseline(count, density=args.mode=="density")
         if args.mode=="mixed":
             from mixed import run as run_mixed

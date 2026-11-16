@@ -26,6 +26,7 @@ public struct EdgeSurfaceView: View {
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight:display?.referenceHeight)
             ZStack(alignment: .topLeading) {
+                SurfaceShell(layout: layout, width: geometry.size.width, settings: settings)
                 if layout.voice.height > 0 { voice.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.voice) }
                 if layout.screenshots.height > 0 { screenshots.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.screenshots) }
                 if layout.desktop.height > 0 { desktop.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.desktop) }

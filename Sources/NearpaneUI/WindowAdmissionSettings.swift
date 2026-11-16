@@ -379,7 +379,7 @@ enum AdmissionPlacement: String, CaseIterable {
                     Text("窗口 #\(String(id.number)) → (\(Int(r.x)), \(Int(r.y)))  \(Int(r.width)) × \(Int(r.height)) pt").font(.caption)
                 }
             }
-            Text("停止时仅恢复仍能连续核对的原窗口。若你或其他应用改变布局，会保留现状。")
+            Text("拖动结束后会将所选窗口移回工作区。若纠正后五秒内再次越界，管理会暂停。停止管理时保留最近核对过的手动布局。")
                 .font(.caption).foregroundStyle(.secondary)
             Button("授权所列窗口并应用布局") {
                 selection.invalidate(discardPlan: false)

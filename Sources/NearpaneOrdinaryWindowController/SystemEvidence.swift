@@ -72,6 +72,51 @@ func displayID(_ f: SurfaceRect) throws -> String {
     return CFUUIDCreateString(nil, uuid) as String
 }
 
+struct BoundaryDisplayWitness: Equatable {
+    let id: String
+    let bounds: SurfaceRect
+}
+
+func boundaryDisplayWitness(_ id: String) throws -> BoundaryDisplayWitness {
+    var ids = [CGDirectDisplayID](repeating: 0, count: 32), count: UInt32 = 0
+    try require(CGGetActiveDisplayList(32, &ids, &count) == .success && count < 32,
+                "无法完整核对显示器范围。")
+    let matches = ids.prefix(Int(count)).filter { display in
+        guard let uuid = CGDisplayCreateUUIDFromDisplayID(display)?.takeRetainedValue() else { return false }
+        return CFUUIDCreateString(nil, uuid) as String == id
+    }
+    guard matches.count == 1, let display = matches.first, CGDisplayIsInMirrorSet(display) == 0 else {
+        throw Refusal("原显示器身份无法唯一核对。")
+    }
+    let b = CGDisplayBounds(display)
+    return .init(id: id, bounds: .init(x: b.minX, y: b.minY, width: b.width, height: b.height))
+}
+
+/// Partial overflow is observable only against the already enrolled, unchanged display.
+/// This cannot authorize a first selection, a target write, a cross-display move or an offscreen window.
+func boundaryGeometryPermitted(_ frame: SurfaceRect, enrolled: BoundaryDisplayWitness,
+                               current: BoundaryDisplayWitness, intersecting: [String]) -> Bool {
+    frame.geometry.isValid && enrolled == current && intersecting == [enrolled.id] &&
+        frame.geometry.intersection(enrolled.bounds.geometry)?.isValid == true
+}
+
+func boundaryDisplayID(_ frame: SurfaceRect, witness: BoundaryDisplayWitness) throws -> String {
+    let current = try boundaryDisplayWitness(witness.id)
+    var ids = [CGDirectDisplayID](repeating: 0, count: 32), count: UInt32 = 0
+    let rect = CGRect(x: frame.x, y: frame.y, width: frame.width, height: frame.height)
+    try require(CGGetDisplaysWithRect(rect, 32, &ids, &count) == .success && count < 32,
+                "无法核对越界窗口的显示器交集。")
+    let intersecting: [String] = ids.prefix(Int(count)).compactMap { display in
+        guard CGDisplayIsInMirrorSet(display) == 0,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(display)?.takeRetainedValue() else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String
+    }
+    try require(intersecting.count == Int(count) &&
+                boundaryGeometryPermitted(frame, enrolled: witness, current: current, intersecting: intersecting),
+                "窗口已跨显示器、完全离屏或原显示器几何已变化。")
+    return witness.id
+}
+
 private func ordinaryRole(_ element: AXUIElement) throws {
     guard attribute(element,kAXRoleAttribute) as? String == kAXWindowRole,
           attribute(element,kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
@@ -98,7 +143,8 @@ private func ordinaryRole(_ element: AXUIElement) throws {
     }
 }
 
-func observation(_ owner: OrdinaryOwnerIdentity, _ id: ManagedWindowID, _ bundle: String, _ e: AXUIElement) throws -> AdmissionSample {
+func observation(_ owner: OrdinaryOwnerIdentity, _ id: ManagedWindowID, _ bundle: String, _ e: AXUIElement,
+                 boundaryDisplay: BoundaryDisplayWitness? = nil) throws -> AdmissionSample {
     try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
     let candidates = try windows(id.pid).filter { number($0) == id.number }
     try require(candidates.count == 1 && CFEqual(candidates[0], e) && number(e) == id.number, "所选 AX 窗口已重建或编号不唯一。")
@@ -115,7 +161,7 @@ func observation(_ owner: OrdinaryOwnerIdentity, _ id: ManagedWindowID, _ bundle
     sample.axFrame = try axRect(e)
     try require(sample.axFrame == cg, "AX 与 CG 的呈现几何不一致。")
     sample.cgFrame = cg
-    sample.display = try displayID(cg)
+    sample.display = try boundaryDisplay.map { try boundaryDisplayID(cg, witness: $0) } ?? displayID(cg)
     sample.axNumber = id.number; sample.element = id.element
     sample.selectionContinuity = true; sample.permission = true
     sample.role = .ordinary; sample.fullscreen = false; sample.minimized = false

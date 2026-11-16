@@ -59,7 +59,7 @@ private typealias ViewState<T> = State<T>
 
     private func current() throws -> AdmissionContext {
         guard let display = session.activeDisplay, let c = manager.context(for: display) else {
-            throw OrdinaryWindowFailure("无法核对当前副屏工作区域或管理范围。")
+            throw OrdinaryWindowFailure("无法核对授权窗口所在显示器的工作区域或管理范围。")
         }
         return c
     }

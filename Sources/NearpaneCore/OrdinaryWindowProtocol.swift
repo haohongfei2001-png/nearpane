@@ -2,12 +2,16 @@ import Foundation
 
 /// Anonymous pipes connect the signed Host to one short-lived worker scoped to one process incarnation.
 public struct OrdinaryWindowRequest: Codable, Sendable {
-    public enum Action: String, Codable, Sendable { case list, refresh, prepare, verify, write, release }
+    public enum Action: String, Codable, Sendable {
+        case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
+    }
     public let nonce: UUID, action: Action, pid: Int32, launch: UInt64, bundle: String
     public let id: ManagedWindowID?, expected: SurfaceRect?, destination: SurfaceRect?
+    public let boundaryRevision: UUID?
 
     public init(_ action: Action, pid: Int32, launch: UInt64, bundle: String,
-                id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil) {
+                id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil,
+                boundaryRevision: UUID? = nil) {
         self.nonce = UUID()
         self.action = action
         self.pid = pid
@@ -16,6 +20,22 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
         self.id = id
         self.expected = expected
         self.destination = destination
+        self.boundaryRevision = boundaryRevision
+    }
+}
+
+/// Read-only evidence of an unattributed external geometry change. A revision does not grant
+/// an AX write; the Host must persist its changed recovery policy before acknowledging it.
+public struct OrdinaryBoundaryObservation: Codable, Sendable {
+    public let pair: AdmissionPair?
+    public let previous: SurfaceRect
+    public let revision: UUID?
+    public let settled: Bool
+    public init(pair: AdmissionPair?, previous: SurfaceRect, revision: UUID?, settled: Bool) {
+        self.pair = pair
+        self.previous = previous
+        self.revision = revision
+        self.settled = settled
     }
 }
 
@@ -55,5 +75,6 @@ public struct OrdinaryWindowReply: Codable, Sendable {
     public var steps: [OrdinaryWindowStep]?
     public var choices: [ManagedWindowID?]?, pair: AdmissionPair?, failure: String?
     public var closure: OrdinaryWindowClosure?
+    public var boundary: OrdinaryBoundaryObservation?
     public init(_ nonce: UUID) { self.nonce = nonce }
 }

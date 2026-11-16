@@ -128,15 +128,30 @@ private actor OrdinaryWindowChannel {
     }
 
     func prepare() async throws -> AdmissionPair { try await sample(.prepare) }
+    func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
+        guard !closed else { throw OrdinaryRefusal.lost }
+        let reply = try await channel.call(.init(.observeBoundary, pid: id.pid, launch: id.launch, bundle: bundle,
+                                                 id: id, expected: expected))
+        guard !closed else { throw OrdinaryRefusal.lost }
+        if let closure = reply.closure, closure.id == id, reply.boundary == nil { throw closure }
+        guard let read = reply.boundary, read.previous == expected else { throw OrdinaryRefusal.stale }
+        return read
+    }
+    func acknowledgeBoundary(_ observation: OrdinaryBoundaryObservation) async throws -> AdmissionPair {
+        guard let frame = observation.pair?.second.cgFrame, let revision = observation.revision, observation.settled else {
+            throw OrdinaryRefusal.stale
+        }
+        return try await sample(.acknowledgeBoundary, from: observation.previous, to: frame, revision: revision)
+    }
     func verify(expected: SurfaceRect) async throws -> AdmissionPair { try await sample(.verify, from: expected) }
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair {
         try await sample(.write, from: from, to: to)
     }
 
-    private func sample(_ action: OrdinaryWindowRequest.Action, from: SurfaceRect? = nil, to: SurfaceRect? = nil) async throws -> AdmissionPair {
+    private func sample(_ action: OrdinaryWindowRequest.Action, from: SurfaceRect? = nil, to: SurfaceRect? = nil, revision: UUID? = nil) async throws -> AdmissionPair {
         guard !closed else { throw OrdinaryWindowFailure("该窗口授权已结束。") }
         let response = try await channel.call(.init(action, pid: id.pid, launch: id.launch, bundle: bundle,
-                                                    id: id, expected: from, destination: to))
+                                                    id: id, expected: from, destination: to, boundaryRevision: revision))
         if !closed, action == .verify, let witness = response.closure, witness.id == id, response.pair == nil {
             throw witness
         }

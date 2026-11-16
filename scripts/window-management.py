@@ -68,12 +68,17 @@ def plan_key(owner, config, display, usable_width):
     # from the validated configuration and fresh display record before each write.
     reserved = 0
     if docked:
+        minimum = min(16 + 2 * 2, usable_width)  # PanelSizeMetrics: small app icon and glass inset.
+        side = points("sideInset", 0)
+        maximum = max(minimum, usable_width - side)
+        panel_width = min(maximum, max(minimum, points("panelWidth", usable_width / 8)))
+        occupied = panel_width + min(side, usable_width - panel_width)
         if "reservedWidth" in measures:
             reserved = points("reservedWidth", 0)
+            require(reserved >= occupied, "独立预留宽度小于面板及其侧边留距。请增加持久预留宽度，或恢复随面板调整。")
         else:
-            minimum = min(16 + 2 * 2, usable_width)  # PanelSizeMetrics: small app icon and glass inset.
-            maximum = max(minimum, usable_width - points("sideInset", 0))
-            reserved = min(maximum, max(minimum, points("panelWidth", usable_width / 8)))
+            reserved = occupied
+        require(reserved < usable_width, "面板及预留区没有给普通窗口留下可用宽度。")
     edge = (settings.get("edge") or config["edge"]) if reserved else None
     return owner["owner"], owner["revision"], pairs, edge, reserved
 

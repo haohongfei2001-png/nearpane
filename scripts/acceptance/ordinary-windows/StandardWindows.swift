@@ -125,6 +125,19 @@ DispatchQueue.global().async {
                 let r = CGRect(x:secondary.visibleFrame.midX-110,y:secondary.visibleFrame.midY-85,width:220,height:170)
                 guard secondary.visibleFrame.contains(r) else { finish("unsafe edit",2) }
                 w.setFrame(r,display:true)
+            case "cross-reservation" where fields.count == 1:
+                // Owner-side stimulus only. The product must observe the change through AX
+                // and perform any correction in its separate controller. Never post mouse events.
+                guard let w = windows[1] else { finish("missing enrolled sample", 2) }
+                var r = w.frame
+                r.origin.x -= 24
+                r.origin.y += 16
+                r.size.width -= 48
+                r.size.height -= 40
+                guard secondary.visibleFrame.contains(r), r.width >= 240, r.height >= 152 else {
+                    finish("test edit would leave the secondary or exceed its permitted size", 2)
+                }
+                w.setFrame(r, display: true)
             case "read": break
             case "quit": finish("requested",0)
             default: finish("bad command",2)

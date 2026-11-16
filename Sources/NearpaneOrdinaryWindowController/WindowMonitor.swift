@@ -41,6 +41,12 @@ final class WindowMonitor {
     private let incarnation = UUID()
     private var baseline: AdmissionSample?
     private var expectedFrame: SurfaceRect?, waitingFor: String?, notificationCount = 0
+    private var displayWitness: BoundaryDisplayWitness?
+    private var changes = BoundaryChangeTracker()
+    private var acknowledgedMotion = false
+    private var buttonDown: Bool {
+        [CGMouseButton.left, .right, .center].contains { CGEventSource.buttonState(.combinedSessionState, button: $0) }
+    }
 
     init(id: ManagedWindowID, bundle: String, element: AXUIElement, parent: pid_t, owner: OrdinaryOwnerIdentity) {
         self.owner = owner
@@ -83,6 +89,10 @@ final class WindowMonitor {
             failure = "原窗口收到销毁通知。"
             return
         }
+        if waitingFor == nil, event == kAXWindowMovedNotification || event == kAXWindowResizedNotification {
+            changes.received(at: ProcessInfo.processInfo.systemUptime)
+            return
+        }
         guard let waitingFor, event == waitingFor, notificationCount == 0 else {
             failure = "发生未经本次操作确认的窗口变化，已暂停并保留恢复记录。"; return
         }
@@ -94,9 +104,10 @@ final class WindowMonitor {
         try require(getppid() == parent, "窗口管理会话已结束。")
     }
 
-    private func read() throws -> AdmissionSample {
+    private func read(boundary: Bool = false) throws -> AdmissionSample {
         try check()
-        var sample = try observation(owner,id,bundle,element)
+        try require(boundary || !changes.pending, "有待核对的外部窗口变化。")
+        var sample = try observation(owner,id,bundle,element, boundaryDisplay: boundary || acknowledgedMotion ? displayWitness : nil)
         sample.liveObservation = incarnation
         sample.recoveryVerified = true
         if let baseline {
@@ -109,11 +120,11 @@ final class WindowMonitor {
         return sample
     }
 
-    private func pair(expected: SurfaceRect?) throws -> AdmissionPair {
+    private func pair(expected: SurfaceRect?, boundary: Bool = false) throws -> AdmissionPair {
         drainWindowEvents(0.004)
-        let a = try read()
+        let a = try read(boundary: boundary)
         drainWindowEvents(0.095)
-        let b = try read()
+        let b = try read(boundary: boundary)
         try require(a.axFrame == b.axFrame && a.cgFrame == b.cgFrame && a.display == b.display &&
                     a.minimum == b.minimum && a.stageManager == b.stageManager &&
                     (expected == nil || expected == b.cgFrame), "两次独立观测未确认同一窗口和预期几何。")
@@ -125,9 +136,44 @@ final class WindowMonitor {
         try start()
         let p = try pair(expected:expectedFrame)
         if baseline == nil {
+            guard let display = p.second.display else { throw Refusal("无法核对原显示器。") }
+            displayWitness = try boundaryDisplayWitness(display)
             baseline = p.second
             expectedFrame = p.second.cgFrame
         }
+        return p
+    }
+
+    func observeBoundary(_ frame: SurfaceRect) throws -> OrdinaryBoundaryObservation {
+        try require(baseline != nil && expectedFrame == frame && displayWitness != nil, "窗口边界基线已失效。")
+        try check()
+        drainWindowEvents(0.004)
+        func waiting() -> OrdinaryBoundaryObservation {
+            .init(pair: nil, previous: frame, revision: changes.revision, settled: false)
+        }
+        if buttonDown { return waiting() }
+        let revision = changes.revision
+        guard revision == nil || changes.isSettled(at: ProcessInfo.processInfo.systemUptime, buttonDown: buttonDown) else { return waiting() }
+        let p: AdmissionPair
+        do { p = try pair(expected: revision == nil ? frame : nil, boundary: true) }
+        catch {
+            if failure == nil && (changes.revision != revision || buttonDown) { return waiting() }
+            throw error
+        }
+        if changes.revision != revision || buttonDown { return waiting() }
+        guard revision != nil else { return .init(pair: p, previous: frame, revision: nil, settled: true) }
+        guard let actual = p.second.cgFrame else { throw Refusal("当前窗口位置无法确认。") }
+        let ticket = try changes.offer(actual, at: ProcessInfo.processInfo.systemUptime, buttonDown: buttonDown)
+        return .init(pair: p, previous: frame, revision: ticket, settled: true)
+    }
+
+    func acknowledgeBoundary(from previous: SurfaceRect, current: SurfaceRect, revision: UUID) throws -> AdmissionPair {
+        try require(baseline != nil && expectedFrame == previous && displayWitness != nil, "边界观测的原窗口已变化。")
+        try changes.validate(revision, frame: current, at: ProcessInfo.processInfo.systemUptime, buttonDown: buttonDown)
+        let p = try pair(expected: current, boundary: true)
+        try changes.consume(revision, frame: current, at: ProcessInfo.processInfo.systemUptime, buttonDown: buttonDown)
+        expectedFrame = current
+        acknowledgedMotion = true
         return p
     }
 
@@ -176,6 +222,11 @@ final class WindowMonitor {
         let focus = try FrontFocus()
         let narrow = SurfaceRect(x:from.x,y:from.y,width:min(from.width,to.width),height:min(from.height,to.height))
         let positioned = SurfaceRect(x:to.x,y:to.y,width:narrow.width,height:narrow.height)
+        // An intermediate resize must not leave the enrolled display (e.g. a large
+        // window whose only visible portion is its far right edge). Refuse before AX.
+        if acknowledgedMotion, let witness = displayWitness {
+            for step in [narrow, positioned, to] { _ = try boundaryDisplayID(step, witness: witness) }
+        }
         var prior = from, receipts = [OrdinaryWindowStep]()
         do {
             for next in [narrow, positioned, to] where next != prior {
@@ -186,6 +237,7 @@ final class WindowMonitor {
             let confirmed = try pair(expected:to)
             try focus.check()
             expectedFrame = to
+            acknowledgedMotion = false
             return (confirmed,receipts)
         } catch {
             failure = (error as? Refusal)?.message ?? "未能确认窗口操作，已暂停。"
@@ -196,7 +248,8 @@ final class WindowMonitor {
     private func step(from: SurfaceRect, to: SurfaceRect, focus: FrontFocus) throws -> OrdinaryWindowStep {
         drainWindowEvents(0.006)
         let pre = try read()
-        try require(pre.cgFrame == from && pre.axFrame == from && pre.display == (try displayID(to)), "写入前窗口几何或身份变化。")
+        let targetDisplay = try acknowledgedMotion ? displayWitness.map { try boundaryDisplayID(to, witness: $0) } : displayID(to)
+        try require(pre.cgFrame == from && pre.axFrame == from && pre.display == targetDisplay, "写入前窗口几何或身份变化。")
         let moving = from.x != to.x || from.y != to.y
         let event = moving ? kAXWindowMovedNotification : kAXWindowResizedNotification
         let key = moving ? kAXPositionAttribute : kAXSizeAttribute
