@@ -15,6 +15,9 @@ public final class EmbeddedModules {
     let voicePasteboard: NSPasteboard
     #endif
 
+    let windowPreviews = WindowContentPreview()
+    public func stopWindowContentPreview() { windowPreviews.clear() }
+
     public let workRect: CandidateWorkRect?
     public let candidate: Bool
     public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
@@ -57,6 +60,7 @@ public final class EmbeddedModules {
     }
 
     public func finishStopping() async {
+        stopWindowContentPreview()
         await workRect?.finish()
         #if canImport(NearpaneVoice)
         await voice.waitForTransition()

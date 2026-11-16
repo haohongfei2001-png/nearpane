@@ -33,6 +33,7 @@ import NearpaneCore
         self.present = present
         self.host = host
         self.primary = primary
+        pointer.windowPreviews = domains?.windowPreviews
         primary.usePointer(pointer)
         host.glassPreviewChanged = { [weak self] id in
             self?.primary.refreshGlass(on: id)
@@ -95,8 +96,8 @@ import NearpaneCore
             panel?.close()
         }
         guard let main = plans.first(where: \.primary) else {
-            primary.removePlacement(); fullscreen.hide()
             stopObservingClicks()
+            primary.removePlacement(); fullscreen.hide()
             return
         }
         // Withdraw or move the unique domain panel before its old display presents a Space-only panel.
@@ -119,13 +120,12 @@ import NearpaneCore
             controller.place(on: screen, primary: main.id, content: plan.content)
             present(controller)
         }
-        if let screen = screens.first(where: { $0.id == main.id }),
         observeClicksIfNeeded()
+        if let screen = screens.first(where: { $0.id == main.id }),
            displayID == nil || main.id == displayID {
             fullscreen.present(on: screen, allowed: !suspended && !primary.captureSuppressed)
         } else { fullscreen.hide() }
     }
-    public func stop() {
     // Observe mouse-down only while an on-demand destination is actually shown.
     // The external handler never reads a click location, window name or owning app.
     private var transientPanels: [String: EdgeWindowController] {
@@ -167,8 +167,9 @@ import NearpaneCore
         if let externalMouse { NSEvent.removeMonitor(externalMouse); self.externalMouse = nil }
     }
 
-        fullscreen.hide()
+    public func stop() {
         stopObservingClicks()
+        fullscreen.hide()
         host.updatePanelContents([:])
         primary.removePlacement()
         for panel in secondary.values { panel.removePlacement(); panel.close() }

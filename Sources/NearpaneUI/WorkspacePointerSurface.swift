@@ -5,6 +5,7 @@ import SwiftUI
 /// AppKit keeps delivering the drag to the source view. Resolve the drop in screen coordinates
 /// against the destination Host panel, including letterboxed whitespace in the workspace row.
 @MainActor final class WorkspacePointerRegistry {
+    weak var windowPreviews: WindowContentPreview?
     private let views = NSHashTable<WorkspacePointerView>.weakObjects()
     func register(_ view: WorkspacePointerView) { views.add(view) }
     func destination(at screen: NSPoint) -> WorkspaceID? {
@@ -22,6 +23,7 @@ struct WorkspacePointerSurface: NSViewRepresentable {
     let host: HostSession, preview: DesktopPreview, sample: DesktopSnapshot, display: SurfaceDisplay
     func makeNSView(context: Context) -> WorkspacePointerView { WorkspacePointerView() }
     func updateNSView(_ v: WorkspacePointerView, context: Context) {
+        if v.held && v.sample?.revision != sample.revision { v.cancelOperation(nil) }
         v.host = host
         v.preview = preview
         v.sample = sample
@@ -78,6 +80,11 @@ struct WorkspacePointerSurface: NSViewRepresentable {
             on: display?.pointer?.destination(at: screen), x: screen.x, y: screen.y, primary: display?.primaryID,
             now: Date(), uptime: ProcessInfo.processInfo.systemUptime)
     }
+    override func scrollWheel(with event: NSEvent) {
+        if held { cancelOperation(nil) }
+        super.scrollWheel(with: event)
+    }
+
     override func cancelOperation(_ sender: Any?) {
         if held {
             held = false

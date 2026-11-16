@@ -706,6 +706,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func applyDesktopSessionState() {
+        if sessionUnavailable { modules?.stopWindowContentPreview() }
         #if canImport(SaytileKit)
         if sessionUnavailable { modules?.voice.stopArchivePlayback() }
         #endif
@@ -875,6 +876,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settingsNavigation.showAppearance()
         updateSettingsContent()
         try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-appearance.png"))
+        settingsNavigation.showDesktop()
+        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-desktop.png"))
         settingsNavigation.showWindowManagement()
         try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-window-management.png"))
         settingsNavigation.showGeneral()

@@ -66,6 +66,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     public func showScreenshotArchive() { page = .screenshotArchive }
     public func showGeneral() { page = .general }
     public func showApplicationServices() { page = .app }
+    public func showDesktop() { page = .desktop }
     public func showWindowManagement() { page = .windowManagement }
 }
 
@@ -363,9 +364,23 @@ public struct SettingsView: View {
             }
             Text("Native 只读预览。系统空间切换、跨空间移窗和 Virtual 停放均关闭。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
-            Toggle("只读桌面预览", isOn: Binding(get: { enabled }, set: { host.handle(.setEnabled(BuiltinCatalog.desktop, $0)) }))
+            Toggle("只读桌面预览", isOn: Binding(get: { enabled }, set: {
+                if !$0 { domains?.windowPreviews.clear() }
+                host.handle(.setEnabled(BuiltinCatalog.desktop, $0))
+            }))
             Toggle("实验性 Space 归属读取", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
                   set: { host.setExperimentalSpaceObservation($0) })).disabled(!enabled)
+            if #available(macOS 15.2, *), let previews = domains?.windowPreviews {
+                HStack {
+                    Button("选择窗口并拍摄预览…") { previews.choose(host: host) }
+                        .disabled(!enabled || previews.choosing || previews.visibleDisplays.isEmpty || host.configuration.surfaceHidden)
+                    if previews.active {
+                        Button("清除预览") { previews.clear() }
+                    }
+                }
+                Text(previews.notice.isEmpty ? "由系统选择器指定一扇窗口。预览仅在内存中保留一分钟。" : previews.notice)
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Text("默认只观察当前可见窗口的几何。实验读取仅用于已核验的系统构建。")
                 .font(.callout).foregroundStyle(.secondary)
         }.padding(16)

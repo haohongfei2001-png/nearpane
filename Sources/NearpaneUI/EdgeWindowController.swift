@@ -336,6 +336,10 @@ public final class EdgeWindowController: NSWindowController {
     }
 
     private func updateInteraction(hidden: Bool) {
+        if let id = display.id {
+            let spaces = display.content == .full || display.content == .spacesOnly
+            display.pointer?.windowPreviews?.setVisible(!hidden && spaces, on: id)
+        }
         guard interactionHidden != hidden else { return }
         interactionHidden = hidden
         display.interactionVisible = !hidden
