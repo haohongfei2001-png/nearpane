@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-17",
+  "scope": "Design assets and standalone parser only; not browser or macOS acceptance",
+  "javascript_syntax": "PASS (node --check)",
+  "safe_calculator": {
+    "status": "PASS",
+    "valid_cases": 4,
+    "rejected_cases": 5,
+    "inputs_tested": [
+      "(248 + 136) × 0.85",
+      "-(-4)+.5",
+      "2*(3+4)/2",
+      "0.1 + 0.2",
+      "1/0",
+      "2+",
+      "alert(1)",
+      "2**3",
+      "(1+2"
+    ],
+    "source": "Actual safeCalculate function extracted from index.html"
+  },
+  "svg_assets": [
+    {
+      "file": "01-desktop-design.svg",
+      "xml_valid": true,
+      "width": "1552",
+      "height": "1208",
+      "png_bytes": 214197
+    },
+    {
+      "file": "02-three-configurations.svg",
+      "xml_valid": true,
+      "width": "1600",
+      "height": "1390",
+      "png_bytes": 307734
+    },
+    {
+      "file": "03-workpage-and-history.svg",
+      "xml_valid": true,
+      "width": "1800",
+      "height": "1300",
+      "png_bytes": 242606
+    },
+    {
+      "file": "04-boundary-states.svg",
+      "xml_valid": true,
+      "width": "1600",
+      "height": "1360",
+      "png_bytes": 278755
+    }
+  ],
+  "svg_rendering": "PASS: sharp/libvips SVG rendering; 4 boards visually inspected",
+  "secondary_text_tokens": {
+    "light": "#6b5d73 on #f6f2fb and #e7ddf4",
+    "light_contrast": 5.53,
+    "dark": "#b39cc8 on #302735",
+    "dark_contrast": 5.8,
+    "note": "Token calculation only; native materials and text over arbitrary wallpapers still require validation.",
+    "light_accent_surface_contrast": 4.67
+  },
+  "browser_interaction": {
+    "status": "BLOCKED",
+    "reason": "Chromium process could not create required socket in this environment. No browser interaction pass claimed."
+  },
+  "native_macos": "NOT_RUN",
+  "outstanding": [
+    "Run verify-prototype.py in a browser-capable environment.",
+    "Implement authoritative layout algorithm; HTML retains simplified example sizing.",
+    "Validate native AX/EventKit/Spaces/media/FileProvider behavior separately."
+  ],
+  "package_static_checks": {
+    "relative_links": 28,
+    "broken_links": 0,
+    "json_valid": true,
+    "svg_xml_valid": true,
+    "python_syntax_valid": true,
+    "external_script_or_style_dependencies": 0
+  }
+}
