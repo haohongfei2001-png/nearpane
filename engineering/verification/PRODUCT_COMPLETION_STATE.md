@@ -4,7 +4,7 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.12 Alpha，build 63。源码 `2e81bbe6180cc793968c4d51b7cc7969705b9671`。Finder、实际运行进程和 WorkRect 子进程均已核对。统一主窗口提供语音、截图两个一级档案，通用主题色与菜单栏入口偏好也保存在同一份资料中。5.11 与 5.12 能使用同一已核验的资料代际。工作区仍约束逐窗授权对象拖动结束后的位置。[5.12 交付与界面](P5.12-UNIFIED-ARCHIVES-AND-SETTINGS.md) · [5.11 外观、领域与窗口边界](P5.11-APPEARANCE-DOMAINS-AND-WINDOWS.md)
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.13 Alpha，build 64。源码 `b5fe7871adc6102eed4098abfebd4ea7583666e2`。语音排版和截图托盘按独立产品对齐；两个一级档案共用导航与主题色。外框及内卡随明暗使用不同透明度，可在「玻璃外观」一键应用。5.12 与 5.13 的同代际升级回退、安装签名、Finder 唯一路径与实际运行进程均已核验。[5.13 视觉与安装](P5.13-VISUAL-FIDELITY.md) · [5.12 档案与设置](P5.12-UNIFIED-ARCHIVES-AND-SETTINGS.md) · [5.11 外观、领域与窗口边界](P5.11-APPEARANCE-DOMAINS-AND-WINDOWS.md)
 
 ## P5.10 原图、图标与玻璃层次
 
