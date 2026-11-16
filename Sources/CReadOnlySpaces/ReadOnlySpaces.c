@@ -35,8 +35,26 @@ CFArrayRef NPReadVisibleWindowDescriptions(const uint32_t *windows, int count) {
     if (!selected) return NULL;
     CFArrayRef descriptions = CFArrayGetCount(selected) ? CGWindowListCreateDescriptionFromArray(selected)
                                                         : CFArrayCreate(NULL, NULL, 0, &kCFTypeArrayCallBacks);
+    // The description API can omit a window closed during the call. Join by number
+    // and retain the ordering from the independent on-screen number list.
+    CFMutableArrayRef result = descriptions ? CFArrayCreateMutable(NULL, count, &kCFTypeArrayCallBacks) : NULL;
+    if (result) {
+        for (CFIndex i = 0; i < CFArrayGetCount(selected); i++) {
+            int64_t expected = (uintptr_t)CFArrayGetValueAtIndex(selected, i);
+            for (CFIndex j = 0; j < CFArrayGetCount(descriptions); j++) {
+                CFDictionaryRef row = CFArrayGetValueAtIndex(descriptions, j);
+                CFNumberRef number = CFDictionaryGetValue(row, kCGWindowNumber);
+                int64_t id = 0;
+                if (number && CFNumberGetValue(number, kCFNumberSInt64Type, &id) && id == expected) {
+                    CFArrayAppendValue(result, row);
+                    break;
+                }
+            }
+        }
+    }
+    if (descriptions) CFRelease(descriptions);
     CFRelease(selected);
-    return descriptions;
+    return result;
 }
 
 // P1-A 0a704fd7: signed 32-bit connection, CGWindowID in an explicit CFArray, selector 7 only.

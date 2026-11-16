@@ -49,6 +49,20 @@ private actor Attempts {
 }
 
 @MainActor struct NativeDesktopProviderTests {
+    @Test func packagedReaderAcceptsSystemPathAliasButRejectsLinkInsideBundle() throws {
+        let root = URL(fileURLWithPath: "/private/tmp").appendingPathComponent(UUID().uuidString)
+        let bundle = root.appendingPathComponent("Trial.app")
+        let helper = bundle.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
+        let fm = FileManager.default
+        try fm.createDirectory(at: helper.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        try Data().write(to: helper)
+        #expect(NativeDesktopProvider.readerURL(in: bundle)?.path == helper.resolvingSymlinksInPath().path)
+        let outside = root.appendingPathComponent("outside")
+        try fm.moveItem(at: helper, to: outside)
+        try fm.createSymbolicLink(at: helper, withDestinationURL: outside)
+        #expect(NativeDesktopProvider.readerURL(in: bundle) == nil)
+    }
     @Test func accessibleWindowPositionUsesTheClippedDrawingWithinItsDisplay() {
         let desktop = SurfaceRect(x: 18, y: 56, width: 80, height: 120)
         let visible = SurfaceRect(x: 58, y: 86, width: 40, height: 90)
