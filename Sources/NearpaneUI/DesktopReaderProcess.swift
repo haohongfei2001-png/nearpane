@@ -80,7 +80,18 @@ enum DesktopReaderProcess {
                     throw ReaderFailure.unavailable
                 }
             }
-            if count <= 0 && (!eof || !reaped) { usleep(12_000) }
+            if count <= 0 && (!eof || !reaped) {
+                // Wait for pipe data or hangup. The upper bound also lets a
+                // cancellation interrupt a helper stuck in an AX call.
+                let remaining = max(0, deadline - ProcessInfo.processInfo.systemUptime)
+                let milliseconds = Int32(ceil(min(remaining, 0.10) * 1_000))
+                // A closed pipe is always readable. When only waitpid remains,
+                // ignore the descriptor to avoid spinning on its EOF.
+                var descriptor = pollfd(fd: eof ? -1 : fds[0], events: Int16(POLLIN), revents: 0)
+                if Darwin.poll(&descriptor, 1, milliseconds) < 0 && errno != EINTR {
+                    throw ReaderFailure.unavailable
+                }
+            }
         }
         guard status == 0 else { throw ReaderFailure.unavailable }
         return bytes
