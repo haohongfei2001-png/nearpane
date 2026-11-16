@@ -39,6 +39,8 @@ private actor Attempts {
 @MainActor private final class CountingRead: LiveDesktopObservationProvider {
     let capabilities = DesktopCapabilities(observation: .readOnly)
     private(set) var reads = 0
+    private(set) var discards = 0
+    func discardVisitedSpaces() { discards += 1 }
     func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot {
         reads += 1
         return sample(.init(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: nil,
@@ -117,6 +119,22 @@ private actor Attempts {
             #expect(host.bus.desktop == nil)
             host.stop()
         }
+    }
+
+    @Test func privacyBoundariesClearRememberedDesktopsWhileSpaceChangeMayRetainWitnesses() async {
+        let reader = CountingRead(), host = HostSession(store: MemoryConfigurationStore(), provider: reader)
+        await host.start()
+        host.invalidateDesktop()
+        #expect(reader.discards == 0)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        #expect(reader.discards == 1)
+        host.setExperimentalSpaceObservation(true)
+        host.setExperimentalSpaceObservation(false)
+        host.setSurfaceHidden(true)
+        #expect(host.handle(.setEnabled(BuiltinCatalog.desktop, false)) == .accepted)
+        host.stop()
+        #expect(reader.discards == 5)
     }
 
     @Test func openingAProfileWhileLockedDoesNotStartObservationUntilWakeAndUnlock() async throws {

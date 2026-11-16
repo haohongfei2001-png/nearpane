@@ -6,6 +6,7 @@ import WindowGeometryCore
 @MainActor public final class NativeDesktopProvider: LiveDesktopObservationProvider {
     public let capabilities = DesktopCapabilities(observation: .readOnly)
     private let session = UUID()
+    private var history = WitnessedSpaceHistory()
     private var revision: UInt64 = 0
     private var previousOptIn = false
     private var privateFailure: SpaceReadStatus?
@@ -56,6 +57,11 @@ import WindowGeometryCore
         }.prefix(16).map { $0 }
     }
 
+    public func discardVisitedSpaces() {
+        revision += 1 // A canceled helper must not repopulate a revoked history.
+        history = WitnessedSpaceHistory()
+    }
+
     public func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot {
         revision += 1
         let current = revision
@@ -102,6 +108,7 @@ import WindowGeometryCore
             }
         }
         guard result.isStructurallyValid else { throw ReaderFailure.invalidResponse }
+        history.apply(to: &result, now: Date(), uptime: ProcessInfo.processInfo.systemUptime)
         return result
     }
 }

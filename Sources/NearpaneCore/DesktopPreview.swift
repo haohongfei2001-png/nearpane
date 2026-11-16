@@ -2,13 +2,16 @@ import Foundation
 import WindowGeometryCore
 
 public enum DesktopRowKind: Equatable, Sendable {
-    case witnessedSpace(String), visibleDisplay
+    case witnessedSpace(String), previouslyWitnessedSpace(String), visibleDisplay
 }
 
 public struct DesktopPreviewWindow: Equatable, Sendable {
     public let id: String
     public let frame: SurfaceRect
     public let confidence: IdentityConfidence
+    public let presentation: WindowPresentationGeometry
+    /// Geometry and identity prerequisite only. It does not grant permission to read pixels.
+    public let canShowContent: Bool
 }
 
 public struct DesktopPreviewRow: Sendable {
@@ -30,14 +33,12 @@ public struct DesktopPreview: Sendable {
                  restrictToDisplay: Bool = false, rowGap: Double = 6, rowViewport: SurfaceRect? = nil) {
         guard snapshot.isStructurallyValid, snapshot.nativeIsFresh(now: now, uptime: uptime), let native = snapshot.native,
               !native.windowLimitReached, viewport.geometry.isValid else { return nil }
-        let plans: [(String, DesktopRowKind)]
-        let witnesses = native.rows.filter { !restrictToDisplay || $0.displayID == displayID }
-        if witnesses.isEmpty {
-            guard let displayID, snapshot.displays.contains(where: { $0.id == displayID }) else { return nil }
-            plans = [(displayID, .visibleDisplay)]
-        } else {
-            plans = witnesses.map { ($0.displayID, .witnessedSpace($0.recordID)) }
+        let displays = snapshot.displays.filter { !restrictToDisplay || $0.id == displayID }
+        let plans = displays.flatMap { display in
+            snapshot.previewRowKinds(for: display.id, allowVisibleFallback: display.id == displayID)
+                .map { (display.id, $0) }
         }
+        guard !plans.isEmpty else { return nil }
         let gap = min(max(0, rowGap), viewport.height / Double(plans.count * 6))
         let height = (viewport.height - Double(plans.count - 1) * gap) / Double(plans.count)
         var result = [DesktopPreviewRow]()
@@ -47,7 +48,11 @@ public struct DesktopPreview: Sendable {
             let slot = Rect(viewport.x, viewport.y + Double(index) * (height + gap), viewport.width, height)
             guard let map = try? PreviewTransform(source: source, viewport: slot) else { return nil }
             var shapes = [DesktopPreviewWindow](), regions = [HitRegion](), unknown = false
-            for w in snapshot.windows.sorted(by: { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }) {
+            // The reader enumerates visible windows. A background desktop's current
+            // layout cannot be reconstructed from the foreground sample.
+            let visibleWindows: [WindowObservation]
+            if case .previouslyWitnessedSpace = plan.1 { visibleWindows = [] } else { visibleWindows = snapshot.windows }
+            for w in visibleWindows.sorted(by: { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }) {
                 guard let m = w.metadata, let clip = source.intersection(m.globalFrame.geometry),
                       let geometry = try? map.project(clip) else { continue }
                 var belongs = true
@@ -61,7 +66,10 @@ public struct DesktopPreview: Sendable {
                 regions.append(.init(key: w.id, bounds: geometry, frontToBackIndex: m.frontToBack,
                     identityEligible: plan.1 != .visibleDisplay && belongs && w.confidence == .corroboratedMetadata &&
                                       m.presentation == .confirmed && m.minimized == false && m.fullScreen == false))
-                if belongs { shapes.append(.init(id: w.id, frame: SurfaceRect(geometry), confidence: w.confidence)) }
+                if belongs {
+                    shapes.append(.init(id: w.id, frame: SurfaceRect(geometry), confidence: w.confidence,
+                                        presentation: m.presentation, canShowContent: w.canWitnessCurrentSpace))
+                }
             }
             let rowFrame = rowViewport.map { full in
                 let rowHeight = (full.height - Double(plans.count - 1) * gap) / Double(plans.count)
@@ -84,6 +92,24 @@ public struct DesktopPreview: Sendable {
 }
 
 public extension DesktopSnapshot {
+    func desktopPreviewRowCount(for displayID: String?) -> Int {
+        displayID.map { previewRowKinds(for: $0, allowVisibleFallback: true).count } ?? 0
+    }
+
+    fileprivate func previewRowKinds(for displayID: String, allowVisibleFallback: Bool) -> [DesktopRowKind] {
+        let witness = native?.rows.first { $0.displayID == displayID }
+        let records = scopes.first { $0.displayID == displayID }?.records ?? []
+        var result = records.compactMap { record -> DesktopRowKind? in
+            if record.isCurrent {
+                if witness?.recordID == record.id { return .witnessedSpace(record.id) }
+                return allowVisibleFallback ? .visibleDisplay : nil
+            }
+            return record.previouslyWitnessed ? .previouslyWitnessedSpace(record.id) : nil
+        }
+        if result.isEmpty && allowVisibleFallback { result.append(.visibleDisplay) }
+        return result
+    }
+
     func presentationDemand(for displayID: String, now: Date, uptime: Double) -> DisplayDemand {
         guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime), let native, !native.windowLimitReached else { return .init() }
         let onDisplay = windows.filter { $0.displayID == displayID }
@@ -99,6 +125,7 @@ public extension DesktopSnapshot {
         let inventory = scopes.filter { $0.displayID == displayID }
         let complete = records.count == 1 && inventory.count == 1 && inventory[0].records.count == 1 &&
             native.accessibility == .available && onDisplay.count == eligible.count
-        return .init(spaces: records.count, windows: eligible.count, complete: complete)
+        let previouslyWitnessed = inventory.flatMap(\.records).filter(\.previouslyWitnessed).count
+        return .init(spaces: records.count + previouslyWitnessed, windows: eligible.count, complete: complete)
     }
 }

@@ -41,7 +41,14 @@ public struct SpaceRecord: Codable, Equatable, Identifiable, Sendable {
     /// Session-local record identity. Never a configuration key or a user-facing desktop number.
     public let id: String
     public let isCurrent: Bool
-    public init(id: String, isCurrent: Bool) { self.id = id; self.isCurrent = isCurrent }
+    /// Optional WindowServer UUID from a type-0 record on a reader-supported build.
+    public let ordinaryUUID: UUID?
+    public fileprivate(set) var previouslyWitnessed = false
+    // Only the local Host can add historical evidence after validating the reader's live witness.
+    private enum CodingKeys: String, CodingKey { case id, isCurrent, ordinaryUUID }
+    public init(id: String, isCurrent: Bool, ordinaryUUID: UUID? = nil) {
+        self.id = id; self.isCurrent = isCurrent; self.ordinaryUUID = ordinaryUUID
+    }
 }
 
 public struct ManagedDisplayScope: Codable, Equatable, Identifiable, Sendable {
@@ -49,6 +56,60 @@ public struct ManagedDisplayScope: Codable, Equatable, Identifiable, Sendable {
     public let displayID: String
     public let records: [SpaceRecord]
     public init(id: String, displayID: String, records: [SpaceRecord]) { self.id = id; self.displayID = displayID; self.records = records }
+}
+
+/// Retains only identities of independently witnessed ordinary desktops. No window data is cached.
+public struct WitnessedSpaceHistory {
+    private struct Identity: Hashable {
+        let display, scope, record: String
+        let uuid: UUID
+    }
+    private var identities = Set<Identity>()
+    private var session: UUID?
+    private var topology: String?
+    private var lastRead: Double?
+    private var revision: UInt64 = 0
+    public init() {}
+
+    public mutating func apply(to snapshot: inout DesktopSnapshot, now: Date, uptime: Double) {
+        if session == snapshot.sessionID && revision >= snapshot.revision { return }
+        if session != snapshot.sessionID || topology != snapshot.topologyFingerprint ||
+            lastRead.map({ uptime < $0 || uptime - $0 > 12 }) == true {
+            identities.removeAll()
+        }
+        session = snapshot.sessionID
+        topology = snapshot.topologyFingerprint
+        revision = snapshot.revision
+        guard let native = snapshot.native, native.population == .workWindows, native.accessibility != .denied,
+              snapshot.displays.count == 1 || snapshot.separateSpaces == true, !native.windowLimitReached else {
+            identities.removeAll(); return
+        }
+        // A switch animation can lose inventory for a sample. Never expose history in that
+        // sample; allow re-identification by UUID on the next fresh, complete inventory.
+        if native.spaces == .unstable { return }
+        guard native.spaces == .observed, snapshot.isStructurallyValid,
+              snapshot.nativeIsFresh(now: now, uptime: uptime) else {
+            identities.removeAll(); return
+        }
+        lastRead = uptime
+        let uuidGroups = Dictionary(grouping: snapshot.scopes.flatMap(\.records).compactMap(\.ordinaryUUID), by: { $0 })
+        var retained = Set<Identity>()
+        snapshot.scopes = snapshot.scopes.map { scope in
+            let currentWitness = native.rows.first { $0.displayID == scope.displayID && $0.scopeID == scope.id }
+            let records = scope.records.map { item in
+                var record = item
+                guard let uuid = item.ordinaryUUID, uuidGroups[uuid]?.count == 1 else { return record }
+                let key = Identity(display: scope.displayID, scope: scope.id, record: item.id, uuid: uuid)
+                if (item.isCurrent && currentWitness?.recordID == item.id) || identities.contains(key) {
+                    retained.insert(key)
+                    record.previouslyWitnessed = !item.isCurrent
+                }
+                return record
+            }
+            return ManagedDisplayScope(id: scope.id, displayID: scope.displayID, records: records)
+        }
+        identities = retained
+    }
 }
 
 public enum WindowMembership: Codable, Equatable, Sendable {
@@ -130,9 +191,11 @@ public protocol DesktopObservationProvider {
 @MainActor
 public protocol LiveDesktopObservationProvider: DesktopObservationProvider {
     func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot
+    func discardVisitedSpaces()
 }
 
 public extension LiveDesktopObservationProvider {
+    func discardVisitedSpaces() {}
     func snapshot() async throws -> DesktopSnapshot { try await snapshot(experimentalSpaces: false) }
 }
 

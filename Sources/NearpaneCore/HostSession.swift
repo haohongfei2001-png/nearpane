@@ -109,6 +109,7 @@ public final class HostSession {
         cancelWorkspaceGesture()
         refreshGeneration += 1
         desktopTask?.cancel()
+        (provider as? any LiveDesktopObservationProvider)?.discardVisitedSpaces()
         desktopPauses.removeAll()
         registry.stopAll()
         permissions.resetSession()
@@ -129,6 +130,7 @@ public final class HostSession {
                     desktopTask?.cancel()
                     bus.resetDesktopSession()
                     if enabled { restartDesktopUpdates() }
+                    else { (provider as? any LiveDesktopObservationProvider)?.discardVisitedSpaces() }
                 }
                 persistModulePreferences()
                 presentationChanged?()
@@ -234,6 +236,7 @@ public final class HostSession {
         guard isRunning, configuration.surfaceHidden != hidden else { return }
         cancelWorkspaceGesture()
         configuration.surfaceHidden = hidden
+        if hidden { (provider as? any LiveDesktopObservationProvider)?.discardVisitedSpaces() }
         if provider is any LiveDesktopObservationProvider { invalidateDesktop() }
         save()
     }
@@ -249,6 +252,7 @@ public final class HostSession {
 
     public func setExperimentalSpaceObservation(_ enabled: Bool) {
         guard isRunning, configuration.experimentalSpaceObservation != enabled else { return }
+        if !enabled { (provider as? any LiveDesktopObservationProvider)?.discardVisitedSpaces() }
         configuration.experimentalSpaceObservation = enabled
         save()
         invalidateDesktop()
@@ -269,7 +273,10 @@ public final class HostSession {
         // Session notifications may arrive before the profile finishes opening.
         guard provider is any LiveDesktopObservationProvider else { return }
         let changed = paused ? desktopPauses.insert(reason).inserted : desktopPauses.remove(reason) != nil
-        if changed { invalidateDesktop() }
+        if changed {
+            if paused { (provider as? any LiveDesktopObservationProvider)?.discardVisitedSpaces() }
+            invalidateDesktop()
+        }
     }
 
     public func waitForDesktopStop() async {

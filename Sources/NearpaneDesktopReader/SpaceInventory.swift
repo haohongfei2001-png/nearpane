@@ -40,7 +40,8 @@ struct SpaceInventory: Equatable {
                 guard let id = Self.recordID(item["id64"]), types[id] == nil, let n = Self.integer(item["type"]),
                       let type = Int64(n.stringValue) else { return nil }
                 types[id] = type
-                records.append(SpaceRecord(id: id, isCurrent: id == current))
+                let uuid = (item["uuid"] as? String).flatMap(UUID.init(uuidString:))
+                records.append(SpaceRecord(id: id, isCurrent: id == current, ordinaryUUID: type == 0 ? uuid : nil))
             }
             guard records.contains(where: \.isCurrent) else { return nil }
             scopes.append(.init(id: "scope-" + display.id, displayID: display.id, records: records))

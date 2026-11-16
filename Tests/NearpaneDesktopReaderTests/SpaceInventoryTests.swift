@@ -19,6 +19,16 @@ struct SpaceInventoryTests {
         #expect(inventory.scopes[0].records.map(\.id) == ["5", "9", "12", "8"])
     }
 
+    @Test func onlyValidatedOrdinaryUUIDsCanIdentifyARecordAcrossVisits() throws {
+        let uuid = UUID()
+        let inventory = try #require(SpaceInventory(scope([
+            ["id64": 5, "type": 0, "uuid": uuid.uuidString],
+            ["id64": 6, "type": 4, "uuid": UUID().uuidString],
+            ["id64": 7, "type": 0, "uuid": "unavailable"]
+        ]), displays: displays))
+        #expect(inventory.scopes[0].records.map(\.ordinaryUUID) == [uuid, nil, nil])
+    }
+
     @Test func membershipKeepsMultipleIDsAndEmptyOrInvalidIsUnknown() throws {
         let inventory = try #require(SpaceInventory(scope(records), displays: displays))
         #expect(inventory.membership([9,5]) == .known(recordIDs: ["5","9"]))

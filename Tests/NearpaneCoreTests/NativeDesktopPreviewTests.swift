@@ -41,6 +41,63 @@ struct NativeDesktopPreviewTests {
         DesktopPreview(snapshot: state, displayID: portrait.id, viewport: viewport, now: date, uptime: 42)
     }
 
+    private func visit(_ session: UUID, revision: UInt64, current: String, firstUUID: UUID?, secondUUID: UUID,
+                       witness: Bool = true, available: Bool = true) -> DesktopSnapshot {
+        let record = ObservedSpaceRow(displayID: portrait.id, scopeID: "secondary", recordID: current, anchor: proof.anchor)
+        let rows = witness ? [record] : []
+        let window = window(5, proof.anchor.globalFrame, 0, .known(recordIDs: ["8", "9"]))
+        var state = sample([window], rows: rows)
+        state.revision = revision; state.sessionID = session
+        state.native = .init(population: .workWindows, accessibility: available ? .available : .denied,
+                             spaces: .observed, rows: rows, windowLimitReached: false, beganUptime: 40, endedUptime: 41)
+        state.scopes = [.init(id: "secondary", displayID: portrait.id, records: [
+            .init(id: "8", isCurrent: current == "8", ordinaryUUID: firstUUID),
+            .init(id: "9", isCurrent: current == "9", ordinaryUUID: secondUUID)])]
+        return state
+    }
+
+    @Test func manuallyVisitedOrdinarySpacesKeepTheirSystemOrderWithoutRetainingWindowContentOrActions() throws {
+        let session = UUID(), a = UUID(), b = UUID()
+        var history = WitnessedSpaceHistory()
+        var first = visit(session, revision: 1, current: "8", firstUUID: a, secondUUID: b)
+        history.apply(to: &first, now: date, uptime: 42)
+        #expect(try #require(preview(first)).rows.map(\.kind) == [.witnessedSpace("8")])
+        var second = visit(session, revision: 2, current: "9", firstUUID: a, secondUUID: b)
+        history.apply(to: &second, now: date, uptime: 42)
+        let panel = try #require(preview(second)), row = panel.rows[0]
+        #expect(panel.rows.map(\.kind) == [.previouslyWitnessedSpace("8"), .witnessedSpace("9")])
+        #expect(row.windows.isEmpty && !row.hasUnassignedWindows && !panel.rows[1].windows.isEmpty)
+        #expect(panel.hit(x: row.desktop.x + 1, y: row.desktop.y + 1, current: second, now: date, uptime: 42) == .none)
+        #expect(second.desktopPreviewRowCount(for: portrait.id) == 2 && second.presentationDemand(for: portrait.id, now: date, uptime: 42).spaces == 2)
+        let wire = try JSONDecoder().decode(DesktopSnapshot.self, from: JSONEncoder().encode(second))
+        #expect(try #require(preview(wire)).rows.map(\.kind) == [.witnessedSpace("9")])
+        var back = visit(session, revision: 3, current: "8", firstUUID: a, secondUUID: b)
+        history.apply(to: &back, now: date, uptime: 42)
+        #expect(try #require(preview(back)).rows.map(\.kind) == [.witnessedSpace("8"), .previouslyWitnessedSpace("9")])
+    }
+
+    @Test func missingReusedDuplicateOrRetiredWitnessesNeverInventBackgroundRows() throws {
+        let session = UUID(), a = UUID(), b = UUID()
+        for change in 0..<8 {
+            var history = WitnessedSpaceHistory()
+            var first = visit(session, revision: 1, current: "8", firstUUID: a, secondUUID: b, witness: change != 0)
+            history.apply(to: &first, now: date, uptime: 42)
+            if change == 1 {
+                var denied = visit(session, revision: 2, current: "8", firstUUID: a, secondUUID: b, witness: false, available: false)
+                history.apply(to: &denied, now: date, uptime: 42)
+            }
+            var second = visit(change == 2 ? UUID() : session, revision: 3, current: "9",
+                               firstUUID: change == 3 ? nil : change == 4 ? UUID() : change == 5 ? b : a, secondUUID: b)
+            if change == 6 { second.topologyFingerprint = "changed" }
+            if change == 7 {
+                var stale = visit(session, revision: 2, current: "8", firstUUID: a, secondUUID: b)
+                history.apply(to: &stale, now: date, uptime: 80)
+            }
+            history.apply(to: &second, now: date, uptime: 42)
+            #expect(try #require(preview(second)).rows.map(\.kind) == [.witnessedSpace("9")])
+        }
+    }
+
     @Test func activeSpaceRowUsesSystemNumberWhenTitlesCannotCorroborate() throws {
         let frame = proof.anchor.globalFrame
         let row = ObservedSpaceRow(displayID: portrait.id, scopeID: proof.scopeID, recordID: proof.recordID,
@@ -52,6 +109,7 @@ struct NativeDesktopPreviewTests {
         #expect(preview(witnessed(.corroboratedMetadata, axNumber: 78)) == nil)
         let exact = witnessed(.geometryOnly, axNumber: 77)
         #expect(try #require(preview(exact)).rows.map(\.kind) == [.witnessedSpace("9")])
+        #expect(try #require(preview(exact)).rows[0].windows[0].canShowContent)
         #expect(!exact.capabilities.spaceSwitching)
         #expect(preview(witnessed(.ambiguous, axNumber: 77)) == nil)
         #expect(preview(witnessed(.geometryOnly, axNumber: nil)) == nil)
@@ -69,6 +127,8 @@ struct NativeDesktopPreviewTests {
             #expect(copy == s && copy.native?.stageManagerEnabled == mode)
             let p = try #require(preview(s))
             #expect(p.rows[0].windows.count == 2)
+            #expect(p.rows[0].windows[0].presentation == .divergent && !p.rows[0].windows[0].canShowContent)
+            #expect(p.rows[0].windows[1].presentation == .confirmed && !p.rows[0].windows[1].canShowContent)
             #expect(p.hit(x: 75, y: 60, current: s, now: date, uptime: 42) == .blocked(suspect.id))
             #expect(p.hit(x: 20, y: 12, current: s, now: date, uptime: 42) == .candidate(good.id))
             for w in [suspect, good] {
