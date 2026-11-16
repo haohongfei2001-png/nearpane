@@ -50,6 +50,7 @@ struct NativeAcceptanceSession {
     @MainActor func reportLocalMandarin() async throws {
         let wav = directory.appending(path: "public-mandarin.wav")
         try ProfileLease.checkPath(wav)
+        guard try wav.resourceValues(forKeys: [.fileSizeKey]).fileSize == 496_044 else { throw CocoaError(.fileReadCorruptFile) }
         let digest = SHA256.hash(data: try Data(contentsOf: wav)).map { String(format: "%02x", $0) }.joined()
         guard digest == "95dae2e6509dac2af6b35149dbd46978e2a5bfd480d3604282a1a092606ff0ea" else {
             throw CocoaError(.fileReadCorruptFile)
@@ -96,6 +97,10 @@ struct NativeAcceptanceSession {
         guard model == .qwen, early.count >= 2, !final.isEmpty, observations.last?.1 == final else {
             throw AudioFailure.message("原生文字流未通过：结束前更新 \(early.count) 次，界面与最终文字一致 \(observations.last?.1 == final)")
         }
+        guard let pixels = surface.bitmapImageRepForCachingDisplay(in: surface.bounds) else { throw CocoaError(.fileWriteUnknown) }
+        surface.cacheDisplay(in: surface.bounds, to: pixels)
+        guard let png = pixels.representation(using: .png, properties: [:]) else { throw CocoaError(.fileWriteUnknown) }
+        try png.write(to: directory.appending(path: "voice-panel-final.png"), options: .withoutOverwriting)
         let receipt: [String: Any] = ["sourceWAVSHA256": digest, "model": model.rawValue, "microphoneOpened": false,
             "realTimeFile": true, "visibleBeforeEOS": early.count, "sampledTextUpdates": observations.count,
             "firstTextSeconds": early[0].0 - began, "audioInputSeconds": eos - began,
@@ -128,7 +133,8 @@ struct NativeAcceptanceSession {
         let marker = Marker(version: 2, session: uuid, executableSHA256: SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined())
         if prepare {
             try fm.createDirectory(at: parent, withIntermediateDirectories: true)
-            guard parent.resolvingSymlinksInPath().path == parent.path, mkdir(directory.path, 0o700) == 0 else {
+            try ProfileLease.checkPath(parent)
+            guard mkdir(directory.path, 0o700) == 0 else {
                 throw CocoaError(.fileWriteFileExists)
             }
             if !CandidateProfile.selected {

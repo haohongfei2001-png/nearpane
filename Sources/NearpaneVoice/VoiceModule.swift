@@ -162,7 +162,7 @@ public final class VoiceModule: HostModule {
     public private(set) var capture: CaptureState = .paused
     /// Only activity flags enter the app updater. Audio and transcript stay in the domain.
     public var updateRequiresVoiceToFinish: Bool {
-        if busy || changingRecognition || inserting || archivePlaybackParagraph != nil { return true }
+        if busy || changingRecognition || inserting || archivePlaybackParagraph != nil || localRecognition?.status?.downloading == true { return true }
         switch capture {
         case .starting, .listening, .speaking: return true
         case .paused, .interrupted:
@@ -180,11 +180,11 @@ public final class VoiceModule: HostModule {
     private(set) var issue: String?
     public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
 
-    public convenience init(directory: URL, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false, allowManualInsertion: Bool = false) {
+    public convenience init(directory: URL, modelRoot: URL? = nil, requireExistingPermissions: Bool = false, allowAPISettings: Bool = false, allowManualInsertion: Bool = false) {
         let credentials = allowAPISettings && !requireExistingPermissions
             ? NearpaneVoiceCredentials(profileID: VoiceRecognitionProfile.identifier(for: directory)) : nil
         let profile = credentials.map { VoiceRecognitionProfile(directory: directory, credentials: $0) }
-        let local = VoiceLocalRecognition(directory: directory, allowDownloads: !requireExistingPermissions)
+        let local = VoiceLocalRecognition(directory: directory, allowDownloads: !requireExistingPermissions, modelRoot: modelRoot)
         self.init(openStore: {
             let parent = directory.deletingLastPathComponent()
             if (try? parent.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {

@@ -20,10 +20,11 @@ final class VoiceLocalRecognition {
     @ObservationIgnored private var attempted = false
     @ObservationIgnored private var generation = 0
 
-    init(directory: URL, allowDownloads: Bool, helpers: URL? = nil, preferences: UserDefaults = .standard) {
-        service = LocalASRService(root: directory.appending(path: "LocalModels"), helpers: helpers)
+    init(directory: URL, allowDownloads: Bool, modelRoot: URL? = nil, helpers: URL? = nil, preferences: UserDefaults = .standard) {
+        let root = modelRoot ?? directory.appending(path: "LocalModels")
+        service = LocalASRService(root: root, helpers: helpers)
         self.preferences = preferences
-        pauseKey = "nearpane.voice.pauseAutomatic." + VoiceRecognitionProfile.identifier(for: directory)
+        pauseKey = "nearpane.voice.pauseAutomatic." + VoiceRecognitionProfile.identifier(for: root)
         #if arch(arm64)
         canDownload = allowDownloads
         #else

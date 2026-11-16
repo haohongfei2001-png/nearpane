@@ -38,7 +38,16 @@ public final class EmbeddedModules {
         voicePasteboard = testSession.map { NSPasteboard(name: .init("com.holdsnow.nearpane.acceptance." + $0.lastPathComponent)) } ?? .general
         tray = TrayModule(existingRoot: support.deletingLastPathComponent().appendingPathComponent("Riftlet", isDirectory: true), testSession: testSession, localOnly: testSession != nil && candidate && !boundDraft,
                          productAttachments: candidate && testSession == nil)
-        voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true),
+        // Downloads survive profile-generation changes. Test records and weights stay in
+        // their marked fixture; no host consults the independent Saytile installation.
+        let installedModelRoot: URL?
+        if testSession == nil, candidate, Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha" {
+            installedModelRoot = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+                .appending(path: "com.holdsnow.nearpane.alpha/VoiceModels")
+        } else {
+            installedModelRoot = nil
+        }
+        voice = VoiceModule(directory: support.appendingPathComponent("Voice", isDirectory: true), modelRoot: installedModelRoot,
                             requireExistingPermissions: testSession != nil, allowAPISettings: candidate,
                             allowManualInsertion: candidate && testSession == nil)
         #endif
