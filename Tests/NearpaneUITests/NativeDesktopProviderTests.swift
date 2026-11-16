@@ -70,6 +70,34 @@ private actor Attempts {
         #expect(await attempts.modes == [true,false,false,false,true,false])
     }
 
+    @Test func onlyHardwareChangeCanRetryUnavailableInventoryWithoutOptInChurn() async throws {
+        actor TopologyReads {
+            var modes = [Bool]()
+            let refusal: SpaceReadStatus
+            init(_ refusal: SpaceReadStatus) { self.refusal = refusal }
+            func read(_ request: DesktopReadRequest) -> DesktopSnapshot {
+                modes.append(request.experimentalSpaces)
+                let rotated = modes.count >= 3
+                var s = sample(request, status: request.experimentalSpaces ? refusal : .disabled)
+                var usable = s.displays[0].frame
+                if modes.count > 1 { usable.height -= 28 }
+                s.displays = [.init(id: "secondary", frame: s.displays[0].frame, rotationDegrees: rotated ? 0 : 90,
+                                    backingScale: 2, usable: usable)]
+                s.topologyFingerprint = String(modes.count)
+                return s
+            }
+        }
+        for refusal in [SpaceReadStatus.unavailable, .unsupportedBuild] {
+            let reader = TopologyReads(refusal)
+            let provider = NativeDesktopProvider(fixtureWindows: { nil }, anchors: { [] }) { await reader.read($0) }
+            for _ in 0..<5 {
+                let result = try await provider.snapshot(experimentalSpaces: true)
+                #expect(result.native?.spaces == refusal && result.native?.rows.isEmpty == true)
+            }
+            #expect(await reader.modes == [true, false, false, refusal == .unavailable, false])
+        }
+    }
+
     @Test func rejectsUnrequestedSpaceProofAndExpiredOwnerWitness() async throws {
         let anchor = ActiveSpaceAnchor(number: 15, displayID: "secondary", globalFrame: .init(x: 1, y: 4, width: 60, height: 40))
         var count = 0

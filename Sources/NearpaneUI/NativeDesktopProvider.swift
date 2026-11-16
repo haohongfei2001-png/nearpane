@@ -10,6 +10,20 @@ import WindowGeometryCore
     private var revision: UInt64 = 0
     private var previousOptIn = false
     private var privateFailure: SpaceReadStatus?
+    private struct HardwareLayout: Equatable {
+        let displays: [DisplayObservation]
+        let separateSpaces: Bool?
+        init(_ snapshot: DesktopSnapshot) {
+            separateSpaces = snapshot.separateSpaces
+            // Dock/menu bar appearance can change usable area without changing display capability.
+            displays = snapshot.displays.map { item in
+                var display = item
+                display.usable = nil
+                return display
+            }.sorted { $0.id < $1.id }
+        }
+    }
+    private var failedLayout: HardwareLayout?
     private let fixtureWindows: @MainActor () -> [NSWindow]?
     typealias Read = @Sendable (DesktopReadRequest) async throws -> DesktopSnapshot
     private let read: Read
@@ -65,7 +79,9 @@ import WindowGeometryCore
     public func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot {
         revision += 1
         let current = revision
-        if previousOptIn != experimentalSpaces { privateFailure = nil; previousOptIn = experimentalSpaces }
+        if previousOptIn != experimentalSpaces {
+            privateFailure = nil; failedLayout = nil; previousOptIn = experimentalSpaces
+        }
         let witnesses = experimentalSpaces ? anchors() : []
         let ids = fixtureWindows()?.compactMap { UInt32(exactly: $0.windowNumber) }
         func request(_ experimental: Bool) -> DesktopReadRequest {
@@ -94,7 +110,18 @@ import WindowGeometryCore
             }) else { throw ReaderFailure.invalidResponse }
         }
         if attemptPrivate, let status = result.native?.spaces, [.unavailable, .unsupportedBuild].contains(status) { privateFailure = status }
-        if experimentalSpaces, let privateFailure { result.native?.spaces = privateFailure }
+        if experimentalSpaces, let failure = privateFailure {
+            result.native?.spaces = failure
+            if failure == .unavailable && result.nativeIsFresh(now: Date(), uptime: ProcessInfo.processInfo.systemUptime) {
+                let layout = HardwareLayout(result)
+                if let failedLayout, layout != failedLayout {
+                    // Publish this public geometry immediately. The next scheduled read may try
+                    // the private inventory once for the new display configuration.
+                    privateFailure = nil
+                    self.failedLayout = nil
+                } else { failedLayout = layout }
+            }
+        }
         if result.native?.rows.isEmpty == false {
             let stillCurrent = anchors()
             let active = evidence.rows.contains { $0.anchor.witness == .appKitActiveList } ? activeNumbers() : []
