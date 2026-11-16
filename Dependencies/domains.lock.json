@@ -147,7 +147,7 @@
     },
     "riftlet": {
       "repository": "haohongfei2001-png/Riftlet",
-      "commit": "5b73c755ec1eb6d1aa2ef5b9390da6200b6108b9",
+      "commit": "189782dd943f5215da43539b30db27e482a78b3c",
       "treeSHA256": "b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a",
       "sources": [
         "Sources/RiftletCore",
@@ -271,7 +271,7 @@
         "ThirdPartyNotices/Sukurini/NOTICE": "ab71755fa2afdb52fc3f4e773f595241d86b19778c6f93a90335021c84566721",
         "ThirdPartyNotices/Tendedero/LICENSE": "03543f9ce9dddb3f7e06afcda9f62386d364c357f897ee0ee7ad5d0fdb6b483d"
       },
-      "releaseTag": "v1.0.2"
+      "releaseTag": "v1.0.3-zip"
     }
   }
 }

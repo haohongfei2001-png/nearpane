@@ -7,6 +7,13 @@ struct VoiceArchiveRow: Identifiable {
     let paragraph: TimelineParagraph
     let preview: String
     var id: Int64 { paragraph.id }
+
+    // A recording keeps its original civil day and timezone when the Mac travels.
+    func timestamp(date: Date.FormatStyle.DateStyle, time: Date.FormatStyle.TimeStyle) -> String {
+        let zone = TimeZone(secondsFromGMT: paragraph.groupUTCOffset) ?? .gmt
+        let locale = time == .omitted ? Locale(identifier: "zh_CN") : Locale(identifier: "en_GB")
+        return paragraph.groupStart.formatted(Date.FormatStyle(date: date, time: time, locale: locale, timeZone: zone))
+    }
 }
 
 struct VoiceArchivePage {
@@ -80,77 +87,117 @@ private struct VoiceArchiveBrowser: View {
     @ViewState private var failed = false
 
     var body: some View {
-        if let selected {
-            VoiceArchiveDetail(module: module, row: selected, leave: { self.selected = nil })
-                .id(selected.id)
-        } else {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("搜索文字或历史修订", text: $query).textFieldStyle(.plain)
-                        .accessibilityLabel("搜索语音档案").accessibilityIdentifier("voice-archive-search")
+        GeometryReader { geometry in
+            let sideBySide = geometry.size.width >= 720
+            HStack(alignment: .top, spacing: 12) {
+                if selected == nil || sideBySide {
+                    list.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
-                .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 7))
-                if failed {
-                    ContentUnavailableView {
-                        Label("无法读取语音档案", systemImage: "externaldrive.badge.exclamationmark")
-                    } actions: {
-                        Button("语音设置", action: openSettings)
-                    }
-                } else if let page {
-                    if page.rows.isEmpty {
-                        ContentUnavailableView(query.isEmpty ? "还没有语音档案" : "没有匹配的语音", systemImage: "waveform",
-                            description: query.isEmpty ? Text("完成一次收音后，可以在这里查看文字和修订。") : nil)
-                    } else {
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(page.rows) { item in
-                                    Button {
-                                        selected = item
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(item.preview.isEmpty ? "无转写文字" : item.preview)
-                                                    .lineLimit(2).multilineTextAlignment(.leading)
-                                                Text(item.paragraph.started, format: .dateTime.year().month().day().hour().minute())
-                                                    .font(.caption).foregroundStyle(.secondary)
-                                            }
-                                            Spacer(minLength: 4)
-                                            if item.paragraph.isPinned { Image(systemName: "pin.fill").accessibilityLabel("已收藏") }
-                                            Image(systemName: "chevron.right").foregroundStyle(.secondary)
-                                        }
-                                        .padding(.vertical, 8).contentShape(Rectangle())
-                                    }.buttonStyle(.plain)
-                                    Divider()
-                                }
-                            }
-                        }
-                        if page.hasOlder || page.hasNewer {
-                            HStack {
-                                Button("较新语音") {
-                                    if let newest = page.rows.first { window = .starting(at: newest.id + 1) }
-                                }.disabled(!page.hasNewer)
-                                Button("较早语音") {
-                                    if let oldest = page.rows.last { window = .ending(at: oldest.id - 1) }
-                                }.disabled(!page.hasOlder)
-                            }
-                        }
-                    }
-                } else {
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                if let selected {
+                    if sideBySide { Divider() }
+                    VoiceArchiveDetail(module: module, row: selected, leave: { self.selected = nil })
+                        .id(selected.id)
+                        .frame(maxWidth: sideBySide ? min(360, geometry.size.width * 0.43) : .infinity,
+                               maxHeight: .infinity, alignment: .topLeading)
                 }
             }
-            .onChange(of: query) { window = .latest; page = nil }
-            .task(id: ArchiveRequest(window: window, revision: module.archiveRevision, query: query)) {
-                do {
-                    if !query.isEmpty { try await Task.sleep(for: .milliseconds(160)) }
-                    page = try await module.archivePage(window, query: query)
-                    failed = false
-                } catch is CancellationError {
-                } catch {
-                    if !Task.isCancelled { failed = true; page = nil }
+        }
+    }
+
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("搜索文字、历史修订或草稿", text: $query).textFieldStyle(.plain)
+                    .accessibilityLabel("搜索语音档案").accessibilityIdentifier("voice-archive-search")
+                if !query.isEmpty {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("清除搜索")
                 }
+            }
+            .padding(.horizontal, 10).frame(height: 34)
+            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7))
+            .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(.quaternary).allowsHitTesting(false) }
+            if failed {
+                ContentUnavailableView {
+                    Label("无法读取语音档案", systemImage: "externaldrive.badge.exclamationmark")
+                } actions: {
+                    Button("语音设置", action: openSettings)
+                }
+            } else if let page {
+                if page.rows.isEmpty {
+                    ContentUnavailableView(query.isEmpty ? "还没有语音档案" : "没有匹配的语音", systemImage: "waveform",
+                        description: query.isEmpty ? Text("完成一次收音后，可以在这里查看文字和修订。") : nil)
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(page.rows.enumerated()), id: \.element.id) { index, item in
+                                let previous = index == 0 ? nil : page.rows[index - 1].paragraph
+                                let startsDay = previous?.groupDay != item.paragraph.groupDay
+                                let startsGroup = startsDay || previous?.group != item.paragraph.group
+                                if startsDay {
+                                    Text(item.timestamp(date: .long, time: .omitted))
+                                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                                        .padding(.top, index == 0 ? 5 : 16).padding(.bottom, 7)
+                                        .accessibilityAddTraits(.isHeader)
+                                } else if startsGroup {
+                                    Divider().padding(.vertical, 4)
+                                }
+                                Button {
+                                    selected = item
+                                } label: {
+                                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                        if startsGroup {
+                                            Text(item.timestamp(date: .omitted, time: .shortened))
+                                                .font(.system(size: 12, weight: .medium)).monospacedDigit()
+                                                .foregroundStyle(.secondary).fixedSize()
+                                                .frame(minWidth: 42, alignment: .leading)
+                                        } else {
+                                            Color.clear.frame(width: 42, height: 1).accessibilityHidden(true)
+                                        }
+                                        Text(item.preview.isEmpty ? "无转写文字" : item.preview)
+                                            .font(.system(size: 14)).lineSpacing(2)
+                                            .lineLimit(3).multilineTextAlignment(.leading)
+                                        Spacer(minLength: 4)
+                                        if item.paragraph.isPinned {
+                                            Image(systemName: "star.fill").foregroundStyle(.tint).accessibilityLabel("已收藏")
+                                        }
+                                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                                    }
+                                    .padding(.horizontal, 6).padding(.vertical, 7)
+                                    .background {
+                                        if selected?.id == item.id {
+                                            RoundedRectangle(cornerRadius: 7).fill(.tint.opacity(0.12))
+                                        }
+                                    }.contentShape(Rectangle())
+                                }.buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    if page.hasOlder || page.hasNewer {
+                        HStack {
+                            Button("较新语音") {
+                                if let newest = page.rows.first { window = .starting(at: newest.id + 1) }
+                            }.disabled(!page.hasNewer)
+                            Button("较早语音") {
+                                if let oldest = page.rows.last { window = .ending(at: oldest.id - 1) }
+                            }.disabled(!page.hasOlder)
+                        }
+                    }
+                }
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .onChange(of: query) { selected = nil; window = .latest; page = nil }
+        .task(id: ArchiveRequest(window: window, revision: module.archiveRevision, query: query)) {
+            do {
+                if !query.isEmpty { try await Task.sleep(for: .milliseconds(160)) }
+                page = try await module.archivePage(window, query: query)
+                failed = false
+            } catch is CancellationError {
+            } catch {
+                if !Task.isCancelled { failed = true; page = nil }
             }
         }
     }

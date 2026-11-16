@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Testing
+import NearpaneCore
 @testable import NearpaneVoice
 
 @MainActor @Suite(.serialized)
@@ -31,6 +32,18 @@ struct TranscriptTypographyTests {
         let layout = try #require(view.layoutManager)
         layout.ensureLayout(for: container)
         return layout.usedRect(for: container).height
+    }
+
+    @Test func factoryReaderAndEditorUseTheSameCompactSaytileTypeface() throws {
+        let (readerWindow, reader) = try hosted(TranscriptLine(text: text, edit: { _ in }))
+        defer { readerWindow.close() }
+        let (editorWindow, editor) = try hosted(TranscriptEditor(text: .constant(text), fontSize: nil, lineSpacing: nil))
+        defer { editorWindow.close() }
+        let visibleFont = try #require(reader.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        let editFont = try #require(editor.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(Double(visibleFont.pointSize) == DisplayMetric.textSize.factory.value)
+        #expect(visibleFont.fontName == "PingFangSC-Regular")
+        #expect(editFont.fontName == visibleFont.fontName && editFont.pointSize == visibleFont.pointSize)
     }
 
     @Test func explicitSpacingChangesLinesWithinOneRecordingAndResetsToFactory() throws {

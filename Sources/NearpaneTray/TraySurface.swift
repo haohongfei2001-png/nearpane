@@ -10,7 +10,6 @@ public struct TraySurface: View {
     let left: Bool
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
     @Environment(\.colorSchemeContrast) private var contrast
-    @Environment(\.colorScheme) private var colorScheme
     @Namespace private var morph
     let settings: DisplaySettings
     public init(_ module: TrayModule, left: Bool) { self.init(module,left:left,settings:.init()) }
@@ -26,19 +25,21 @@ public struct TraySurface: View {
                     let layout = TrayLayout(ids: module.rows.map(\.id), size: g.size,
                                             captureEntry: module.captureEntry, expanded: module.expanded, settings:settings)
                     let cell = layout.cellSize
+                    let unit = g.size.width / 246
+                    let buttonSize = settings.points(.trayButtonSize, in: outer.size.height)
                     VStack(spacing:layout.rowGap) {
                         ScrollView(.vertical) {
                             LazyVGrid(columns:[GridItem(.fixed(cell.width),spacing:layout.columnGap),GridItem(.fixed(cell.width))],spacing:layout.rowGap) {
                                 ForEach(module.rows) { row in
-                                    thumbnail(row, cell: cell)
+                                    thumbnail(row, cell: cell, unit: unit)
                                 }
                                 if module.captureEntry && !module.expanded {
                                     Button { module.toggleMenu() } label: {
-                                        Image(systemName: "camera").matchedGeometryEffect(id: "systemCamera", in: morph)
-                                            .fontWeight(.medium)
+                                        TrayCameraGlyph(width: min(buttonSize, cell.width * 0.75, cell.height))
+                                            .matchedGeometryEffect(id: "systemCamera", in: morph)
                                             .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
                                     }.frame(width: cell.width, height: cell.height)
-                                    .buttonStyle(TrayCaptureStyle()).accessibilityLabel("展开截图方式")
+                                    .buttonStyle(TrayCaptureStyle(unit: unit)).accessibilityLabel("展开截图方式")
                                 }
                             }
                             .padding(.top, layout.cells.first?.frame.minY ?? 0)
@@ -46,7 +47,7 @@ public struct TraySurface: View {
                         .frame(height: layout.imageViewport)
                         .onScrollPhaseChange { _, phase in if phase != .idle { module.cancelArrival() } }
                         if layout.menu != nil {
-                            HStack(spacing: 0) {
+                            HStack(spacing: min(4 * unit, layout.columnGap)) {
                                 ForEach(module.menuOrder, id: \.self) { action in
                                     Button { module.capture(action) } label: {
                                         Group {
@@ -60,7 +61,7 @@ public struct TraySurface: View {
                                     .accessibilityAction(named: "收起截图方式") { module.collapseMenu() }
                                 }
                             }
-                            .buttonStyle(TrayCaptureStyle(radius: 6)).frame(height:layout.menu?.height)
+                            .buttonStyle(TrayCaptureStyle(unit: unit)).frame(height:layout.menu?.height)
                             .contextMenu { Button("收起截图方式") { module.toggleMenu() } }
                         }
                     }
@@ -87,17 +88,14 @@ public struct TraySurface: View {
         }
     }
 
-    private func thumbnail(_ row: AssetRecord, cell: CGSize) -> some View {
+    private func thumbnail(_ row: AssetRecord, cell: CGSize, unit: CGFloat) -> some View {
+        let rim = min(2.75 * unit, cell.width / 8, cell.height / 8)
+        let foot = min(0.75 * unit, cell.height / 10)
         let size = TrayLayout.fitted(pixels: .init(width: row.image.pixelWidth, height: row.image.pixelHeight),
-                                     cell: .init(width: max(0, cell.width - 2), height: max(0, cell.height - 2)))
+                                     cell: .init(width: cell.width - 2 * rim, height: cell.height - 2 * rim - foot))
         let leaving = module.swallowing.contains(row.id)
-        return ZStack {
-            // Decoration belongs to the fixed cell, not the image or its input region.
-            // Keep every source pixel fitted and the existing mouse-down binding intact.
-            TrayTileBackground(radius: 7)
-                .allowsHitTesting(false).accessibilityHidden(true)
+        return ZStack(alignment: .center) {
             TrayImage(row: row, size: size, module: module)
-                .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 1.5, y: 1)
                 .opacity(module.flyingID == row.id ? 0 : 1)
                 .overlay(alignment: .bottomTrailing) {
                     if let symbol = statusSymbol(row.status) {
@@ -109,10 +107,15 @@ public struct TraySurface: View {
                 }
                 .frame(width: size.width, height: size.height)
                 .overlay { ThumbnailHit(row: row, module: module, arrivalID: module.arrival?.id, left: left) }
+                .padding(rim).padding(.bottom, foot)
+                .background {
+                    TrayTileBackground(radius: min((size.width + 2 * rim) * 9 / 114, (size.height + 2 * rim + foot) / 2))
+                        .allowsHitTesting(false).accessibilityHidden(true)
+                }
                 .offset(x: leaving && !reducedMotion ? (left ? -56 : 56) : 0)
                 .opacity(leaving ? 0 : 1)
                 .animation(reducedMotion ? nil : .easeIn(duration: 0.12), value: leaving)
-        }.frame(width: cell.width, height: cell.height).clipped()
+        }.frame(width: cell.width, height: cell.height)
     }
     private func statusSymbol(_ state: QueueStatus) -> String? {
         switch state {
@@ -125,8 +128,33 @@ public struct TraySurface: View {
     }
 }
 
-/// A passive backing for the reference's fixed, rounded thumbnail cells. It never
-/// clips image pixels, changes Fit geometry, or participates in attachment input.
+/// The raised viewfinder and centered lens use Riftlet's 28 × 24 camera outline.
+struct TrayCameraGlyph: View {
+    let width: CGFloat
+
+    var body: some View {
+        Canvas { context, size in
+            context.scaleBy(x: size.width / 28, y: size.height / 24)
+            var path = Path()
+            path.addLines([CGPoint(x: 3, y: 5.5), CGPoint(x: 8.3, y: 5.5), CGPoint(x: 10.8, y: 1.4),
+                           CGPoint(x: 17.2, y: 1.4), CGPoint(x: 19.8, y: 5.5),
+                           CGPoint(x: 25.2, y: 5.5)])
+            path.addQuadCurve(to: CGPoint(x: 26.8, y: 7.2), control: CGPoint(x: 26.8, y: 5.5))
+            path.addLine(to: CGPoint(x: 26.8, y: 20.9))
+            path.addQuadCurve(to: CGPoint(x: 25.2, y: 22.5), control: CGPoint(x: 26.8, y: 22.5))
+            path.addLine(to: CGPoint(x: 2.8, y: 22.5))
+            path.addQuadCurve(to: CGPoint(x: 1.2, y: 20.9), control: CGPoint(x: 1.2, y: 22.5))
+            path.addLine(to: CGPoint(x: 1.2, y: 7.2))
+            path.addQuadCurve(to: CGPoint(x: 3, y: 5.5), control: CGPoint(x: 1.2, y: 5.5))
+            path.closeSubpath()
+            path.addEllipse(in: CGRect(x: 9.5, y: 9.3, width: 9, height: 9))
+            context.stroke(path, with: .foreground, style: StrokeStyle(lineWidth: 2.55, lineJoin: .round))
+        }.frame(width: width, height: width * 24 / 28)
+    }
+}
+
+/// Riftlet's glass card follows the fitted bitmap. The grid slot stays fixed;
+/// only the image above this passive backing accepts draft input.
 private struct TrayTileBackground: View {
     let radius: CGFloat
     @Environment(\.colorScheme) private var colorScheme
@@ -136,20 +164,21 @@ private struct TrayTileBackground: View {
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
     var body: some View {
-        shape.fill(reduceTransparency ? Color(nsColor: .controlBackgroundColor) : Color.white.opacity(colorScheme == .dark ? 0.06 : 0.24))
+        shape.fill(Color(nsColor: .controlBackgroundColor))
             .overlay {
-                shape.fill(.tint.opacity(0.055))
+                shape.fill(.tint.opacity(colorScheme == .dark ? 0.16 : 0.075))
             }
+            .opacity(reduceTransparency || contrast == .increased ? 1 : 0.90)
             .overlay {
                 shape.strokeBorder(contrast == .increased ? Color.primary.opacity(0.55) : Color.white.opacity(colorScheme == .dark ? 0.25 : 0.6),
                                    lineWidth: contrast == .increased ? 1 : 1 / max(1, scale))
             }
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.12 : 0.055), radius: 1.5, y: 1)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.15), radius: min(3, radius / 3), y: 1.5)
     }
 }
 
 struct TrayCaptureStyle: ButtonStyle {
-    var radius: CGFloat = 7
+    var unit: CGFloat = 1
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var opaque
@@ -157,14 +186,14 @@ struct TrayCaptureStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         let dark = colorScheme == .dark
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
             .foregroundStyle(contrast == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(.tint))
             .background {
                 // Riftlet's camera key has a raised face and a short contact edge.
                 // Keep the full key as the button's hit area in both menu states.
                 GeometryReader { proxy in
-                    let depth = configuration.isPressed ? 0 : min(proxy.size.height * 0.08, 3)
+                    let shape = RoundedRectangle(cornerRadius: min(12 * unit, proxy.size.height / 2, proxy.size.width / 2), style: .continuous)
+                    let depth = configuration.isPressed ? 0 : min(proxy.size.height * 0.08, 4.5 * unit)
                     shape.fill(.background)
                         .overlay { shape.fill(.tint.opacity(dark ? 0.42 : 0.29)) }
                         .opacity(opaque ? 1 : 0.80)

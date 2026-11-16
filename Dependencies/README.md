@@ -5,7 +5,7 @@
 | 领域和固定提交 | 文件数 | 选定内容 SHA-256 |
 | --- | ---: | --- |
 | [Saytile v0.18-beta.492](https://github.com/haohongfei2001-png/saytile/tree/012999c2018f591f3cf9a529e4c0ae81e7b81f21) | 121 | `5214893b076c8428c169289e80fbe1504bcb9c8a640a2de66b038eb6420d775f` |
-| [Riftlet v1.0.2](https://github.com/haohongfei2001-png/Riftlet/tree/5b73c755ec1eb6d1aa2ef5b9390da6200b6108b9) | 89 | `b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a` |
+| [Riftlet v1.0.3-zip](https://github.com/haohongfei2001-png/Riftlet/tree/189782dd943f5215da43539b30db27e482a78b3c) | 89 | `b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a` |
 
 SaytileKit、SaytileVoiceUI 和音频底层来自同一语音发布版。Nearpane 使用自己的资料目录、凭据作用域和编辑保护。七份本机识别模型清单随包校验，模型权重由独立的使用与许可条件约束。Riftlet 的导入、队列、JPEG/PNG 截图资源处理、上传回执与托盘视觉来自同一发布版。Nearpane 对网页程序摘要和所有外部输入位置独立加守卫。
 

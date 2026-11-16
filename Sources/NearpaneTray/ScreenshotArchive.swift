@@ -52,6 +52,36 @@ struct ScreenshotArchivePage {
         entries = batch.prefix(Self.size).map { ScreenshotArchiveEntry($0, policy: policy, mode: mode) }
         hasOlder = batch.count > Self.size
     }
+
+    enum Period: CaseIterable {
+        case today, yesterday, earlier
+
+        var title: String {
+            switch self {
+            case .today: "今天"
+            case .yesterday: "昨天"
+            case .earlier: "更早"
+            }
+        }
+    }
+
+    struct DateSection {
+        let period: Period
+        let entries: [ScreenshotArchiveEntry]
+    }
+
+    func dateSections(now: Date = Date(), calendar: Calendar = .current) -> [DateSection] {
+        let today = calendar.startOfDay(for: now)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)
+        let grouped = Dictionary(grouping: entries) { entry -> Period in
+            if calendar.isDate(entry.date, inSameDayAs: today) { return .today }
+            if let yesterday, calendar.isDate(entry.date, inSameDayAs: yesterday) { return .yesterday }
+            return .earlier
+        }
+        return Period.allCases.compactMap { period in
+            grouped[period].map { DateSection(period: period, entries: $0) }
+        }
+    }
 }
 
 /// The archive includes old media that may have gone missing or been replaced since import.

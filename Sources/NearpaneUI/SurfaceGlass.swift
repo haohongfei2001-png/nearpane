@@ -1,38 +1,64 @@
 import SwiftUI
 import NearpaneCore
 
-/// Material strength and surface tint are resolved together. Keeping a full native blur
-/// below a fully transparent card would leave its contents on an opaque-looking plate.
-struct SurfaceGlassLevels {
-    let outerTint, innerTint, outerMaterial, innerMaterial, foldedTint: Double
-    static func outerDefault(dark: Bool) -> Double { dark ? 60 : 48 }
-    static func innerDefault(dark: Bool) -> Double { dark ? 90 : 80 }
+/// A saved partial customization keeps the optical baseline it was created with.
+extension PanelGlassSettings {
+    var usesRecommendedTransparency: Bool {
+        overallTransparency == nil && outerTransparency == nil && innerTransparency == nil
+    }
 
-    init(_ settings: PanelGlassSettings, dark: Bool, reduceTransparency: Bool) {
-        func levels(_ selected: Double?, factory: Double) -> (Double, Double) {
-            if reduceTransparency { return (1, 1) }
-            let overall = 1 - (settings.overallTransparency ?? 0) / 100
-            let local = (100 - (selected ?? factory)) / 100
-            return (overall * local, overall * min(1, local / ((100 - factory) / 100)))
+    var restoringRecommendedTransparency: Self {
+        var result = Self()
+        result.rimWidth = rimWidth
+        return result
+    }
+
+    func resolvedTransparency(dark: Bool) -> Self {
+        var result = self
+        if usesRecommendedTransparency {
+            result.overallTransparency = dark ? 8 : 12
+            result.outerTransparency = dark ? 56 : 45
+            result.innerTransparency = dark ? 92 : 83
+        } else {
+            result.overallTransparency = overallTransparency ?? 0
+            result.outerTransparency = outerTransparency ?? (dark ? 60 : 48)
+            result.innerTransparency = innerTransparency ?? (dark ? 90 : 80)
         }
-        (outerTint, outerMaterial) = levels(settings.outerTransparency, factory: Self.outerDefault(dark: dark))
-        (innerTint, innerMaterial) = levels(settings.innerTransparency, factory: Self.innerDefault(dark: dark))
-        // The factory icon uses bare material. Add a wash only when its requested
-        // outer surface is more opaque than that original appearance.
-        let factory = Self.outerDefault(dark: dark)
-        foldedTint = reduceTransparency ? 1 : (1 - (settings.overallTransparency ?? 0) / 100)
-            * max(0, 1 - (settings.outerTransparency ?? factory) / factory)
+        return result
     }
 }
 
-/// A common tint contract for the rim and cards. The outer frame is deliberately
-/// less transparent; it is painted only outside the cards, never underneath them.
+/// The two masks attenuate one native behind-window material. Text and controls
+/// never inherit their opacity. The original transfer curve stays continuous for
+/// existing saved percentages and for a user editing the recommended appearance.
+struct SurfaceGlassLevels {
+    let outerTint, innerTint, outerMaterial, innerMaterial, foldedTint: Double
+
+    init(_ settings: PanelGlassSettings, dark: Bool, reduceTransparency: Bool) {
+        let values = settings.resolvedTransparency(dark: dark)
+        let overall = 1 - (values.overallTransparency ?? 0) / 100
+        let outerKnee = dark ? 60.0 : 48.0
+        let innerKnee = dark ? 90.0 : 80.0
+        func levels(_ percent: Double, knee: Double) -> (Double, Double) {
+            if reduceTransparency { return (1, 1) }
+            let local = (100 - percent) / 100
+            return (overall * local, overall * min(1, local / ((100 - knee) / 100)))
+        }
+        let outer = values.outerTransparency ?? outerKnee
+        (outerTint, outerMaterial) = levels(outer, knee: outerKnee)
+        (innerTint, innerMaterial) = levels(values.innerTransparency ?? innerKnee, knee: innerKnee)
+        foldedTint = reduceTransparency ? 1 : overall * max(0, 1 - outer / outerKnee)
+    }
+}
+
+/// The rim has one even width and density. Equal-alpha color stops give the shell
+/// and its independently cut cards a soft daylight edge without painting a wallpaper.
 struct SurfaceGlassPalette {
-    let outer: Color
-    let inner: Color
+    let outer: LinearGradient
+    let inner: LinearGradient
     let folded: Color
-    let rim: Color
-    let innerRim: Color
+    let rim: LinearGradient
+    let innerRim: LinearGradient
     let outerOpacity: Double
     let innerOpacity: Double
 
@@ -40,14 +66,27 @@ struct SurfaceGlassPalette {
         let levels = SurfaceGlassLevels(settings, dark: dark, reduceTransparency: reduceTransparency)
         outerOpacity = levels.outerTint
         innerOpacity = levels.innerTint
-        let base = reduceTransparency ? Color(nsColor: .windowBackgroundColor)
-            : Color(red: dark ? 0.15 : 0.89, green: dark ? 0.15 : 0.90, blue: dark ? 0.22 : 0.98)
-        outer = base.opacity(outerOpacity)
-        folded = base.opacity(levels.foldedTint)
-        inner = reduceTransparency ? Color(nsColor: .windowBackgroundColor)
-            : Color(red: dark ? 0.20 : 0.98, green: dark ? 0.20 : 0.98, blue: dark ? 0.28 : 1).opacity(innerOpacity)
-        rim = increasedContrast ? Color.primary.opacity(0.65) : .white.opacity((dark ? 0.32 : 0.62) * levels.outerMaterial)
-        innerRim = increasedContrast ? Color.primary.opacity(0.65) : .white.opacity((dark ? 0.24 : 0.48) * levels.innerMaterial)
+        let solid = Color(nsColor: .windowBackgroundColor)
+        func wash(_ top: Color, _ bottom: Color, opacity: Double) -> LinearGradient {
+            let colors = reduceTransparency ? [solid, solid] : [top.opacity(opacity), bottom.opacity(opacity)]
+            return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+
+        let outerTop = dark ? Color(red: 0.22, green: 0.23, blue: 0.28) : Color(red: 0.79, green: 0.80, blue: 0.89)
+        let outerBottom = dark ? Color(red: 0.13, green: 0.14, blue: 0.19) : Color(red: 0.68, green: 0.71, blue: 0.83)
+        outer = wash(outerTop, outerBottom, opacity: levels.outerTint)
+        inner = wash(dark ? Color(red: 0.54, green: 0.54, blue: 0.62) : .white,
+                     dark ? Color(red: 0.31, green: 0.32, blue: 0.40) : Color(red: 0.93, green: 0.94, blue: 1),
+                     opacity: levels.innerTint)
+        folded = reduceTransparency ? solid : outerTop.opacity(levels.foldedTint)
+
+        func edge(strength: Double, highlight: Double, shade: Double) -> LinearGradient {
+            let colors = increasedContrast ? Array(repeating: Color.primary.opacity(0.65), count: 2)
+                : [Color.white.opacity(highlight * strength), Color.black.opacity(shade * strength)]
+            return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        rim = edge(strength: levels.outerMaterial, highlight: dark ? 0.39 : 0.80, shade: dark ? 0.28 : 0.10)
+        innerRim = edge(strength: levels.innerMaterial, highlight: dark ? 0.32 : 0.90, shade: dark ? 0.20 : 0.10)
     }
 }
 

@@ -42,7 +42,7 @@ import NearpaneCore
             Rectangle().fill(accent.color).frame(width: 40, height: 36)
             VoiceCaptureGlyph(presentation: .init(.paused, 0)).frame(width: 40, height: 36)
             Button {} label: {
-                Image(systemName: "camera").font(.system(size: 20, weight: .semibold)).frame(width: 40, height: 36)
+                TrayCameraGlyph(width: 24).frame(width: 40, height: 36)
             }.buttonStyle(TrayCaptureStyle())
         }
         .productAccent(accent)

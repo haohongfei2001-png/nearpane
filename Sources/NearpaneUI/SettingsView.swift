@@ -131,8 +131,11 @@ public struct SettingsView: View {
         self.domains = domains; self.host = host; self.inventory = inventory; self.placementChanged = placementChanged
     }
 
+    @Environment(\.colorScheme) private var colorScheme
+
     public var body: some View {
         GeometryReader { bounds in
+            let sidebarWidth = bounds.size.width >= 720 ? 168.0 : 152.0
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
                     ScrollView {
@@ -150,26 +153,32 @@ public struct SettingsView: View {
                         .padding(12)
                         .accessibilityIdentifier("settings-installed-version")
                 }
-                .frame(width: 152)
-                .background(Color(nsColor: .controlBackgroundColor).opacity(0.55))
+                .frame(width: sidebarWidth)
+                .background {
+                    Rectangle().fill(.regularMaterial)
+                        .overlay(Color.primary.opacity(colorScheme == .dark ? 0.035 : 0.045))
+                }
                 Divider().frame(width: 1)
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text(navigation.page.label).font(.title2.weight(.semibold))
                             .accessibilityAddTraits(.isHeader)
                         Spacer()
                         if navigation.page == .voiceArchive && availablePages.contains(.voice) {
-                            Button("语音设置") { navigation.page = .voice }
+                            Button { navigation.page = .voice } label: { Label("语音设置", systemImage: "gearshape") }
+                                .controlSize(.small)
                                 .accessibilityIdentifier("archive-voice-settings")
                         } else if navigation.page == .screenshotArchive {
-                            Button("截图设置") { navigation.page = .tray }
+                            Button { navigation.page = .tray } label: { Label("截图设置", systemImage: "gearshape") }
+                                .controlSize(.small)
                                 .accessibilityIdentifier("archive-tray-settings")
                         }
                     }
                     content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
                 .padding(16)
-                .frame(width: max(0, bounds.size.width - 153), height: bounds.size.height, alignment: .topLeading)
+                .frame(width: max(0, bounds.size.width - sidebarWidth - 1), height: bounds.size.height, alignment: .topLeading)
+                .background(Color(nsColor: .controlBackgroundColor))
             }
         }
         .onAppear {
@@ -193,9 +202,10 @@ public struct SettingsView: View {
                         Image(systemName: page.symbol).frame(width: 18)
                             .foregroundStyle(selected ? host.configuration.accent.color : .secondary)
                         Text(page.navigationLabel)
+                            .lineLimit(1).fontWeight(selected ? .medium : .regular)
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 8).frame(height: 28)
+                    .padding(.horizontal, 8).frame(maxWidth: .infinity, alignment: .leading).frame(height: 28)
                     .background(selected ? host.configuration.accent.color.opacity(0.14) : .clear,
                                 in: RoundedRectangle(cornerRadius: 6))
                     .contentShape(Rectangle())

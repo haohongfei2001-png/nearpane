@@ -96,6 +96,48 @@ import NearpaneCore
         }
     }
 
+    @Test func recommendedTintLetsTheInnerCardTransmitMoreOfTheBackdrop() throws {
+        // Exercise the actual SwiftUI fills independently of WindowServer's adaptive blur.
+        let width = 144.0, height = 112.0
+        let area = SurfaceRect(width: width, height: height)
+        let card = SurfaceCardGeometry.frame(in: area, width: width)
+        let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
+                                            content: .spacesOnly)
+        let backgrounds: [(String, Color)] = [
+            ("graphite", Color(red: 0.14, green: 0.17, blue: 0.22)),
+            ("lavender", Color(red: 0.51, green: 0.55, blue: 0.86)),
+            ("sage", Color(red: 0.52, green: 0.66, blue: 0.58)),
+            ("paper", Color(red: 0.95, green: 0.94, blue: 0.91))
+        ]
+        for scheme in [ColorScheme.light, .dark] {
+            var shellSamples = [CGFloat](), cardSamples = [CGFloat]()
+            for (name, background) in backgrounds {
+                let view = ZStack {
+                    background
+                    SurfaceShell(layout: layout, width: width, settings: .init())
+                    SurfaceGlass().frame(width: card.width, height: card.height)
+                }.frame(width: width, height: height).environment(\.colorScheme, scheme)
+                let renderer = ImageRenderer(content: view)
+                renderer.scale = 1
+                let rep = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
+                func red(_ x: Int) throws -> CGFloat {
+                    try #require(rep.colorAt(x: x, y: 56)?.usingColorSpace(.sRGB)).redComponent
+                }
+                shellSamples.append(try red(3))
+                cardSamples.append(try red(72))
+                if let directory = ProcessInfo.processInfo.environment["NEARPANE_GLASS_SAMPLE_DIR"] {
+                    let url = URL(fileURLWithPath: directory).appendingPathComponent(
+                        (scheme == .dark ? "dark-" : "light-") + name + ".png")
+                    try #require(rep.representation(using: .png, properties: [:])).write(to: url)
+                }
+            }
+            #expect(shellSamples == shellSamples.sorted() && cardSamples == cardSamples.sorted())
+            let shellRange = try #require(shellSamples.last) - (try #require(shellSamples.first))
+            let cardRange = try #require(cardSamples.last) - (try #require(cardSamples.first))
+            #expect(shellRange > 0.25 && cardRange > shellRange + 0.15)
+        }
+    }
+
     @Test func renderedShellHasEvenEdgesAndDoesNotTintUnderCards() throws {
         // Real SwiftUI render with no window, no desktop capture and no fake blur.
         // Test the actual alpha, not a second interpretation of the palette constants.

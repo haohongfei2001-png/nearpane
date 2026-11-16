@@ -19,6 +19,7 @@ struct DesktopSurface: View {
     let enabled: Bool
     var display: SurfaceDisplay?
     var settings: DisplaySettings = .init()
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Group {
@@ -71,17 +72,21 @@ struct DesktopSurface: View {
                 let path = Path(roundedRect: CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height),
                                 cornerRadius: min(12, min(desktop.width, desktop.height) / 8))
                 let accent = host.configuration.accent.color
-                context.fill(path, with: .linearGradient(Gradient(colors: [accent.opacity(0.14), accent.opacity(0.22)]),
-                    startPoint: CGPoint(x: desktop.x, y: desktop.y), endPoint: CGPoint(x: desktop.x, y: desktop.y + desktop.height)))
+                var inside = context
+                inside.clip(to: path)
+                inside.fill(path, with: .linearGradient(Gradient(colors: [accent.opacity(0.10), accent.opacity(0.26)]),
+                    startPoint: CGPoint(x: desktop.x, y: desktop.y), endPoint: CGPoint(x: desktop.x + desktop.width, y: desktop.y + desktop.height)))
                 for window in row.windows.reversed() {
                     let r = window.frame
                     let outline = Path(roundedRect: CGRect(x: r.x, y: r.y, width: r.width, height: r.height),
                                        cornerRadius: min(4, min(r.width, r.height) / 8))
-                    context.fill(outline, with: .color(Color(nsColor: .controlBackgroundColor)))
-                    context.stroke(outline, with: .color(.secondary.opacity(0.85)), style: .init(lineWidth: settings.points(.borderWidth,in:row.rowFrame.width),
+                    var sheet = inside
+                    sheet.addFilter(.shadow(color: .black.opacity(0.20), radius: 1.5, y: 1))
+                    sheet.fill(outline, with: .color(Color(nsColor: .controlBackgroundColor)))
+                    inside.stroke(outline, with: .color(.primary.opacity(contrast == .increased ? 0.80 : 0.37)), style: .init(lineWidth: settings.points(.borderWidth,in:row.rowFrame.width),
                         dash: window.confidence == .corroboratedMetadata ? [] : [2, 1]))
                 }
-                context.stroke(path, with: .color(.white.opacity(0.5)), lineWidth: 0.7)
+                inside.stroke(path, with: .color(.white.opacity(0.5)), lineWidth: 1)
             }
         }
         .accessibilityChildren {

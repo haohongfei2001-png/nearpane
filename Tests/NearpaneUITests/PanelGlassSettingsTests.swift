@@ -5,6 +5,28 @@ import NearpaneCore
 @testable import NearpaneUI
 
 @MainActor struct PanelGlassSettingsTests {
+    @Test func adaptiveFactorySeparatesBlurAndTintAndKeepsCustomizedRim() throws {
+        var saved = try JSONDecoder().decode(PanelGlassSettings.self, from: Data(#"{"outerTransparency":70}"#.utf8))
+        saved.rimWidth = Measure(4, .percent)
+        let adaptive = saved.restoringRecommendedTransparency
+        #expect(adaptive.usesRecommendedTransparency && adaptive.rimWidth == saved.rimWidth)
+        for dark in [false, true] {
+            let old = SurfaceGlassLevels(saved, dark: dark, reduceTransparency: false)
+            #expect(old.outerTint == 0.30)
+            #expect(old.innerTint == (dark ? 0.10 : 0.20))
+            #expect(old.innerMaterial == 1)
+            let factory = SurfaceGlassLevels(adaptive, dark: dark, reduceTransparency: false)
+            #expect(factory.outerMaterial < 1 && factory.innerMaterial < factory.outerMaterial)
+            #expect(factory.innerMaterial > 0.70 && factory.outerTint > 0.35)
+            #expect(factory.innerTint < factory.outerTint)
+            // Entering manual adjustment keeps every unedited optical value continuous.
+            let explicit = adaptive.resolvedTransparency(dark: dark)
+            let same = SurfaceGlassLevels(explicit, dark: dark, reduceTransparency: false)
+            #expect(factory.outerMaterial == same.outerMaterial && factory.innerMaterial == same.innerMaterial)
+            #expect(factory.outerTint == same.outerTint && factory.innerTint == same.innerTint)
+        }
+    }
+
     @Test func actualMaterialAndTintCanBeChangedIndependentlyWithoutFadingContents() throws {
         let material = PanelGlassMaterial(frame: NSRect(x: 0, y: 0, width: 160, height: 400))
         let label = NSTextField(labelWithString: "合成文字")

@@ -43,12 +43,17 @@ public struct VoiceSurface: View {
 
     private func content(size: CGSize) -> some View {
         let fontSize = settings.readableFontSize(.textSize, in: size.height)
-        let lineSpacing = settings.measures[.lineGap]?.points(in: size.height)
+        let lineSpacing = settings.points(.lineGap, in: size.height)
         let captureButton = Self.captureButtonSize(in: size, settings: settings)
         let buttonWidth = captureButton.width
         let buttonHeight = captureButton.height
-        let copySide = max(buttonHeight, settings.points(.copySize,in:size.height))
-        return VStack(alignment: .leading, spacing: 4) {
+        let reference = VoicePanelMetrics(width: size.width)
+        let copySide = max(buttonHeight, settings.points(.copySize, in: size.height))
+        // Keep the wider Saytile copy bezel only while the two hit targets fit.
+        let footerRoom = size.width - 2 * settings.points(.textPadding, in: size.width)
+            - settings.points(.buttonGap, in: size.width) - buttonWidth
+        let copyWidth = max(copySide, min(reference.copyWidth, footerRoom))
+        return VStack(alignment: .leading, spacing: DisplaySettings.voiceFooterGap) {
             if let id = editing {
                 TranscriptEditor(text: Binding(get: { draft }, set: { draft = $0; module.stageDraft(id, text: $0) }),
                                  fontSize: fontSize, lineSpacing: lineSpacing)
@@ -110,8 +115,8 @@ public struct VoiceSurface: View {
                     copied = copy(module.transcript, to: pasteboard)
                 } label: {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                        .font(settings.measures[.copySize].map { .system(size:$0.points(in:size.height)) } ?? .body)
-                        .frame(minWidth:copySide,minHeight:buttonHeight)
+                        .font(.system(size: settings.points(.copySize, in: size.height), weight: .medium))
+                        .frame(minWidth:copyWidth,minHeight:buttonHeight)
                         .contentShape(Capsule())
                 }
                 .buttonStyle(VoiceGlassControlStyle(copy: true, height: buttonHeight))
@@ -173,8 +178,15 @@ private struct VoiceGlassControlStyle: ButtonStyle {
     }
 }
 
-/// Explicit spacing applies to both reading and editing. An unset value preserves
-/// the existing system typography used by the factory appearance.
+/// Both surfaces adopt Saytile's reading face at the factory setting. Existing
+/// custom font sizes keep their system metrics and line breaks.
+@MainActor
+private func transcriptFont(_ explicitSize: Double?) -> NSFont {
+    if let explicitSize { return .systemFont(ofSize: max(1, explicitSize)) }
+    let size = DisplayMetric.textSize.factory.value
+    return NSFont(name: "PingFangSC-Regular", size: size) ?? .systemFont(ofSize: size)
+}
+
 struct TranscriptEditor: View {
     @Binding var text: String
     let fontSize: Double?
@@ -182,7 +194,7 @@ struct TranscriptEditor: View {
 
     var body: some View {
         TextEditor(text: $text)
-            .font(fontSize.map { .system(size: $0) } ?? .body)
+            .font(Font(transcriptFont(fontSize)))
             .lineSpacing(lineSpacing ?? 0)
             .scrollContentBackground(.hidden)
     }
@@ -228,7 +240,7 @@ struct TranscriptLine: NSViewRepresentable {
         view.textContainerInset = .zero
         view.textContainer?.lineFragmentPadding = 0
         view.textContainer?.widthTracksTextView = false
-        view.font = .preferredFont(forTextStyle: .body)
+        view.font = transcriptFont(fontSize)
         view.textColor = .labelColor
         return view
     }
@@ -240,7 +252,7 @@ struct TranscriptLine: NSViewRepresentable {
             view.selectedTextAttributes[.backgroundColor] = highContrast
                 ? NSColor.selectedTextBackgroundColor : ink.withAlphaComponent(0.28)
         }
-        let font = fontSize.map { NSFont.systemFont(ofSize:max(1,$0)) } ?? NSFont.preferredFont(forTextStyle:.body)
+        let font = transcriptFont(fontSize)
         if view.font != font { view.font = font }
         view.editLine = { [weak view] in edit(view?.window) }
         let textChanged = view.string != text

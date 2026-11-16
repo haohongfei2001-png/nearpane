@@ -36,7 +36,8 @@ public enum DisplayMetric: String, Codable, CaseIterable, Sendable {
         case .moduleHeight: .init(68, .percent)
         case .spaceRowHeight: .init(100, .percent)
         case .textPadding, .buttonGap: .init(8)
-        case .textSize, .copySize, .iconSize: .init(13)
+        case .textSize: .init(14)
+        case .copySize, .iconSize: .init(13)
         case .waveformSize: .init(28)
         case .lineGap: .init(2)
         case .voiceButtonWidth, .railHeight: .init(32)
@@ -277,7 +278,7 @@ public struct MultiDisplayPresentationCoordinator {
 }
 
 extension DisplaySettings {
-    /// Retain system typography when unset and preserve explicit point sizes. A percentage
+    /// Retain the module's default typography when unset and preserve explicit point sizes. A percentage
     /// cannot reduce the visible transcript or Space caption below its factory text token.
     public func readableFontSize(_ metric: DisplayMetric, in extent: Double) -> Double? {
         guard let choice = measures[metric] else { return nil }
@@ -309,8 +310,10 @@ extension DisplaySettings {
             let rowWidth = max(points(.voiceButtonWidth, in: width), waveformWidth)
                 + max(copySize, points(.voiceButtonHeight, in: sections.voice))
                 + 2 * points(.buttonGap, in: width)
+            // Saytile's 14.04 pt reference face occupies an 18.72 pt line box.
+            let lineHeight = measures[.textSize] == nil ? font * 4 / 3 : font * 1.3
             if width < 2 * pad + max(rowWidth, 2 * font)
-                || min(height, sections.voice) < 2 * pad + buttonHeight + font * 1.3 + 4 { return .compact }
+                || min(height, sections.voice) < 2 * pad + buttonHeight + lineHeight + Self.voiceFooterGap { return .compact }
         }
         if tray && [.full, .compact, .trayOnly].contains(content) {
             let pad = points(.trayPadding, in: width)
@@ -332,6 +335,9 @@ extension DisplaySettings {
         }
         return .full
     }
+
+    /// Gap between the transcript and the control row in Saytile's compact card.
+    public static let voiceFooterGap = 2.0
 
     public func contentHeights(_ height: Double, content: PanelContent, voice: Bool, tray: Bool) -> (
         voice: Double, tray: Double, spaces: Double, gap: Double

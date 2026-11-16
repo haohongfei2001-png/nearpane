@@ -92,6 +92,28 @@ private actor GatedFileInput: IndependentFileInputAdapter {
 
 @MainActor @Suite(.serialized)
 struct TrayDomainTests {
+    @Test func archiveGroupsByLocalCaptureDayAndKeepsQueueOrderWithinEachSection() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+        let now = try #require(calendar.date(from: DateComponents(year: 2026, month: 3, day: 4, hour: 2)))
+        let midnight = calendar.startOfDay(for: now)
+        let dates: [Date?] = [midnight, midnight.addingTimeInterval(-1), nil, midnight.addingTimeInterval(-90000)]
+        for (i, capturedAt) in dates.enumerated() {
+            let image = ImportedAsset(sourceKey: "group-\(i)", fileName: "group-\(i).png",
+                sha256: String(repeating: "0", count: 64), byteCount: 3, pixelWidth: 4, pixelHeight: 2,
+                mediaType: "image/png", capturedAt: capturedAt, firstSeenAt: now, origin: .synthetic)
+            _ = try await store.importAsset(image)
+        }
+        let page = ScreenshotArchivePage(try await store.historySnapshot(), policy: .init(), mode: .simulation)
+        let sections = page.dateSections(now: now, calendar: calendar)
+        #expect(sections.map(\.period) == [.today, .yesterday, .earlier])
+        #expect(sections.map { $0.entries.map { $0.record.image.sourceKey } } ==
+                [["group-2", "group-0"], ["group-1"], ["group-3"]])
+    }
+
     @Test func archiveReadsEveryCaptureInSourceOrderWithoutTouchingQueueOrDrafts() async throws {
         let dir = root()
         defer { try? FileManager.default.removeItem(at: dir) }

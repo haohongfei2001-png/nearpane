@@ -24,11 +24,9 @@ struct PanelGlassEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("玻璃外观").font(.headline)
-            opacityRow("整体透明度", key: \.overallTransparency, fallback: 0, id: "overall")
-            opacityRow("外框透明度", key: \.outerTransparency,
-                       fallback: SurfaceGlassLevels.outerDefault(dark: scheme == .dark), id: "outer")
-            opacityRow("内卡透明度", key: \.innerTransparency,
-                       fallback: SurfaceGlassLevels.innerDefault(dark: scheme == .dark), id: "inner")
+            opacityRow("整体透明度", key: \.overallTransparency, id: "overall")
+            opacityRow("外框透明度", key: \.outerTransparency, id: "outer")
+            opacityRow("内卡透明度", key: \.innerTransparency, id: "inner")
             let rim = draft.rimWidth ?? Measure(PanelSizeMetrics.cardInset(width: width))
             HStack {
                 Text("四边等宽").frame(width: 82, alignment: .leading)
@@ -46,15 +44,31 @@ struct PanelGlassEditor: View {
                 })) {
                     ForEach(MeasureUnit.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }.labelsHidden().fixedSize().accessibilityIdentifier("glass-rim-unit")
+                Button {
+                    draft.rimWidth = nil
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                }
+                .buttonStyle(.borderless)
+                .disabled(draft.rimWidth == nil)
+                .help("恢复随面板宽度调整的默认留白")
+                .accessibilityLabel("恢复默认留白")
+                .accessibilityIdentifier("glass-rim-default")
             }
             Text(reduced ? "系统已开启降低透明度。透明度偏好会保存，当前使用实色背景。" :
-                "100% 为全透明。整体透明度作用于玻璃背景；外框留白的百分比按面板宽度计算。")
+                (draft.usesRecommendedTransparency ? "推荐透明度随系统浅色和深色外观切换。" : "当前使用自定义透明度。") + "100% 为全透明。")
                 .font(.caption).foregroundStyle(.secondary)
             HStack {
                 Button("应用外观") { apply(draft) }.disabled(!acceptable || draft == saved)
                     .accessibilityIdentifier("glass-apply")
                 Button("撤销预览") { draft = saved }.disabled(draft == saved)
-                Button("恢复出厂外观") { draft = .init() }.disabled(draft == .init())
+                Button("使用推荐透明度") {
+                    let recommended = saved.restoringRecommendedTransparency
+                    draft = recommended
+                    preview(nil)
+                    apply(recommended)
+                }
+                    .disabled(saved.usesRecommendedTransparency && draft.usesRecommendedTransparency)
                     .accessibilityIdentifier("glass-defaults")
             }
         }
@@ -67,9 +81,11 @@ struct PanelGlassEditor: View {
     }
 
     private func opacityRow(_ title: String, key: WritableKeyPath<PanelGlassSettings, Double?>,
-                            fallback: Double, id: String) -> some View {
-        let value = Binding(get: { draft[keyPath: key] ?? fallback }, set: { newValue in
-            var updated = draft
+                            id: String) -> some View {
+        let value = Binding(get: { draft.resolvedTransparency(dark: scheme == .dark)[keyPath: key] ?? 0 }, set: { newValue in
+            // Materialize the visible values when leaving the adaptive recommendation.
+            // Otherwise the two untouched controls would jump to legacy fallback values.
+            var updated = draft.usesRecommendedTransparency ? draft.resolvedTransparency(dark: scheme == .dark) : draft
             updated[keyPath: key] = newValue
             draft = updated
         })
