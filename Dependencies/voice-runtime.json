@@ -1,0 +1,27 @@
+{
+  "release": "v0.18-beta.492",
+  "sourceCommit": "012999c2018f591f3cf9a529e4c0ae81e7b81f21",
+  "url": "https://api.github.com/repos/haohongfei2001-png/saytile/releases/assets/748395668",
+  "filename": "Saytile-0.18-mandarin-arm64.dmg",
+  "sha256": "654b08e926d90c88e0cb05ff4a5c116aa6c87c6cd59f7d71c24ca028c0d5f933",
+  "files": {
+    "Helpers/SaytileModelWorker": "9b21b863a3b5bad11d4d36ee33b8204c0648da9409a977fd64d1c756cea2340e",
+    "Resources/default.metallib": "ba981ecf4fd7cdf808946c2be37b7eecff3a7b44eddbb9b7c8c51dc47b8b1617",
+    "Resources/LocalASRLicenses/FluidAudio.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "Resources/LocalASRLicenses/FunASR-model.txt": "7dba975a2069691db4992b0592d70828b330d2f8a30a71450f4e152a554e84f8",
+    "Resources/LocalASRLicenses/mlx-swift.txt": "44326a4ea062241ae6fc26ee2ec90bdc81af7eb7b9d3966181b733fa69d42057",
+    "Resources/LocalASRLicenses/onnxruntime-LICENSE": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "Resources/LocalASRLicenses/onnxruntime-ThirdPartyNotices.txt": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+    "Resources/LocalASRLicenses/sherpa-onnx.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "Resources/LocalASRLicenses/speech-components/ThirdPartyNotices/BreezeTTS.txt": "a0507824ec768d0aa9f63a2c03002fd928342f02dd2eea4173673d7e53b121ae",
+    "Resources/LocalASRLicenses/speech-components/ThirdPartyNotices/FireRedTTS3.txt": "7aeff75014db604f6b21b32754be8d10110350c42a6207e7d771dc29487af4a8",
+    "Resources/LocalASRLicenses/speech-components/ThirdPartyNotices/MossTTSNano.txt": "9c6801463adbd13c09abc1e9d008f0542c7bd588060c32df19ad446680a3d149",
+    "Resources/LocalASRLicenses/speech-components/ThirdPartyNotices/MossVoiceGenerator.txt": "12c8fef23a072a33ae77419a5fc85bcfa7ecdd55b0824a7c34c13a6315b23c9b",
+    "Resources/LocalASRLicenses/speech-components/ThirdPartyNotices/Qwen3TTSCodec.txt": "b81c2c4960b372398e0ca2188e6e734c0328e7d66cbcc08d4038c418b2de9dcb",
+    "Resources/LocalASRLicenses/speech-swift.txt": "8b86cbde30daef6bfac0780dee1649be3b2de2abf4ecdefd5b7099df212c5a1d",
+    "Resources/LocalASRLicenses/swift-collections.txt": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+    "Resources/LocalASRLicenses/swift-jinja.txt": "648b81e6c6f9975c3b6cf6d630229b6c8d6f1ddaef55f5770f576adda19f3495",
+    "Resources/LocalASRLicenses/swift-numerics.txt": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+    "Resources/LocalASRLicenses/swift-transformers.txt": "648b81e6c6f9975c3b6cf6d630229b6c8d6f1ddaef55f5770f576adda19f3495"
+  }
+}

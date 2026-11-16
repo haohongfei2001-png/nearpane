@@ -95,6 +95,11 @@ def inspect(app):
                               "SUAutomaticallyUpdate": False, "SUScheduledCheckInterval": 86400}.items():
             if info.get(key) != expected:
                 raise ValueError("Unsafe update setting: " + key)
+    if "NearpaneVoiceRuntimeSHA256" in info:
+        spec = importlib.util.spec_from_file_location("voice_runtime", Path(__file__).with_name("prepare-voice-runtime.py"))
+        voice_runtime = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(voice_runtime)
+        voice_runtime.verify(contents, info[voice_runtime.KEY])
     automation = contents / "Helpers/NearpaneAutomation"
     if version(info["CFBundleShortVersionString"]) >= (5, 8, 0):
         bound = info.get("NearpaneAutomationSHA256", {})

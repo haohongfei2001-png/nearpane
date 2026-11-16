@@ -35,6 +35,7 @@ protocol VoiceInput: AnyObject {
 @MainActor
 private final class DomainInput: VoiceInput {
     let audio: AudioController
+    private let local: VoiceLocalRecognition
     private let recordings: SaytileStore
     var observation: AnyCancellable?
     private var playbackObservation: AnyCancellable?
@@ -43,34 +44,50 @@ private final class DomainInput: VoiceInput {
     private let profile: VoiceRecognitionProfile?
     private var configuration = RecognitionConfiguration()
     init(store: SaytileStore, requireExistingPermissions: Bool, profile: VoiceRecognitionProfile?,
-         credentials: NearpaneVoiceCredentials?, changed: @escaping (CaptureState, Float, String?) -> Void) {
+         credentials: NearpaneVoiceCredentials?, local: VoiceLocalRecognition, changed: @escaping (CaptureState, Float, String?) -> Void) {
         self.profile = profile
+        self.local = local
         recordings = store
         self.requireExistingPermissions = requireExistingPermissions
         // A controller first created for replay has no authority to resume recognition jobs.
         audio = credentials?.controller(store: store, configuration: configuration, startupRecoveryReady: false)
             ?? AudioController(store: store, recognitionConfiguration: configuration, startupRecoveryReady: false)
+        local.didSelect = { [weak self] model in self?.selectLocal(model) }
         observation = Publishers.CombineLatest3(audio.$state, audio.$level, audio.$issue).sink {
             changed($0, $1, $2)
         }
     }
     func start(requestPermission: Bool) async throws {
-        // Do not trigger engine asset installation as a side effect of trying the voice button.
         if VoiceInputRoute.current() == .disconnected { throw AudioFailure.message(VoiceInputRoute.disconnected.label) }
         try await prepareConfiguration()
         if !configuration.cloudEnabled {
-            let availability = await AppleSpeechService.availability()
-            guard availability.installed else { throw AudioFailure.message(availability.message) }
+            await local.prepareForInput()
+            selectLocal(local.selection)
         }
         try Task.checkCancellation()
         audio.completeStartupRecovery()
         await audio.start(requestPermission: requestPermission && !requireExistingPermissions)
+    }
+    func replayIsolated(_ file: URL) async throws -> (LocalASRID, Double) {
+        guard requireExistingPermissions, profile == nil, !local.canDownload, !configuration.cloudEnabled else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        await local.prepareForInput()
+        selectLocal(local.selection)
+        guard local.selection == LocalModelRecommendation.preferred else {
+            throw AudioFailure.message("隔离验收需要已校验的本机中文模型")
+        }
+        return (local.selection, try await audio.replayLocalFixture(file))
     }
     func pause() async { await audio.pause() }
     func retry(_ id: UUID) async throws {
         let selected = try profile?.configurationForInput() ?? RecognitionConfiguration()
         await configure(selected)
         let expected = try await VoiceRecognitionProfile.retryConfiguration(selected, for: id, in: recordings)
+        if !expected.cloudEnabled {
+            await local.refresh()
+            selectLocal(local.selection)
+        }
         audio.completeStartupRecovery()
         await audio.retry(recordingID: id, expectedConfiguration: expected)
     }
@@ -89,13 +106,24 @@ private final class DomainInput: VoiceInput {
         guard let profile else { return }
         try await configure(profile.configurationForInput())
     }
+    private func selectLocal(_ model: LocalASRID) {
+        audio.selectLocalModels(live: model, archive: model, service: local.service, onUnavailable: { [weak local] id in
+            Task { @MainActor in await local?.unavailable(id) }
+        })
+    }
     func revokeCloud() { audio.revokeCloudRecognition() }
     func configure(_ value: RecognitionConfiguration) async {
         guard configuration != value else { return }
         configuration = value
+        if value.cloudEnabled { await local.stopTransfer() }
         await audio.setRecognitionConfiguration(value)
     }
-    func shutdown() async { observation = nil; await audio.shutdown() }
+    func shutdown() async {
+        local.didSelect = nil
+        observation = nil
+        await audio.shutdown()
+        await local.service.releaseIdle()
+    }
 }
 
 @MainActor @Observable
@@ -114,6 +142,7 @@ public final class VoiceModule: HostModule {
     var offersManualInput: Bool { makeManualInput != nil }
     private(set) var inserting = false
     private(set) var insertionNotice: String?
+    private(set) var localRecognition: VoiceLocalRecognition?
     private(set) var recognitionProfile: VoiceRecognitionProfile?
     private(set) var changingRecognition = false
     @ObservationIgnored private var transition: Task<Void, Never>?
@@ -155,6 +184,7 @@ public final class VoiceModule: HostModule {
         let credentials = allowAPISettings && !requireExistingPermissions
             ? NearpaneVoiceCredentials(profileID: VoiceRecognitionProfile.identifier(for: directory)) : nil
         let profile = credentials.map { VoiceRecognitionProfile(directory: directory, credentials: $0) }
+        let local = VoiceLocalRecognition(directory: directory, allowDownloads: !requireExistingPermissions)
         self.init(openStore: {
             let parent = directory.deletingLastPathComponent()
             if (try? parent.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
@@ -163,7 +193,8 @@ public final class VoiceModule: HostModule {
             return try SaytileStore(directory: directory)
         },
                   makeInput: { DomainInput(store: $0, requireExistingPermissions: requireExistingPermissions,
-                                           profile: profile, credentials: credentials, changed: $1) })
+                                           profile: profile, credentials: credentials, local: local, changed: $1) })
+        localRecognition = local
         recognitionProfile = profile
         if allowManualInsertion && !requireExistingPermissions { makeManualInput = { try NearpaneManualInsertion(store: $0) } }
     }
@@ -244,6 +275,7 @@ public final class VoiceModule: HostModule {
             await endingInsertion?.value
             await endingPlayback?.value
             await oldInput?.shutdown()
+            await localRecognition?.stopTransfer()
             await writes?.value
             // Cancelling a view refresh does not cancel an already admitted SQLite read.
             // Keep the old store open across all awaits until that reader has left.
@@ -256,6 +288,12 @@ public final class VoiceModule: HostModule {
     public func resume() throws { try start() }
     public func perform(_ action: ModuleAction) throws {}
     public func snapshot() throws -> ModuleProjection { .init(message: "Voice module") }
+
+    /// Reachable by the executable-bound acceptance session with a pinned public fixture only.
+    public func replayIsolatedMandarin(_ file: URL) async throws -> (LocalASRID, Double) {
+        guard active, let device = try currentInput() as? DomainInput else { throw CocoaError(.featureUnsupported) }
+        return try await device.replayIsolated(file)
+    }
 
     private func currentInput() throws -> any VoiceInput {
         if let input { return input }

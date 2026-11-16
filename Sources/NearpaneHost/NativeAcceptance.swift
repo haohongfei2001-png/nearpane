@@ -1,5 +1,7 @@
 #if canImport(RiftletCore) && canImport(SaytileKit)
 import AppKit
+import SwiftUI
+import NearpaneVoice
 import AVFoundation
 import Speech
 import CryptoKit
@@ -41,6 +43,67 @@ struct NativeAcceptanceSession {
             try FileHandle.standardOutput.write(contentsOf: data + Data([10]))
         } catch { exit(3) }
         exit(prepare && !after.installed ? 3 : 0)
+    }
+
+    /// Exercise the actual host adapter and AppKit text views from authorized public PCM.
+    /// The fixture name, hash, isolated model cache and writable database are fixed.
+    @MainActor func reportLocalMandarin() async throws {
+        let wav = directory.appending(path: "public-mandarin.wav")
+        try ProfileLease.checkPath(wav)
+        let digest = SHA256.hash(data: try Data(contentsOf: wav)).map { String(format: "%02x", $0) }.joined()
+        guard digest == "95dae2e6509dac2af6b35149dbd46978e2a5bfd480d3604282a1a092606ff0ea" else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        let root = support.appending(path: "Nearpane/Voice")
+        try ProfileLease.checkPath(root)
+        guard !FileManager.default.fileExists(atPath: root.appending(path: "Saytile.sqlite").path) else {
+            throw CocoaError(.fileWriteFileExists)
+        }
+        let module = EmbeddedModules(support: root.deletingLastPathComponent(), testSession: directory).voice
+        try module.start()
+        await module.waitForTransition()
+        let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 260, height: 210),
+                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        let surface = NSHostingView(rootView: VoiceSurface(module, pasteboard: NSPasteboard(name: .init(directory.lastPathComponent))))
+        window.contentView = surface
+        func strings(_ view: NSView) -> [String] {
+            if let text = view as? NSTextView { return text.string.isEmpty ? [] : [text.string] }
+            return view.subviews.flatMap { strings($0) }
+        }
+        var observations: [(Double, String)] = []
+        let began = ProcessInfo.processInfo.systemUptime
+        func sample() {
+            window.displayIfNeeded()
+            surface.layoutSubtreeIfNeeded()
+            let text = strings(surface).joined(separator: "\n")
+            if !text.isEmpty, text != observations.last?.1 {
+                observations.append((ProcessInfo.processInfo.systemUptime, text))
+            }
+        }
+        let sampling = Task { @MainActor in
+            while !Task.isCancelled {
+                sample()
+                try await Task.sleep(for: .milliseconds(40))
+            }
+        }
+        defer { sampling.cancel(); module.stop() }
+        let (model, eos) = try await module.replayIsolatedMandarin(wav)
+        await module.refresh()
+        try await Task.sleep(for: .milliseconds(120))
+        sample()
+        let early = observations.filter { $0.0 < eos }
+        let final = module.transcript
+        guard model == .qwen, early.count >= 2, !final.isEmpty, observations.last?.1 == final else {
+            throw AudioFailure.message("原生文字流未通过：结束前更新 \(early.count) 次，界面与最终文字一致 \(observations.last?.1 == final)")
+        }
+        let receipt: [String: Any] = ["sourceWAVSHA256": digest, "model": model.rawValue, "microphoneOpened": false,
+            "realTimeFile": true, "visibleBeforeEOS": early.count, "sampledTextUpdates": observations.count,
+            "firstTextSeconds": early[0].0 - began, "audioInputSeconds": eos - began,
+            "nativeFinalSHA256": SHA256.hash(data: Data(final.utf8)).map { String(format: "%02x", $0) }.joined()]
+        module.stop()
+        await module.waitForTransition()
+        let data = try JSONSerialization.data(withJSONObject: receipt, options: [.sortedKeys])
+        try FileHandle.standardOutput.write(contentsOf: data + Data([10]))
     }
 
     init(id: String, prepare: Bool) throws {
