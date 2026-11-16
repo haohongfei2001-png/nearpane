@@ -56,14 +56,15 @@ else
     shift 2
     local input="$binary_dir/Nearpane_$module.bundle" dest="$resources/$bundle_name.bundle/Contents"
     mkdir -p "$dest/Resources"
-    for file in "$@"; do cp "$input/$file" "$dest/Resources/$file"; done
+    for file in "$@"; do cp -R "$input/$file" "$dest/Resources/$file"; done
     /usr/bin/plutil -create xml1 "$dest/Info.plist"
     /usr/bin/plutil -insert CFBundlePackageType -string BNDL "$dest/Info.plist"
     /usr/bin/plutil -insert CFBundleIdentifier -string "com.holdsnow.nearpane.resources.$module" "$dest/Info.plist"
   }
-  install_resources SaytileKit Nearpane_SaytileKit ConnectionSample.pcm
+  install_resources SaytileKit Nearpane_SaytileKit ConnectionSample.pcm LocalASR
   install_resources RiftletAdapters Riftlet_RiftletAdapters chatgpt-web-20261027.js legacy-web-observe.js
   # Saytile first asks the main bundle. This also prevents its SwiftPM development fallback from being used.
+  ln -s Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR "$resources/LocalASR"
   ln -s Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm "$resources/ConnectionSample.pcm"
   python3 scripts/prepare-domains.py --package-resources "$resources"
   cmp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
@@ -100,7 +101,16 @@ def verify_previous():
         raise SystemExit(f"Unexpected build output at {product}; preserved.")
     expected = entries(stage)
     previous = entries(product)
+    # The previous signed domain profile included a second Saytile notice for
+    # its three-source overlay. The full release has a single source notice.
+    retired = Path("Contents/Resources/Upstream/saytile/updates")
     for path, kind in previous.items():
+        if path == retired and kind == stat.S_IFDIR:
+            continue
+        if path == retired / "THIRD_PARTY_NOTICES.md" and kind == stat.S_IFREG:
+            import hashlib
+            if hashlib.sha256((product / path).read_bytes()).hexdigest() == '3c79110e5716c60355be23f357b36715a434437a53fabb2e54b052c5fccb8cdf':
+                continue
         if (expected.get(path) != kind or kind not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK)
                 or (kind == stat.S_IFLNK and os.readlink(product / path) != os.readlink(stage / path))):
             raise SystemExit(f"Unexpected entry in prior development build: {path}; preserved.")

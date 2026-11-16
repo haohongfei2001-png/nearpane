@@ -43,7 +43,7 @@ enum GuardedDraftProgram {
     static func compose(_ original: WebPageProgram, guardSource: String, binding: String, product: Bool = false) throws -> WebPageProgram {
         // The digest covers *all* paths in the reviewed source, including future unanchored side effects.
         let digest = SHA256.hash(data: Data(original.functionSource.utf8)).map { String(format: "%02x", $0) }.joined()
-        guard digest == "0daf3f2763e340503b8c957c4ef35a619417c5e486ac48fccbcae3f657ff9a09",
+        guard digest == "5fffb4b9fcee31af401a00259b3cf0cdbf7577c8f990dddbbd1ec99bfe16de3f",
               !guardSource.isEmpty else { throw WebAdapterError.programUnavailable }
         var source = original.functionSource
         func replace(_ anchor: String, _ replacement: String) throws {

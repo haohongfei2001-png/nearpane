@@ -54,7 +54,7 @@ private final class PassiveManagementPanel: NSPanel {
                           width: width, height: height).integral
         guard screen.visibleFrame.contains(rect) else { throw CocoaError(.featureUnsupported) }
         panel = PassiveManagementPanel(contentRect: .zero, styleMask: [.nonactivatingPanel, .titled], backing: .buffered, defer: true)
-        panel.title = sizing ? "Nearpane 设置 · 尺寸与呈现" : "Nearpane 设置 · 窗口管理"
+        panel.title = sizing ? "Nearpane 设置 · 外观与尺寸" : "Nearpane 设置 · 窗口管理"
         panel.hidesOnDeactivate = false; panel.ignoresMouseEvents = true; panel.isReleasedWhenClosed = false
         if sizing, let target = SystemScreens.geometry().first(where: { $0.id == display }) {
             panel.contentView = NSHostingView(rootView: WorkspaceDisplaySettings(host: host, screens: [target],

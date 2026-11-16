@@ -12,7 +12,7 @@ public enum ManagedWindowBoundary: Sendable {
     /// A nil result means that the frame is already valid, contained and non-overlapping.
     public static func correction(
         frame: SurfaceRect, in workRect: SurfaceRect, minimum: SurfaceRect,
-        others: [SurfaceRect] = []
+        others: [SurfaceRect] = [], lastConfirmed: SurfaceRect? = nil
     ) throws -> SurfaceRect? {
         guard frame.geometry.isValid, workRect.geometry.isValid,
               others.allSatisfy({ $0.geometry.isValid }) else {
@@ -41,8 +41,30 @@ public enum ManagedWindowBoundary: Sendable {
         }
         // Rect.intersection returns nil for shared edges or corners: zero-area contact is
         // allowed, but even a fractional-point overlap must stop the proposed operation.
-        guard others.allSatisfy({ target.geometry.intersection($0.geometry) == nil }) else {
-            throw WorkspaceFailure.conflict
+        func free(_ rect: SurfaceRect) -> Bool {
+            workRect.geometry.intersection(rect.geometry) == rect.geometry &&
+                others.allSatisfy { rect.geometry.intersection($0.geometry) == nil }
+        }
+        if !free(target) {
+            // A diagonal drag against a shared tile edge can cross the screen edge too.
+            // Constrain the changed axis against this window's last witnessed free slot.
+            // A resize, a jump across the sibling, or an already occupied slot has no such witness.
+            guard frame != target, let prior = lastConfirmed, prior.geometry.isValid,
+                  prior.width == frame.width, prior.height == frame.height,
+                  frame.geometry.intersection(prior.geometry) != nil, free(prior) else {
+                throw WorkspaceFailure.conflict
+            }
+            let alongRow = SurfaceRect(x: target.x, y: prior.y, width: width, height: height)
+            let alongColumn = SurfaceRect(x: prior.x, y: target.y, width: width, height: height)
+            let rowFree = free(alongRow), columnFree = free(alongColumn)
+            if rowFree && columnFree {
+                let dx = abs(target.x - prior.x), dy = abs(target.y - prior.y)
+                if dx == dy { return prior }
+                return dx < dy ? alongColumn : alongRow
+            }
+            if rowFree { return alongRow }
+            if columnFree { return alongColumn }
+            return prior
         }
         return target == frame ? nil : target
     }

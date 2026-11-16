@@ -344,7 +344,12 @@ def import_locked(root, source, sections, token, checkpoint=lambda step: None):
                 info = domains.import_profile(src, new, sections, prior)
                 (new / "profile.version").write_bytes(MARKER)
                 validate_configuration(new)
-                safe_summary(new)
+                if info["voiceSchema"] == 5:
+                    upgrade_staged_voice(new)
+                    info = safe_summary(new)
+                    require(info["voiceSchema"] == 6, "新版语音资料未完成升级。")
+                else:
+                    safe_summary(new)
                 # Re-read after the complete import and before publishing authority.
                 require(digest(inventory(source)) == source_digest and digest(inventory(current)) == previous_digest,
                         "切换前来源或当前资料已改变。")
@@ -383,7 +388,56 @@ def publish(root, key, work, output, new, idx, previous_digest, checkpoint, oper
     recover_locked(root)
 
 
-def rollback_locked(root, token):
+def upgrade_staged_voice(stage, host=None):
+    if host is None:
+        host = Path(__file__).resolve().parents[2] / "MacOS" / "NearpaneHost"
+    result = subprocess.run([str(host), "--upgrade-staged-voice", str(stage)],
+                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            check=False)
+    require(result.returncode == 0, "语音资料升级失败，原资料仍然保留。")
+
+
+def upgrade_voice_locked(root, checkpoint=lambda step: None):
+    """Migrate the released domain on a verified copy before publishing a new generation."""
+    require(not (root / "transaction.json").exists(), "请先恢复中断的资料切换。")
+    idx = index(root)
+    current = generation(root, idx["active"])
+    key = str(uuid.uuid4())
+    work, output = transaction_paths(root, key)
+    require(not work.exists() and not output.exists(), "升级代际已存在。")
+    with domains.source_locks(current):
+        before = safe_summary(current)
+        if before["voiceSchema"] == 6:
+            return dict(active=idx["active"], message="语音资料已为当前格式。")
+        require(before["voiceSchema"] == 5, "这份语音资料无法安全升级。")
+        with domains.snapshot(current, domains.VOICE) as voice:
+            before_voice = domains.durable_voice_digest(voice)
+            require(not domains.scalar(voice, "SELECT count(*) FROM recordings WHERE is_recording!=0 OR active_attempt IS NOT NULL OR recognition_state='running'") and
+                    not domains.scalar(voice, "SELECT count(*) FROM dispatches WHERE state='dispatching'"),
+                    "请先在原版本处理未完成的录音或文字输入。")
+        begin(root, work, idx, key)
+        try:
+            backup, new = work / "previous-backup", work / "generation"
+            fingerprint = snapshot(current, backup)
+            require(snapshot(backup, new) == fingerprint, "升级备份的指纹不一致。")
+            checkpoint("backups")
+            upgrade_staged_voice(new)
+            after = safe_summary(new)
+            with domains.snapshot(new, domains.VOICE) as voice:
+                require(domains.durable_voice_digest(voice) == before_voice, "原有文字、修订或音频索引在升级后不一致。")
+            require(after == dict(before, voiceSchema=6), "语音资料升级前后记录或队列不一致。")
+            require(digest(inventory(current)) == fingerprint, "升级期间原资料发生变化。")
+            put(work / "receipt.json", dict(generation=key, prior=idx["active"],
+                nonce=read_json(work / "ownership.json")["nonce"], previousSHA256=fingerprint,
+                outputSHA256=digest(inventory(new)), upgradedVoiceFrom=5, summary=after))
+            publish(root, key, work, output, new, idx, fingerprint, checkpoint)
+            return dict(active=key, message="已升级语音资料，并保留可回退的原资料。")
+        except Exception:
+            recover_locked(root)
+            raise
+
+
+def rollback_locked(root, token, expected_current_sha256=None):
     idx = index(root)
     require(not (root / "transaction.json").exists() and idx.get("previous") and token == digest(["rollback", idx]),
             "回退对象已改变，请重新查看。")
@@ -398,6 +452,9 @@ def rollback_locked(root, token):
         try:
             before = work / "previous-backup"
             fingerprint = snapshot(current, before)
+            if expected_current_sha256 is not None:
+                require(fingerprint == expected_current_sha256,
+                        "升级后这份资料已有变化，已保留当前资料和回退入口。")
             with tempfile.TemporaryDirectory(dir=work) as name:
                 store = Path(name).resolve()
                 target, previous = store / "current", store / "previous"
@@ -448,12 +505,16 @@ def validate_with_host(host, root):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=["preview", "status", "import", "rollback", "recover"])
+    parser.add_argument("action", choices=["preview", "status", "import", "rollback", "recover", "upgrade-voice"])
     parser.add_argument("--container", type=Path, required=True)
     parser.add_argument("--source", type=Path)
     parser.add_argument("--sections", default="voice,tray,settings")
     parser.add_argument("--token")
+    parser.add_argument("--expected-current-sha256")
     args = parser.parse_args()
+    if args.expected_current_sha256 is not None and (args.action != "rollback" or
+            len(args.expected_current_sha256) != 64 or any(c not in "0123456789abcdef" for c in args.expected_current_sha256)):
+        parser.error("expected-current-sha256 requires rollback and a lowercase SHA-256")
     os.umask(0o077)
     try:
         root = checked_root(args.container)
@@ -465,8 +526,10 @@ def main():
             with writer(root):
                 if args.action == "import":
                     result = import_locked(root, args.source, selection(args.sections), args.token)
+                elif args.action == "upgrade-voice":
+                    result = upgrade_voice_locked(root)
                 elif args.action == "rollback":
-                    result = rollback_locked(root, args.token)
+                    result = rollback_locked(root, args.token, args.expected_current_sha256)
                 else:
                     recover_locked(root)
                     result = state(root)

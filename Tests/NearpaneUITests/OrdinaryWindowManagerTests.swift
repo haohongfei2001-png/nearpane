@@ -23,6 +23,8 @@ import Testing
     var boundarySettled = true
     var beforeBoundaryAcknowledgement: (() throws -> Void)?
     var boundaryAcknowledgements = 0
+    var boundaryAlert: (@MainActor () -> Void)?
+    func onBoundaryChange(_ wake: (@MainActor () -> Void)?) { boundaryAlert = wake }
     func invalidate() { valid = false }
 
     func prepare() async throws -> AdmissionPair {
@@ -235,6 +237,28 @@ import Testing
         #expect(manager.blocked && a.writes == 1 && b.writes == 1 && b.frame == other)
         #expect(untouched.writes == 0 && untouched.frame == original)
         try manager.keepCurrent()
+    }
+
+    @Test func aCompletedDragWakesTheManagerAndUsesOnlyTheTargetsFreeSlot() async throws {
+        let scope = OrdinaryScope(), manager = scope.manager(), a = WindowDouble(), b = WindowDouble()
+        try await manager.confirm(manager.prepare([a,b], context: scope.context), context: scope.context)
+        let safe = a.frame, sibling = b.frame
+        var beyond = safe
+        beyond.x += safe.x < sibling.x ? 10 : -10
+        beyond.y -= 25
+        a.externalChange(to: beyond)
+        let signal = try #require(a.boundaryAlert)
+        signal()
+        signal()
+        // The private completion signal wakes the normal transaction before the idle scan.
+        let deadline = ContinuousClock.now + .milliseconds(850)
+        while a.writes == 1 && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(!manager.blocked && a.writes == 2 && a.frame == safe)
+        #expect(b.writes == 1 && b.frame == sibling)
+        try await manager.stop()
+        #expect(a.boundaryAlert == nil && b.boundaryAlert == nil)
     }
 
     @Test func unobservedDriftStillCannotAcquireBoundaryCorrectionAuthority() async throws {

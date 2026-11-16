@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import SaytileKit
+import SaytileVoiceUI
 import NearpaneCore
 
 // Use the public property wrapper on CLT installations without SwiftUIMacros.
@@ -25,11 +26,27 @@ public struct VoiceSurface: View {
     public var body: some View {
         GeometryReader { content(size:$0.size) }
     }
+
+    static func captureButtonSize(in size: CGSize, settings: DisplaySettings) -> CGSize {
+        let reference = SaytileVoiceUI.VoicePanelFootprint.controlSize
+        let height = settings.measures[.voiceButtonHeight]?.points(in: size.height) ?? reference.height
+        if let saved = settings.measures[.voiceButtonWidth] {
+            return CGSize(width: saved.points(in: size.width), height: height)
+        }
+        let copy = max(height, settings.points(.copySize, in: size.height))
+        let available = size.width - copy - 2 * settings.points(.textPadding, in: size.width)
+            - 2 * settings.points(.buttonGap, in: size.width)
+        // Retain Nearpane's compact hit target while expanding into the shared Saytile capsule.
+        let minimum = settings.points(.voiceButtonWidth, in: size.width)
+        return CGSize(width: max(minimum, min(reference.width, available)), height: height)
+    }
+
     private func content(size: CGSize) -> some View {
         let fontSize = settings.readableFontSize(.textSize, in: size.height)
         let lineSpacing = settings.measures[.lineGap]?.points(in: size.height)
-        let buttonWidth = settings.points(.voiceButtonWidth,in:size.width)
-        let buttonHeight = settings.points(.voiceButtonHeight,in:size.height)
+        let captureButton = Self.captureButtonSize(in: size, settings: settings)
+        let buttonWidth = captureButton.width
+        let buttonHeight = captureButton.height
         let copySide = max(buttonHeight, settings.points(.copySize,in:size.height))
         return VStack(alignment: .leading, spacing: 4) {
             if let id = editing {
@@ -97,7 +114,7 @@ public struct VoiceSurface: View {
                         .frame(minWidth:copySide,minHeight:buttonHeight)
                         .contentShape(Capsule())
                 }
-                .buttonStyle(VoiceGlassControlStyle())
+                .buttonStyle(VoiceGlassControlStyle(copy: true, height: buttonHeight))
                 .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字").help("复制当前文字")
                 .onChange(of: module.transcript) { copied = false }
                 .contextMenu {
@@ -106,11 +123,11 @@ public struct VoiceSurface: View {
                             .disabled(module.inserting || editing != nil || module.transcript.isEmpty)
                     }
                 }
-                Spacer()
+                Spacer(minLength: 0)
                 Button { Task { await module.toggle() } } label: {
                     VoiceCaptureGlyph(presentation: module.control, width:settings.points(.waveformSize,in:size.width)).frame(minWidth:buttonWidth,minHeight:buttonHeight).contentShape(Capsule())
                 }
-                .buttonStyle(VoiceGlassControlStyle(prominent:true))
+                .buttonStyle(VoiceGlassControlStyle(copy: false, height: buttonHeight))
                 .disabled(module.busy || !module.active)
                 .help(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
                 .accessibilityLabel(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
@@ -130,28 +147,29 @@ public struct VoiceSurface: View {
 /// Quiet glass controls share the existing panel material; the chrome adds no
 /// layout padding, so saved glyph and control dimensions retain their meaning.
 private struct VoiceGlassControlStyle: ButtonStyle {
-    var prominent = false
+    let copy: Bool
+    let height: CGFloat
     @Environment(\.isEnabled) private var enabled
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceTransparency) private var opaque
 
     func makeBody(configuration: Configuration) -> some View {
-        let dark = colorScheme == .dark
-        let tint = prominent ? Color.indigo : Color.primary
+        let scale = height / ReferencePanelStyle.controlHeight
+        let outline = RoundedRectangle(cornerRadius: (copy ? 13 : ReferencePanelStyle.controlHeight / 2) * scale,
+                                       style: .continuous)
         configuration.label
-            .foregroundStyle(Color.primary.opacity(0.8))
+            .foregroundStyle(scheme == .light && contrast == .standard ? ReferencePanelStyle.copyInk : Color.primary)
             .background {
-                Capsule()
-                    .fill(reduceTransparency ? Color(nsColor:.controlBackgroundColor) : Color.white.opacity(dark ? 0.08 : 0.34))
-                Capsule()
-                    .fill(tint.opacity(configuration.isPressed ? 0.18 : prominent ? (dark ? 0.16 : 0.07) : 0.02))
+                if scheme == .light && !opaque && contrast == .standard {
+                    ReferenceControlSurface(copy: copy, scale: scale)
+                } else {
+                    outline.fill(opaque ? Color(nsColor: .controlBackgroundColor) : .white.opacity(0.10))
+                        .overlay { outline.strokeBorder(contrast == .increased ? Color.primary : .white.opacity(0.25),
+                                                        lineWidth: contrast == .increased ? 1 : 0.7) }
+                }
             }
-            .overlay {
-                Capsule().strokeBorder(.white.opacity(dark ? 0.14 : 0.5),lineWidth:0.6)
-                    .allowsHitTesting(false)
-            }
-            .shadow(color:.black.opacity(enabled && !configuration.isPressed ? (dark ? 0.13 : 0.06) : 0),radius:2,y:1)
-            .opacity(enabled ? 1 : 0.4)
+            .opacity(!enabled ? 0.5 : configuration.isPressed ? 0.62 : 1)
     }
 }
 

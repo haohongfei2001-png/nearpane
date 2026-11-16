@@ -90,7 +90,9 @@ def verify(app, lock, sandbox):
     for name,pin in lock["domains"].items():
         provenance = json.loads((root/"Upstream"/name/"source.json").read_text())
         expected = {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}
-        if name == "saytile":
+        if pin.get("releaseTag"):
+            expected["releaseTag"] = pin["releaseTag"]
+        if name == "saytile" and lock.get("saytileUpdates"):
             updates = lock["saytileUpdates"]
             expected["updates"] = updates
             for notice in updates["notices"]:
@@ -99,6 +101,10 @@ def verify(app, lock, sandbox):
         if provenance != expected:
             raise ValueError("Incorrect packaged provenance: "+name)
         checks = {**RESOURCE_PATHS[name], **{n: "Upstream/"+name+"/"+n for n in pin["notices"]}}
+        if name == "saytile":
+            for path in pin["files"]:
+                if path.startswith("Sources/SaytileKit/Resources/LocalASR/"):
+                    checks[path] = "Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/" + Path(path).name
         for src,out in checks.items():
             if digest(root/out) != pin["files"][src]:
                 raise ValueError("Packaged checksum mismatch: "+out)

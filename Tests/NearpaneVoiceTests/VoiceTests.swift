@@ -1,6 +1,8 @@
 import Testing
 import Foundation
 import AppKit
+import NearpaneCore
+import SaytileVoiceUI
 @testable import SaytileKit
 @testable import NearpaneVoice
 
@@ -29,6 +31,21 @@ final class ScriptedInput: VoiceInput {
 
 @MainActor @Suite(.serialized)
 struct VoiceTests {
+    @Test func captureButtonAdaptsToTheCardAndPreservesExactSavedDimensions() {
+        var settings = DisplaySettings()
+        func size(_ width: Double) -> CGSize {
+            VoiceSurface.captureButtonSize(in: .init(width: width, height: 100), settings: settings)
+        }
+        #expect(size(180) == SaytileVoiceUI.VoicePanelFootprint.controlSize)
+        #expect(size(90) == CGSize(width: 32, height: 26))
+        #expect(size(101.5) == CGSize(width: 43.5, height: 26))
+        settings.measures[.voiceButtonWidth] = .init(39)
+        settings.measures[.voiceButtonHeight] = .init(31)
+        #expect(size(180) == CGSize(width: 39, height: 31))
+        settings.measures[.voiceButtonWidth] = .init(22.5, .percent)
+        #expect(size(200) == CGSize(width: 45, height: 31))
+    }
+
     func directory() -> URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data").appendingPathComponent("voice-" + UUID().uuidString)

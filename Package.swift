@@ -12,7 +12,6 @@ struct DomainPin: Decodable {
 }
 struct DomainLock: Decodable {
     let domains: [String: DomainPin]
-    let saytileUpdates: DomainPin
 }
 let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray", "RiftletFeedback"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
@@ -46,9 +45,9 @@ if full {
         .target(name: "CAudio", path: saytile + "CAudio",
                 exclude: ["WEBRTC-LICENSE.txt", "webrtc/common_audio/signal_processing/dot_product_with_scale.cc"],
                 cSettings: [.headerSearchPath("."), .define("WEBRTC_POSIX")]),
-        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key + "-" + lock.saytileUpdates.key,
-                exclude: lock.saytileUpdates.sources.map { "Upstream/" + URL(fileURLWithPath: $0).lastPathComponent },
-                resources: [.copy("Upstream/Resources/ConnectionSample.pcm")]),
+        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key,
+                resources: [.copy("Upstream/Resources/ConnectionSample.pcm"), .copy("Upstream/Resources/LocalASR")]),
+        .target(name: "SaytileVoiceUI", path: saytile + "SaytileVoiceUI"),
         .target(name: "RiftletCore", dependencies: ["CSQLite"], path: riftlet + "RiftletCore",
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "RiftletFeedback", dependencies: ["CSQLite"], path: riftlet + "RiftletFeedback",
@@ -63,7 +62,7 @@ if full {
                 path: cache + "tray-" + tray.key, sources: ["Host", "Upstream"],
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "NearpaneTrayTests", dependencies: ["NearpaneTray", "RiftletCore", "RiftletCapture"]),
-        .target(name: "NearpaneVoice", dependencies: ["NearpaneCore", "SaytileKit"]),
+        .target(name: "NearpaneVoice", dependencies: ["NearpaneCore", "SaytileKit", "SaytileVoiceUI"]),
         .testTarget(name: "NearpaneVoiceTests", dependencies: ["NearpaneVoice", "SaytileKit", "CAudio"])
     ]
 }

@@ -13,8 +13,10 @@ import Observation
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation
     func acknowledgeBoundary(_ observation: OrdinaryBoundaryObservation) async throws -> AdmissionPair
+    func onBoundaryChange(_ wake: (@MainActor () -> Void)?)
 }
 extension OrdinaryWindowObserving {
+    func onBoundaryChange(_ wake: (@MainActor () -> Void)?) {}
     // Older adapters cannot acquire this capability by merely returning a changed frame.
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
         .init(pair: try await verify(expected: expected), previous: expected, revision: nil, settled: true)
@@ -67,6 +69,7 @@ enum OrdinaryRefusal: LocalizedError {
     private var pending: Plan?
     private var previewRevision = 0
     private var monitoring: Task<Void, Never>?
+    @ObservationIgnored private var boundaryWake: Task<Void, Never>?
     private var closing = false
     private var passiveRead = false
     private var userActionReserved = false
@@ -260,6 +263,7 @@ enum OrdinaryRefusal: LocalizedError {
             entries[h.id] = .init(id: h.id, bundle: h.bundle, original: before, confirmed: before)
             handles[h.id] = h
             activeIDs.append(h.id)
+            h.onBoundaryChange { [weak self] in self?.scheduleBoundaryCheck() }
         }
         activeDisplay = context.display
         grantedGeometry = context.displayGeometry
@@ -424,6 +428,7 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func detach(_ id: ManagedWindowID) {
+        handles[id]?.onBoundaryChange(nil)
         lastCorrection.removeValue(forKey: id)
         entries.removeValue(forKey: id); handles.removeValue(forKey: id); leases.removeValue(forKey: id)
         activeIDs.removeAll { $0 == id }
@@ -521,6 +526,8 @@ enum OrdinaryRefusal: LocalizedError {
 
     private func reset() {
         monitoring?.cancel(); monitoring = nil
+        boundaryWake?.cancel(); boundaryWake = nil
+        for h in handles.values { h.onBoundaryChange(nil) }
         lastCorrection.removeAll()
         cancelPreview(); activeIDs.removeAll(); handles.removeAll(); entries.removeAll(); leases.removeAll()
         tiler = .init(workspace: nil); activeDisplay = nil; appliedArea = nil; grantedGeometry = nil
@@ -583,6 +590,7 @@ enum OrdinaryRefusal: LocalizedError {
         guard observation.previous == entry.confirmed else { throw OrdinaryRefusal.stale }
         guard observation.settled else {
             message = "等待窗口拖动结束，暂不调整位置。"
+            if observation.revision != nil { scheduleBoundaryCheck() }
             return false
         }
         guard let pair = observation.pair else { throw OrdinaryRefusal.lost }
@@ -616,7 +624,8 @@ enum OrdinaryRefusal: LocalizedError {
             others.append(try sample(await handle.verify(expected: sibling.confirmed), for: handle, in: context))
         }
         guard let minimum = pair.second.minimum else { throw OrdinaryRefusal.minimum }
-        let correction = try ManagedWindowBoundary.correction(frame: observed, in: area(context), minimum: minimum, others: others)
+        let correction = try ManagedWindowBoundary.correction(frame: observed, in: area(context), minimum: minimum,
+                                                            others: others, lastConfirmed: entry.confirmed)
         if correction != nil, let previous = lastCorrection[id], correctionUptime() - previous < 5 {
             throw OrdinaryWindowFailure("窗口在纠正后五秒内再次越界，可能有其他程序正在调整它。已暂停，请核对位置。")
         }
@@ -652,6 +661,19 @@ enum OrdinaryRefusal: LocalizedError {
                 guard !Task.isCancelled, let self else { return }
                 await self.poll()
             }
+        }
+    }
+
+    /// AX move/resize notifications arrive on the helper's run loop at the end of the
+    /// gesture. Wake the existing read/verify/journal path after its quiet interval.
+    /// The private pipe is only a scheduling hint and confers no authority to write.
+    private func scheduleBoundaryCheck() {
+        guard boundaryWake == nil, !activeIDs.isEmpty, !blocked, !closing, !paused else { return }
+        boundaryWake = Task { [weak self] in
+            do { try await Task.sleep(for: .milliseconds(260)) } catch { return }
+            guard let self, !Task.isCancelled else { return }
+            self.boundaryWake = nil
+            await self.poll()
         }
     }
 

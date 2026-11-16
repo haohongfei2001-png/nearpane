@@ -38,17 +38,25 @@ enum CandidateProfile {
         if fm.fileExists(atPath: root.appendingPathComponent("transaction.json").path) {
             _ = try await ProfileHelper.run("recover", root: root)
         }
+        // A previous Alpha may still own a schema-5 generation. Release our
+        // probing lease before the helper takes the same exclusive writer lock.
+        do {
+            let lease = try ProfileLease(root: root)
+            let active = try lease.activeGeneration()
+            if try inspectStores(in: active)["voiceSchema"] == 6 { return (lease, active) }
+        }
+        _ = try await ProfileHelper.run("upgrade-voice", root: root)
         let lease = try ProfileLease(root: root)
         let active = try lease.activeGeneration()
-        _ = try inspectStores(in: active)
+        guard try inspectStores(in: active)["voiceSchema"] == 6 else { throw CocoaError(.fileReadCorruptFile) }
         return (lease, active)
     }
 
     /// Check both formats before any domain constructor can run its writable migration code.
     static func inspectStores(in root: URL, counts: Bool = false) throws -> [String: Int] {
         var result: [String: Int] = [:]
-        for (path, version, table) in [("Nearpane/Voice/Saytile.sqlite", 5, "recordings"),
-                                       ("Riftlet/queue.sqlite", 4, "assets")] {
+        for (path, supported, table) in [("Nearpane/Voice/Saytile.sqlite", [5, 6], "recordings"),
+                                         ("Riftlet/queue.sqlite", [4], "assets")] {
             let url = root.appendingPathComponent(path)
             for suffix in ["", "-wal", "-shm", "-journal"] {
                 try ProfileLease.checkPath(URL(fileURLWithPath: url.path + suffix))
@@ -66,7 +74,8 @@ enum CandidateProfile {
                 guard stepped == SQLITE_ROW else { throw inspectionError(stepped) }
                 return Int(sqlite3_column_int64(stmt, 0))
             }
-            guard try integer("PRAGMA user_version") == version else {
+            let version = try integer("PRAGMA user_version")
+            guard supported.contains(version) else {
                 throw NSError(domain: "Nearpane.Profile", code: 4, userInfo: [NSLocalizedDescriptionKey: "这份资料的数据库格式与当前 Nearpane 不兼容。请使用对应的版本。"])
             }
             if counts {
@@ -75,6 +84,7 @@ enum CandidateProfile {
                 // The database header's user_version can survive a damaged schema page.
                 // Check an expected table without scanning its contents on normal startup.
                 _ = try integer("SELECT EXISTS(SELECT 1 FROM " + table + " LIMIT 1)")
+                if table == "recordings" { result["voiceSchema"] = version }
             }
         }
         return result

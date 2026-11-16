@@ -9,6 +9,8 @@ public struct EdgeSurfaceView: View {
     private let host: HostSession
     private let modules: EmbeddedModules?
     private let display: SurfaceDisplay?
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     public init(host: HostSession, modules: EmbeddedModules? = nil) { self.host = host; self.modules = modules; display = nil }
     init(host: HostSession, modules: EmbeddedModules?, display: SurfaceDisplay) {
         self.host = host; self.modules = modules; self.display = display
@@ -16,7 +18,12 @@ public struct EdgeSurfaceView: View {
 
     private var settings: DisplaySettings {
         let id = display?.id ?? host.configuration.preferredDisplayID ?? ""
-        return host.configuration.displays[id] ?? .init()
+        var settings = host.panelPresentationSettings(on: id)
+        if display?.usesDefaultExpandedRim == true { settings.glass.rimWidth = nil }
+        return settings
+    }
+    private var innerMaterialStrength: Double {
+        SurfaceGlassLevels(settings.glass, dark: scheme == .dark, reduceTransparency: reduceTransparency).innerMaterial
     }
     public var body: some View {
         GeometryReader { geometry in
@@ -126,7 +133,7 @@ public struct EdgeSurfaceView: View {
                 }
             }.padding(.horizontal, 8)
         }
-        .background(.regularMaterial)
+        .background { Rectangle().fill(.regularMaterial).opacity(innerMaterialStrength) }
     }
 
     private var clockVisible: Bool {
@@ -159,9 +166,13 @@ public struct EdgeSurfaceView: View {
             Spacer(minLength: 0)
         }
         .padding(settings.points(.modulePadding,in:width))
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:width) ?? 10))
-        .overlay(RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:width) ?? 10).stroke(.secondary.opacity(0.2)))
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+        .background {
+            RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:width) ?? 10)
+                .fill(.regularMaterial).opacity(innerMaterialStrength)
+        }
+        .overlay(RoundedRectangle(cornerRadius:settings.measures[.cornerRadius]?.points(in:width) ?? 10)
+            .stroke(.secondary.opacity(0.2 * innerMaterialStrength)))
+        .shadow(color: .black.opacity(0.12 * innerMaterialStrength), radius: 8, y: 3)
     }
 }
 
@@ -175,9 +186,13 @@ private extension View {
 /// A single button remains reachable when the normal controls no longer fit. Its image
 /// is the icon Finder resolves for this very bundle (including the system fallback).
 struct FoldedSurfaceButton: View {
+    let host: HostSession
     let modules: EmbeddedModules?
     let display: SurfaceDisplay
     let open: () -> Void
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     private static let appIcon = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
 
@@ -220,6 +235,11 @@ struct FoldedSurfaceButton: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .background {
+                SurfaceGlassPalette(dark: scheme == .dark, increasedContrast: contrast == .increased,
+                                    reduceTransparency: reduceTransparency,
+                                    settings: host.panelPresentationSettings(on: display.id ?? "").glass).folded
+            }
             .help("展开 Nearpane")
             .accessibilityLabel("展开 Nearpane")
             .accessibilityIdentifier("nearpane-open-panel")

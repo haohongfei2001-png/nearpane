@@ -87,6 +87,30 @@ struct ManagedWindowBoundaryTests {
         }
     }
 
+    @Test func diagonalEdgeCrossingKeepsTheFreeAxisAndCannotInventASlot() throws {
+        let sibling = SurfaceRect(x: -350, y: 24, width: 350, height: 1200)
+        let prior = SurfaceRect(x: -550, y: 700, width: 200, height: 200)
+        var current = prior
+        current.x += 45
+        // Keep part of the previously observed slot visible in both dimensions.
+        current.y = 10
+        var nearTop = prior; nearTop.y = 80
+        let result = try ManagedWindowBoundary.correction(frame: current, in: work, minimum: minimum,
+                                                          others: [sibling], lastConfirmed: nearTop)
+        #expect(result == SurfaceRect(x: prior.x, y: work.y, width: 200, height: 200))
+        for unproven in [prior, current, SurfaceRect(x: nearTop.x, y: nearTop.y, width: 201, height: 200)] {
+            #expect(throws: WorkspaceFailure.conflict) {
+                try ManagedWindowBoundary.correction(frame: current, in: work, minimum: minimum,
+                                                    others: [sibling], lastConfirmed: unproven)
+            }
+        }
+        current.y = 50
+        #expect(throws: WorkspaceFailure.conflict) {
+            try ManagedWindowBoundary.correction(frame: current, in: work, minimum: minimum,
+                                                others: [sibling], lastConfirmed: nearTop)
+        }
+    }
+
     @Test func touchingEdgesAndCornersAreAllowedButPositiveOverlapIsNot() throws {
         let current = SurfaceRect(x: -500, y: 40, width: 200, height: 120)
         let adjacent = SurfaceRect(x: -300, y: 40, width: 200, height: 120)

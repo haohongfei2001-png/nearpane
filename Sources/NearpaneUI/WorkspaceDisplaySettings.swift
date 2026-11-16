@@ -6,16 +6,19 @@ private typealias ViewState<T> = State<T>
 public struct WorkspaceDisplaySettings: View {
     let host: HostSession, screens: [ScreenGeometry], request: (String) -> Void, dismiss: (String) -> Void
     let stillCurrent: (ScreenGeometry) -> Bool
+    let previewExposure: SettingsPreviewExposure?
     @ViewState private var pendingReset: DisplaySizeReset?
     @ViewState private var chosen = ""
     @ViewState private var key: DisplayMetric
     public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void,
-                initialMetric: DisplayMetric = .reservedWidth, stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true }) {
+                initialMetric: DisplayMetric = .reservedWidth, stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true },
+                previewExposure: SettingsPreviewExposure? = nil) {
         self.host = host
         self.screens = screens
         self.request = request
         self.dismiss = dismiss
         self.stillCurrent = stillCurrent
+        self.previewExposure = previewExposure
         _key = State(initialValue: initialMetric)
     }
 
@@ -30,12 +33,28 @@ public struct WorkspaceDisplaySettings: View {
                     guard stillCurrent(screen) else { return }
                     host.setDisplaySettings(value, id: screen.id)
                 }
-                Form {
+                VStack(alignment: .leading, spacing: 12) {
                     Picker("配置显示器", selection: Binding(get: { screen.id }, set: { chosen = $0; pendingReset = nil })) {
                         ForEach(Array(screens.enumerated()), id: \.element.id) { i, s in
                             Text("显示器 \(i+1) · \(Int(s.visibleFrame.width)) × \(Int(s.visibleFrame.height))").tag(s.id)
                         }
                     }.accessibilityIdentifier("panel-size-display")
+                    Divider()
+                    PanelGlassEditor(saved: settings.glass,
+                        width: settings.panel(on: screen, fallbackEdge: host.configuration.edge)?.width ?? screen.visibleFrame.width,
+                        preview: { value in
+                            guard value == nil || stillCurrent(screen) else { return }
+                            if let previewExposure { previewExposure.previewGlass(value, host: host, display: screen.id) }
+                            else { host.previewGlass(value, on: screen.id) }
+                        }, apply: { glass in
+                            var latest = host.configuration.displays[screen.id] ?? .init()
+                            latest.glass = glass
+                            save(latest)
+                            host.previewGlass(nil, on: screen.id)
+                        })
+                        .id("\(screen.id)-\(String(describing: settings.glass))-\(previewExposure?.glassWithdrawal ?? 0)")
+                    Divider()
+                    Text("面板尺寸").font(.headline)
                     PanelSizeEditor(settings: settings, screen: screen, edge: host.configuration.edge,
                                     primary: primary == screen.id, content: host.panelContents[screen.id] ?? .hidden,
                                     voice: host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
@@ -44,6 +63,7 @@ public struct WorkspaceDisplaySettings: View {
                         if let applied = draft.settings(over: latest, on: screen), applied != latest { save(applied) }
                     }
                     .id([screen.id, String(describing: settings.measures[.panelWidth]), String(describing: settings.measures[.panelHeight])])
+                    Divider()
                     if primary == screen.id {
                         FullscreenToolPreferencesView(host: host, display: screen.id)
                     }
@@ -147,11 +167,12 @@ public struct WorkspaceDisplaySettings: View {
                     HStack {
                         Button("恢复" + key.group.label + "尺寸…") {
                             pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: key.group)
-                        }.disabled(!settings.measures.keys.contains { $0.group == key.group })
+                        }.disabled(!settings.measures.keys.contains { $0.group == key.group }
+                            && !(key.group == .panel && settings.glass.rimWidth != nil))
                         .accessibilityIdentifier("sizes-reset-group")
                         Button("恢复本屏全部尺寸…") {
                             pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: nil)
-                        }.disabled(settings.measures.isEmpty)
+                        }.disabled(settings.measures.isEmpty && settings.glass.rimWidth == nil)
                         .accessibilityIdentifier("sizes-reset-display")
                     }
                     if let reset = pendingReset, reset.screen == screen {
@@ -171,7 +192,10 @@ public struct WorkspaceDisplaySettings: View {
                             }
                         }
                     }
-                }.padding()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, 10)
+                .padding(.vertical, 4)
             } else { Text("没有可配置的显示器。").foregroundStyle(.secondary) }
         }
         .onChange(of: screens) { _, _ in pendingReset = nil }
@@ -227,7 +251,9 @@ private struct MeasureEditor: View {
                         })
                 ) { ForEach(MeasureUnit.allCases, id: \.self) { Text($0.rawValue).tag($0) } }.frame(width: 100)
             }
-            Slider(value: $draft.value, in: 0...maximum, step: draft.step)
+            Slider(value: Binding(get: { min(maximum, max(0, draft.value)) }, set: { value in
+                draft.value = min(maximum, (value / draft.step).rounded() * draft.step)
+            }), in: 0...maximum)
             Text(
                 "预览 \(draft.points(in:extent),format:.number.precision(.fractionLength(1))) pt · 参考长度 \(extent,format:.number.precision(.fractionLength(1))) pt"
             )

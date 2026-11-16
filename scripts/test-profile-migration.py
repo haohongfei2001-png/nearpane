@@ -21,6 +21,7 @@ HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("migration", HERE / "profile-migration.py")
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
+upgrade_using_host = m.upgrade_staged_voice
 
 
 def synthetic(name):
@@ -37,6 +38,7 @@ class Transactions(unittest.TestCase):
     def setUpClass(cls):
         cls.base = Path(tempfile.mkdtemp(prefix="p53-transactions-", dir=ARGS.output)).resolve()
         m.validate_configuration = lambda root: m.validate_with_host(ARGS.host, root)
+        m.upgrade_staged_voice = lambda root: upgrade_using_host(root, ARGS.host)
         cls.fingerprints = {str(path): m.digest(m.inventory(path)) for path in (ARGS.empty, ARGS.populated)}
 
     @classmethod
@@ -217,6 +219,75 @@ class Transactions(unittest.TestCase):
             m.rollback_locked(self.container, m.state(self.container)["rollbackToken"])
         self.assertEqual(m.index(self.container)["active"], generation)
 
+    def test_guarded_rollback_cannot_displace_changes_after_install(self):
+        idx = self.apply()
+        active = m.generation(self.container, idx["active"])
+        fingerprint = m.digest(m.inventory(active))
+        token = m.state(self.container)["rollbackToken"]
+        note = active / "after-install-test.txt"
+        note.write_bytes(b"synthetic post-install edit")
+        with m.writer(self.container), self.assertRaisesRegex(ValueError, "已有变化"):
+            m.rollback_locked(self.container, token, fingerprint)
+        self.assertEqual(m.index(self.container)["active"], idx["active"])
+        self.assertFalse(m.state(self.container)["needsRecovery"])
+        self.assertEqual(note.read_bytes(), b"synthetic post-install edit")
+        # Identical bytes again, so the same expected digest can authorize rollback.
+        note.unlink()
+        with m.writer(self.container):
+            result = m.rollback_locked(self.container, token, fingerprint)
+        self.assertNotEqual(result["active"], idx["active"])
+
+    def test_schema_upgrade_interruption_preserves_original_and_can_retry(self):
+        shutil.rmtree(self.current)
+        shutil.copytree(self.source, self.current)
+        (self.current / "profile.version").write_bytes(m.MARKER)
+        before = m.digest(m.inventory(self.current))
+        self.assertEqual(m.safe_summary(self.current)["voiceSchema"], 5)
+        def interrupt(step):
+            if step == "published-directory":
+                raise KeyboardInterrupt()
+        with m.writer(self.container):
+            with self.assertRaises(KeyboardInterrupt):
+                m.upgrade_voice_locked(self.container, interrupt)
+            self.assertEqual(m.index(self.container)["active"], self.first)
+            m.recover_locked(self.container)
+            upgraded = m.upgrade_voice_locked(self.container)
+            repeat = m.upgrade_voice_locked(self.container)
+        self.assertEqual(upgraded["active"], repeat["active"])
+        self.assertEqual(m.safe_summary(m.generation(self.container, upgraded["active"]))["voiceSchema"], 6)
+        self.assertEqual(m.digest(m.inventory(self.current)), before)
+
+    def test_v6_text_import_keeps_paragraphs_manual_revision_and_draft(self):
+        shutil.rmtree(self.current)
+        shutil.copytree(self.source, self.current)
+        (self.current / "profile.version").write_bytes(m.MARKER)
+        with m.writer(self.container):
+            result = m.upgrade_voice_locked(self.container)
+        upgraded = m.generation(self.container, result["active"])
+        with sqlite3.connect(upgraded / m.domains.VOICE) as db:
+            db.execute("INSERT OR REPLACE INTO editing_drafts SELECT id,?,1 FROM recordings LIMIT 1", ("test edit",))
+            db.execute("INSERT OR REPLACE INTO archive_draft_bases SELECT id,preferred_revision FROM recordings LIMIT 1")
+        destination = self.case / "new-import"
+        destination.mkdir()
+        m.domains.import_profile(upgraded, destination, m.SECTIONS)
+        with m.domains.snapshot(upgraded, m.domains.VOICE) as before, m.domains.snapshot(destination, m.domains.VOICE) as after:
+            for table in ("transcript_timeline", "timeline_paragraphs", "timeline_settings", "natural_paragraph_schema",
+                          "editing_drafts", "archive_draft_bases", "revisions"):
+                query = "SELECT * FROM " + table + " ORDER BY rowid"
+                self.assertEqual(list(before.execute(query)), list(after.execute(query)), table)
+
+    def test_schema_upgrade_refuses_an_unfinished_recording(self):
+        shutil.rmtree(self.current)
+        shutil.copytree(self.source, self.current)
+        (self.current / "profile.version").write_bytes(m.MARKER)
+        with sqlite3.connect(self.current / m.domains.VOICE) as db:
+            db.execute("UPDATE recordings SET is_recording=1")
+        before = m.digest(m.inventory(self.current))
+        with m.writer(self.container), self.assertRaisesRegex(ValueError, "录音"):
+            m.upgrade_voice_locked(self.container)
+        self.assertEqual(m.index(self.container)["active"], self.first)
+        self.assertEqual(m.digest(m.inventory(self.current)), before)
+
     def test_pending_window_recovery(self):
         path = self.source / "WorkRect"
         path.mkdir(exist_ok=True)
@@ -252,6 +323,7 @@ if __name__ == "__main__":
             raise AssertionError("Expected kernel file size refusal")
     elif ARGS.crash:
         m.validate_configuration = lambda root: m.validate_with_host(ARGS.host, root)
+        m.upgrade_staged_voice = lambda root: upgrade_using_host(root, ARGS.host)
         def interrupt(step):
             if step == ARGS.crash:
                 os.kill(os.getpid(), signal.SIGKILL)

@@ -31,6 +31,10 @@ import NearpaneCore
         self.host = host
         self.primary = primary
         primary.usePointer(pointer)
+        host.glassPreviewChanged = { [weak self] id in
+            self?.primary.refreshGlass(on: id)
+            self?.secondary[id]?.refreshGlass(on: id)
+        }
     }
     public func request(_ display: String) {
         coordinator.request(display)

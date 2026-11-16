@@ -90,7 +90,14 @@ final class WindowMonitor {
             return
         }
         if waitingFor == nil, event == kAXWindowMovedNotification || event == kAXWindowResizedNotification {
+            let firstNotice = !changes.pending
             changes.received(at: ProcessInfo.processInfo.systemUptime)
+            if firstNotice {
+                // A nonblocking, coalesced wakeup to the verified parent. No window or
+                // input data is sent; a missed signal falls back to its regular poll.
+                var signal: UInt8 = 0x1E
+                _ = Darwin.write(STDERR_FILENO, &signal, 1)
+            }
             return
         }
         guard let waitingFor, event == waitingFor, notificationCount == 0 else {

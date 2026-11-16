@@ -25,6 +25,7 @@ extension DisplaySettings {
     public func restoringSizes(group: DisplayMetricGroup?) -> Self {
         var updated = self
         updated.measures = measures.filter { group != nil && $0.key.group != group }
+        if group == nil || group == .panel { updated.glass.rimWidth = nil }
         return updated
     }
 }

@@ -268,7 +268,7 @@ enum AdmissionPlacement: String, CaseIterable {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button(selection.opened ? "收起管理范围预演" : "预览管理范围…") {
+            Button(selection.opened ? "收起管理范围预演" : "选择窗口并预览…") {
                 if selection.opened { selection.close() } else { selection.open() }
             }.accessibilityIdentifier("admission-open")
             if selection.opened { scope }
@@ -379,7 +379,7 @@ enum AdmissionPlacement: String, CaseIterable {
                     Text("窗口 #\(String(id.number)) → (\(Int(r.x)), \(Int(r.y)))  \(Int(r.width)) × \(Int(r.height)) pt").font(.caption)
                 }
             }
-            Text("拖动结束后会将所选窗口移回工作区。若纠正后五秒内再次越界，管理会暂停。停止管理时保留最近核对过的手动布局。")
+            Text("拖动时窗口可以暂时越过屏幕或停靠边界。松手后会核对位置并将获准窗口移回工作区。五秒内再次越界会暂停纠正。停止管理时保留最近核对过的手动布局。")
                 .font(.caption).foregroundStyle(.secondary)
             Button("授权所列窗口并应用布局") {
                 selection.invalidate(discardPlan: false)

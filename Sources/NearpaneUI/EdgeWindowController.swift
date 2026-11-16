@@ -57,7 +57,7 @@ public final class EdgeWindowController: NSWindowController {
     public private(set) var hasPlacement = false
     public private(set) var requestedFrame: NSRect?
     private var placedFrame: NSRect?
-    private let material = NSVisualEffectView()
+    private let material = PanelGlassMaterial(frame: .zero)
     private let contentView: SurfaceHostingView
     private var contentBottom: NSLayoutConstraint
     private var foldedView: FoldedHostingView?
@@ -158,11 +158,15 @@ public final class EdgeWindowController: NSWindowController {
     }
 
     func usePointer(_ registry: WorkspacePointerRegistry) { display.pointer = registry }
+    func refreshGlass(on id: String) {
+        guard let placement, placement.screen.id == id else { return }
+        place(on: placement.screen, primary: placement.primary, content: placement.content)
+    }
     public func place(on screen: ScreenGeometry, primary: String, content: PanelContent) {
         if let placement, placement.screen != screen || placement.primary != primary {
             endPlacementInteractions()
         }
-        let config = host.configuration.displays[screen.id] ?? .init()
+        var config = host.panelPresentationSettings(on: screen.id)
         if display.id != screen.id || display.primaryID != primary || content == .hidden
             || savedPanelWidth != config.measures[.panelWidth] || savedPanelHeight != config.measures[.panelHeight] {
             temporarilyExpanded = false
@@ -184,6 +188,7 @@ public final class EdgeWindowController: NSWindowController {
         var r = layout.frame, referenceHeight = layout.referenceHeight
         if form == .full { temporarilyExpanded = false }
         display.sizeForm = form
+        var usesDefaultExpandedRim = false
         if temporarilyExpanded {
             // Grow the existing panel on its own display. The override never enters the
             // configuration store, layout journal, workspace provider or management service.
@@ -222,11 +227,22 @@ public final class EdgeWindowController: NSWindowController {
                             break
                         }
                     }
+                    if !opening.fits, config.glass.rimWidth != nil {
+                        let savedRim = config.glass.rimWidth
+                        config.glass.rimWidth = nil
+                        if let candidate = expanded(ignoring: horizontal + vertical), candidate.fits {
+                            usesDefaultExpandedRim = true
+                            opening = candidate
+                        } else {
+                            config.glass.rimWidth = savedRim
+                        }
+                    }
                 }
                 r = opening.frame
                 referenceHeight = max(1, r.height - PanelSizeMetrics.minimumSide)
             }
         }
+        display.usesDefaultExpandedRim = usesDefaultExpandedRim
         display.referenceHeight = referenceHeight
         updateControls(form: form)
         if let panel = window as? EdgePanel {
@@ -257,6 +273,11 @@ public final class EdgeWindowController: NSWindowController {
         let radius = folded ? CGFloat(DisplayMetric.cornerRadius.factory.value)
             : SurfaceCardGeometry.shellRadius(settings: config, size: window?.frame.size ?? frame.size)
         if material.layer?.cornerRadius != radius { material.layer?.cornerRadius = radius }
+        let size = window?.frame.size ?? frame.size
+        let materialLayout = folded ? nil : LayoutComposer.compose(width: size.width,
+            height: max(0, size.height + contentBottom.constant), pinnedCount: 0, expanded: false,
+            settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
+        material.configure(size: size, layout: materialLayout, settings: config)
         hasPlacement = true
     }
 
@@ -270,7 +291,7 @@ public final class EdgeWindowController: NSWindowController {
     private func updateControls(form: PanelSizeForm) {
         let shouldFold = form != .full && !temporarilyExpanded
         if shouldFold && foldedView == nil {
-            let view = FoldedHostingView(rootView: FoldedSurfaceButton(modules: modules, display: display) { [weak self] in
+            let view = FoldedHostingView(rootView: FoldedSurfaceButton(host: host, modules: modules, display: display) { [weak self] in
                 self?.toggleTemporaryExpansion()
             })
             view.sizingOptions = []

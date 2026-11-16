@@ -129,8 +129,6 @@ public struct TraySurface: View {
 /// clips image pixels, changes Fit geometry, or participates in attachment input.
 private struct TrayTileBackground: View {
     let radius: CGFloat
-    var capture = false
-    var pressed = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -141,15 +139,15 @@ private struct TrayTileBackground: View {
         shape.fill(reduceTransparency ? Color(nsColor: .controlBackgroundColor) : Color.white.opacity(colorScheme == .dark ? 0.06 : 0.24))
             .overlay {
                 shape.fill(LinearGradient(colors: [
-                    Color.indigo.opacity(capture ? (pressed ? 0.20 : 0.11) : 0.025),
-                    Color.purple.opacity(capture ? 0.13 : 0.055)
+                    Color.indigo.opacity(0.025),
+                    Color.purple.opacity(0.055)
                 ], startPoint: .topLeading, endPoint: .bottomTrailing))
             }
             .overlay {
                 shape.strokeBorder(contrast == .increased ? Color.primary.opacity(0.55) : Color.white.opacity(colorScheme == .dark ? 0.25 : 0.6),
                                    lineWidth: contrast == .increased ? 1 : 1 / max(1, scale))
             }
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.12 : 0.055), radius: pressed ? 0.5 : 1.5, y: pressed ? 0 : 1)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.12 : 0.055), radius: 1.5, y: 1)
     }
 }
 
@@ -157,12 +155,29 @@ private struct TrayCaptureStyle: ButtonStyle {
     var radius: CGFloat = 7
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var opaque
+    @Environment(\.displayScale) private var scale
+
     func makeBody(configuration: Configuration) -> some View {
+        let dark = colorScheme == .dark
+        let face = dark ? Color(red: 0.32, green: 0.30, blue: 0.46) : Color(red: 0.918, green: 0.909, blue: 1)
+        let foot = dark ? Color(red: 0.28, green: 0.25, blue: 0.43) : Color(red: 0.820, green: 0.761, blue: 1)
+        let ink = dark ? Color(red: 0.83, green: 0.78, blue: 1) : Color(red: 0.600, green: 0.477, blue: 0.980)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
-            .foregroundStyle(contrast == .increased ? Color.primary : Color(red: colorScheme == .dark ? 0.78 : 0.52,
-                                                                         green: colorScheme == .dark ? 0.70 : 0.36,
-                                                                         blue: 0.98))
-            .background { TrayTileBackground(radius: radius, capture: true, pressed: configuration.isPressed).allowsHitTesting(false) }
+            .foregroundStyle(contrast == .increased ? Color.primary : ink)
+            .background {
+                // Riftlet's camera key has a raised face and a short contact edge.
+                // Keep the full key as the button's hit area in both menu states.
+                GeometryReader { proxy in
+                    let depth = configuration.isPressed ? 0 : min(proxy.size.height * 0.08, 3)
+                    shape.fill(foot.opacity(opaque ? 1 : 0.80))
+                    shape.fill(face.opacity(opaque || contrast == .increased ? 1 : dark ? 0.78 : 0.94))
+                        .overlay { shape.strokeBorder(contrast == .increased ? Color.primary : .white.opacity(dark ? 0.27 : 0.42),
+                                                      lineWidth: contrast == .increased ? 1 : 1 / max(1, scale)) }
+                        .padding(.bottom, depth)
+                }.allowsHitTesting(false)
+            }
     }
 }
 

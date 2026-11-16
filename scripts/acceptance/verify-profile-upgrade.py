@@ -207,6 +207,60 @@ def reopen_previous(previous, container, reference, expected):
     return dict(executableSHA256=sha(before.read_bytes()), session=previous_session.name, generation=report["generation"])
 
 
+def upgrade_existing_generation(previous, new, source):
+    """Open a real v5 generation with the previous Host, upgrade with the new Host, then downgrade."""
+    old_exe = binary(previous, "com.holdsnow.nearpane.alpha")
+    new_exe = binary(new, "com.holdsnow.nearpane.alpha")
+    old_session, new_session = prepare(old_exe, True), prepare(new_exe, True)
+    def open_profile(host, session):
+        return run([host, "--verify-bundled-resources", "--profile-acceptance-open", session.name],
+                   reply=True, standalone=True)
+    old = Path(open_profile(old_exe, old_session)["path"])
+    container = old_session / "Nearpane Alpha Profiles"
+    require(old.parent == container / "generations" and evidence(old)["voice"]["recordings"]["count"] == 0,
+            "Previous fixture is not an empty isolated generation")
+    # The synthesized previous installation has one edited note, five images and a historical UNKNOWN.
+    legacy = old_session / "Nearpane Alpha P5.2"
+    shutil.copytree(source, legacy)
+    old_helper = previous / "Contents/Helpers/NearpaneAutomation"
+    options = ["--container", container, "--source", legacy, "--sections", "voice,tray,settings"]
+    plan = run([old_helper, "profile", "preview", *options], reply=True, standalone=True)
+    imported = run([old_helper, "profile", "import", *options, "--token", plan["token"]], reply=True, standalone=True)
+    old = container / "generations" / str(uuid.UUID(imported["active"]))
+    require(Path(open_profile(old_exe, old_session)["path"]) == old, "Previous Host did not open the old generation")
+    original = tree(old)
+    old_report = evidence(old)
+    require(old_report["voice"]["schema"] == 5, "Previous-generation acceptance requires schema 5")
+    container.rename(new_session / container.name)
+    container = new_session / container.name
+    original_path = container / "generations" / old.name
+    upgraded = Path(open_profile(new_exe, new_session)["path"])
+    converted = evidence(upgraded)
+    require(upgraded.parent == original_path.parent and upgraded != original_path
+            and converted["voice"]["schema"] == 6 and tree(original_path) == original, "Upgrade modified the v5 source")
+    expected = projection(old_report)
+    expected["voice"]["schema"] = 6
+    require(projection(converted) == expected, "Upgrade changed a recording, draft, asset, operation, or order")
+    require(Path(open_profile(new_exe, new_session)["path"]) == upgraded, "Repeat upgrade published twice")
+    # Add a synthetic post-upgrade draft; it must stay accessible in this v6 generation even after rollback.
+    with closing(sqlite3.connect(upgraded / "Nearpane/Voice/Saytile.sqlite")) as db, db:
+        db.execute("INSERT OR REPLACE INTO editing_drafts SELECT id,?,? FROM recordings LIMIT 1",
+                   ("Synthetic post-upgrade draft", 42.0))
+    edited = projection(evidence(upgraded))
+    require(edited["voice"]["drafts"] != expected["voice"]["drafts"], "Post-upgrade edit was not recorded")
+    helper = new / "Contents/Helpers/NearpaneAutomation"
+    command = [helper, "profile"]
+    token = run(command + ["status", "--container", container], reply=True, standalone=True)["rollbackToken"]
+    restored = run(command + ["rollback", "--container", container, "--token", token], reply=True, standalone=True)
+    restored_path = container / "generations" / str(uuid.UUID(restored["active"]))
+    reopened = reopen_previous(previous, container, restored_path, projection(old_report))
+    require(tree(original_path) == original and projection(evidence(upgraded)) == edited,
+            "Rollback lost the original profile or new draft")
+    return dict(old=old.name, new=upgraded.name, restored=restored_path.name, previousHost=reopened,
+                oldSHA256=original, oldUnchanged=True, newEditIntact=True, duplicateUpgrade=False,
+                previousVoiceSchema=5, upgradedVoiceSchema=6)
+
+
 def verify(old, new, fixture_receipt=None, previous=None):
     after = binary(new, "com.holdsnow.nearpane.alpha")
     if fixture_receipt:
@@ -279,18 +333,21 @@ def verify(old, new, fixture_receipt=None, previous=None):
     pairs = dict(zip(measures[::2], measures[1::2]))
     require(all(pairs[metric] == {"value":20,"unit":"pt"} for metric in ("panelWidth", "panelHeight")),
             "Icon size settings changed")
-    require(projection(imported) == projection(baseline), "Imported data or history differs")
+    imported_expected = projection(baseline)
+    require(baseline["voice"]["schema"] == 5 and imported["voice"]["schema"] == 6, "Wrong schema transition")
+    imported_expected["voice"]["schema"] = 6
+    require(projection(imported) == imported_expected, "Imported data or history differs")
     require((imported_path/"Riftlet/imported-attachment-holds"/asset.lower()).is_file(), "Imported operation can be replayed")
     again = migrate("import", *options, "--token", plan["token"])
     require(again.get("duplicate") and active() == imported_path, "Duplicate import switched profiles")
-    fallback = reopen_previous(previous, container, imported_path, projection(baseline)) if previous else None
+    fallback = upgrade_existing_generation(previous, new, source) if previous else None
     reopened = run(entry, reply=True, standalone=True)
     require(Path(reopened["path"]) == imported_path, "Re-upgrade selected another generation")
-    require(projection(evidence(imported_path)) == projection(baseline), "Reopening the Alpha changed imported records")
+    require(projection(evidence(imported_path)) == imported_expected, "Reopening the Alpha changed imported records")
     rollback = migrate("rollback", "--token", migrate("status")["rollbackToken"])
     restored = run(entry, reply=True, standalone=True)
     require(projection(evidence(active())) == projection(empty), "Rollback failed to restore the previous profile")
-    require(projection(evidence(imported_path)) == projection(baseline), "Rollback lost the imported generation")
+    require(projection(evidence(imported_path)) == imported_expected, "Rollback lost the imported generation")
     require(tree(source) == fingerprint and tree(old_root) == original, "Source changed")
     management = run([helper, "workrect", active()], reply=True, standalone=True, stdin="quit\n")
     require(management["mode"] == "off" and not management["blocked"] and not management["members"]

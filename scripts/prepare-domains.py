@@ -44,6 +44,8 @@ def valid_path(name):
 
 
 def selection(pin, path):
+    if path in pin.get("sharedSources", {}):
+        return False
     return any(path == prefix or path.startswith(prefix + "/") for prefix in
                pin["sources"] + pin["hostSources"] + pin["notices"])
 
@@ -57,6 +59,11 @@ def validate(pin):
     require(all(valid_path(p) and any(f == p or f.startswith(p + "/") for f in files)
                 for p in pin["sources"] + pin["hostSources"] + pin["notices"]), "Missing locked selection")
     require(all(p in files for p in pin["hostSources"] + pin["notices"]), "Missing bridge source or notice")
+    for path, target in pin.get("sharedSources", {}).items():
+        name = PurePosixPath(path).name
+        require(re.fullmatch(r"[A-Za-z0-9_]+\.swift", name) and path == "Sources/SaytileKit/" + name
+                and target == "Sources/SaytileVoiceUI/" + name and target in files and path not in files,
+                "Invalid shared Saytile source")
     require(tree_hash(files) == pin["treeSHA256"], "Lock inventory SHA-256 mismatch")
 
 
@@ -218,6 +225,9 @@ def voice_bindings(cache, pin, updates=None):
     dest = cache / ("voice-" + key(pin) + ("-" + key(updates) if updates else ""))
     links = {"Upstream": cache / key(pin) / "Sources/SaytileKit",
              "Nearpane": ROOT / "Sources/NearpaneSaytileBridge"}
+    # Compile the shared source in both modules, using only the locked regular file.
+    for path, target in pin.get("sharedSources", {}).items():
+        links[PurePosixPath(path).name] = cache / key(pin) / target
     if updates:
         # SwiftPM excludes these originals and discovers only these verified replacements.
         links.update({PurePosixPath(path).name: cache / key(updates) / path for path in updates["sources"]})
@@ -241,6 +251,9 @@ def package_resources(resources, pins, directories, updates, update_directory):
         "riftlet": {"Sources/RiftletAdapters/Resources/" + p: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + p
                     for p in ("chatgpt-web-20261027.js", "legacy-web-observe.js")}
     }
+    for path in pins["saytile"]["files"]:
+        if path.startswith("Sources/SaytileKit/Resources/LocalASR/"):
+            bundled["saytile"][path] = "Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/" + Path(path).name
     for name, pin in pins.items():
         for path, relative in bundled[name].items():
             require(hashlib.sha256((resources / relative).read_bytes()).hexdigest() == pin["files"][path],
@@ -252,7 +265,9 @@ def package_resources(resources, pins, directories, updates, update_directory):
             notice.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(directories[name] / path, notice)
         provenance = {k: pin[k] for k in ("repository", "commit", "treeSHA256", "notices")}
-        if name == "saytile":
+        if pin.get("releaseTag"):
+            provenance["releaseTag"] = pin["releaseTag"]
+        if name == "saytile" and updates:
             provenance["updates"] = updates
             for path in updates["notices"]:
                 target = dest / "updates" / path
@@ -266,11 +281,19 @@ def propose(lock, domain, revision, output):
     require(re.fullmatch(r"[0-9a-f]{40}", revision), "A full immutable Git commit is required")
     pin = lock["saytileUpdates"] if domain == "saytileUpdates" else lock["domains"][domain]
     pin["commit"] = revision
+    pin.pop("releaseTag", None)  # Only restore a tag after verifying its commit.
     url = f"https://api.github.com/repos/{pin['repository']}/git/trees/{revision}?recursive=1"
     with remote(url) as response:
         tree = json.loads(response.read(8 * MIB))
     require(tree["truncated"] is False, "GitHub returned a truncated tree")
     expected = {}
+    shared = pin.get("sharedSources", {})
+    entries = {entry["path"]: entry for entry in tree["tree"]}
+    for path, target in shared.items():
+        link = os.path.relpath(target, PurePosixPath(path).parent).encode()
+        oid = hashlib.sha1(b"blob " + str(len(link)).encode() + b"\0" + link).hexdigest()
+        require(entries.get(path, {}).get("mode") == "120000" and entries[path]["sha"] == oid,
+                f"Review upstream shared source: {path}")
     for entry in tree["tree"]:
         path = entry["path"]
         if selection(pin, path) and entry["type"] != "tree":
@@ -302,11 +325,12 @@ def main():
     pins = lock["domains"]
     for pin in pins.values():
         validate(pin)
-    updates = lock["saytileUpdates"]
-    validate_voice_updates(pins["saytile"], updates)
+    updates = lock.get("saytileUpdates")
+    if updates:
+        validate_voice_updates(pins["saytile"], updates)
     if args.propose:
         domain, revision, path = args.propose
-        require((domain in pins or domain == "saytileUpdates") and not args.offline,
+        require((domain in pins or (updates and domain == "saytileUpdates")) and not args.offline,
                 "Choose saytile, saytileUpdates or riftlet for an online proposal")
         propose(lock, domain, revision, Path(path))
         return
@@ -316,7 +340,7 @@ def main():
         fcntl.flock(guard, fcntl.LOCK_EX)
         offline = args.offline or args.package_resources is not None or os.environ.get("NEARPANE_OFFLINE") == "1"
         directories = {name: prepare(cache, pin, offline) for name, pin in pins.items()}
-        update_directory = prepare(cache, updates, offline)
+        update_directory = prepare(cache, updates, offline) if updates else None
         for filename in ("module.modulemap", "shim.h"):
             require(len({(p / "Sources/CSQLite" / filename).read_bytes() for p in directories.values()}) == 1,
                     "Pinned SQLite module definitions no longer match")

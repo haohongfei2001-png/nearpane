@@ -9,6 +9,22 @@ public final class HostSession {
     public private(set) var workspaceIssue: WorkspaceFailure?
     @ObservationIgnored private var workspaceGestures = WorkspaceGestureRouter()
     @ObservationIgnored public var presentationChanged: (() -> Void)?
+    @ObservationIgnored public var glassPreviewChanged: ((String) -> Void)?
+    private var glassPreviews: [String: PanelGlassSettings] = [:]
+
+    public func panelPresentationSettings(on display: String) -> DisplaySettings {
+        var settings = configuration.displays[display] ?? .init()
+        if let preview = glassPreviews[display] { settings.glass = preview }
+        return settings
+    }
+
+    /// Only the panel presenter observes these drafts. WorkRect and the profile store
+    /// always resolve from the committed configuration.
+    public func previewGlass(_ value: PanelGlassSettings?, on display: String) {
+        guard value?.valid != false, glassPreviews[display] != value else { return }
+        glassPreviews[display] = value
+        glassPreviewChanged?(display)
+    }
     /// Latest display-local fullscreen finding for Settings. No window identity or contents are persisted.
     public private(set) var fullscreenStatus: [String: String] = [:]
     public func reportFullscreen(_ message: String?, on display: String) {
@@ -88,6 +104,7 @@ public final class HostSession {
         guard isRunning else { return }
         isRunning = false
         panelContents = [:]
+        glassPreviews.removeAll()
         fullscreenStatus.removeAll()
         cancelWorkspaceGesture()
         refreshGeneration += 1

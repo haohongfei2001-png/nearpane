@@ -9,11 +9,20 @@ struct OrdinaryWindowFailure: LocalizedError {
     init(_ reason: String) { self.reason = reason }
 }
 
+@MainActor private final class BoundaryAlerts {
+    // One private channel serves the retained windows of one selected application.
+    var listeners = [ManagedWindowID: @MainActor () -> Void]()
+
+    func notify() {
+        for wake in listeners.values { wake() }
+    }
+}
+
 private actor OrdinaryWindowChannel {
     private let process: Process
-    private let input, output: FileHandle
+    private let input, output, alertsInput: FileHandle
 
-    init() throws {
+    init(alerts: BoundaryAlerts) throws {
         let root = Bundle.main.bundleURL
         let executable = root.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
         guard executable.resolvingSymlinksInPath().path == executable.path,
@@ -21,7 +30,7 @@ private actor OrdinaryWindowChannel {
               try SHA256.hash(data: Data(contentsOf: executable, options: .mappedIfSafe))
                 .map({ String(format: "%02x", $0) }).joined() == expected
         else { throw OrdinaryWindowFailure("无法核验此版本的窗口控制助手。") }
-        let process = Process(), commands = Pipe(), replies = Pipe()
+        let process = Process(), commands = Pipe(), replies = Pipe(), signals = Pipe()
         // If the helper dies between isRunning and write(2), return EPIPE without
         // delivering SIGPIPE to the Host (which also owns the text and screenshot stores).
         guard fcntl(commands.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1) == 0
@@ -29,13 +38,26 @@ private actor OrdinaryWindowChannel {
         process.executableURL = executable
         process.standardInput = commands
         process.standardOutput = replies
-        process.standardError = FileHandle.nullDevice
+        // Only the nonce-checked stdout RPC can issue or acknowledge an operation.
+        // A dedicated notification pipe can lose wakeups; the periodic check still runs.
+        let signalFD = signals.fileHandleForWriting.fileDescriptor
+        guard fcntl(signalFD, F_SETFL, O_NONBLOCK) == 0 else {
+            throw OrdinaryWindowFailure("无法建立逐窗事件通知通道。")
+        }
+        process.standardError = signals
         try process.run()
         commands.fileHandleForReading.closeFile()
         replies.fileHandleForWriting.closeFile()
+        signals.fileHandleForWriting.closeFile()
         self.process = process
         input = commands.fileHandleForWriting
         output = replies.fileHandleForReading
+        alertsInput = signals.fileHandleForReading
+        alertsInput.readabilityHandler = { [weak alerts] handle in
+            let bytes = handle.availableData
+            if bytes.isEmpty { handle.readabilityHandler = nil; return }
+            if bytes.contains(0x1E) { Task { @MainActor in alerts?.notify() } }
+        }
     }
 
     nonisolated func interrupt() {
@@ -43,6 +65,8 @@ private actor OrdinaryWindowChannel {
     }
 
     deinit {
+        alertsInput.readabilityHandler = nil
+        try? alertsInput.close()
         try? input.close()
         try? output.close()
     }
@@ -85,11 +109,14 @@ private actor OrdinaryWindowChannel {
 @MainActor final class OrdinaryWindowDirectory {
     let app: AdmissionApplication
     private let channel: OrdinaryWindowChannel
+    private let alerts: BoundaryAlerts
     private(set) var handles = [UUID: OrdinaryWindowAX]()
 
     init(_ app: AdmissionApplication) throws {
         self.app = app
-        channel = try OrdinaryWindowChannel()
+        let alerts = BoundaryAlerts()
+        self.alerts = alerts
+        channel = try OrdinaryWindowChannel(alerts: alerts)
     }
 
     func choices(initial: Bool) async throws -> [AdmissionWindowChoice] {
@@ -101,7 +128,7 @@ private actor OrdinaryWindowChannel {
             guard let id else { return .init(id: UUID(), number: nil, index: index + 1) }
             guard id.pid == app.pid, id.launch == app.launch, id.number != 0, next[id.element] == nil
             else { throw OrdinaryWindowFailure("无法核对窗口清单身份。") }
-            next[id.element] = handles[id.element] ?? OrdinaryWindowAX(id: id, application: app, channel: channel)
+            next[id.element] = handles[id.element] ?? OrdinaryWindowAX(id: id, application: app, channel: channel, alerts: alerts)
             return .init(id: id.element, number: id.number, index: index + 1)
         }
         handles = next
@@ -112,15 +139,20 @@ private actor OrdinaryWindowChannel {
 @MainActor final class OrdinaryWindowAX {
     let id: ManagedWindowID, bundle: String, applicationName: String
     private let channel: OrdinaryWindowChannel
+    private let alerts: BoundaryAlerts
     private var closed = false
     private(set) var lastWriteSteps = [OrdinaryWindowStep]()
 
-    fileprivate init(id: ManagedWindowID, application: AdmissionApplication, channel: OrdinaryWindowChannel) {
+    fileprivate init(id: ManagedWindowID, application: AdmissionApplication, channel: OrdinaryWindowChannel,
+                     alerts: BoundaryAlerts) {
         self.id = id
         self.bundle = application.bundle
         self.applicationName = application.name
         self.channel = channel
+        self.alerts = alerts
     }
+
+    func onBoundaryChange(_ wake: (@MainActor () -> Void)?) { alerts.listeners[id] = wake }
 
     deinit {
         let command = OrdinaryWindowRequest(.release, pid: id.pid, launch: id.launch, bundle: bundle, id: id)

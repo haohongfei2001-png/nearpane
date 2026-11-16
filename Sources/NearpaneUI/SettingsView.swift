@@ -1,12 +1,91 @@
 import AppKit
 import SwiftUI
 import NearpaneCore
+import Observation
 #if canImport(NearpaneVoice)
 import NearpaneVoice
 #endif
 
+enum SettingsPage: String, CaseIterable, Identifiable {
+    case dimensions, windowManagement, windowRules, displays, desktop, voice, tray, modules, app, diagnostics
+    var id: Self { self }
+    var label: String {
+        switch self {
+        case .dimensions: "外观与尺寸"
+        case .windowManagement: "窗口管理"
+        case .windowRules: "窗口规则"
+        case .displays: "显示器"
+        case .desktop: "空间观察"
+        case .voice: "Saytile 语音"
+        case .tray: "Riftlet 截图"
+        case .modules: "模块"
+        case .app: "应用与更新"
+        case .diagnostics: "开发诊断"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .dimensions: "slider.horizontal.3"
+        case .windowManagement: "macwindow.on.rectangle"
+        case .windowRules: "list.bullet"
+        case .displays: "display"
+        case .desktop: "rectangle.3.group"
+        case .voice: "waveform"
+        case .tray: "camera"
+        case .modules: "square.grid.2x2"
+        case .app: "arrow.triangle.2.circlepath"
+        case .diagnostics: "wrench.and.screwdriver"
+        }
+    }
+}
+
+@Observable @MainActor public final class SettingsNavigation {
+    var page = SettingsPage.dimensions
+    public init() {}
+    public func showWindowManagement() { page = .windowManagement }
+}
+
+struct InstalledBuild {
+    let version, build: String
+
+    init(bundle: Bundle) {
+        version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "未知"
+        build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "未知"
+    }
+
+    var label: String { "版本 " + version + "（" + build + "）" }
+}
+
+struct BundledDomainSource: Decodable {
+    let releaseTag: String
+    let commit: String
+}
+
+/// Display the releases actually present in this signed bundle, including when running offline.
+public struct BundledDomainVersions: View {
+    public init() {}
+
+    private func version(_ name: String) -> String {
+        guard let file = Bundle.main.url(forResource: "source", withExtension: "json", subdirectory: "Upstream/" + name),
+              let bytes = try? Data(contentsOf: file),
+              let source = try? JSONDecoder().decode(BundledDomainSource.self, from: bytes) else { return "版本信息不可用" }
+        return source.releaseTag + " · " + source.commit.prefix(8)
+    }
+
+    public var body: some View {
+        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+            GridRow { Text("Nearpane"); Text(InstalledBuild(bundle: .main).label) }
+            GridRow { Text("Saytile"); Text(version("saytile")) }
+            GridRow { Text("Riftlet"); Text(version("riftlet")) }
+        }
+        .textSelection(.enabled)
+    }
+}
+
 public struct SettingsView: View {
     private let host: HostSession
+    private let navigation: SettingsNavigation
+    private let installedBuild = InstalledBuild(bundle: .main)
     private let domains: EmbeddedModules?
     private let profileImport: AnyView?
     private let applicationServices: AnyView?
@@ -16,7 +95,8 @@ public struct SettingsView: View {
     private let dismissSpaces: (String) -> Void
     private let requestSecondary: (String) -> Void
     private let placementChanged: () -> Void
-    public init(host: HostSession, inventory: SettingsScreenInventory, previewExposure: SettingsPreviewExposure, domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, applicationServices: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+    public init(host: HostSession, inventory: SettingsScreenInventory, previewExposure: SettingsPreviewExposure, navigation: SettingsNavigation = SettingsNavigation(), domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, applicationServices: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+        self.navigation = navigation
         self.previewExposure = previewExposure
         self.profileImport = profileImport
         self.applicationServices = applicationServices
@@ -26,11 +106,87 @@ public struct SettingsView: View {
     }
 
     public var body: some View {
-        TabView {
-            modules.tabItem { Text("模块") }
+        GeometryReader { bounds in
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ScrollView {
+                        VStack(spacing: 2) {
+                            ForEach(availablePages) { page in
+                                let selected = navigation.page == page
+                                Button {
+                                    navigation.page = page
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: page.symbol)
+                                            .frame(width: 19).foregroundStyle(selected ? Color.accentColor : .secondary)
+                                        Text(page.label)
+                                        Spacer(minLength: 0)
+                                    }
+                                    .padding(.horizontal, 8).frame(height: 30)
+                                    .background(selected ? Color.accentColor.opacity(0.14) : .clear,
+                                                in: RoundedRectangle(cornerRadius: 6))
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityAddTraits(selected ? .isSelected : [])
+                                .accessibilityIdentifier("settings-nav-" + page.rawValue)
+                            }
+                        }.padding(8)
+                    }.accessibilityLabel("设置分类")
+                    Divider()
+                    Text(installedBuild.label)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .padding(12)
+                        .accessibilityIdentifier("settings-installed-version")
+                }
+                .frame(width: 152)
+                .background(Color(nsColor: .controlBackgroundColor).opacity(0.55))
+                Divider().frame(width: 1)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(navigation.page.label).font(.title2.weight(.semibold))
+                        .accessibilityAddTraits(.isHeader)
+                    content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+                .padding(16)
+                .frame(width: max(0, bounds.size.width - 153), height: bounds.size.height, alignment: .topLeading)
+            }
+        }
+        .frame(minWidth: 640, minHeight: 476)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var availablePages: [SettingsPage] {
+        SettingsPage.allCases.filter { page in
+            switch page {
+            case .voice: return hasDomains && domains?.candidate == true
+            case .tray: return hasDomains
+            case .diagnostics: return domains?.candidate != true
+            case .app: return applicationServices != nil
+            default: return true
+            }
+        }
+    }
+
+    private var hasDomains: Bool {
+        #if canImport(NearpaneVoice)
+        domains != nil
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder private var content: some View {
+        switch navigation.page {
+        case .modules: modules
+        case .voice:
             #if canImport(NearpaneVoice)
-            if let domains, domains.candidate { VoiceInputSettings(module: domains.voice).tabItem { Text("语音") } }
+            if let domains { VoiceInputSettings(module: domains.voice) }
+            #else
+            EmptyView()
             #endif
+        case .tray:
             #if canImport(NearpaneTray)
             if let tray = domains?.tray {
                 Form {
@@ -76,19 +232,28 @@ public struct SettingsView: View {
                         }.disabled(!tray.active || tray.connecting)
                     }
                     if let issue = tray.issue { Text(issue).foregroundStyle(.secondary) }
-                }.padding().tabItem { Text("Riftlet") }
+                }.padding()
             }
+            #else
+            EmptyView()
             #endif
-            appearance.tabItem { Text("显示器") }
-            WorkspaceDisplaySettings(host:host,screens:screens,request:requestSecondary,dismiss:dismissSpaces, stillCurrent: inventory.contains).tabItem { Text("尺寸与呈现") }
-            WorkspacePolicySettings(host:host).tabItem { Text("窗口规则") }
-            if let lab = domains?.workRect { CandidateWorkRectView(session: lab, host: host, previewExposure: previewExposure).tabItem { Text("窗口管理") } }
-            desktopOptions.tabItem { Text("空间观察") }
-            if let applicationServices { applicationServices.tabItem { Text("应用") } }
-            if domains?.candidate != true { mockSettings.tabItem { Text("Mock & diagnostics") } }
+        case .displays: appearance
+        case .dimensions:
+            WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
+                                     dismiss: dismissSpaces, stillCurrent: inventory.contains,
+                                     previewExposure: previewExposure)
+        case .windowRules: WorkspacePolicySettings(host: host)
+        case .windowManagement:
+            if let manager = domains?.workRect {
+                CandidateWorkRectView(session: manager, host: host, previewExposure: previewExposure)
+            } else {
+                Text("此开发构建未装载窗口管理。请打开已安装的 Nearpane Alpha。")
+                    .accessibilityIdentifier("settings-window-manager-unavailable")
+            }
+        case .desktop: desktopOptions
+        case .app: applicationServices
+        case .diagnostics: mockSettings
         }
-        .padding(16)
-        .frame(width: 600, height: 540)
     }
 
     private var desktopOptions: some View {

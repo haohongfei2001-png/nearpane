@@ -156,6 +156,7 @@ public struct CandidateWorkRectView: View {
     private let admissionFixtureOnly: Bool
     private let owners: [AdmissionFixtureOwner]
     private let previewExposure: SettingsPreviewExposure?
+    @ViewState private var showingCompatibility = false
     @ViewState private var confirm = false
     @AppStorage("managementPairPercent") private var percent = 60
     @AppStorage("managementPairSwap") private var swap = false
@@ -173,57 +174,66 @@ public struct CandidateWorkRectView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 Text(session.ordinary.activeIDs.isEmpty && session.mode == "off"
-                     ? "边界尚未生效：当前仅显示侧栏，没有窗口获得管理授权。"
-                     : "边界只约束已授权窗口；暂停、排除及系统受保护窗口不受自动调整。")
+                     ? "边界尚未启用。选择一扇窗口，预览它的位置，然后授权管理。"
+                     : "边界作用于当前授权的窗口。暂停或排除窗口后，自动调整停止。")
                     .font(.caption).foregroundStyle(.secondary)
                 WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, owners: owners,
                                         exposure: previewExposure)
                 Divider()
-                Text("随包兼容应用 · 自动管理").font(.headline)
-                Text("此开关仅影响随包兼容应用。普通窗口需在上方逐窗选择和授权。").font(.callout)
-                Text(session.message).textSelection(.enabled)
-                if session.mode == "off" && !session.blocked {
-                    Button("启用自动窗口管理…") { confirm = true }.disabled(!session.ordinary.activeIDs.isEmpty || session.ordinary.blocked || session.ordinary.busy)
-                        .alert("允许自动调整副屏兼容窗口？", isPresented: $confirm) {
-                            Button("取消", role: .cancel) {}
-                            Button("允许并启用") { session.send("enable") }
-                        } message: { Text("当前及以后打开的兼容窗口将按工作区域排列。退出时撤销自动布局，保留你保存的分割位置。") }
-                } else {
-                    HStack {
-                        if session.mode != "off" && !session.blocked {
-                            Button(session.mode == "paused" ? "继续管理" : "暂停管理") {
-                                session.send(session.mode == "paused" ? "resume" : "pause")
-                            }
-                        }
-                        Button("停止并恢复") { session.send("disable") }
-                        if session.blocked { Button("重新核对并恢复") { session.send("retry") } }
-                    }
+                DisclosureGroup("随包兼容应用", isExpanded: $showingCompatibility) {
+                    compatibilityControls
                 }
-                Text(session.trusted ? "控制器辅助功能已核对 · 已登记 \(session.windows.count) 扇 · 当前范围 \(session.count) 扇" : "窗口写入需要单独核对随包控制器的辅助功能权限。")
-                    .font(.caption)
-                HStack {
-                    Button("打开兼容应用窗口") { session.send("open") }
-                    if !session.windows.isEmpty { Button("关闭末个兼容窗口") { session.send("close") } }
-                }
-                ForEach(session.windows, id: \.self) { id in
-                    let excluded = (try? host.configuration.workspaces.excluded(id, bundle: "org.nearpane.lab.NearpaneFixtureWindows")) != false
-                    Toggle("允许纳入管理范围 · 窗口 #\(String(id.number))", isOn: Binding(get: { !excluded }, set: { include in
-                        var prefs = host.workspacePreferencesDraft
-                        prefs.windows[id] = include ? .include : .exclude
-                        host.setWorkspacePreferences(prefs)
-                    }))
-                }
-                if session.mode == "active" && session.count == 2 {
-                    Stepper("左侧比例  \(percent)%", value: $percent, in: 20...80)
-                    Toggle("交换左右槽位", isOn: $swap)
-                    HStack {
-                        Button("应用双窗布局") { session.send("pair \(percent) \(swap ? "swap" : "original")") }
-                        Button("保存窗口上的手动调整") { session.send("adopt") }
-                    }
-                }
-                Text("工作区域位于「尺寸与呈现」。应用排除和新窗口归属位于「窗口规则」。")
+                .onAppear { if session.blocked || session.mode != "off" { showingCompatibility = true } }
+                .onChange(of: session.blocked) { _, blocked in if blocked { showingCompatibility = true } }
+                Text("在「外观与尺寸」调整预留宽度，在「窗口规则」设置应用排除。")
                     .font(.caption).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding()
         }
+    }
+
+    private var compatibilityControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("此开关仅影响随包兼容应用。普通窗口需在上方逐窗选择和授权。").font(.callout)
+            Text(session.message).textSelection(.enabled)
+            if session.mode == "off" && !session.blocked {
+                Button("启用自动窗口管理…") { confirm = true }.disabled(!session.ordinary.activeIDs.isEmpty || session.ordinary.blocked || session.ordinary.busy)
+                    .alert("允许自动调整副屏兼容窗口？", isPresented: $confirm) {
+                        Button("取消", role: .cancel) {}
+                        Button("允许并启用") { session.send("enable") }
+                    } message: { Text("当前及以后打开的兼容窗口将按工作区域排列。退出时撤销自动布局，保留你保存的分割位置。") }
+            } else {
+                HStack {
+                    if session.mode != "off" && !session.blocked {
+                        Button(session.mode == "paused" ? "继续管理" : "暂停管理") {
+                            session.send(session.mode == "paused" ? "resume" : "pause")
+                        }
+                    }
+                    Button("停止并恢复") { session.send("disable") }
+                    if session.blocked { Button("重新核对并恢复") { session.send("retry") } }
+                }
+            }
+            Text(session.trusted ? "控制器辅助功能已核对 · 已登记 \(session.windows.count) 扇 · 当前范围 \(session.count) 扇" : "窗口写入需要单独核对随包控制器的辅助功能权限。")
+                .font(.caption)
+            HStack {
+                Button("打开兼容应用窗口") { session.send("open") }
+                if !session.windows.isEmpty { Button("关闭末个兼容窗口") { session.send("close") } }
+            }
+            ForEach(session.windows, id: \.self) { id in
+                let excluded = (try? host.configuration.workspaces.excluded(id, bundle: "org.nearpane.lab.NearpaneFixtureWindows")) != false
+                Toggle("允许纳入管理范围 · 窗口 #\(String(id.number))", isOn: Binding(get: { !excluded }, set: { include in
+                    var prefs = host.workspacePreferencesDraft
+                    prefs.windows[id] = include ? .include : .exclude
+                    host.setWorkspacePreferences(prefs)
+                }))
+            }
+            if session.mode == "active" && session.count == 2 {
+                Stepper("左侧比例  \(percent)%", value: $percent, in: 20...80)
+                Toggle("交换左右槽位", isOn: $swap)
+                HStack {
+                    Button("应用双窗布局") { session.send("pair \(percent) \(swap ? "swap" : "original")") }
+                    Button("保存窗口上的手动调整") { session.send("adopt") }
+                }
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
     }
 }

@@ -20,8 +20,10 @@ CLOCK = Path("Nearpane/clock-time-zone.v1.json")
 # sqlite_master, including indexes and constraints, from the two pinned domain writers.
 SCHEMA = {VOICE: (5, "034c18279d1b3aaffc7580f07c568baf34809cceba5fc4f95469d96ccd4b76e9"),
           TRAY: (4, "04b043caf5f2b592719c1a5a7ef57e876ea2bb874462b01c6254a493d739f096")}
+VOICE_SCHEMA_6 = "880d36991e72f91afbf29e3942b350ec9a139332e8a33b354afec8094fd4206b"
 SECTIONS = {"voice", "tray", "settings"}
-VOICE_TEXT = {"recordings", "revisions", "editing_drafts", "frozen_revisions"}
+VOICE_TEXT = {"recordings", "revisions", "editing_drafts", "frozen_revisions", "archive_draft_bases",
+              "timeline_settings", "transcript_timeline", "natural_paragraph_schema", "timeline_paragraphs"}
 
 
 def require(ok, message):
@@ -122,7 +124,10 @@ def snapshot(root, rel):
                 checkpoint_private_copy(db, Path(str(local) + "-wal"))
             db.execute("PRAGMA trusted_schema=OFF")
             version, known = SCHEMA[rel]
-            require(db.execute("PRAGMA user_version").fetchone() == (version,), "此版本不支持该数据库版本，请使用原版本。")
+            actual = db.execute("PRAGMA user_version").fetchone()[0]
+            if rel == VOICE and actual == 6:
+                version, known = 6, VOICE_SCHEMA_6
+            require(actual == version, "此版本不支持该数据库版本，请使用原版本。")
             objects = list(db.execute("SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name"))
             signature = hashlib.sha256(json.dumps(objects, separators=(',', ':')).encode()).hexdigest()
             require(signature == known, "数据库结构与固定领域版本不符。")
@@ -144,7 +149,18 @@ def voice_stats(db):
                 voiceRevisions=scalar(db, "SELECT count(*) FROM revisions"),
                 voiceDrafts=scalar(db, "SELECT count(*) FROM editing_drafts"),
                 voiceAudioChunks=scalar(db, "SELECT count(*) FROM chunks"),
-                voiceSchema=5)
+                voiceSchema=scalar(db, "PRAGMA user_version"))
+
+
+def durable_voice_digest(db):
+    # These recording identities and their exact text/media relationships survive v5 -> v6.
+    result = hashlib.sha256()
+    for table in ("recordings", "revisions", "editing_drafts", "frozen_revisions", "chunks"):
+        result.update(table.encode() + b"\0")
+        for row in db.execute("SELECT * FROM " + table + " ORDER BY rowid"):
+            payload = json.dumps(row, separators=(",", ":")).encode()
+            result.update(len(payload).to_bytes(8, "big") + payload)
+    return result.hexdigest()
 
 
 def text_projection(db, dest):

@@ -27,6 +27,31 @@ struct NearpaneApp {
             }
         }
         #if canImport(SaytileKit)
+        if args.first == "--upgrade-staged-voice" {
+            guard CandidateProfile.selected, args.count == 2 else { exit(2) }
+            let stage = URL(fileURLWithPath: args[1]).standardizedFileURL
+            let work = stage.deletingLastPathComponent()
+            let transactions = work.deletingLastPathComponent()
+            let root = transactions.deletingLastPathComponent()
+            guard stage.lastPathComponent == "generation", transactions.lastPathComponent == "transactions",
+                  root.lastPathComponent == CandidateProfile.containerName,
+                  UUID(uuidString: work.lastPathComponent)?.uuidString.lowercased() == work.lastPathComponent else { exit(2) }
+            Task {
+                do {
+                    try ProfileLease.checkPath(stage)
+                    let owned = try Data(contentsOf: work.appendingPathComponent("ownership.json"))
+                    guard owned == (try Data(contentsOf: root.appendingPathComponent("transaction.json"))),
+                          let tx = try JSONSerialization.jsonObject(with: owned) as? [String: Any],
+                          tx["next"] as? String == work.lastPathComponent,
+                          try CandidateProfile.inspectStores(in: stage)["voiceSchema"] == 5 else { exit(3) }
+                    let store = try SaytileStore(directory: stage.appendingPathComponent("Nearpane/Voice"))
+                    try await store.close()
+                    guard try CandidateProfile.inspectStores(in: stage)["voiceSchema"] == 6 else { exit(3) }
+                    exit(0)
+                } catch { exit(3) }
+            }
+            dispatchMain()
+        }
         if args.first == "--validate-import-configuration" {
             guard CandidateProfile.selected, args.count == 2 else { exit(2) }
             let file = URL(fileURLWithPath: args[1])
@@ -56,6 +81,8 @@ struct NearpaneApp {
             do {
                 // Read and validate packaged files. No GUI, store, target, device or transport is created.
                 _ = try CloudConnectionVerifier.bundledSample()
+                // Apple Speech uses installed system resources; only optional engines ship catalog manifests.
+                for id in LocalASRID.allCases where id != .apple { _ = try LocalModelManifest.load(id) }
                 _ = try LegacyWebObservationProgram.wrapping(ChatGPTWebPageProgram.load())
                 print("Packaged Saytile and Riftlet resources verified.")
                 if args.count > 1 {
@@ -79,6 +106,11 @@ struct NearpaneApp {
                         return
                     }
                     guard args.count == 3 else { exit(2) }
+                    if CandidateProfile.selected, args[1] == "--native-settings-readback" {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        try HostAppDelegate().renderSettingsReadback(session)
+                        return
+                    }
                     if CandidateProfile.selected, args[1] == "--profile-acceptance-open" {
                         let session = try NativeAcceptanceSession(id: args[2], prepare: false)
                         Task {
@@ -211,6 +243,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var sessionUnavailable: Bool { desktopAsleep || sessionInactive || screenLocked }
     private var surface: EdgeWindowController?
     private let settingsScreens = SettingsScreenInventory()
+    private let settingsNavigation = SettingsNavigation()
     private let settingsPreview = SettingsPreviewExposure()
     private var settingsWindowOpen = false
     private var settings: NSWindowController?
@@ -553,10 +586,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
 
     private func installMenu() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: "Nearpane controls")
+        item.button?.image = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: "Nearpane 设置与窗口管理")
+        item.button?.toolTip = "Nearpane · 设置与窗口管理"
         let menu = NSMenu()
         menu.autoenablesItems = false
-        for (title, action) in [("显示或隐藏侧栏", #selector(toggleSurface)), ("设置…", #selector(showSettings)), ("退出 Nearpane", #selector(quit))] {
+        for (title, action) in [("显示或隐藏侧栏", #selector(toggleSurface)), ("设置…", #selector(showSettings)), ("窗口管理…", #selector(showWindowManagement)), ("退出 Nearpane", #selector(quit))] {
             let entry = NSMenuItem(title: title, action: action, keyEquivalent: "")
             entry.target = self
             menu.addItem(entry)
@@ -564,7 +598,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let update = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "")
         update.target = self
         update.isEnabled = false
-        menu.insertItem(update, at: 2)
+        menu.insertItem(update, at: 3)
         item.menu = menu
         statusItem = item
         if let updater {
@@ -574,7 +608,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                 item?.length = version == nil ? NSStatusItem.squareLength : 38
                 item?.button?.imagePosition = .imageLeading
                 item?.button?.title = version == nil ? "" : "•"
-                item?.button?.toolTip = version.map { "Nearpane \($0) 可用，点击菜单查看更新。" } ?? "Nearpane"
+                item?.button?.toolTip = version.map { "Nearpane \($0) 可用，点击菜单查看更新。" } ?? "Nearpane · 设置与窗口管理"
             }
         }
     }
@@ -648,14 +682,20 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         updatePanels()
     }
 
+    @objc private func showWindowManagement() {
+        settingsNavigation.showWindowManagement()
+        showSettings()
+    }
+
     @objc private func showSettings() {
         #if canImport(SaytileKit)
         if profileSwitch != nil { settings?.showWindow(nil); return }
         #endif
         guard host != nil, passiveDisplayID == nil else { return }
         if settings == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 632, height: 572),
-                                  styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: true)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 752, height: 572),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
+            window.contentMinSize = NSSize(width: 640, height: 476)
             window.title = "Nearpane 设置"
             window.isReleasedWhenClosed = false
             if let screen = surface?.window?.screen {
@@ -675,6 +715,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsScreens.update(SystemScreens.geometry())
         settingsWindowOpen = true
+        if settings?.window?.isMiniaturized == true { settings?.window?.deminiaturize(nil) }
         settings?.showWindow(nil)
         refreshSettingsExposure()
         // Only an explicit Settings click may activate the application.
@@ -705,15 +746,53 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         let importer: AnyView? = nil
         #endif
         guard let host else { return }
-        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,previewExposure:settingsPreview,domains:modules,profileImport:importer,applicationServices:AnyView(applicationServices),
+        settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,previewExposure:settingsPreview,navigation:settingsNavigation,domains:modules,profileImport:importer,applicationServices:AnyView(applicationServices),
             requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
             dismissSpaces: { [weak self] id in self?.panels?.dismiss(id); self?.updatePanels() },
             placementChanged: { [weak self] in self?.updatePanels() }))
     }
 
+    #if canImport(SaytileKit)
+    /// Render the Finder candidate's Settings in an executable-bound fixture. Never order or activate a window.
+    func renderSettingsReadback(_ session: NativeAcceptanceSession) throws {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.prohibited)
+        let embedded = EmbeddedModules(support: session.support.appendingPathComponent("Nearpane"),
+                                       testSession: session.directory, candidate: true)
+        modules = embedded
+        host = embedded.makeHost(store: MemoryConfigurationStore())
+        updater = ApplicationUpdater(allowNetwork: false)
+        let size = SurfaceRect(width: 1470, height: 956)
+        settingsScreens.update([ScreenGeometry(id: "fixture", frame: size, visibleFrame: size)])
+        let window = NSWindow(contentRect: .init(x: 0, y: 0, width: 752, height: 572),
+                              styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .aqua)
+        settings = NSWindowController(window: window)
+        updateSettingsContent()
+        try renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-appearance.png"))
+        settingsNavigation.showWindowManagement()
+        try renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-window-management.png"))
+        window.close()
+    }
+
+    private func renderHiddenSettings(_ window: NSWindow, to url: URL) throws {
+        guard let view = window.contentView else { throw CocoaError(.validationMissingMandatoryProperty) }
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.2))
+        view.layoutSubtreeIfNeeded()
+        view.displayIfNeeded()
+        guard !window.isVisible, !window.isMainWindow, !window.isKeyWindow,
+              let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw CocoaError(.featureUnsupported) }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        guard let image = rep.representation(using: .png, properties: [:]) else { throw CocoaError(.fileWriteUnknown) }
+        try image.write(to: url, options: .withoutOverwriting)
+    }
+    #endif
+
     private var applicationServices: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                BundledDomainVersions()
                 if let updater { ApplicationUpdateSettings(updater: updater) }
                 #if canImport(RiftletCore) && canImport(SaytileKit)
                 if let feedback {

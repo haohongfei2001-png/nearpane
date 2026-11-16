@@ -86,11 +86,16 @@ class DependencyTests(unittest.TestCase):
             bad = dict(pin, treeSHA256="f"*64)
             with self.assertRaisesRegex(resolver.DependencyError, "inventory SHA"):
                 resolver.validate(bad)
-        resolver.validate_voice_updates(lock["domains"]["saytile"], lock["saytileUpdates"])
+        self.assertIn("Sources/SaytileVoiceUI", lock["domains"]["saytile"]["sources"])
+        self.assertNotIn("saytileUpdates", lock)
 
     def test_voice_update_only_replaces_the_named_locked_sources(self):
         lock = json.loads(resolver.LOCK.read_text())
-        base, updates = lock["domains"]["saytile"], lock["saytileUpdates"]
+        base = lock["domains"]["saytile"]
+        paths = ["Sources/SaytileKit/InputCoordinator.swift", "THIRD_PARTY_NOTICES.md"]
+        files = {path: base["files"][path] for path in paths}
+        updates = dict(base, sharedSources={}, sources=paths[:1], notices=paths[1:], files=files, treeSHA256=resolver.tree_hash(files))
+        resolver.validate_voice_updates(base, updates)
         for bad in (dict(updates, repository="different/Upstream"),
                     dict(updates, sources=["Sources/SaytileKit"]),
                     dict(updates, sources=updates["sources"] * 2)):

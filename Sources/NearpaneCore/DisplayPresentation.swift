@@ -79,6 +79,26 @@ public enum PanelSizeMetrics {
     public static func cardInset(width: Double) -> Double { min(8, max(2, width * 0.04)) }
 }
 
+/// Percent transparent (0 = opaque). Unset card values follow the original light/dark palette.
+public struct PanelGlassSettings: Codable, Equatable, Sendable {
+    public var overallTransparency: Double?
+    public var outerTransparency: Double?
+    public var innerTransparency: Double?
+    public var rimWidth: Measure?
+    public init() {}
+
+    public var valid: Bool {
+        [overallTransparency, outerTransparency, innerTransparency].compactMap { $0 }.allSatisfy {
+            $0.isFinite && (0...100).contains($0)
+        } && (rimWidth?.valid != false)
+    }
+
+    public func inset(width: Double) -> Double {
+        guard let rimWidth, rimWidth.valid else { return PanelSizeMetrics.cardInset(width: width) }
+        return min(width / 2, rimWidth.points(in: width))
+    }
+}
+
 public struct PanelPosition: Codable, Equatable, Sendable {
     public var x: Double, y: Double
     public init(x: Double, y: Double) {
@@ -88,6 +108,7 @@ public struct PanelPosition: Codable, Equatable, Sendable {
 }
 public struct DisplaySettings: Codable, Equatable, Sendable {
     public var floatingPosition: PanelPosition?
+    public var glass = PanelGlassSettings()
     public var fullscreenTools = FullscreenToolSettings()
     public var toolAnchor: FloatingToolSurface?
     public var placement: SpacePanelPlacement = .docked
@@ -100,6 +121,7 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         floatingPosition = try values.decodeIfPresent(PanelPosition.self, forKey: .floatingPosition)
+        glass = try values.decodeIfPresent(PanelGlassSettings.self, forKey: .glass) ?? .init()
         fullscreenTools = try values.decodeIfPresent(FullscreenToolSettings.self, forKey: .fullscreenTools) ?? .init()
         toolAnchor = try values.decodeIfPresent(FloatingToolSurface.self, forKey: .toolAnchor)
         placement = try values.decodeIfPresent(SpacePanelPlacement.self, forKey: .placement) ?? .docked
@@ -272,10 +294,10 @@ extension DisplaySettings {
               max(width, height) >= compactSpan else { return .icon }
         let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
             settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
-        let cardPadding = 2 * PanelSizeMetrics.cardInset(width: width)
+        let cardPadding = 2 * glass.inset(width: width)
         let sections = (voice: max(0, layout.voice.height - cardPadding), tray: max(0, layout.screenshots.height - cardPadding),
                         spaces: max(0, layout.desktop.height - cardPadding))
-        let width = max(0, width - 2 * PanelSizeMetrics.cardInset(width: width))
+        let width = max(0, width - cardPadding)
         if voice && [.full, .compact, .voiceOnly].contains(content) {
             let pad = points(.textPadding, in: width)
             let requestedFont = points(.textSize, in: sections.voice)
