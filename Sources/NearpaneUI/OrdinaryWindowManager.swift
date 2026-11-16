@@ -74,9 +74,16 @@ enum OrdinaryRefusal: LocalizedError {
     private var handles = [ManagedWindowID: any OrdinaryWindowObserving]()
     private var unsavedRevocation: ManagedWindowID?
     private var tiler = ManagedWindowTiler(workspace: nil)
+    var pairSlots: (percent: Int, swapped: Bool)? {
+        guard tiler.members.count == 2,
+              case let .split(.columns, ratio, .slot(left), .slot(_)) = tiler.partition else { return nil }
+        return (Int((ratio * 100).rounded()), left != 0)
+    }
+    var hasCustomLayout: Bool { tiler.userAdjusted }
     private var pending: Plan?
     private(set) var creationAnchor: ManagedWindowID?
     private var creationGrant: UUID?
+    @ObservationIgnored private weak var creationWriter: (any OrdinaryWindowObserving)?
     private var checkingCreated = false
     private var previewRevision = 0
     private var monitoring: Task<Void, Never>?
@@ -247,7 +254,11 @@ enum OrdinaryRefusal: LocalizedError {
         return next
     }
 
-    func confirm(_ review: OrdinaryWindowReview, context: AdmissionContext) async throws {
+    private func checkCreationGrant(_ token: UUID?) throws {
+        if let token, token != creationGrant { throw OrdinaryRefusal.noGrant }
+    }
+
+    func confirm(_ review: OrdinaryWindowReview, context: AdmissionContext, creationToken: UUID? = nil) async throws {
         try enter()
         defer { busy = false }
         let revision = previewRevision
@@ -255,6 +266,7 @@ enum OrdinaryRefusal: LocalizedError {
         pending = nil
         guard !paused, let plan, plan.review.token == review.token, plan.context == context,
               ProcessInfo.processInfo.systemUptime <= plan.review.validUntil else { throw OrdinaryRefusal.stale }
+        try checkCreationGrant(creationToken)
         try checkedScope(context)
         let disk = try journalLease ?? journal.lock()
         guard journalLease != nil || !journal.exists else { throw OrdinaryRefusal.ownership }
@@ -267,6 +279,7 @@ enum OrdinaryRefusal: LocalizedError {
         }
         guard !closing, previewRevision == revision,
               ProcessInfo.processInfo.systemUptime <= plan.review.validUntil else { throw OrdinaryRefusal.stale }
+        try checkCreationGrant(creationToken)
         journalLease = disk
         leases.merge(extra) { first, _ in first }
         for h in plan.handles where entries[h.id] == nil {
@@ -281,7 +294,8 @@ enum OrdinaryRefusal: LocalizedError {
         tiler = plan.layout
         do {
             try save()
-            try await apply(plan.review.proposed, in: context)
+            try await apply(plan.review.proposed, in: context, creationToken: creationToken)
+            try checkCreationGrant(creationToken)
             appliedArea = try area(context)
             message = "已管理 \(activeIDs.count) 扇经授权窗口，布局已由 AX 和 CG 核对。"
             startMonitoring()
@@ -291,10 +305,11 @@ enum OrdinaryRefusal: LocalizedError {
     private func save() throws {
         guard journalLease != nil, let display = activeDisplay else { throw OrdinaryRefusal.storage }
         try journal.publish(.init(version: 1, session: session, status: "pending", display: display,
-                                  entries: activeIDs.compactMap { entries[$0] }))
+                                  entries: activeIDs.compactMap { entries[$0] }, layout: tiler))
     }
 
-    private func move(_ id: ManagedWindowID, to target: SurfaceRect, context: AdmissionContext, kind: String) async throws {
+    private func move(_ id: ManagedWindowID, to target: SurfaceRect, context: AdmissionContext, kind: String,
+                      creationToken: UUID? = nil) async throws {
         guard let h = handles[id], leases[id] != nil, var e = entries[id],
               e.refusal == nil, e.intended == nil else { throw OrdinaryRefusal.lost }
         try checkedScope(context, grant: h)
@@ -307,6 +322,7 @@ enum OrdinaryRefusal: LocalizedError {
         guard try sample(await h.verify(expected: e.confirmed), for: h, in: context,
                          boundaryOverflow: kind == "boundary" && e.retainsExternalLayout == true) == e.confirmed
         else { throw OrdinaryRefusal.lost }
+        try checkCreationGrant(creationToken)
         if target == e.confirmed { return }
         guard kind == "restore" || !closing else { throw OrdinaryRefusal.stale }
         try checkedScope(context, grant: h)
@@ -323,11 +339,13 @@ enum OrdinaryRefusal: LocalizedError {
                 guard let self else { h.invalidate(); return }
                 do {
                     guard !self.closing || kind == "restore" else { throw OrdinaryRefusal.stale }
+                    try self.checkCreationGrant(creationToken)
                     try self.checkedScope(context, grant: h)
                 } catch { h.invalidate(); return }
             }
         }
-        defer { guardTask.cancel() }
+        if creationToken != nil { creationWriter = h }
+        defer { creationWriter = nil; guardTask.cancel() }
         let pair = try await h.write(from: before, to: target)
         guard try sample(pair, for: h, in: context) == target else { throw OrdinaryRefusal.lost }
         // A receipt follows independent readback and never confers fresh authority after a crash.
@@ -339,10 +357,11 @@ enum OrdinaryRefusal: LocalizedError {
         try save()
     }
 
-    private func apply(_ targets: [ManagedWindowID: SurfaceRect], in context: AdmissionContext) async throws {
+    private func apply(_ targets: [ManagedWindowID: SurfaceRect], in context: AdmissionContext, creationToken: UUID? = nil) async throws {
         for id in activeIDs {
             guard !closing, let frame = targets[id] else { throw OrdinaryRefusal.stale }
-            do { try await move(id, to: frame, context: context, kind: "layout") }
+            try checkCreationGrant(creationToken)
+            do { try await move(id, to: frame, context: context, kind: "layout", creationToken: creationToken) }
             catch { entries[id]?.refusal = error.localizedDescription; throw error }
         }
     }
@@ -371,6 +390,31 @@ enum OrdinaryRefusal: LocalizedError {
         try await reflow(context)
     }
 
+    func editPair(leftPercent: Int, swap: Bool, context: AdmissionContext) async throws {
+        guard let slots = pairSlots, (20...80).contains(leftPercent) else { throw OrdinaryRefusal.noGrant }
+        var choice = context
+        choice.pairCustomized = true
+        choice.swapped = swap ? !slots.swapped : slots.swapped
+        choice.ratio = Double(leftPercent) / 100
+        try await update(context: choice)
+    }
+
+    /// Check the whole group before changing its first member. Each write then revalidates
+    /// its own retained observer again, so this check cannot authorize a stale target.
+    private func verifyGroup(_ targets: [ManagedWindowID: SurfaceRect], in context: AdmissionContext) async throws {
+        guard Set(activeIDs) == Set(targets.keys), presentationHeld?(context.display) != true else { throw OrdinaryRefusal.scope }
+        for id in activeIDs {
+            guard let target = targets[id], let handle = handles[id], let entry = entries[id],
+                  entry.refusal == nil, entry.intended == nil else { throw OrdinaryRefusal.lost }
+            try checkedScope(context, grant: handle)
+            let pair = try await handle.verify(expected: entry.confirmed)
+            guard try sample(pair, for: handle, in: context) == entry.confirmed else { throw OrdinaryRefusal.lost }
+            let minimum = pair.second.minimum ?? entry.original
+            guard target.width >= minimum.width, target.height >= minimum.height,
+                  context.usable.geometry.intersection(target.geometry) == target.geometry else { throw OrdinaryRefusal.minimum }
+        }
+    }
+
     private func reflow(_ context: AdmissionContext) async throws {
         try checkedScope(context)
         try revokeExcluded(in: context)
@@ -379,8 +423,23 @@ enum OrdinaryRefusal: LocalizedError {
         let next = try preferences(tiler, context, in: work)
         let frames = try next.frames(in: work)
         do {
+            if context.pairCustomized {
+                try await verifyGroup(frames, in: context)
+                guard !closing else { throw OrdinaryRefusal.stale }
+                // Persist the exact chosen members and partition before the first AX action.
+                tiler = next
+                try save()
+            }
             try await apply(frames, in: context)
             tiler = next; appliedArea = work
+            if context.pairCustomized {
+                // This confirmed explicit choice supersedes any earlier observed drag.
+                for id in activeIDs {
+                    entries[id]?.retainsExternalLayout = nil
+                    entries[id]?.externalLayout = nil
+                }
+                try save()
+            }
             message = "已核对 \(activeIDs.count) 扇授权窗口的工作区域和布局。"
         } catch { fail(error); throw error }
     }
@@ -475,7 +534,7 @@ enum OrdinaryRefusal: LocalizedError {
         }
     }
 
-    func stop() async throws {
+    func stop(preservingCustomLayout: Bool = false) async throws {
         try enter(allowBlocked: true)
         disableNewWindows()
         defer { busy = false }
@@ -487,6 +546,25 @@ enum OrdinaryRefusal: LocalizedError {
         guard let display = activeDisplay, let ctx = liveContext?(display) else { fail(OrdinaryRefusal.scope); throw OrdinaryRefusal.scope }
         do { try revokeExcluded(in: ctx) } catch { fail(error); throw error }
         guard !activeIDs.isEmpty else { return }
+        if preservingCustomLayout && tiler.userAdjusted {
+            do {
+                guard !blocked else { throw OrdinaryRefusal.lost }
+                let hasLaterChange = entries.values.contains { $0.retainsExternalLayout == true }
+                // A later external drag invalidates the relative arrangement. Leave the whole
+                // group at its witnessed frames rather than project a stale sibling across it.
+                let targets = try hasLaterChange ? entries.mapValues(\.confirmed) : tiler.frames(in: ctx.usable)
+                try await verifyGroup(targets, in: ctx)
+                if !hasLaterChange {
+                    for id in activeIDs {
+                        guard let target = targets[id], let before = entries[id]?.confirmed else { throw OrdinaryRefusal.lost }
+                        try await move(id, to: target, context: ctx, kind: "restore")
+                        if target != before { restoredIDs.insert(id) }
+                    }
+                }
+                try finishRecord(hasLaterChange ? "stopped-retaining-external" : "restored-user-layout")
+                return
+            } catch { fail(error); throw error }
+        }
         var failed: Error?
         var closed = [OrdinaryJournal.ClosedMember]()
         var retainedExternal = false
@@ -694,6 +772,8 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     func disableNewWindows() {
+        if creationGrant != nil { cancelPreview() }
+        creationWriter?.invalidate()
         if let id = creationAnchor, let token = creationGrant, let anchor = handles[id] {
             Task { try? await anchor.setCreationWatch(token, enabled: false) }
         }
@@ -735,7 +815,7 @@ enum OrdinaryRefusal: LocalizedError {
                                                         source: .application, preferences: context.preferences)
                 let plan = try await prepare([fresh], context: context)
                 guard creationGrant == token, !paused, !closing else { cancelPreview(); throw OrdinaryRefusal.noGrant }
-                try await confirm(plan, context: context)
+                try await confirm(plan, context: context, creationToken: token)
                 if requestCreation { message = "当前无法新建系统空间，已在本屏现有工作区核对并平铺新窗口。" }
             } catch {
                 if !blocked { message = "新窗口未加入。\(error.localizedDescription)" }
@@ -774,6 +854,6 @@ enum OrdinaryRefusal: LocalizedError {
         cancelPreview()
         monitoring?.cancel()
         while busy { try? await Task.sleep(for: .milliseconds(25)) }
-        if !activeIDs.isEmpty { try? await stop() }
+        if !activeIDs.isEmpty { try? await stop(preservingCustomLayout: true) }
     }
 }

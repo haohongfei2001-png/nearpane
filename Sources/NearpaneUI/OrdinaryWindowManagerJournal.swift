@@ -51,6 +51,8 @@ struct OrdinaryJournal {
         let status: String
         let display: String
         let entries: [Entry]
+        // Provenance for recovery review. Decoding it never creates a live window grant.
+        var layout: ManagedWindowTiler? = nil
     }
     let directory: URL
     init(support: URL) { directory = support.appendingPathComponent("WorkRect/ordinary", isDirectory: true) }

@@ -56,15 +56,19 @@ private typealias ViewState<T> = State<T>
                 }
                 if session.activeIDs.count == 2 && !session.paused && !session.blocked {
                     HStack {
-                        Stepper("左侧 \(percent)%", value: $percent, in: 20...80)
-                        Button("应用双窗比例") {
+                        Stepper("左侧调至 \(percent)%", value: $percent, in: 20...80)
+                        Button("应用比例") { perform { try await session.editPair(leftPercent: percent, swap: false, context: try current()) } }
+                            .accessibilityIdentifier("ordinary-pair")
+                        Button("交换左右") {
                             perform {
-                                var c = try current()
-                                c.pairCustomized = true
-                                c.ratio = Double(percent) / 100
-                                try await session.update(context: c)
+                                guard let slots = session.pairSlots else { throw OrdinaryRefusal.stale }
+                                try await session.editPair(leftPercent: slots.percent, swap: true, context: try current())
                             }
-                        }.accessibilityIdentifier("ordinary-pair")
+                        }.accessibilityIdentifier("ordinary-swap")
+                    }
+                    if let slots = session.pairSlots {
+                        Text("当前左侧占 \(slots.percent)%" + (session.hasCustomLayout ? "。退出应用时，已确认的槽位与比例将映射到完整工作区。" : ""))
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }

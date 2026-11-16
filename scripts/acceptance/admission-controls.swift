@@ -49,7 +49,7 @@ let command = a[3]
 let profile = candidateID == "com.holdsnow.nearpane.alpha"
 guard !(ordinary || sizing || services) || profile else { stop("candidate identity") }
 let ordinaryFixed = ["admission-open", "admission-ordinary-app", "admission-read",
-                     "ordinary-confirm", "ordinary-stop", "ordinary-pause", "ordinary-resume", "ordinary-pair", "ordinary-keep-current", "ordinary-scope-confirm", "ordinary-scope-stop",
+                     "ordinary-confirm", "ordinary-stop", "ordinary-pause", "ordinary-resume", "ordinary-pair", "ordinary-swap", "ordinary-keep-current", "ordinary-scope-confirm", "ordinary-scope-stop",
                      "nearpane-open-panel", "nearpane-close-panel"]
 let sizeFixed = ["sizes-reset-group", "sizes-reset-display", "sizes-reset-cancel", "sizes-reset-apply",
                  "com.holdsnow.nearpane.clock-sample", "nearpane-module-close"]

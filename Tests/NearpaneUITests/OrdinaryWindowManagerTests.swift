@@ -111,6 +111,74 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func cancellingCreationScopeDuringConfirmationCannotPublishGrantOrWrite() async throws {
+        let fixture = OrdinaryScope(), anchor = WindowDouble(), manager = fixture.manager()
+        let created = WindowDouble(launch: anchor.id.launch)
+        try await manager.confirm(manager.prepare([anchor], context: fixture.context), context: fixture.context)
+        try await manager.enableNewWindows(from: anchor.id)
+        let writes = anchor.writes
+        anchor.nextCreation = created
+        created.nextVerify = { manager.disableNewWindows() }
+        await manager.checkNewWindows()
+        #expect(manager.creationAnchor == nil && manager.activeIDs == [anchor.id])
+        #expect(!manager.blocked && anchor.writes == writes && created.writes == 0)
+        let record = try JSONDecoder().decode(OrdinaryJournal.Record.self, from: Data(contentsOf: fixture.journal))
+        #expect(record.entries.map(\.id) == [anchor.id])
+        try await manager.stop()
+    }
+    @Test func exchangingSlotsSurvivesThirdMemberAndNormalQuitProjectsThePair() async throws {
+        let fixture = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), c = WindowDouble()
+        let manager = fixture.manager()
+        try await manager.confirm(manager.prepare([a,b], context: fixture.context), context: fixture.context)
+        try await manager.editPair(leftPercent: 60, swap: true, context: fixture.context)
+        #expect(b.frame.x < a.frame.x && b.frame.width > a.frame.width)
+        try await manager.editPair(leftPercent: 65, swap: false, context: fixture.context)
+        let ordered = [a.frame, b.frame]
+        #expect(manager.pairSlots?.swapped == true && manager.pairSlots?.percent == 65)
+        try await manager.confirm(manager.prepare([c], context: fixture.context), context: fixture.context)
+        #expect(c.frame.x < a.frame.x && a.frame.x == b.frame.x)
+        c.witnessClosure()
+        await manager.poll()
+        #expect([a.frame,b.frame] == ordered && manager.pairSlots?.swapped == true)
+        let durable = try JSONDecoder().decode(OrdinaryJournal.Record.self, from: Data(contentsOf: fixture.journal))
+        #expect(durable.layout?.userAdjusted == true)
+        let untouched = c.writes
+        try manager.pause()
+        await manager.finish()
+        #expect(b.frame == SurfaceRect(x: 0, y: 0, width: 650, height: 800))
+        #expect(a.frame == SurfaceRect(x: 650, y: 0, width: 350, height: 800))
+        #expect(c.writes == untouched && manager.activeIDs.isEmpty && !manager.blocked)
+    }
+
+    @Test func changedSiblingPreventsPairExitWritesAndPersistedLayoutCannotReplay() async throws {
+        let fixture = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), manager = fixture.manager()
+        try await manager.confirm(manager.prepare([a,b], context: fixture.context), context: fixture.context)
+        try await manager.editPair(leftPercent: 60, swap: true, context: fixture.context)
+        let writes = [a.writes,b.writes]
+        b.frame.x += 1
+        await manager.finish()
+        #expect(manager.blocked && [a.writes,b.writes] == writes)
+        let restarted = fixture.manager()
+        #expect(restarted.blocked && restarted.activeIDs.isEmpty)
+        await #expect(throws: OrdinaryRefusal.self) { try await restarted.prepare([b], context: fixture.context) }
+        await restarted.finish()
+        #expect([a.writes,b.writes] == writes && FileManager.default.fileExists(atPath: fixture.journal.path))
+    }
+
+    @Test func witnessedLaterDragOverridesOlderPairOnNormalQuit() async throws {
+        let fixture = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), manager = fixture.manager()
+        try await manager.confirm(manager.prepare([a,b], context: fixture.context), context: fixture.context)
+        try await manager.editPair(leftPercent: 60, swap: true, context: fixture.context)
+        var edited = a.frame
+        edited.width -= 20
+        a.externalChange(to: edited)
+        await manager.poll()
+        let writes = [a.writes,b.writes], other = b.frame
+        await manager.finish()
+        #expect(!manager.blocked && manager.activeIDs.isEmpty)
+        #expect([a.writes,b.writes] == writes && a.frame == edited && b.frame == other)
+    }
+
     @Test func creationScopeAdmitsOnlySubsequentSameIncarnationWindowsAndRestores() async throws {
         let m = OrdinaryScope(), anchor = WindowDouble(), manager = m.manager()
         let existing = WindowDouble(launch: anchor.id.launch), born = WindowDouble(launch: anchor.id.launch)

@@ -139,3 +139,45 @@ def new_window_scope(trial, original, *, check, wait, put, out):
     check(not (trial.records / "journal.json").exists(), "scope recovery remains unresolved")
     put(out / "new-window-scope.json", dict(session=trial.sid, verifiedNewWindow=fresh,
                                             untouched=[sibling, paused["number"]], verifiedActions=len(final)))
+
+
+def pair_quit(trial, original, *, check, put, out):
+    """Exercise actual Settings, quit the Host, then compare AX/CG/owner at the full usable area."""
+    trial.start_host()
+    trial.press("admission-open")
+    trial.press("admission-ordinary-app")
+    first, second = original
+    trial.press("admission-window-" + str(first))
+    trial.select(second)
+    x, y, width, height = trial.run_focus["usableQuartz"]
+
+    def frames(left, right, x, width, ratio):
+        part = width * ratio
+        return {left: [x, y, part, height], right: [x + part, y, width - part, height]}
+
+    inset = 160
+    trial.checkpoint("pair-joined", frames(first, second, x + inset, width - inset, .5), 2)
+    trial.press("ordinary-pair")
+    trial.checkpoint("explicit-ratio", frames(first, second, x + inset, width - inset, .6), 4)
+    trial.press("ordinary-swap")
+    managed = frames(second, first, x + inset, width - inset, .6)
+    trial.checkpoint("explicit-swap", managed, 6)
+    trial.action("quit", wait_ack=False)
+    check(trial.host.wait(timeout=15) == 0, "Host did not quit normally")
+    expected = frames(second, first, x, width, .6)
+    for label in ("post-quit", "post-quit-stable"):
+        actual = trial.sample(label)
+        check(actual == expected, "full-area user slots did not survive quit")
+        time.sleep(.12)
+    archives = list(trial.records.glob("restored-user-layout-*.json"))
+    check(len(archives) == 1 and not (trial.records / "journal.json").exists(), "missing safe quit archive")
+    actions = [json.loads(path.read_text()) for path in trial.records.glob("action-*.json")]
+    restored = [action for action in actions if action["kind"] == "restore"]
+    check(len(actions) == 8 and len(restored) == 2 and {a["id"]["number"] for a in restored} == set(original),
+          "unexpected quit transactions")
+    for action in restored:
+        for sample in action["readback"].values():
+            check(sample["number"] == sample["axNumber"] == action["id"]["number"]
+                  and sample["axFrame"] == sample["cgFrame"] == action["requested"], "unverified restore receipt")
+    put(out / "pair-quit.json", dict(session=trial.sid, managed=managed, restored=expected,
+                                    archive=archives[0].name, verifiedActions=len(actions)))
