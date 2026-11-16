@@ -25,6 +25,8 @@ protocol VoiceInput: AnyObject {
     func start(requestPermission: Bool) async throws
     func pause() async
     func retry(_ id: UUID) async throws
+    func playArchive(_ members: [UUID], id: UUID, ended: @escaping () -> Void) async throws
+    func stopArchivePlayback()
     func revokeCloud()
     func configure(_ configuration: RecognitionConfiguration) async
     func shutdown() async
@@ -35,6 +37,8 @@ private final class DomainInput: VoiceInput {
     let audio: AudioController
     private let recordings: SaytileStore
     var observation: AnyCancellable?
+    private var playbackObservation: AnyCancellable?
+    private var archivePlayingID: UUID?
     private let requireExistingPermissions: Bool
     private let profile: VoiceRecognitionProfile?
     private var configuration = RecognitionConfiguration()
@@ -43,8 +47,9 @@ private final class DomainInput: VoiceInput {
         self.profile = profile
         recordings = store
         self.requireExistingPermissions = requireExistingPermissions
-        audio = credentials?.controller(store: store, configuration: configuration)
-            ?? AudioController(store: store, recognitionConfiguration: configuration)
+        // A controller first created for replay has no authority to resume recognition jobs.
+        audio = credentials?.controller(store: store, configuration: configuration, startupRecoveryReady: false)
+            ?? AudioController(store: store, recognitionConfiguration: configuration, startupRecoveryReady: false)
         observation = Publishers.CombineLatest3(audio.$state, audio.$level, audio.$issue).sink {
             changed($0, $1, $2)
         }
@@ -58,6 +63,7 @@ private final class DomainInput: VoiceInput {
             guard availability.installed else { throw AudioFailure.message(availability.message) }
         }
         try Task.checkCancellation()
+        audio.completeStartupRecovery()
         await audio.start(requestPermission: requestPermission && !requireExistingPermissions)
     }
     func pause() async { await audio.pause() }
@@ -65,7 +71,19 @@ private final class DomainInput: VoiceInput {
         let selected = try profile?.configurationForInput() ?? RecognitionConfiguration()
         await configure(selected)
         let expected = try await VoiceRecognitionProfile.retryConfiguration(selected, for: id, in: recordings)
+        audio.completeStartupRecovery()
         await audio.retry(recordingID: id, expectedConfiguration: expected)
+    }
+    func playArchive(_ members: [UUID], id: UUID, ended: @escaping () -> Void) async throws {
+        guard audio.state == .paused, audio.playingID == nil else { throw StoreError.recordingActive }
+        archivePlayingID = id
+        playbackObservation = audio.$playingID.removeDuplicates().dropFirst().sink { if $0 == nil { ended() } }
+        try await audio.play(recordingIDs: members, playbackID: id)
+    }
+    func stopArchivePlayback() {
+        playbackObservation = nil
+        if let archivePlayingID, audio.playingID == archivePlayingID { audio.stopPlayback() }
+        archivePlayingID = nil
     }
     private func prepareConfiguration() async throws {
         guard let profile else { return }
@@ -115,6 +133,11 @@ public final class VoiceModule: HostModule {
     public private(set) var capture: CaptureState = .paused
     private(set) var control = PanelCapturePresentation(.paused, 0)
     private(set) var rows: [Recording] = []
+    private(set) var archiveRevision = 0
+    private(set) var archivePlaybackParagraph: Int64?
+    private(set) var archivePlaybackIssue: String?
+    @ObservationIgnored private var archivePlaybackRequest: UUID?
+    @ObservationIgnored private var archivePlaybackTask: Task<Void, Never>?
     private(set) var hasEarlier = false
     private(set) var issue: String?
     public var transcript: String { rows.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n") }
@@ -180,13 +203,18 @@ public final class VoiceModule: HostModule {
             do { try await Task.sleep(for: .milliseconds(80)) } catch { return }
             guard let self, active, generation == epoch else { return }
             notifiedRefresh = nil
+            let before = archiveRevision
             await refresh()
+            // A late revision can belong to a recording outside the panel's page.
+            if active, generation == epoch, archiveRevision == before { archiveRevision += 1 }
         }
     }
     public func waitForTransition() async { await transition?.value }
 
     public func stop() {
         guard active else { return }
+        let endingPlayback = archivePlaybackTask
+        stopArchivePlayback()
         manualInput?.finish()
         manualInput = nil
         manualTask?.cancel()
@@ -205,6 +233,7 @@ public final class VoiceModule: HostModule {
         transition = Task {
             await previous?.value
             await endingInsertion?.value
+            await endingPlayback?.value
             await oldInput?.shutdown()
             await writes?.value
             // Cancelling a view refresh does not cancel an already admitted SQLite read.
@@ -239,6 +268,7 @@ public final class VoiceModule: HostModule {
 
     func toggle(requestPermission: Bool = true) async {
         guard active, !busy, !changingRecognition else { return }
+        stopArchivePlayback()
         busy = true
         let epoch = generation
         defer { if generation == epoch { busy = false } }
@@ -286,6 +316,60 @@ public final class VoiceModule: HostModule {
         return try await operation(store)
     }
 
+    func withArchiveRead<T>(_ operation: (SaytileStore) async throws -> T) async throws -> T {
+        try Task.checkCancellation()
+        guard active else { throw CancellationError() }
+        let epoch = generation
+        // A cancelled playback may be one of the jobs the next transition must join.
+        let opening = transition
+        await opening?.value
+        try Task.checkCancellation()
+        guard active, generation == epoch else { throw CancellationError() }
+        guard store != nil else { throw StoreError.database("语音资料库未打开。") }
+        let result = try await withPanelRead(operation)
+        try Task.checkCancellation()
+        guard active, generation == epoch else { throw CancellationError() }
+        return result
+    }
+
+    var canPlayArchive: Bool { active && capture == .paused && !busy && !changingRecognition }
+
+    @discardableResult func playArchiveParagraph(_ paragraph: TimelineParagraph) -> Task<Void, Never>? {
+        guard canPlayArchive, paragraph.hasAudio else { return nil }
+        stopArchivePlayback()
+        let request = UUID()
+        archivePlaybackRequest = request
+        archivePlaybackParagraph = paragraph.id
+        archivePlaybackTask = Task {
+            do {
+                let ids = try await withArchiveRead { try await $0.paragraphRecordingIDs(paragraphID: paragraph.id) }
+                guard archivePlaybackRequest == request, canPlayArchive else { throw CancellationError() }
+                guard ids.first == paragraph.firstRecordingID else { throw StoreError.missingRecording }
+                let device = try currentInput()
+                try await device.playArchive(ids, id: paragraph.firstRecordingID) { [weak self] in
+                    guard let self, archivePlaybackRequest == request else { return }
+                    archivePlaybackParagraph = nil
+                }
+            } catch {
+                if archivePlaybackRequest == request {
+                    archivePlaybackParagraph = nil
+                    if !(error is CancellationError) { archivePlaybackIssue = error.localizedDescription }
+                }
+            }
+            if archivePlaybackRequest == request { archivePlaybackTask = nil }
+        }
+        return archivePlaybackTask
+    }
+
+    public func stopArchivePlayback() {
+        archivePlaybackTask?.cancel()
+        archivePlaybackTask = nil
+        if archivePlaybackRequest != nil { input?.stopArchivePlayback() }
+        archivePlaybackRequest = nil
+        archivePlaybackParagraph = nil
+        archivePlaybackIssue = nil
+    }
+
     public func refresh() async {
         guard active, store != nil else { return }
         let epoch = generation
@@ -307,7 +391,7 @@ public final class VoiceModule: HostModule {
             }
             guard active, generation == epoch, refreshID == request else { return }
             let ordered = Array(result.reversed())
-            if ordered != rows { rows = ordered; acceptanceEvent?("voiceRows") }
+            if ordered != rows { rows = ordered; archiveRevision += 1; acceptanceEvent?("voiceRows") }
             hasEarlier = count > result.count
         } catch { if generation == epoch { issue = "暂时无法读取文字；保留上次内容。" } }
     }

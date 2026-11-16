@@ -138,10 +138,7 @@ private struct TrayTileBackground: View {
     var body: some View {
         shape.fill(reduceTransparency ? Color(nsColor: .controlBackgroundColor) : Color.white.opacity(colorScheme == .dark ? 0.06 : 0.24))
             .overlay {
-                shape.fill(LinearGradient(colors: [
-                    Color.indigo.opacity(0.025),
-                    Color.purple.opacity(0.055)
-                ], startPoint: .topLeading, endPoint: .bottomTrailing))
+                shape.fill(.tint.opacity(0.055))
             }
             .overlay {
                 shape.strokeBorder(contrast == .increased ? Color.primary.opacity(0.55) : Color.white.opacity(colorScheme == .dark ? 0.25 : 0.6),
@@ -151,7 +148,7 @@ private struct TrayTileBackground: View {
     }
 }
 
-private struct TrayCaptureStyle: ButtonStyle {
+struct TrayCaptureStyle: ButtonStyle {
     var radius: CGFloat = 7
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.colorScheme) private var colorScheme
@@ -160,19 +157,20 @@ private struct TrayCaptureStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         let dark = colorScheme == .dark
-        let face = dark ? Color(red: 0.32, green: 0.30, blue: 0.46) : Color(red: 0.918, green: 0.909, blue: 1)
-        let foot = dark ? Color(red: 0.28, green: 0.25, blue: 0.43) : Color(red: 0.820, green: 0.761, blue: 1)
-        let ink = dark ? Color(red: 0.83, green: 0.78, blue: 1) : Color(red: 0.600, green: 0.477, blue: 0.980)
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
-            .foregroundStyle(contrast == .increased ? Color.primary : ink)
+            .foregroundStyle(contrast == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(.tint))
             .background {
                 // Riftlet's camera key has a raised face and a short contact edge.
                 // Keep the full key as the button's hit area in both menu states.
                 GeometryReader { proxy in
                     let depth = configuration.isPressed ? 0 : min(proxy.size.height * 0.08, 3)
-                    shape.fill(foot.opacity(opaque ? 1 : 0.80))
-                    shape.fill(face.opacity(opaque || contrast == .increased ? 1 : dark ? 0.78 : 0.94))
+                    shape.fill(.background)
+                        .overlay { shape.fill(.tint.opacity(dark ? 0.42 : 0.29)) }
+                        .opacity(opaque ? 1 : 0.80)
+                    shape.fill(.background)
+                        .overlay { shape.fill(.tint.opacity(dark ? 0.27 : 0.11)) }
+                        .opacity(opaque || contrast == .increased ? 1 : dark ? 0.85 : 0.95)
                         .overlay { shape.strokeBorder(contrast == .increased ? Color.primary : .white.opacity(dark ? 0.27 : 0.42),
                                                       lineWidth: contrast == .increased ? 1 : 1 / max(1, scale)) }
                         .padding(.bottom, depth)

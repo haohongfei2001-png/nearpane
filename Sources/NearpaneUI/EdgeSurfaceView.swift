@@ -60,7 +60,7 @@ public struct EdgeSurfaceView: View {
             })
             #endif
         }
-        .tint(.indigo)
+        .productAccent(host.configuration.accent)
     }
 
     private func enabled(_ id: String) -> Bool {
@@ -129,7 +129,7 @@ public struct EdgeSurfaceView: View {
                     .help(module.name)
                     .accessibilityLabel(module.name)
                     .accessibilityIdentifier(module.id)
-                    .foregroundStyle(host.registry.expandedID == module.id ? Color.indigo : Color.secondary)
+                    .foregroundStyle(host.registry.expandedID == module.id ? host.configuration.accent.color : Color.secondary)
                 }
             }.padding(.horizontal, 8)
         }

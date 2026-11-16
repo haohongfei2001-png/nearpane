@@ -18,12 +18,14 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public var preferredDisplayID: String?
     /// Missing in early v1 configurations, which always opened visible.
     public var surfaceHidden: Bool = false
+    public var showsMenuBarIcon = true
     public var candidateTrayConnected = true
     public var experimentalSpaceObservation = false
     public var workspaces = WorkspacePreferences()
     public var displays: [String: DisplaySettings] = [:]
     public var modules: [ModulePreference] = []
     public var clockTimeZoneID: String?
+    public var accent: ProductAccent = .purple
     public var fixture: DesktopFixture = .internalScopes3Plus1
 
     public init() {}
@@ -35,6 +37,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         preferredDisplayID = try c.decodeIfPresent(String.self, forKey: .preferredDisplayID)
         candidateTrayConnected = try c.decodeIfPresent(Bool.self, forKey: .candidateTrayConnected) ?? true
         surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
+        showsMenuBarIcon = try c.decodeIfPresent(Bool.self, forKey: .showsMenuBarIcon) ?? true
         experimentalSpaceObservation = try c.decodeIfPresent(Bool.self, forKey: .experimentalSpaceObservation) ?? false
         workspaces = try c.decodeIfPresent(WorkspacePreferences.self,forKey:.workspaces) ?? .init()
         displays = try c.decodeIfPresent([String: DisplaySettings].self, forKey: .displays) ?? [:]
@@ -42,6 +45,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         let clockZone = try c.decodeIfPresent(String.self, forKey: .clockTimeZoneID)
         clockTimeZoneID = clockZone.flatMap { TimeZone.knownTimeZoneIdentifiers.contains($0) ? $0 : nil }
         fixture = try c.decode(DesktopFixture.self, forKey: .fixture)
+        accent = try c.decodeIfPresent(ProductAccent.self, forKey: .accent) ?? .purple
     }
 
     public func validated() throws -> Self {
@@ -56,6 +60,10 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
               (preferredDisplayID?.count ?? 0) <= 120 else { throw ConfigurationError.invalid }
         return self
     }
+}
+
+public enum ProductAccent: String, CaseIterable, Codable, Sendable {
+    case system, purple, blue, teal, green, orange, pink, graphite
 }
 
 public enum ConfigurationError: Error { case unsupportedVersion, invalid }

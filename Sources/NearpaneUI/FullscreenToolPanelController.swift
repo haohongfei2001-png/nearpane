@@ -60,7 +60,7 @@ private struct ToolPresentation: Equatable {
             dragOrigin = nil
             generation = UUID()
             let binding = generation
-            let view = FullscreenToolPanelView(domains: domains, state: next,
+            let view = FullscreenToolPanelView(host: host, domains: domains, state: next,
                 permit: { [weak self] in self?.isCurrent(binding) == true },
                 open: { [weak self] tool in
                     guard let self, isCurrent(binding) else { return }
@@ -181,6 +181,7 @@ private final class ToolHostingView: NSHostingView<FullscreenToolPanelView> {
 }
 
 private struct FullscreenToolPanelView: View {
+    let host: HostSession
     let domains: EmbeddedModules, state: ToolPresentation
     let permit: @MainActor () -> Bool
     let open: (FullscreenToolKind) -> Void, close: () -> Void, move: (ToolMove) -> Void
@@ -196,7 +197,7 @@ private struct FullscreenToolPanelView: View {
                     Button {
                         guard permit(), CGPreflightScreenCaptureAccess() else { return }
                         domains.tray.captureFromFullscreen()
-                    } label: { Image(systemName: "camera").frame(width: 38, height: 28) }
+                    } label: { Image(systemName: "camera").foregroundStyle(.tint).frame(width: 38, height: 28) }
                     .accessibilityLabel("系统截图").accessibilityIdentifier("np.fullscreen.capture")
                     .help("使用已有的屏幕录制权限进行系统截图")
                     .disabled(!domains.tray.captureEntry || !CGPreflightScreenCaptureAccess())
@@ -209,13 +210,14 @@ private struct FullscreenToolPanelView: View {
                 ForEach(state.tools, id: \.self) { tool in
                     let title = tool == .voice ? "打开语音工具" : "打开截图工具"
                     Button { open(tool) } label: {
-                        Image(systemName: tool == .voice ? "mic" : "photo").frame(width: 24, height: 24)
+                        Image(systemName: tool == .voice ? "mic" : "photo").foregroundStyle(.tint).frame(width: 24, height: 24)
                     }.help(title).accessibilityLabel(title).accessibilityIdentifier("np.fullscreen.open." + tool.rawValue)
                 }
             }
         }.padding(.horizontal, 4).frame(maxWidth: .infinity, maxHeight: .infinity)
         .font(.system(size: 12)).buttonStyle(.plain)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
+        .productAccent(host.configuration.accent)
     }
 }
 

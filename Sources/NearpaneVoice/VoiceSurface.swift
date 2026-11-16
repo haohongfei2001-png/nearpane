@@ -234,6 +234,12 @@ struct TranscriptLine: NSViewRepresentable {
     }
 
     func updateNSView(_ view: TextView, context: Context) {
+        if let ink = NSColor(cgColor: Color.accentColor.resolve(in: context.environment).cgColor) {
+            view.insertionPointColor = ink
+            let highContrast = context.environment.colorSchemeContrast == .increased
+            view.selectedTextAttributes[.backgroundColor] = highContrast
+                ? NSColor.selectedTextBackgroundColor : ink.withAlphaComponent(0.28)
+        }
         let font = fontSize.map { NSFont.systemFont(ofSize:max(1,$0)) } ?? NSFont.preferredFont(forTextStyle:.body)
         if view.font != font { view.font = font }
         view.editLine = { [weak view] in edit(view?.window) }

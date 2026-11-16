@@ -91,8 +91,37 @@ struct PanelSizeDraft: Equatable {
 
 class PanelDimensionTextField: NSTextField, NSTextFieldDelegate {
     var edited: (String) -> Void = { _ in }
+    var accent: NSColor? { didSet { if accent != oldValue { updateEditorColors() } } }
+    private weak var themedEditor: NSTextView?
+    private var originalCaret: NSColor?
+    private var originalSelection: Any?
 
     private var composing: Bool { (currentEditor() as? NSTextView)?.hasMarkedText() == true }
+
+    func controlTextDidBeginEditing(_ notification: Notification) {
+        guard let editor = currentEditor() as? NSTextView else { return }
+        themedEditor = editor
+        originalCaret = editor.insertionPointColor
+        originalSelection = editor.selectedTextAttributes[.backgroundColor]
+        updateEditorColors()
+    }
+
+    private func updateEditorColors() {
+        guard let editor = themedEditor, let originalCaret else { return }
+        editor.insertionPointColor = accent ?? originalCaret
+        editor.selectedTextAttributes[.backgroundColor] = accent?.withAlphaComponent(0.28) ?? originalSelection
+    }
+
+    func controlTextDidEndEditing(_ notification: Notification) {
+        // AppKit shares this editor with other fields in the same window.
+        if let editor = themedEditor, let originalCaret {
+            editor.insertionPointColor = originalCaret
+            editor.selectedTextAttributes[.backgroundColor] = originalSelection
+        }
+        themedEditor = nil
+        originalCaret = nil
+        originalSelection = nil
+    }
 
     func controlTextDidChange(_ notification: Notification) {
         guard !composing else { return }
@@ -126,6 +155,8 @@ private struct PanelDimensionInput: NSViewRepresentable {
     }
 
     func updateNSView(_ field: PanelDimensionTextField, context: Context) {
+        field.accent = context.environment.colorSchemeContrast == .increased ? nil
+            : NSColor(cgColor: Color.accentColor.resolve(in: context.environment).cgColor)
         field.edited = { dimension.wrappedValue.enter($0) }
         field.display(dimension.wrappedValue.text)
     }
@@ -227,7 +258,7 @@ private struct PanelSizePreview: View {
                     context.stroke(Path(pane), with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
                     return
                 }
-                context.fill(Path(pane), with: .color(.accentColor.opacity(0.22)))
+                context.fill(Path(pane), with: .style(.tint.opacity(0.22)))
                 if form == .full {
                     let sections = LayoutComposer.compose(width: frame.width, height: frame.height, pinnedCount: 0,
                                                           expanded: false, settings: settings, content: content,
@@ -238,7 +269,7 @@ private struct PanelSizePreview: View {
                         context.fill(Path(boundary), with: .color(.secondary))
                     }
                 }
-                context.stroke(Path(pane), with: .color(.accentColor), lineWidth: 1)
+                context.stroke(Path(pane), with: .style(.tint), lineWidth: 1)
             }.frame(width: 110, height: 76)
             VStack(alignment: .leading, spacing: 2) {
                 Text("布局预览 · " + kind)

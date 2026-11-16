@@ -161,6 +161,12 @@ public final class HostSession {
         next.candidateTrayConnected = connected
         persistSettings(next)
     }
+    public func setAccent(_ accent: ProductAccent) {
+        guard configuration.accent != accent else { return }
+        var next = configuration
+        next.accent = accent
+        persistSettings(next, updatePresentation: false)
+    }
     public private(set) var unsavedWorkspacePreferences: WorkspacePreferences?
     public var workspacePreferencesDraft: WorkspacePreferences { unsavedWorkspacePreferences ?? configuration.workspaces }
 
@@ -215,6 +221,13 @@ public final class HostSession {
         configuration.edge = edge
         configuration.preferredDisplayID = displayID
         save()
+    }
+
+    @discardableResult public func setShowsMenuBarIcon(_ visible: Bool) -> Bool {
+        guard configuration.showsMenuBarIcon != visible else { return true }
+        var next = configuration
+        next.showsMenuBarIcon = visible
+        return persistSettings(next, updatePresentation: false)
     }
 
     public func setSurfaceHidden(_ hidden: Bool) {

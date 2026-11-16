@@ -314,7 +314,7 @@ def settings(root, *, include_clock=True):
     require(cfg.get("version") == 1 and cfg.get("edge") in ("left", "right") and
             isinstance(cfg.get("modules"), list) and isinstance(cfg.get("displays", {}), dict),
             "Host 设置版本或结构无法识别。")
-    cfg = {k: v for k, v in cfg.items() if k in {"version","edge","preferredDisplayID","surfaceHidden",
+    cfg = {k: v for k, v in cfg.items() if k in {"version","edge","preferredDisplayID","surfaceHidden","showsMenuBarIcon","accent",
            "candidateTrayConnected","workspaces","displays","modules","fixture","clockTimeZoneID"}}
     clock = root / CLOCK
     if include_clock and (clock.exists() or clock.is_symlink()) and regular(root / "profile.version").read_bytes() == b"Nearpane P5.3\n":

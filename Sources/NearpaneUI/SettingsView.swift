@@ -4,33 +4,48 @@ import NearpaneCore
 import Observation
 #if canImport(NearpaneVoice)
 import NearpaneVoice
+import NearpaneTray
 #endif
 
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case dimensions, windowManagement, windowRules, displays, desktop, voice, tray, modules, app, diagnostics
+    case voiceArchive, screenshotArchive, general, dimensions, windowManagement, windowRules, displays, desktop, modules, app, voice, tray, diagnostics
     var id: Self { self }
     var label: String {
         switch self {
+        case .voiceArchive: "语音档案"
+        case .screenshotArchive: "截图档案"
+        case .general: "通用"
         case .dimensions: "外观与尺寸"
         case .windowManagement: "窗口管理"
         case .windowRules: "窗口规则"
         case .displays: "显示器"
         case .desktop: "空间观察"
-        case .voice: "Saytile 语音"
-        case .tray: "Riftlet 截图"
+        case .voice: "Saytile 语音设置"
+        case .tray: "Riftlet 截图设置"
         case .modules: "模块"
         case .app: "应用与更新"
         case .diagnostics: "开发诊断"
         }
     }
+    var navigationLabel: String {
+        switch self {
+        case .voice: "Saytile 语音"
+        case .tray: "Riftlet 截图"
+        default: label
+        }
+    }
+
     var symbol: String {
         switch self {
+        case .voiceArchive: "waveform"
+        case .screenshotArchive: "photo.on.rectangle.angled"
+        case .general: "gearshape"
         case .dimensions: "slider.horizontal.3"
         case .windowManagement: "macwindow.on.rectangle"
         case .windowRules: "list.bullet"
         case .displays: "display"
         case .desktop: "rectangle.3.group"
-        case .voice: "waveform"
+        case .voice: "mic"
         case .tray: "camera"
         case .modules: "square.grid.2x2"
         case .app: "arrow.triangle.2.circlepath"
@@ -40,8 +55,17 @@ enum SettingsPage: String, CaseIterable, Identifiable {
 }
 
 @Observable @MainActor public final class SettingsNavigation {
-    var page = SettingsPage.dimensions
+    #if canImport(NearpaneVoice)
+    var page = SettingsPage.voiceArchive
+    #else
+    var page = SettingsPage.general
+    #endif
     public init() {}
+    public func showAppearance() { page = .dimensions }
+    public func showVoiceArchive() { page = .voiceArchive }
+    public func showScreenshotArchive() { page = .screenshotArchive }
+    public func showGeneral() { page = .general }
+    public func showApplicationServices() { page = .app }
     public func showWindowManagement() { page = .windowManagement }
 }
 
@@ -94,8 +118,10 @@ public struct SettingsView: View {
     private var screens: [ScreenGeometry] { inventory.screens }
     private let dismissSpaces: (String) -> Void
     private let requestSecondary: (String) -> Void
+    private let menuVisibilityChanged: (Bool) -> Void
     private let placementChanged: () -> Void
-    public init(host: HostSession, inventory: SettingsScreenInventory, previewExposure: SettingsPreviewExposure, navigation: SettingsNavigation = SettingsNavigation(), domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, applicationServices: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+    public init(host: HostSession, inventory: SettingsScreenInventory, previewExposure: SettingsPreviewExposure, navigation: SettingsNavigation = SettingsNavigation(), domains: EmbeddedModules? = nil, profileImport: AnyView? = nil, applicationServices: AnyView? = nil, requestSecondary: @escaping (String) -> Void = { _ in }, dismissSpaces: @escaping (String) -> Void = { _ in }, menuVisibilityChanged: @escaping (Bool) -> Void = { _ in }, placementChanged: @escaping () -> Void) {
+        self.menuVisibilityChanged = menuVisibilityChanged
         self.navigation = navigation
         self.previewExposure = previewExposure
         self.profileImport = profileImport
@@ -111,28 +137,11 @@ public struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ScrollView {
                         VStack(spacing: 2) {
-                            ForEach(availablePages) { page in
-                                let selected = navigation.page == page
-                                Button {
-                                    navigation.page = page
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: page.symbol)
-                                            .frame(width: 19).foregroundStyle(selected ? Color.accentColor : .secondary)
-                                        Text(page.label)
-                                        Spacer(minLength: 0)
-                                    }
-                                    .padding(.horizontal, 8).frame(height: 30)
-                                    .background(selected ? Color.accentColor.opacity(0.14) : .clear,
-                                                in: RoundedRectangle(cornerRadius: 6))
-                                    .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityAddTraits(selected ? .isSelected : [])
-                                .accessibilityIdentifier("settings-nav-" + page.rawValue)
-                            }
+                            navigationGroup("档案", pages: [.voiceArchive, .screenshotArchive])
+                            navigationGroup("Nearpane 设置", pages: [.general, .dimensions, .windowManagement, .windowRules, .displays, .desktop, .modules, .app])
+                            navigationGroup("模块设置", pages: [.voice, .tray, .diagnostics])
                         }.padding(8)
-                    }.accessibilityLabel("设置分类")
+                    }.accessibilityLabel("Nearpane 导航")
                     Divider()
                     Text(installedBuild.label)
                         .font(.caption)
@@ -145,23 +154,64 @@ public struct SettingsView: View {
                 .background(Color(nsColor: .controlBackgroundColor).opacity(0.55))
                 Divider().frame(width: 1)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(navigation.page.label).font(.title2.weight(.semibold))
-                        .accessibilityAddTraits(.isHeader)
+                    HStack {
+                        Text(navigation.page.label).font(.title2.weight(.semibold))
+                            .accessibilityAddTraits(.isHeader)
+                        Spacer()
+                        if navigation.page == .voiceArchive && availablePages.contains(.voice) {
+                            Button("语音设置") { navigation.page = .voice }
+                                .accessibilityIdentifier("archive-voice-settings")
+                        } else if navigation.page == .screenshotArchive {
+                            Button("截图设置") { navigation.page = .tray }
+                                .accessibilityIdentifier("archive-tray-settings")
+                        }
+                    }
                     content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
                 .padding(16)
                 .frame(width: max(0, bounds.size.width - 153), height: bounds.size.height, alignment: .topLeading)
             }
         }
+        .onAppear {
+            if !availablePages.contains(navigation.page) { navigation.showGeneral() }
+        }
+        .productAccent(host.configuration.accent)
         .frame(minWidth: 640, minHeight: 476)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    @ViewBuilder private func navigationGroup(_ label: String, pages: [SettingsPage]) -> some View {
+        let entries = pages.filter { availablePages.contains($0) }
+        if !entries.isEmpty {
+            Text(label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8).padding(.top, 8).padding(.bottom, 3)
+            ForEach(entries) { page in
+                let selected = navigation.page == page
+                Button { navigation.page = page } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: page.symbol).frame(width: 18)
+                            .foregroundStyle(selected ? host.configuration.accent.color : .secondary)
+                        Text(page.navigationLabel)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 8).frame(height: 28)
+                    .background(selected ? host.configuration.accent.color.opacity(0.14) : .clear,
+                                in: RoundedRectangle(cornerRadius: 6))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+                .accessibilityIdentifier("settings-nav-" + page.rawValue)
+            }
+        }
     }
 
     private var availablePages: [SettingsPage] {
         SettingsPage.allCases.filter { page in
             switch page {
             case .voice: return hasDomains && domains?.candidate == true
-            case .tray: return hasDomains
+            case .tray, .voiceArchive, .screenshotArchive: return hasDomains
             case .diagnostics: return domains?.candidate != true
             case .app: return applicationServices != nil
             default: return true
@@ -179,6 +229,19 @@ public struct SettingsView: View {
 
     @ViewBuilder private var content: some View {
         switch navigation.page {
+        case .voiceArchive:
+            #if canImport(NearpaneVoice)
+            if let domains { VoiceArchiveView(module: domains.voice, openSettings: { navigation.page = .voice }) }
+            #else
+            EmptyView()
+            #endif
+        case .screenshotArchive:
+            #if canImport(NearpaneTray)
+            if let domains { ScreenshotArchiveView(module: domains.tray, openSettings: { navigation.page = .tray }) }
+            #else
+            EmptyView()
+            #endif
+        case .general: general
         case .modules: modules
         case .voice:
             #if canImport(NearpaneVoice)
@@ -190,7 +253,7 @@ public struct SettingsView: View {
             #if canImport(NearpaneTray)
             if let tray = domains?.tray {
                 Form {
-                    Text(domains?.candidate == true ? "截图保存在此版本的独立托盘，退出后仍可继续使用。" : "使用已有的 Riftlet 资料库。连接期间由 Nearpane 独占；断开后原库仍由 Riftlet 使用。")
+                    Text(domains?.candidate == true ? "收录的截图保存在 Nearpane 的截图档案。" : "使用已有的 Riftlet 资料库。连接期间由 Nearpane 独占；断开后原库仍由 Riftlet 使用。")
                     if tray.connected {
                         if tray.collectionEnabled {
                             Button("停止收录系统截图") { tray.stopCollecting() }
@@ -224,7 +287,7 @@ public struct SettingsView: View {
                             Text("保持 Chrome 中要使用的 ChatGPT 草稿在前台，再点击缩略图。不会发送消息；结果未知时不会自动重传。")
                         } else { Text("当前仅收录截图。附加到草稿须使用已绑定的专用测试会话。") }
                     } else {
-                        Button(tray.connecting ? "正在连接…" : (domains?.candidate == true ? "重新连接此版本托盘" : "连接已有 Riftlet 资料库")) {
+                        Button(tray.connecting ? "正在连接…" : (domains?.candidate == true ? "重新连接截图托盘" : "连接已有 Riftlet 资料库")) {
                             Task {
                                 await tray.connect()
                                 if domains?.candidate == true && tray.connected { host.setCandidateTrayConnected(true) }
@@ -254,6 +317,28 @@ public struct SettingsView: View {
         case .app: applicationServices
         case .diagnostics: mockSettings
         }
+    }
+
+    private var general: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            AccentSettings(host: host)
+            Divider()
+            Toggle("在菜单栏显示 Nearpane", isOn: Binding(get: {
+                host.configuration.showsMenuBarIcon
+            }, set: { visible in
+                if host.setShowsMenuBarIcon(visible) { menuVisibilityChanged(visible) }
+            }))
+            .accessibilityIdentifier("settings-menu-bar-icon")
+            Text("隐藏图标后，双击 Finder 中的 Nearpane 即可打开此窗口。")
+                .font(.callout).foregroundStyle(.secondary)
+            if host.configurationSaveFailed {
+                Text("设置未能保存，请检查资料目录后再试。").foregroundStyle(.secondary)
+            }
+            if !host.configuration.showsMenuBarIcon {
+                Button("退出 Nearpane") { NSApp.terminate(nil) }
+                    .accessibilityIdentifier("settings-quit-nearpane")
+            }
+        }.padding(.top, 8)
     }
 
     private var desktopOptions: some View {

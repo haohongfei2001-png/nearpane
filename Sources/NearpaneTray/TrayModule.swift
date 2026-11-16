@@ -22,6 +22,8 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var epoch = UUID()
     @ObservationIgnored private var interaction = UUID()
     @ObservationIgnored private var revision = 0
+    private(set) var archiveRevision: UInt64 = 0
+    var archiveSession: UUID? { connected ? epoch : nil }
     @ObservationIgnored private var acceptedRows: [UUID: Int64] = [:]
     @ObservationIgnored private var settle: Task<Void, Never>?
     @ObservationIgnored private var observe: Task<Void, Never>?
@@ -333,6 +335,19 @@ public final class TrayModule: HostModule {
         guard let owner else { completion(nil); return }
         owner.thumbnails.image(for: row.image, maxPixelSize: pixels, completion: completion)
     }
+    func archivePage(offset: Int, session: UUID) async throws -> ScreenshotArchivePage {
+        guard session == archiveSession, let owner else { throw CancellationError() }
+        let batch = try await owner.store.historySnapshot(limit: ScreenshotArchivePage.size + 1, offset: offset)
+        let mode = await owner.store.mode
+        guard self.owner === owner, session == archiveSession else { throw CancellationError() }
+        return ScreenshotArchivePage(batch, policy: owner.receiptPolicy, mode: mode)
+    }
+
+    func archiveImage(_ asset: ImportedAsset, pixels: Int, session: UUID) async -> CGImage? {
+        guard session == archiveSession, let owner else { return nil }
+        let image = await ScreenshotArchiveMedia.shared.preview(asset, root: owner.root, pixels: pixels)
+        return session == archiveSession && !Task.isCancelled ? image : nil
+    }
     func beginPress(_ row: AssetRecord) -> TrayPress? {
         guard active, !hidden, let owner, acceptedRows[row.id] == row.visibilityRevision,
               row.status != .missing, row.status != .used, row.status != .transferring else { return nil }
@@ -416,6 +431,7 @@ public final class TrayModule: HostModule {
 
     public func refresh() async {
         guard let owner, active else { return }
+        archiveRevision &+= 1
         revision += 1
         let request = revision
         do {

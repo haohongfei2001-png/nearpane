@@ -5,6 +5,49 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct ConfigurationTests {
+    @Test func globalAccentSurvivesRestartWithoutAWorkRectRefresh() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = FileConfigurationStore(url: url)
+        try store.save(.init())
+        var older = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        older.removeValue(forKey: "accent")
+        try JSONSerialization.data(withJSONObject: older).write(to: url)
+        let host = HostSession(store: store)
+        await host.start()
+        var refreshes = 0
+        host.presentationChanged = { refreshes += 1 }
+        #expect(host.configuration.accent == .purple)
+        let original = host.configuration
+        host.setAccent(.teal)
+        #expect(refreshes == 0)
+        host.stop()
+        var expected = original
+        expected.accent = .teal
+        #expect(try store.load() == expected)
+    }
+
+    @Test func hidingMenuIconSurvivesRestartAndLeavesSidebarAndWorkRectUntouched() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = FileConfigurationStore(url: url)
+        try store.save(.init())
+        var legacy = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        legacy.removeValue(forKey: "showsMenuBarIcon")
+        try JSONSerialization.data(withJSONObject: legacy).write(to: url)
+        let host = HostSession(store: store)
+        await host.start()
+        defer { host.stop() }
+        var refreshes = 0
+        host.presentationChanged = { refreshes += 1 }
+        #expect(host.configuration.showsMenuBarIcon)
+        #expect(host.setShowsMenuBarIcon(false))
+        let persisted = try store.load()
+        #expect(!persisted.showsMenuBarIcon && !persisted.surfaceHidden && refreshes == 0)
+        #expect(host.setShowsMenuBarIcon(true))
+        #expect(try store.load().showsMenuBarIcon && refreshes == 0)
+    }
+
     @Test func failedWindowRuleSaveRetainsDraftForExplicitRetry() async throws {
         let url = temporaryURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

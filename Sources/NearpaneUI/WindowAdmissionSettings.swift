@@ -347,7 +347,7 @@ enum AdmissionPlacement: String, CaseIterable {
             HStack {
                 ForEach(AdmissionPlacement.allCases, id: \.self) { mode in
                     Button(mode.title) { scenario = mode }
-                        .foregroundStyle(scenario == mode ? Color.accentColor : Color.primary)
+                        .foregroundStyle(scenario == mode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
                         .accessibilityAddTraits(scenario == mode ? .isSelected : [])
                         .accessibilityIdentifier("admission-" + mode.rawValue)
                 }
@@ -477,8 +477,8 @@ private struct AdmissionResultView: View {
                 for sample in samples {
                     guard let id = sample.id, let frame = frames[id] else { continue }
                     let shape = Path(rect(frame))
-                    context.fill(shape, with: .color(.accentColor.opacity(0.18)))
-                    context.stroke(shape, with: .color(.accentColor))
+                    context.fill(shape, with: .style(.tint.opacity(0.18)))
+                    context.stroke(shape, with: .style(.tint))
                 }
             }.frame(width: 90, height: 56)
         }

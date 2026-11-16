@@ -70,7 +70,8 @@ struct DesktopSurface: View {
                 let desktop = row.desktop
                 let path = Path(roundedRect: CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height),
                                 cornerRadius: min(12, min(desktop.width, desktop.height) / 8))
-                context.fill(path, with: .linearGradient(Gradient(colors: [.indigo.opacity(0.14), .blue.opacity(0.22)]),
+                let accent = host.configuration.accent.color
+                context.fill(path, with: .linearGradient(Gradient(colors: [accent.opacity(0.14), accent.opacity(0.22)]),
                     startPoint: CGPoint(x: desktop.x, y: desktop.y), endPoint: CGPoint(x: desktop.x, y: desktop.y + desktop.height)))
                 for window in row.windows.reversed() {
                     let r = window.frame

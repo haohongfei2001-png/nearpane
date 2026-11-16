@@ -19,12 +19,13 @@ public struct NearpaneVoiceCredentials: Sendable {
         store.presence(configurationID: model.id, provider: model.provider)
     }
 
-    @MainActor public func controller(store recordings: SaytileStore, configuration: RecognitionConfiguration) -> AudioController {
+    @MainActor public func controller(store recordings: SaytileStore, configuration: RecognitionConfiguration,
+                                      startupRecoveryReady: Bool = true) -> AudioController {
         var dependencies = RecognitionPipelineDependencies.live
         dependencies.credential = { [store] model in
             try store.read(configurationID: model.id, provider: model.provider)
         }
         let factory = RecognitionSessionFactory(configuration: configuration, dependencies: dependencies)
-        return AudioController(store: recordings, recognitionFactory: factory)
+        return AudioController(store: recordings, recognitionFactory: factory, startupRecoveryReady: startupRecoveryReady)
     }
 }

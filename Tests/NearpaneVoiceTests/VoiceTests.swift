@@ -22,6 +22,13 @@ final class ScriptedInput: VoiceInput {
     }
     func pause() async { update(.paused, 0, nil) }
     func retry(_ id: UUID) async { retried = id }
+    var played: [UUID] = []
+    var playbackID: UUID?
+    var playbackEnded: (() -> Void)?
+    func playArchive(_ members: [UUID], id: UUID, ended: @escaping () -> Void) async throws {
+        played = members; playbackID = id; playbackEnded = ended
+    }
+    func stopArchivePlayback() { playbackID = nil; playbackEnded = nil }
     var configurations: [Bool] = []
     var revocations = 0
     func revokeCloud() { revocations += 1 }

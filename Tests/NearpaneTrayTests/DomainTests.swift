@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Carbon
 import Testing
@@ -91,6 +92,83 @@ private actor GatedFileInput: IndependentFileInputAdapter {
 
 @MainActor @Suite(.serialized)
 struct TrayDomainTests {
+    @Test func archiveReadsEveryCaptureInSourceOrderWithoutTouchingQueueOrDrafts() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        let adapter = Transport()
+        let module = TrayModule { change, report in
+            TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+                      pin: { Issue.record("Archive browsing attempted target selection"); throw LibraryError.incompatible },
+                      permission: { _,_ in .denied }, notify: change, report: report)
+        }
+        var captures: [ImportedAsset] = []
+        let sameTime = Date(timeIntervalSince1970: 300)
+        for i in 0..<(ScreenshotArchivePage.size + 2) {
+            let image = ImportedAsset(sourceKey: "asset-\(i)", fileName: "asset-\(i).png",
+                sha256: String(repeating: "f", count: 64), byteCount: 3, pixelWidth: 8, pixelHeight: 8,
+                mediaType: "image/png", firstSeenAt: sameTime, origin: .synthetic)
+            _ = try await store.importAsset(image)
+            captures.append(image)
+        }
+        let removed = try #require(captures.last)
+        try await store.removeFromQueue(removed.id)
+        let unresolved = captures[captures.count - 2]
+        let operation = try await store.prepare(assetID: unresolved.id, target: adapter.captureTarget())
+        try await store.markDispatchIntent(operation.id)
+        try await store.markUnknown(operation.id, reason: "Synthetic unknown")
+        try module.start()
+        await module.connect()
+        let session = try #require(module.archiveSession)
+        let visible = module.visibleIDs
+        let first = try await module.archivePage(offset: 0, session: session)
+        let rest = try await module.archivePage(offset: ScreenshotArchivePage.size, session: session)
+        let entries = first.entries + rest.entries
+
+        #expect(first.hasOlder && !rest.hasOlder)
+        #expect(entries.map(\.id) == captures.reversed().map(\.id))
+        #expect(entries.first?.visibility == "已移出托盘")
+        #expect(entries[1].attachment == "结果待核对")
+        #expect(try await store.operation(id: operation.id)?.phase == .unknown)
+        #expect(!visible.contains(removed.id) && visible == module.visibleIDs)
+        #expect(await adapter.appends == 0)
+        #expect(await adapter.observations == 0)
+        module.disconnect()
+        await #expect(throws: CancellationError.self) { try await module.archivePage(offset: 0, session: session) }
+        await module.connect()
+        #expect(module.archiveSession != session)
+        await #expect(throws: CancellationError.self) { try await module.archivePage(offset: 0, session: session) }
+        module.stop()
+        await module.finishStopping()
+    }
+
+    @Test func archivePreviewReadsRegisteredPixelsAndRefusesReplacedOrLinkedMedia() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let media = dir.appendingPathComponent("media", isDirectory: true)
+        try FileManager.default.createDirectory(at: media, withIntermediateDirectories: true)
+        let url = media.appendingPathComponent("capture.png")
+        try makePNG(url)
+        let data = try Data(contentsOf: url)
+        let image = ImportedAsset(sourceKey: "preview", fileName: url.lastPathComponent,
+            sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
+            byteCount: Int64(data.count), pixelWidth: 40, pixelHeight: 17, mediaType: "image/png", origin: .synthetic)
+        let reader = ScreenshotArchiveMedia()
+        let pixels = try #require(await reader.preview(image, root: dir, pixels: 40))
+        #expect(pixels.width == 40 && pixels.height == 17)
+
+        var changed = data
+        changed[changed.startIndex] ^= 1
+        try changed.write(to: url)
+        #expect(await reader.preview(image, root: dir, pixels: 40) == nil)
+        try FileManager.default.removeItem(at: url)
+        let sibling = dir.appendingPathComponent("sibling.png")
+        try data.write(to: sibling)
+        try FileManager.default.createSymbolicLink(at: url, withDestinationURL: sibling)
+        #expect(await reader.preview(image, root: dir, pixels: 40) == nil)
+        try FileManager.default.removeItem(at: url)
+        #expect(await reader.preview(image, root: dir, pixels: 40) == nil)
+    }
     @Test func chromeScriptRefusalIsDiagnosedOnlyAtTheGuardBeforeAnyInput() async throws {
         let dir = root()
         defer { try? FileManager.default.removeItem(at: dir) }

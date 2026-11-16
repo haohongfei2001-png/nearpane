@@ -108,7 +108,11 @@ struct NearpaneApp {
                     guard args.count == 3 else { exit(2) }
                     if CandidateProfile.selected, args[1] == "--native-settings-readback" {
                         let session = try NativeAcceptanceSession(id: args[2], prepare: false)
-                        try HostAppDelegate().renderSettingsReadback(session)
+                        Task { @MainActor in
+                            do { try await HostAppDelegate().renderSettingsReadback(session); exit(0) }
+                            catch { FileHandle.standardError.write(Data("Native product window readback failed: \(error)\n".utf8)); exit(3) }
+                        }
+                        RunLoop.main.run()
                         return
                     }
                     if CandidateProfile.selected, args[1] == "--profile-acceptance-open" {
@@ -186,7 +190,7 @@ struct NearpaneApp {
 }
 
 @MainActor
-final class HostAppDelegate: NSObject, NSApplicationDelegate {
+final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     #if canImport(RiftletCore) && canImport(SaytileKit)
     private var profileTrial: Bool {
         guard CandidateProfile.selected, passiveDisplayID != nil, !requestsDesktopFixture, let acceptanceSession else { return false }
@@ -248,6 +252,33 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindowOpen = false
     private var settings: NSWindowController?
     private var statusItem: NSStatusItem?
+    private var pendingMainWindow = false
+
+    // Finder can deliver the open or reopen event before the asynchronous profile lease is ready.
+    // A background relaunch used for an update must stay out of the foreground.
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        guard !CommandLine.arguments.contains("--background") else { return false }
+        let event = NSAppleEventManager.shared().currentAppleEvent
+        if event?.paramDescriptor(forKeyword: keyAELaunchedAsLogInItem) != nil ||
+            event?.paramDescriptor(forKeyword: keyAELaunchedAsServiceItem) != nil { return false }
+        return requestMainWindow()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        _ = requestMainWindow()
+        return false
+    }
+
+    @discardableResult private func requestMainWindow() -> Bool {
+        guard passiveDisplayID == nil, terminationTask == nil else { return false }
+        #if canImport(SaytileKit)
+        guard acceptanceSession == nil else { return false }
+        if profileSwitch != nil { showSettings(); return true }
+        #endif
+        guard panels != nil else { pendingMainWindow = true; return true }
+        showSettings()
+        return true
+    }
     private var passiveShutdownTimer: Timer?
     private var startupTask: Task<Void, Never>?
     private var terminationTask: Task<Void, Never>?
@@ -525,7 +556,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         session.presentationChanged = { [weak self] in self?.updatePanels() }
         updatePanels()
         traceFullscreenStartup("panels-updated")
-        if passiveDisplayID == nil { installMenu() }
+        if passiveDisplayID == nil {
+            installMenu()
+            if pendingMainWindow { pendingMainWindow = false; showSettings() }
+        }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -585,35 +619,65 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func installMenu() {
+        let (menu, update) = makeStatusMenu()
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: "Nearpane 设置与窗口管理")
-        item.button?.toolTip = "Nearpane · 设置与窗口管理"
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        for (title, action) in [("显示或隐藏侧栏", #selector(toggleSurface)), ("设置…", #selector(showSettings)), ("窗口管理…", #selector(showWindowManagement)), ("退出 Nearpane", #selector(quit))] {
-            let entry = NSMenuItem(title: title, action: action, keyEquivalent: "")
-            entry.target = self
-            menu.addItem(entry)
-        }
-        let update = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "")
-        update.target = self
-        update.isEnabled = false
-        menu.insertItem(update, at: 3)
+        item.button?.image = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: "Nearpane")
+        item.button?.toolTip = "Nearpane"
         item.menu = menu
         statusItem = item
+        item.isVisible = host?.configuration.showsMenuBarIcon ?? true
         if let updater {
             updateMenuObservation = updater.$offeredVersion.combineLatest(updater.$canCheck).sink { [weak item, weak update] version, canCheck in
-                update?.title = version.map { "查看 Nearpane \($0) 更新…" } ?? "检查更新…"
-                update?.isEnabled = canCheck
+                update?.title = version.map { "查看 Nearpane \($0) 更新…" } ?? (canCheck ? "检查更新…" : "更新状态…")
                 item?.length = version == nil ? NSStatusItem.squareLength : 38
                 item?.button?.imagePosition = .imageLeading
                 item?.button?.title = version == nil ? "" : "•"
-                item?.button?.toolTip = version.map { "Nearpane \($0) 可用，点击菜单查看更新。" } ?? "Nearpane · 设置与窗口管理"
+                item?.button?.toolTip = version.map { "Nearpane \($0) 可用，点击菜单查看更新。" } ?? "Nearpane"
             }
         }
     }
 
-    @objc private func checkForUpdates() { updater?.check() }
+    private func makeStatusMenu() -> (NSMenu, NSMenuItem) {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.delegate = self
+        func action(_ title: String, _ selector: Selector) -> NSMenuItem {
+            let entry = menu.addItem(withTitle: title, action: selector, keyEquivalent: "")
+            entry.target = self
+            return entry
+        }
+        _ = action("打开 Nearpane", #selector(openMainWindow))
+        _ = action("隐藏侧栏", #selector(toggleSurface))
+        menu.addItem(.separator())
+        let update = action("更新状态…", #selector(checkForUpdates))
+        _ = action("隐藏菜单栏图标", #selector(hideStatusIcon))
+        menu.addItem(.separator())
+        _ = action("退出 Nearpane", #selector(quit))
+        return (menu, update)
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard let entry = menu.items.first(where: { $0.action == #selector(toggleSurface) }) else { return }
+        entry.title = host?.configuration.surfaceHidden == true ? "显示侧栏" : "隐藏侧栏"
+        entry.isEnabled = host?.isRunning == true
+    }
+
+    @objc private func openMainWindow() { requestMainWindow() }
+
+    @objc private func hideStatusIcon() {
+        guard host?.setShowsMenuBarIcon(false) == true else {
+            settingsNavigation.showGeneral()
+            showSettings()
+            return
+        }
+        statusItem?.isVisible = false
+    }
+
+    @objc private func checkForUpdates() {
+        if let updater, updater.canCheck { updater.check(); return }
+        settingsNavigation.showApplicationServices()
+        showSettings()
+    }
 
     @objc private func lockChanged(_ note: Notification) {
         screenLocked = note.name.rawValue == "com.apple.screenIsLocked"
@@ -621,6 +685,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyDesktopSessionState() {
+        #if canImport(SaytileKit)
+        if sessionUnavailable { modules?.voice.stopArchivePlayback() }
+        #endif
         refreshSettingsExposure()
         modules?.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         panels?.setSuspended(sessionUnavailable)
@@ -682,11 +749,6 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         updatePanels()
     }
 
-    @objc private func showWindowManagement() {
-        settingsNavigation.showWindowManagement()
-        showSettings()
-    }
-
     @objc private func showSettings() {
         #if canImport(SaytileKit)
         if profileSwitch != nil { settings?.showWindow(nil); return }
@@ -696,7 +758,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 752, height: 572),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
             window.contentMinSize = NSSize(width: 640, height: 476)
-            window.title = "Nearpane 设置"
+            window.title = "Nearpane"
+            window.identifier = .init("nearpane-main-window")
             window.isReleasedWhenClosed = false
             if let screen = surface?.window?.screen {
                 let f = screen.visibleFrame
@@ -711,22 +774,38 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
                 center.addObserver(self, selector: #selector(settingsVisibilityChanged(_:)), name: name, object: window)
             }
             center.addObserver(self, selector: #selector(settingsVisibilityChanged(_:)), name: NSApplication.didUnhideNotification, object: NSApp)
+        }
+        if !settingsWindowOpen {
             updateSettingsContent()
         }
         settingsScreens.update(SystemScreens.geometry())
         settingsWindowOpen = true
+        if NSApp.isHidden { NSApp.unhide(nil) }
         if settings?.window?.isMiniaturized == true { settings?.window?.deminiaturize(nil) }
         settings?.showWindow(nil)
         refreshSettingsExposure()
-        // Only an explicit Settings click may activate the application.
+        // Only the product window requested by an open action needs keyboard focus.
         NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func settingsClosing(_ note: Notification) {
+        #if canImport(SaytileKit)
+        modules?.voice.stopArchivePlayback()
+        #endif
         settingsWindowOpen = false
         settingsPreview.withdraw()
+        #if canImport(SaytileKit)
+        guard profileSwitch == nil else { return }
+        #endif
+        // Closing the product window cancels archive view tasks and releases any selected media.
+        settings?.window?.contentView = nil
     }
-    @objc private func settingsWithdrawing(_ note: Notification) { settingsPreview.withdraw() }
+    @objc private func settingsWithdrawing(_ note: Notification) {
+        #if canImport(SaytileKit)
+        modules?.voice.stopArchivePlayback()
+        #endif
+        settingsPreview.withdraw()
+    }
     @objc private func settingsVisibilityChanged(_ note: Notification) { refreshSettingsExposure() }
     private func refreshSettingsExposure() {
         guard settingsWindowOpen, let window = settings?.window, host?.isRunning == true else {
@@ -749,18 +828,23 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         settings?.window?.contentView = NSHostingView(rootView: SettingsView(host:host,inventory:settingsScreens,previewExposure:settingsPreview,navigation:settingsNavigation,domains:modules,profileImport:importer,applicationServices:AnyView(applicationServices),
             requestSecondary: { [weak self] id in self?.panels?.request(id); self?.updatePanels() },
             dismissSpaces: { [weak self] id in self?.panels?.dismiss(id); self?.updatePanels() },
+            menuVisibilityChanged: { [weak self] visible in self?.statusItem?.isVisible = visible },
             placementChanged: { [weak self] in self?.updatePanels() }))
     }
 
     #if canImport(SaytileKit)
     /// Render the Finder candidate's Settings in an executable-bound fixture. Never order or activate a window.
-    func renderSettingsReadback(_ session: NativeAcceptanceSession) throws {
+    func renderSettingsReadback(_ session: NativeAcceptanceSession) async throws {
         let app = NSApplication.shared
         app.setActivationPolicy(.prohibited)
         let embedded = EmbeddedModules(support: session.support.appendingPathComponent("Nearpane"),
                                        testSession: session.directory, candidate: true)
         modules = embedded
-        host = embedded.makeHost(store: MemoryConfigurationStore())
+        let host = embedded.makeHost(store: MemoryConfigurationStore())
+        self.host = host
+        await host.start()
+        await embedded.voice.waitForTransition()
+        await embedded.tray.connect()
         updater = ApplicationUpdater(allowNetwork: false)
         let size = SurfaceRect(width: 1470, height: 956)
         settingsScreens.update([ScreenGeometry(id: "fixture", frame: size, visibleFrame: size)])
@@ -769,16 +853,37 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate {
         window.isReleasedWhenClosed = false
         window.appearance = NSAppearance(named: .aqua)
         settings = NSWindowController(window: window)
+        settingsNavigation.showAppearance()
         updateSettingsContent()
-        try renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-appearance.png"))
+        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-appearance.png"))
         settingsNavigation.showWindowManagement()
-        try renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-window-management.png"))
+        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-window-management.png"))
+        settingsNavigation.showGeneral()
+        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-general.png"))
+        settingsNavigation.showVoiceArchive()
+        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-voice-archive.png"))
+        settingsNavigation.showScreenshotArchive()
+        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-screenshot-archive.png"))
+        let (menu, _) = makeStatusMenu()
+        let entries = menu.items.filter { !$0.isSeparatorItem }
+        guard entries.allSatisfy({ $0.target === self && $0.action.map { self.responds(to: $0) } == true }) else {
+            throw CocoaError(.featureUnsupported)
+        }
+        let titles = entries.map(\.title)
+        hideStatusIcon()
+        guard !host.configuration.showsMenuBarIcon, host.setShowsMenuBarIcon(true) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        try JSONEncoder().encode(titles).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .withoutOverwriting)
         window.close()
+        host.stop()
+        await embedded.finishStopping()
     }
 
-    private func renderHiddenSettings(_ window: NSWindow, to url: URL) throws {
+    private func renderHiddenSettings(_ window: NSWindow, to url: URL) async throws {
         guard let view = window.contentView else { throw CocoaError(.validationMissingMandatoryProperty) }
-        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.2))
+        view.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(350))
         view.layoutSubtreeIfNeeded()
         view.displayIfNeeded()
         guard !window.isVisible, !window.isMainWindow, !window.isKeyWindow,

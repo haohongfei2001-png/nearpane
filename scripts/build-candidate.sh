@@ -6,8 +6,8 @@ source scripts/build-paths.sh
 app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
-version=5.11
-build_number=62
+version=5.12
+build_number=63
 name="Nearpane P$version Alpha.app"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications}"
 if [[ "${delivery%/}" == "$HOME/Applications" ]]; then

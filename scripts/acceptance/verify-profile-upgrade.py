@@ -208,7 +208,7 @@ def reopen_previous(previous, container, reference, expected):
 
 
 def upgrade_existing_generation(previous, new, source):
-    """Open a real v5 generation with the previous Host, upgrade with the new Host, then downgrade."""
+    """Open a populated generation with both packaged Hosts, including rollback across a schema upgrade."""
     old_exe = binary(previous, "com.holdsnow.nearpane.alpha")
     new_exe = binary(new, "com.holdsnow.nearpane.alpha")
     old_session, new_session = prepare(old_exe, True), prepare(new_exe, True)
@@ -230,12 +230,22 @@ def upgrade_existing_generation(previous, new, source):
     require(Path(open_profile(old_exe, old_session)["path"]) == old, "Previous Host did not open the old generation")
     original = tree(old)
     old_report = evidence(old)
-    require(old_report["voice"]["schema"] == 5, "Previous-generation acceptance requires schema 5")
+    source_schema = old_report["voice"]["schema"]
+    require(source_schema in (5, 6), "Unsupported previous schema")
     container.rename(new_session / container.name)
     container = new_session / container.name
     original_path = container / "generations" / old.name
     upgraded = Path(open_profile(new_exe, new_session)["path"])
     converted = evidence(upgraded)
+    if source_schema == 6:
+        expected = projection(old_report)
+        require(upgraded == original_path and projection(converted) == expected and tree(upgraded) == original,
+                "Compatible update changed the active generation or its files")
+        reopened = reopen_previous(previous, container, upgraded, expected)
+        require(Path(open_profile(new_exe, new_session)["path"]) == upgraded and tree(upgraded) == original,
+                "Re-upgrade after the previous application changed the preserved generation")
+        return dict(old=old.name, new=upgraded.name, previousHost=reopened, oldSHA256=original,
+                    originalFilesUnchanged=True, previousVoiceSchema=6, upgradedVoiceSchema=6)
     require(upgraded.parent == original_path.parent and upgraded != original_path
             and converted["voice"]["schema"] == 6 and tree(original_path) == original, "Upgrade modified the v5 source")
     expected = projection(old_report)

@@ -6,7 +6,6 @@ import SaytileVoiceUI
 struct VoiceCaptureGlyph: View {
     let presentation: PanelCapturePresentation
     var width: Double = 28
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
@@ -27,7 +26,6 @@ struct VoiceCaptureGlyph: View {
 
     private var ink: AnyShapeStyle {
         if contrast == .increased { return AnyShapeStyle(Color.primary) }
-        if colorScheme == .dark { return AnyShapeStyle(Color.indigo.mix(with: .white, by: 0.65)) }
-        return AnyShapeStyle(ReferencePanelStyle.glyph)
+        return AnyShapeStyle(.tint)
     }
 }
