@@ -2,6 +2,10 @@ import Foundation
 import NearpaneCore
 import Observation
 
+enum CreatedWindowResult {
+    case none, skipped(String), window(any OrdinaryWindowObserving)
+}
+
 @MainActor protocol OrdinaryWindowObserving: AnyObject {
     var id: ManagedWindowID { get }
     var bundle: String { get }
@@ -14,8 +18,12 @@ import Observation
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation
     func acknowledgeBoundary(_ observation: OrdinaryBoundaryObservation) async throws -> AdmissionPair
     func onBoundaryChange(_ wake: (@MainActor () -> Void)?)
+    func setCreationWatch(_ token: UUID, enabled: Bool) async throws
+    func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult
 }
 extension OrdinaryWindowObserving {
+    func setCreationWatch(_ token: UUID, enabled: Bool) async throws { throw OrdinaryRefusal.scope }
+    func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult { throw OrdinaryRefusal.scope }
     func onBoundaryChange(_ wake: (@MainActor () -> Void)?) {}
     // Older adapters cannot acquire this capability by merely returning a changed frame.
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
@@ -67,6 +75,9 @@ enum OrdinaryRefusal: LocalizedError {
     private var unsavedRevocation: ManagedWindowID?
     private var tiler = ManagedWindowTiler(workspace: nil)
     private var pending: Plan?
+    private(set) var creationAnchor: ManagedWindowID?
+    private var creationGrant: UUID?
+    private var checkingCreated = false
     private var previewRevision = 0
     private var monitoring: Task<Void, Never>?
     @ObservationIgnored private var boundaryWake: Task<Void, Never>?
@@ -337,6 +348,7 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func fail(_ error: Error) {
+        disableNewWindows()
         blocked = true; paused = true; cancelPreview()
         message = "已暂停窗口管理并保留恢复记录。\(error.localizedDescription)"
         if journalLease != nil { try? save() }
@@ -346,6 +358,7 @@ enum OrdinaryRefusal: LocalizedError {
         try enter()
         defer { busy = false }
         guard !activeIDs.isEmpty else { throw OrdinaryRefusal.noGrant }
+        disableNewWindows()
         cancelPreview(); paused = true
         message = "已暂停写入，窗口保持当前布局，仍在观察外部变化。"
     }
@@ -428,6 +441,7 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func detach(_ id: ManagedWindowID) {
+        if creationAnchor == id { disableNewWindows() }
         handles[id]?.onBoundaryChange(nil)
         lastCorrection.removeValue(forKey: id)
         entries.removeValue(forKey: id); handles.removeValue(forKey: id); leases.removeValue(forKey: id)
@@ -463,6 +477,7 @@ enum OrdinaryRefusal: LocalizedError {
 
     func stop() async throws {
         try enter(allowBlocked: true)
+        disableNewWindows()
         defer { busy = false }
         cancelPreview()
         guard !activeIDs.isEmpty else {
@@ -525,6 +540,7 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func reset() {
+        disableNewWindows()
         monitoring?.cancel(); monitoring = nil
         boundaryWake?.cancel(); boundaryWake = nil
         for h in handles.values { h.onBoundaryChange(nil) }
@@ -653,6 +669,80 @@ enum OrdinaryRefusal: LocalizedError {
         return true
     }
 
+    /// The grant lives only while its original authorized window, process and display are witnessed.
+    /// Activating it takes an initial inventory in the helper; none of those siblings are eligible.
+    func enableNewWindows(from id: ManagedWindowID) async throws {
+        try enter()
+        defer { busy = false }
+        guard creationAnchor == nil, !paused, let anchor = handles[id], verifiedIDs.contains(id),
+              let display = activeDisplay, let context = liveContext?(display), let entry = entries[id]
+        else { throw OrdinaryRefusal.noGrant }
+        try checkedScope(context, grant: anchor)
+        _ = try sample(await anchor.verify(expected: entry.confirmed), for: anchor, in: context)
+        let token = UUID()
+        try await anchor.setCreationWatch(token, enabled: true)
+        do {
+            guard !closing, !paused, !blocked, handles[id] === anchor else { throw OrdinaryRefusal.lost }
+            try checkedScope(context, grant: anchor)
+        } catch {
+            try? await anchor.setCreationWatch(token, enabled: false)
+            throw error
+        }
+        creationGrant = token
+        creationAnchor = id
+        message = "将自动管理此应用本次运行在当前显示器新建的合格窗口。已有其他窗口保持原样。"
+    }
+
+    func disableNewWindows() {
+        if let id = creationAnchor, let token = creationGrant, let anchor = handles[id] {
+            Task { try? await anchor.setCreationWatch(token, enabled: false) }
+        }
+        creationAnchor = nil
+        creationGrant = nil
+    }
+
+    func checkNewWindows() async {
+        guard !checkingCreated, !busy, !paused, !blocked, !closing, !userActionReserved,
+              let token = creationGrant, let id = creationAnchor, let anchor = handles[id],
+              let display = activeDisplay, let context = liveContext?(display),
+              presentationHeld?(display) != true else { return }
+        if let pending, pending.review.validUntil >= ProcessInfo.processInfo.systemUptime { return }
+        let revision = previewRevision
+        checkingCreated = true
+        defer { checkingCreated = false }
+        let event: CreatedWindowResult
+        do {
+            try checkedScope(context, grant: anchor)
+            event = try await anchor.nextCreatedWindow(token)
+        } catch {
+            if creationGrant == token {
+                disableNewWindows()
+                message = "已结束新窗授权。\(error.localizedDescription)"
+            }
+            return
+        }
+        guard creationGrant == token, handles[id] === anchor, !busy, !userActionReserved,
+              !paused, !closing, !blocked, previewRevision == revision else { return }
+        switch event {
+        case .none: return
+        case .skipped(let reason): message = "新窗口未加入。\(reason)"
+        case .window(let fresh):
+            do {
+                guard fresh.id.pid == id.pid, fresh.id.launch == id.launch, fresh.bundle == anchor.bundle,
+                      !activeIDs.contains(where: { $0.number == fresh.id.number }) else { throw OrdinaryRefusal.ambiguous }
+                try checkedScope(context, grant: fresh)
+                let requestCreation = WorkspaceAdmissionPlanner.requestsCreation(existingCount: activeIDs.count,
+                                                        source: .application, preferences: context.preferences)
+                let plan = try await prepare([fresh], context: context)
+                guard creationGrant == token, !paused, !closing else { cancelPreview(); throw OrdinaryRefusal.noGrant }
+                try await confirm(plan, context: context)
+                if requestCreation { message = "当前无法新建系统空间，已在本屏现有工作区核对并平铺新窗口。" }
+            } catch {
+                if !blocked { message = "新窗口未加入。\(error.localizedDescription)" }
+            }
+        }
+    }
+
     private func startMonitoring() {
         guard monitoring == nil else { return }
         monitoring = Task { [weak self] in
@@ -660,6 +750,7 @@ enum OrdinaryRefusal: LocalizedError {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled, let self else { return }
                 await self.poll()
+                await self.checkNewWindows()
             }
         }
     }
@@ -678,6 +769,7 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     public func finish() async {
+        disableNewWindows()
         closing = true
         cancelPreview()
         monitoring?.cancel()

@@ -548,20 +548,20 @@ if __name__ == "__main__":
     p.add_argument("--candidate",type=Path,default=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app")
     mode=p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--probe",action="store_true")
-    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed","boundary"])
+    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed","boundary","new-window-scope"])
     args=p.parse_args()
     if not args.probe:
         sp.run(["/usr/bin/codesign", "--verify", "--strict", "--deep", '-R=identifier "com.holdsnow.nearpane.alpha"',
                 args.candidate.resolve()], check=True)
     with (OUT/"run.txt").open("w") as fp: fp.write("probe" if args.probe else args.mode)
     print(OUT,flush=True)
-    if args.mode == "boundary":
+    if args.mode in ("boundary", "new-window-scope"):
         # Require a free Host slot before even launching the disposable fixture.
         check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode == 1, "existing Host in use")
     t=Trial(args.candidate.resolve())
     try:
         t.boundary_review = args.mode == "boundary"
-        count = 2 if args.mode in ("closure-probe","mixed","boundary") else (1 if args.mode in ("fault","floating") else 3)
+        count = 2 if args.mode in ("closure-probe","mixed","boundary","new-window-scope") else (1 if args.mode in ("fault","floating") else 3)
         original=t.baseline(count, density=args.mode=="density")
         if args.mode=="mixed":
             from mixed import run as run_mixed
@@ -572,6 +572,9 @@ if __name__ == "__main__":
                 if t.host is not None and t.host.poll() is None and t.focus(t.observe()):
                     put(OUT/"mixed-refusal.json",t.ui())
                 raise
+        elif args.mode=="new-window-scope":
+            from membership import new_window_scope
+            new_window_scope(t, original, check=check, wait=wait, put=put, out=OUT)
         elif args.mode=="density": t.density(original)
         elif args.mode=="exclusion-idle":
             from exclusion_idle import run

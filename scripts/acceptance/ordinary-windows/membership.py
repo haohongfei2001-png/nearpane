@@ -102,3 +102,40 @@ def run(trial, original, *, check, wait, put, out):
     check(not (trial.records / "journal.json").exists(), "unresolved membership journal")
     put(out / "membership.json", dict(session=trial.sid, closed=third_id, closure=witness,
                                       replacement=rebuilt, replacementActions=0, confirmedOperations=len(previous)))
+
+
+def new_window_scope(trial, original, *, check, wait, put, out):
+    """Production Settings on a second screen, a new regular app, one pre-existing unselected sibling."""
+    trial.start_host()
+    trial.press("admission-open")
+    trial.press("admission-ordinary-app")
+    anchor, sibling = original
+    x, y, width, height = trial.run_focus["bounds"]
+    work = [x + 160, y, width - 160, height]
+    trial.select(anchor)
+    single = {**original, anchor: work}
+    trial.checkpoint("single-grant", single, 1)
+    trial.press("ordinary-scope-offer-" + str(anchor))
+    trial.press("ordinary-scope-confirm")
+    wait(lambda: "ordinary-scope-stop" in trial.ui())
+    trial.checkpoint("grant-keeps-old-sibling", single, 1)
+    created = next(row for row in trial.command("add 3")["windows"] if row["index"] == 3)
+    fresh = created["number"]
+    half = work[2] / 2
+    pair = {anchor: [work[0], y, half, height], fresh: [work[0]+half, y, half, height],
+            sibling: original[sibling]}
+    accepted = trial.checkpoint("created-window-auto-joins", pair, 3)
+    check(len(accepted) == 3 and {a["id"]["number"] for a in accepted} == {anchor, fresh},
+          "scope wrote an unapproved sibling or repeated a layout")
+    trial.press("ordinary-pause")
+    paused = next(row for row in trial.command("add 4")["windows"] if row["index"] == 4)
+    trial.press("ordinary-resume")
+    pair[paused["number"]] = paused["frame"]
+    trial.checkpoint("pause-retires-new-window-scope", pair, 3)
+    trial.press("ordinary-stop")
+    restored = {**original, fresh: created["frame"], paused["number"]: paused["frame"]}
+    final = trial.checkpoint("scope-stopped-and-restored", restored, 5)
+    check(len(final) == 5 and {a["id"]["number"] for a in final} == {anchor, fresh}, "unexpected recovery writes")
+    check(not (trial.records / "journal.json").exists(), "scope recovery remains unresolved")
+    put(out / "new-window-scope.json", dict(session=trial.sid, verifiedNewWindow=fresh,
+                                            untouched=[sibling, paused["number"]], verifiedActions=len(final)))

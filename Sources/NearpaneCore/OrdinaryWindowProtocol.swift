@@ -4,14 +4,16 @@ import Foundation
 public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
         case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
+        case watchCreated, takeCreated, endCreated
     }
     public let nonce: UUID, action: Action, pid: Int32, launch: UInt64, bundle: String
     public let id: ManagedWindowID?, expected: SurfaceRect?, destination: SurfaceRect?
+    public let creationGrant: UUID?
     public let boundaryRevision: UUID?
 
     public init(_ action: Action, pid: Int32, launch: UInt64, bundle: String,
                 id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil,
-                boundaryRevision: UUID? = nil) {
+                boundaryRevision: UUID? = nil, creationGrant: UUID? = nil) {
         self.nonce = UUID()
         self.action = action
         self.pid = pid
@@ -21,6 +23,7 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
         self.expected = expected
         self.destination = destination
         self.boundaryRevision = boundaryRevision
+        self.creationGrant = creationGrant
     }
 }
 
@@ -76,5 +79,7 @@ public struct OrdinaryWindowReply: Codable, Sendable {
     public var choices: [ManagedWindowID?]?, pair: AdmissionPair?, failure: String?
     public var closure: OrdinaryWindowClosure?
     public var boundary: OrdinaryBoundaryObservation?
+    public var created: ManagedWindowID?
+    public var skippedCreated: String?
     public init(_ nonce: UUID) { self.nonce = nonce }
 }

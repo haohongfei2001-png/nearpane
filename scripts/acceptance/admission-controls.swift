@@ -49,7 +49,7 @@ let command = a[3]
 let profile = candidateID == "com.holdsnow.nearpane.alpha"
 guard !(ordinary || sizing || services) || profile else { stop("candidate identity") }
 let ordinaryFixed = ["admission-open", "admission-ordinary-app", "admission-read",
-                     "ordinary-confirm", "ordinary-stop", "ordinary-pause", "ordinary-resume", "ordinary-pair", "ordinary-keep-current",
+                     "ordinary-confirm", "ordinary-stop", "ordinary-pause", "ordinary-resume", "ordinary-pair", "ordinary-keep-current", "ordinary-scope-confirm", "ordinary-scope-stop",
                      "nearpane-open-panel", "nearpane-close-panel"]
 let sizeFixed = ["sizes-reset-group", "sizes-reset-display", "sizes-reset-cancel", "sizes-reset-apply",
                  "com.holdsnow.nearpane.clock-sample", "nearpane-module-close"]
@@ -100,8 +100,10 @@ if command == "read" {
 } else {
     let suffix = command.hasPrefix("admission-window-") ? String(command.dropFirst("admission-window-".count)) : ""
     let excluded = command.hasPrefix("ordinary-exclude-") ? String(command.dropFirst("ordinary-exclude-".count)) : ""
+    let offer = command.hasPrefix("ordinary-scope-offer-") ? String(command.dropFirst("ordinary-scope-offer-".count)) : ""
     let enrolledApp = command.hasPrefix("admission-ordinary-app-") ? String(command.dropFirst("admission-ordinary-app-".count)) : ""
     guard fixed.contains(command) || (ordinary && Int32(enrolledApp).map { $0 > 1 && String($0) == enrolledApp } == true) || ((!profile || ordinary) && UInt32(suffix).map({String($0) == suffix}) == true)
+            || (ordinary && UInt32(offer).map({String($0) == offer}) == true)
             || (ordinary && UInt32(excluded).map({String($0) == excluded}) == true) else { stop("control not allowed") }
     if profile && (app.isActive || NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) { stop("unexpected activation") }
     let matches = nodes.filter { identifier($0) == command }

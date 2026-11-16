@@ -79,3 +79,20 @@ uint32_t NPReadAXWindowNumber(CFTypeRef element) {
 #endif
     return 0;
 }
+
+int NPReadExistingWindowNumbers(uint32_t *out, int capacity) {
+    CFArrayRef ids = CGWindowListCreate(kCGWindowListOptionAll, kCGNullWindowID);
+    if (!ids) return -1;
+    CFIndex count = CFArrayGetCount(ids);
+    int result = -1;
+    if (count > 0 && count <= capacity) {
+        result = (int)count;
+        for (CFIndex i = 0; i < count; i++) {
+            uintptr_t id = (uintptr_t)CFArrayGetValueAtIndex(ids, i);
+            if (!id || id > UINT32_MAX) { result = -1; break; }
+            out[i] = (uint32_t)id;
+        }
+    }
+    CFRelease(ids);
+    return result;
+}

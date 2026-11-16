@@ -4,8 +4,21 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor private final class WindowDouble: OrdinaryWindowObserving {
-    let id = ManagedWindowID(pid: getpid(), launch: UInt64.random(in: 2000...UInt64.max),
-                             number: UInt32.random(in: 100...UInt32.max), element: UUID())
+    let id: ManagedWindowID
+    init(launch: UInt64 = UInt64.random(in: 2000...UInt64.max)) {
+        id = .init(pid: getpid(), launch: launch, number: UInt32.random(in: 100...UInt32.max), element: UUID())
+    }
+    var nextCreation: WindowDouble?
+    var watching: UUID?
+    func setCreationWatch(_ token: UUID, enabled: Bool) async throws {
+        if enabled { watching = token; nextCreation = nil }
+        else if watching == token { watching = nil }
+    }
+    func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult {
+        guard watching == token else { throw OrdinaryRefusal.scope }
+        defer { nextCreation = nil }
+        return nextCreation.map { .window($0) } ?? .none
+    }
     var bundle = "test.sample.ordinary"
     var applicationName = "Sample"
     let token = UUID()
@@ -98,6 +111,54 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func creationScopeAdmitsOnlySubsequentSameIncarnationWindowsAndRestores() async throws {
+        let m = OrdinaryScope(), anchor = WindowDouble(), manager = m.manager()
+        let existing = WindowDouble(launch: anchor.id.launch), born = WindowDouble(launch: anchor.id.launch)
+        anchor.nextCreation = existing
+        await #expect(throws: OrdinaryRefusal.self) { try await manager.enableNewWindows(from: anchor.id) }
+        try await manager.confirm(manager.prepare([anchor], context: m.context), context: m.context)
+        try await manager.enableNewWindows(from: anchor.id)
+        await manager.checkNewWindows()
+        #expect(manager.activeIDs == [anchor.id] && existing.writes == 0)
+        let other = WindowDouble()
+        anchor.nextCreation = other
+        await manager.checkNewWindows()
+        #expect(other.writes == 0 && manager.activeIDs == [anchor.id])
+        m.context.preferences.windows[existing.id] = .exclude
+        anchor.nextCreation = existing
+        await manager.checkNewWindows()
+        #expect(existing.writes == 0 && manager.activeIDs == [anchor.id])
+        born.reportedCGFrame = .init(width: 16, height: 22)
+        anchor.nextCreation = born
+        await manager.checkNewWindows()
+        #expect(born.writes == 0 && !manager.blocked && manager.creationAnchor == anchor.id)
+        let eligible = WindowDouble(launch: anchor.id.launch)
+        anchor.nextCreation = eligible
+        await manager.checkNewWindows()
+        #expect(manager.activeIDs == [anchor.id, eligible.id] && eligible.writes == 1 && anchor.frame.width == eligible.frame.width)
+        await manager.checkNewWindows()
+        #expect(eligible.writes == 1)
+        try manager.pause()
+        #expect(manager.creationAnchor == nil)
+        try await manager.resume(context: m.context)
+        anchor.nextCreation = existing
+        await manager.checkNewWindows()
+        #expect(manager.activeIDs.count == 2 && existing.writes == 0)
+        try await manager.stop()
+        #expect(eligible.frame == eligible.original && anchor.frame == anchor.original && manager.creationAnchor == nil)
+    }
+
+    @Test func excludingEnrollmentAnchorRetiresCreationGrantWithoutAdoptingSiblings() async throws {
+        let scope = OrdinaryScope(), anchor = WindowDouble(), manager = scope.manager()
+        let sibling = WindowDouble(launch: anchor.id.launch)
+        try await manager.confirm(manager.prepare([anchor], context: scope.context), context: scope.context)
+        try await manager.enableNewWindows(from: anchor.id)
+        anchor.nextCreation = sibling
+        try await manager.exclude(anchor.id, context: scope.context)
+        await manager.checkNewWindows()
+        #expect(manager.activeIDs.isEmpty && manager.creationAnchor == nil && sibling.writes == 0)
+    }
+
     @Test func primaryWindowNeedsTheSelectedDisplayAndNeverInheritsASecondaryAcceptanceScope() {
         let frame = SurfaceRect(width: 1470, height: 956)
         let primary = ScreenGeometry(id: "main", frame: frame, visibleFrame: frame)

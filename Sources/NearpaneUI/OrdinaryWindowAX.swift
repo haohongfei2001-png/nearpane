@@ -159,6 +159,25 @@ private actor OrdinaryWindowChannel {
         Task { [channel] in _ = try? await channel.call(command) }
     }
 
+    func setCreationWatch(_ token: UUID, enabled: Bool) async throws {
+        guard !closed else { throw OrdinaryRefusal.lost }
+        _ = try await channel.call(.init(enabled ? .watchCreated : .endCreated, pid: id.pid, launch: id.launch,
+                                         bundle: bundle, id: id, creationGrant: token))
+    }
+
+    func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult {
+        guard !closed else { throw OrdinaryRefusal.lost }
+        let reply = try await channel.call(.init(.takeCreated, pid: id.pid, launch: id.launch, bundle: bundle,
+                                                 id: id, creationGrant: token))
+        guard !closed else { throw OrdinaryRefusal.lost }
+        if let reason = reply.skippedCreated { return .skipped(reason) }
+        guard let created = reply.created else { return .none }
+        guard created.pid == id.pid, created.launch == id.launch, created.number != id.number,
+              created.number != 0 else { throw OrdinaryRefusal.ambiguous }
+        let app = AdmissionApplication(pid: id.pid, launch: id.launch, bundle: bundle, name: applicationName)
+        return .window(OrdinaryWindowAX(id: created, application: app, channel: channel, alerts: alerts))
+    }
+
     func prepare() async throws -> AdmissionPair { try await sample(.prepare) }
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
         guard !closed else { throw OrdinaryRefusal.lost }

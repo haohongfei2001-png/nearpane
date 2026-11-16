@@ -11,3 +11,6 @@ uint32_t NPReadAXWindowNumber(CFTypeRef _Nonnull element);
 
 // Exact ID-only query including offscreen records: absent (0), present (1), unavailable (-1).
 int NPReadWindowNumberPresence(uint32_t window);
+
+// Anonymous pre-consent numbers only. No window dictionaries, titles or pixels.
+int NPReadExistingWindowNumbers(uint32_t * _Nonnull out, int capacity);

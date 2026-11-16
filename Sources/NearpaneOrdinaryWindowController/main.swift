@@ -33,6 +33,8 @@ final class Worker {
     let parent: pid_t
     let owner = OrdinaryOwnerIdentity()
     var app: (Int32,UInt64,String)?
+    private var creationWatch: CreatedWindowWatch?
+    private var creationHandles = Set<ManagedWindowID>()
     var windowsByID = [ManagedWindowID: WindowMonitor]()
     init(_ parent: pid_t) { self.parent = parent }
 
@@ -57,7 +59,7 @@ final class Worker {
                 reply.choices = all.enumerated().map { index,e -> ManagedWindowID? in
                     guard let n = numbers[index], counts[n]?.count == 1 else { return nil }
                     if let (id, existing) = previous.first(where: {
-                        $0.key.number == n && $0.value.canListAgain && CFEqual($0.value.element,e)
+                        !creationHandles.contains($0.key) && $0.key.number == n && $0.value.canListAgain && CFEqual($0.value.element,e)
                     }) {
                         retained[id] = existing
                         return id
@@ -95,7 +97,36 @@ final class Worker {
                 case .write:
                     guard let expected = r.expected, let to = r.destination else { throw Refusal("缺少明确的窗口目标。") }
                     (reply.pair,reply.steps) = try m.write(from:expected,to:to)
-                case .release: m.stop(); windowsByID.removeValue(forKey:id)
+                case .watchCreated:
+                    try checkOwner(owner, pid: r.pid, launch: r.launch, bundle: r.bundle)
+                    guard let token = r.creationGrant, m.hasObserver, m.canListAgain else { throw Refusal("原窗口授权已失效。") }
+                    creationWatch = try CreatedWindowWatch(anchor: id, grant: token)
+                case .endCreated:
+                    if creationWatch?.anchor == id, creationWatch?.grant == r.creationGrant { creationWatch = nil }
+                case .takeCreated:
+                    try checkOwner(owner, pid: r.pid, launch: r.launch, bundle: r.bundle)
+                    guard let watch = creationWatch, watch.anchor == id, watch.grant == r.creationGrant,
+                          m.canListAgain else { throw Refusal("新窗口授权已失效。") }
+                    if let (element, n) = try watch.take() {
+                        let newID = ManagedWindowID(pid: r.pid, launch: r.launch, number: n, element: UUID())
+                        let monitor = WindowMonitor(id: newID, bundle: r.bundle, element: element, parent: parent, owner: owner)
+                        // Subscribe and verify before exposing a retained handle. A failed candidate
+                        // was already consumed and cannot become a later retry.
+                        do {
+                            _ = try monitor.prepare()
+                            windowsByID[newID] = monitor
+                            creationHandles.insert(newID)
+                            reply.created = newID
+                        } catch {
+                            monitor.stop()
+                            reply.skippedCreated = (error as? Refusal)?.message ?? "新窗口未通过身份和几何核对。"
+                        }
+                    }
+                case .release:
+                    if creationWatch?.anchor == id { creationWatch = nil }
+                    creationHandles.remove(id)
+                    m.stop()
+                    windowsByID.removeValue(forKey:id)
                 case .list, .refresh: break
                 }
             }

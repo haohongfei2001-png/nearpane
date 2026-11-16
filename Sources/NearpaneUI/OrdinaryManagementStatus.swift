@@ -9,6 +9,7 @@ private typealias ViewState<T> = State<T>
     private var session: OrdinaryWindowManager { manager.ordinary }
     @ViewState private var percent = 60
     @ViewState private var confirmingKeep = false
+    @ViewState private var newWindowChoice: ManagedWindowID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -23,9 +24,29 @@ private typealias ViewState<T> = State<T>
                     HStack {
                         Text(session.managedWindowLabel(id) + " · " + (session.verifiedIDs.contains(id) ? "布局已读回" : "待核对"))
                             .accessibilityIdentifier("ordinary-owner-\(id.number)")
+                        if session.creationAnchor == id {
+                            Button("停止接纳新窗") { perform { session.disableNewWindows() } }
+                                .accessibilityIdentifier("ordinary-scope-stop")
+                        } else if session.creationAnchor == nil && !session.paused && !session.blocked {
+                            Button("接纳此应用新窗…") {
+                                newWindowChoice = id
+                            }.accessibilityIdentifier("ordinary-scope-offer-\(id.number)")
+                        }
                         Button("排除并停止管理") { perform { try await session.exclude(id, context: try current()) } }
                             .disabled(session.blocked).accessibilityIdentifier("ordinary-exclude-\(id.number)")
                     }.font(.caption)
+                }
+                if let id = newWindowChoice, session.activeIDs.contains(id),
+                   session.creationAnchor == nil, !session.paused, !session.blocked {
+                    Text("仅管理“" + session.managedWindowLabel(id) + "”所属进程随后在此屏新建的合格窗口。已有其他窗口保持原样，暂停或关闭原窗口会结束授权。")
+                        .font(.caption).foregroundStyle(.secondary)
+                    HStack {
+                        Button("同意接纳新窗口") {
+                            newWindowChoice = nil
+                            perform { try await session.enableNewWindows(from: id) }
+                        }.accessibilityIdentifier("ordinary-scope-confirm")
+                        Button("取消") { newWindowChoice = nil }
+                    }
                 }
                 HStack {
                     Button(session.paused ? "继续逐窗管理" : "暂停逐窗管理") {
@@ -55,6 +76,7 @@ private typealias ViewState<T> = State<T>
                     }
             }
         }.disabled(session.unavailableForUserAction)
+
     }
 
     private func current() throws -> AdmissionContext {
