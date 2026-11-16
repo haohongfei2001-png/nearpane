@@ -35,6 +35,7 @@ final class TrayOwner {
     private var workCount = 0
     private var drainWaiters: [CheckedContinuation<Void, Never>] = []
     var hasPendingWork: Bool { workCount > 0 }
+    var hasInteractiveWork: Bool { hasPendingWork || captureController?.isActive == true }
     let notify: @MainActor () async -> Void
     let report: @MainActor (String) -> Void
     // Other objects/tasks that continue domain work retain this same lock, even after UI disable.

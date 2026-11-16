@@ -19,19 +19,24 @@ final class ApplicationUpdater: NSObject, ObservableObject {
     private let allowNetwork: Bool
     private let bundle: Bundle
     private let installationBlock: @MainActor () -> String?
+    private let activityBlock: @MainActor () async -> String?
     private var started = false
     private var stopped = false
     private var pendingInstallation: (() -> Void)?
+    private var checkingRelaunch = false
+    private var installerRequestedTermination = false
     #if canImport(Sparkle)
     private var controller: SPUStandardUpdaterController?
     private var observations: [NSKeyValueObservation] = []
     #endif
 
     init(allowNetwork: Bool, bundle: Bundle = .main,
+         activityBlock: @escaping @MainActor () async -> String? = { nil },
          installationBlock: @escaping @MainActor () -> String? = { nil }) {
         self.allowNetwork = allowNetwork
         self.bundle = bundle
         self.installationBlock = installationBlock
+        self.activityBlock = activityBlock
         status = allowNetwork ? "更新尚未开始检查。" : "隔离验收期间不连接更新服务。"
         super.init()
     }
@@ -111,12 +116,44 @@ final class ApplicationUpdater: NSObject, ObservableObject {
         #endif
     }
 
+    private func liveRelaunchBlock() async -> String? {
+        let activity = await activityBlock()
+        return installationBlock() ?? activity
+    }
+
+    func deferInstallation(_ install: @escaping () -> Void) {
+        guard !stopped, pendingInstallation == nil else { return }
+        pendingInstallation = install
+        installationDeferred = true
+        continueInstallation()
+    }
+
     func continueInstallation() {
-        guard !stopped, let install = pendingInstallation else { return }
-        if let problem = installationBlock() { status = problem; return }
-        pendingInstallation = nil
-        installationDeferred = false
-        install()
+        guard !stopped, pendingInstallation != nil, !checkingRelaunch else { return }
+        checkingRelaunch = true
+        Task {
+            defer { checkingRelaunch = false }
+            let problem = await liveRelaunchBlock()
+            guard !stopped, let install = pendingInstallation else { return }
+            if let problem { status = problem; return }
+            pendingInstallation = nil
+            installationDeferred = false
+            installerRequestedTermination = true
+            install()
+        }
+    }
+
+    func willRequestInstallation() {
+        installerRequestedTermination = true
+        installationAdmission.acceptInstallation()
+    }
+
+    /// Some Sparkle paths do not deliver the postpone callback. Recheck in the Host's
+    /// termination barrier before stopping capture or restoring managed windows.
+    func permitsTermination() async -> Bool {
+        guard installerRequestedTermination else { return true }
+        if let problem = await liveRelaunchBlock() { status = problem; return false }
+        return true
     }
 
     #if canImport(Sparkle)
@@ -197,17 +234,14 @@ extension ApplicationUpdater: SPUUpdaterDelegate, @preconcurrency SPUStandardUse
     }
 
     func updater(_ updater: SPUUpdater, willInstallUpdate item: SUAppcastItem) {
-        installationAdmission.acceptInstallation()
+        willRequestInstallation()
     }
 
     func updater(_ updater: SPUUpdater, shouldPostponeRelaunchForUpdate item: SUAppcastItem,
                  untilInvokingBlock installHandler: @escaping () -> Void) -> Bool {
         guard !stopped else { return true }
         installationAdmission.acceptInstallation()
-        guard let problem = installationBlock() else { return false }
-        status = problem
-        pendingInstallation = installHandler
-        installationDeferred = true
+        deferInstallation(installHandler)
         return true
     }
 

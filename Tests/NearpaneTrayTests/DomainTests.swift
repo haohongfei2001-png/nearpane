@@ -625,6 +625,7 @@ struct TrayDomainTests {
         let deadline = ContinuousClock.now.advanced(by: .seconds(3))
         while await !adapter.waiting, ContinuousClock.now < deadline { await Task.yield() }
         try #require(await adapter.waiting)
+        #expect(await tray.updateRequiresTrayToFinish())
         tray.stop()
         var drained = false
         let stopping = Task { await tray.finishStopping(); drained = true }
@@ -638,6 +639,7 @@ struct TrayDomainTests {
         #expect(try await store.operation(id: id)?.phase == .unknown)
         try tray.start(); await tray.connect()
         #expect(tray.connected && !tray.mayAttach)
+        #expect(await !tray.updateRequiresTrayToFinish())
         tray.stop(); await tray.finishStopping()
         #expect(await adapter.attempts == 1)
     }

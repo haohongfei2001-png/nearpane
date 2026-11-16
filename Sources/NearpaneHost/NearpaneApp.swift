@@ -444,7 +444,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         await session.start()
         traceFullscreenStartup("host-started")
         guard !Task.isCancelled else { return }
-        let updater = ApplicationUpdater(allowNetwork: testSession == nil && candidate) { [weak self] in
+        let updater = ApplicationUpdater(allowNetwork: testSession == nil && candidate, activityBlock: { [weak modules] in
+            guard let modules else { return "暂时无法核对运行状态，请稍后安装。" }
+            return await modules.updateRelaunchBlock()
+        }) { [weak self] in
             guard let self, self.host?.isRunning == true else { return "Nearpane 正在启动或停止，请稍后更新。" }
             #if canImport(SaytileKit)
             if self.profileSwitch != nil { return "资料切换正在进行，请完成后重新打开 Nearpane 再更新。" }
@@ -587,6 +590,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // waiting for our reply can bypass the remaining work.
         guard terminationTask == nil else { return .terminateLater }
         terminationTask = Task {
+            if let updater, !(await updater.permitsTermination()) {
+                terminationTask = nil
+                sender.reply(toApplicationShouldTerminate: false)
+                return
+            }
             #if canImport(SaytileKit)
             if let feedback, !(await feedback.prepareForTermination()) {
                 terminationTask = nil
@@ -594,6 +602,14 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 return
             }
             #endif
+            if let updater, !(await updater.permitsTermination()) {
+                #if canImport(SaytileKit)
+                await feedback?.resumeAfterDeferredUpdate()
+                #endif
+                terminationTask = nil
+                sender.reply(toApplicationShouldTerminate: false)
+                return
+            }
             wakeReadback?.cancel()
             updater?.stop()
             passiveShutdownTimer?.invalidate()

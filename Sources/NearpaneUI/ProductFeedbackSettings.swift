@@ -172,6 +172,16 @@ public final class ProductFeedbackController: ObservableObject {
         }
     }
 
+    /// A fresh capture or window action can defer the updater after the feedback store drained.
+    public func resumeAfterDeferredUpdate() async {
+        guard stopping else { return }
+        stopping = false
+        guard ready else { return }
+        engine = nil
+        ready = false
+        await start()
+    }
+
     public func observeVisibleRecords() async {
         while expanded, ready, !stopping, !Task.isCancelled {
             await refreshRecords()

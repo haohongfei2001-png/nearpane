@@ -131,6 +131,15 @@ public final class VoiceModule: HostModule {
     public private(set) var active = false
     private(set) var busy = false
     public private(set) var capture: CaptureState = .paused
+    /// Only activity flags enter the app updater. Audio and transcript stay in the domain.
+    public var updateRequiresVoiceToFinish: Bool {
+        if busy || changingRecognition || inserting || archivePlaybackParagraph != nil { return true }
+        switch capture {
+        case .starting, .listening, .speaking: return true
+        case .paused, .interrupted:
+            return rows.contains { $0.isRecording || $0.recognitionState == .running }
+        }
+    }
     private(set) var control = PanelCapturePresentation(.paused, 0)
     private(set) var rows: [Recording] = []
     private(set) var archiveRevision = 0

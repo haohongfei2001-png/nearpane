@@ -27,6 +27,7 @@ var targets: [Target] = [
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
     .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController"]),
     .testTarget(name: "NearpaneDesktopReaderTests", dependencies: ["NearpaneDesktopReader", "NearpaneCore"]),
+    .testTarget(name: "NearpaneHostTests", dependencies: ["NearpaneHost"]),
     .testTarget(name: "NearpaneCoreTests", dependencies: ["NearpaneCore"]),
     .testTarget(name: "NearpaneUITests", dependencies: ["NearpaneUI", "NearpaneCore"] + domains + fixtureDomains)
 ]

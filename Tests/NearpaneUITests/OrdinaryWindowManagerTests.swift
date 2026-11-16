@@ -111,6 +111,18 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func updateCannotTerminateAWindowGrantIncludingWhilePausedOrOrphaned() async throws {
+        let fixture = OrdinaryScope(), window = WindowDouble(), manager = fixture.manager()
+        #expect(!manager.blocksUpdateRelaunch)
+        try await manager.confirm(manager.prepare([window], context: fixture.context), context: fixture.context)
+        #expect(manager.blocksUpdateRelaunch)
+        try manager.pause()
+        #expect(manager.blocksUpdateRelaunch)
+        let orphan = fixture.manager()
+        #expect(orphan.blocked && orphan.blocksUpdateRelaunch)
+        try await manager.stop()
+        #expect(!manager.blocksUpdateRelaunch)
+    }
     @Test func cancellingCreationScopeDuringConfirmationCannotPublishGrantOrWrite() async throws {
         let fixture = OrdinaryScope(), anchor = WindowDouble(), manager = fixture.manager()
         let created = WindowDouble(launch: anchor.id.launch)

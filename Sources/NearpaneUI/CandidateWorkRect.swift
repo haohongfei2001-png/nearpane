@@ -99,6 +99,9 @@ import SwiftUI
     private(set) var message = "正在读取管理设置…"
     private(set) var blocked = false
     private(set) var trusted = false
+    var updateRequiresManagementToFinish: Bool {
+        !supervisorReady || mode != "off" || count != 0 || blocked || ordinary.blocksUpdateRelaunch
+    }
 
     init(support: URL) {
         self.support = support

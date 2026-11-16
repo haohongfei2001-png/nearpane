@@ -91,6 +91,18 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var collectionDrain: Task<Void, Never>?
     @ObservationIgnored private var connectionTask: Task<Void, Never>?
     @ObservationIgnored private var ownerDrain: Task<Void, Never>?
+    @ObservationIgnored private var drainingOwners = 0
+    /// Query the original coordinator; a durable UNKNOWN is not an active upload.
+    public func updateRequiresTrayToFinish() async -> Bool {
+        func busy() -> Bool {
+            connecting || drainingOwners > 0 || pointer.isHolding || pressTask != nil ||
+                !resolvingPresses.isEmpty || owner?.hasInteractiveWork == true
+        }
+        if busy() { return true }
+        guard let owner else { return false }
+        let inputActive = await owner.transfer.hasInFlightAttachmentWork
+        return inputActive || self.owner !== owner || busy()
+    }
     public private(set) var collectionEnabled = false
 
     @ObservationIgnored var captureLocation: @MainActor () -> any CaptureLocationProviding = { SystemCaptureLocationProvider() }
@@ -240,11 +252,13 @@ public final class TrayModule: HostModule {
         if let owner {
             owner.close()
             let previous = ownerDrain
+            drainingOwners += 1
             ownerDrain = Task {
                 await previous?.value
                 await observing?.value
                 _ = await saving?.value
                 await owner.finishWork()
+                drainingOwners -= 1
             }
         }
         owner = nil

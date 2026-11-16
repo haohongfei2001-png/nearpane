@@ -69,6 +69,21 @@ private actor FeedbackCleanFailure {
 @Suite("Nearpane private feedback")
 @MainActor
 struct ProductFeedbackUITests {
+    @Test func updateDeferredAfterFeedbackDrainsRestoresTheEditableDraftWithoutSending() async throws {
+        let transport = FeedbackRecorder()
+        let (root, controller) = try fixture(transport: transport)
+        defer { try? FileManager.default.removeItem(at: root) }
+        await controller.start()
+        controller.edit { $0.text = "合成反馈暂存" }
+        #expect(await controller.prepareForTermination())
+        await controller.resumeAfterDeferredUpdate()
+        #expect(controller.ready && !controller.stopping && controller.content.text == "合成反馈暂存")
+        controller.edit { $0.text += "继续" }
+        #expect(controller.content.text == "合成反馈暂存继续")
+        #expect(await transport.requests.isEmpty)
+        #expect(await controller.prepareForTermination())
+    }
+
     private func fixture(transport: any FeedbackTransport) throws -> (URL, ProductFeedbackController) {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("NearpaneFeedback-" + UUID().uuidString)
         let controller = ProductFeedbackController(directory: root, appVersion: "5.9", systemVersion: "27.0",

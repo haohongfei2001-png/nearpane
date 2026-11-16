@@ -18,6 +18,17 @@ public final class EmbeddedModules {
     let windowPreviews = WindowContentPreview()
     public func stopWindowContentPreview() { windowPreviews.clear() }
 
+    @MainActor public func updateRelaunchBlock() async -> String? {
+        #if canImport(NearpaneVoice)
+        if await tray.updateRequiresTrayToFinish() { return "请等待截图或草稿附加操作结束，再继续安装。" }
+        if voice.updateRequiresVoiceToFinish { return "请先暂停收音，并等待语音处理或播放结束，再继续安装。" }
+        #endif
+        if workRect?.updateRequiresManagementToFinish == true {
+            return "请在窗口管理中停止管理并完成恢复，再继续安装。"
+        }
+        return nil
+    }
+
     public let workRect: CandidateWorkRect?
     public let candidate: Bool
     public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {

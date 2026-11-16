@@ -93,6 +93,7 @@ enum OrdinaryRefusal: LocalizedError {
     private var userActionReserved = false
     @ObservationIgnored private var afterRead: CheckedContinuation<Void, Never>?
     var unavailableForUserAction: Bool { closing || userActionReserved || (busy && !passiveRead) }
+    var blocksUpdateRelaunch: Bool { !activeIDs.isEmpty || blocked || busy || userActionReserved || closing }
     private var appliedArea: SurfaceRect?
     private var lastCorrection = [ManagedWindowID: TimeInterval]()
     @ObservationIgnored var correctionUptime: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
