@@ -22,7 +22,7 @@ private actor OrdinaryWindowChannel {
     private let process: Process
     private let input, output, alertsInput: FileHandle
 
-    init(alerts: BoundaryAlerts) throws {
+    init(alerts: BoundaryAlerts, previewWindow: UInt32? = nil) throws {
         let root = Bundle.main.bundleURL
         let executable = root.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
         guard executable.resolvingSymlinksInPath().path == executable.path,
@@ -36,6 +36,7 @@ private actor OrdinaryWindowChannel {
         guard fcntl(commands.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1) == 0
         else { throw OrdinaryWindowFailure("无法安全建立窗口控制通道。") }
         process.executableURL = executable
+        if let previewWindow { process.arguments = ["--read-only-preview", String(previewWindow)] }
         process.standardInput = commands
         process.standardOutput = replies
         // Only the nonce-checked stdout RPC can issue or acknowledge an operation.
@@ -112,11 +113,11 @@ private actor OrdinaryWindowChannel {
     private let alerts: BoundaryAlerts
     private(set) var handles = [UUID: OrdinaryWindowAX]()
 
-    init(_ app: AdmissionApplication) throws {
+    init(_ app: AdmissionApplication, previewWindow: UInt32? = nil) throws {
         self.app = app
         let alerts = BoundaryAlerts()
         self.alerts = alerts
-        channel = try OrdinaryWindowChannel(alerts: alerts)
+        channel = try OrdinaryWindowChannel(alerts: alerts, previewWindow: previewWindow)
     }
 
     func choices(initial: Bool) async throws -> [AdmissionWindowChoice] {

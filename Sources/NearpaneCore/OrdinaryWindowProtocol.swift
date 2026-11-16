@@ -5,6 +5,13 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
         case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
         case watchCreated, takeCreated, endCreated
+
+        public var allowedForStillPreview: Bool {
+            switch self {
+            case .list, .prepare, .verify, .release: true
+            default: false
+            }
+        }
     }
     public let nonce: UUID, action: Action, pid: Int32, launch: UInt64, bundle: String
     public let id: ManagedWindowID?, expected: SurfaceRect?, destination: SurfaceRect?

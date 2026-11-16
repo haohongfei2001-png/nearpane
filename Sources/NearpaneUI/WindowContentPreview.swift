@@ -23,6 +23,17 @@ struct PreviewWindowBinding: Equatable {
         pid = m.pid; self.birth = birth; number = m.number; bounds = m.globalFrame
     }
 
+    func confirms(_ pair: AdmissionPair, id: ManagedWindowID) -> Bool {
+        guard id.pid == pid, id.launch == birth, id.number == number,
+              pair.first.liveObservation != nil, pair.first.liveObservation == pair.second.liveObservation else { return false }
+        return [pair.first, pair.second].allSatisfy { sample in
+            guard sample.id == id, sample.permission, sample.selectionContinuity, sample.role == .ordinary,
+                  sample.onScreen == true, sample.layer == 0, sample.minimized == false, sample.fullscreen == false,
+                  sample.display == display, sample.cgFrame == bounds, sample.axFrame == bounds else { return false }
+            return true
+        }
+    }
+
     func window(in snapshot: DesktopSnapshot?, now: Date = Date(),
                 uptime: Double = ProcessInfo.processInfo.systemUptime) -> WindowObservation? {
         guard let snapshot, snapshot.isStructurallyValid, snapshot.nativeIsFresh(now: now, uptime: uptime),
@@ -33,10 +44,25 @@ struct PreviewWindowBinding: Equatable {
     }
 }
 
-// AX references identify the original window across Reader revisions. Only the
-// background geometry probe and CFEqual use this immutable handle.
-private struct RetainedPreviewElement: @unchecked Sendable {
-    let value: AXUIElement
+/// The signed helper holds the original AX element and rejects every writing command on this pipe.
+@MainActor private final class PreviewIdentityWitness {
+    let target: PreviewWindowBinding
+    private let handle: OrdinaryWindowAX
+
+    init?(target: PreviewWindowBinding, bundle: String) async {
+        let app = AdmissionApplication(pid: target.pid, launch: target.birth, bundle: bundle, name: "")
+        guard let directory = try? OrdinaryWindowDirectory(app, previewWindow: target.number),
+              let choices = try? await directory.choices(initial: true), choices.count == 1,
+              let choice = choices.first, choice.number == target.number, let handle = directory.handles[choice.id],
+              let pair = try? await handle.prepare(), target.confirms(pair, id: handle.id) else { return nil }
+        self.target = target
+        self.handle = handle
+    }
+
+    func verify() async -> Bool {
+        guard let pair = try? await handle.verify(expected: target.bounds) else { return false }
+        return target.confirms(pair, id: handle.id)
+    }
 }
 
 @MainActor @Observable final class WindowContentPreview {
@@ -48,7 +74,7 @@ private struct RetainedPreviewElement: @unchecked Sendable {
     var active: Bool { operation != nil }
     private var observer: WindowPickerObserver?
     private weak var host: HostSession?
-    private var retainedElement: RetainedPreviewElement?
+    private var witness: PreviewIdentityWitness?
     private var expiry: Task<Void, Never>?
     private(set) var operation: UUID?
     private(set) var visibleDisplays: Set<String> = []
@@ -86,12 +112,11 @@ private struct RetainedPreviewElement: @unchecked Sendable {
             self.host = host
             let observer = WindowPickerObserver { [weak self] filter in
                 guard let self, self.operation == op else { return }
+                guard let filter else { self.clear(); return }
                 guard self.choosing else { return }
-                if let filter {
-                    self.choosing = false
-                    self.notice = "正在读取所选窗口…"
-                    Task { await self.capture(filter, operation: op) }
-                } else { self.clear() }
+                self.choosing = false
+                self.notice = "正在读取所选窗口…"
+                Task { await self.capture(filter, operation: op) }
             }
             self.observer = observer
             let picker = SCContentSharingPicker.shared
@@ -120,7 +145,7 @@ private struct RetainedPreviewElement: @unchecked Sendable {
         operation = nil
         expiry?.cancel(); expiry = nil
         endPicking()
-        retainedElement = nil; image = nil; binding = nil; revision = nil; notice = message
+        witness = nil; image = nil; binding = nil; revision = nil; notice = message
     }
 
     private nonisolated static func sessionAvailable() -> Bool {
@@ -129,64 +154,15 @@ private struct RetainedPreviewElement: @unchecked Sendable {
             session["CGSSessionScreenIsLocked"] as? Bool != true
     }
 
-    private nonisolated static func ownerMatches(_ target: PreviewWindowBinding) -> Bool {
-        var info = proc_bsdinfo()
-        let size = Int32(MemoryLayout.size(ofValue: info))
-        return target.pid > 0 && proc_pidinfo(target.pid, PROC_PIDTBSDINFO, 0, &info, size) == size &&
-            info.pbi_pid == UInt32(target.pid) && info.pbi_uid == getuid() &&
-            info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec == target.birth
-    }
-
-    /// Public AX object equality distinguishes window incarnations even if a process reuses a CG number.
-    /// Recheck the exported AX number itself. Geometry cannot identify a window.
-    private nonisolated static func element(for target: PreviewWindowBinding) -> RetainedPreviewElement? {
-        guard Self.sessionAvailable(), AXIsProcessTrusted(), ownerMatches(target) else { return nil }
-        let app = AXUIElementCreateApplication(target.pid)
-        AXUIElementSetMessagingTimeout(app, 0.10)
-        var array: CFArray?
-        guard AXUIElementCopyAttributeValues(app, kAXWindowsAttribute as CFString, 0, 33, &array) == .success,
-              let windows = array as? [AXUIElement], windows.count <= 32 else { return nil }
-        let deadline = ProcessInfo.processInfo.systemUptime + 0.18
-        var match: AXUIElement?
-        for w in windows {
-            guard ProcessInfo.processInfo.systemUptime < deadline else { return nil }
-            AXUIElementSetMessagingTimeout(w, 0.08)
-            func value(_ key: String) -> CFTypeRef? {
-                var v: CFTypeRef?
-                return AXUIElementCopyAttributeValue(w, key as CFString, &v) == .success ? v : nil
-            }
-            var pid: pid_t = 0
-            guard AXUIElementGetPid(w, &pid) == .success, pid == target.pid else { return nil }
-            guard let axNumber = value("AXWindowNumber") as? NSNumber,
-                  UInt32(exactly: axNumber.int64Value) == target.number else { continue }
-            guard match == nil, let pos = value(kAXPositionAttribute), CFGetTypeID(pos) == AXValueGetTypeID(),
-                  let size = value(kAXSizeAttribute), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
-            var p = CGPoint.zero, s = CGSize.zero
-            guard AXValueGetValue(pos as! AXValue, .cgPoint, &p), AXValueGetValue(size as! AXValue, .cgSize, &s) else { return nil }
-            let t = target.bounds
-            guard abs(p.x - t.x) <= 2, abs(p.y - t.y) <= 2,
-                  abs(s.width - t.width) <= 2, abs(s.height - t.height) <= 2,
-                  value(kAXRoleAttribute) as? String == kAXWindowRole,
-                  value(kAXSubroleAttribute) as? String == kAXStandardWindowSubrole else { return nil }
-            match = w
-        }
-        guard ownerMatches(target), Self.sessionAvailable() else { return nil }
-        return match.map { RetainedPreviewElement(value: $0) }
-    }
-
-    private func readElement(_ target: PreviewWindowBinding) async -> RetainedPreviewElement? {
-        await Task.detached(priority: .utility) { Self.element(for: target) }.value
-    }
-
     @available(macOS 15.2, *)
     private func capture(_ filter: SCContentFilter, operation op: UUID) async {
         guard operation == op else { return }
         guard filter.style == .window, filter.includedWindows.count == 1, let chosen = filter.includedWindows.first,
-              let pid = chosen.owningApplication?.processID, pid != getpid(), chosen.windowLayer == 0, chosen.isOnScreen,
+              let application = chosen.owningApplication, !application.bundleIdentifier.isEmpty, application.processID != getpid(), chosen.windowLayer == 0, chosen.isOnScreen,
               let host, !host.configuration.surfaceHidden, let snapshot = host.bus.desktop,
-              let window = snapshot.windows.first(where: { $0.metadata?.number == chosen.windowID && $0.metadata?.pid == pid }),
+              let window = snapshot.windows.first(where: { $0.metadata?.number == chosen.windowID && $0.metadata?.pid == application.processID }),
               let target = PreviewWindowBinding(snapshot, window: window), permits(target, host: host),
-              let first = await readElement(target) else {
+              let proof = await PreviewIdentityWitness(target: target, bundle: application.bundleIdentifier) else {
             if operation == op { clear("暂时无法同时确认所选窗口的位置与身份。") }; return
         }
         guard operation == op else { return }
@@ -201,14 +177,14 @@ private struct RetainedPreviewElement: @unchecked Sendable {
         do {
             let shot = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
             guard operation == op else { return }
-            let after = await readElement(target)
+            let stillSameWindow = await proof.verify()
             guard operation == op else { return }
             guard let current = host.bus.desktop, permits(target, host: host),
-                  let after, CFEqual(first.value, after.value) else {
+                  stillSameWindow else {
                 clear("窗口或桌面已变化，已清除预览。"); return
             }
             endPicking()
-            binding = target; image = shot; retainedElement = first; revision = current.revision
+            binding = target; image = shot; witness = proof; revision = current.revision
             notice = "已拍摄所选窗口。快照在一分钟后清除。"
             expiry = Task { [weak self] in
                 do { try await Task.sleep(for: .seconds(60)) } catch { return }
@@ -220,14 +196,14 @@ private struct RetainedPreviewElement: @unchecked Sendable {
     }
 
     func validate(_ snapshot: DesktopSnapshot?) async {
-        guard let binding, let op = operation, let retainedElement else { return }
+        guard let binding, let op = operation, let witness else { return }
         guard let snapshot, let host, permits(binding, host: host), binding.window(in: snapshot) != nil else {
             clear("窗口状态已变化，已清除预览。"); return
         }
         guard snapshot.revision != revision else { return }
-        let current = await readElement(binding)
+        let stillSameWindow = await witness.verify()
         guard !Task.isCancelled, operation == op, host.bus.desktop?.revision == snapshot.revision else { return }
-        guard binding.window(in: snapshot) != nil, let current, CFEqual(retainedElement.value, current.value) else {
+        guard binding.window(in: snapshot) != nil, stillSameWindow else {
             clear("窗口状态已变化，已清除预览。"); return
         }
         revision = snapshot.revision

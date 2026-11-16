@@ -51,6 +51,28 @@ import Testing
         #expect(!preview.active && preview.image == nil)
     }
 
+    @Test func previewHelperGrantsOnlyObservationAndRequiresTwoMatchingReads() throws {
+        for command: OrdinaryWindowRequest.Action in [.write, .acknowledgeBoundary, .watchCreated, .takeCreated, .endCreated, .refresh] {
+            #expect(!command.allowedForStillPreview)
+        }
+        let snapshot = sample(session: UUID())
+        let bound = try #require(PreviewWindowBinding(snapshot, window: snapshot.windows[0]))
+        var a = AdmissionSample(pid: bound.pid, launch: bound.birth, number: bound.number, bundle: "test", uptime: 1)
+        a.element = UUID(); a.axNumber = bound.number; a.liveObservation = UUID()
+        a.cgFrame = bound.bounds; a.axFrame = bound.bounds; a.display = bound.display
+        a.permission = true; a.selectionContinuity = true; a.onScreen = true; a.layer = 0
+        a.role = .ordinary; a.minimized = false; a.fullscreen = false
+        let id = try #require(a.id)
+        #expect(bound.confirms(.init(first: a, second: a), id: id))
+        var changed = a
+        changed.liveObservation = UUID()
+        #expect(!bound.confirms(.init(first: a, second: changed), id: id))
+        changed = a; changed.element = UUID()
+        #expect(!bound.confirms(.init(first: a, second: changed), id: id))
+        changed = a; changed.cgFrame?.width = 49
+        #expect(!bound.confirms(.init(first: a, second: changed), id: id))
+    }
+
     @Test func presentationThumbnailAndClippedWindowCannotSupplyContent() {
         let stage = sample(session: UUID(), cgOverride: .init(x: 2, y: 150, width: 49, height: 76))
         let clipped = sample(session: UUID(), x: -40)

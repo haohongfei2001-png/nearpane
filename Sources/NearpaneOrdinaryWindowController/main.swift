@@ -36,12 +36,20 @@ final class Worker {
     private var creationWatch: CreatedWindowWatch?
     private var creationHandles = Set<ManagedWindowID>()
     var windowsByID = [ManagedWindowID: WindowMonitor]()
-    init(_ parent: pid_t) { self.parent = parent }
+    let previewWindow: UInt32?
+    init(_ parent: pid_t, previewWindow: UInt32? = nil) {
+        self.parent = parent
+        self.previewWindow = previewWindow
+    }
 
     func handle(_ r: OrdinaryWindowRequest) -> OrdinaryWindowReply {
         var reply = OrdinaryWindowReply(r.nonce)
         do {
             try require(getppid() == parent, "调用方已退出。")
+            if let previewWindow {
+                try require(r.action.allowedForStillPreview && r.destination == nil &&
+                            (r.action == .list || r.id?.number == previewWindow), "此通道仅核对已选预览窗口。")
+            }
             if r.action == .list || r.action == .refresh {
                 try require(r.id == nil, "窗口清单只能按已选进程查询。")
                 if r.action == .list {
@@ -57,7 +65,7 @@ final class Worker {
                 let previous = windowsByID
                 var retained = previous.filter { $0.value.hasObserver }
                 reply.choices = all.enumerated().map { index,e -> ManagedWindowID? in
-                    guard let n = numbers[index], counts[n]?.count == 1 else { return nil }
+                    guard let n = numbers[index], counts[n]?.count == 1, previewWindow == nil || previewWindow == n else { return nil }
                     if let (id, existing) = previous.first(where: {
                         !creationHandles.contains($0.key) && $0.key.number == n && $0.value.canListAgain && CFEqual($0.value.element,e)
                     }) {
@@ -69,6 +77,7 @@ final class Worker {
                     return id
                 }
                 try checkOwner(owner, pid:r.pid, launch:r.launch, bundle:r.bundle)
+                if previewWindow != nil { reply.choices = reply.choices?.compactMap { $0 } }
                 windowsByID = retained
             } else {
                 guard let app, app == (r.pid,r.launch,r.bundle), let id = r.id,
@@ -136,8 +145,14 @@ final class Worker {
 }
 
 let parent = getppid()
-guard CommandLine.arguments.count == 1, verifyParent(parent) else { exit(64) }
-let worker = Worker(parent)
+guard verifyParent(parent) else { exit(64) }
+let args = CommandLine.arguments.dropFirst()
+let previewWindow: UInt32?
+if args.isEmpty { previewWindow = nil }
+else if args.count == 2, args.first == "--read-only-preview", let number = UInt32(args.last!), number > 0 {
+    previewWindow = number
+} else { exit(64) }
+let worker = Worker(parent, previewWindow: previewWindow)
 final class CommandInput {
     let worker: Worker
     var pending = Data()
