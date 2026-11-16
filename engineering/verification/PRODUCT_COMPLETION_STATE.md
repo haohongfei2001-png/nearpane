@@ -4,7 +4,7 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，P5.10 Alpha/build60，稳定标识 `com.holdsnow.nearpane.alpha`。产品实现 `8d5e69029d2b884901f2e12e37ddeb3416f70112`，Host SHA-256 `12d0f7630c2f640d6c6b8d1ee1482ded550f41c923d79481aeecffb1a7744050`。十二个可执行文件、30 项资源及三份 App 图标通过最终包校验；保持唯一安装入口。旧 5.9 已核验归档，个人资料未读取、迁移或覆盖。[当前交付](P5.10-VISUAL-AUTHORITY-AND-DELIVERY.md) · [5.9 回退包](../../build/verification/p510/rollback/Nearpane-5.9.zip)
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.10.1 Alpha，build 61。稳定标识 `com.holdsnow.nearpane.alpha`，源码 `88e2118fcbf8471993927764302608fe03b886b1`。统一安装包、普通启动、隔离资料往返、浅深色离屏渲染、窗口边界与恢复回归已核验。此次拖动结束后的纠正仍缺副屏真实 AX 回读。逐窗授权前继续零接管。[当前交付](P5.10.1-GLASS-AND-WINDOW-BOUNDARY.md) · [5.10 回退包](../../build/verification/boundary-glass/rollback/Nearpane-5.10.zip)
 
 ## P5.10 原图、图标与玻璃层次
 
