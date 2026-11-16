@@ -36,6 +36,18 @@ import Testing
         #expect(bound.window(in: good, now: now.addingTimeInterval(15), uptime: 18) == nil)
     }
 
+    @Test func movingToAnotherDesktopRevokesAStillEvenWhenTheFrameIsIdentical() throws {
+        let s = sample(session: UUID())
+        let original = try #require(PreviewWindowBinding(s, window: s.windows[0]))
+        var other = s
+        other.scopes = [.init(id: "scope", displayID: original.display, records: [.init(id: "A", isCurrent: true)])]
+        let w = s.windows[0]
+        let moved = WindowObservation(id: w.id, displayID: w.displayID, bounds: w.bounds, membership: .known(recordIDs: ["A"]),
+                                      confidence: w.confidence, metadata: w.metadata)
+        #expect(PreviewWindowBinding(other, window: w) != original)
+        #expect(PreviewWindowBinding(s, window: moved) != original)
+    }
+
     @Test func withdrawnPanelInvalidatesPickerAndInflightCaptureEvenIfItReopens() throws {
         let preview = WindowContentPreview()
         #expect(preview.beginSelection() == nil)

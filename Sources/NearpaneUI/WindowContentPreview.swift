@@ -8,6 +8,8 @@ struct PreviewWindowBinding: Equatable {
     let session: UUID
     let topology: String
     let display: String
+    let membership: WindowMembership
+    let currentRecord: SpaceRecord?
     let pid: pid_t
     let birth: UInt64
     let number: CGWindowID
@@ -19,6 +21,10 @@ struct PreviewWindowBinding: Equatable {
               m.globalFrame.x >= screen.frame.x + usable.x, m.globalFrame.y >= screen.frame.y + usable.y,
               m.globalFrame.x + m.globalFrame.width <= screen.frame.x + usable.x + usable.width,
               m.globalFrame.y + m.globalFrame.height <= screen.frame.y + usable.y + usable.height else { return nil }
+        let currents = snapshot.scopes.filter { $0.displayID == screen.id }.flatMap(\.records).filter(\.isCurrent)
+        guard currents.count <= 1 else { return nil }
+        currentRecord = currents.first
+        membership = window.membership
         session = snapshot.sessionID; topology = snapshot.topologyFingerprint; display = screen.id
         pid = m.pid; self.birth = birth; number = m.number; bounds = m.globalFrame
     }

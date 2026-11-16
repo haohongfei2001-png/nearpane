@@ -742,6 +742,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case NSWorkspace.screensDidWakeNotification: desktopAvailabilityChanged(.screensWake, settling: true)
         case NSWorkspace.sessionDidResignActiveNotification: desktopAvailabilityChanged(.resigned)
         case NSWorkspace.sessionDidBecomeActiveNotification: desktopAvailabilityChanged(.becameActive, settling: true)
+        case NSWorkspace.activeSpaceDidChangeNotification:
+            modules?.stopWindowContentPreview()
+            host?.invalidateDesktop()
         default:
             host?.invalidateDesktop()
         }
@@ -765,6 +768,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func screensChanged() {
+        modules?.stopWindowContentPreview()
         let before = desktopAvailability
         readDesktopAvailability(.sample)
         if before != desktopAvailability {

@@ -358,17 +358,14 @@ public struct SettingsView: View {
 
     private var desktopOptions: some View {
         Form {
-            Picker("工作空间模式", selection:.constant(host.workspaceMode.mode)) {
-                Text("Native Spaces").tag(WorkspaceMode.native)
-                Text("Nearpane Virtual Workspaces · 等待实机恢复验证").tag(WorkspaceMode.virtual).disabled(true)
-            }
-            Text("Native 只读预览。系统空间切换、跨空间移窗和 Virtual 停放均关闭。").font(.caption)
+            LabeledContent("工作空间模式", value: host.workspaceMode.mode == .native ? "macOS 空间 · 只读" : "Nearpane 虚拟工作区")
+            Text("当前可查看桌面。切换桌面、跨桌面移窗及虚拟工作区停放尚未开放。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
             Toggle("只读桌面预览", isOn: Binding(get: { enabled }, set: {
                 if !$0 { domains?.windowPreviews.clear() }
                 host.handle(.setEnabled(BuiltinCatalog.desktop, $0))
             }))
-            Toggle("实验性 Space 归属读取", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
+            Toggle("识别窗口所属桌面（实验性）", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
                   set: { host.setExperimentalSpaceObservation($0) })).disabled(!enabled)
             if #available(macOS 15.2, *), let previews = domains?.windowPreviews {
                 HStack {
@@ -378,8 +375,15 @@ public struct SettingsView: View {
                         Button("清除预览") { previews.clear() }
                     }
                 }
-                Text(previews.notice.isEmpty ? "由系统选择器指定一扇窗口。预览仅在内存中保留一分钟。" : previews.notice)
-                    .font(.caption).foregroundStyle(.secondary)
+                if !previews.notice.isEmpty {
+                    Text(previews.notice).font(.caption).foregroundStyle(.secondary)
+                } else if !enabled {
+                    Text("启用只读桌面预览后可选择窗口。").font(.caption).foregroundStyle(.secondary)
+                } else if previews.visibleDisplays.isEmpty || host.configuration.surfaceHidden {
+                    Text("先显示并展开含空间预览的侧栏，再选择窗口。").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("由系统选择器指定一扇窗口。快照仅在内存中保留一分钟。").font(.caption).foregroundStyle(.secondary)
+                }
             }
             Text("默认只观察当前可见窗口的几何。实验读取仅用于已核验的系统构建。")
                 .font(.callout).foregroundStyle(.secondary)
