@@ -4,7 +4,7 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.11 Alpha，build 62。稳定标识 `com.holdsnow.nearpane.alpha`，源码 `c8608f1f713a280ce6b838ce1d5e403358040d9e`。Finder 和实际进程均已指向统一安装包。设置提供每屏三层透明度、等宽外框、面板宽高和直接可见的逐窗管理入口。随包领域已更新到 Saytile v0.18-beta.492 和 Riftlet v1.0.2。工作区约束在经授权的窗口拖动结束后生效，按住鼠标期间的硬边界仍未实现。[5.11 交付和回退说明](P5.11-APPEARANCE-DOMAINS-AND-WINDOWS.md) · [上一版交付](P5.10.1-GLASS-AND-WINDOW-BOUNDARY.md)
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.12 Alpha，build 63。源码 `2e81bbe6180cc793968c4d51b7cc7969705b9671`。Finder、实际运行进程和 WorkRect 子进程均已核对。统一主窗口提供语音、截图两个一级档案，通用主题色与菜单栏入口偏好也保存在同一份资料中。5.11 与 5.12 能使用同一已核验的资料代际。工作区仍约束逐窗授权对象拖动结束后的位置。[5.12 交付与界面](P5.12-UNIFIED-ARCHIVES-AND-SETTINGS.md) · [5.11 外观、领域与窗口边界](P5.11-APPEARANCE-DOMAINS-AND-WINDOWS.md)
 
 ## P5.10 原图、图标与玻璃层次
 
