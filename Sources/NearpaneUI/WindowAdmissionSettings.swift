@@ -32,6 +32,7 @@ extension WindowAdmissionReader: AdmissionReading {}
     private(set) var opened = false
     @ObservationIgnored var cancelOrdinaryPreview: (() -> Void)?
     private var generation = 0
+    @ObservationIgnored private var expiration: Task<Void, Never>?
     var apps = [AdmissionApplication]()
     var app: AdmissionApplication?
     var choices = [AdmissionWindowChoice]()
@@ -47,6 +48,7 @@ extension WindowAdmissionReader: AdmissionReading {}
     var result: AdmissionPreviewResult? { readouts.count == 1 ? readouts[0].result : nil }
     var sampledAt: Date?
     var failure: String?
+    private(set) var permissionDenied = false
     var reading = false
     var expired = false
 
@@ -56,6 +58,8 @@ extension WindowAdmissionReader: AdmissionReading {}
     }
 
     func invalidate(discardPlan: Bool = true) {
+        expiration?.cancel()
+        expiration = nil
         if discardPlan { cancelOrdinaryPreview?() }
         generation += 1
         ordinaryReview = nil
@@ -63,6 +67,7 @@ extension WindowAdmissionReader: AdmissionReading {}
         readouts = []
         sampledAt = nil
         failure = nil
+        permissionDenied = false
         reading = false
         expired = false
     }
@@ -84,6 +89,48 @@ extension WindowAdmissionReader: AdmissionReading {}
         apps = reader.applications()
     }
 
+    func label(for app: AdmissionApplication) -> String {
+        let matches = apps.filter { $0.name == app.name }
+        guard matches.count > 1, let index = matches.firstIndex(of: app) else { return app.name }
+        return "\(app.name)（实例 \(index + 1)）"
+    }
+
+    func label(for id: ManagedWindowID, requireSameElement: Bool = false) -> String? {
+        guard let pick = picks.first(where: {
+            $0.app.pid == id.pid && $0.app.launch == id.launch && $0.choice.number == id.number
+                && (!requireSameElement || $0.choice.id == id.element)
+        }) else { return nil }
+        return "\(label(for: pick.app)) · 窗口 \(pick.choice.index)"
+    }
+
+    private func report(_ error: Error) {
+        permissionDenied = error as? AdmissionReadFailure == .permission
+        failure = error.localizedDescription
+    }
+
+    private func expire(at uptime: TimeInterval) {
+        expiration?.cancel()
+        let request = generation
+        let delay = max(0, uptime - ProcessInfo.processInfo.systemUptime)
+        expiration = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+            guard let self, self.generation == request else { return }
+            if self.ordinaryReview != nil {
+                self.cancelOrdinaryPreview?()
+                self.ordinaryReview = nil
+                self.ordinaryContext = nil
+            }
+            self.expired = true
+        }
+    }
+
+    func present(_ review: OrdinaryWindowReview, context: AdmissionContext) {
+        ordinaryReview = review
+        ordinaryContext = context
+        sampledAt = Date()
+        expire(at: review.validUntil)
+    }
+
     func select(_ target: AdmissionApplication) async {
         guard apps.contains(target) else { return }
         invalidate()
@@ -98,7 +145,7 @@ extension WindowAdmissionReader: AdmissionReading {}
             let windows = try await reader.windows(target)
             if request == generation { choices = windows }
         } catch {
-            if request == generation { failure = error.localizedDescription }
+            if request == generation { report(error) }
         }
     }
 
@@ -118,14 +165,15 @@ extension WindowAdmissionReader: AdmissionReading {}
             guard let rows = try await reader.refreshedWindows(target) else { return false }
             guard !Task.isCancelled, target == app else { return false }
             guard request == generation else { return true }
-            let remaining = picks.filter { pick in
-                pick.app != target || rows.contains { $0.id == pick.choice.id && $0.number == pick.choice.number }
+            let remaining = picks.compactMap { pick -> Pick? in
+                guard pick.app == target else { return pick }
+                return rows.first { $0.id == pick.choice.id && $0.number == pick.choice.number }.map { Pick(app: target, choice: $0) }
             }
             if remaining.count != picks.count {
                 invalidate()
-                picks = remaining
                 failure = "原窗口已从所选清单消失或身份变化，请重新选择需要管理的窗口。"
             }
+            if remaining.map(\.choice) != picks.map(\.choice) { picks = remaining }
             if choices != rows { choices = rows }
             return true
         } catch {
@@ -133,7 +181,7 @@ extension WindowAdmissionReader: AdmissionReading {}
             invalidate()
             choices = []
             picks.removeAll { $0.app == target }
-            failure = error.localizedDescription
+            report(error)
             return false
         }
     }
@@ -195,14 +243,12 @@ extension WindowAdmissionReader: AdmissionReading {}
                             guard self.generation == request else { throw AdmissionSelectionError.changed }
                             let review = try await manager.ordinary.prepare(handles, context: live)
                             guard self.generation == request else { return }
-                            self.ordinaryReview = review
-                            self.ordinaryContext = live
-                            self.sampledAt = Date()
+                            self.present(review, context: live)
                         }
                         return
                     } catch {
                         guard generation == request else { return }
-                        failure = error.localizedDescription
+                        report(error)
                     }
                 }
             }
@@ -212,15 +258,10 @@ extension WindowAdmissionReader: AdmissionReading {}
             }
             sampledAt = Date()
             if let validUntil = readouts.compactMap(\.result.validUntil).min() {
-                let delay = max(0, validUntil - ProcessInfo.processInfo.systemUptime)
-                Task { [weak self] in
-                    try? await Task.sleep(for: .seconds(delay))
-                    guard let self, self.generation == request else { return }
-                    self.expired = true
-                }
+                expire(at: validUntil)
             }
         } catch {
-            if generation == request { failure = error.localizedDescription }
+            if generation == request { report(error) }
         }
     }
 
@@ -306,9 +347,9 @@ enum AdmissionPlacement: String, CaseIterable {
                         .accessibilityIdentifier(owners.isEmpty ? "admission-fixture-app" : "admission-ordinary-app" + (owners.count > 1 ? "-" + String(app.pid) : ""))
                 }
             } else {
-                Menu(selection.app.map { "\($0.name) · PID \($0.pid)" } ?? "选择应用…") {
+                Menu(selection.app.map { selection.label(for: $0) } ?? "选择应用…") {
                     ForEach(selection.apps, id: \.pid) { app in
-                        Button("\(app.name) · PID \(String(app.pid))") { Task { await selection.select(app) } }
+                        Button(selection.label(for: app)) { Task { await selection.select(app) } }
                     }
                 }.fixedSize().accessibilityIdentifier("admission-app")
             }
@@ -329,7 +370,7 @@ enum AdmissionPlacement: String, CaseIterable {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: chosen == nil ? "circle" : "checkmark.circle.fill")
-                                Text(choice.number.map { "窗口 #\($0)" } ?? "窗口 \(choice.index) · 编号未确认")
+                                Text(choice.number == nil ? "窗口 \(choice.index) · 身份待核对" : "窗口 \(choice.index)")
                                 if let chosen { Text("第 \(chosen + 1) 个").foregroundStyle(.secondary) }
                             }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                         }
@@ -341,7 +382,7 @@ enum AdmissionPlacement: String, CaseIterable {
         }
         if !selection.picks.isEmpty {
             Text(selection.picks.map { pick in
-                pick.app.name + " " + (pick.choice.number.map { "#" + String($0) } ?? "编号未确认")
+                "\(selection.label(for: pick.app)) · 窗口 \(pick.choice.index)"
             }.joined(separator: "、"))
             .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("admission-selection")
             HStack {
@@ -372,11 +413,29 @@ enum AdmissionPlacement: String, CaseIterable {
         if let failure = selection.failure {
             Text("当前条件不足 · " + failure).font(.callout).accessibilityIdentifier("admission-verdict")
         }
+        if selection.expired && selection.readouts.isEmpty {
+            Text("布局预览已过期，请重新核对所选窗口。").font(.callout)
+                .accessibilityIdentifier("admission-verdict")
+        }
+        if selection.permissionDenied || selection.readouts.contains(where: { $0.result.reasons.contains(.permission) }) {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                Link("打开系统辅助功能设置", destination: url)
+            }
+        }
         if let review = selection.ordinaryReview, let context = selection.ordinaryContext {
-            Text("可逐窗授权 · 仅调整下列窗口").font(.callout)
+            Text("确认后将按预计位置排列这些窗口。").font(.callout)
+            AdmissionLayoutComparison(screen: context.screen,
+                                      work: try? DesktopWorkArea(display: context.display, screen: context.screen,
+                                          usable: context.usable, primary: context.primary, settings: context.settings,
+                                          fallbackEdge: context.edge).ordinary,
+                                      current: review.current, proposed: review.proposed)
             ForEach(review.proposed.keys.sorted { $0.number < $1.number }, id: \.self) { id in
                 if let r = review.proposed[id] {
-                    Text("窗口 #\(String(id.number)) → (\(Int(r.x)), \(Int(r.y)))  \(Int(r.width)) × \(Int(r.height)) pt").font(.caption)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(selection.label(for: id, requireSameElement: true) ?? manager.ordinary.managedWindowLabel(id))
+                        if let before = review.current[id] { Text("当前 " + admissionBounds(before) + " pt") }
+                        Text("预计 " + admissionBounds(r) + " pt")
+                    }.font(.caption.monospacedDigit()).accessibilityElement(children: .combine)
                 }
             }
             Text("拖动时窗口可以暂时越过屏幕或停靠边界。松手后会核对位置并将获准窗口移回工作区。五秒内再次越界会暂停纠正。停止管理时保留最近核对过的手动布局。")
@@ -401,7 +460,8 @@ enum AdmissionPlacement: String, CaseIterable {
             if selection.readouts.count > 1 { Text(item.group.label).font(.subheadline) }
             AdmissionResultView(result: item.result, samples: item.group.pairs.map(\.second),
                                 screen: item.group.context.screen, sampled: selection.sampledAt, expired: selection.expired,
-                                simulated: selection.readouts.count > 1 || scenario != .current || (custom && selection.picks.count == 2))
+                                simulated: selection.readouts.count > 1 || scenario != .current || (custom && selection.picks.count == 2),
+                                label: { selection.label(for: $0) ?? "所选窗口" })
         }
     }
 }
@@ -413,6 +473,7 @@ private struct AdmissionResultView: View {
     let sampled: Date?
     let expired: Bool
     let simulated: Bool
+    let label: (ManagedWindowID) -> String
 
     private var verdict: String {
         switch result.status {
@@ -428,24 +489,22 @@ private struct AdmissionResultView: View {
                 .font(.headline).accessibilityIdentifier("admission-verdict")
             if let sampled { Text(sampled, style: .time).font(.caption).foregroundStyle(.secondary) }
             if !result.reasons.isEmpty {
-                Text(result.reasons.map(\.text).joined(separator: "；"))
+                Text(result.reasons.contains(.permission) ? AdmissionReason.permission.text : result.reasons.map(\.text).joined(separator: "；"))
                     .font(.callout).accessibilityIdentifier("admission-reason")
             }
             if let work = result.workRect {
-                Text("预计工作区  " + bounds(work) + " pt")
+                Text("预计工作区  " + admissionBounds(work) + " pt")
                     .font(.caption).accessibilityIdentifier("admission-workrect")
             }
             if let screen, !result.current.isEmpty, !result.proposed.isEmpty {
-                HStack(spacing: 16) {
-                    footprint("当前", frames: result.current, screen: screen)
-                    footprint("预计", frames: result.proposed, screen: screen)
-                }.accessibilityHidden(true)
+                AdmissionLayoutComparison(screen: screen, work: result.workRect, current: result.current,
+                                          proposed: result.proposed)
             }
             ForEach(result.current.keys.sorted { ($0.pid, $0.number) < ($1.pid, $1.number) }, id: \.self) { id in
                 VStack(alignment: .leading, spacing: 2) {
-                    if let frame = result.current[id] { Text("窗口 #\(String(id.number))   当前 " + bounds(frame)) }
-                    if let target = result.proposed[id] { Text("预计 " + bounds(target)) }
-                    if let exit = result.exitFrames[id] { Text("退出预计 " + bounds(exit)) }
+                    if let frame = result.current[id] { Text(label(id) + "   当前 " + admissionBounds(frame)) }
+                    if let target = result.proposed[id] { Text("预计 " + admissionBounds(target)) }
+                    if let exit = result.exitFrames[id] { Text("退出预计 " + admissionBounds(exit)) }
                     if let minimum = samples.first(where: { $0.id == id })?.minimum {
                         Text("最小 " + dimension(minimum.width) + " × " + dimension(minimum.height) + " pt").foregroundStyle(.secondary)
                     }
@@ -459,7 +518,29 @@ private struct AdmissionResultView: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func footprint(_ title: String, frames: [ManagedWindowID: SurfaceRect], screen: SurfaceRect) -> some View {
+    private func dimension(_ points: Double) -> String {
+        points.formatted(.number.precision(.fractionLength(0...2)))
+    }
+
+}
+
+private func admissionBounds(_ r: SurfaceRect) -> String {
+    let n = [r.x, r.y, r.width, r.height].map { $0.formatted(.number.precision(.fractionLength(0...2))) }
+    return "(\(n[0]), \(n[1]))  \(n[2]) × \(n[3])"
+}
+
+private struct AdmissionLayoutComparison: View {
+    let screen: SurfaceRect, work: SurfaceRect?
+    let current, proposed: [ManagedWindowID: SurfaceRect]
+
+    var body: some View {
+        HStack(spacing: 16) {
+            footprint("当前", frames: current)
+            footprint("预计", frames: proposed)
+        }.accessibilityHidden(true)
+    }
+
+    private func footprint(_ title: String, frames: [ManagedWindowID: SurfaceRect]) -> some View {
         HStack(spacing: 5) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Canvas { context, size in
@@ -471,11 +552,10 @@ private struct AdmissionResultView: View {
                           width: r.width * factor, height: r.height * factor)
                 }
                 context.stroke(Path(rect(screen)), with: .color(.secondary))
-                if let work = result.workRect {
+                if let work {
                     context.fill(Path(rect(work)), with: .color(.secondary.opacity(0.10)))
                 }
-                for sample in samples {
-                    guard let id = sample.id, let frame = frames[id] else { continue }
+                for frame in frames.values {
                     let shape = Path(rect(frame))
                     context.fill(shape, with: .style(.tint.opacity(0.18)))
                     context.stroke(shape, with: .style(.tint))
@@ -484,12 +564,4 @@ private struct AdmissionResultView: View {
         }
     }
 
-    private func dimension(_ points: Double) -> String {
-        points.formatted(.number.precision(.fractionLength(0...2)))
-    }
-
-    private func bounds(_ r: SurfaceRect) -> String {
-        let n = [r.x, r.y, r.width, r.height].map { $0.formatted(.number.precision(.fractionLength(0...2))) }
-        return "(\(n[0]), \(n[1]))  \(n[2]) × \(n[3])"
-    }
 }

@@ -9,10 +9,12 @@ import Testing
         var row = AdmissionWindowChoice(id: UUID(), number: 123, index: 1)
         var enumerations = 0, inspections = 0
         var list: ((AdmissionApplication) async -> [AdmissionWindowChoice])?
+        var listingFailure: AdmissionReadFailure?
         var refresh: (() async -> [AdmissionWindowChoice])?
         var read: (([AdmissionWindowChoice]) async -> [AdmissionPair])?
         func applications() -> [AdmissionApplication] { enumerations += 1; return [app] }
         func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice] {
+            if let listingFailure { throw listingFailure }
             if let list { return await list(app) }
             return [row]
         }
@@ -37,12 +39,69 @@ import Testing
         reader.refresh = { [sibling, reordered] }
         #expect(await selection.refresh(reader.app))
         #expect(selection.choices == [sibling,reordered] && selection.picks.map(\.choice.id) == [reader.row.id])
+        #expect(selection.picks.first?.choice.index == 2)
         selection.toggle(sibling)
         let replacement = AdmissionWindowChoice(id: UUID(), number: reader.row.number, index: 2)
         reader.refresh = { [sibling, replacement] }
         #expect(await selection.refresh(reader.app))
         #expect(selection.picks.map(\.choice.id) == [sibling.id] && selection.failure != nil)
         #expect(reader.inspections == 0 && selection.ordinaryReview == nil)
+    }
+
+    @Test func dailyWindowLabelsDistinguishInstancesAndNeverTransferReviewToReusedNumbers() async {
+        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        selection.open()
+        let second = AdmissionApplication(pid: 82, launch: 22, bundle: reader.app.bundle, name: reader.app.name)
+        #expect(selection.label(for: reader.app) == reader.app.name)
+        selection.apps.append(second)
+        #expect(selection.label(for: reader.app) == "合成应用（实例 1）")
+        #expect(selection.label(for: second) == "合成应用（实例 2）")
+        await selection.select(reader.app)
+        selection.toggle(reader.row)
+        let original = ManagedWindowID(pid: reader.app.pid, launch: reader.app.launch, number: 123, element: reader.row.id)
+        #expect(selection.label(for: original, requireSameElement: true) == "合成应用（实例 1） · 窗口 1")
+        let replacement = ManagedWindowID(pid: original.pid, launch: original.launch, number: original.number, element: UUID())
+        #expect(selection.label(for: replacement, requireSameElement: true) == nil)
+    }
+
+    @Test func onlyConfirmedAccessibilityDenialOffersPermissionSettings() async {
+        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        selection.open()
+        reader.listingFailure = .permission
+        await selection.select(reader.app)
+        #expect(selection.permissionDenied && selection.choices.isEmpty)
+        reader.listingFailure = .unavailable
+        await selection.select(reader.app)
+        #expect(!selection.permissionDenied && selection.failure != nil)
+        reader.listingFailure = nil
+        await selection.select(reader.app)
+        #expect(!selection.permissionDenied && selection.failure == nil)
+    }
+
+    @Test func expiredOrdinaryPreviewWithdrawsConfirmationWithoutClearingSelectedWindows() async throws {
+        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        selection.open()
+        await selection.select(reader.app)
+        selection.toggle(reader.row)
+        var released = 0
+        selection.cancelOrdinaryPreview = { released += 1 }
+        let rect = SurfaceRect(width: 800, height: 600)
+        let context = AdmissionContext(display: "test", screen: rect, usable: rect, primary: true,
+                                      settings: .init(), edge: .right, preferences: .init(), recoveryClear: true, exclusive: true)
+        let now = ProcessInfo.processInfo.systemUptime
+        let expired = OrdinaryWindowReview(token: UUID(), display: "test", validUntil: now, current: [:], proposed: [:])
+        selection.present(expired, context: context)
+        let deadline = ContinuousClock.now + .seconds(1)
+        while !selection.expired && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(selection.expired && selection.ordinaryReview == nil && selection.ordinaryContext == nil)
+        #expect(released == 1 && selection.picks.first?.choice.id == reader.row.id)
+        selection.invalidate()
+        selection.present(expired, context: context)
+        let current = OrdinaryWindowReview(token: UUID(), display: "test", validUntil: now + 60, current: [:], proposed: [:])
+        selection.present(current, context: context)
+        try await Task.sleep(for: .milliseconds(10))
+        #expect(!selection.expired && selection.ordinaryReview?.token == current.token && released == 2)
+        selection.close()
     }
 
     @Test func staleLiveRefreshCannotRestoreClosedSettingsSelection() async {

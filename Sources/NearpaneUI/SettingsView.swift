@@ -320,7 +320,7 @@ public struct SettingsView: View {
             if let manager = domains?.workRect {
                 CandidateWorkRectView(session: manager, host: host, previewExposure: previewExposure)
             } else {
-                Text("此开发构建未装载窗口管理。请打开已安装的 Nearpane Alpha。")
+                Text("此版本未包含窗口管理。请打开已安装的 Nearpane。")
                     .accessibilityIdentifier("settings-window-manager-unavailable")
             }
         case .desktop: desktopOptions
@@ -333,6 +333,10 @@ public struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             AccentSettings(host: host)
             Divider()
+            if domains?.workRect != nil {
+                Button("打开窗口管理…") { navigation.showWindowManagement() }
+                    .accessibilityIdentifier("settings-general-window-management")
+            }
             Toggle("在菜单栏显示 Nearpane", isOn: Binding(get: {
                 host.configuration.showsMenuBarIcon
             }, set: { visible in

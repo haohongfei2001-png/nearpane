@@ -61,7 +61,7 @@ private final class PassiveManagementPanel: NSPanel {
                 request: { _ in }, dismiss: { _ in }, initialMetric: moduleSizing ? .modulePadding : .reservedWidth,
                 stillCurrent: { SystemScreens.geometry().last == $0 }))
         } else {
-            let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission, owners: owners))
+            let content = NSHostingView(rootView: CandidateWorkRectView(session: manager, host: host, admissionFixtureOnly: admission, showsTestTools: true, owners: owners))
             if admission { content.sizingOptions = [] }
             panel.contentView = content
         }

@@ -154,6 +154,7 @@ private typealias ViewState<T> = State<T>
 public struct CandidateWorkRectView: View {
     let session: CandidateWorkRect, host: HostSession
     private let admissionFixtureOnly: Bool
+    private let showsTestTools: Bool
     private let owners: [AdmissionFixtureOwner]
     private let previewExposure: SettingsPreviewExposure?
     @ViewState private var showingCompatibility = false
@@ -161,8 +162,9 @@ public struct CandidateWorkRectView: View {
     @AppStorage("managementPairPercent") private var percent = 60
     @AppStorage("managementPairSwap") private var swap = false
 
-    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false, owners: [AdmissionFixtureOwner] = [],
+    public init(session: CandidateWorkRect, host: HostSession, admissionFixtureOnly: Bool = false, showsTestTools: Bool = false, owners: [AdmissionFixtureOwner] = [],
                 previewExposure: SettingsPreviewExposure? = nil) {
+        self.showsTestTools = showsTestTools
         self.previewExposure = previewExposure
         self.owners = owners
         self.session = session
@@ -173,18 +175,26 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text(session.ordinary.activeIDs.isEmpty && session.mode == "off"
-                     ? "边界尚未启用。选择一扇窗口，预览它的位置，然后授权管理。"
-                     : "边界作用于当前授权的窗口。暂停或排除窗口后，自动调整停止。")
+                Text("先预览窗口的位置，确认后 Nearpane 才会调整所选窗口。")
                     .font(.caption).foregroundStyle(.secondary)
                 WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, owners: owners,
                                         exposure: previewExposure)
-                Divider()
-                DisclosureGroup("随包兼容应用", isExpanded: $showingCompatibility) {
-                    compatibilityControls
+                if showsTestTools {
+                    Divider()
+                    DisclosureGroup("随包兼容应用", isExpanded: $showingCompatibility) {
+                        compatibilityControls
+                    }
+                    .onAppear { if session.blocked || session.mode != "off" { showingCompatibility = true } }
+                    .onChange(of: session.blocked) { _, blocked in if blocked { showingCompatibility = true } }
+                } else if session.blocked || session.mode != "off" {
+                    Divider()
+                    Text(session.message).font(.callout).textSelection(.enabled)
+                    if session.blocked {
+                        Button("重新核对窗口并恢复") { session.send("retry") }
+                    } else {
+                        Button("停止兼容窗口管理并恢复位置") { session.send("disable") }
+                    }
                 }
-                .onAppear { if session.blocked || session.mode != "off" { showingCompatibility = true } }
-                .onChange(of: session.blocked) { _, blocked in if blocked { showingCompatibility = true } }
                 Text("在「外观与尺寸」调整预留宽度，在「窗口规则」设置应用排除。")
                     .font(.caption).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding()
