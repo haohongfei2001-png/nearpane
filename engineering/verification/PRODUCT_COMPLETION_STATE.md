@@ -4,7 +4,9 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.13 Alpha，build 64。源码 `b5fe7871adc6102eed4098abfebd4ea7583666e2`。语音排版和截图托盘按独立产品对齐；两个一级档案共用导航与主题色。外框及内卡随明暗使用不同透明度，可在「玻璃外观」一键应用。5.12 与 5.13 的同代际升级回退、安装签名、Finder 唯一路径与实际运行进程均已核验。[5.13 视觉与安装](P5.13-VISUAL-FIDELITY.md) · [5.12 档案与设置](P5.12-UNIFIED-ARCHIVES-AND-SETTINGS.md) · [5.11 外观、领域与窗口边界](P5.11-APPEARANCE-DOMAINS-AND-WINDOWS.md)
+**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.14 Alpha，build 65，源码 `fc3f343c204f80b8afc2303c6d96f72f38389812`。日常入口包括逐窗授权、同进程新窗范围、双窗比例、两个一级档案及空间观察。单屏实机已读回自建窗口身份和合成色块；整行切换、跨 Space 移窗、Virtual 停放继续关闭。当前逐项结论及下一步在[桌面产品能力表](DESKTOP-CAPABILITIES.md)，构建、回退和现场结果在[5.14 交付收据](P5.14-CORE-DESKTOP.md)。
+
+上一版 5.13（64）已归档可回退。此前两个一级档案、透明度和视觉对照见[5.13 视觉与安装](P5.13-VISUAL-FIDELITY.md)、[5.12 档案与设置](P5.12-UNIFIED-ARCHIVES-AND-SETTINGS.md)。
 
 ## P5.10 原图、图标与玻璃层次
 
