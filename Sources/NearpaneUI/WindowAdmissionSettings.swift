@@ -7,6 +7,7 @@ private typealias ViewState<T> = State<T>
 @MainActor protocol AdmissionReading {
     func applications() -> [AdmissionApplication]
     func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX?
+    func retainedRuleID(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> ManagedWindowID?
     func releaseChoices()
     func windows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]
     func refreshedWindows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]?
@@ -15,6 +16,9 @@ private typealias ViewState<T> = State<T>
 }
 extension AdmissionReading {
     func handle(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> OrdinaryWindowAX? { nil }
+    func retainedRuleID(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> ManagedWindowID? {
+        handle(choice, app: app)?.id
+    }
     func releaseChoices() {}
     func refreshedWindows(_ app: AdmissionApplication) async throws -> [AdmissionWindowChoice]? { nil }
 }
@@ -48,6 +52,7 @@ extension WindowAdmissionReader: AdmissionReading {}
     var result: AdmissionPreviewResult? { readouts.count == 1 ? readouts[0].result : nil }
     var sampledAt: Date?
     var failure: String?
+    var ruleNotice: String?
     private(set) var permissionDenied = false
     var reading = false
     var expired = false
@@ -67,6 +72,7 @@ extension WindowAdmissionReader: AdmissionReading {}
         readouts = []
         sampledAt = nil
         failure = nil
+        ruleNotice = nil
         permissionDenied = false
         reading = false
         expired = false
@@ -154,6 +160,44 @@ extension WindowAdmissionReader: AdmissionReading {}
         invalidate()
         if picks.contains(where: { $0.choice.id == choice.id }) { picks.removeAll { $0.choice.id == choice.id } }
         else { picks.append(Pick(app: app, choice: choice)) }
+    }
+
+    var ruleID: ManagedWindowID? {
+        guard opened, picks.count == 1, let pick = picks.first, app == pick.app,
+              choices.contains(pick.choice),
+              let id = reader.retainedRuleID(pick.choice, app: pick.app), id.pid == pick.app.pid,
+              id.launch == pick.app.launch, id.number == pick.choice.number, id.element == pick.choice.id
+        else { return nil }
+        return id
+    }
+
+    /// Persist only the identity kept alive by this selection's controller.
+    /// A read-only desktop snapshot's per-sample AX token cannot identify a later authorization.
+    func setRule(_ rule: WindowRule, host: HostSession, isManaged: (ManagedWindowID) -> Bool) async {
+        guard !reading, let selected = ruleID, let owner = app, !isManaged(selected) else { return }
+        invalidate()
+        let request = generation
+        reading = true
+        defer { if request == generation { reading = false } }
+        do {
+            let current = try await reader.refreshedWindows(owner)
+            guard request == generation, !Task.isCancelled, host.isRunning else { return }
+            guard let matches = current?.filter({ $0.number == selected.number }), matches.count == 1,
+                  matches[0].id == selected.element, ruleID == selected, !isManaged(selected)
+            else { throw AdmissionSelectionError.changed }
+            var prefs = host.workspacePreferencesDraft
+            if rule == .include {
+                guard prefs.excludedApps.contains(owner.bundle) else { throw AdmissionSelectionError.changed }
+                guard !prefs.windows.contains(where: { id, rule in
+                    rule == .exclude && id != selected && id.pid == selected.pid &&
+                        id.launch == selected.launch && id.number == selected.number
+                }) else { failure = "此前的排除规则仍占用这个窗口编号。请先在「窗口规则」核对。"; return }
+            }
+            prefs.windows[selected] = rule
+            if host.setWorkspacePreferences(prefs) {
+                ruleNotice = rule == .exclude ? "已保存此窗的排除规则。" : "已保存单窗例外。可继续预览并单独授权。"
+            } else { failure = "窗口规则未保存。请在「窗口规则」中重试。" }
+        } catch { if request == generation { report(error) } }
     }
 
     /// Read only the explicitly selected application. New sibling windows always start unselected.
@@ -307,6 +351,11 @@ enum AdmissionPlacement: String, CaseIterable {
         _selection = State(initialValue: scope)
     }
 
+    private func managed(_ id: ManagedWindowID) -> Bool {
+        // An already managed window is released through its original observer and journal.
+        manager.ordinary.activeIDs.contains { $0.pid == id.pid && $0.launch == id.launch && $0.number == id.number }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(selection.opened ? "收起管理范围预演" : "选择窗口并预览…") {
@@ -385,6 +434,19 @@ enum AdmissionPlacement: String, CaseIterable {
                 "\(selection.label(for: pick.app)) · 窗口 \(pick.choice.index)"
             }.joined(separator: "、"))
             .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("admission-selection")
+            if let id = selection.ruleID, !managed(id) {
+                Menu("此窗规则") {
+                    Button("排除此窗") {
+                        Task { await selection.setRule(.exclude, host: host, isManaged: managed) }
+                    }
+                    if let app = selection.app, host.workspacePreferencesDraft.excludedApps.contains(app.bundle) {
+                        Button("允许此窗作为应用例外") {
+                            Task { await selection.setRule(.include, host: host, isManaged: managed) }
+                        }
+                    }
+                }.disabled(selection.reading)
+            }
+            if let notice = selection.ruleNotice { Text(notice).font(.caption) }
             HStack {
                 ForEach(AdmissionPlacement.allCases, id: \.self) { mode in
                     Button(mode.title) { scenario = mode }

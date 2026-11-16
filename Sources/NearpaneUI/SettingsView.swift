@@ -316,7 +316,7 @@ public struct SettingsView: View {
             WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
                                      dismiss: dismissSpaces, stillCurrent: inventory.contains,
                                      previewExposure: previewExposure)
-        case .windowRules: WorkspacePolicySettings(host: host)
+        case .windowRules: WorkspacePolicySettings(host: host, showWindowManagement: navigation.showWindowManagement)
         case .windowManagement:
             if let manager = domains?.workRect {
                 CandidateWorkRectView(session: manager, host: host, previewExposure: previewExposure)

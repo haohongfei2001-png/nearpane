@@ -10,6 +10,8 @@ import Testing
         var enumerations = 0, inspections = 0
         var list: ((AdmissionApplication) async -> [AdmissionWindowChoice])?
         var listingFailure: AdmissionReadFailure?
+        var retained: ManagedWindowID?
+        func retainedRuleID(_ choice: AdmissionWindowChoice, app: AdmissionApplication) -> ManagedWindowID? { retained }
         var refresh: (() async -> [AdmissionWindowChoice])?
         var read: (([AdmissionWindowChoice]) async -> [AdmissionPair])?
         func applications() -> [AdmissionApplication] { enumerations += 1; return [app] }
@@ -27,6 +29,81 @@ import Testing
             return []
         }
         func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards { .init(exclusive:nil,recoveryClear:nil) }
+    }
+
+    @Test func applicationPickerUsesPackageIdentityInsteadOfItsFilename() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let app = root.appendingPathComponent("随意改名.app")
+        let contents = app.appendingPathComponent("Contents")
+        let exe = contents.appendingPathComponent("MacOS")
+        try fm.createDirectory(at: exe, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        let plist = ["CFBundlePackageType":"APPL", "CFBundleExecutable":"test-fixture",
+                     "CFBundleIdentifier":"org.example.settings-fixture"]
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+            .write(to: contents.appendingPathComponent("Info.plist"))
+        let binary = exe.appendingPathComponent("test-fixture")
+        try Data("#!/bin/sh\nexit 1\n".utf8).write(to: binary)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: binary.path)
+        #expect(WorkspacePolicySettings.exclusionIdentifier(at: app) == "org.example.settings-fixture")
+        #expect(WorkspacePolicySettings.exclusionIdentifier(at: binary) == nil)
+        #expect(WorkspacePolicySettings.exclusionIdentifier(at: root.appendingPathComponent("absent.app")) == nil)
+    }
+
+    @Test func rulesRequireFreshRetainedIdentityAndNeverStartManagement() async {
+        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        let store = MemoryConfigurationStore(), host = HostSession(store: store)
+        await host.start()
+        defer { host.stop() }
+        let persisted = ManagedWindowID(pid: 318, launch: 33, number: 5, element: UUID())
+        var prefs = host.workspacePreferencesDraft
+        prefs.excludedApps.insert(reader.app.bundle)
+        prefs.windows[persisted] = .exclude
+        #expect(host.setWorkspacePreferences(prefs))
+        selection.open()
+        await selection.select(reader.app)
+        selection.toggle(reader.row)
+        let id = ManagedWindowID(pid: reader.app.pid, launch: reader.app.launch, number: 123, element: reader.row.id)
+        reader.refresh = { [reader.row] }
+        await selection.setRule(.include, host: host, isManaged: { _ in false })
+        #expect(host.workspacePreferencesDraft == prefs)
+        reader.retained = id
+        await selection.setRule(.include, host: host, isManaged: { _ in true })
+        #expect(host.workspacePreferencesDraft == prefs)
+        reader.refresh = { [.init(id: UUID(), number: id.number, index: 1)] }
+        await selection.setRule(.include, host: host, isManaged: { _ in false })
+        #expect(host.workspacePreferencesDraft == prefs)
+        reader.refresh = { [reader.row] }
+        await selection.setRule(.include, host: host, isManaged: { _ in false })
+        #expect(host.workspacePreferencesDraft.windows == [persisted:.exclude, id:.include])
+        #expect(host.workspacePreferencesDraft.excludedApps == [reader.app.bundle])
+        await selection.setRule(.exclude, host: host, isManaged: { _ in false })
+        #expect(host.workspacePreferencesDraft.windows == [persisted:.exclude, id:.exclude])
+        #expect(reader.inspections == 0 && selection.ordinaryReview == nil)
+    }
+
+    @Test func lateWindowRuleCannotUndoRevocationOrOverridePriorIncarnation() async {
+        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        defer { host.stop() }
+        selection.open()
+        await selection.select(reader.app)
+        selection.toggle(reader.row)
+        let id = ManagedWindowID(pid: reader.app.pid, launch: reader.app.launch, number: 123, element: reader.row.id)
+        let prior = ManagedWindowID(pid: id.pid, launch: id.launch, number: id.number, element: UUID())
+        var prefs = host.workspacePreferencesDraft
+        prefs.windows[prior] = .exclude
+        prefs.excludedApps.insert(reader.app.bundle)
+        #expect(host.setWorkspacePreferences(prefs))
+        reader.retained = id
+        reader.refresh = { [reader.row] }
+        await selection.setRule(.include, host: host, isManaged: { _ in false })
+        #expect(host.workspacePreferencesDraft == prefs && selection.failure != nil)
+        reader.refresh = { selection.close(); return [reader.row] }
+        await selection.setRule(.exclude, host: host, isManaged: { _ in false })
+        #expect(host.workspacePreferencesDraft == prefs && selection.picks.isEmpty)
     }
 
     @Test func liveSiblingsStayUnselectedAndReusedNumberInvalidatesOnlyItsOriginalPick() async {
