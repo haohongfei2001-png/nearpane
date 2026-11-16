@@ -103,6 +103,32 @@ struct WorkspaceLayoutTests {
         #expect(try work().ordinary.x == -650)
     }
 
+    @Test func endingAnOnDemandRequestRetainsThePersistentDisplayPolicyAndReservation() throws {
+        let screens = ["resident", "first", "second", "pinned"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
+        var coordinator = MultiDisplayPresentationCoordinator()
+        var pinned = DisplaySettings()
+        pinned.policy = .pinned
+        let settings = ["pinned": pinned]
+        let multiple = Dictionary(uniqueKeysWithValues: screens.map { ($0.id, DisplayDemand(windows: 2, complete: true)) })
+        func plans() -> [PanelContent] {
+            coordinator.resolve(screens: screens, preferred: "resident", settings: settings, demand: multiple,
+                hidden: false, voice: true, tray: true, spacesEnabled: true, uptime: 10).map(\.content)
+        }
+        coordinator.request("first")
+        coordinator.request("second")
+        #expect(plans() == [.full, .spacesOnly, .spacesOnly, .spacesOnly])
+        let closed = coordinator.finishRequest("second")
+        let closedAgain = coordinator.finishRequest("second")
+        #expect(closed && !closedAgain)
+        #expect(plans() == [.full, .spacesOnly, .hidden, .spacesOnly])
+        coordinator.request("second")
+        #expect(plans() == [.full, .spacesOnly, .spacesOnly, .spacesOnly])
+        coordinator.dismiss("first")
+        let alreadyDismissed = coordinator.finishRequest("first")
+        #expect(!alreadyDismissed)
+        #expect(plans() == [.full, .hidden, .spacesOnly, .spacesOnly])
+    }
+
     @Test func singleResidenceAndSecondaryPoliciesRemainIndependent() {
         let screens = ["A", "B", "C"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
         var coord = MultiDisplayPresentationCoordinator()

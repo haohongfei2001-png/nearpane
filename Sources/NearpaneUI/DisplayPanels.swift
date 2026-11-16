@@ -8,6 +8,9 @@ import NearpaneCore
     private var coordinator = MultiDisplayPresentationCoordinator()
     private var secondary = [String: EdgeWindowController]()
     private var suspended = false
+    private var localMouse: Any?, externalMouse: Any?
+    private var clickLease: UUID?
+    private var observedTransientWindows = Set<ObjectIdentifier>()
     private let fullscreen: FullscreenPresentation
     public var refresh: (() -> Void)? {
         didSet { fullscreen.refresh = refresh; primary.exposureDidChange = refresh }
@@ -50,7 +53,12 @@ import NearpaneCore
         settings.spacesDismissed = value
         host.setDisplaySettings(settings, id: display)
     }
-    public func setSuspended(_ value: Bool) { suspended = value; if value { fullscreen.hide() } }
+    public func setSuspended(_ value: Bool) {
+        guard value != suspended else { return }
+        suspended = value
+        if value { stopObservingClicks() }
+        fullscreen.sessionBoundary(uptime: ProcessInfo.processInfo.systemUptime)
+    }
     public func update(screens: [ScreenGeometry], presentingOnly displayID: String? = nil) {
         let now = Date()
         let uptime = ProcessInfo.processInfo.systemUptime
@@ -88,6 +96,7 @@ import NearpaneCore
         }
         guard let main = plans.first(where: \.primary) else {
             primary.removePlacement(); fullscreen.hide()
+            stopObservingClicks()
             return
         }
         // Withdraw or move the unique domain panel before its old display presents a Space-only panel.
@@ -111,12 +120,55 @@ import NearpaneCore
             present(controller)
         }
         if let screen = screens.first(where: { $0.id == main.id }),
+        observeClicksIfNeeded()
            displayID == nil || main.id == displayID {
             fullscreen.present(on: screen, allowed: !suspended && !primary.captureSuppressed)
         } else { fullscreen.hide() }
     }
     public func stop() {
+    // Observe mouse-down only while an on-demand destination is actually shown.
+    // The external handler never reads a click location, window name or owning app.
+    private var transientPanels: [String: EdgeWindowController] {
+        secondary.filter { (host.configuration.displays[$0.key]?.policy ?? .onDemand) == .onDemand }
+    }
+
+    private func observeClicksIfNeeded() {
+        let shown = Set(transientPanels.values.compactMap { panel in
+            panel.window.flatMap { $0.isVisible && !$0.ignoresMouseEvents ? ObjectIdentifier($0) : nil }
+        })
+        guard shown != observedTransientWindows else { return }
+        stopObservingClicks()
+        guard !shown.isEmpty else { return }
+        observedTransientWindows = shown
+        let lease = UUID()
+        clickLease = lease
+        let presses: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        localMouse = NSEvent.addLocalMonitorForEvents(matching: presses) { [weak self] event in
+            if self?.clickLease == lease { self?.finishRequests(outside: event.window) }
+            return event
+        }
+        externalMouse = NSEvent.addGlobalMonitorForEvents(matching: presses) { [weak self] _ in
+            if self?.clickLease == lease { self?.finishRequests(outside: nil) }
+        }
+    }
+
+    func finishRequests(outside clicked: NSWindow?) {
+        var changed = false
+        for (id, panel) in transientPanels where clicked == nil || panel.window !== clicked {
+            if coordinator.finishRequest(id) { changed = true }
+        }
+        if changed { refresh?() }
+    }
+
+    private func stopObservingClicks() {
+        clickLease = nil
+        observedTransientWindows.removeAll()
+        if let localMouse { NSEvent.removeMonitor(localMouse); self.localMouse = nil }
+        if let externalMouse { NSEvent.removeMonitor(externalMouse); self.externalMouse = nil }
+    }
+
         fullscreen.hide()
+        stopObservingClicks()
         host.updatePanelContents([:])
         primary.removePlacement()
         for panel in secondary.values { panel.removePlacement(); panel.close() }

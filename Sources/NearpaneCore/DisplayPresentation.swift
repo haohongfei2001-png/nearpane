@@ -217,6 +217,12 @@ public struct MultiDisplayPresentationCoordinator {
         suppressed.insert(id)
         requested.remove(id)
     }
+    /// End a temporary presentation without changing the user's display policy
+    /// or its persistent manual dismissal.
+    @discardableResult public mutating func finishRequest(_ id: String) -> Bool {
+        requested.remove(id) != nil
+    }
+
     /// An invalid second record with the same UUID still makes that identity ambiguous.
     public static func identifiedScreens(_ screens: [ScreenGeometry]) -> [ScreenGeometry] {
         let records = Dictionary(grouping: screens, by: \.id)

@@ -139,6 +139,56 @@ import Testing
         #expect(host.configuration.displays["side"]?.floatingPosition?.x == 3)
     }
 
+    @Test func systemWakeDoesNotReleaseTheDisplayOrLoginLockOnItsOwn() {
+        var state = DesktopSessionAvailability()
+        func observe(_ event: DesktopSessionAvailability.Event, console: Bool = true, locked: Bool = false, awake: Bool = true) {
+            state.observe(event, hasAwakeDisplay: awake, consoleActive: console, consoleLocked: locked)
+        }
+        observe(.sample)
+        #expect(!state.unavailable)
+        observe(.willSleep)
+        observe(.screensSleep)
+        observe(.screensWake)
+        #expect(state.desktopAsleep)
+        observe(.locked)
+        observe(.didWake)
+        #expect(!state.desktopAsleep && state.unavailable)
+        observe(.unlocked, locked: true)
+        #expect(state.unavailable)
+        observe(.sample, console: false)
+        #expect(state.unavailable)
+        observe(.resigned)
+        observe(.sample)
+        #expect(state.unavailable)
+        observe(.becameActive, awake: false)
+        #expect(state.desktopAsleep && !state.sessionRestricted)
+        observe(.sample)
+        #expect(!state.unavailable)
+    }
+
+    @Test func wakingRejectsUnexpiredFullscreenAndReturnReadsFromBeforeResume() {
+        let view = FullscreenPresentation(host: HostSession(store: MemoryConfigurationStore()), domains: nil)
+        let frame = SurfaceRect(width: 1200, height: 900)
+        let screen = ScreenGeometry(id: "fixture", frame: frame, visibleFrame: frame)
+        let session = UUID(), window = ManagedWindowID(pid: 4, launch: 8, number: 12, element: UUID())
+        var notices: [String] = []
+        view.management = { _, message, _ in notices.append(message) }
+        func feed(_ revision: UInt64, _ began: Double?, _ observation: DesktopFullscreenObservation, _ now: Double) -> Bool {
+            let sample = FullscreenDisplaySample(session: session, revision: revision, validUntil: now + 5,
+                                                  observation: observation, beganUptime: began)
+            return view.sample(screen: screen, override: sample, now: Date(), uptime: now)
+        }
+        view.updateTopology([screen], uptime: 10)
+        #expect(feed(1, 10, .native(window: window), 10.5))
+        view.sessionBoundary(uptime: 11)
+        view.sessionBoundary(uptime: 12)
+        #expect(feed(2, 11.9, .ordinary(workspace: nil), 13))
+        #expect(feed(3, nil, .ordinary(workspace: nil), 13))
+        #expect(notices == ["hold", "unknown"])
+        #expect(!feed(4, 12.5, .ordinary(workspace: nil), 13))
+        #expect(notices == ["hold", "unknown", "ordinary"])
+    }
+
     @Test func reconnectAndRotationRequireAnObservationStartedOnTheNewTopology() {
         let view = FullscreenPresentation(host: HostSession(store: MemoryConfigurationStore()), domains: nil)
         let portrait = SurfaceRect(x: -800, width: 800, height: 1280)

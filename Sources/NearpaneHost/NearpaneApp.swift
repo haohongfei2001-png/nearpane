@@ -241,10 +241,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var host: HostSession?
     private var modules: EmbeddedModules?
     private var panels: DisplayPanels?
-    private var screenAsleep = false, sessionInactive = false, screenLocked = false
-    private var hasAwakeDisplay = false
-    private var desktopAsleep: Bool { screenAsleep || !hasAwakeDisplay }
-    private var sessionUnavailable: Bool { desktopAsleep || sessionInactive || screenLocked }
+    private var desktopAvailability = DesktopSessionAvailability()
+    private var wakeReadback: Task<Void, Never>?
+    private var sessionUnavailable: Bool { desktopAvailability.unavailable }
     private var surface: EdgeWindowController?
     private let settingsScreens = SettingsScreenInventory()
     private let settingsNavigation = SettingsNavigation()
@@ -294,7 +293,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func observeDesktopSession() {
-        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification, NSWorkspace.screensDidWakeNotification,
+        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification,
+                     NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification,
                      NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
                      NSWorkspace.sessionDidBecomeActiveNotification] {
             NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
@@ -305,17 +305,37 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
-        let console = CGSessionCopyCurrentDictionary() as? [String: Any]
-        sessionInactive = console?[kCGSessionOnConsoleKey as String] as? Bool != true ||
-            console?[kCGSessionLoginDoneKey as String] as? Bool != true
-        screenLocked = console?["CGSSessionScreenIsLocked"] as? Bool == true
-        refreshAwakeDisplays()
+        readDesktopAvailability(.sample)
     }
 
-    private func refreshAwakeDisplays() {
-        hasAwakeDisplay = NSScreen.screens.contains { screen in
+    private func readDesktopAvailability(_ event: DesktopSessionAvailability.Event) {
+        let console = CGSessionCopyCurrentDictionary() as? [String: Any]
+        let active = console?[kCGSessionOnConsoleKey as String] as? Bool == true
+            && console?[kCGSessionLoginDoneKey as String] as? Bool == true
+        let awake = NSScreen.screens.contains { screen in
             guard let id = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber else { return false }
             return CGDisplayIsAsleep(id.uint32Value) == 0
+        }
+        desktopAvailability.observe(event, hasAwakeDisplay: awake, consoleActive: active,
+                                    consoleLocked: console?["CGSSessionScreenIsLocked"] as? Bool == true)
+    }
+
+    // On wake / unlock WindowServer can publish the notification before both
+    // the display and the console are ready. Re-read without synthesizing an unlock.
+    private func desktopAvailabilityChanged(_ event: DesktopSessionAvailability.Event, settling: Bool = false) {
+        wakeReadback?.cancel()
+        readDesktopAvailability(event)
+        applyDesktopSessionState()
+        guard settling, sessionUnavailable else { return }
+        wakeReadback = Task { [weak self] in
+            for delay in [300, 1_500] {
+                do { try await Task.sleep(for: .milliseconds(delay)) } catch { return }
+                guard let self, terminationTask == nil else { return }
+                let before = desktopAvailability
+                readDesktopAvailability(.sample)
+                if before != desktopAvailability { applyDesktopSessionState() }
+                if !sessionUnavailable { return }
+            }
         }
     }
 
@@ -418,8 +438,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let session = modules.makeHost(store: store, provider: provider)
         host = session
-        session.setDesktopPause(.screensAsleep, paused: desktopAsleep)
-        session.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
+        session.setDesktopPause(.screensAsleep, paused: desktopAvailability.desktopAsleep)
+        session.setDesktopPause(.inactiveSession, paused: desktopAvailability.sessionRestricted)
         traceFullscreenStartup("starting-host")
         await session.start()
         traceFullscreenStartup("host-started")
@@ -574,6 +594,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 return
             }
             #endif
+            wakeReadback?.cancel()
             updater?.stop()
             passiveShutdownTimer?.invalidate()
             passiveShutdownTimer = nil
@@ -680,8 +701,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func lockChanged(_ note: Notification) {
-        screenLocked = note.name.rawValue == "com.apple.screenIsLocked"
-        applyDesktopSessionState()
+        let locked = note.name.rawValue == "com.apple.screenIsLocked"
+        desktopAvailabilityChanged(locked ? .locked : .unlocked, settling: !locked)
     }
 
     private func applyDesktopSessionState() {
@@ -691,24 +712,22 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refreshSettingsExposure()
         modules?.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         panels?.setSuspended(sessionUnavailable)
-        host?.setDesktopPause(.screensAsleep, paused: desktopAsleep)
-        host?.setDesktopPause(.inactiveSession, paused: sessionInactive || screenLocked)
+        host?.setDesktopPause(.screensAsleep, paused: desktopAvailability.desktopAsleep)
+        host?.setDesktopPause(.inactiveSession, paused: desktopAvailability.sessionRestricted)
         updatePanels()
     }
 
     @objc private func desktopChanged(_ note: Notification) {
         switch note.name {
-        case NSWorkspace.screensDidSleepNotification: screenAsleep = true
-        case NSWorkspace.screensDidWakeNotification:
-            screenAsleep = false
-            refreshAwakeDisplays()
-        case NSWorkspace.sessionDidResignActiveNotification: sessionInactive = true
-        case NSWorkspace.sessionDidBecomeActiveNotification: sessionInactive = false
+        case NSWorkspace.willSleepNotification: desktopAvailabilityChanged(.willSleep)
+        case NSWorkspace.didWakeNotification: desktopAvailabilityChanged(.didWake, settling: true)
+        case NSWorkspace.screensDidSleepNotification: desktopAvailabilityChanged(.screensSleep)
+        case NSWorkspace.screensDidWakeNotification: desktopAvailabilityChanged(.screensWake, settling: true)
+        case NSWorkspace.sessionDidResignActiveNotification: desktopAvailabilityChanged(.resigned)
+        case NSWorkspace.sessionDidBecomeActiveNotification: desktopAvailabilityChanged(.becameActive, settling: true)
         default:
             host?.invalidateDesktop()
-            return
         }
-        applyDesktopSessionState()
     }
 
     private func updatePanels() {
@@ -729,9 +748,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func screensChanged() {
-        let wasAvailable = hasAwakeDisplay
-        refreshAwakeDisplays()
-        if wasAvailable != hasAwakeDisplay {
+        let before = desktopAvailability
+        readDesktopAvailability(.sample)
+        if before != desktopAvailability {
             applyDesktopSessionState()
         } else {
             host?.invalidateDesktop()

@@ -15,6 +15,7 @@ import NearpaneCore
     var topologyChanged: ((Set<String>) -> Void)?
     private var topology: [String: ScreenGeometry]?
     private var changedAt = [String: Double]()
+    private var sessionBoundaryAt: Double?
     private var lastManagement = [String: String]()
     init(host: HostSession, domains: EmbeddedModules?) {
         self.host = host
@@ -40,7 +41,7 @@ import NearpaneCore
                          observation: observation, ordinaryMembers: members, beganUptime: native.beganUptime)
         }
         let measured = reading.flatMap { sample -> FullscreenDisplaySample? in
-            if let cutoff = changedAt[id] {
+            if let cutoff = [changedAt[id], sessionBoundaryAt].compactMap({ $0 }).max() {
                 guard let began = sample.beganUptime, began >= cutoff, began <= uptime else { return nil }
             }
             return sample
@@ -72,6 +73,17 @@ import NearpaneCore
             revokeManagementWitness(on: id)
         }
         return state.phase == .native
+    }
+
+    /// Neither a still-valid pre-sleep sample nor a read begun while the session
+    /// was locked can renew a tool or release a manager after the console returns.
+    func sessionBoundary(uptime: Double) {
+        sessionBoundaryAt = uptime
+        hide()
+        for id in Array(transitions.keys) {
+            transitions[id]?.invalidatePresentation()
+            revokeManagementWitness(on: id)
+        }
     }
 
     func updateTopology(_ screens: [ScreenGeometry], uptime: Double) {
