@@ -1,5 +1,7 @@
 # Nearpane — 产品定义与功能规格
 
+> **2026-11-18 原生空间增量：** 本专项的产品交互、技术路线与验收采用 [已确定的专项决定](engineering/native-spaces/DECISIONS.md) 和 [验收合同](engineering/native-spaces/ACCEPTANCE.md)。Native 优先；Virtual 定义保留但不替代本轮目标。以下既定 WorkRect、平铺和管理策略继续有效；此增量不宣称工程已经完成。
+
 **文档状态：** 正式产品定义权威（2026-11-09；ADR-013 最新增量，工程尚未完全实现）  
 **适用范围：** 产品定位、核心架构、功能边界、模块体系与关键交互原则。  
 **配套规范：** [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)；[双空间模式 ADR-010](decisions/ADR-010-DUAL-WORKSPACE-MODES.md)；[多显示器 ADR-011](decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)；[桌面预留/全屏 ADR-012](decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)；[稳定区域、八窗渐进布局 ADR-013](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)
@@ -28,7 +30,7 @@ Nearpane 由三个相互协作、边界清晰的层次组成。
 - **Nearpane 虚拟工作区模式（Virtual）：** Nearpane 管理逻辑 Workspace 身份、窗口归属和调度，通过可恢复的窗口操作实现切换；这些工作区不等同于 macOS Spaces，也不要求关闭系统 Spaces 或 SIP。
 - 两种模式共用统一的边缘侧栏、Saytile、Riftlet、可选模块与窗口几何规范；**同一时刻只有一种 Nearpane 工作区引擎拥有窗口调度权**。
 - Native 的预览基于系统实际 Space 和窗口 frame；Virtual 的预览基于明确分配的窗口和可恢复的目标可见布局，不将隐藏窗口的屏外停放坐标当作实际布局。
-- 点击空间预览**整行**只执行空间切换，不拆分为逐窗口点击。普通受管理应用窗口按本屏 Nearpane 保留区之外的 WorkRect 自动平铺；真实窗口身份、frame 与权限均需确认，不虚构用户可用能力。
+- 原生空间预览的**空白/背景**点击切换该 Space；点击可识别的具体窗口则切至其所在 Space 并精确激活该窗口；超过拖拽阈值的窗口拖动独立处理。普通受管理应用窗口按本屏 Nearpane 保留区之外的 WorkRect 自动平铺；真实窗口身份、frame 与权限均需确认，不虚构用户可用能力。详见 [专项 D02](engineering/native-spaces/DECISIONS.md)。
 
 **模式选择是已确认的产品目标，不是现有实现证明。** 首次启动直接使用默认 Native，不弹出强制选择向导；Native/Virtual 仅是独立设置中的低频配置。Virtual 必须由用户明确启用、独立验收，并有恢复/回滚机制。模式切换不自动修改 Mission Control 设置、不关闭系统 Spaces、不关闭 SIP，也不擅自移动、关闭或删除现有窗口。主表面不提供创建/删除 macOS Spaces 的入口，Virtual 的工作区管理可在独立设置完成。
 
@@ -181,7 +183,7 @@ Nearpane 的价值来自模块之间的协同，而不仅是把它们放在同�
 - 全模块均有需求时出厂默认 Saytile/Riftlet 约 3/8、空间调度约 5/8；有多窗口/多空间目标时**默认不自动隐藏空间区**，但**用户主动关闭类似退出 macOS 调度中心**，手动 Hide 优先并抑制同一条件的自动重弹，直到用户再次主动唤出。无导航需求则可以仅显示语音/截图或全部隐藏 UI。无论显隐，Docked WorkRect 不变；副屏独立配置。
 - 上方工具模块保持紧凑；空间预览是下方的主要视觉内容。
 - 使用克制的 macOS 毛玻璃材质、柔和边界和阴影；强调色不能破坏截图和窗口内容的真实性。
-- 不在空间预览区域增加新建空间、空间管理、逐窗点击或布局编辑等入口；布局偏好仅在独立设置里。
+- 原生空间预览支持上述逐窗点击和拖动；不额外堆放常驻的新建空间、空间管理或布局编辑工具栏。布局偏好和低频管理入口保持在独立设置或明确的上下文入口，具体按 [专项决定](engineering/native-spaces/DECISIONS.md) 实施。
 
 用户自选模块是产品的扩展能力。它们的默认展示位置、多个模块同时启用时的密度与溢出策略，必须通过独立设计决策解决；不得直接推翻上述默认视觉基线。
 

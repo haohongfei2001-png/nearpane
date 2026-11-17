@@ -1,5 +1,7 @@
 # Nearpane — 完整交互模型与主表面行为规格
 
+> **2026-11-18 原生空间增量：** 原生 Space 行、具体窗口的点击/拖动与原生式过渡，以 [专项 D02、D05](../engineering/native-spaces/DECISIONS.md) 为最新依据；完整产品链按 [专项验收合同](../engineering/native-spaces/ACCEPTANCE.md) 实测。此增量为待实施规范，不代表已经验收。
+
 **状态：正式交互权威 · 2026-11-09 · ADR-013 增量已并入**  
 **范围：桌面边缘主表面、Saytile、Riftlet、Native Spaces / Virtual Workspaces、可选模块与异常状态。**  
 **权威：PRODUCT_DEFINITION.md 与 NEARPANE-VISUAL-AUTHORITY.md 优先于本文件的示意性描述。**
@@ -213,7 +215,7 @@ Nearpane 不应重新实现 Riftlet 的截图采集和附件上传；交互只�
 - [ ] 每行对应一个当前模式下的 Space/Workspace；Native/Virtual 身份不混用，未知映射不伪造。
 - [ ] Virtual 从强退、切换模式、权限撤销、显示器变化后安全恢复曾调度窗口；无法恢复时明确阻断并给出修复状态。
 - [ ] 1—8 窗渐进平铺与 8→9 默认新建/不可用回退分割、可选无限分割；**另外测试新普通窗口默认独立 Workspace / 设置改入已有 Workspace**，其创建失败时保留实际原归属。三窗减双窗恢复历史比例。
-- [ ] 单击空间行只切换 Workspace；拖动一个具体窗口缩略图进另一空间可请求加入，点击与 drag/drop 不混淆。
+- [ ] 原生空间行空白/背景点击只切换 Space；具体窗口点击切至所属 Space 并精确激活；达到拖拽阈值后将该窗口迁入目标 Space。点击与 drag/drop 不混淆，结果由真实系统归属与输入落点验收。
 - [ ] 用户模块展开不压缩真实窗口预览几何。
 - [ ] 任一模块失败不影响其他模块。
 - [ ] 权限按模块独立请求与撤销。
