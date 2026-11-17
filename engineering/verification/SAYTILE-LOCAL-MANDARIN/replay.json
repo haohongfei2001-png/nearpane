@@ -1,0 +1,18 @@
+{
+  "audioInputSeconds": 15.501772416668246,
+  "coldSetupSeconds": 0.3145856666669715,
+  "firstModelTextSeconds": 4.218767749996914,
+  "firstTextSeconds": 4.3220099583340925,
+  "microphoneOpened": false,
+  "model": "qwen-small",
+  "modelToPanelSeconds": 0.10324220833717845,
+  "nativeFinalSHA256": "8a4282fedd3e2f5a6cfc13a595687ef961de74b9e7a581f68dcfe9814c218525",
+  "realTimeFile": true,
+  "sampledTextUpdates": 17,
+  "sourceWAVSHA256": "95dae2e6509dac2af6b35149dbd46978e2a5bfd480d3604282a1a092606ff0ea",
+  "visibleBeforeEOS": 17,
+  "workerReadyEvents": 1,
+  "sourceSHA": "bc16430577123e1af853ea3a5910aba761a81713",
+  "executableSHA256": "64e7e7a1e3ce21dd673797299bb2786bef7560aa4a98f553c36c7bd1912711a8",
+  "modelRevision": "bc441bd1e4295c1f42d9879f056049a925b6e013"
+}
