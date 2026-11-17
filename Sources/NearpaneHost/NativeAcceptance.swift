@@ -55,7 +55,7 @@ struct NativeAcceptanceSession {
         guard digest == "95dae2e6509dac2af6b35149dbd46978e2a5bfd480d3604282a1a092606ff0ea" else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        let root = support.appending(path: "Nearpane/Voice")
+        let root = directory.appending(path: "MandarinFixture/Nearpane/Voice")
         try ProfileLease.checkPath(root)
         guard !FileManager.default.fileExists(atPath: root.appending(path: "Saytile.sqlite").path) else {
             throw CocoaError(.fileWriteFileExists)

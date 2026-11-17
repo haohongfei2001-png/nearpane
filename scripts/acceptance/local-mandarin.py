@@ -5,6 +5,7 @@ from pathlib import Path
 import hashlib
 import json
 import os
+import plistlib
 import shutil
 import subprocess
 import uuid
@@ -26,9 +27,11 @@ session = str(uuid.uuid4())
 directory = ROOT / 'build/native-acceptance' / session
 env = dict(os.environ, NEARPANE_ACCEPTANCE_CHECKOUT=str(ROOT))
 cmd = [str(exe), '--verify-bundled-resources']
-subprocess.run([*cmd, '--native-acceptance-prepare', session], cwd=ROOT, env=env, check=True)
+info = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
+prepare = '--native-acceptance-prepare-draft' if info['CFBundleIdentifier'] == 'com.holdsnow.nearpane.alpha' else '--native-acceptance-prepare'
+subprocess.run([*cmd, prepare, session], cwd=ROOT, env=env, check=True)
 shutil.copyfile(args.wav, directory / 'public-mandarin.wav')
-destination = directory / 'support/Nearpane/Voice/LocalModels/qwen-small' / manifest['revision']
+destination = directory / 'MandarinFixture/Nearpane/Voice/LocalModels/qwen-small' / manifest['revision']
 destination.mkdir(mode=0o700, parents=True)
 for entry in manifest['files']:
     src = args.model / entry['path']
