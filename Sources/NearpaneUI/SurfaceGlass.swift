@@ -111,7 +111,7 @@ struct SurfaceCardGeometry {
 
     static func cardPaths(layout: SurfaceLayout, width: Double, settings: DisplaySettings) -> Path {
         Path { path in
-            for section in [layout.voice, layout.screenshots, layout.desktop] where section.height > 0 {
+            for section in [layout.voice, layout.screenshots, layout.windowArea] where section.height > 0 {
                 let frame = frame(in: section, width: width, settings: settings)
                 guard !frame.isEmpty else { continue }
                 let radius = min(radius(settings: settings, width: width), min(frame.width, frame.height) / 2)

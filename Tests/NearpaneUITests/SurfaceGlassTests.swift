@@ -52,8 +52,9 @@ import NearpaneCore
         let frame = SurfaceRect(width: 1600, height: 960)
         let screen = ScreenGeometry(id: "geometry-fixture", frame: frame, visibleFrame: frame)
         var settings = DisplaySettings()
-        let material = try #require(panel.window?.contentView as? NSVisualEffectView)
-        let layer = try #require(material.layer)
+        let surface = try #require(panel.window?.contentView)
+        #expect(surface.subviews.first is PanelGlassMaterial)
+        let layer = try #require(surface.layer)
         for (width, corner) in [(120.0, nil as Measure?), (240, nil), (240, Measure(8, .percent))] {
             settings.measures[.panelWidth] = Measure(width)
             settings.measures[.cornerRadius] = corner

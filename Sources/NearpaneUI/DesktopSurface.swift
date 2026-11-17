@@ -21,6 +21,7 @@ struct DesktopSurface: View {
     let enabled: Bool
     var display: SurfaceDisplay?
     var settings: DisplaySettings = .init()
+    @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @ViewState private var appBadges: [String: WindowAppBadges.Badge] = [:]
     @ViewState private var layoutBadges: [String: WindowAppBadges.Badge] = [:]
@@ -42,7 +43,7 @@ struct DesktopSurface: View {
                     let uptime = ProcessInfo.processInfo.systemUptime
                     if snapshot.nativeIsFresh(now: now, uptime: uptime), !native.windowLimitReached,
                        !native.rows.isEmpty || snapshot.displays.contains(where: { $0.id == displayID }) {
-                        VStack(spacing: 3) {
+                        VStack(alignment: .leading, spacing: 3) {
                             GeometryReader { size in
                                 let pad = min(settings.points(.spacePadding,in:size.size.width), min(size.size.width,size.size.height) / 3)
                                 let width = min(size.size.width,settings.points(.desktopWidth,in:size.size.width))
@@ -56,8 +57,9 @@ struct DesktopSurface: View {
                                 ScrollView(.vertical) {
                                     let bounds = SurfaceRect(x:(size.size.width-width)/2+pad,y:pad,width:width-pad*2,height:canvasHeight-pad*2)
                                     if !members.isEmpty {
-                                        windowList(members, snapshot: snapshot, width: width - pad * 2, height: height)
+                                        windowList(members, snapshot: snapshot, width: max(0, width - 2 * (pad + 2)))
                                             .padding(.horizontal, pad + 2).padding(.vertical, pad)
+                                            .frame(width: width, alignment: .topLeading)
                                     }
                                     if members.isEmpty || rows > 1 || layoutExpanded || display?.pointer?.windowPreviews?.hasStill == true {
                                         if let layout, let preview = DesktopPreview(snapshot:layout,displayID:displayID,viewport:bounds,now:now,
@@ -75,14 +77,18 @@ struct DesktopSurface: View {
                                             .buttonStyle(.link).font(.caption)
                                             .accessibilityIdentifier("desktop-layout-disclosure")
                                     }
-                                }.frame(height:height)
+                                }
+                                .defaultScrollAnchor(.top)
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                                .frame(height: height, alignment: .topLeading)
                             }
-                            Text(selectionIssue ?? host.workspaceIssue.map { issue in
+                            if let issue = selectionIssue ?? host.workspaceIssue.map({ issue in
                                 issue == .minimumSize ? "窗口最小尺寸超出可用区域" : "当前无法执行工作空间操作"
-                            } ?? "")
-                                .font(settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600).map { .system(size: $0) } ?? .caption2).foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, 3)
+                            }) {
+                                Text(issue)
+                                    .font(settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600).map { .system(size: $0) } ?? .caption2).foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 3)
+                            }
                         }
                     } else { status(snapshot.freshness == .transient ? "桌面正在变化" : "等待完整桌面快照") }
                 }
@@ -96,7 +102,7 @@ struct DesktopSurface: View {
         let display: String, visible: Bool, permitted: Bool, generation: UInt64
     }
 
-    private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot, width: CGFloat, height: CGFloat) -> some View {
+    private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot, width: CGFloat) -> some View {
         let previews = display?.pointer?.windowPreviews
         let gallery = previews?.gallery
         let id = displayID ?? ""
@@ -104,17 +110,10 @@ struct DesktopSurface: View {
         let permitted = visible && host.configuration.showsWindowThumbnails && CGPreflightScreenCaptureAccess() && WindowContentPreview.sessionAvailable()
         let hasAX = AXIsProcessTrusted() || snapshot.native?.accessibility == .available || snapshot.native?.accessibility == .partial
         let run = GalleryRun(display: id, visible: visible, permitted: permitted, generation: gallery?.generation ?? 0)
-        let columns = width >= 156 && windows.count >= 5 ? 2 : 1
-        let rows = (windows.count + columns - 1) / columns
-        let pictureHeight = max(42, min(110, width / CGFloat(columns) * 0.61, (height - 52) / CGFloat(rows) - 32))
+        let pictureHeight = max(42, min(96, width * 0.61))
         let groups = Dictionary(grouping: windows, by: { $0.metadata?.pid })
         return VStack(alignment: .leading, spacing: 7) {
-            HStack {
-                Text("当前桌面").accessibilityAddTraits(.isHeader)
-                Spacer()
-                Text("\(windows.count) 扇").monospacedDigit().foregroundStyle(.secondary)
-            }.font(.caption.weight(.semibold)).padding(.horizontal, 3)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 5), count: columns), spacing: 6) {
+            LazyVStack(alignment: .leading, spacing: 6) {
                 ForEach(windows, id: \.metadata?.number) { window in
                     let badge = appBadges[window.id]
                     let siblings = groups[window.metadata?.pid] ?? []
@@ -138,6 +137,8 @@ struct DesktopSurface: View {
                     .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
                 }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("当前桌面，\(windows.count) 扇窗口")
             if visible && ((!permitted && host.configuration.showsWindowThumbnails) || !hasAX) {
                 Menu("窗口权限与调度中心") {
                     if host.configuration.showsWindowThumbnails && !permitted {
@@ -214,7 +215,7 @@ struct DesktopSurface: View {
                                        cornerRadius: min(4, min(r.width, r.height) / 8))
                     var sheet = inside
                     sheet.addFilter(.shadow(color: .black.opacity(0.20), radius: 1.5, y: 1))
-                    sheet.fill(outline, with: .color(Color(nsColor: .controlBackgroundColor)))
+                    sheet.fill(outline, with: .color(DesktopWindowCard.windowBacking(for: scheme)))
                     let rect = CGRect(x: r.x, y: r.y, width: r.width, height: r.height)
                     var clipped = inside
                     clipped.clip(to: outline)
@@ -270,6 +271,7 @@ struct DesktopSurface: View {
     }
 
     private func status(_ text: String) -> some View {
-        Text(text).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+        Text(text).font(.caption).foregroundStyle(.secondary).padding(4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

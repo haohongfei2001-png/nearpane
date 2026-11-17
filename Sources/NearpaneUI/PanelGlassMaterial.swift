@@ -2,8 +2,7 @@ import AppKit
 import SwiftUI
 import NearpaneCore
 
-/// AppKit applies maskImage to the behind-window material only. Child hosting views,
-/// buttons, text and their hit regions keep their original opacity and geometry.
+/// Mask only this background sibling. The panel's interactive views live outside its compositing tree.
 @MainActor final class PanelGlassMaterial: NSVisualEffectView {
     private struct Regions: Equatable {
         let size: CGSize

@@ -39,6 +39,27 @@ struct LayoutTests {
         }
     }
 
+    @Test func windowsFollowOnlyPresentedToolsAndKeepTheRestOfTheirSection() {
+        for voice in [false, true] {
+            for tray in [false, true] {
+                for pinned in [0, 1, 8] {
+                    let layout = LayoutComposer.compose(width: 240, height: 900, pinnedCount: pinned,
+                        expanded: true, voiceEnabled: voice, trayEnabled: tray)
+                    let toolsEnd = layout.screenshots.y + layout.screenshots.height
+                    #expect(layout.desktop.y == toolsEnd)
+                    #expect(layout.moduleRail?.y == (pinned > 0 ? toolsEnd : nil))
+                    #expect(layout.windowArea.y == toolsEnd + (layout.moduleRail?.height ?? 0))
+                    #expect(layout.windowArea.height + layout.windowArea.y == layout.desktop.height + layout.desktop.y)
+                    #expect(layout.expanded!.y >= layout.windowArea.y)
+                }
+            }
+        }
+        let clockOnly = LayoutComposer.compose(width: 240, height: 900, pinnedCount: 1, expanded: false, content: .spacesOnly)
+        #expect(clockOnly.moduleRail?.y == 0 && clockOnly.windowArea.y == clockOnly.moduleRail?.height)
+        let secondary = LayoutComposer.compose(width: 240, height: 900, pinnedCount: 0, expanded: false, content: .spacesOnly)
+        #expect(secondary.moduleRail == nil && secondary.windowArea == .init(width: 240, height: 900))
+    }
+
     @Test func testRightAndLeftEdgesUseVisibleAreaAndEighthOfScreen() {
         let screen = ScreenGeometry(id: "main", frame: .init(width: 1440, height: 900),
                                     visibleFrame: .init(x: 0, y: 40, width: 1440, height: 830))

@@ -1,5 +1,6 @@
 #if canImport(NearpaneVoice) && canImport(NearpaneTray)
 import AppKit
+import SwiftUI
 import ImageIO
 import UniformTypeIdentifiers
 import Testing
@@ -297,7 +298,7 @@ struct IntegratedHostTests {
         content.appearance = NSAppearance(named: darkExport ? .darkAqua : .aqua)
         content.layoutSubtreeIfNeeded()
         #expect(window.frame.width == 240 && window.frame.height == 960 && !window.isVisible)
-        let hosting = try #require(content.subviews.first)
+        let hosting = try #require(content.subviews.first { $0 is NSHostingView<EdgeSurfaceView> })
         for state in ["collapsed", "expanded"] {
             if state == "expanded" { domains.tray.toggleMenu() }
             hosting.layoutSubtreeIfNeeded(); hosting.displayIfNeeded()
@@ -321,10 +322,13 @@ struct IntegratedHostTests {
                 flat.setFillColor(CGColor(gray: darkExport ? 0.13 : 0.95, alpha: 1)); flat.fill(pixels)
                 flat.draw(source, in: pixels)
                 // No other content is expected near the center of the bottom 5/8.
-                // The area must actually contain the unknown-state label, not a clipped empty view.
+                // The empty-state label starts immediately below the tools, inside the workspace card.
                 let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
                 var ink = 0
-                for y in (source.height * 65 / 100)..<(source.height * 72 / 100) {
+                let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0, expanded: false)
+                let top = layout.windowArea.y + PanelSizeMetrics.cardInset(width: rect.width) + 4
+                let scale = Double(source.height) / rect.height
+                for y in Int(top * scale)..<Int((top + 19) * scale) {
                     for x in (source.width / 8)..<(source.width * 7 / 8) {
                         let pixel = bytes.advanced(by: y * flat.bytesPerRow + x * 4)
                         if max(pixel[0], max(pixel[1], pixel[2])) < 200 { ink += 1 }

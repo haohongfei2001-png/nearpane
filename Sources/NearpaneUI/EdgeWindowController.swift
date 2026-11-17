@@ -57,6 +57,7 @@ public final class EdgeWindowController: NSWindowController {
     public private(set) var hasPlacement = false
     public private(set) var requestedFrame: NSRect?
     private var placedFrame: NSRect?
+    private let surface = NSView()
     private let material = PanelGlassMaterial(frame: .zero)
     private let contentView: SurfaceHostingView
     private var contentBottom: NSLayoutConstraint
@@ -91,22 +92,28 @@ public final class EdgeWindowController: NSWindowController {
         material.material = .popover
         material.blendingMode = .behindWindow
         material.state = .active
-        material.wantsLayer = true
-        material.layer?.cornerCurve = .continuous
-        material.layer?.masksToBounds = true
+        surface.wantsLayer = true
+        surface.layer?.cornerCurve = .continuous
+        surface.layer?.masksToBounds = true
+        material.translatesAutoresizingMaskIntoConstraints = false
+        surface.addSubview(material)
         let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules, display: display))
         contentView = content
-        contentBottom = content.bottomAnchor.constraint(equalTo: material.bottomAnchor)
+        contentBottom = content.bottomAnchor.constraint(equalTo: surface.bottomAnchor)
         content.sizingOptions = []
         content.translatesAutoresizingMaskIntoConstraints = false
-        material.addSubview(content)
+        surface.addSubview(content)
         NSLayoutConstraint.activate([
-            content.leadingAnchor.constraint(equalTo: material.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: material.trailingAnchor),
-            content.topAnchor.constraint(equalTo: material.topAnchor),
+            material.leadingAnchor.constraint(equalTo: surface.leadingAnchor),
+            material.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+            material.topAnchor.constraint(equalTo: surface.topAnchor),
+            material.bottomAnchor.constraint(equalTo: surface.bottomAnchor),
+            content.leadingAnchor.constraint(equalTo: surface.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+            content.topAnchor.constraint(equalTo: surface.topAnchor),
             contentBottom
         ])
-        panel.contentView = material
+        panel.contentView = surface
         super.init(window: panel)
         #if canImport(NearpaneTray)
         modules?.tray.exposureChanged = { [weak self] hidden in
@@ -272,10 +279,11 @@ public final class EdgeWindowController: NSWindowController {
         // A settings change can also update the corner without resizing the panel.
         let radius = folded ? CGFloat(DisplayMetric.cornerRadius.factory.value)
             : SurfaceCardGeometry.shellRadius(settings: config, size: window?.frame.size ?? frame.size)
-        if material.layer?.cornerRadius != radius { material.layer?.cornerRadius = radius }
+        if surface.layer?.cornerRadius != radius { surface.layer?.cornerRadius = radius }
         let size = window?.frame.size ?? frame.size
         let materialLayout = folded ? nil : LayoutComposer.compose(width: size.width,
-            height: max(0, size.height + contentBottom.constant), pinnedCount: 0, expanded: false,
+            height: max(0, size.height + contentBottom.constant),
+            pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count, expanded: false,
             settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
         material.configure(size: size, layout: materialLayout, settings: config)
         hasPlacement = true
@@ -296,10 +304,10 @@ public final class EdgeWindowController: NSWindowController {
             })
             view.sizingOptions = []
             view.translatesAutoresizingMaskIntoConstraints = false
-            material.addSubview(view)
+            surface.addSubview(view)
             NSLayoutConstraint.activate([
-                view.leadingAnchor.constraint(equalTo: material.leadingAnchor), view.trailingAnchor.constraint(equalTo: material.trailingAnchor),
-                view.topAnchor.constraint(equalTo: material.topAnchor), view.bottomAnchor.constraint(equalTo: material.bottomAnchor)
+                view.leadingAnchor.constraint(equalTo: surface.leadingAnchor), view.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+                view.topAnchor.constraint(equalTo: surface.topAnchor), view.bottomAnchor.constraint(equalTo: surface.bottomAnchor)
             ])
             foldedView = view
         }
@@ -311,10 +319,10 @@ public final class EdgeWindowController: NSWindowController {
             close.setAccessibilityLabel("收起 Nearpane")
             close.setAccessibilityIdentifier("nearpane-close-panel")
             close.translatesAutoresizingMaskIntoConstraints = false
-            material.addSubview(close)
+            surface.addSubview(close)
             NSLayoutConstraint.activate([
-                close.trailingAnchor.constraint(equalTo: material.trailingAnchor),
-                close.bottomAnchor.constraint(equalTo: material.bottomAnchor),
+                close.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+                close.bottomAnchor.constraint(equalTo: surface.bottomAnchor),
                 close.widthAnchor.constraint(equalToConstant: PanelSizeMetrics.minimumSide),
                 close.heightAnchor.constraint(equalToConstant: PanelSizeMetrics.minimumSide)
             ])

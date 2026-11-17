@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import NearpaneCore
 import Testing
 
@@ -362,7 +363,7 @@ import Testing
         let persisted = store.value, modules = host.registry.states
         panel.place(on: screen, primary: screen.id, content: .full)
         let initial = try #require(panel.requestedFrame), window = try #require(panel.window)
-        let originalHostView = try #require(window.contentView?.subviews.first)
+        let originalHostView = try #require(window.contentView?.subviews.first { $0 is NSHostingView<EdgeSurfaceView> })
         #expect(initial.size == .init(width: PanelSizeMetrics.minimumSide, height: PanelSizeMetrics.minimumSide))
         for _ in 0..<2 {
             panel.toggleTemporaryExpansion()
@@ -378,7 +379,7 @@ import Testing
             #expect(!panel.temporarilyExpanded && panel.requestedFrame == initial && originalHostView.isHidden)
         }
         #expect(store.value == persisted && host.configuration == persisted && host.registry.states == modules)
-        #expect(window.contentView?.subviews.first === originalHostView && !window.isVisible)
+        #expect(originalHostView.superview === window.contentView && !window.isVisible)
         panel.toggleTemporaryExpansion()
         settings.measures[.panelHeight] = .init(714)
         host.setDisplaySettings(settings, id: screen.id)

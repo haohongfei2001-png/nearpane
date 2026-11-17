@@ -28,7 +28,7 @@ public struct EdgeSurfaceView: View {
     public var body: some View {
         GeometryReader { geometry in
             let layout = LayoutComposer.compose(width: geometry.size.width, height: geometry.size.height,
-                                                pinnedCount: host.registry.pinnedModules.count,
+                                                pinnedCount: display?.secondary == true ? 0 : host.registry.pinnedModules.count,
                                                 expanded: host.registry.expandedID != nil, settings:settings, content:display?.content ?? .full,
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight:display?.referenceHeight)
@@ -36,15 +36,15 @@ public struct EdgeSurfaceView: View {
                 SurfaceShell(layout: layout, width: geometry.size.width, settings: settings)
                 if layout.voice.height > 0 { voice.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.voice) }
                 if layout.screenshots.height > 0 { screenshots.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.screenshots) }
-                if layout.desktop.height > 0 { desktop.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.desktop) }
+                if let rail = layout.moduleRail { moduleRail(width:geometry.size.width,height:rail.height).place(in:rail) }
+                if layout.windowArea.height > 0 { desktop.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.windowArea) }
                 if display?.secondary != true, let rect = layout.expanded, let id = host.registry.expandedID {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())
                         .onTapGesture { host.handle(.collapse) }
-                        .place(in: layout.desktop)
+                        .place(in: layout.windowArea)
                     expandedModule(id,width:geometry.size.width).place(in:rect)
                 }
-                if display?.secondary != true, let rail = layout.moduleRail { moduleRail(width:geometry.size.width,height:rail.height).place(in:rail) }
             }
             // Offset children don't contribute their offsets to a ZStack's measured size.
             // Clip at the whole panel, not at the height of its largest individual region.

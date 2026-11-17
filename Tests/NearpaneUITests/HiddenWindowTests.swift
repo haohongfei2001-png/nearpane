@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import Foundation
 import Testing
 import NearpaneCore
@@ -47,7 +48,8 @@ struct HiddenWindowTests {
         #expect(!(panel!.hidesOnDeactivate))
         #expect(panel!.collectionBehavior.contains(.canJoinAllSpaces))
         #expect(panel!.level == .floating)
-        #expect(panel!.contentView is NSVisualEffectView)
+        #expect(panel!.contentView?.subviews.first is PanelGlassMaterial)
+        #expect(panel!.contentView?.subviews.last is NSHostingView<EdgeSurfaceView>)
         controller.close()
     }
 

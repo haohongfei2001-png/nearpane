@@ -85,7 +85,8 @@ import NearpaneCore
         var config = DisplaySettings()
         config.glass.overallTransparency = 100
         let window = try #require(panel.window)
-        let material = try #require(window.contentView as? NSVisualEffectView)
+        let surface = try #require(window.contentView)
+        let material = try #require(surface.subviews.first as? PanelGlassMaterial)
         for width in [20.0, 240] {
             config.measures[.panelWidth] = .init(width)
             host.setDisplaySettings(config, id: screen.id)
@@ -96,7 +97,8 @@ import NearpaneCore
                 #expect(try #require(image.colorAt(x: 0, y: 0)).alphaComponent == 0)
             }
             #expect(window.frame.width == width && window.alphaValue == 1 && material.alphaValue == 1)
-            #expect(material.subviews.filter { !$0.isHidden }.allSatisfy { $0.alphaValue == 1 })
+            let foreground = surface.subviews.dropFirst().filter { !$0.isHidden }
+            #expect(!foreground.isEmpty && foreground.allSatisfy { $0.alphaValue == 1 && !$0.isDescendant(of: material) })
             #expect(!window.isVisible)
         }
     }
