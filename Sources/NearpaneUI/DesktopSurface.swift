@@ -73,10 +73,13 @@ struct DesktopSurface: View {
         let content = display?.pointer?.windowPreviews
         let chosen = content?.binding
         let snapshotWindow = chosen?.window(in: snapshot)?.id
-        let still = content?.revision == snapshot.revision ? content?.image : nil
+        let observedRevision = content?.revision
         let key = BadgeRefresh(session: snapshot.sessionID, revision: snapshot.revision, visible: display?.interactionVisible == true)
         let badges = key == badgeSource ? appBadges : [:]
         return Canvas { context, _ in
+            // A queued Canvas draw can run after a permission change. Resolve the
+            // revocable source at draw time; never retain an admitted image in the view.
+            let still = observedRevision == snapshot.revision ? content?.image(in: snapshot) : nil
             for row in preview.rows {
                 let desktop = row.desktop
                 let path = Path(roundedRect: CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height),

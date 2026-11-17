@@ -171,6 +171,26 @@ extension WindowAdmissionReader: AdmissionReading {}
         return id
     }
 
+    /// Reuse the original retained AX object when the user explicitly asks for a still.
+    /// Refreshing the selected owner catches close/recreate even when its number is reused.
+    @available(macOS 15.2, *)
+    func photograph(using previews: WindowContentPreview, host: HostSession) async {
+        guard let id = ruleID, let owner = app, !reading else { return }
+        let consent = previewConsent(for: id, owner: owner)
+        await previews.captureSelected(id, bundle: owner.bundle, host: host, stillSelected: consent)
+    }
+
+    func previewConsent(for id: ManagedWindowID, owner: AdmissionApplication) -> @MainActor () async -> Bool {
+        let request = generation
+        return { [weak self] in
+            guard let self, self.generation == request, self.ruleID == id,
+                  let rows = try? await self.reader.refreshedWindows(owner),
+                  self.generation == request, self.ruleID == id else { return false }
+            let matches = rows.filter { $0.number == id.number }
+            return matches.count == 1 && matches[0].id == id.element
+        }
+    }
+
     /// Persist only the identity kept alive by this selection's controller.
     /// A read-only desktop snapshot's per-sample AX token cannot identify a later authorization.
     func setRule(_ rule: WindowRule, host: HostSession, isManaged: (ManagedWindowID) -> Bool) async {
@@ -332,6 +352,7 @@ enum AdmissionPlacement: String, CaseIterable {
     let host: HostSession
     let manager: CandidateWorkRect
     let fixtureOnly: Bool
+    @Environment(WindowContentPreview.self) private var previews: WindowContentPreview?
     let owners: [AdmissionFixtureOwner]
     @ViewState private var selection: AdmissionSelection
     @ViewState private var scenario = AdmissionPlacement.current
@@ -434,6 +455,12 @@ enum AdmissionPlacement: String, CaseIterable {
                 "\(selection.label(for: pick.app)) · 窗口 \(pick.choice.index)"
             }.joined(separator: "、"))
             .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("admission-selection")
+            if #available(macOS 15.2, *), let previews, selection.ruleID != nil {
+                Button("拍摄此窗的桌面预览") {
+                    Task { await selection.photograph(using: previews, host: host) }
+                }.disabled(selection.reading || previews.choosing || previews.visibleDisplays.isEmpty)
+                if !previews.notice.isEmpty { Text(previews.notice).font(.caption).foregroundStyle(.secondary) }
+            }
             if let id = selection.ruleID, !managed(id) {
                 Menu("此窗规则") {
                     Button("排除此窗") {

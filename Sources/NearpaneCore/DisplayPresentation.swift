@@ -205,6 +205,7 @@ public struct DisplaySurfacePlan: Equatable, Sendable {
 
 public struct MultiDisplayPresentationCoordinator {
     private var requested = Set<String>()
+    private var residentID: String?
     private var suppressed = Set<String>()
     private var lastSettings: [String: DisplaySettings] = [:]
     private var lastMultiple: [String: Double] = [:]
@@ -244,18 +245,26 @@ public struct MultiDisplayPresentationCoordinator {
         lastSettings = settings
         requested.formIntersection(ids)
         lastMultiple = lastMultiple.filter { ids.contains($0.key) }
-        guard let primary = ids.first(where: { $0 == preferred }) ?? ids.first else { return [] }
-        requested.remove(primary)
+        guard let primary = ids.first(where: { $0 == preferred }) ?? ids.first else {
+            residentID = nil
+            return []
+        }
+        if let residentID, residentID != primary {
+            requested.remove(residentID)
+            requested.remove(primary)
+        }
+        residentID = primary
         return ids.map { id in
             let context = demand[id] ?? .init()
             let isPrimary = id == primary
             let dismissed = suppressed.contains(id) || settings[id]?.spacesDismissed == true
             var content: PanelContent = .hidden
+            if !spacesEnabled { requested.remove(id) }
             if hidden || context.blocked {
                 requested.remove(id)
                 lastMultiple[id] = nil
             } else if isPrimary {
-                let spaces = spacesEnabled && !dismissed && (context.multiple || !context.complete)
+                let spaces = spacesEnabled && !dismissed && (requested.contains(id) || context.multiple || !context.complete)
                 if spaces {
                     content = voice || tray ? .full : .spacesOnly
                 } else if voice && tray {

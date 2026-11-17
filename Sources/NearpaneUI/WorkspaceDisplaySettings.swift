@@ -107,8 +107,12 @@ public struct WorkspaceDisplaySettings: View {
                         }
                     }
                     HStack {
-                        Button("唤出本屏空间视图") { request(screen.id) }
-                        Button("隐藏本屏空间视图") { dismiss(screen.id) }
+                        Button("唤出本屏空间视图") {
+                            if stillCurrent(screen) { request(screen.id) }
+                        }
+                        Button("隐藏本屏空间视图") {
+                            if stillCurrent(screen) { dismiss(screen.id) }
+                        }
                     }
                     Picker(
                         "停靠边缘",

@@ -32,7 +32,10 @@ def put(path, data):
     temp.replace(path)
 
 def reply(cmd):
-    return json.loads(sp.check_output(cmd, timeout=6, text=True))
+    result = sp.run(cmd, timeout=6, text=True, capture_output=True)
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or "readback helper exited " + str(result.returncode))
+    return json.loads(result.stdout)
 
 def wait(test, timeout=8):
     deadline = time.monotonic() + timeout
@@ -81,7 +84,10 @@ DENSITY_SLOTS = {
 }
 
 class Trial:
-    def __init__(self, candidate, *, palette=False):
+    def __init__(self, candidate, *, palette=False, single=False, right_edge=False):
+        self.single = single
+        self.right_edge = right_edge
+        self.control_scope = "--ordinary-single" if single else "--ordinary-secondary"
         self.out = OUT / "palette" if palette else OUT
         self.out.mkdir(exist_ok=True, mode=0o700)
         self.candidate = candidate
@@ -91,7 +97,7 @@ class Trial:
         check(self.app.parent.parent == Path("/private/tmp") and self.app.parent.name.startswith("nearpane-standard-windows."), "fixture location")
         sp.run(["/usr/bin/codesign","--verify","--strict",f'-R=identifier "{self.bundle}"',self.app], check=True)
         # Wait for a quiet existing desktop before creating any GUI object.
-        samples=[]; since=None; deadline=time.monotonic()+8
+        samples=[]; since=None; deadline=time.monotonic()+(30 if single else 8)
         while time.monotonic()<deadline:
             each=self.observe()
             if not samples or (each["front"],each["focus"])!=(samples[-1]["front"],samples[-1]["focus"]):
@@ -105,13 +111,24 @@ class Trial:
         put(self.out/"initial.json",self.run_focus)
         self.pipes = tempfile.TemporaryDirectory(prefix="np-window-pipes-",dir="/private/tmp")
         io = Path(self.pipes.name)
+        if single: (io/"single-display").touch(mode=0o600)
+        if single and right_edge: (io/"right-edge").touch(mode=0o600)
         for n in ("requests","reports"): os.mkfifo(io/n,0o600)
         # Open request pipe first, then read from the reports pipe without blocking launch.
         req = os.open(io/"requests",os.O_RDWR)
         reports = os.open(io/"reports",os.O_RDONLY|os.O_NONBLOCK)
         ticket=self.app.parent/"sample-pipes"
         ticket.write_text(str(io))
-        launched = reply(OFF+[WORK/"observe","launch",str(self.app),str(io)])
+        try:
+            focus = self.run_focus["focus"]
+            launched = reply(OFF+[WORK/"observe", "launch", str(self.app), str(io),
+                                  str(self.run_focus["front"]), str(focus) if focus is not None else "none"])
+        except Exception:
+            os.close(req)
+            os.close(reports)
+            self.pipes.cleanup()
+            if ticket.read_text() == str(io): ticket.unlink()
+            raise
         self.fixture = type("Fixture",(),{})()
         put(self.out/"launch.json",launched)
         self.fixture.pid = launched["subjectPID"]
@@ -194,7 +211,7 @@ class Trial:
             check(self.start_config["preferredDisplayID"]==side,"unexpected secondary")
             self.start_config["displays"][side]=dict(edge="left", placement="docked", policy="onDemand",
                                                  spacesDismissed=False, anchor="top", measures=["reservedWidth",{"unit":"pt","value":160}])
-            if getattr(self, "boundary_review", False):
+            if self.single or getattr(self, "boundary_review", False):
                 self.start_config["displays"][side]["measures"] += [
                     "panelWidth", {"unit":"pt","value":148}, "sideInset", {"unit":"pt","value":8}]
             put(cfg,self.start_config)
@@ -211,14 +228,14 @@ class Trial:
         if getattr(self,"idle_review",False):
             env["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"]=self.sid
         log=(OUT/("host-"+self.epoch+".log")).open("wb")
-        self.host=sp.Popen(OFF+[self.hostexe,"--native-acceptance-secondary",self.sid],env=env,cwd=ROOT,stdout=log,stderr=log)
+        self.host=sp.Popen(OFF+[self.hostexe,"--native-acceptance-single-ordinary" if self.single else "--native-acceptance-secondary",self.sid],env=env,cwd=ROOT,stdout=log,stderr=log)
         self.hostpid=self.host.pid
         self.settings=wait(lambda:json.loads((self.session/("management-panel-"+self.epoch+".json")).read_text()))
         check(se.process_path(self.hostpid)==self.hostexe,"wrong host")
         put(self.out/("host-session-"+self.epoch+".json"),dict(session=self.sid,epoch=self.epoch,exe=marker["executableSHA256"],pid=self.hostpid,window=self.settings))
 
     def ui(self):
-        proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,"read","--ordinary-secondary"],
+        proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,"read",self.control_scope],
                     capture_output=True,text=True,timeout=4)
         if proc.returncode and proc.stderr.strip() in ("panel not ordered", "no unique secondary panel"):
             return {}  # AppKit is still ordering the panel. Read-only polls expire after 8 seconds.
@@ -227,12 +244,18 @@ class Trial:
         return {e["id"]:e for e in r["nodes"]}
 
     def press(self, key):
-        wait(lambda:self.ui().get(key,{}).get("enabled"))
+        try:
+            wait(lambda:self.ui().get(key,{}).get("enabled"))
+        except TimeoutError:
+            controls = self.ui()
+            put(self.out/"unavailable-control.json", dict(requested=key, controls=controls))
+            verdict = controls.get("admission-verdict", {})
+            raise RuntimeError(f"Settings control {key} unavailable. {verdict.get('value', '')} {verdict.get('name', '')}")
         check(self.focus(self.observe()),"focus changed before "+key)
         # Retain the one-shot AXPress rule: this exact helper refusal is emitted
         # BEFORE AXPress, e.g. when a periodic safety sample temporarily disables a button.
         for _ in range(8):
-            proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,key,"--ordinary-secondary"],
+            proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,key,self.control_scope],
                         text=True,timeout=5,capture_output=True)
             if proc.returncode == 0: break
             if proc.stderr.strip() != "missing, disabled or ambiguous: "+key:
@@ -357,7 +380,7 @@ class Trial:
         pair={**original,n1:[rx,y,half,h],n2:[rx+half,y,half,h]}
         triple={n1:[rx+half,y,half,h/2],n2:[rx+half,y+h/2,half,h/2],n3:[rx,y,half,h]}
         custom={**original,n1:[rx,y,round(rw*.6),h],n2:[rx+round(rw*.6),y,rw-round(rw*.6),h]}
-        if mode == "boundary":
+        if mode in ("boundary", "physical-boundary"):
             self.boundary(original, n1)
             return
         if mode == "exclude-display":
@@ -429,7 +452,7 @@ class Trial:
         self.external_edit_and_crash(original,n1)
 
     def boundary(self, original, number):
-        # Keep one ungranted sibling and stay fully inside the fixture's physical display.
+        # Only the enrolled anchor moves. The ungranted sibling is an independent control.
         x, y, width, height = self.run_focus["usableQuartz"]
         full = [x + 160, y, width - 160, height]
         check(full[2] - 48 >= 240 and height - 40 >= 152, "secondary cannot fit the tested layout")
@@ -439,7 +462,11 @@ class Trial:
 
         breach = [full[0] - 24, y + 24, full[2] - 48, height - 40]
         safe = [full[0], *breach[1:]]
-        owner = self.command("cross-reservation")
+        if self.right_edge:
+            display_x, _, display_width, _ = self.run_focus["bounds"]
+            breach[0] = display_x + display_width + 12 - breach[2]
+            safe[0] = x + width - breach[2]
+        owner = self.command("cross-right-edge" if self.right_edge else "cross-reservation")
         edited = {w["number"]:w["frame"] for w in owner["windows"]}
         check(edited.keys() == original.keys() and same_rect(edited[number], breach)
               and all(edited[n] == original[n] for n in original if n != number), "unexpected fixture edit")
@@ -548,20 +575,33 @@ if __name__ == "__main__":
     p.add_argument("--candidate",type=Path,default=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app")
     mode=p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--probe",action="store_true")
-    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed","boundary","new-window-scope","pair-quit"])
+    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed","boundary","physical-boundary","new-window-scope","pair-quit"])
+    p.add_argument("--single-display", action="store_true", help="Require one actual display and nonactivating regular sample windows.")
     args=p.parse_args()
+    if args.mode == "physical-boundary" and not args.single_display:
+        p.error("right-edge experiment requires one physical display")
+    if args.single_display and not args.probe and args.mode not in ("new-window-scope", "membership", "pair-quit", "boundary", "physical-boundary"):
+        p.error("single display supports only ordinary membership and recovery")
+    if args.single_display:
+        os.environ["NEARPANE_SINGLE_ORDINARY_WITNESS"] = "1"
+    else:
+        os.environ.pop("NEARPANE_SINGLE_ORDINARY_WITNESS", None)
     if not args.probe:
         sp.run(["/usr/bin/codesign", "--verify", "--strict", "--deep", '-R=identifier "com.holdsnow.nearpane.alpha"',
                 args.candidate.resolve()], check=True)
     with (OUT/"run.txt").open("w") as fp: fp.write("probe" if args.probe else args.mode)
     print(OUT,flush=True)
-    if args.mode in ("boundary", "new-window-scope", "pair-quit"):
+    if args.mode in ("boundary", "physical-boundary", "new-window-scope", "pair-quit"):
         # Require a free Host slot before even launching the disposable fixture.
         check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode == 1, "existing Host in use")
-    t=Trial(args.candidate.resolve())
     try:
-        t.boundary_review = args.mode == "boundary"
-        count = 2 if args.mode in ("closure-probe","mixed","boundary","new-window-scope","pair-quit") else (1 if args.mode in ("fault","floating") else 3)
+        t=Trial(args.candidate.resolve(), single=args.single_display, right_edge=args.mode=="physical-boundary")
+    except Exception as error:
+        put(OUT/"startup-refusal.json", dict(error=str(error), hostStarted=False))
+        raise
+    try:
+        t.boundary_review = args.mode in ("boundary", "physical-boundary")
+        count = 2 if args.mode in ("closure-probe","mixed","boundary","physical-boundary","new-window-scope","pair-quit") else (1 if args.mode in ("fault","floating") else 3)
         original=t.baseline(count, density=args.mode=="density")
         if args.mode=="mixed":
             from mixed import run as run_mixed
@@ -591,7 +631,7 @@ if __name__ == "__main__":
         elif not args.probe: t.trial(original,args.mode)
     except Exception as error:
         put(OUT/"failure.json",dict(error=str(error),session=getattr(t,"sid",None)))
-        if args.mode=="density" and t.host is not None and t.host.poll() is None and t.fixture.poll() is None and t.focus(t.observe()):
+        if (args.mode=="density" or t.single) and t.host is not None and t.host.poll() is None and t.fixture.poll() is None and t.focus(t.observe()):
             try:
                 t.sample("refusal-readback")
                 put(OUT/"refused.json",t.ui())

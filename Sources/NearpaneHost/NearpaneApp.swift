@@ -97,6 +97,25 @@ struct NearpaneApp {
                         print("Domain receipt admitted.")
                         return
                     }
+                    if #available(macOS 15.2, *), CandidateProfile.selected, args.count == 5, args[1] == "--selected-window-readback",
+                       let pid = Int32(args[3]), let number = UInt32(args[4]) {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        _ = NSApplication.shared.setActivationPolicy(.prohibited)
+                        guard let owner = NativeManagementAcceptance.ownedStandardFixture(pid: pid, kind: .documents) else {
+                            throw CocoaError(.validationMissingMandatoryProperty)
+                        }
+                        Task { @MainActor in
+                            do {
+                                let receipt = try await SelectedPreviewReadback.run(owner: owner, number: number, support: session.support)
+                                try receipt.write(to: session.directory.appendingPathComponent("selected-preview.json"), options: .withoutOverwriting)
+                                exit(0)
+                            } catch {
+                                FileHandle.standardError.write(Data("Selected-window readback failed: \(error.localizedDescription)\n".utf8)); exit(3)
+                            }
+                        }
+                        RunLoop.main.run()
+                        return
+                    }
                     if args.count == 4, args[1] == "--native-browser-identity", let pid = Int32(args[3]) {
                         _ = try NativeAcceptanceSession(id: args[2], prepare: false)
                         let running = NSRunningApplication.runningApplications(withBundleIdentifier: "com.google.Chrome").filter { !$0.isTerminated }
@@ -113,6 +132,13 @@ struct NearpaneApp {
                             catch { FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8)); exit(3) }
                         }
                         RunLoop.main.run()
+                        return
+                    }
+                    if CandidateProfile.selected, args[1] == "--selected-window-readiness" {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        _ = NSApplication.shared.setActivationPolicy(.prohibited)
+                        let result = ["capture": CGPreflightScreenCaptureAccess(), "single": NSScreen.screens.count == 1]
+                        try JSONEncoder().encode(result).write(to: session.directory.appendingPathComponent("preview-readiness.json"), options: .withoutOverwriting)
                         return
                     }
                     if CandidateProfile.selected, args[1] == "--native-settings-readback" {
@@ -175,6 +201,14 @@ struct NearpaneApp {
                 delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
                 switch command {
                 case "--native-acceptance-session": break
+                case "--native-acceptance-single-ordinary":
+                    let env = ProcessInfo.processInfo.environment
+                    let screens = SystemScreens.geometry()
+                    guard CandidateProfile.selected, screens.count == 1, let id = screens.first?.id,
+                          UUID(uuidString: id) != nil,
+                          ["NEARPANE_ORDINARY_ACCEPTANCE", "NEARPANE_ADMISSION_ACCEPTANCE", "NEARPANE_MANAGEMENT_ACCEPTANCE"].allSatisfy({ env[$0] == args[1] }),
+                          let pid = env["NEARPANE_ORDINARY_PID"].flatMap(Int32.init), pid > 1 else { exit(2) }
+                    delegate.passiveDisplayID = id
                 case "--native-acceptance-secondary", "--native-acceptance-secondary-desktop", "--native-acceptance-secondary-fullscreen":
                     delegate.enrolledFullscreenTrial = command == "--native-acceptance-secondary-fullscreen"
                     delegate.requestsDesktopFixture = command == "--native-acceptance-secondary-desktop"

@@ -53,7 +53,7 @@ public indirect enum SlotPartition: Codable, Equatable, Sendable {
 
     fileprivate func project(
         _ rect: SurfaceRect, members: [ManagedMember], into frames: inout [ManagedWindowID: SurfaceRect],
-        depth: Int = 0
+        wholePoints: Bool, depth: Int = 0
     ) throws {
         guard rect.geometry.isValid, depth < members.count else { throw WorkspaceFailure.invalidLayout }
         switch self {
@@ -73,15 +73,17 @@ public indirect enum SlotPartition: Codable, Equatable, Sendable {
             var b = rect
             if axis == .columns {
                 a.width = rect.width * ratio
+                if wholePoints { a.width.round() }
                 b.x += a.width
                 b.width -= a.width
             } else {
                 a.height = rect.height * ratio
+                if wholePoints { a.height.round() }
                 b.y += a.height
                 b.height -= a.height
             }
-            try first.project(a, members: members, into: &frames, depth: depth + 1)
-            try second.project(b, members: members, into: &frames, depth: depth + 1)
+            try first.project(a, members: members, into: &frames, wholePoints: wholePoints, depth: depth + 1)
+            try second.project(b, members: members, into: &frames, wholePoints: wholePoints, depth: depth + 1)
         }
     }
 }
@@ -130,12 +132,15 @@ public struct ManagedWindowTiler: Codable, Equatable, Sendable {
         return tree
     }
 
-    public func frames(in area: SurfaceRect) throws -> [ManagedWindowID: SurfaceRect] {
+    /// System windows can snap their bounds to whole logical points, including on Retina.
+    /// Split each shared edge once and validate each resulting window against its minimum.
+    public func frames(in area: SurfaceRect, wholePoints: Bool = false) throws -> [ManagedWindowID: SurfaceRect] {
+        let area = wholePoints ? area.integralInterior : area
         guard area.geometry.isValid, (partition == nil) == members.isEmpty,
             Set(members.map(\.id)).count == members.count
         else { throw WorkspaceFailure.invalidLayout }
         var frames = [ManagedWindowID: SurfaceRect]()
-        try partition?.project(area, members: members, into: &frames)
+        try partition?.project(area, members: members, into: &frames, wholePoints: wholePoints)
         guard frames.count == members.count else { throw WorkspaceFailure.invalidLayout }
         return frames
     }

@@ -49,6 +49,20 @@ private actor Attempts {
 }
 
 @MainActor struct NativeDesktopProviderTests {
+    @Test func packagedReaderAcceptsSystemPathAliasButRejectsLinkInsideBundle() throws {
+        let root = URL(fileURLWithPath: "/private/tmp").appendingPathComponent(UUID().uuidString)
+        let bundle = root.appendingPathComponent("Trial.app")
+        let helper = bundle.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
+        let fm = FileManager.default
+        try fm.createDirectory(at: helper.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        try Data().write(to: helper)
+        #expect(NativeDesktopProvider.readerURL(in: bundle)?.path == helper.resolvingSymlinksInPath().path)
+        let outside = root.appendingPathComponent("outside")
+        try fm.moveItem(at: helper, to: outside)
+        try fm.createSymbolicLink(at: helper, withDestinationURL: outside)
+        #expect(NativeDesktopProvider.readerURL(in: bundle) == nil)
+    }
     @Test func accessibleWindowPositionUsesTheClippedDrawingWithinItsDisplay() {
         let desktop = SurfaceRect(x: 18, y: 56, width: 80, height: 120)
         let visible = SurfaceRect(x: 58, y: 86, width: 40, height: 90)
@@ -240,16 +254,22 @@ private actor Attempts {
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
         let request = DesktopReadRequest(session: UUID(), revision: 1, parentPID: getpid(),
                                          fixtureWindows: [], anchors: [], experimentalSpaces: false)
-        let launched = OSAllocatedUnfairLock<pid_t?>(initialState: nil)
-        let task = Task { try await DesktopReaderProcess.read(executable: executable, request: request) { pid in
-            launched.withLock { $0 = pid }
-        } }
+        let (spawned, producer) = AsyncStream<pid_t>.makeStream()
+        let task = Task {
+            defer { producer.finish() }
+            return try await DesktopReaderProcess.read(executable: executable, request: request) { pid in
+                producer.yield(pid)
+            }
+        }
         defer { task.cancel() }
+        var iterator = spawned.makeAsyncIterator()
+        let pid = try #require(await iterator.next())
+        // The EOF deadline measures the launched child, even if the suite is
+        // competing for the executor with other SwiftPM jobs.
         for _ in 0..<100 where !fm.fileExists(atPath: ready.path) { try await Task.sleep(for: .milliseconds(10)) }
         try #require(fm.fileExists(atPath: ready.path))
         task.cancel()
         await #expect(throws: CancellationError.self) { try await task.value }
-        let pid = try #require(launched.withLock { $0 })
         var status: Int32 = 0
         #expect(waitpid(pid, &status, WNOHANG) == -1 && errno == ECHILD)
     }

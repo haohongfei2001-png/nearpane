@@ -4,7 +4,8 @@ import ApplicationServices
 import Darwin
 func stop(_ s:String)->Never {FileHandle.standardError.write(Data((s+"\n").utf8));exit(2)}
 let a=Array(CommandLine.arguments.dropFirst())
-let ordinary = a.count == 5 && a[4] == "--ordinary-secondary"
+let single = a.count == 5 && a[4] == "--ordinary-single"
+let ordinary = single || (a.count == 5 && a[4] == "--ordinary-secondary")
 let sizing = a.count == 5 && a[4] == "--sizes-secondary"
 let services = a.count == 5 && a[4] == "--services-secondary"
 guard (a.count == 4 || ordinary || sizing || services), let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
@@ -20,10 +21,10 @@ guard let own=windows?.first else {stop("panel not ordered")}
 guard own[kCGWindowOwnerPID as String] as? Int32==pid, own[kCGWindowNumber as String] as? UInt32==wid else {stop("panel identity changed")}
 guard own[kCGWindowIsOnscreen as String] as? Bool==true else {stop("panel not ordered")}
 guard let raw=own[kCGWindowBounds as String] as? [String:Double], let rect=CGRect(dictionaryRepresentation:raw as CFDictionary),
- rect.intersection(CGDisplayBounds(CGMainDisplayID())).isEmpty, NSScreen.screens.dropFirst().contains(where:{ screen in
+ (single ? NSScreen.screens.count == 1 && CGDisplayBounds(CGMainDisplayID()).contains(rect) : rect.intersection(CGDisplayBounds(CGMainDisplayID())).isEmpty && NSScreen.screens.dropFirst().contains(where:{ screen in
     guard let n=screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber else {return false}
     return CGDisplayBounds(n.uint32Value).contains(rect)
- }) else {stop("secondary bounds")}
+ })) else {stop("display bounds")}
 func ax(_ e:AXUIElement,_ k:String)->CFTypeRef? { var v:CFTypeRef?; return AXUIElementCopyAttributeValue(e,k as CFString,&v) == .success ? v:nil }
 func box(_ e:AXUIElement)->CGRect? {
  guard let pv=ax(e,"AXPosition"),let sv=ax(e,"AXSize"),CFGetTypeID(pv)==AXValueGetTypeID(),CFGetTypeID(sv)==AXValueGetTypeID() else {return nil}

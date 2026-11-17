@@ -1,5 +1,14 @@
 import Foundation
 
+public extension SurfaceRect {
+    /// Largest whole-point rectangle inside the exact reservation. Rounding outward
+    /// would let an ordinary AppKit window cover a fraction of the sidebar or Dock.
+    var integralInterior: Self {
+        let left = ceil(x), top = ceil(y)
+        return .init(x: left, y: top, width: floor(x + width) - left, height: floor(y + height) - top)
+    }
+}
+
 /// Global Quartz logical points, after display rotation and conversion of the usable inset.
 public struct DesktopWorkArea: Equatable, Sendable {
     public enum ReservationError: LocalizedError, Equatable {

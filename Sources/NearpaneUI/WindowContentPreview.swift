@@ -71,15 +71,47 @@ struct PreviewWindowBinding: Equatable {
     }
 }
 
+/// Every consumer, including a draw of the same desk revision, must still have access.
+@MainActor @Observable final class WindowPreviewStill {
+    private let pixels: CGImage
+    private let allowed: @MainActor () -> Bool
+    private let expires = ContinuousClock.now.advanced(by: .seconds(60))
+    private(set) var revision: UInt64
+
+    init?(pixels: CGImage, revision: UInt64, allowed: @escaping @MainActor () -> Bool) {
+        guard allowed() else { return nil }
+        self.pixels = pixels; self.revision = revision; self.allowed = allowed
+    }
+
+    var accessible: Bool { ContinuousClock.now < expires && allowed() }
+    func image(at revision: UInt64) -> CGImage? {
+        self.revision == revision && accessible ? pixels : nil
+    }
+    /// Call synchronously after the final asynchronous identity read.
+    func acceptVerifiedRevision(_ revision: UInt64) -> Bool {
+        guard accessible else { return false }
+        self.revision = revision
+        return true
+    }
+}
+
 @MainActor @Observable final class WindowContentPreview {
     private(set) var choosing = false
     private(set) var notice = ""
     private(set) var binding: PreviewWindowBinding?
-    private(set) var image: CGImage?
-    private(set) var revision: UInt64?
+    private var still: WindowPreviewStill?
+    var hasStill: Bool { still != nil }
+    var revision: UInt64? { still?.revision }
+
+    func image(in snapshot: DesktopSnapshot) -> CGImage? {
+        guard let still, let binding, host?.bus.desktop?.sessionID == snapshot.sessionID,
+              binding.window(in: snapshot) != nil else { return nil }
+        return still.image(at: snapshot.revision)
+    }
     var active: Bool { operation != nil }
     private var observer: WindowPickerObserver?
     private weak var host: HostSession?
+    private var requiresScreenRecording = false
     private var witness: PreviewIdentityWitness?
     private var expiry: Task<Void, Never>?
     private(set) var operation: UUID?
@@ -107,7 +139,8 @@ struct PreviewWindowBinding: Equatable {
     private func permits(_ target: PreviewWindowBinding, host: HostSession) -> Bool {
         guard visibleDisplays.contains(target.display), host.isRunning, !host.configuration.surfaceHidden,
               host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
-              Self.sessionAvailable(), target.window(in: host.bus.desktop) != nil else { return false }
+              Self.sessionAvailable(), !requiresScreenRecording || CGPreflightScreenCaptureAccess(),
+              target.window(in: host.bus.desktop) != nil else { return false }
         return true
     }
 
@@ -138,6 +171,53 @@ struct PreviewWindowBinding: Equatable {
         }
     }
 
+    /// A separate, explicit opt-in for the exact AX object selected in Settings. The
+    /// ordinary-window selection never grants screen recording permission or window writes.
+    @available(macOS 15.2, *)
+    func captureSelected(_ id: ManagedWindowID, bundle: String, host: HostSession,
+                         stillSelected: @escaping @MainActor () async -> Bool) async {
+        guard let op = beginSelection() else { return }
+        self.host = host
+        requiresScreenRecording = true
+        guard CGPreflightScreenCaptureAccess() else {
+            clear("拍摄已选窗口需要已有的屏幕录制权限。也可在「桌面预览」使用系统选择器。"); return
+        }
+        guard let snapshot = host.bus.desktop,
+              let target = Self.selectedBinding(id, in: snapshot), permits(target, host: host),
+              await stillSelected() else {
+            if operation == op { clear("无法确认原窗口。请重新选择。") }; return
+        }
+        guard operation == op else { return }
+        notice = "正在读取所选窗口…"
+        do {
+            // ScreenCaptureKit exposes its public ID index as SCWindow objects. Inspect
+            // only their numbers until the unique selected record has been found.
+            let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+            guard operation == op else { return }
+            let matches = content.windows.filter { $0.windowID == id.number }
+            guard matches.count == 1, let chosen = matches.first, chosen.isOnScreen, chosen.windowLayer == 0,
+                  chosen.owningApplication?.processID == id.pid, chosen.owningApplication?.bundleIdentifier == bundle,
+                  CGPreflightScreenCaptureAccess(), permits(target, host: host) else {
+                clear("系统没有提供原窗口的可见图像。"); return
+            }
+            let filter = SCContentFilter(desktopIndependentWindow: chosen)
+            await capture(filter, operation: op, expected: target, consent: {
+                guard CGPreflightScreenCaptureAccess() else { return false }
+                return await stillSelected()
+            })
+        } catch {
+            if operation == op { clear("系统未提供该窗口的图像，仍显示窗口轮廓。") }
+        }
+    }
+
+    static func selectedBinding(_ id: ManagedWindowID, in snapshot: DesktopSnapshot,
+                                now: Date = Date(), uptime: Double = ProcessInfo.processInfo.systemUptime) -> PreviewWindowBinding? {
+        let matches = snapshot.windows.filter { $0.metadata?.number == id.number }
+        guard matches.count == 1, let window = matches.first, let target = PreviewWindowBinding(snapshot, window: window),
+              target.pid == id.pid, target.birth == id.launch, target.window(in: snapshot, now: now, uptime: uptime) != nil else { return nil }
+        return target
+    }
+
     private func endPicking() {
         if let observer {
             SCContentSharingPicker.shared.remove(observer)
@@ -151,7 +231,8 @@ struct PreviewWindowBinding: Equatable {
         operation = nil
         expiry?.cancel(); expiry = nil
         endPicking()
-        witness = nil; image = nil; binding = nil; revision = nil; notice = message
+        requiresScreenRecording = false
+        witness = nil; still = nil; binding = nil; notice = message
     }
 
     private nonisolated static func sessionAvailable() -> Bool {
@@ -161,18 +242,22 @@ struct PreviewWindowBinding: Equatable {
     }
 
     @available(macOS 15.2, *)
-    private func capture(_ filter: SCContentFilter, operation op: UUID) async {
+    private func capture(_ filter: SCContentFilter, operation op: UUID,
+                         expected: PreviewWindowBinding? = nil,
+                         consent: @MainActor () async -> Bool = { true }) async {
         guard operation == op else { return }
         guard filter.style == .window, filter.includedWindows.count == 1, let chosen = filter.includedWindows.first,
               let application = chosen.owningApplication, !application.bundleIdentifier.isEmpty, application.processID != getpid(), chosen.windowLayer == 0, chosen.isOnScreen,
               let host, !host.configuration.surfaceHidden, let snapshot = host.bus.desktop,
               let window = snapshot.windows.first(where: { $0.metadata?.number == chosen.windowID && $0.metadata?.pid == application.processID }),
-              let target = PreviewWindowBinding(snapshot, window: window), permits(target, host: host),
+              let target = PreviewWindowBinding(snapshot, window: window), expected == nil || target == expected, permits(target, host: host),
               let proof = await PreviewIdentityWitness(target: target, bundle: application.bundleIdentifier) else {
             if operation == op { clear("暂时无法同时确认所选窗口的位置与身份。") }; return
         }
         guard operation == op else { return }
-        guard permits(target, host: host) else { clear("窗口已变化，请重新选择。"); return }
+        let granted = await consent()
+        guard operation == op else { return }
+        guard granted, permits(target, host: host) else { clear("窗口已变化，请重新选择。"); return }
         let config = SCStreamConfiguration()
         let size = target.bounds
         let scale = min(1, 384 / max(size.width, size.height))
@@ -185,16 +270,26 @@ struct PreviewWindowBinding: Equatable {
             guard operation == op else { return }
             let stillSameWindow = await proof.verify()
             guard operation == op else { return }
-            guard let current = host.bus.desktop, permits(target, host: host),
-                  stillSameWindow else {
+            let granted = stillSameWindow ? await consent() : false
+            guard operation == op else { return }
+            guard granted, let current = host.bus.desktop,
+                  let held = WindowPreviewStill(pixels: shot, revision: current.revision, allowed: { [weak self, weak host] in
+                      guard let self, let host, self.operation == op else { return false }
+                      return self.permits(target, host: host)
+                  }) else {
                 clear("窗口或桌面已变化，已清除预览。"); return
             }
             endPicking()
-            binding = target; image = shot; witness = proof; revision = current.revision
+            binding = target; still = held; witness = proof
             notice = "已拍摄所选窗口。快照在一分钟后清除。"
-            expiry = Task { [weak self] in
-                do { try await Task.sleep(for: .seconds(60)) } catch { return }
-                if self?.operation == op { self?.clear() }
+            // The system does not notify every client of an already granted TCC
+            // revocation. Only a live still needs this bounded in-memory cleanup.
+            expiry = Task { [weak self, weak held] in
+                while !Task.isCancelled {
+                    do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                    guard let self, self.operation == op, let held else { return }
+                    if !held.accessible { self.clear("快照已到期或窗口无法继续验证，已清除预览。"); return }
+                }
             }
         } catch {
             if operation == op { clear("系统未提供该窗口的图像，仍显示窗口轮廓。") }
@@ -202,17 +297,16 @@ struct PreviewWindowBinding: Equatable {
     }
 
     func validate(_ snapshot: DesktopSnapshot?) async {
-        guard let binding, let op = operation, let witness else { return }
+        guard let binding, let op = operation, let witness, let still else { return }
         guard let snapshot, let host, permits(binding, host: host), binding.window(in: snapshot) != nil else {
             clear("窗口状态已变化，已清除预览。"); return
         }
         guard snapshot.revision != revision else { return }
         let stillSameWindow = await witness.verify()
         guard !Task.isCancelled, operation == op, host.bus.desktop?.revision == snapshot.revision else { return }
-        guard binding.window(in: snapshot) != nil, stillSameWindow else {
+        guard binding.window(in: snapshot) != nil, stillSameWindow, still.acceptVerifiedRevision(snapshot.revision) else {
             clear("窗口状态已变化，已清除预览。"); return
         }
-        revision = snapshot.revision
     }
 }
 

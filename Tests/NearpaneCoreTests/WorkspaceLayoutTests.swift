@@ -11,6 +11,27 @@ struct WorkspaceLayoutTests {
             canResize: true)
     }
 
+    @Test func systemFramesPartitionOnlyTheIntegralInteriorAndRecheckMinimums() throws {
+        let work = SurfaceRect(x: -700.25, y: 33.25, width: 700.25, height: 923.75)
+        let usable = SurfaceRect(x: -700, y: 34, width: 700, height: 923)
+        #expect(work.integralInterior == usable)
+        var layout = ManagedWindowTiler(workspace: nil)
+        for index in 1...17 {
+            layout = try layout.adding(member(index), in: work)
+            let frames = Array(try layout.frames(in: work, wholePoints: true).values)
+            #expect(frames.allSatisfy { $0 == $0.integralInterior && work.geometry.intersection($0.geometry) == $0.geometry })
+            #expect(frames.reduce(0) { $0 + $1.geometry.area } == usable.geometry.area)
+            for (index, frame) in frames.enumerated() {
+                #expect(frames.dropFirst(index + 1).allSatisfy { frame.geometry.intersection($0.geometry) == nil })
+            }
+        }
+        let odd = SurfaceRect(width: 401, height: 220)
+        let second = ManagedMember(member(2).id, minimumWidth: 200.25, minimumHeight: 20, canResize: true)
+        let constrained = try ManagedWindowTiler(workspace: nil).adding(member(1), in: odd).adding(second, in: odd)
+        #expect(try constrained.frames(in: odd)[second.id]?.width == 200.5)
+        #expect(throws: WorkspaceFailure.minimumSize) { try constrained.frames(in: odd, wholePoints: true) }
+    }
+
     @Test func everyAdmissionCoversWorkRectIncludingNinthThroughSeventeenth() throws {
         var layout = ManagedWindowTiler(workspace: .virtual(UUID()))
         #expect(try layout.frames(in: area).isEmpty)
@@ -149,5 +170,34 @@ struct WorkspaceLayoutTests {
         coord.dismiss("C")
         #expect(plans(["C": pinned], .init(spaces: 1, windows: 1, complete: true)) == [.hidden, .compact, .spacesOnly])
         #expect(plans(["C": pinned], .init(blocked: true)) == [.hidden, .hidden, .hidden])
+    }
+
+    @Test func requestedSingleDesktopHonorsDismissalFullscreenAndChangesOfResidentDisplay() {
+        let screens = ["A", "B"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
+        let single = DisplayDemand(spaces: 1, windows: 1, complete: true)
+        let multiple = DisplayDemand(spaces: 1, windows: 2, complete: true)
+        var coordinator = MultiDisplayPresentationCoordinator()
+        func plans(primary: String = "A", first: DisplayDemand? = nil, enabled: Bool = true, hidden: Bool = false) -> [PanelContent] {
+            coordinator.resolve(screens: screens, preferred: primary, settings: [:], demand: ["A": first ?? single, "B": single],
+                hidden: hidden, voice: true, tray: true, spacesEnabled: enabled, uptime: 10).map(\.content)
+        }
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans() == [.full, .hidden])
+        coordinator.dismiss("A")
+        #expect(plans(first: multiple) == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(first: .init(blocked: true)) == [.hidden, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(enabled: false) == [.compact, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(hidden: true) == [.hidden, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        coordinator.request("B")
+        #expect(plans(primary: "B", first: multiple) == [.hidden, .compact])
+        #expect(plans() == [.compact, .hidden])
     }
 }

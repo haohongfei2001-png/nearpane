@@ -82,11 +82,17 @@ public enum WindowMatcher {
             guard let value, !value.isEmpty else { return nil }
             return value // Do not normalize potentially distinguishing titles.
         }
-        let edges = cg.map { window in
-            ax.indices.filter { index in
+        let numbered = cg.map { window in
+            ax.indices.filter { ax[$0].process == window.process && ax[$0].standardWindowNumber == window.windowID }
+        }
+        let edges = cg.indices.map { i in
+            let window = cg[i]
+            let candidates = numbered[i].isEmpty ? Array(ax.indices) : numbered[i]
+            return candidates.filter { index in
                 let candidate = ax[index]
                 guard window.windowID != 0, window.frame.isValid, window.process.hasLifecycleEvidence,
                       candidate.process == window.process, candidate.role == "AXWindow",
+                      candidate.standardWindowNumber == nil || candidate.standardWindowNumber == window.windowID,
                       let frame = candidate.frame, frame.isValid,
                       window.frame.componentError(from: frame) <= tolerance else { return false }
                 if let a = nonempty(window.title), let b = nonempty(candidate.title) { return a == b }
@@ -100,13 +106,17 @@ public enum WindowMatcher {
                 ax.filter { $0.elementToken == ax[a].elementToken }.count > 1
             }
             let sharedAX = candidates.contains { a in edges.filter { $0.contains(a) }.count > 1 }
-            if duplicateCG || duplicateAX || sharedAX || candidates.count > 1 {
+            if duplicateCG || duplicateAX || sharedAX || candidates.count > 1 || numbered[index].count > 1 {
                 return WindowMatch(cgIndex: index, axCandidateIndices: candidates,
                                    confidence: .ambiguous, reason: "nonUniqueCorrespondence")
             }
             guard let candidate = candidates.first else {
                 return WindowMatch(cgIndex: index, axCandidateIndices: [], confidence: .unknown,
                                    reason: cg[index].process.hasLifecycleEvidence ? "noCandidate" : "missingLifecycle")
+            }
+            if ax[candidate].standardWindowNumber == cg[index].windowID {
+                return WindowMatch(cgIndex: index, axCandidateIndices: candidates,
+                                   confidence: .corroboratedMetadata, reason: "uniquePIDLaunchWindowNumberFrameRole")
             }
             let corroborated = nonempty(cg[index].title) != nil
                 && nonempty(cg[index].title) == nonempty(ax[candidate].title)

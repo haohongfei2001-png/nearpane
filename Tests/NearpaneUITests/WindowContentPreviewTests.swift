@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import NearpaneCore
 @testable import NearpaneUI
@@ -24,6 +25,22 @@ import Testing
                 spaces: .disabled, rows: [], windowLimitReached: false, beganUptime: 2, endedUptime: 3))
     }
 
+    @Test func revocationHidesSameRevisionAndRefusesPublicationAfterAnAsyncIdentityCheck() async throws {
+        let bitmap = try #require(CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8,
+            bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let pixel = try #require(bitmap.makeImage())
+        var granted = true
+        let candidate = WindowPreviewStill(pixels: pixel, revision: 6, allowed: { granted })
+        let held = try #require(candidate)
+        #expect(held.image(at: 6) != nil && held.image(at: 7) == nil)
+        let proof = Task { @MainActor in granted = false; return true }
+        #expect(await proof.value)
+        #expect(!held.acceptVerifiedRevision(7) && held.revision == 6)
+        #expect(held.image(at: 6) == nil && !held.accessible)
+        let revoked = WindowPreviewStill(pixels: pixel, revision: 7, allowed: { granted })
+        #expect(revoked == nil)
+    }
+
     @Test func pixelBindingRequiresSameSessionProcessWindowGeometryAndFreshReadback() throws {
         let session = UUID(), good = sample(session: session)
         let bound = try #require(PreviewWindowBinding(good, window: good.windows[0]))
@@ -34,6 +51,19 @@ import Testing
             #expect(bound.window(in: other, now: now, uptime: 3) == nil)
         }
         #expect(bound.window(in: good, now: now.addingTimeInterval(15), uptime: 18) == nil)
+    }
+
+    @Test func selectedStillRejectsSiblingRecreatedAndUnconfirmedGeometryBeforeReadingPixels() {
+        let session = UUID(), good = sample(session: session)
+        let id = ManagedWindowID(pid: 12, launch: 200, number: 21, element: UUID())
+        #expect(WindowContentPreview.selectedBinding(id, in: good, now: now, uptime: 3) != nil)
+        let thumbnail = SurfaceRect(x: 2, y: 150, width: 49, height: 76)
+        for other in [sample(session: session, number: 22, axNumber: 22), sample(session: session, birth: 201),
+                      sample(session: session, axNumber: 22), sample(session: session, cgOverride: thumbnail),
+                      sample(session: session, access: .denied)] {
+            #expect(WindowContentPreview.selectedBinding(id, in: other, now: now, uptime: 3) == nil)
+        }
+        #expect(WindowContentPreview.selectedBinding(id, in: good, now: now.addingTimeInterval(20), uptime: 23) == nil)
     }
 
     @Test func movingToAnotherDesktopRevokesAStillEvenWhenTheFrameIsIdentical() throws {
@@ -60,7 +90,7 @@ import Testing
         preview.setVisible(false, on: "unrelated")
         #expect(preview.operation == replacement)
         preview.clear()
-        #expect(!preview.active && preview.image == nil)
+        #expect(!preview.active && !preview.hasStill)
     }
 
     @Test func previewHelperGrantsOnlyObservationAndRequiresTwoMatchingReads() throws {
@@ -92,7 +122,7 @@ import Testing
             #expect(PreviewWindowBinding(snapshot, window: snapshot.windows[0]) == nil)
         }
         let preview = WindowContentPreview()
-        #expect(!preview.active && preview.image == nil)
+        #expect(!preview.active && !preview.hasStill)
         preview.clear()
         #expect(preview.binding == nil && preview.revision == nil)
     }

@@ -13,6 +13,50 @@ int NPReadWindowNumberPresence(uint32_t window) {
     return count == 0 ? 0 : (count == 1 ? 1 : -1);
 }
 
+CFArrayRef NPReadVisibleWindowDescriptions(const uint32_t *windows, int count) {
+    if (!windows || count <= 0 || count > 48) return NULL;
+    CFArrayRef ordered = CGWindowListCreate(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
+                                            kCGNullWindowID);
+    if (!ordered) return NULL;
+    // CG's window-number arrays contain raw integers cast to pointers, not CFNumber objects.
+    CFMutableArrayRef selected = CFArrayCreateMutable(NULL, count, NULL);
+    if (selected) {
+        for (CFIndex i = 0; i < CFArrayGetCount(ordered); i++) {
+            const void *value = CFArrayGetValueAtIndex(ordered, i);
+            for (int j = 0; j < count; j++) {
+                if ((uintptr_t)value == windows[j]) {
+                    CFArrayAppendValue(selected, value);
+                    break;
+                }
+            }
+        }
+    }
+    CFRelease(ordered);
+    if (!selected) return NULL;
+    CFArrayRef descriptions = CFArrayGetCount(selected) ? CGWindowListCreateDescriptionFromArray(selected)
+                                                        : CFArrayCreate(NULL, NULL, 0, &kCFTypeArrayCallBacks);
+    // The description API can omit a window closed during the call. Join by number
+    // and retain the ordering from the independent on-screen number list.
+    CFMutableArrayRef result = descriptions ? CFArrayCreateMutable(NULL, count, &kCFTypeArrayCallBacks) : NULL;
+    if (result) {
+        for (CFIndex i = 0; i < CFArrayGetCount(selected); i++) {
+            int64_t expected = (uintptr_t)CFArrayGetValueAtIndex(selected, i);
+            for (CFIndex j = 0; j < CFArrayGetCount(descriptions); j++) {
+                CFDictionaryRef row = CFArrayGetValueAtIndex(descriptions, j);
+                CFNumberRef number = CFDictionaryGetValue(row, kCGWindowNumber);
+                int64_t id = 0;
+                if (number && CFNumberGetValue(number, kCFNumberSInt64Type, &id) && id == expected) {
+                    CFArrayAppendValue(result, row);
+                    break;
+                }
+            }
+        }
+    }
+    if (descriptions) CFRelease(descriptions);
+    CFRelease(selected);
+    return result;
+}
+
 // P1-A 0a704fd7: signed 32-bit connection, CGWindowID in an explicit CFArray, selector 7 only.
 _Static_assert(sizeof(int) == 4 && sizeof(uint32_t) == 4, "unreviewed ABI");
 typedef int (*MainConnection)(void);

@@ -177,7 +177,7 @@ public enum WindowAdmissionPreview {
         if context.hypothetical { result.reject(.hypothetical) }
         do {
             result.workRect = try DesktopWorkArea(display: context.display, screen: context.screen, usable: context.usable,
-                primary: context.primary, settings: context.settings, fallbackEdge: context.edge).ordinary
+                primary: context.primary, settings: context.settings, fallbackEdge: context.edge).ordinary.integralInterior
         } catch { result.reject(.layout) }
 
         var members: [ManagedMember] = []
@@ -229,7 +229,7 @@ public enum WindowAdmissionPreview {
 
         do {
             let layout = try layout(members, in: work, context: context)
-            result.proposed = try layout.frames(in: work)
+            result.proposed = try layout.frames(in: work, wholePoints: true)
             if context.preferences.newWindow == .newWorkspace {
                 result.notes.append("新窗默认独立工作区。当前无法创建系统空间，此处预演同屏分割。")
             }
@@ -249,7 +249,7 @@ public enum WindowAdmissionPreview {
                     restoration[member.id] = original
                 }
                 if layout.userAdjusted {
-                    result.exitFrames = try layout.frames(in: context.usable)
+                    result.exitFrames = try layout.frames(in: context.usable, wholePoints: true)
                     result.notes.append("明确退出时，预计将所选比例与槽位映射到完整工作区域。")
                 } else {
                     result.exitFrames = restoration

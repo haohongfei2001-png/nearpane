@@ -5,6 +5,71 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct WorkspacePanelTests {
+    @Test func residentCanRequestTheOnlyDesktopWithBothInputModulesOff() async throws {
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        let controller = EdgeWindowController(host: host)
+        let panels = DisplayPanels(host: host, primary: controller, present: { _ in })
+        defer { panels.stop(); controller.close(); host.stop() }
+        for module in [BuiltinCatalog.voice, BuiltinCatalog.screenshots] {
+            #expect(host.handle(.setEnabled(module, false)) == .accepted)
+        }
+        let frame = SurfaceRect(width: 1440, height: 900)
+        let screen = ScreenGeometry(id: "one", frame: frame, visibleFrame: frame)
+        let row = ObservedSpaceRow(displayID: screen.id, scopeID: "screen", recordID: "A",
+            anchor: .init(number: 17, displayID: screen.id, globalFrame: .init(width: 180, height: 90)))
+        let now = Date(), uptime = ProcessInfo.processInfo.systemUptime
+        let snapshot = DesktopSnapshot.observed(
+            .init(session: UUID(), revision: 1, parentPID: 1, fixtureWindows: nil, anchors: [row.anchor], experimentalSpaces: true),
+            from: now, to: now, build: "fixture", topology: "single", consistent: true, separateSpaces: false,
+            displays: [.init(id: screen.id, frame: frame, rotationDegrees: 0, backingScale: 1, usable: frame)],
+            scopes: [.init(id: row.scopeID, displayID: screen.id, records: [.init(id: row.recordID, isCurrent: true)])],
+            windows: [], evidence: .init(population: .workWindows, accessibility: .available, spaces: .observed,
+                rows: [row], windowLimitReached: false, beganUptime: uptime, endedUptime: uptime))
+        host.bus.resetDesktopSession()
+        #expect(host.bus.acceptDesktop(snapshot))
+        func workArea() throws -> DesktopWorkArea {
+            try .init(display: screen.id, screen: frame, usable: frame, primary: true,
+                      settings: host.configuration.displays[screen.id] ?? .init(), fallbackEdge: host.configuration.edge)
+        }
+        let original = try workArea()
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .hidden && !controller.hasPlacement)
+        panels.request(screen.id)
+        panels.update(screens: [screen])
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .spacesOnly && controller.hasPlacement)
+        #expect(try workArea() == original)
+        panels.dismiss(screen.id)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .hidden && !controller.hasPlacement)
+        #expect(host.configuration.displays[screen.id]?.spacesDismissed == true)
+        panels.request(screen.id)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .spacesOnly && controller.hasPlacement)
+        #expect(try workArea() == original)
+
+        var icon = host.configuration.displays[screen.id] ?? .init()
+        icon.measures[.panelWidth] = .init(PanelSizeMetrics.minimumSide)
+        icon.measures[.panelHeight] = .init(PanelSizeMetrics.minimumSide)
+        host.setDisplaySettings(icon, id: screen.id)
+        panels.update(screens: [screen])
+        let folded = try #require(controller.requestedFrame)
+        let iconArea = try workArea()
+        #expect(!controller.temporarilyExpanded && folded.width == PanelSizeMetrics.minimumSide)
+        panels.request(screen.id)
+        panels.update(screens: [screen])
+        #expect(controller.temporarilyExpanded && (controller.requestedFrame?.width ?? 0) > folded.width)
+        panels.request(screen.id)
+        panels.update(screens: [screen])
+        #expect(controller.temporarilyExpanded)
+        controller.toggleTemporaryExpansion()
+        panels.update(screens: [screen])
+        #expect(!controller.temporarilyExpanded && controller.requestedFrame == folded)
+        #expect(host.configuration.displays[screen.id] == icon)
+        #expect(try workArea() == iconArea)
+    }
+
     @Test func unidentifiedMenuDisplayCannotPromoteAPortraitScreenIntoTheQuartzOrigin() {
         let f = SurfaceRect(width: 1600, height: 900)
         let g = SurfaceRect(x: -800, y: -320, width: 800, height: 1280)

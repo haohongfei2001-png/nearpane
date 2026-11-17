@@ -31,6 +31,30 @@ import Testing
         func safeguards(_ app: AdmissionApplication) -> AdmissionSafeguards { .init(exclusive:nil,recoveryClear:nil) }
     }
 
+    @Test func screenshotConsentRevokesOnSameNumberReplacementAndWhileRefreshingAWithdrawnSelection() async throws {
+        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        selection.open()
+        await selection.select(reader.app)
+        let original = reader.row
+        reader.retained = ManagedWindowID(pid: reader.app.pid, launch: reader.app.launch,
+            number: try #require(original.number), element: original.id)
+        selection.toggle(original)
+        let id = try #require(selection.ruleID)
+        let consent = selection.previewConsent(for: id, owner: reader.app)
+        reader.refresh = { [original] in [original] }
+        #expect(await consent())
+        let sibling = AdmissionWindowChoice(id: UUID(), number: original.number, index: 1)
+        reader.refresh = { [sibling] in [sibling] }
+        #expect(await !consent())
+        reader.refresh = { [original, sibling] in [original, sibling] }
+        #expect(await !consent())
+        reader.refresh = { [weak selection] in
+            selection?.close()
+            return [original]
+        }
+        #expect(await !consent())
+    }
+
     @Test func applicationPickerUsesPackageIdentityInsteadOfItsFilename() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)

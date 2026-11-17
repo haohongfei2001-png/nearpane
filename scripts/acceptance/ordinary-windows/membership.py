@@ -1,6 +1,6 @@
 """Live membership checks in the scoped regular sample app, using shipped Settings."""
 import json
-import re
+import math
 import subprocess
 import time
 
@@ -31,13 +31,14 @@ def run(trial, original, *, check, wait, put, out):
     trial.press("admission-open")
     trial.press("admission-ordinary-app")
     first, second, third = original
-    x, y, width, height = trial.run_focus["bounds"]
+    x, y, width, height = trial.run_focus["usableQuartz"]
     left, work = x + 160, width - 160
-    half, split = work / 2, round(work * 0.6)
-    pair = {first: [left, y, half, height], second: [left + half, y, half, height]}
+    half, split = math.floor(work / 2 + .5), math.floor(work * .6 + .5)
+    top = math.floor(height / 2 + .5)
+    pair = {first: [left, y, half, height], second: [left + half, y, work - half, height]}
     custom = {first: [left, y, split, height], second: [left + split, y, work - split, height]}
-    triple = {first: [left + half, y, half, height / 2],
-              second: [left + half, y + height / 2, half, height / 2],
+    triple = {first: [left + half, y, work - half, top],
+              second: [left + half, y + top, work - half, height - top],
               third: [left, y, half, height]}
     previous = set()
 
@@ -87,13 +88,20 @@ def run(trial, original, *, check, wait, put, out):
     check(rebuilt not in (first, second), "replacement collides with a surviving window")
     def visible_unselected():
         controls = trial.ui()
+        put(out / "rebuilt-selection.json", {key: value for key, value in controls.items()
+                                             if key.startswith("admission-window-") or key == "admission-selection"})
         if "admission-window-" + str(rebuilt) not in controls:
             return False
         if rebuilt != third and "admission-window-" + str(third) in controls:
             return False
-        selection = controls.get("admission-selection", {})
-        value = selection.get("name", "") + selection.get("value", "")
-        return {int(n) for n in re.findall(r"#([0-9]+)", value)} == {first, second}
+        # Settings exposes the selection order to VoiceOver; its user-facing summary no
+        # longer contains raw window numbers. Match each actual button by its frozen ID.
+        survivors = (first, second)
+        for order, number in enumerate(survivors, 1):
+            row = controls.get("admission-window-" + str(number), {})
+            if f"第 {order} 个" not in row.get("name", ""):
+                return False
+        return "第 " not in controls["admission-window-" + str(rebuilt)].get("name", "")
     wait(visible_unselected)
     verify("rebuilt-preview-only", {**custom, rebuilt: replacement["frame"]}, set())
     trial.press("ordinary-stop")
@@ -110,7 +118,7 @@ def new_window_scope(trial, original, *, check, wait, put, out):
     trial.press("admission-open")
     trial.press("admission-ordinary-app")
     anchor, sibling = original
-    x, y, width, height = trial.run_focus["bounds"]
+    x, y, width, height = trial.run_focus["usableQuartz"]
     work = [x + 160, y, width - 160, height]
     trial.select(anchor)
     single = {**original, anchor: work}

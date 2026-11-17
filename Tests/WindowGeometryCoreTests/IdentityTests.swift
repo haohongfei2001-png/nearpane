@@ -15,10 +15,10 @@ struct IdentityTests {
     }
     func ax(token: UUID? = nil, title: String? = "fixture-a", identifier: String? = "fixture.id",
             frame: Rect? = nil, process: ProcessIdentity? = nil, minimized: Bool? = false,
-            subrole: String? = "AXStandardWindow") -> AXWindowMetadata {
+            subrole: String? = "AXStandardWindow", number: UInt32? = nil) -> AXWindowMetadata {
         AXWindowMetadata(process: process ?? self.process, elementToken: token ?? self.token,
                          identifier: identifier, title: title, subrole: subrole,
-                         frame: frame ?? self.frame, minimized: minimized)
+                         frame: frame ?? self.frame, minimized: minimized, standardWindowNumber: number)
     }
     func snapshot(cg: [CGWindowMetadata]? = nil, ax: [AXWindowMetadata]? = nil,
                   revision: UInt64 = 1, session: UUID? = nil, sourceBuild: String = "synthetic-fixture-v1",
@@ -67,6 +67,21 @@ struct IdentityTests {
         let matches = WindowMatcher.matches(cg: [cg(), cg(id: 8, process: other)],
             ax: [ax(token: UUID(), process: other), ax()])
         #expect(matches.map(\.axCandidateIndices) == [[1], [0]])
+    }
+
+    @Test func testNumberedOverlappingWindowsCanBeDistinguishedWithoutTitles() {
+        let matches = WindowMatcher.matches(cg: [cg(title: nil), cg(id: 8, title: nil)],
+            ax: [ax(token: UUID(), title: nil, number: 8), ax(title: nil, number: 7)])
+        #expect(matches.map(\.axCandidateIndices) == [[1], [0]])
+        #expect(matches.allSatisfy { $0.confidence == .corroboratedMetadata })
+    }
+
+    @Test func testWrongOrDuplicateNumberDoesNotResolveThroughCoincidentGeometry() {
+        let away = Rect(120, 100, 350, 180)
+        #expect(WindowMatcher.matches(cg: [cg()], ax: [ax(number: 8)])[0].confidence == .unknown)
+        #expect(WindowMatcher.matches(cg: [cg()], ax: [ax(frame: away, number: 7), ax(token: UUID())])[0].confidence == .unknown)
+        #expect(WindowMatcher.matches(cg: [cg()], ax: [ax(number: 7), ax(token: UUID(), frame: away, number: 7)])[0].confidence == .ambiguous)
+        #expect(WindowMatcher.matches(cg: [cg()], ax: [ax(title: "different", number: 7)])[0].confidence == .unknown)
     }
 
     @Test func testDocumentWindowNumberDoesNotOverrideDivergentOnscreenBounds() {
