@@ -4,7 +4,9 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Applications/Nearpane.app)，5.16 Alpha（67）。单屏当前桌面的逐窗列表及中性玻璃已交付。同桌面焦点切换为 IMPLEMENTED，本机后台普通窗口未满足实测前置。整行切换其他系统桌面仍受原有门槛约束。[当前桌面与安装收据](P5.16-CURRENT-DESKTOP-WINDOWS.md)
+**当前个人安装版**　[Nearpane.app](/Applications/Nearpane.app)，5.17 Alpha（69）。单屏当前桌面的逐窗实时缩略图、连续点击同应用两扇普通窗口并切换键盘焦点，均在已有权限的原生测试进程实测通过。正式安装进程首次读到的录屏、辅助功能权限均关闭。系统只确认一扇窗口时，另有已实测的公开应用置前路径。[安装、权限与原生收据](P5.17-WINDOW-OVERVIEW.md)
+
+**5.16（67）** 的安装包已归档并验证可还原。[历史收据](P5.16-CURRENT-DESKTOP-WINDOWS.md)
 
 **上一版**　[Nearpane.app](/Applications/Nearpane.app)，5.15 Alpha，build 66，产品源码 `f0e3f73`。一块 1470 × 956 pt 显示器上已核实当前桌面行、两个重叠窗口、选窗图像在真实面板上的显示与撤回。两份本轮签封候选另已验证同进程新窗自动平铺、60/40 与三窗恢复、左侧预留及屏幕右缘单次纠正。最终安装包的同一控制器与读取器通过指纹比对；最终 Host 窗口写入复测在焦点读取阶段安全退出。空间切换、跨 Space 移窗和 Virtual 停放仍待准入。[单屏交付与安装](P5.15-SINGLE-DISPLAY.md) · [逐项桌面能力表](DESKTOP-CAPABILITIES.md)
 
@@ -154,6 +156,7 @@ P5.6 第一份安装包的 Host 为 `a708574915fb44e5d9627ad56a55387de6b305aebe3
 | 工作区预留、排除、暂停、停止与恢复 | VERIFIED · 副屏 Docked/Floating、排除、可证明时恢复；进程重启没有持续见证时保留待处理日志 | [故障回合](P5.4-REAL-AX-ACCEPTANCE.md)、[随包应用](P4.6-NATIVE-ACCEPTANCE.md)。已按所选窗口实际显示器分别预演；跨屏混选只读，旋转/缩放变化使旧授权失效。主屏可独立保存配置，未开放个人窗口写入。 |
 | Stage Manager、跨屏和系统调整 | PARTIAL · 正常几何可管，几何不一致拒绝；移动/编辑不能可靠归因时不覆盖 | [P4.8](P4.8-STAGE-MANAGER-COMPATIBILITY.md)。不重做 TextEdit 异常试验；未证明缩略几何的具体成因。 |
 | 空间、窗口、显示器只读映射 | VERIFIED · 可见几何轮廓、z-order、按显示器呈现；仅有可见 Space 见证时成行 | [P4.0](P4.0-readonly-desktop-closeout.md)。未将内部记录数当成桌面数；无证据时只显示可见窗口。 |
+| 当前桌面逐窗预览与选择 | VERIFIED · 一屏、同一应用的两扇重叠普通窗，实际读取各自画面并点击切换 | 宿主需要录屏许可读取其他应用的窗口画面。逐窗焦点需要辅助功能。关闭画面可保留选窗。系统策略限制共享的内容可降级。个人安装的权限按当前系统读数显示。[5.17](P5.17-WINDOW-OVERVIEW.md) |
 | Native 行点击切换、保留焦点、返回 | BLOCKED · 无获准且可控的独立 A/B 环境；产品动作关闭 | [P4.3](P4.3-ACTION-ADMISSION.md)。Apple 的[变化通知](https://developer.apple.com/documentation/appkit/nsworkspace/activespacedidchangenotification)不提供源/目标身份；[moveToActiveSpace](https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct/movetoactivespace)是本窗口激活时的行为，不是切换到指定任意桌面的公共命令。只在有两屏初态、A/B 与可靠回程的专用时段执行。 |
 | Native 跨 Space 拖窗、新窗新空间、清理空空间 | BLOCKED · 已拆分窗口拖放/整行意图及归属、扩容策略；未实现可准入的系统写适配器 | [动作门槛](P4.3-NATIVE-SPACE-BEHAVIOR.md)。实际移窗/创建/删除各需权限与独立结果见证；无能力时只做可行分割，不虚构新 Space。 |
 | Virtual 逻辑归属与真实隔离 | BLOCKED · 已有模式互斥及逻辑模型，未获可靠的第三方单窗口停放/恢复机制 | [P4.2.2 裁决](P4.2.2-VIRTUAL-TECHNICAL-VERDICT.md)。Apple 的 [orderOut](https://developer.apple.com/documentation/appkit/nswindow/orderout%28_%3A%29) 属于目标 NSWindow 实例，且可能改变 key/main，不提供普通外部管理器的逐窗授权；不重复旧停放、Hide 或最小化。 |
