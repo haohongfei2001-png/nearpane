@@ -68,7 +68,7 @@ private final class DomainInput: VoiceInput {
         audio.completeStartupRecovery()
         await audio.start(requestPermission: requestPermission && !requireExistingPermissions)
     }
-    func replayIsolated(_ file: URL) async throws -> (LocalASRID, Double) {
+    func replayIsolated(_ file: URL, observe: @escaping @Sendable (WorkerEvent) -> Void) async throws -> (LocalASRID, Double, Double) {
         guard requireExistingPermissions, profile == nil, !local.canDownload, !configuration.cloudEnabled else {
             throw CocoaError(.fileReadNoPermission)
         }
@@ -77,7 +77,9 @@ private final class DomainInput: VoiceInput {
         guard local.selection == LocalModelRecommendation.preferred else {
             throw AudioFailure.message("隔离验收需要已校验的本机中文模型")
         }
-        return (local.selection, try await audio.replayLocalFixture(file))
+        await local.service.observeFixtureWorker(observe)
+        let began = ProcessInfo.processInfo.systemUptime
+        return (local.selection, began, try await audio.replayLocalFixture(file))
     }
     func pause() async { await audio.pause() }
     func retry(_ id: UUID) async throws {
@@ -290,9 +292,9 @@ public final class VoiceModule: HostModule {
     public func snapshot() throws -> ModuleProjection { .init(message: "Voice module") }
 
     /// Reachable by the executable-bound acceptance session with a pinned public fixture only.
-    public func replayIsolatedMandarin(_ file: URL) async throws -> (LocalASRID, Double) {
+    public func replayIsolatedMandarin(_ file: URL, observe: @escaping @Sendable (WorkerEvent) -> Void) async throws -> (LocalASRID, Double, Double) {
         guard active, let device = try currentInput() as? DomainInput else { throw CocoaError(.featureUnsupported) }
-        return try await device.replayIsolated(file)
+        return try await device.replayIsolated(file, observe: observe)
     }
 
     private func currentInput() throws -> any VoiceInput {

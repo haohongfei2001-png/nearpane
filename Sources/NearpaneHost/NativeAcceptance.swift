@@ -1,6 +1,7 @@
 #if canImport(RiftletCore) && canImport(SaytileKit)
 import AppKit
 import SwiftUI
+import Synchronization
 import NearpaneVoice
 import AVFoundation
 import Speech
@@ -88,13 +89,20 @@ struct NativeAcceptanceSession {
             }
         }
         defer { sampling.cancel(); module.stop() }
-        let (model, eos) = try await module.replayIsolatedMandarin(wav)
+        let worker = Mutex((ready: 0, first: Double?.none))
+        let (model, pcmStart, eos) = try await module.replayIsolatedMandarin(wav) { event in
+            worker.withLock { sample in
+                if event.kind == "ready" { sample.ready += 1 }
+                if sample.first == nil && !event.text.isEmpty { sample.first = ProcessInfo.processInfo.systemUptime }
+            }
+        }
+        let timing = worker.withLock { $0 }
         await module.refresh()
         try await Task.sleep(for: .milliseconds(120))
         sample()
         let early = observations.filter { $0.0 < eos }
         let final = module.transcript
-        guard model == .qwen, early.count >= 2, !final.isEmpty, observations.last?.1 == final else {
+        guard model == .qwen, timing.ready == 1, let firstModel = timing.first, early.count >= 2, !final.isEmpty, observations.last?.1 == final else {
             throw AudioFailure.message("原生文字流未通过：结束前更新 \(early.count) 次，界面与最终文字一致 \(observations.last?.1 == final)")
         }
         guard let pixels = surface.bitmapImageRepForCachingDisplay(in: surface.bounds) else { throw CocoaError(.fileWriteUnknown) }
@@ -103,7 +111,9 @@ struct NativeAcceptanceSession {
         try png.write(to: directory.appending(path: "voice-panel-final.png"), options: .withoutOverwriting)
         let receipt: [String: Any] = ["sourceWAVSHA256": digest, "model": model.rawValue, "microphoneOpened": false,
             "realTimeFile": true, "visibleBeforeEOS": early.count, "sampledTextUpdates": observations.count,
-            "firstTextSeconds": early[0].0 - began, "audioInputSeconds": eos - began,
+            "coldSetupSeconds": pcmStart - began, "firstTextSeconds": early[0].0 - pcmStart,
+            "firstModelTextSeconds": firstModel - pcmStart, "modelToPanelSeconds": early[0].0 - firstModel,
+            "workerReadyEvents": timing.ready, "audioInputSeconds": eos - pcmStart,
             "nativeFinalSHA256": SHA256.hash(data: Data(final.utf8)).map { String(format: "%02x", $0) }.joined()]
         module.stop()
         await module.waitForTransition()

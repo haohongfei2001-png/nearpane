@@ -273,5 +273,21 @@
       },
       "releaseTag": "v1.0.3-zip"
     }
+  },
+  "saytileUpdates": {
+    "repository": "haohongfei2001-png/saytile",
+    "commit": "5a8e44fb4156a373e71913312beeaf293943c21b",
+    "sources": [
+      "Sources/SaytileKit/LocalASRProvider.swift"
+    ],
+    "hostSources": [],
+    "notices": [
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "files": {
+      "Sources/SaytileKit/LocalASRProvider.swift": "2bd86216d1fb9c327217a892f912682c9c3a8059ef771cbe3e4cd9aaf17165a6",
+      "THIRD_PARTY_NOTICES.md": "83adebf7e17d7d15ccd3291484a8e6490e56fb72d2038f83d55118b24cdbe01e"
+    },
+    "treeSHA256": "b9220e33391def538dc6ffeafa05e31ff0dd20191a0716dadef6aaad8b4d1f87"
   }
 }
