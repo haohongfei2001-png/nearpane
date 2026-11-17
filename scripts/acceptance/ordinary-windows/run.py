@@ -32,7 +32,10 @@ def put(path, data):
     temp.replace(path)
 
 def reply(cmd):
-    return json.loads(sp.check_output(cmd, timeout=6, text=True))
+    result = sp.run(cmd, timeout=6, text=True, capture_output=True)
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or "readback helper exited " + str(result.returncode))
+    return json.loads(result.stdout)
 
 def wait(test, timeout=8):
     deadline = time.monotonic() + timeout
@@ -116,7 +119,16 @@ class Trial:
         reports = os.open(io/"reports",os.O_RDONLY|os.O_NONBLOCK)
         ticket=self.app.parent/"sample-pipes"
         ticket.write_text(str(io))
-        launched = reply(OFF+[WORK/"observe","launch",str(self.app),str(io)])
+        try:
+            focus = self.run_focus["focus"]
+            launched = reply(OFF+[WORK/"observe", "launch", str(self.app), str(io),
+                                  str(self.run_focus["front"]), str(focus) if focus is not None else "none"])
+        except Exception:
+            os.close(req)
+            os.close(reports)
+            self.pipes.cleanup()
+            if ticket.read_text() == str(io): ticket.unlink()
+            raise
         self.fixture = type("Fixture",(),{})()
         put(self.out/"launch.json",launched)
         self.fixture.pid = launched["subjectPID"]
@@ -582,7 +594,11 @@ if __name__ == "__main__":
     if args.mode in ("boundary", "physical-boundary", "new-window-scope", "pair-quit"):
         # Require a free Host slot before even launching the disposable fixture.
         check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode == 1, "existing Host in use")
-    t=Trial(args.candidate.resolve(), single=args.single_display, right_edge=args.mode=="physical-boundary")
+    try:
+        t=Trial(args.candidate.resolve(), single=args.single_display, right_edge=args.mode=="physical-boundary")
+    except Exception as error:
+        put(OUT/"startup-refusal.json", dict(error=str(error), hostStarted=False))
+        raise
     try:
         t.boundary_review = args.mode in ("boundary", "physical-boundary")
         count = 2 if args.mode in ("closure-probe","mixed","boundary","physical-boundary","new-window-scope","pair-quit") else (1 if args.mode in ("fault","floating") else 3)

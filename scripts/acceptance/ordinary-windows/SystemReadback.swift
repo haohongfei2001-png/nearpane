@@ -29,12 +29,24 @@ let single = ProcessInfo.processInfo.environment["NEARPANE_SINGLE_ORDINARY_WITNE
 guard screens.count == (single ? 1 : 2), let side = screens.last,
       let display = side.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
       (single ? display.uint32Value == CGMainDisplayID() : !CGDisplayBounds(display.uint32Value).intersects(CGDisplayBounds(CGMainDisplayID()))),
-      CGDisplayIsInMirrorSet(display.uint32Value) == 0, let uuid = CGDisplayCreateUUIDFromDisplayID(display.uint32Value)?.takeRetainedValue(),
-      let session = CGSessionCopyCurrentDictionary() as? [String:Any],session["kCGSSessionOnConsoleKey"] as? Bool == true,
-      session["CGSSessionScreenIsLocked"] as? Bool != true, AXIsProcessTrusted(),
-      let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-      let focused = value(AXUIElementCreateApplication(front),"AXFocusedWindow"),CFGetTypeID(focused) == AXUIElementGetTypeID(),
-      let focusedNumber = number(focused as! AXUIElement) else { die("required display topology, console, existing AX permission or focus unavailable") }
+      CGDisplayIsInMirrorSet(display.uint32Value) == 0, let uuid = CGDisplayCreateUUIDFromDisplayID(display.uint32Value)?.takeRetainedValue() else { die("required physical display topology unavailable") }
+guard let session = CGSessionCopyCurrentDictionary() as? [String:Any],session["kCGSSessionOnConsoleKey"] as? Bool == true,
+      session["CGSSessionScreenIsLocked"] as? Bool != true, AXIsProcessTrusted()
+else { die("unlocked console or existing AX permission unavailable") }
+guard let front = NSWorkspace.shared.frontmostApplication?.processIdentifier else { die("frontmost application unavailable") }
+let frontElement = AXUIElementCreateApplication(front)
+var focused: CFTypeRef?
+guard AXUIElementSetMessagingTimeout(frontElement, 0.2) == .success else { die("cannot bound foreground read") }
+let focusStatus = AXUIElementCopyAttributeValue(frontElement, kAXFocusedWindowAttribute as CFString, &focused)
+let focusedNumber: Any
+if focusStatus == .success, let focused, CFGetTypeID(focused) == AXUIElementGetTypeID(),
+   let n = number(focused as! AXUIElement) { focusedNumber = n }
+else if focusStatus == .noValue {
+    var names: CFArray?
+    guard AXUIElementCopyAttributeNames(frontElement, &names) == .success,
+          (names as? [String])?.contains(kAXFocusedWindowAttribute) == true else { die("foreground focus unsupported") }
+    focusedNumber = NSNull()
+} else { die("foreground focused window unavailable (AX \(focusStatus.rawValue))") }
 var output:[String:Any] = ["side":CFUUIDCreateString(nil,uuid) as String,"bounds":rect(CGDisplayBounds(display.uint32Value)),
                             "front":front,"focus":focusedNumber,"time":ProcessInfo.processInfo.systemUptime]
 let usable = side.visibleFrame
@@ -42,7 +54,9 @@ output["usableQuartz"] = [usable.minX, screens[0].frame.maxY - usable.maxY, usab
 let strings = Array(CommandLine.arguments.dropFirst())
 let fixtureApps = ["Standard documents.app":"net.example.standard-documents", "Standard palette.app":"net.example.standard-palette"]
 if strings.first == "launch" {
-    guard strings.count == 3 else { die("launch parameters") }
+    guard strings.count == 5, strings[3] == String(front),
+          strings[4] == ((focusedNumber as? UInt32).map(String.init) ?? "none")
+    else { die("foreground changed before launching the enrolled sample") }
     let url=URL(fileURLWithPath: strings[1])
     guard url.path.hasPrefix("/private/tmp/nearpane-standard-windows."), let expected = fixtureApps[url.lastPathComponent],
           let id=Bundle(url:url)?.bundleIdentifier, id == expected,
