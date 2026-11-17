@@ -195,6 +195,12 @@ private actor OrdinaryWindowChannel {
         }
         return try await sample(.acknowledgeBoundary, from: observation.previous, to: frame, revision: revision)
     }
+    func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval) async throws {
+        guard !closed else { throw OrdinaryWindowFailure("窗口已关闭。") }
+        _ = try await channel.call(.init(.focusCurrent, pid: id.pid, launch: id.launch, bundle: bundle, id: id,
+                                         expected: frame, focusDisplay: display, focusDeadline: deadline))
+    }
+
     func verify(expected: SurfaceRect) async throws -> AdmissionPair { try await sample(.verify, from: expected) }
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair {
         try await sample(.write, from: from, to: to)

@@ -64,9 +64,13 @@ func axRect(_ element: AXUIElement) throws -> SurfaceRect {
 func displayID(_ f: SurfaceRect) throws -> String {
     let rect = CGRect(x: f.x, y: f.y, width: f.width, height: f.height)
     var ids = [CGDirectDisplayID](repeating: 0, count: 32), count: UInt32 = 0
-    guard f.geometry.isValid, CGGetDisplaysWithRect(rect, 32, &ids, &count) == .success, count == 1,
-          CGDisplayBounds(ids[0]).contains(rect), CGDisplayIsInMirrorSet(ids[0]) == 0,
-          let uuid = CGDisplayCreateUUIDFromDisplayID(ids[0])?.takeRetainedValue() else {
+    guard f.geometry.isValid, CGGetActiveDisplayList(32, &ids, &count) == .success, count > 0, count < 32 else {
+        throw Refusal("无法完整核对活动显示器。")
+    }
+    let matches = ids.prefix(Int(count)).filter { !CGDisplayBounds($0).intersection(rect).isEmpty }
+    guard matches.count == 1, let display = matches.first, CGDisplayBounds(display).contains(rect),
+          CGDisplayIsInMirrorSet(display) == 0,
+          let uuid = CGDisplayCreateUUIDFromDisplayID(display)?.takeRetainedValue() else {
         throw Refusal("窗口无法完整对应到唯一显示器。")
     }
     return CFUUIDCreateString(nil, uuid) as String

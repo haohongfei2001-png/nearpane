@@ -17,12 +17,58 @@ struct NativeDesktopPreviewTests {
     func window(_ number: UInt32, _ frame: SurfaceRect, _ z: Int, _ membership: WindowMembership,
                 display: String = "portrait", pid: Int32 = 313, epoch: UInt64 = 810,
                 confidence: IdentityConfidence = .corroboratedMetadata, fullscreen: Bool? = false,
-                axFrame: SurfaceRect? = nil, onScreen: Bool? = true, axNumber: UInt32? = nil) -> WindowObservation {
+                axFrame: SurfaceRect? = nil, onScreen: Bool? = true, axNumber: UInt32? = nil, active: Bool? = nil) -> WindowObservation {
         let metadata = ObservedWindowMetadata(number: number, pid: pid, launchMicroseconds: epoch, element: UUID(),
-            globalFrame: frame, frontToBack: z, minimized: false, fullScreen: fullscreen, axFrame: axFrame ?? frame, isOnscreen: onScreen, axStandardWindowNumber: axNumber)
+            globalFrame: frame, frontToBack: z, minimized: false, fullScreen: fullscreen, axFrame: axFrame ?? frame, isOnscreen: onScreen, axStandardWindowNumber: axNumber, onActiveDesktop: active)
         return .init(id: "ref-\(number)", displayID: display,
             bounds: .init(x: frame.x + (display == portrait.id ? 800 : 0), y: frame.y, width: frame.width, height: frame.height),
             membership: membership, confidence: confidence, metadata: metadata)
+    }
+
+    @Test func activeWindowListSeparatesCoveredSiblingsAndDoesNotInventMembership() {
+        let r = SurfaceRect(x: -720, y: 90, width: 200, height: 120)
+        func current(_ z: Int) -> DesktopSnapshot {
+            sample([window(12, r, z, .unknown, axNumber: 12, active: true),
+                    window(13, r, 1-z, .unknown, axNumber: 13, active: true),
+                    window(14, r, 2, .unknown, axNumber: 14, active: false),
+                    window(15, r, 3, .unknown, axNumber: 15)])
+        }
+        for state in [current(0), current(1)] {
+            let uptime = state.native!.endedUptime
+            let list = state.currentDesktopWindows(on: portrait.id, now: date, uptime: uptime)
+            #expect(list.compactMap { $0.metadata?.number } == [12, 13])
+            #expect(list.allSatisfy { $0.canWitnessCurrentSpace })
+            #expect(state.presentationDemand(for: portrait.id, now: date, uptime: uptime).hasCurrentDesktopWindows)
+            #expect(state.currentDesktopWindows(on: landscape.id, now: date, uptime: uptime).isEmpty)
+            #expect(state.currentDesktopWindows(on: portrait.id, now: date, uptime: uptime + 15).isEmpty)
+        }
+    }
+
+    @Test func conflictingSpaceOrUnconfirmedGeometryCannotBecomeAnActiveTarget() {
+        let r = SurfaceRect(x: -700, y: 70, width: 150, height: 80)
+        let state = sample([window(77, r, 0, .known(recordIDs:["9"]), axNumber: 77, active: true),
+                            window(31, r, 1, .known(recordIDs:["4"]), axNumber: 31, active: true),
+                            window(32, r, 2, .unknown, axFrame: .init(width: 49, height: 76), axNumber: 32, active: true)], rows: [proof])
+        let list = state.currentDesktopWindows(on: portrait.id, now: date, uptime: state.native!.endedUptime)
+        #expect(list.compactMap { $0.metadata?.number } == [32,77])
+        #expect(list.filter(\.canWitnessCurrentSpace).compactMap { $0.metadata?.number } == [77])
+        #expect(list.filter(\.canRequestCurrentDesktopFocus).compactMap { $0.metadata?.number } == [77])
+        #expect(!OrdinaryWindowRequest.Action.focusCurrent.allowedForStillPreview)
+    }
+
+    @Test func incompleteAXSampleOnlyAllowsLiveLookupOnCurrentDesktop() {
+        func candidate(_ active: Bool?, _ confidence: IdentityConfidence) -> WindowObservation {
+            let r = SurfaceRect(width: 180, height: 130)
+            return .init(id: "candidate", displayID: "wide", bounds: r, membership: .unknown, confidence: confidence,
+                         metadata: .init(number: 12, pid: 313, launchMicroseconds: 810, element: nil,
+                                         globalFrame: r, frontToBack: 1, minimized: nil, fullScreen: nil,
+                                         isOnscreen: true, onActiveDesktop: active))
+        }
+        let pending = candidate(true, .unknown)
+        #expect(pending.canRequestCurrentDesktopFocus && !pending.canWitnessCurrentSpace)
+        #expect(!candidate(false, .unknown).canRequestCurrentDesktopFocus)
+        #expect(!candidate(nil, .unknown).canRequestCurrentDesktopFocus)
+        #expect(!candidate(true, .ambiguous).canRequestCurrentDesktopFocus)
     }
 
     func sample(_ windows: [WindowObservation] = [], rows: [ObservedSpaceRow] = [], stageManager: Bool? = nil) -> DesktopSnapshot {

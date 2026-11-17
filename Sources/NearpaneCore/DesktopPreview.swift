@@ -92,6 +92,23 @@ public struct DesktopPreview: Sendable {
 }
 
 public extension DesktopSnapshot {
+    /// Mission Control exposes each visible window on the active desktop, including a fully overlapped sibling.
+    /// This public observation works even when the optional private Space inventory is disabled.
+    func currentDesktopWindows(on displayID: String, now: Date, uptime: Double) -> [WindowObservation] {
+        guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime), native?.windowLimitReached == false else { return [] }
+        let current = native?.rows.first { $0.displayID == displayID }?.recordID
+        return windows.filter { window in
+            guard window.displayID == displayID, let m = window.metadata,
+                  m.onActiveDesktop == true, m.isOnscreen == true, m.number > 0,
+                  m.minimized != true, m.fullScreen != true else { return false }
+            if let current, case .known(let records) = window.membership { return records.contains(current) }
+            return true
+        }.sorted { a, b in
+            // WindowServer IDs preserve the ordering when raising changes the stacking order.
+            (a.metadata?.number ?? 0) < (b.metadata?.number ?? 0)
+        }
+    }
+
     func desktopPreviewRowCount(for displayID: String?) -> Int {
         displayID.map { previewRowKinds(for: $0, allowVisibleFallback: true).count } ?? 0
     }
@@ -126,6 +143,8 @@ public extension DesktopSnapshot {
         let complete = records.count == 1 && inventory.count == 1 && inventory[0].records.count == 1 &&
             native.accessibility == .available && onDisplay.count == eligible.count
         let previouslyWitnessed = inventory.flatMap(\.records).filter(\.previouslyWitnessed).count
-        return .init(spaces: records.count + previouslyWitnessed, windows: eligible.count, complete: complete)
+        var demand = DisplayDemand(spaces: records.count + previouslyWitnessed, windows: eligible.count, complete: complete)
+        demand.hasCurrentDesktopWindows = !currentDesktopWindows(on: displayID, now: now, uptime: uptime).isEmpty
+        return demand
     }
 }

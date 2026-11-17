@@ -23,6 +23,8 @@ struct DesktopSurface: View {
     var settings: DisplaySettings = .init()
     @Environment(\.colorSchemeContrast) private var contrast
     @ViewState private var appBadges: [String: WindowAppBadges.Badge] = [:]
+    @ViewState private var selecting = false
+    @ViewState private var selectionIssue: String?
     @ViewState private var badgeSource: BadgeRefresh?
 
     var body: some View {
@@ -40,7 +42,8 @@ struct DesktopSurface: View {
                                 let available = min(height,settings.points(.desktopHeight,in:height))
                                 let rows = displayID.map { max(1, snapshot.desktopPreviewRowCount(for: $0)) } ?? 1
                                 let desired = settings.points(.spaceRowHeight,in:available) * Double(rows)
-                                let canvasHeight = max(1,desired)
+                                let members = snapshot.currentDesktopWindows(on: displayID ?? "", now: tick.date, uptime: uptime)
+                                let canvasHeight = members.isEmpty ? max(1, desired) : min(max(1, desired), max(44, min(width * 0.70, available * 0.42)) * Double(rows))
                                 ScrollView(.vertical) {
                                     let bounds = SurfaceRect(x:(size.size.width-width)/2+pad,y:pad,width:width-pad*2,height:canvasHeight-pad*2)
                                     if let preview = DesktopPreview(snapshot:snapshot,displayID:displayID,viewport:bounds,now:tick.date,
@@ -52,11 +55,15 @@ struct DesktopSurface: View {
                                             }
                                             .frame(width:size.size.width,height:canvasHeight)
                                     }
+                                    if !members.isEmpty {
+                                        windowList(members, snapshot: snapshot)
+                                            .padding(.horizontal, pad + 2).padding(.bottom, pad)
+                                    }
                                 }.frame(height:height)
                             }
-                            Text(host.workspaceIssue.map { issue in
+                            Text(selectionIssue ?? host.workspaceIssue.map { issue in
                                 issue == .minimumSize ? "窗口最小尺寸超出可用区域" : "当前无法执行工作空间操作"
-                            } ?? (native.rows.contains(where: { $0.displayID == displayID }) ? "已确认的当前空间" : "此屏可见窗口 · 空间未确认"))
+                            } ?? (native.accessibility == .denied ? "允许辅助功能后可切换窗口" : ""))
                                 .font(settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600).map { .system(size: $0) } ?? .caption2).foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, 3)
@@ -65,8 +72,66 @@ struct DesktopSurface: View {
                 }
             } else { status(enabled ? "空间归属尚未确认" : "空间预览已停用") }
         }
-        .accessibilityHint("只读预览")
+        .accessibilityHint("选择当前桌面的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
+    }
+
+    private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("当前桌面")
+                .font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                .padding(.horizontal, 5).accessibilityAddTraits(.isHeader)
+            ForEach(windows, id: \.metadata?.number) { window in
+                let badge = appBadges[window.id]
+                let siblings = windows.filter { $0.metadata?.pid == window.metadata?.pid }
+                let ordinal = (siblings.firstIndex(of: window) ?? 0) + 1
+                let name = badge?.name ?? "窗口"
+                let label = siblings.count > 1 ? "\(name) · \(ordinal)" : name
+                Button {
+                    selectWindow(window, snapshot: snapshot)
+                } label: {
+                    HStack(spacing: 7) {
+                        if let badge {
+                            Image(nsImage: badge.icon).resizable().aspectRatio(contentMode: .fit).frame(width: 20, height: 20)
+                        } else { Image(systemName: "macwindow").frame(width: 20) }
+                        Text(label).lineLimit(1).truncationMode(.tail)
+                        Spacer(minLength: 0)
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .padding(.horizontal, 7).frame(minHeight: 31)
+                    .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(selecting || !window.canRequestCurrentDesktopFocus || snapshot.native?.accessibility == .denied)
+                .accessibilityIdentifier("current-desktop-window")
+                .help(window.canRequestCurrentDesktopFocus ? "切换到" + label : "窗口身份或当前几何尚未确认")
+            }
+        }
+    }
+
+    private func selectWindow(_ window: WindowObservation, snapshot: DesktopSnapshot) {
+        guard !selecting, let m = window.metadata, let launch = m.launchMicroseconds,
+              let native = snapshot.native, let displayID, window.canRequestCurrentDesktopFocus, snapshot.native?.accessibility != .denied,
+              let app = NSRunningApplication(processIdentifier: m.pid), let bundle = app.bundleIdentifier else { return }
+        func stillCurrent() -> Bool {
+            guard host.isRunning, !host.configuration.surfaceHidden, host.bus.desktop == snapshot,
+                  display?.interactionVisible == true, display?.id == displayID else { return false }
+            return snapshot.currentDesktopWindows(on: displayID, now: Date(), uptime: ProcessInfo.processInfo.systemUptime).contains(window)
+        }
+        guard stillCurrent() else { return }
+        selecting = true
+        selectionIssue = nil
+        Task { @MainActor in
+            defer { selecting = false }
+            do {
+                let directory = try OrdinaryWindowDirectory(.init(pid: m.pid, launch: launch, bundle: bundle, name: ""))
+                let matches = try await directory.choices(initial: true).filter { $0.number == m.number }
+                guard stillCurrent(), matches.count == 1, let choice = matches.first,
+                      let handle = directory.handles[choice.id] else { throw OrdinaryWindowFailure("窗口已变化，请重新选择。") }
+                try await handle.focusCurrent(frame: m.globalFrame, display: displayID, deadline: native.beganUptime + 12)
+            } catch { selectionIssue = error.localizedDescription }
+        }
     }
 
     private func drawing(_ preview: DesktopPreview, snapshot: DesktopSnapshot) -> some View {
@@ -84,10 +149,10 @@ struct DesktopSurface: View {
                 let desktop = row.desktop
                 let path = Path(roundedRect: CGRect(x: desktop.x, y: desktop.y, width: desktop.width, height: desktop.height),
                                 cornerRadius: min(12, min(desktop.width, desktop.height) / 8))
-                let accent = host.configuration.accent.color
+                let accent = Color.primary
                 var inside = context
                 inside.clip(to: path)
-                inside.fill(path, with: .linearGradient(Gradient(colors: [accent.opacity(0.10), accent.opacity(0.26)]),
+                inside.fill(path, with: .linearGradient(Gradient(colors: [accent.opacity(0.035), accent.opacity(0.085)]),
                     startPoint: CGPoint(x: desktop.x, y: desktop.y), endPoint: CGPoint(x: desktop.x + desktop.width, y: desktop.y + desktop.height)))
                 if case .previouslyWitnessedSpace = row.kind {
                     let caption = Text("此前的桌面 · 布局未读取").font(.caption2).foregroundStyle(.secondary)

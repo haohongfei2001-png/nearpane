@@ -72,11 +72,11 @@ struct SurfaceGlassPalette {
             return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
         }
 
-        let outerTop = dark ? Color(red: 0.22, green: 0.23, blue: 0.28) : Color(red: 0.79, green: 0.80, blue: 0.89)
-        let outerBottom = dark ? Color(red: 0.13, green: 0.14, blue: 0.19) : Color(red: 0.68, green: 0.71, blue: 0.83)
+        let outerTop = dark ? Color(white: 0.24) : Color(white: 0.94)
+        let outerBottom = dark ? Color(white: 0.18) : Color(white: 0.90)
         outer = wash(outerTop, outerBottom, opacity: levels.outerTint)
-        inner = wash(dark ? Color(red: 0.54, green: 0.54, blue: 0.62) : .white,
-                     dark ? Color(red: 0.31, green: 0.32, blue: 0.40) : Color(red: 0.93, green: 0.94, blue: 1),
+        inner = wash(dark ? Color(white: 0.48) : .white,
+                     dark ? Color(white: 0.36) : Color(white: 0.99),
                      opacity: levels.innerTint)
         folded = reduceTransparency ? solid : outerTop.opacity(levels.foldedTint)
 

@@ -83,6 +83,11 @@ final class Worker {
                 guard let app, app == (r.pid,r.launch,r.bundle), let id = r.id,
                       let m = windowsByID[id] else { throw Refusal("窗口未在本次选择中登记。") }
                 switch r.action {
+                case .focusCurrent:
+                    guard let expected = r.expected, let display = r.focusDisplay, let deadline = r.focusDeadline,
+                          r.destination == nil else { throw Refusal("缺少当前桌面的选窗凭据。") }
+                    try focusCurrentWindow(id: id, element: m.element, owner: owner, bundle: r.bundle,
+                                           frame: expected, display: display, deadline: deadline)
                 case .prepare: reply.pair = try m.prepare()
                 case .observeBoundary:
                     guard let expected = r.expected else { throw Refusal("缺少已授权窗口基线。") }

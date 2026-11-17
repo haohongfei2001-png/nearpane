@@ -30,6 +30,8 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     /// Returned by the unique, twice-read standard AX window. May be absent in an older sample.
     public let axStandardWindowNumber: UInt32?
     public let isOnscreen: Bool?
+    /// Two public AppKit current-Space reads around the CG/AX sample. Absent in older snapshots.
+    public let onActiveDesktop: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
@@ -37,7 +39,8 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
-                axStandardWindowNumber: UInt32? = nil) {
+                axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil) {
+        self.onActiveDesktop = onActiveDesktop
         self.number = number; self.pid = pid; self.launchMicroseconds = launchMicroseconds; self.element = element
         self.globalFrame = globalFrame; self.frontToBack = frontToBack; self.minimized = minimized; self.fullScreen = fullScreen
         self.axFrame = axFrame; self.isOnscreen = isOnscreen; self.axStandardWindowNumber = axStandardWindowNumber
@@ -45,6 +48,16 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
 }
 
 public extension WindowObservation {
+    /// Read-only admission to look up this exact number on demand. A successful lookup is not an action.
+    /// A busy application may have missed the reader's shared AX time budget.
+    var canRequestCurrentDesktopFocus: Bool {
+        guard let m = metadata, m.onActiveDesktop == true, m.isOnscreen == true, m.pid > 0,
+              (m.launchMicroseconds ?? 0) > 0, m.number > 0, m.minimized != true, m.fullScreen != true,
+              confidence != .ambiguous, confidence != .synthetic else { return false }
+        if canWitnessCurrentSpace { return true }
+        return confidence == .unknown && m.axFrame == nil && m.element == nil && m.axStandardWindowNumber == nil
+    }
+
     /// Membership and active-Space visibility are checked separately by the reader.
     var canWitnessCurrentSpace: Bool {
         guard confidence == .geometryOnly || confidence == .corroboratedMetadata,

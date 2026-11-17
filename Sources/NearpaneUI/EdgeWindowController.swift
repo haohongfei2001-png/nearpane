@@ -88,7 +88,7 @@ public final class EdgeWindowController: NSWindowController {
         panel.isReleasedWhenClosed = false
         panel.isMovable = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenNone, .stationary, .ignoresCycle]
-        material.material = .sidebar
+        material.material = .popover
         material.blendingMode = .behindWindow
         material.state = .active
         material.wantsLayer = true

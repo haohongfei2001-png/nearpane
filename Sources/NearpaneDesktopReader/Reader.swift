@@ -109,9 +109,10 @@ struct Reader {
     }
 
     private func activeNumbers() -> Set<UInt32> {
-        guard request.experimentalSpaces, request.fixtureWindows == nil else { return [] }
         // The allSpaces flag must stay absent. Only numbers are requested from AppKit.
-        return Set((NSWindow.windowNumbers(options: .allApplications) ?? []).compactMap { UInt32(exactly: $0.int64Value) })
+        let active = Set((NSWindow.windowNumbers(options: .allApplications) ?? []).compactMap { UInt32(exactly: $0.int64Value) })
+        if let fixture = request.fixtureWindows { return active.intersection(fixture) }
+        return active
     }
 
     func sample() throws -> DesktopSnapshot {
@@ -145,12 +146,12 @@ struct Reader {
             default: status = .unavailable
             }
         }
-        let activeBefore = status == .observed ? activeNumbers() : []
+        let activeBefore = activeNumbers()
         let ids = list.windows.map(\.windowID)
         let first = status == .observed ? SpaceBoundary.read(displays: before.displays, windowIDs: ids) : nil
         let ax = accessibility(list.windows, deadline: start + 1.25)
         let second = first?.inventory == nil ? nil : SpaceBoundary.read(displays: before.displays, windowIDs: ids)
-        let activeAfter = status == .observed ? activeNumbers() : []
+        let activeAfter = activeNumbers()
         let again = try visible(), topology = try Topology(), end = clock.systemUptime
         let stageAfter = StageManagerPreference.read()
         let stable = before == topology && list == again && stageBefore == stageAfter && end-start <= 3
@@ -193,7 +194,8 @@ struct Reader {
                 globalFrame: SurfaceRect(entry.frame), frontToBack: entry.frontToBackIndex,
                 minimized: element?.minimized, fullScreen: element.flatMap { ax.fullScreen[$0.elementToken] },
                 axFrame: element?.frame.map(SurfaceRect.init), isOnscreen: entry.isOnscreen,
-                axStandardWindowNumber: standardNumber)
+                axStandardWindowNumber: standardNumber,
+                onActiveDesktop: stable && activeBefore.contains(entry.windowID) && activeAfter.contains(entry.windowID))
             let local = SurfaceRect(x: entry.frame.x-display.frame.x, y: entry.frame.y-display.frame.y,
                                     width: entry.frame.width, height: entry.frame.height)
             let observed = WindowObservation(id: "\(request.revision)/\(entry.process.pid)/\(entry.windowID)", displayID: display.id,

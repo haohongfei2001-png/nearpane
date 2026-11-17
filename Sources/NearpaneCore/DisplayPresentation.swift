@@ -185,6 +185,7 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
 }
 
 public struct DisplayDemand: Equatable, Sendable {
+    public var hasCurrentDesktopWindows = false
     public var spaces, windows: Int
     public var blocked: Bool, complete: Bool
     public init(spaces: Int = 0, windows: Int = 0, blocked: Bool = false, complete: Bool = false) {
@@ -264,7 +265,7 @@ public struct MultiDisplayPresentationCoordinator {
                 requested.remove(id)
                 lastMultiple[id] = nil
             } else if isPrimary {
-                let spaces = spacesEnabled && !dismissed && (requested.contains(id) || context.multiple || !context.complete)
+                let spaces = spacesEnabled && !dismissed && (requested.contains(id) || context.hasCurrentDesktopWindows || context.multiple || !context.complete)
                 if spaces {
                     content = voice || tray ? .full : .spacesOnly
                 } else if voice && tray {

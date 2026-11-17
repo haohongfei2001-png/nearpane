@@ -4,7 +4,7 @@ import Foundation
 public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
         case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
-        case watchCreated, takeCreated, endCreated
+        case watchCreated, takeCreated, endCreated, focusCurrent
 
         public var allowedForStillPreview: Bool {
             switch self {
@@ -15,12 +15,14 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
     }
     public let nonce: UUID, action: Action, pid: Int32, launch: UInt64, bundle: String
     public let id: ManagedWindowID?, expected: SurfaceRect?, destination: SurfaceRect?
+    public let focusDisplay: String?, focusDeadline: TimeInterval?
     public let creationGrant: UUID?
     public let boundaryRevision: UUID?
 
     public init(_ action: Action, pid: Int32, launch: UInt64, bundle: String,
                 id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil,
-                boundaryRevision: UUID? = nil, creationGrant: UUID? = nil) {
+                boundaryRevision: UUID? = nil, creationGrant: UUID? = nil, focusDisplay: String? = nil, focusDeadline: TimeInterval? = nil) {
+        self.focusDisplay = focusDisplay; self.focusDeadline = focusDeadline
         self.nonce = UUID()
         self.action = action
         self.pid = pid

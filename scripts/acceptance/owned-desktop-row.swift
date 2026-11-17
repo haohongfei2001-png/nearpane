@@ -1,6 +1,7 @@
 import AppKit
 import NearpaneCore
-import NearpaneUI
+import SwiftUI
+@testable import NearpaneUI
 import WindowGeometryCore
 import CReadOnlySpaces
 
@@ -77,6 +78,41 @@ private struct Refused: Error { let reason: String; init(_ reason: String) { sel
             guard !activationChanged, NSWorkspace.shared.frontmostApplication?.processIdentifier == front,
                   windows.allSatisfy({ !$0.isKeyWindow && !$0.isMainWindow && $0.isOnActiveSpace && $0.screen == screen })
             else { throw Refused("focus, display or active Space changed") }
+            let publicOnly = try await reader.snapshot(experimentalSpaces: false)
+            guard let publicDisplay = publicOnly.displays.first, publicOnly.displays.count == 1 else { throw Refused("missing display") }
+            let publicList = publicOnly.currentDesktopWindows(on: publicDisplay.id, now: Date(), uptime: ProcessInfo.processInfo.systemUptime)
+            guard publicOnly.native?.rows.isEmpty == true,
+                  publicList.compactMap({ $0.metadata?.number }) == numbers.sorted() else { throw Refused("window list depends on private Space inventory") }
+            result["publicCurrentWindowEntries"] = publicList.count
+            if result["renderedCurrentDesktopWindowCount"] == nil, let output = ProcessInfo.processInfo.environment["NEARPANE_OWNED_ROW_PNG"] {
+                // Draw only our own hosted surface. The native reader was explicitly limited to our two window IDs.
+                let host = HostSession(store: MemoryConfigurationStore(), includeSampleModules: false)
+                await host.start()
+                defer { host.stop() }
+                host.bus.resetDesktopSession()
+                guard host.bus.acceptDesktop(publicOnly) else { throw Refused("fixture snapshot was rejected") }
+                let surface = SurfaceDisplay()
+                surface.id = publicDisplay.id; surface.interactionVisible = true
+                let w: CGFloat = 218, h: CGFloat = 312
+                let view = NSHostingView(rootView: DesktopSurface(host: host, displayID: publicDisplay.id, enabled: true, display: surface)
+                    .padding(8).frame(width: w, height: h).background(Color(nsColor: .windowBackgroundColor)))
+                let panel = NSPanel(contentRect: CGRect(x: safe.minX + 8, y: safe.minY + 8, width: w, height: h),
+                                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+                panel.isReleasedWhenClosed = false; panel.ignoresMouseEvents = true
+                panel.contentView = view; panel.orderBack(nil)
+                defer { panel.orderOut(nil); panel.close() }
+                try await Task.sleep(for: .milliseconds(180))
+                view.layoutSubtreeIfNeeded()
+                guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw Refused("empty owned panel") }
+                view.cacheDisplay(in: view.bounds, to: rep)
+                guard let png = rep.representation(using: .png, properties: [:]) else { throw Refused("PNG encoding failed") }
+                try png.write(to: URL(fileURLWithPath: output), options: .atomic)
+                result["renderedCurrentDesktopWindowCount"] = publicList.count
+            }
+            if ProcessInfo.processInfo.environment["NEARPANE_PUBLIC_WINDOW_LIST_ONLY"] == "1" {
+                result["privateInventoryRequested"] = false
+                return
+            }
             let snapshot = try await reader.snapshot(experimentalSpaces: true)
             let now = Date(), uptime = ProcessInfo.processInfo.systemUptime
             result["lastEvidence"] = ["rows": snapshot.native?.rows.count ?? -1, "windows": snapshot.windows.count,
@@ -92,6 +128,9 @@ private struct Refused: Error { let reason: String; init(_ reason: String) { sel
                   preview.rows.count == 1, let row = preview.rows.first, row.kind == .witnessedSpace(witness.recordID),
                   row.windows.count == 2, snapshot.windows.count == 2,
                   previous == nil || previous == witness.recordID else { throw Refused("no stable witnessed current desktop") }
+            let list = snapshot.currentDesktopWindows(on: display.id, now: now, uptime: uptime)
+            guard list.compactMap({ $0.metadata?.number }) == numbers.sorted() else { throw Refused("missing independent window entries") }
+            result["independentWindowEntries"] = list.count
             var maxError = 0.0, axReads = 0
             for (index, window) in windows.enumerated() {
                 let actual = window.frame
