@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import uuid
 
-from run import OFF, OUT, ROOT, Trial, check
+from run import OFF, OUT, ROOT, WORK, Trial, check, put, reply
 
 parser = argparse.ArgumentParser()
 parser.add_argument("candidate", type=Path)
@@ -43,6 +43,9 @@ try:
                           str(trial.fixture.pid), str(number)], cwd=ROOT, timeout=18, check=True)
     check(trial.sample("after-readback") == initial, "window moved or focus changed")
     receipt = json.loads((session / "selected-preview.json").read_text())
+    released = reply(OFF + [WORK / "observe", "gone", str(receipt["panelPID"]), str(receipt["panelNumber"])])
+    put(OUT / "preview-panel-cleanup.json", released)
+    check(released.get("residual") == [], "Host panel remained registered")
     print(json.dumps(dict(session=session_id, trial=str(OUT), **receipt), ensure_ascii=False), flush=True)
     check(receipt["pass"], "sidebar did not render and revoke both known colors")
 finally:

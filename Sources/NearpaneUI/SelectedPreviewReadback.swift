@@ -104,14 +104,15 @@ private final class PreviewReadbackPanel: NSPanel {
         }
         let before = try await panelPixels()
         await selection.photograph(using: previews, host: host)
-        let received = previews.image != nil && previews.binding?.number == number && previews.revision == snapshot.revision
-        let source = try previews.image.map(colors) ?? []
+        let acquired = previews.image(in: snapshot)
+        let received = acquired != nil && previews.binding?.number == number && previews.revision == snapshot.revision
+        let source = try acquired.map(colors) ?? []
         let message = previews.notice
         let after = try await panelPixels()
         previews.setVisible(false, on: geometry.id)
         let cleared = try await panelPixels()
         return try JSONSerialization.data(withJSONObject: ["received": received, "notice": message, "before": before,
-            "source": source, "after": after, "cleared": cleared, "number": number, "panelNumber": window.windowNumber,
+            "source": source, "after": after, "cleared": cleared, "number": number, "panelNumber": window.windowNumber, "panelPID": getpid(),
             "width": frame.width, "height": frame.height, "panelKey": window.isKeyWindow, "panelMain": window.isMainWindow,
             "pass": received && source.count == 2 && source.allSatisfy { $0 >= 8 } &&
                 before == [0, 0] && after.allSatisfy { $0 >= 8 } && cleared == [0, 0]], options: [.sortedKeys])

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import NearpaneCore
 @testable import NearpaneUI
@@ -22,6 +23,22 @@ import Testing
             displays: [.init(id: "fixture", frame: display, rotationDegrees: 0, backingScale: 2, usable: display)],
             scopes: [], windows: [window], evidence: .init(population: .workWindows, accessibility: access,
                 spaces: .disabled, rows: [], windowLimitReached: false, beganUptime: 2, endedUptime: 3))
+    }
+
+    @Test func revocationHidesSameRevisionAndRefusesPublicationAfterAnAsyncIdentityCheck() async throws {
+        let bitmap = try #require(CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8,
+            bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let pixel = try #require(bitmap.makeImage())
+        var granted = true
+        let candidate = WindowPreviewStill(pixels: pixel, revision: 6, allowed: { granted })
+        let held = try #require(candidate)
+        #expect(held.image(at: 6) != nil && held.image(at: 7) == nil)
+        let proof = Task { @MainActor in granted = false; return true }
+        #expect(await proof.value)
+        #expect(!held.acceptVerifiedRevision(7) && held.revision == 6)
+        #expect(held.image(at: 6) == nil && !held.accessible)
+        let revoked = WindowPreviewStill(pixels: pixel, revision: 7, allowed: { granted })
+        #expect(revoked == nil)
     }
 
     @Test func pixelBindingRequiresSameSessionProcessWindowGeometryAndFreshReadback() throws {
@@ -73,7 +90,7 @@ import Testing
         preview.setVisible(false, on: "unrelated")
         #expect(preview.operation == replacement)
         preview.clear()
-        #expect(!preview.active && preview.image == nil)
+        #expect(!preview.active && !preview.hasStill)
     }
 
     @Test func previewHelperGrantsOnlyObservationAndRequiresTwoMatchingReads() throws {
@@ -105,7 +122,7 @@ import Testing
             #expect(PreviewWindowBinding(snapshot, window: snapshot.windows[0]) == nil)
         }
         let preview = WindowContentPreview()
-        #expect(!preview.active && preview.image == nil)
+        #expect(!preview.active && !preview.hasStill)
         preview.clear()
         #expect(preview.binding == nil && preview.revision == nil)
     }
