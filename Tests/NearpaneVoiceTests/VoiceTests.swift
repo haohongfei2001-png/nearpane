@@ -115,6 +115,31 @@ struct VoiceTests {
         module.stop(); await module.waitForTransition()
     }
 
+    @Test func archiveRetryDoesNotDependOnThePanelLoadedPage() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        let old = try await store.createRecording(createdAt: Date(timeIntervalSince1970: 1))
+        let run = try await store.beginRecognition(recordingID: old.id)
+        try await store.failRecognition(ticket: run, message: "synthetic interruption")
+        for index in 2...65 {
+            _ = try await store.createRecording(createdAt: Date(timeIntervalSince1970: Double(index)))
+        }
+        var input: ScriptedInput?
+        let module = VoiceModule(openStore: { store }, makeInput: { _, update in
+            let device = ScriptedInput(update); input = device; return device
+        })
+        try module.start()
+        await module.waitForTransition()
+        #expect(module.hasEarlier && !module.rows.contains { $0.id == old.id })
+        if let latest = module.rows.last { await module.retry(latest.id) }
+        #expect(input == nil)
+        await module.retry(old.id)
+        #expect(input?.retried == old.id)
+        module.stop()
+        await module.waitForTransition()
+    }
+
     @Test func realStoreProjectsOneCorrectedStreamProtectsEditsAndRestoresAfterShutdown() async throws {
         let dir = directory()
         defer { try? FileManager.default.removeItem(at: dir) }
