@@ -3,6 +3,15 @@
 import AppKit
 import Darwin
 
+private final class PreviewSwatches: NSView {
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor(srgbRed: 0.12, green: 0.75, blue: 0.30, alpha: 1).setFill()
+        bounds.fill()
+        NSColor(srgbRed: 0.80, green: 0.12, blue: 0.60, alpha: 1).setFill()
+        NSRect(x: bounds.midX, y: bounds.minY, width: bounds.width / 2, height: bounds.height).fill()
+    }
+}
+
 func emit(_ object: [String: Any]) {
     guard let data = try? JSONSerialization.data(withJSONObject: object) else { exit(2) }
     FileHandle.standardOutput.write(data + Data([10]))
@@ -143,6 +152,10 @@ DispatchQueue.global().async {
                     finish("test edit would leave the secondary or exceed its permitted size", 2)
                 }
                 w.setFrame(r, display: true)
+            case "preview-swatches" where fields.count == 1 && single && windows.count == 1:
+                guard let w = windows[1] else { finish("missing preview subject", 2) }
+                w.contentView = PreviewSwatches(frame: w.contentView!.bounds)
+                w.displayIfNeeded()
             case "read": break
             case "quit": finish("requested",0)
             default: finish("bad command",2)

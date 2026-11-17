@@ -181,9 +181,10 @@ enum AdmissionReadFailure: LocalizedError {
     }
     private func read(_ app: AdmissionApplication, targets: [AdmissionReadRequest.Target]) async throws -> AdmissionReadReply {
         let r = AdmissionReadRequest(parent: getpid(), pid: app.pid, launch: app.launch, bundle: app.bundle, targets: targets)
-        let executable = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
-        guard let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneDesktopReaderSHA256") as? String,
-              executable.resolvingSymlinksInPath().path == executable.path else { throw AdmissionReadFailure.unavailable }
+        guard let executable = NativeDesktopProvider.readerURL(in: Bundle.main.bundleURL),
+              let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneDesktopReaderSHA256") as? String else {
+            throw AdmissionReadFailure.unavailable
+        }
         let job = Task.detached(priority: .userInitiated) {
             let file = try Data(contentsOf: executable, options: .mappedIfSafe)
             guard SHA256.hash(data: file).map({ String(format: "%02x",$0) }).joined() == expected else { throw AdmissionReadFailure.unavailable }

@@ -159,7 +159,7 @@ private final class PassiveManagementPanel: NSPanel {
               b.pbi_pid == UInt32(pid), b.pbi_uid == getuid() else { return nil }
         return b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec
     }
-    private static func ownedStandardFixture(pid: Int32, kind: AdmissionFixtureOwner.Kind) -> AdmissionFixtureOwner? {
+    static func ownedStandardFixture(pid: Int32, kind: AdmissionFixtureOwner.Kind) -> AdmissionFixtureOwner? {
         guard let launch = birth(pid), let app = NSRunningApplication(processIdentifier: pid), app.activationPolicy == .regular,
               !app.isTerminated, let executable = app.executableURL?.resolvingSymlinksInPath(),
               let owner = AdmissionFixtureOwner(kind: kind, pid: pid, launch: launch, bundle: app.bundleIdentifier,

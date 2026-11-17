@@ -320,6 +320,7 @@ public struct SettingsView: View {
         case .windowManagement:
             if let manager = domains?.workRect {
                 CandidateWorkRectView(session: manager, host: host, previewExposure: previewExposure)
+                    .environment(domains?.windowPreviews)
             } else {
                 Text("此版本未包含窗口管理。请打开已安装的 Nearpane。")
                     .accessibilityIdentifier("settings-window-manager-unavailable")

@@ -80,6 +80,7 @@ struct PreviewWindowBinding: Equatable {
     var active: Bool { operation != nil }
     private var observer: WindowPickerObserver?
     private weak var host: HostSession?
+    private var requiresScreenRecording = false
     private var witness: PreviewIdentityWitness?
     private var expiry: Task<Void, Never>?
     private(set) var operation: UUID?
@@ -107,7 +108,8 @@ struct PreviewWindowBinding: Equatable {
     private func permits(_ target: PreviewWindowBinding, host: HostSession) -> Bool {
         guard visibleDisplays.contains(target.display), host.isRunning, !host.configuration.surfaceHidden,
               host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
-              Self.sessionAvailable(), target.window(in: host.bus.desktop) != nil else { return false }
+              Self.sessionAvailable(), !requiresScreenRecording || CGPreflightScreenCaptureAccess(),
+              target.window(in: host.bus.desktop) != nil else { return false }
         return true
     }
 
@@ -138,6 +140,53 @@ struct PreviewWindowBinding: Equatable {
         }
     }
 
+    /// A separate, explicit opt-in for the exact AX object selected in Settings. The
+    /// ordinary-window selection never grants screen recording permission or window writes.
+    @available(macOS 15.2, *)
+    func captureSelected(_ id: ManagedWindowID, bundle: String, host: HostSession,
+                         stillSelected: @escaping @MainActor () async -> Bool) async {
+        guard let op = beginSelection() else { return }
+        self.host = host
+        requiresScreenRecording = true
+        guard CGPreflightScreenCaptureAccess() else {
+            clear("拍摄已选窗口需要已有的屏幕录制权限。也可在「桌面预览」使用系统选择器。"); return
+        }
+        guard let snapshot = host.bus.desktop,
+              let target = Self.selectedBinding(id, in: snapshot), permits(target, host: host),
+              await stillSelected() else {
+            if operation == op { clear("无法确认原窗口。请重新选择。") }; return
+        }
+        guard operation == op else { return }
+        notice = "正在读取所选窗口…"
+        do {
+            // ScreenCaptureKit exposes its public ID index as SCWindow objects. Inspect
+            // only their numbers until the unique selected record has been found.
+            let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+            guard operation == op else { return }
+            let matches = content.windows.filter { $0.windowID == id.number }
+            guard matches.count == 1, let chosen = matches.first, chosen.isOnScreen, chosen.windowLayer == 0,
+                  chosen.owningApplication?.processID == id.pid, chosen.owningApplication?.bundleIdentifier == bundle,
+                  CGPreflightScreenCaptureAccess(), permits(target, host: host) else {
+                clear("系统没有提供原窗口的可见图像。"); return
+            }
+            let filter = SCContentFilter(desktopIndependentWindow: chosen)
+            await capture(filter, operation: op, expected: target, consent: {
+                guard CGPreflightScreenCaptureAccess() else { return false }
+                return await stillSelected()
+            })
+        } catch {
+            if operation == op { clear("系统未提供该窗口的图像，仍显示窗口轮廓。") }
+        }
+    }
+
+    static func selectedBinding(_ id: ManagedWindowID, in snapshot: DesktopSnapshot,
+                                now: Date = Date(), uptime: Double = ProcessInfo.processInfo.systemUptime) -> PreviewWindowBinding? {
+        let matches = snapshot.windows.filter { $0.metadata?.number == id.number }
+        guard matches.count == 1, let window = matches.first, let target = PreviewWindowBinding(snapshot, window: window),
+              target.pid == id.pid, target.birth == id.launch, target.window(in: snapshot, now: now, uptime: uptime) != nil else { return nil }
+        return target
+    }
+
     private func endPicking() {
         if let observer {
             SCContentSharingPicker.shared.remove(observer)
@@ -151,6 +200,7 @@ struct PreviewWindowBinding: Equatable {
         operation = nil
         expiry?.cancel(); expiry = nil
         endPicking()
+        requiresScreenRecording = false
         witness = nil; image = nil; binding = nil; revision = nil; notice = message
     }
 
@@ -161,18 +211,22 @@ struct PreviewWindowBinding: Equatable {
     }
 
     @available(macOS 15.2, *)
-    private func capture(_ filter: SCContentFilter, operation op: UUID) async {
+    private func capture(_ filter: SCContentFilter, operation op: UUID,
+                         expected: PreviewWindowBinding? = nil,
+                         consent: @MainActor () async -> Bool = { true }) async {
         guard operation == op else { return }
         guard filter.style == .window, filter.includedWindows.count == 1, let chosen = filter.includedWindows.first,
               let application = chosen.owningApplication, !application.bundleIdentifier.isEmpty, application.processID != getpid(), chosen.windowLayer == 0, chosen.isOnScreen,
               let host, !host.configuration.surfaceHidden, let snapshot = host.bus.desktop,
               let window = snapshot.windows.first(where: { $0.metadata?.number == chosen.windowID && $0.metadata?.pid == application.processID }),
-              let target = PreviewWindowBinding(snapshot, window: window), permits(target, host: host),
+              let target = PreviewWindowBinding(snapshot, window: window), expected == nil || target == expected, permits(target, host: host),
               let proof = await PreviewIdentityWitness(target: target, bundle: application.bundleIdentifier) else {
             if operation == op { clear("暂时无法同时确认所选窗口的位置与身份。") }; return
         }
         guard operation == op else { return }
-        guard permits(target, host: host) else { clear("窗口已变化，请重新选择。"); return }
+        let granted = await consent()
+        guard operation == op else { return }
+        guard granted, permits(target, host: host) else { clear("窗口已变化，请重新选择。"); return }
         let config = SCStreamConfiguration()
         let size = target.bounds
         let scale = min(1, 384 / max(size.width, size.height))
@@ -183,7 +237,8 @@ struct PreviewWindowBinding: Equatable {
         do {
             let shot = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
             guard operation == op else { return }
-            let stillSameWindow = await proof.verify()
+            let granted = await consent()
+            let stillSameWindow = granted ? await proof.verify() : false
             guard operation == op else { return }
             guard let current = host.bus.desktop, permits(target, host: host),
                   stillSameWindow else {

@@ -23,7 +23,7 @@ private actor OrdinaryWindowChannel {
     private let input, output, alertsInput: FileHandle
 
     init(alerts: BoundaryAlerts, previewWindow: UInt32? = nil) throws {
-        let root = Bundle.main.bundleURL
+        let root = Bundle.main.bundleURL.resolvingSymlinksInPath()
         let executable = root.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
         guard executable.resolvingSymlinksInPath().path == executable.path,
               let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneOrdinaryWindowControllerSHA256") as? String,

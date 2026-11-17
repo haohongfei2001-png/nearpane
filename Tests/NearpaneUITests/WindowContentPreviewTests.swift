@@ -36,6 +36,19 @@ import Testing
         #expect(bound.window(in: good, now: now.addingTimeInterval(15), uptime: 18) == nil)
     }
 
+    @Test func selectedStillRejectsSiblingRecreatedAndUnconfirmedGeometryBeforeReadingPixels() {
+        let session = UUID(), good = sample(session: session)
+        let id = ManagedWindowID(pid: 12, launch: 200, number: 21, element: UUID())
+        #expect(WindowContentPreview.selectedBinding(id, in: good, now: now, uptime: 3) != nil)
+        let thumbnail = SurfaceRect(x: 2, y: 150, width: 49, height: 76)
+        for other in [sample(session: session, number: 22, axNumber: 22), sample(session: session, birth: 201),
+                      sample(session: session, axNumber: 22), sample(session: session, cgOverride: thumbnail),
+                      sample(session: session, access: .denied)] {
+            #expect(WindowContentPreview.selectedBinding(id, in: other, now: now, uptime: 3) == nil)
+        }
+        #expect(WindowContentPreview.selectedBinding(id, in: good, now: now.addingTimeInterval(20), uptime: 23) == nil)
+    }
+
     @Test func movingToAnotherDesktopRevokesAStillEvenWhenTheFrameIsIdentical() throws {
         let s = sample(session: UUID())
         let original = try #require(PreviewWindowBinding(s, window: s.windows[0]))
