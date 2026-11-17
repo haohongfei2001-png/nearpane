@@ -52,6 +52,7 @@ let policy: NSApplication.ActivationPolicy = .regular
 guard app.activationPolicy() == policy else { emit(["refused":"activation policy"]); exit(2) }
 NSWindow.allowsAutomaticWindowTabbing = false
 var windows = [Int: NSWindow]()
+var rightEdgeStimulus: (number: Int, frame: CGRect, deadline: TimeInterval)?
 var focusEvents = 0
 var history = [UInt32]()
 @MainActor func finish(_ reason: String, _ status: Int32) -> Never {
@@ -61,7 +62,13 @@ var history = [UInt32]()
 @MainActor func safe() -> Bool {
     NSScreen.screens.count == expectedCount && safeSecondaryFrame == NSScreen.screens.last?.frame &&
     NSWorkspace.shared.frontmostApplication?.processIdentifier == front && !app.isActive &&
-    windows.values.allSatisfy { !$0.isKeyWindow && !$0.isMainWindow && safeSecondaryFrame.contains($0.frame) } &&
+    windows.values.allSatisfy { window in
+        guard !window.isKeyWindow, !window.isMainWindow else { return false }
+        if safeSecondaryFrame.contains(window.frame) { return true }
+        guard single, let stimulus = rightEdgeStimulus else { return false }
+        return window.windowNumber == stimulus.number && window.frame == stimulus.frame &&
+            ProcessInfo.processInfo.systemUptime < stimulus.deadline
+    } &&
     focusEvents == 0
 }
 @MainActor func add(_ n: Int, compact: Bool = false) {
@@ -139,6 +146,22 @@ DispatchQueue.global().async {
                 let r = CGRect(x:secondary.visibleFrame.midX-110,y:secondary.visibleFrame.midY-85,width:220,height:170)
                 guard secondary.visibleFrame.contains(r) else { finish("unsafe edit",2) }
                 w.setFrame(r,display:true)
+            case "cross-right-edge" where fields.count == 1 && single:
+                // One 12 pt excursion by this window's owner. Every other frame must
+                // stay fully on the display. Closing this disposable process removes it.
+                guard rightEdgeStimulus == nil, windows.count == 2, let w = windows[1],
+                      FileManager.default.fileExists(atPath: io.appendingPathComponent("right-edge").path)
+                else { finish("ineligible edge stimulus", 2) }
+                var r = w.frame
+                r.size.width -= 48
+                r.size.height -= 40
+                r.origin = CGPoint(x: safeSecondaryFrame.maxX - r.width + 12, y: r.minY + 16)
+                let visible = r.intersection(safeSecondaryFrame)
+                guard r.width >= 240, r.height >= 152, visible.width == r.width - 12,
+                      visible.height == r.height, visible.width >= r.width * 0.95
+                else { finish("unsafe edge stimulus", 2) }
+                rightEdgeStimulus = (w.windowNumber, r, ProcessInfo.processInfo.systemUptime + 8)
+                w.setFrame(r, display: true)
             case "cross-reservation" where fields.count == 1:
                 // Owner-side stimulus only. The product must observe the change through AX
                 // and perform any correction in its separate controller. Never post mouse events.
