@@ -87,7 +87,15 @@ class DependencyTests(unittest.TestCase):
             with self.assertRaisesRegex(resolver.DependencyError, "inventory SHA"):
                 resolver.validate(bad)
         self.assertIn("Sources/SaytileVoiceUI", lock["domains"]["saytile"]["sources"])
-        self.assertNotIn("saytileUpdates", lock)
+        voice = lock["domains"]["saytile"]
+        updates = lock["saytileUpdates"]
+        resolver.validate_voice_updates(voice, updates)
+        self.assertEqual(updates["sources"], ["Sources/SaytileKit/LocalASRProvider.swift"])
+        self.assertNotEqual(updates["files"][updates["sources"][0]], voice["files"][updates["sources"][0]])
+        runtime = json.loads((resolver.ROOT / "Dependencies/voice-runtime.json").read_text())
+        self.assertEqual((runtime["sourceCommit"], runtime["release"]), (voice["commit"], voice["releaseTag"]))
+        self.assertIn("Helpers/SaytileModelWorker", runtime["files"])
+        self.assertIn("Resources/default.metallib", runtime["files"])
 
     def test_voice_update_only_replaces_the_named_locked_sources(self):
         lock = json.loads(resolver.LOCK.read_text())

@@ -500,7 +500,7 @@ public final class VoiceModule: HostModule {
         limit += 60; await refresh()
     }
     func retry(_ id: UUID) async {
-        guard active, !busy, !changingRecognition, rows.contains(where: { $0.id == id && $0.recognitionState == .failed }) else { return }
+        guard active, !busy, !changingRecognition else { return }
         if recognitionProfile?.enabled == true, capture == .speaking || capture == .starting {
             issue = "请等待本次讲话结束后重试。"
             return
@@ -509,6 +509,8 @@ public final class VoiceModule: HostModule {
         let epoch = generation
         defer { if epoch == generation { busy = false } }
         do {
+            guard let row = try await withPanelRead({ try await $0.recording(id: id) }),
+                  active, epoch == generation, row.recognitionState == .failed, row.audioState == .available else { return }
             let device = try currentInput()
             try await device.retry(id)
             guard active, epoch == generation else { return }

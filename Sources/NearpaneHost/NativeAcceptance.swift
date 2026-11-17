@@ -66,7 +66,8 @@ struct NativeAcceptanceSession {
         await module.waitForTransition()
         let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 260, height: 210),
                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        let surface = NSHostingView(rootView: VoiceSurface(module, pasteboard: NSPasteboard(name: .init(directory.lastPathComponent))))
+        let surface = NSHostingView(rootView: VoiceSurface(module, pasteboard: NSPasteboard(name: .init(directory.lastPathComponent)))
+            .productAccent(.purple).background(Color(nsColor: .windowBackgroundColor)))
         window.contentView = surface
         func strings(_ view: NSView) -> [String] {
             if let text = view as? NSTextView { return text.string.isEmpty ? [] : [text.string] }

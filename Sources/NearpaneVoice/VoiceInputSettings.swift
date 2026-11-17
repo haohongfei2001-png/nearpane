@@ -44,6 +44,7 @@ public struct VoiceInputSettings: View {
                 }
             }
             Section("本机输入") {
+                if let issue = module.issue { Text(issue).foregroundStyle(.secondary) }
                 LabeledContent("麦克风权限", value: permissionLabel)
                 LabeledContent("输入设备", value: route.label)
                 if let local = module.localRecognition {
