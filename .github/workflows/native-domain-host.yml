@@ -32,4 +32,4 @@ jobs:
       - name: Run the complete native test suite offline
         env:
           NEARPANE_OFFLINE: '1'
-        run: scripts/test.sh
+        run: scripts/test.sh --no-parallel
