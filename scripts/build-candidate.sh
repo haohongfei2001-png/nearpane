@@ -9,8 +9,12 @@ lab="$(cat build/window-lab/apps-path.txt)"
 version=5.15
 build_number=66
 name="Nearpane P$version Alpha.app"
-delivery="${NEARPANE_CANDIDATE_OUTPUT:-$HOME/Applications}"
-if [[ "${delivery%/}" == "$HOME/Applications" ]]; then
+delivery="${NEARPANE_CANDIDATE_OUTPUT:-/Applications}"
+if [[ -z "${NEARPANE_CANDIDATE_OUTPUT:-}" && ! -e /Applications/Nearpane.app &&
+      ( -d "$HOME/Applications/Nearpane.app" || ! -w /Applications ) ]]; then
+    delivery="$HOME/Applications"
+fi
+if [[ "${delivery%/}" == /Applications || "${delivery%/}" == "$HOME/Applications" ]]; then
     name="Nearpane.app"
     receipt="$product_root/candidate/package.json"
 else

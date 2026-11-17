@@ -449,7 +449,9 @@ def verify_settings(old, new, fixture_receipt=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old", type=Path, default=Path.home()/"Applications/Nearpane P5.2/Nearpane P5.2 Alpha.app")
-    parser.add_argument("--new", type=Path, default=Path.home()/"Applications/Nearpane.app")
+    installed = Path("/Applications/Nearpane.app")
+    legacy = Path.home() / "Applications/Nearpane.app"
+    parser.add_argument("--new", type=Path, default=legacy if not installed.exists() and legacy.exists() else installed)
     parser.add_argument("--fixture-receipt", type=Path, help="Use a verified legacy synthetic fixture after retiring its app")
     parser.add_argument("--previous-unified", type=Path, help="Also verify downgrade and re-upgrade on the same generation")
     mode = parser.add_mutually_exclusive_group()

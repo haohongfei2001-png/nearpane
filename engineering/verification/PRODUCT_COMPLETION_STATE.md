@@ -4,7 +4,7 @@
 
 **读法：** IMPLEMENTED＝有可运行实现，尚缺相应现场证据；VERIFIED＝仅在写明的环境实际通过；PARTIAL＝同一能力中仍缺部分路径；BLOCKED＝前置未满足；NOT_IMPLEMENTED＝没有产品实现。算法、隔离系统实测、真人环境是三种证据；后两者不互相替代。
 
-**当前个人安装版**　[Nearpane.app](/Users/hhf/Applications/Nearpane.app)，5.15 Alpha，build 66，产品源码 `f0e3f73`。一块 1470 × 956 pt 显示器上已核实当前桌面行、两个重叠窗口、选窗图像在真实面板上的显示与撤回。两份本轮签封候选另已验证同进程新窗自动平铺、60/40 与三窗恢复、左侧预留及屏幕右缘单次纠正。最终安装包的同一控制器与读取器通过指纹比对；最终 Host 窗口写入复测在焦点读取阶段安全退出。空间切换、跨 Space 移窗和 Virtual 停放仍待准入。[单屏交付与安装](P5.15-SINGLE-DISPLAY.md) · [逐项桌面能力表](DESKTOP-CAPABILITIES.md)
+**当前个人安装版**　[Nearpane.app](/Applications/Nearpane.app)，5.15 Alpha，build 66，产品源码 `f0e3f73`。一块 1470 × 956 pt 显示器上已核实当前桌面行、两个重叠窗口、选窗图像在真实面板上的显示与撤回。两份本轮签封候选另已验证同进程新窗自动平铺、60/40 与三窗恢复、左侧预留及屏幕右缘单次纠正。最终安装包的同一控制器与读取器通过指纹比对；最终 Host 窗口写入复测在焦点读取阶段安全退出。空间切换、跨 Space 移窗和 Virtual 停放仍待准入。[单屏交付与安装](P5.15-SINGLE-DISPLAY.md) · [逐项桌面能力表](DESKTOP-CAPABILITIES.md)
 
 5.14（65）的完整安装包已归档可回退。合成资料在 5.14 与 5.15 间完成实际升级、回退、重开，个人资料未迁移。此前的领域、视觉及安装收据见 [5.14](P5.14-CORE-DESKTOP.md)、[5.13](P5.13-VISUAL-FIDELITY.md)、[5.12](P5.12-UNIFIED-ARCHIVES-AND-SETTINGS.md)。
 
