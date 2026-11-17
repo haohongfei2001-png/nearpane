@@ -75,12 +75,6 @@ public struct VoiceSurface: View {
             } else {
                 ScrollView {
                     VStack(alignment:.leading,spacing:settings.points(.lineGap,in:size.height)) {
-                        if module.rows.allSatisfy({ $0.text.isEmpty && $0.recognitionState != .failed }),
-                           module.capture == .paused, module.issue == nil {
-                            Text("点播放按钮开始收音")
-                                .font(.caption).foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
                         if module.hasEarlier {
                             Button("较早文字") { Task { await module.loadEarlier() } }.font(.caption2)
                         }
@@ -99,16 +93,10 @@ public struct VoiceSurface: View {
                                     }
                                 }
                             }
-                            if row.recognitionState == .failed {
-                                Button("重试识别") { Task { await module.retry(row.id) } }
-                                    .font(.caption).help(row.lastError ?? "保留原音和文字")
-                            }
+
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.frame(maxWidth: .infinity, maxHeight: min(size.height,settings.points(.textHeight,in:size.height)), alignment: .topLeading)
-            }
-            if let issue = module.issue ?? module.insertionNotice {
-                Text(issue).font(.caption2).foregroundStyle(.secondary).lineLimit(2).help(issue)
             }
             HStack(spacing:settings.points(.buttonGap,in:size.width)) {
                 Button {
@@ -120,7 +108,7 @@ public struct VoiceSurface: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(VoiceGlassControlStyle(copy: true, height: buttonHeight))
-                .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字").help("复制当前文字")
+                .disabled(module.transcript.isEmpty).accessibilityLabel("复制当前文字").help(module.insertionNotice ?? "复制当前文字")
                 .onChange(of: module.transcript) { copied = false }
                 .contextMenu {
                     if module.offersManualInput {

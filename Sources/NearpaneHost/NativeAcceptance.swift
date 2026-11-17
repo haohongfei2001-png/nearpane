@@ -1,5 +1,8 @@
 #if canImport(RiftletCore) && canImport(SaytileKit)
 import AppKit
+import SwiftUI
+import Synchronization
+import NearpaneVoice
 import AVFoundation
 import Speech
 import CryptoKit
@@ -43,6 +46,82 @@ struct NativeAcceptanceSession {
         exit(prepare && !after.installed ? 3 : 0)
     }
 
+    /// Exercise the actual host adapter and AppKit text views from authorized public PCM.
+    /// The fixture name, hash, isolated model cache and writable database are fixed.
+    @MainActor func reportLocalMandarin() async throws {
+        let wav = directory.appending(path: "public-mandarin.wav")
+        try ProfileLease.checkPath(wav)
+        guard try wav.resourceValues(forKeys: [.fileSizeKey]).fileSize == 496_044 else { throw CocoaError(.fileReadCorruptFile) }
+        let digest = SHA256.hash(data: try Data(contentsOf: wav)).map { String(format: "%02x", $0) }.joined()
+        guard digest == "95dae2e6509dac2af6b35149dbd46978e2a5bfd480d3604282a1a092606ff0ea" else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        let root = directory.appending(path: "MandarinFixture/Nearpane/Voice")
+        try ProfileLease.checkPath(root)
+        guard !FileManager.default.fileExists(atPath: root.appending(path: "Saytile.sqlite").path) else {
+            throw CocoaError(.fileWriteFileExists)
+        }
+        let module = EmbeddedModules(support: root.deletingLastPathComponent(), testSession: directory).voice
+        try module.start()
+        await module.waitForTransition()
+        let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 260, height: 210),
+                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        let surface = NSHostingView(rootView: VoiceSurface(module, pasteboard: NSPasteboard(name: .init(directory.lastPathComponent)))
+            .productAccent(.purple).background(Color(nsColor: .windowBackgroundColor)))
+        window.contentView = surface
+        func strings(_ view: NSView) -> [String] {
+            if let text = view as? NSTextView { return text.string.isEmpty ? [] : [text.string] }
+            return view.subviews.flatMap { strings($0) }
+        }
+        var observations: [(Double, String)] = []
+        let began = ProcessInfo.processInfo.systemUptime
+        func sample() {
+            window.displayIfNeeded()
+            surface.layoutSubtreeIfNeeded()
+            let text = strings(surface).joined(separator: "\n")
+            if !text.isEmpty, text != observations.last?.1 {
+                observations.append((ProcessInfo.processInfo.systemUptime, text))
+            }
+        }
+        let sampling = Task { @MainActor in
+            while !Task.isCancelled {
+                sample()
+                try await Task.sleep(for: .milliseconds(40))
+            }
+        }
+        defer { sampling.cancel(); module.stop() }
+        let worker = Mutex((ready: 0, first: Double?.none))
+        let (model, pcmStart, eos) = try await module.replayIsolatedMandarin(wav) { event in
+            worker.withLock { sample in
+                if event.kind == "ready" { sample.ready += 1 }
+                if sample.first == nil && !event.text.isEmpty { sample.first = ProcessInfo.processInfo.systemUptime }
+            }
+        }
+        let timing = worker.withLock { $0 }
+        await module.refresh()
+        try await Task.sleep(for: .milliseconds(120))
+        sample()
+        let early = observations.filter { $0.0 < eos }
+        let final = module.transcript
+        guard model == .qwen, timing.ready == 1, let firstModel = timing.first, early.count >= 2, !final.isEmpty, observations.last?.1 == final else {
+            throw AudioFailure.message("原生文字流未通过：结束前更新 \(early.count) 次，界面与最终文字一致 \(observations.last?.1 == final)")
+        }
+        guard let pixels = surface.bitmapImageRepForCachingDisplay(in: surface.bounds) else { throw CocoaError(.fileWriteUnknown) }
+        surface.cacheDisplay(in: surface.bounds, to: pixels)
+        guard let png = pixels.representation(using: .png, properties: [:]) else { throw CocoaError(.fileWriteUnknown) }
+        try png.write(to: directory.appending(path: "voice-panel-final.png"), options: .withoutOverwriting)
+        let receipt: [String: Any] = ["sourceWAVSHA256": digest, "model": model.rawValue, "microphoneOpened": false,
+            "realTimeFile": true, "visibleBeforeEOS": early.count, "sampledTextUpdates": observations.count,
+            "coldSetupSeconds": pcmStart - began, "firstTextSeconds": early[0].0 - pcmStart,
+            "firstModelTextSeconds": firstModel - pcmStart, "modelToPanelSeconds": early[0].0 - firstModel,
+            "workerReadyEvents": timing.ready, "audioInputSeconds": eos - pcmStart,
+            "nativeFinalSHA256": SHA256.hash(data: Data(final.utf8)).map { String(format: "%02x", $0) }.joined()]
+        module.stop()
+        await module.waitForTransition()
+        let data = try JSONSerialization.data(withJSONObject: receipt, options: [.sortedKeys])
+        try FileHandle.standardOutput.write(contentsOf: data + Data([10]))
+    }
+
     init(id: String, prepare: Bool) throws {
         guard let uuid = UUID(uuidString: id), id == uuid.uuidString.lowercased(),
               Bundle.main.bundleURL.pathExtension == "app", let executable = Bundle.main.executableURL else {
@@ -65,7 +144,8 @@ struct NativeAcceptanceSession {
         let marker = Marker(version: 2, session: uuid, executableSHA256: SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined())
         if prepare {
             try fm.createDirectory(at: parent, withIntermediateDirectories: true)
-            guard parent.resolvingSymlinksInPath().path == parent.path, mkdir(directory.path, 0o700) == 0 else {
+            try ProfileLease.checkPath(parent)
+            guard mkdir(directory.path, 0o700) == 0 else {
                 throw CocoaError(.fileWriteFileExists)
             }
             if !CandidateProfile.selected {

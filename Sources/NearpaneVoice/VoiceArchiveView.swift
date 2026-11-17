@@ -281,6 +281,11 @@ private struct VoiceArchiveFragment: View {
             HStack {
                 Text(recording.createdAt, format: .dateTime.hour().minute().second())
                 Text(state)
+                if recording.recognitionState == .failed, recording.audioState == .available {
+                    Button("重试识别") { Task { await module.retry(recording.id) } }
+                        .disabled(module.busy || module.changingRecognition)
+                        .help(recording.lastError ?? "从保留的原音重新识别")
+                }
             }.font(.caption).foregroundStyle(.secondary)
             DisclosureGroup("文字修订", isExpanded: $expanded) {
                 if expanded {

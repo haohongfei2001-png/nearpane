@@ -47,6 +47,9 @@ def rehearse(source):
         writer = helpers / "NearpaneOrdinaryWindowController"
         automation = helpers / "NearpaneAutomation"
         additional = [automation] if automation.exists() else []
+        voice = helpers / "SaytileModelWorker"
+        if voice.exists():
+            additional.append(voice)
         for binary in (*readers, writer, *additional):
             if binary.is_symlink() or not binary.is_file():
                 raise ValueError("Expected regular helper binary")
@@ -59,7 +62,9 @@ def rehearse(source):
         pin(fixture, "NearpaneDesktopReaderSHA256", readers[1])
         pin(temp, "NearpaneDesktopReaderSHA256", readers[0])
         pin(temp, "NearpaneOrdinaryWindowControllerSHA256", writer)
-        if additional:
+        if voice.exists():
+            pin(temp, "NearpaneVoiceRuntimeSHA256", voice)
+        if automation.exists():
             plist = temp / "Contents/Info.plist"
             info = plistlib.loads(plist.read_bytes())
             info["NearpaneAutomationSHA256"]["Helpers/NearpaneAutomation"] = sha(automation)
@@ -71,7 +76,7 @@ def rehearse(source):
             identifier = plistlib.loads((bundle / "Contents/Info.plist").read_bytes())["CFBundleIdentifier"]
             sign(bundle, identifier)
         after = gate.inspect(temp)
-        if additional:
+        if automation.exists():
             gate.cmd(str(temp / "Contents/MacOS/NearpaneHost"), "--check-helper-runtime")
         if set(original["binaries"]) != set(after["binaries"]):
             raise ValueError("Binary inventory changed")

@@ -39,6 +39,11 @@ def verify(app, lock, sandbox):
     load = subprocess.check_output(["/usr/bin/otool","-l",str(binary)],text=True)
     if not re.search(r"cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform (?:1|MACOS)\s+minos 26\.0\b",load):
         raise ValueError("Unexpected Mach-O deployment target")
+    if "NearpaneVoiceRuntimeSHA256" in plist or plist["CFBundleIdentifier"] == "com.holdsnow.nearpane.host":
+        voice_spec = importlib.util.spec_from_file_location("voice_runtime", ROOT / "scripts/prepare-voice-runtime.py")
+        runtime = importlib.util.module_from_spec(voice_spec)
+        voice_spec.loader.exec_module(runtime)
+        runtime.verify(contents, plist[runtime.KEY])
     helper = contents / "Helpers/NearpaneDesktopReader"
     if helper.resolve() != helper or digest(helper) != plist.get("NearpaneDesktopReaderSHA256"):
         raise ValueError("Unexpected desktop reader identity")

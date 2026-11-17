@@ -125,6 +125,15 @@ struct NearpaneApp {
                         return
                     }
                     guard args.count == 3 else { exit(2) }
+                    if args[1] == "--native-local-mandarin" {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        Task { @MainActor in
+                            do { try await session.reportLocalMandarin(); exit(0) }
+                            catch { FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8)); exit(3) }
+                        }
+                        RunLoop.main.run()
+                        return
+                    }
                     if CandidateProfile.selected, args[1] == "--selected-window-readiness" {
                         let session = try NativeAcceptanceSession(id: args[2], prepare: false)
                         _ = NSApplication.shared.setActivationPolicy(.prohibited)

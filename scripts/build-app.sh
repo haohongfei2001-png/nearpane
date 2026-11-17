@@ -68,6 +68,7 @@ else
   ln -s Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm "$resources/ConnectionSample.pcm"
   python3 scripts/prepare-domains.py --package-resources "$resources"
   cmp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
+  python3 scripts/prepare-voice-runtime.py "$stage"
   python3 scripts/prepare-update-runtime.py --embed "$stage" --sign-development
   # Removing development-only runpaths changes the load commands. Sign that exact
   # standalone image, then put it back for the later candidate bundle seal.

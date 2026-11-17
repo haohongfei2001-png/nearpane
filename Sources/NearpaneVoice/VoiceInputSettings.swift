@@ -27,7 +27,7 @@ public struct VoiceInputSettings: View {
         Form {
             if let profile = module.recognitionProfile {
                 Section("识别方式") {
-                    LabeledContent("当前", value: profile.enabled ? "API · " + (profile.language?.label ?? "") : "Apple 本机")
+                    LabeledContent("当前", value: profile.enabled ? "API · " + (profile.language?.label ?? "") : "本机")
                     if let issue = profile.issue { Text(issue).foregroundStyle(.secondary) }
                     if profile.needsCleanup {
                         Button(profile.enabled ? "切回本机并清除 API 密钥" : "清除 API 授权") {
@@ -44,11 +44,31 @@ public struct VoiceInputSettings: View {
                 }
             }
             Section("本机输入") {
+                if let issue = module.issue { Text(issue).foregroundStyle(.secondary) }
                 LabeledContent("麦克风权限", value: permissionLabel)
                 LabeledContent("输入设备", value: route.label)
-                Text(availability?.message ?? "正在检查本机中文识别资源…")
-                if let availability, availability.supported && !availability.installed {
-                    Button(preparing ? "正在准备…" : "准备本机中文识别资源") {
+                if let local = module.localRecognition {
+                    LabeledContent("新录音的本机识别", value: local.selection.title)
+                    if let state = local.status, local.canDownload {
+                        if state.downloading {
+                            ProgressView(value: Double(state.bytes), total: Double(max(1, state.total))) {
+                                Text("正在下载中文模型")
+                            }
+                            Button("暂停下载") { Task { await local.pauseDownload() } }
+                        } else if state.total > 0, !state.installed {
+                            let size = ByteCountFormatter.string(fromByteCount: state.total, countStyle: .file)
+                            Button("准备中文模型（" + size + "）") { local.resume() }
+                        }
+                        if let message = state.error { Text(message).foregroundStyle(.secondary) }
+                        if let problem = local.problem {
+                            Text(problem).foregroundStyle(.secondary)
+                            Button("重试中文模型") { local.resume() }
+                        }
+                    }
+                }
+                if module.localRecognition?.selection != .qwen, let availability,
+                   availability.supported && !availability.installed {
+                    Button(preparing ? "正在准备…" : "准备 Apple 中文识别资源") {
                         guard !preparing else { return }
                         preparing = true
                         error = nil
@@ -64,6 +84,13 @@ public struct VoiceInputSettings: View {
             }
             if let error { Text(error).foregroundStyle(.secondary).textSelection(.enabled) }
         }.formStyle(.grouped).task { await refresh() }
+        .task(id: module.localRecognition?.status?.downloading) {
+            guard let local = module.localRecognition, local.status?.downloading == true else { return }
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                await local.refresh()
+            }
+        }
         .task {
             for await _ in VoiceInputRouteObservation.shared.changes() { refreshDevice() }
         }
@@ -115,7 +142,8 @@ public struct VoiceInputSettings: View {
 
     private func refresh() async {
         refreshDevice()
-        availability = await AppleSpeechService.availability()
+        await module.localRecognition?.refresh()
+        if module.localRecognition?.selection != .qwen { availability = await AppleSpeechService.availability() }
     }
 
     private var permissionLabel: String {

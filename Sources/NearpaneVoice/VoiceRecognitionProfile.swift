@@ -63,7 +63,16 @@ final class VoiceRecognitionProfile {
     var language: LanguagePreference? { grant?.language }
 
     static func identifier(for directory: URL) -> String {
-        SHA256.hash(data: Data(directory.standardizedFileURL.path.utf8)).map { String(format: "%02x", $0) }.joined()
+        // Foundation canonicalizes /private/tmp and /private/var differently before
+        // and after mkdir. Bind the same profile on its first launch and its next.
+        var existing = directory
+        var missing: [String] = []
+        while !FileManager.default.fileExists(atPath: existing.path), existing.path != "/" {
+            missing.append(existing.lastPathComponent)
+            existing.deleteLastPathComponent()
+        }
+        let canonical = missing.reversed().reduce(existing.standardizedFileURL) { $0.appendingPathComponent($1) }
+        return SHA256.hash(data: Data(canonical.path.utf8)).map { String(format: "%02x", $0) }.joined()
     }
     init(directory: URL, credentials: any VoiceCredentialAccess) {
         self.directory = directory
