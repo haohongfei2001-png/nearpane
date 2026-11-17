@@ -1,0 +1,433 @@
+{
+  "default": {
+    "listY": 320,
+    "toolCount": 2,
+    "overflow": true,
+    "lastY": 1046.67,
+    "cards": [
+      {
+        "kind": "window",
+        "top": 320,
+        "height": 170.67
+      },
+      {
+        "kind": "window",
+        "top": 501.67,
+        "height": 170.67
+      },
+      {
+        "kind": "window",
+        "top": 683.33,
+        "height": 170.67
+      },
+      {
+        "kind": "window",
+        "top": 865.0,
+        "height": 170.67
+      }
+    ],
+    "screen": [
+      1440,
+      900
+    ],
+    "panelWidth": 240,
+    "workRect": [
+      12,
+      39,
+      1176,
+      849
+    ]
+  },
+  "threeTools": {
+    "listY": 458,
+    "toolCount": 3,
+    "overflow": true,
+    "lastY": 1184.67,
+    "cards": [
+      {
+        "kind": "window",
+        "top": 458,
+        "height": 170.67
+      },
+      {
+        "kind": "window",
+        "top": 639.67,
+        "height": 170.67
+      },
+      {
+        "kind": "window",
+        "top": 821.33,
+        "height": 170.67
+      },
+      {
+        "kind": "window",
+        "top": 1003.0,
+        "height": 170.67
+      }
+    ],
+    "screen": [
+      1440,
+      900
+    ],
+    "panelWidth": 240,
+    "workRect": [
+      12,
+      39,
+      1176,
+      849
+    ]
+  },
+  "splitDesktop": {
+    "listY": 320,
+    "toolCount": 2,
+    "overflow": true,
+    "lastY": 1044.49,
+    "cards": [
+      {
+        "kind": "group",
+        "top": 320,
+        "height": 171.16
+      },
+      {
+        "kind": "space",
+        "top": 518.16,
+        "height": 171.16
+      },
+      {
+        "kind": "fullscreen",
+        "top": 700.33,
+        "height": 151.0
+      },
+      {
+        "kind": "space",
+        "top": 862.33,
+        "height": 171.16
+      }
+    ],
+    "screen": [
+      1440,
+      900
+    ],
+    "panelWidth": 240,
+    "workRect": [
+      12,
+      39,
+      1176,
+      849
+    ]
+  },
+  "width": [
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "overflow": false,
+      "lastY": 786.64,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 122.66
+        },
+        {
+          "kind": "window",
+          "top": 385.66,
+          "height": 122.66
+        },
+        {
+          "kind": "window",
+          "top": 519.32,
+          "height": 122.66
+        },
+        {
+          "kind": "window",
+          "top": 652.98,
+          "height": 122.66
+        }
+      ]
+    },
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1048.65,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 171.16
+        },
+        {
+          "kind": "window",
+          "top": 502.16,
+          "height": 171.16
+        },
+        {
+          "kind": "window",
+          "top": 684.33,
+          "height": 171.16
+        },
+        {
+          "kind": "window",
+          "top": 866.49,
+          "height": 171.16
+        }
+      ]
+    },
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1502.82,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 284.7
+        },
+        {
+          "kind": "window",
+          "top": 615.7,
+          "height": 284.7
+        },
+        {
+          "kind": "window",
+          "top": 911.41,
+          "height": 284.7
+        },
+        {
+          "kind": "window",
+          "top": 1207.11,
+          "height": 284.7
+        }
+      ]
+    }
+  ],
+  "material": [
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1042.78,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 449.69,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 647.39,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 845.08,
+          "height": 186.69
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1042.78,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 449.69,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 647.39,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 845.08,
+          "height": 186.69
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1042.78,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 449.69,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 647.39,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 845.08,
+          "height": 186.69
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1042.78,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 449.69,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 647.39,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 845.08,
+          "height": 186.69
+        }
+      ]
+    }
+  ],
+  "layout": [
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1110.78,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 517.69,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 715.39,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 913.08,
+          "height": 186.69
+        }
+      ]
+    },
+    {
+      "listY": 458,
+      "toolCount": 3,
+      "overflow": true,
+      "lastY": 1248.78,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 458,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 655.69,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 853.39,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 1051.08,
+          "height": 186.69
+        }
+      ]
+    },
+    {
+      "listY": 354,
+      "toolCount": 3,
+      "overflow": true,
+      "lastY": 1144.78,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 354,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 551.69,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 749.39,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 947.08,
+          "height": 186.69
+        }
+      ]
+    },
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "overflow": true,
+      "lastY": 1102.33,
+      "cards": [
+        {
+          "kind": "group",
+          "top": 320,
+          "height": 186.69
+        },
+        {
+          "kind": "window",
+          "top": 517.69,
+          "height": 186.69
+        },
+        {
+          "kind": "space",
+          "top": 731.39,
+          "height": 186.69
+        },
+        {
+          "kind": "fullscreen",
+          "top": 929.08,
+          "height": 162.25
+        }
+      ]
+    }
+  ]
+}

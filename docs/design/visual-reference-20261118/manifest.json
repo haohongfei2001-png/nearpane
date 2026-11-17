@@ -1,0 +1,170 @@
+{
+  "version": "R3",
+  "date": "2026-11-18",
+  "status": "Designed; native calibration pending",
+  "source_commit": "71dd29dbba0fa55249f1af46fc901df65af33c71",
+  "files": [
+    {
+      "path": "Nearpane_Visual_Reference_R3.pdf",
+      "bytes": 6870696,
+      "sha256": "46c009aceedaa568977748c833cebad5e08a7c3b2fa2a7afe4bc0a608dfd9968",
+      "git_blob_sha": "320f88b589a7e1962c43a3683a7077d0c0048b42"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5233,
+      "sha256": "c1f199c46e965f2438723a74a046bd0ebe13bd0d39449fe133f025c3c38070d4",
+      "git_blob_sha": "45d9f199d71c03f76d4f33a76c6a635a21f88bf1"
+    },
+    {
+      "path": "SPEC.md",
+      "bytes": 25118,
+      "sha256": "fc2bdc818a05c54dca2a22aec6702267b4a23424fda195e6dc0e7712362f1c8c",
+      "git_blob_sha": "58922e294c893c3411e4227da8935ab7bb5d43fa"
+    },
+    {
+      "path": "VALIDATION.md",
+      "bytes": 2109,
+      "sha256": "9a23e8c37d0667fe86e7e150a12ed743c45ab9eb98058e05bcfa878eb052de4d",
+      "git_blob_sha": "b37df2f001dfd6fc4efbfeaa147e959da437af81"
+    },
+    {
+      "path": "assets/01-default-desktop.png",
+      "bytes": 473047,
+      "sha256": "f76b6602692fb87b8d790f62a9bae2d77edeab39140d0306ac5f17d1d6bd9c8a",
+      "git_blob_sha": "589ea72735fdc49ca7767fa330aa52b41ceae532"
+    },
+    {
+      "path": "assets/01-default-desktop.svg",
+      "bytes": 42824,
+      "sha256": "f071a08e2f339f1d44f8676b582c8b05faffcf161563d9934d3a31d0b58549ff",
+      "git_blob_sha": "18d357c6d8812ac9f7eb0ba9f976387264ff1bc7"
+    },
+    {
+      "path": "assets/02-layout-comparison.png",
+      "bytes": 550638,
+      "sha256": "6c216f49f8c25202754dd3ab7f9dc064c39f20eb7b7007058534432c3a471ed6",
+      "git_blob_sha": "ed5d183cadbd9c309239629d76e7064f1be05fda"
+    },
+    {
+      "path": "assets/02-layout-comparison.svg",
+      "bytes": 120946,
+      "sha256": "8704791d181e7c50f3da8ec70a5642a9838bf9afa48697e1d6c91f587a11d8b5",
+      "git_blob_sha": "3018751a9f380c72bbc9fe60a6ebb92ee223bfea"
+    },
+    {
+      "path": "assets/03-width-comparison.png",
+      "bytes": 555276,
+      "sha256": "8b0d79915c592490fbe7a6074ec0151f9c19f01d992b8b855961121bf18479a6",
+      "git_blob_sha": "40f97679eb3b280947a7846793dfa9c611c2418d"
+    },
+    {
+      "path": "assets/03-width-comparison.svg",
+      "bytes": 80026,
+      "sha256": "c892c5e90b45ac2c4ddef50be2f117a2b54b4ca1f31fb2ded27f32fc294aaa22",
+      "git_blob_sha": "6bc8218785e59bd16d1bb442af21f43514ef47cb"
+    },
+    {
+      "path": "assets/04-material-comparison.png",
+      "bytes": 785150,
+      "sha256": "502218b936f913e8d1f07d865031311e01b59c0d9f6167f4c2a1924d2b619a77",
+      "git_blob_sha": "2aa601c0ab242369e183e2099f8b5df6290758b8"
+    },
+    {
+      "path": "assets/04-material-comparison.svg",
+      "bytes": 100320,
+      "sha256": "f8be9f7fa465ea61c97474e2cb91ff221557ab912695c0430f7344ab0d0c1983",
+      "git_blob_sha": "10587389e1ec91b79e4b94804379a6181e1aba95"
+    },
+    {
+      "path": "assets/05-state-reference.png",
+      "bytes": 406739,
+      "sha256": "549f15184a7409754edcf674a9ff0418c6463d811210bdfc08dccf27c542937c",
+      "git_blob_sha": "ac04e32ad8760a5d48bb6027de39922b8a648da4"
+    },
+    {
+      "path": "assets/05-state-reference.svg",
+      "bytes": 59297,
+      "sha256": "89077fedf08e2ffc506f64bd0d616acc0bba2506dc19366c5f3f10c68619e529",
+      "git_blob_sha": "1c6ff81866f1dcd908198195eda684ff108c69f9"
+    },
+    {
+      "path": "assets/06-annotated-detail.png",
+      "bytes": 345063,
+      "sha256": "9952a2c5e378968a954f8f652f02555ff6428aa0967e1728a7c4730868b952a7",
+      "git_blob_sha": "e270d9b5c3f3d3807d71103e5c75fd17c1bf475f"
+    },
+    {
+      "path": "assets/06-annotated-detail.svg",
+      "bytes": 38934,
+      "sha256": "20e627c93c06799fd19c03dbee261a76738a3b689bfd0ee009ac870d172e0f31",
+      "git_blob_sha": "5a52becd49769e640f671f571d1cc6d114d0ea99"
+    },
+    {
+      "path": "assets/07-three-tools-desktop.png",
+      "bytes": 478959,
+      "sha256": "a21e4ad9a98644eb11154cf475022889f88de31fd383e2663cda1d0b0a941824",
+      "git_blob_sha": "235665d2b878f8f2ea952108eb616a1465a19836"
+    },
+    {
+      "path": "assets/07-three-tools-desktop.svg",
+      "bytes": 43952,
+      "sha256": "1edf69add58b31c297ad08ac2eb5bdc428cd7b41a7fc3763aa262861b2a1ac06",
+      "git_blob_sha": "739976f4678b18f1206059cdc8e4c056ee07fe19"
+    },
+    {
+      "path": "assets/08-split-workspace-desktop.png",
+      "bytes": 385364,
+      "sha256": "ef7a921e0e6d510a5cd8f479ad3f11f02f10712df4d4550072aef198e1b11859",
+      "git_blob_sha": "1ed39e5cc5625fd6e16a788e16bc2700de81051d"
+    },
+    {
+      "path": "assets/08-split-workspace-desktop.svg",
+      "bytes": 45919,
+      "sha256": "41a4770564ce31845075d84919cc7f2bd7d4fb7dcd5b6a58dcbe23ac2e64ba8b",
+      "git_blob_sha": "2a556a080f83864192cbe66f3185cd22c0b608f1"
+    },
+    {
+      "path": "assets/09-native-and-accessibility.png",
+      "bytes": 471098,
+      "sha256": "aaed6c2034a6fa6b368269671dd4e6306cc6a60a110030d75e8973d65c0fc257",
+      "git_blob_sha": "a08364b2150ff3e6ea9c65d6aa66038518c45cc4"
+    },
+    {
+      "path": "assets/09-native-and-accessibility.svg",
+      "bytes": 40707,
+      "sha256": "74cca888755d8c3eb2e8a9b39936eb6f74db836acfe4e50a96e18d1316f17f74",
+      "git_blob_sha": "e962db0098fcb092bd3b449ea8cf85f44e2816b6"
+    },
+    {
+      "path": "build_design_book.py",
+      "bytes": 6355,
+      "sha256": "278365cff03c7577adf2dc7ff305501163375510fbd02a647e9d664da438bfbf",
+      "git_blob_sha": "322c47c3dbd597df81d6d54b94826df50e369415"
+    },
+    {
+      "path": "design-tokens.json",
+      "bytes": 2787,
+      "sha256": "a65727eccad9c87ae86529622a03ab09d1a2c7a928bce2281555bd89d9029d33",
+      "git_blob_sha": "3efc10209824c775a8f936a8769b8e033752dad3"
+    },
+    {
+      "path": "render-measurements.json",
+      "bytes": 7725,
+      "sha256": "c0d46770f728603cb07a970b83302213bfe201eb552c35bebfb890e9b5c9546c",
+      "git_blob_sha": "013fe2ed1ba0ec4ad3ae30be693aea3f6ac2cff9"
+    },
+    {
+      "path": "render_reference.py",
+      "bytes": 33622,
+      "sha256": "a25826bceaedf9b6a4a280c4d34214aae9d6b3e7c9bdfe62c68d09891606b900",
+      "git_blob_sha": "b70c007a1bb487e99cba6aa1aeedbc12b01d87c3"
+    },
+    {
+      "path": "render_svg.cjs",
+      "bytes": 594,
+      "sha256": "53670903c39564b68b36b90ff04fa1b572977a7da128ec185ac2cbb0daa130aa",
+      "git_blob_sha": "5bc785719b34db617e2925958bead4fd0c5472ca"
+    }
+  ]
+}
