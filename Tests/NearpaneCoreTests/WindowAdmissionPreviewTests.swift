@@ -188,7 +188,10 @@ struct WindowAdmissionPreviewTests {
         #expect(join.status == .reviewable && join.proposed == expectedThree)
         ctx.savedLayout = three
         let remove = WindowAdmissionPreview.evaluate(Array(windows.prefix(2)), context: ctx, uptime: 10.3)
-        let expectedTwo = try saved.frames(in: work)
+        let expectedTwo = [
+            ids[1]: SurfaceRect(x: -700, width: 438, height: 1280),
+            ids[0]: SurfaceRect(x: -262, width: 262, height: 1280),
+        ]
         #expect(remove.status == .reviewable && remove.proposed == expectedTwo)
         #expect(remove.exitFrames == (try saved.frames(in: display)))
         ctx.originalFrames.removeValue(forKey: ids[1])

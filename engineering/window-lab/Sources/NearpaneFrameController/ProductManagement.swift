@@ -67,7 +67,7 @@ struct ManagementGrant: Codable {
     try require(observations.count == 2, "需要两个当前窗口")
     let sorted = observations.sorted { $0.cg.x < $1.cg.x }
     let left = sorted[0].cg, right = sorted[1].cg
-    let area = Experiment.lattice(area)
+    let area = area.integralInterior
     try require(sorted.allSatisfy { $0.onScreen && $0.cg == $0.ax && $0.cg.y == area.y && $0.cg.height == area.height }
         && left.x == area.x && right.x + right.width == area.x + area.width, "手调布局需要保留双窗的外边缘")
     let edge: Double

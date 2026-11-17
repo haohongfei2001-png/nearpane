@@ -111,6 +111,27 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @Test func residentFractionalReservationUsesExactSystemPointsForPreviewPlacementAndDragRelease() async throws {
+        let s = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), c = WindowDouble(), manager = s.manager()
+        s.context.primary = true
+        s.context.screen = .init(width: 1470, height: 956)
+        s.context.usable = .init(y: 25, width: 1470, height: 923)
+        s.context.settings.measures[.panelWidth] = .init(183.75)
+        let review = try await manager.prepare([a, b, c], context: s.context)
+        #expect(review.proposed[c.id] == SurfaceRect(x: 0, y: 25, width: 643, height: 923))
+        #expect(review.proposed[a.id] == SurfaceRect(x: 643, y: 25, width: 643, height: 462))
+        #expect(review.proposed[b.id] == SurfaceRect(x: 643, y: 487, width: 643, height: 461))
+        try await manager.confirm(review, context: s.context)
+        let tile = a.frame
+        var dragged = tile
+        dragged.x += 25
+        a.externalChange(to: dragged)
+        await manager.poll()
+        #expect(!manager.blocked && a.frame == tile && a.writes == 2 && b.writes == 1 && c.writes == 1)
+        try await manager.stop()
+        #expect(a.frame == tile && b.frame == b.original && c.frame == c.original)
+    }
+
     @Test func updateCannotTerminateAWindowGrantIncludingWhilePausedOrOrphaned() async throws {
         let fixture = OrdinaryScope(), window = WindowDouble(), manager = fixture.manager()
         #expect(!manager.blocksUpdateRelaunch)
@@ -215,7 +236,9 @@ import Testing
         let eligible = WindowDouble(launch: anchor.id.launch)
         anchor.nextCreation = eligible
         await manager.checkNewWindows()
-        #expect(manager.activeIDs == [anchor.id, eligible.id] && eligible.writes == 1 && anchor.frame.width == eligible.frame.width)
+        #expect(manager.activeIDs == [anchor.id, eligible.id] && eligible.writes == 1)
+        #expect(anchor.frame == SurfaceRect(width: 438, height: 800))
+        #expect(eligible.frame == SurfaceRect(x: 438, width: 437, height: 800))
         await manager.checkNewWindows()
         #expect(eligible.writes == 1)
         try manager.pause()

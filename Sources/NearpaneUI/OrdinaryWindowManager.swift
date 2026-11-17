@@ -157,7 +157,7 @@ enum OrdinaryRefusal: LocalizedError {
 
     private func area(_ context: AdmissionContext) throws -> SurfaceRect {
         try DesktopWorkArea(display: context.display, screen: context.screen, usable: context.usable,
-                            primary: context.primary, settings: context.settings, fallbackEdge: context.edge).ordinary
+                            primary: context.primary, settings: context.settings, fallbackEdge: context.edge).ordinary.integralInterior
     }
 
     private func checkedScope(_ ctx: AdmissionContext, grant: (any OrdinaryWindowObserving)? = nil) throws {
@@ -239,7 +239,7 @@ enum OrdinaryRefusal: LocalizedError {
         try checkedScope(context)
         guard revision == previewRevision, !closing else { throw OrdinaryRefusal.stale }
         let review = OrdinaryWindowReview(token: UUID(), display: context.display,
-            validUntil: ProcessInfo.processInfo.systemUptime + 45, current: frames, proposed: try next.frames(in: work))
+            validUntil: ProcessInfo.processInfo.systemUptime + 45, current: frames, proposed: try next.frames(in: work, wholePoints: true))
         pending = .init(review: review, context: context, handles: list, layout: next)
         return review
     }
@@ -250,7 +250,7 @@ enum OrdinaryRefusal: LocalizedError {
         // Interpret swap as an absolute slot preference on each explicit application.
         let members = layout.members
         var next = try layout.adjusting(path: [], axis: .columns, ratio: context.ratio, in: work)
-        guard let first = try next.frames(in: work)[members[0].id] else { throw OrdinaryRefusal.stale }
+        guard let first = try next.frames(in: work, wholePoints: true)[members[0].id] else { throw OrdinaryRefusal.stale }
         if (first.x > work.x) != context.swapped { next = try next.swapping(members[0].id, members[1].id, in: work) }
         return next
     }
@@ -422,7 +422,7 @@ enum OrdinaryRefusal: LocalizedError {
         guard !activeIDs.isEmpty else { return }
         let work = try area(context)
         let next = try preferences(tiler, context, in: work)
-        let frames = try next.frames(in: work)
+        let frames = try next.frames(in: work, wholePoints: true)
         do {
             if context.pairCustomized {
                 try await verifyGroup(frames, in: context)
@@ -553,7 +553,7 @@ enum OrdinaryRefusal: LocalizedError {
                 let hasLaterChange = entries.values.contains { $0.retainsExternalLayout == true }
                 // A later external drag invalidates the relative arrangement. Leave the whole
                 // group at its witnessed frames rather than project a stale sibling across it.
-                let targets = try hasLaterChange ? entries.mapValues(\.confirmed) : tiler.frames(in: ctx.usable)
+                let targets = try hasLaterChange ? entries.mapValues(\.confirmed) : tiler.frames(in: ctx.usable, wholePoints: true)
                 try await verifyGroup(targets, in: ctx)
                 if !hasLaterChange {
                     for id in activeIDs {

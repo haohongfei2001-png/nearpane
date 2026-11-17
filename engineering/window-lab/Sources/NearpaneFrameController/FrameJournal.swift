@@ -281,6 +281,15 @@ final class SessionFiles {
         }
         let modelArea = exiting && retainIntent ? screens.usable : area.ordinary
         let model = try layout.frames(in: modelArea)
+        let tiling = !park && !canary && action != "original" && (!exiting || retainIntent)
+        let systemFrames = tiling ? try layout.frames(in: modelArea, wholePoints: true) : [:]
+        if tiling {
+            for (id, target) in systemFrames {
+                guard let ideal = model[id], target.geometry.componentError(from: ideal.geometry) <= 1 else {
+                    throw Refusal("整点布局无法满足工作区精度。")
+                }
+            }
+        }
         var moves = [FrameChange]()
         for o in before {
             let target: SurfaceRect
@@ -296,8 +305,8 @@ final class SessionFiles {
                 guard let baseline = state.windows.first(where: { $0.member == o.member }) else { throw Refusal("missing original") }
                 target = baseline.initial
             } else {
-                guard let plan = model[o.member.id] else { throw Refusal("missing layout slot") }
-                target = Self.lattice(plan)
+                guard let plan = systemFrames[o.member.id] else { throw Refusal("missing layout slot") }
+                target = plan
             }
             var previous = o.cg
             for step in FramePolicy.steps(from: o.cg, to: target) {
@@ -333,11 +342,12 @@ final class SessionFiles {
         if park {
             guard let off = moves.first?.target.geometry else { throw Refusal("missing parked window") }
             try require(off.intersection(screens.frame.geometry) == nil && off.intersection(screens.mainFrame.geometry) == nil, "window still visible")
-        } else if !canary && action != "original" && (!exiting || retainIntent) {
+        } else if tiling {
             let all = final.map(\.cg)
-            try require(all.allSatisfy { Self.lattice(modelArea).geometry.intersection($0.geometry) == $0.geometry }
+            let inside = modelArea.integralInterior.geometry
+            try require(all.allSatisfy { inside.intersection($0.geometry) == $0.geometry }
                 && all.enumerated().allSatisfy { i, f in all.dropFirst(i + 1).allSatisfy { f.geometry.intersection($0.geometry) == nil } }
-                && all.reduce(0) { $0 + $1.geometry.area } == Self.lattice(modelArea).geometry.area, "layout overlap, gaps or bounds")
+                && all.reduce(0) { $0 + $1.geometry.area } == inside.area, "layout overlap, gaps or bounds")
             error = final.compactMap { obs in model[obs.member.id].map { $0.geometry.componentError(from: obs.cg.geometry) } }.max()
             try require(error.map { $0 <= 1 } == true, "excess work area error")
         }
@@ -359,9 +369,5 @@ final class SessionFiles {
             throw Refusal("kill checkpoint expired")
         }
         return result
-    }
-    static func lattice(_ r: SurfaceRect) -> SurfaceRect {
-        .init(x: r.x.rounded(), y: r.y.rounded(), width: (r.x+r.width).rounded()-r.x.rounded(),
-              height: (r.y+r.height).rounded()-r.y.rounded())
     }
 }
