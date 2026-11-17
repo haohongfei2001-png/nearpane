@@ -87,9 +87,24 @@ private final class GalleryPanel: NSPanel {
             guard host.bus.acceptDesktop(sample) else { throw OrdinaryWindowFailure("live fixture snapshot rejected") }
             return sample
         }
-        let sample = try publishSample()
-        let windows = owner.numbers.compactMap { n in sample.windows.first(where:{ $0.metadata?.number == n }) }
-        let previews = WindowContentPreview(permitsGalleryWindow:{ $0.pid == owner.pid && $0.birth == launch && owner.numbers.contains($0.number) })
+        var sample = try publishSample()
+        let liveMembership = CommandLine.arguments.contains("--real-members")
+        var read: NativeDesktopProvider.Read?
+        if liveMembership {
+            guard let productReader = NativeDesktopProvider.packagedReader(overview:true) else {
+                throw OrdinaryWindowFailure("signed roster reader unavailable")
+            }
+            let numbers = Set(owner.numbers), pid = owner.pid
+            read = { request in
+                var snapshot = try await productReader(request)
+                snapshot.windows.removeAll { w in
+                    guard let m = w.metadata else { return true }
+                    return m.pid != pid || m.launchMicroseconds != launch || !numbers.contains(m.number)
+                }
+                return snapshot
+            }
+        }
+        let previews = WindowContentPreview(readOverview:read, permitsGalleryWindow:{ $0.pid == owner.pid && $0.birth == launch && owner.numbers.contains($0.number) })
         let pointer = WorkspacePointerRegistry(), display = SurfaceDisplay()
         display.id = d.id; display.interactionVisible = true; display.pointer = pointer; pointer.windowPreviews = previews
         previews.setVisible(true,on:d.id)
@@ -103,6 +118,14 @@ private final class GalleryPanel: NSPanel {
         panel.setFrameOrigin(.init(x:screen.visibleFrame.minX + 14,y:screen.visibleFrame.minY + 20))
         panel.orderBack(nil)
         defer { previews.setVisible(false,on:d.id); panel.orderOut(nil); panel.close() }
+        if liveMembership {
+            guard let current = await previews.currentDesktop?.readNow(),
+                  current.windows.count == 2, current.windows.allSatisfy({ $0.metadata?.overviewSpaceID != nil }) else {
+                throw OrdinaryWindowFailure("both test windows must be witnessed on the current ordinary desktop")
+            }
+            sample = current
+        }
+        let windows = owner.numbers.compactMap { n in sample.windows.first(where:{ $0.metadata?.number == n }) }
         let targets = windows.compactMap { DesktopWindowTarget($0,in:sample) }
         guard targets.count == 2 else { throw OrdinaryWindowFailure("fixture target identity") }
         var content = [CGImage]()
