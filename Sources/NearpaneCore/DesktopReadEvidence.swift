@@ -32,6 +32,9 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let isOnscreen: Bool?
     /// Two public AppKit current-Space reads around the CG/AX sample. Absent in older snapshots.
     public let onActiveDesktop: Bool?
+    /// The overview reader twice matched this window's membership to this display's
+    /// current ordinary Space. WindowServer may present it outside the active stage.
+    public let overviewSpaceID: String?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
@@ -39,8 +42,9 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
-                axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil) {
+                axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil) {
         self.onActiveDesktop = onActiveDesktop
+        self.overviewSpaceID = overviewSpaceID
         self.number = number; self.pid = pid; self.launchMicroseconds = launchMicroseconds; self.element = element
         self.globalFrame = globalFrame; self.frontToBack = frontToBack; self.minimized = minimized; self.fullScreen = fullScreen
         self.axFrame = axFrame; self.isOnscreen = isOnscreen; self.axStandardWindowNumber = axStandardWindowNumber
@@ -154,10 +158,16 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
             guard let m = w.metadata, m.number > 0, m.pid > 0, m.frontToBack >= 0, m.globalFrame.geometry.isValid,
                   w.confidence != .synthetic else { return false }
             guard let display = snapshot.displays.first(where: { $0.id == w.displayID }),
-                  m.globalFrame.geometry.intersection(display.frame.geometry) != nil,
+                  (m.globalFrame.geometry.intersection(display.frame.geometry) != nil || m.overviewSpaceID != nil),
                   w.bounds == SurfaceRect(x: m.globalFrame.x - display.frame.x, y: m.globalFrame.y - display.frame.y,
                                           width: m.globalFrame.width, height: m.globalFrame.height) else { return false }
             if let ax = m.axFrame, !ax.geometry.isValid { return false }
+            if let id = m.overviewSpaceID {
+                guard (m.launchMicroseconds ?? 0) > 0, case .known(let ids) = w.membership, ids.contains(id),
+                      snapshot.scopes.contains(where: { $0.displayID == w.displayID &&
+                        $0.records.contains(where: { $0.isCurrent && $0.id == id && $0.ordinaryUUID != nil }) })
+                else { return false }
+            }
             if w.confidence == .corroboratedMetadata && (m.element == nil || m.axFrame == nil || (m.launchMicroseconds ?? 0) == 0) { return false }
             if case let .known(ids) = w.membership {
                 return spaces == .observed && !ids.isEmpty && Set(ids).count == ids.count

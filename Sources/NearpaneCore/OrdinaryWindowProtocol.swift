@@ -16,12 +16,15 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
     public let nonce: UUID, action: Action, pid: Int32, launch: UInt64, bundle: String
     public let id: ManagedWindowID?, expected: SurfaceRect?, destination: SurfaceRect?
     public let focusDisplay: String?, focusDeadline: TimeInterval?
+    public let focusSpace: String?
     public let creationGrant: UUID?
     public let boundaryRevision: UUID?
 
     public init(_ action: Action, pid: Int32, launch: UInt64, bundle: String,
                 id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil,
-                boundaryRevision: UUID? = nil, creationGrant: UUID? = nil, focusDisplay: String? = nil, focusDeadline: TimeInterval? = nil) {
+                boundaryRevision: UUID? = nil, creationGrant: UUID? = nil, focusDisplay: String? = nil,
+                focusDeadline: TimeInterval? = nil, focusSpace: String? = nil) {
+        self.focusSpace = focusSpace
         self.focusDisplay = focusDisplay; self.focusDeadline = focusDeadline
         self.nonce = UUID()
         self.action = action

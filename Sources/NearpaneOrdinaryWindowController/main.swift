@@ -87,7 +87,7 @@ final class Worker {
                     guard let expected = r.expected, let display = r.focusDisplay, let deadline = r.focusDeadline,
                           r.destination == nil else { throw Refusal("缺少当前桌面的选窗凭据。") }
                     try focusCurrentWindow(id: id, element: m.element, owner: owner, bundle: r.bundle,
-                                           frame: expected, display: display, deadline: deadline)
+                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace)
                 case .prepare: reply.pair = try m.prepare()
                 case .observeBoundary:
                     guard let expected = r.expected else { throw Refusal("缺少已授权窗口基线。") }

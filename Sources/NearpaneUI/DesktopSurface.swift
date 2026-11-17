@@ -23,17 +23,24 @@ struct DesktopSurface: View {
     var settings: DisplaySettings = .init()
     @Environment(\.colorSchemeContrast) private var contrast
     @ViewState private var appBadges: [String: WindowAppBadges.Badge] = [:]
+    @ViewState private var layoutBadges: [String: WindowAppBadges.Badge] = [:]
     @ViewState private var layoutExpanded = false
     @ViewState private var choices = WindowChoiceQueue()
     @ViewState private var selectionIssue: String?
     @ViewState private var badgeSource: BadgeRefresh?
 
+    private var overview: DesktopSnapshot? {
+        if let feed = display?.pointer?.windowPreviews?.currentDesktop { return feed.snapshot }
+        return host.providerFailed ? nil : host.bus.desktop
+    }
+
     var body: some View {
         Group {
-            if enabled, !host.providerFailed, let snapshot = host.bus.desktop, let native = snapshot.native {
-                TimelineView(.periodic(from: .now, by: 2)) { tick in
+            if enabled, let snapshot = overview, let native = snapshot.native {
+                TimelineView(.periodic(from: .now, by: 2)) { _ in
+                    let now = Date.now
                     let uptime = ProcessInfo.processInfo.systemUptime
-                    if snapshot.nativeIsFresh(now: tick.date, uptime: uptime), !native.windowLimitReached,
+                    if snapshot.nativeIsFresh(now: now, uptime: uptime), !native.windowLimitReached,
                        !native.rows.isEmpty || snapshot.displays.contains(where: { $0.id == displayID }) {
                         VStack(spacing: 3) {
                             GeometryReader { size in
@@ -41,23 +48,24 @@ struct DesktopSurface: View {
                                 let width = min(size.size.width,settings.points(.desktopWidth,in:size.size.width))
                                 let height = min(size.size.height,settings.points(.scrollHeight,in:size.size.height))
                                 let available = min(height,settings.points(.desktopHeight,in:height))
-                                let rows = displayID.map { max(1, snapshot.desktopPreviewRowCount(for: $0)) } ?? 1
+                                let layout = host.bus.desktop
+                                let rows = max(1, layout?.desktopPreviewRowCount(for: displayID) ?? 0)
                                 let desired = settings.points(.spaceRowHeight,in:available) * Double(rows)
-                                let members = snapshot.currentDesktopWindows(on: displayID ?? "", now: tick.date, uptime: uptime)
+                                let members = snapshot.currentDesktopWindows(on: displayID ?? "", now: now, uptime: uptime)
                                 let canvasHeight = members.isEmpty ? max(1, desired) : min(max(1, desired), max(44, min(width * 0.70, available * 0.42)) * Double(rows))
                                 ScrollView(.vertical) {
                                     let bounds = SurfaceRect(x:(size.size.width-width)/2+pad,y:pad,width:width-pad*2,height:canvasHeight-pad*2)
                                     if !members.isEmpty {
-                                        windowList(members, snapshot: snapshot)
+                                        windowList(members, snapshot: snapshot, width: width - pad * 2, height: height)
                                             .padding(.horizontal, pad + 2).padding(.vertical, pad)
                                     }
                                     if members.isEmpty || rows > 1 || layoutExpanded || display?.pointer?.windowPreviews?.hasStill == true {
-                                        if let preview = DesktopPreview(snapshot:snapshot,displayID:displayID,viewport:bounds,now:tick.date,
+                                        if let layout, let preview = DesktopPreview(snapshot:layout,displayID:displayID,viewport:bounds,now:now,
                                             uptime:uptime,restrictToDisplay:true,rowGap:settings.points(.spaceRowGap,in:available),
                                             rowViewport:.init(width:size.size.width,height:canvasHeight)) {
-                                            drawing(preview, snapshot: snapshot)
+                                            drawing(preview, snapshot: layout)
                                                 .overlay {
-                                                    if snapshot.capabilities.spaceSwitching, let display { WorkspacePointerSurface(host:host,preview:preview,sample:snapshot,display:display) }
+                                                    if layout.capabilities.spaceSwitching, let display { WorkspacePointerSurface(host:host,preview:preview,sample:layout,display:display) }
                                                 }
                                                 .frame(width:size.size.width,height:canvasHeight)
                                         }
@@ -88,7 +96,7 @@ struct DesktopSurface: View {
         let display: String, visible: Bool, permitted: Bool, generation: UInt64
     }
 
-    private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot) -> some View {
+    private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot, width: CGFloat, height: CGFloat) -> some View {
         let previews = display?.pointer?.windowPreviews
         let gallery = previews?.gallery
         let id = displayID ?? ""
@@ -96,11 +104,42 @@ struct DesktopSurface: View {
         let permitted = visible && host.configuration.showsWindowThumbnails && CGPreflightScreenCaptureAccess() && WindowContentPreview.sessionAvailable()
         let hasAX = AXIsProcessTrusted() || snapshot.native?.accessibility == .available || snapshot.native?.accessibility == .partial
         let run = GalleryRun(display: id, visible: visible, permitted: permitted, generation: gallery?.generation ?? 0)
-        return LazyVStack(alignment: .leading, spacing: 8) {
-            Text("当前桌面").font(.caption.weight(.semibold)).foregroundStyle(.primary)
-                .padding(.horizontal, 3).accessibilityAddTraits(.isHeader)
+        let columns = width >= 156 && windows.count >= 5 ? 2 : 1
+        let rows = (windows.count + columns - 1) / columns
+        let pictureHeight = max(42, min(110, width / CGFloat(columns) * 0.61, (height - 52) / CGFloat(rows) - 32))
+        let groups = Dictionary(grouping: windows, by: { $0.metadata?.pid })
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text("当前桌面").accessibilityAddTraits(.isHeader)
+                Spacer()
+                Text("\(windows.count) 扇").monospacedDigit().foregroundStyle(.secondary)
+            }.font(.caption.weight(.semibold)).padding(.horizontal, 3)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 5), count: columns), spacing: 6) {
+                ForEach(windows, id: \.metadata?.number) { window in
+                    let badge = appBadges[window.id]
+                    let siblings = groups[window.metadata?.pid] ?? []
+                    let ordinal = siblings.firstIndex(of: window).map { $0 + 1 } ?? 1
+                    let name = badge?.name ?? "窗口"
+                    let label = siblings.count > 1 ? "\(name) · \(ordinal)" : name
+                    let target = DesktopWindowTarget(window, in: snapshot)
+                    let picture = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
+                    Button {
+                        if let target { selectWindow(target, snapshot: snapshot, hasAX: hasAX) }
+                    } label: {
+                        DesktopWindowCard(label: label, icon: badge?.icon, image: picture, pictureHeight: pictureHeight,
+                                          unavailable: permitted && target.map { gallery?.lacksPicture($0) == true } == true)
+                    }
+                    .buttonStyle(.plain).disabled(target == nil)
+                    .accessibilityLabel(label).accessibilityHint("将这扇窗口切换到前台")
+                    .accessibilityIdentifier("current-desktop-window")
+                    .help(target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label)
+                    .id(target?.key)
+                    .onAppear { if let target { gallery?.setCard(target.key, on: id, visible: true) } }
+                    .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
+                }
+            }
             if visible && ((!permitted && host.configuration.showsWindowThumbnails) || !hasAX) {
-                VStack(alignment: .leading, spacing: 5) {
+                Menu("窗口权限与调度中心") {
                     if host.configuration.showsWindowThumbnails && !permitted {
                         Button("允许窗口缩略图", action: WindowOverviewAccess.requestThumbnails)
                     }
@@ -108,28 +147,7 @@ struct DesktopSurface: View {
                     Button("打开系统调度中心") {
                         Task { do { try await WindowOverviewAccess.systemOverview() } catch { selectionIssue = error.localizedDescription } }
                     }
-                }.buttonStyle(.link).font(.caption)
-            }
-            ForEach(windows, id: \.metadata?.number) { window in
-                let badge = appBadges[window.id]
-                let siblings = windows.filter { $0.metadata?.pid == window.metadata?.pid }
-                let ordinal = siblings.firstIndex(of: window).map { $0 + 1 } ?? 1
-                let name = badge?.name ?? "窗口"
-                let label = siblings.count > 1 ? "\(name) · \(ordinal)" : name
-                let target = DesktopWindowTarget(window, in: snapshot)
-                let image = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
-                Button {
-                    if let target { selectWindow(target, snapshot: snapshot, hasAX: hasAX) }
-                } label: {
-                    DesktopWindowCard(label: label, icon: badge?.icon, image: image)
-                }
-                .buttonStyle(.plain).disabled(target == nil)
-                .accessibilityLabel(label).accessibilityHint("将这扇窗口切换到前台")
-                .accessibilityIdentifier("current-desktop-window")
-                .help(target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label)
-                .id(target?.key)
-                .onAppear { if let target { gallery?.setCard(target.key, on: id, visible: true) } }
-                .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
+                }.menuStyle(.borderlessButton).font(.caption)
             }
         }
         .task(id: BadgeRefresh(session: snapshot.sessionID, revision: snapshot.revision, visible: visible)) {
@@ -137,10 +155,10 @@ struct DesktopSurface: View {
         }
         .task(id: run) {
             guard permitted, let gallery else { return }
-            await gallery.run(on: id, snapshot: { host.bus.desktop }, allowed: {
+            await gallery.run(on: id, snapshot: { overview }, allowed: {
                 host.isRunning && !host.configuration.surfaceHidden && host.configuration.showsWindowThumbnails &&
                     display?.interactionVisible == true && previews?.visibleDisplays.contains(id) == true
-            })
+            }, recheck: previews?.currentDesktop.map { feed in { await feed.readNow() } })
         }
     }
 
@@ -151,12 +169,16 @@ struct DesktopSurface: View {
         func stillCurrent() -> Bool {
             host.isRunning && !host.configuration.surfaceHidden && display?.interactionVisible == true &&
                 display?.id == target.display && generation == previews.gallery.generation &&
-                visibility == previews.visibilityGeneration[target.display] && target.present(in: host.bus.desktop)
+                visibility == previews.visibilityGeneration[target.display] && target.present(in: overview)
         }
         guard stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
         selectionIssue = nil
         choices.choose(target.key) {
-            try await DesktopWindowSelection.select(target, deadline: native.beganUptime + 12, hasAX: hasAX, stillCurrent: stillCurrent)
+            let verifySpace: (() async -> Bool)? = previews.currentDesktop.map { feed in
+                { target.present(in: await feed.readNow()) }
+            }
+            try await DesktopWindowSelection.select(target, deadline: native.beganUptime + 12, hasAX: hasAX,
+                                                   verifySpace: verifySpace, stillCurrent: stillCurrent)
         } failed: { selectionIssue = $0.localizedDescription }
     }
 
@@ -166,7 +188,7 @@ struct DesktopSurface: View {
         let snapshotWindow = chosen?.window(in: snapshot)?.id
         let observedRevision = content?.revision
         let key = BadgeRefresh(session: snapshot.sessionID, revision: snapshot.revision, visible: display?.interactionVisible == true)
-        let badges = key == badgeSource ? appBadges : [:]
+        let badges = key == badgeSource ? layoutBadges : [:]
         return Canvas { context, _ in
             // A queued Canvas draw can run after a permission change. Resolve the
             // revocable source at draw time; never retain an admitted image in the view.
@@ -209,8 +231,8 @@ struct DesktopSurface: View {
             }
         }
         .task(id: key) {
-            guard display?.interactionVisible == true else { appBadges = [:]; return }
-            appBadges = WindowAppBadges.resolve(snapshot)
+            guard display?.interactionVisible == true else { layoutBadges = [:]; return }
+            layoutBadges = WindowAppBadges.resolve(snapshot)
             badgeSource = key
             guard content?.binding?.display == displayID else { return }
             await content?.validate(snapshot)

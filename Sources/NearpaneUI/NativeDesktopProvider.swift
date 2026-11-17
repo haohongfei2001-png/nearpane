@@ -32,15 +32,19 @@ import WindowGeometryCore
 
     // Constructing a provider performs no system sampling and opens no windows.
     public static func packaged(fixtureWindows: @escaping @MainActor () -> [NSWindow]? = { nil }) -> any DesktopObservationProvider {
+        guard let read = packagedReader() else { return UnavailableDesktopProvider() }
+        return NativeDesktopProvider(fixtureWindows: fixtureWindows, anchors: { currentAnchors(fixtureWindows() ?? NSApp.windows) }, read: read)
+    }
+
+    static func packagedReader(overview: Bool = false) -> Read? {
         guard Bundle.main.bundleURL.pathExtension == "app", let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneDesktopReaderSHA256") as? String,
-              expected.count == 64 else { return UnavailableDesktopProvider() }
-        guard let executable = readerURL(in: Bundle.main.bundleURL) else { return UnavailableDesktopProvider() }
-        return NativeDesktopProvider(fixtureWindows: fixtureWindows, anchors: { currentAnchors(fixtureWindows() ?? NSApp.windows) }) { request in
+              expected.count == 64, let executable = readerURL(in: Bundle.main.bundleURL) else { return nil }
+        return { request in
             try await Task.detached(priority: .utility) {
                 let bytes = try Data(contentsOf: executable, options: .mappedIfSafe)
                 guard SHA256.hash(data: bytes).map({ String(format: "%02x", $0) }).joined() == expected else { throw ReaderFailure.unavailable }
             }.value
-            return try await DesktopReaderProcess.read(executable: executable, request: request)
+            return try await DesktopReaderProcess.read(executable: executable, request: request, overview: overview)
         }
     }
 

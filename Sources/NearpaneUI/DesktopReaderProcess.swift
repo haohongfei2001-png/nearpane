@@ -6,18 +6,21 @@ enum ReaderFailure: Error { case unavailable, invalidResponse, timeout, outputLi
 
 /// One disposable read. The parent owns waitpid until reap, so cancellation can never signal a recycled PID.
 enum DesktopReaderProcess {
-    static func read(executable: URL, request: DesktopReadRequest, timeout: Double = 3.8,
+    static func read(executable: URL, request: DesktopReadRequest, timeout: Double = 3.8, overview: Bool = false,
                      didSpawn: (@Sendable (pid_t) -> Void)? = nil) async throws -> DesktopSnapshot {
         let input = try JSONEncoder().encode(request)
         guard input.count <= 8192 else { throw ReaderFailure.invalidResponse }
         let job = Task.detached(priority: .utility) {
-            try collect(executable: executable, argument: input.base64EncodedString(), timeout: timeout, didSpawn: didSpawn)
+            try collect(executable: executable, mode: overview ? "--window-overview" : "--read-encoded",
+                        argument: input.base64EncodedString(), timeout: timeout, didSpawn: didSpawn)
         }
         let bytes = try await withTaskCancellationHandler { try await job.value } onCancel: { job.cancel() }
         let snapshot = try JSONDecoder().decode(DesktopSnapshot.self, from: bytes)
         guard snapshot.isStructurallyValid, snapshot.sessionID == request.session, snapshot.revision == request.revision,
               snapshot.native?.population == (request.fixtureWindows == nil ? .workWindows : .markedFixture),
-              request.experimentalSpaces || snapshot.native?.spaces == .disabled,
+              overview || request.experimentalSpaces || snapshot.native?.spaces == .disabled,
+              overview || snapshot.windows.allSatisfy({ $0.metadata?.overviewSpaceID == nil }),
+              !overview || (request.fixtureWindows == nil && snapshot.native?.rows.isEmpty == true),
               snapshot.native?.rows.allSatisfy({ row in
                   switch row.anchor.witness {
                   case .ownedWindow: return request.anchors.contains(row.anchor)
@@ -84,7 +87,7 @@ enum DesktopReaderProcess {
                 // Wait for pipe data or hangup. The upper bound also lets a
                 // cancellation interrupt a helper stuck in an AX call.
                 let remaining = max(0, deadline - ProcessInfo.processInfo.systemUptime)
-                let milliseconds = Int32(ceil(min(remaining, 0.10) * 1_000))
+                let milliseconds = Int32(ceil(min(remaining, eof ? 0.008 : 0.10) * 1_000))
                 // A closed pipe is always readable. When only waitpid remains,
                 // ignore the descriptor to avoid spinning on its EOF.
                 var descriptor = pollfd(fd: eof ? -1 : fds[0], events: Int16(POLLIN), revents: 0)

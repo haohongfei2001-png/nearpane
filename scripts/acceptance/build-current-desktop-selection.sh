@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 worker="${1:?path to verified candidate helper}"
+reader="$(dirname "$worker")/NearpaneDesktopReader"
 root="${2:?fresh private test directory}"
 mkdir -m 700 "$root"
 debug=.build/native-foundation/debug
@@ -23,8 +24,17 @@ for kind in owner host; do
         mkdir "$dest/Contents/Helpers"
         cp "$worker" "$dest/Contents/Helpers/NearpaneOrdinaryWindowController"
         plutil -insert NearpaneOrdinaryWindowControllerSHA256 -string "$(shasum -a 256 "$worker" | cut -d ' ' -f1)" "$plist"
+        cp "$reader" "$dest/Contents/Helpers/NearpaneDesktopReader"
+        plutil -insert NearpaneDesktopReaderSHA256 -string "$(shasum -a 256 "$reader" | cut -d ' ' -f1)" "$plist"
     fi
-    xcrun swiftc -parse-as-library -target arm64-apple-macos14.0 -I "$debug/Modules" -module-cache-path .build/clang-cache         "${flags[@]}" -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" "$debug"/{NearpaneCore,NearpaneUI,WindowGeometryCore}.build/*.swift.o         scripts/acceptance/current-desktop-selection.swift scripts/acceptance/current-desktop-gallery.swift -o "$dest/Contents/MacOS/$exe"
+    xcrun swiftc -parse-as-library -target arm64-apple-macos14.0 -I "$debug/Modules" -module-cache-path .build/clang-cache         "${flags[@]}" -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" "$debug"/{NearpaneCore,NearpaneUI,WindowGeometryCore}.build/*.swift.o         scripts/acceptance/current-desktop-selection.swift scripts/acceptance/current-desktop-gallery.swift scripts/acceptance/current-space-roster.swift -o "$dest/Contents/MacOS/$exe"
     codesign --force --sign - "$dest"
     codesign --verify --strict --deep "$dest"
 done
+board="$root/Sketch Board.app"
+ditto "$root/Design Notes.app" "$board"
+plutil -replace CFBundleIdentifier -string net.example.nearpane-window-board "$board/Contents/Info.plist"
+plutil -replace CFBundleExecutable -string Board "$board/Contents/Info.plist"
+mv "$board/Contents/MacOS/Notes" "$board/Contents/MacOS/Board"
+codesign --force --sign - "$board"
+codesign --verify --strict --deep "$board"

@@ -97,4 +97,48 @@ import Testing
         old.removeValue(forKey:"showsWindowThumbnails")
         #expect(try JSONDecoder().decode(HostConfiguration.self,from:JSONSerialization.data(withJSONObject:old)).showsWindowThumbnails)
     }
+
+    private func catalog(_ numbers: [(UInt32, Int32, Bool, String?)], current: String = "97") -> DesktopSnapshot {
+        let w = numbers.enumerated().map { index, entry in
+            let (n, pid, visible, proof) = entry
+            return WindowObservation(id: "win-\(n)", displayID: "display", bounds: frame,
+                membership: proof.map { .known(recordIDs: [$0]) } ?? .unknown, confidence: .unknown,
+                metadata: .init(number: n, pid: pid, launchMicroseconds: 100, element: nil, globalFrame: frame,
+                    frontToBack: index, minimized: nil, fullScreen: nil, isOnscreen: visible,
+                    onActiveDesktop: visible, overviewSpaceID: proof))
+        }
+        var sample = sample(w)
+        sample.scopes = [.init(id: "scope", displayID: "display", records: ["97", "98"].map {
+            .init(id: $0, isCurrent: $0 == current, ordinaryUUID: UUID())
+        })]
+        return sample
+    }
+
+    @Test func backgroundAppsAndCoveredSiblingsStayInTheSameDeskWithoutAX() throws {
+        let s = catalog([(1, 51, true, "97"), (2, 51, false, "97"), (3, 52, false, "97"), (4, 52, false, nil)])
+        let members = s.currentDesktopWindows(on: "display", now: time, uptime: 101)
+        #expect(members.compactMap { $0.metadata?.number } == [1, 2, 3])
+        #expect(members.compactMap { DesktopWindowTarget($0, in: s) }.count == 3)
+        #expect(!members[1].canRequestCurrentDesktopFocus && !members[1].canWitnessCurrentSpace)
+        #expect(ManagedWindowID(members[1]) == nil)
+    }
+
+    @Test func scopeChangeClosureAndStaleSamplesInvalidateBackgroundPixels() throws {
+        let s = catalog([(8, 51, false, "97")])
+        let target = try #require(DesktopWindowTarget(s.windows[0], in: s))
+        #expect(target.present(in: catalog([(8, 51, true, "97")]), now: time, uptime: 101))
+        #expect(!target.present(in: catalog([(8, 51, true, "98")], current: "98"), now: time, uptime: 101))
+        #expect(!target.present(in: catalog([]), now: time, uptime: 101))
+        #expect(!target.present(in: s, now: time, uptime: 120))
+        #expect(!catalog([(8, 51, false, "98")]).isStructurallyValid)
+    }
+
+    @Test func aScopedBackgroundWindowStillRequiresTheExactSoleOwnerForPublicActivation() {
+        let key = DesktopWindowKey(pid: 51, birth: 100, number: 8)
+        let off: [String: Any] = [kCGWindowNumber as String: UInt32(8), kCGWindowOwnerPID as String: Int32(51), kCGWindowLayer as String: 0]
+        #expect(!DesktopWindowSelection.soleWindow(key, in: [off]))
+        #expect(DesktopWindowSelection.soleWindow(key, in: [off], requireVisible: false))
+        var sibling = off; sibling[kCGWindowNumber as String] = UInt32(9)
+        #expect(!DesktopWindowSelection.soleWindow(key, in: [off, sibling], requireVisible: false))
+    }
 }

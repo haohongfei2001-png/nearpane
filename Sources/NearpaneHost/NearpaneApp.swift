@@ -329,6 +329,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func observeDesktopSession() {
         for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification,
+                     NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification,
+                     NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification,
                      NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification,
                      NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification,
                      NSWorkspace.sessionDidBecomeActiveNotification] {
@@ -786,7 +788,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             modules?.stopWindowContentPreview()
             host?.invalidateDesktop()
         default:
-            host?.invalidateDesktop()
+            modules?.desktopWindowsChanged()
+            host?.refreshAfterWindowChange()
         }
     }
 

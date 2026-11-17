@@ -18,6 +18,7 @@ struct Witness: Codable {
 #if TARGET_WINDOWS
 @main private struct Target {
     @MainActor static func main() {
+        if CommandLine.arguments.contains("--roster") { RosterTrial.owner(); return }
         let app = NSApplication.shared
         guard Bundle.main.bundleIdentifier == "net.example.nearpane-window-selection", app.activationPolicy() == .regular,
               !app.isActive, NSScreen.screens.count == 1, let screen = NSScreen.screens.first else { exit(3) }
@@ -98,6 +99,7 @@ struct Witness: Codable {
     }
 
     @MainActor static func main() async {
+        if CommandLine.arguments.contains("--roster") { await RosterTrial.run(); return }
         let app = NSApplication.shared
         _ = app.setActivationPolicy(.prohibited)
         let origin = NSWorkspace.shared.frontmostApplication?.processIdentifier

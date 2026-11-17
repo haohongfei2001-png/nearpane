@@ -30,12 +30,12 @@ struct Reader {
         return .init(pid: pid, launchEpochMicroseconds: info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec)
     }
 
-    private struct List: Equatable {
+    struct List: Equatable {
         var windows: [CGWindowMetadata] = []
         var limited = false
     }
 
-    private func visible() throws -> List {
+    func windowList(overview: Bool = false) throws -> List {
         let fixture = request.fixtureWindows.map(Set.init), anchors = Set(request.anchors.map(\.number))
         let requested = fixture.map { $0.union(anchors) }
         let descriptions: CFArray?
@@ -43,15 +43,28 @@ struct Reader {
             guard !requested.isEmpty else { return List() }
             descriptions = NPReadVisibleWindowDescriptions(Array(requested), Int32(requested.count))
         } else {
-            descriptions = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+            descriptions = CGWindowListCopyWindowInfo([overview ? .optionAll : .optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
         }
-        guard let list = descriptions as? [[String: Any]] else { throw DesktopActionError.unsupported }
+        guard var list = descriptions as? [[String: Any]] else { throw DesktopActionError.unsupported }
+        if overview {
+            // The WindowServer enumeration and AppKit's ordered window numbers are
+            // independent during a stage transition. Resolve a missing number against
+            // its own CG record; never infer its owner or Space from another window.
+            let known = Set(list.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value })
+            let publicIDs = NSWindow.windowNumbers(options: [.allApplications, .allSpaces]) ?? []
+            for id in Set(publicIDs.map(\.uint32Value)).subtracting(known) {
+                if let exact = CGWindowListCopyWindowInfo(.optionIncludingWindow, id) as? [[String: Any]],
+                   exact.count == 1, exact[0][kCGWindowNumber as String] as? UInt32 == id {
+                    list.append(exact[0])
+                }
+            }
+        }
         var result = List(), seen = Set<UInt32>(), allowed = [Int32: Bool](), processes = [Int32: ProcessIdentity]()
         for row in list {
             guard let pid = (row[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, pid > 0,
                   let number = (row[kCGWindowNumber as String] as? NSNumber)?.uint32Value, number != 0,
                   (row[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
-                  (row[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue == true,
+                  overview || (row[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue == true,
                   (row[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 0 > 0 else { continue }
             if let fixture {
                 guard pid == request.parentPID, fixture.contains(number) || anchors.contains(number) else { continue }
@@ -69,11 +82,12 @@ struct Reader {
             guard seen.insert(number).inserted, let fields = row[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: fields) else { throw GeometryError.invalidGeometry }
             let frame = Rect(rect.minX, rect.minY, rect.width, rect.height)
-            guard frame.isValid else { continue }
-            guard result.windows.count < windowLimit else { result.limited = true; break }
+            guard frame.isValid, !overview || min(frame.width, frame.height) > 1 else { continue }
+            guard result.windows.count < (overview ? 4096 : windowLimit) else { result.limited = true; break }
             let process = processes[pid] ?? incarnation(pid); processes[pid] = process
             result.windows.append(CGWindowMetadata(process: process, windowID: number,
-                title: (row[kCGWindowName as String] as? String).flatMap(titleToken), frame: frame,
+                title: overview ? nil : (row[kCGWindowName as String] as? String).flatMap(titleToken), frame: frame,
+                isOnscreen: (row[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue == true,
                 frontToBackIndex: result.windows.count))
         }
         return result
@@ -108,7 +122,7 @@ struct Reader {
         return result
     }
 
-    private func activeNumbers() -> Set<UInt32> {
+    func activeNumbers() -> Set<UInt32> {
         // The allSpaces flag must stay absent. Only numbers are requested from AppKit.
         let active = Set((NSWindow.windowNumbers(options: .allApplications) ?? []).compactMap { UInt32(exactly: $0.int64Value) })
         if let fixture = request.fixtureWindows { return active.intersection(fixture) }
@@ -137,7 +151,7 @@ struct Reader {
         #endif
         let build = clock.operatingSystemVersionString
         let stageBefore = StageManagerPreference.read()
-        let from = Date(), start = clock.systemUptime, before = try Topology(), list = try visible()
+        let from = Date(), start = clock.systemUptime, before = try Topology(), list = try windowList()
         var status: SpaceReadStatus = .disabled
         if request.experimentalSpaces {
             switch NPReadOnlySpacesOpen() {
@@ -152,7 +166,7 @@ struct Reader {
         let ax = accessibility(list.windows, deadline: start + 1.25)
         let second = first?.inventory == nil ? nil : SpaceBoundary.read(displays: before.displays, windowIDs: ids)
         let activeAfter = activeNumbers()
-        let again = try visible(), topology = try Topology(), end = clock.systemUptime
+        let again = try windowList(), topology = try Topology(), end = clock.systemUptime
         let stageAfter = StageManagerPreference.read()
         let stable = before == topology && list == again && stageBefore == stageAfter && end-start <= 3
         if status == .observed {
@@ -249,7 +263,7 @@ struct Reader {
             #if NEARPANE_ISOLATED_GUI_LAB
             let encodedCommands = ["--read-encoded", "--read-enrolled-console"]
             #else
-            let encodedCommands = ["--read-encoded"]
+            let encodedCommands = ["--read-encoded", "--window-overview"]
             #endif
             let bytes: Data
             if arguments == ["--read-once"] {
@@ -272,7 +286,8 @@ struct Reader {
                 return
             }
             #else
-            let snapshot = try Reader(request: request).sample()
+            let reader = Reader(request: request)
+            let snapshot = try arguments.first == "--window-overview" ? reader.windowOverview() : reader.sample()
             #endif
             guard snapshot.isStructurallyValid else { exit(3) }
             FileHandle.standardOutput.write(try JSONEncoder().encode(snapshot))

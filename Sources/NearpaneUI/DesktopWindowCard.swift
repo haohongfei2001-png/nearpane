@@ -4,19 +4,32 @@ struct DesktopWindowCard: View {
     let label: String
     let icon: NSImage?
     let image: CGImage?
+    var pictureHeight: CGFloat = 94
+    var unavailable = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let image {
-                Image(decorative: image, scale: 1).resizable().interpolation(.high)
-                    .scaledToFit().frame(maxWidth: .infinity, maxHeight: 132)
-                    .background(.black.opacity(0.07))
-            }
+            ZStack {
+                Color.primary.opacity(0.045)
+                if let image {
+                    Image(decorative: image, scale: 1).resizable().interpolation(.high).scaledToFit()
+                } else {
+                    VStack(spacing: 3) {
+                        if let icon {
+                            Image(nsImage: icon).resizable().scaledToFit().frame(width: 25, height: 25)
+                                .accessibilityHidden(true)
+                        }
+                        if unavailable {
+                            Text("暂无窗口画面").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }.frame(maxWidth: .infinity).frame(height: pictureHeight)
             HStack(spacing: 6) {
                 if let icon {
-                    Image(nsImage: icon).resizable().scaledToFit().frame(width: 19, height: 19)
-                } else { Image(systemName: "macwindow").frame(width: 19) }
-                Text(label).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+                    Image(nsImage: icon).resizable().scaledToFit().frame(width: 15, height: 15)
+                } else { Image(systemName: "macwindow").frame(width: 15) }
+                Text(label).font(.caption.weight(.semibold)).lineLimit(1)
                 Spacer(minLength: 0)
             }.padding(.horizontal, 7).padding(.vertical, 6)
         }

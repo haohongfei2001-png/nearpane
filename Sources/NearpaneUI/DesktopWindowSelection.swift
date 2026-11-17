@@ -37,25 +37,28 @@ import NearpaneCore
     /// macOS can activate an application without Accessibility. Use that path only when
     /// even the off-Space WindowServer inventory contains exactly one visible layer-zero
     /// window for this owner. The returned window number, not just the PID, must be in front.
-    static func soleWindow(_ target: DesktopWindowTarget) -> Bool {
+    static func soleWindow(_ target: DesktopWindowTarget, requireVisible: Bool = true) -> Bool {
         guard let rows = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return false }
-        return soleWindow(target.key, in: rows)
+        return soleWindow(target.key, in: rows, requireVisible: requireVisible)
     }
 
-    static func soleWindow(_ key: DesktopWindowKey, in allWindows: [[String: Any]]) -> Bool {
+    static func soleWindow(_ key: DesktopWindowKey, in allWindows: [[String: Any]], requireVisible: Bool = true) -> Bool {
         let sameOwner = allWindows.filter { $0[kCGWindowOwnerPID as String] as? Int32 == key.pid &&
             $0[kCGWindowLayer as String] as? Int == 0 }
         return sameOwner.count == 1 && sameOwner[0][kCGWindowNumber as String] as? UInt32 == key.number &&
-            sameOwner[0][kCGWindowIsOnscreen as String] as? Bool == true
+            (!requireVisible || sameOwner[0][kCGWindowIsOnscreen as String] as? Bool == true)
     }
 
     static func select(_ target: DesktopWindowTarget, deadline: Double, hasAX: Bool,
-                       stillCurrent: @escaping () -> Bool) async throws {
+                       verifySpace: (() async -> Bool)? = nil, stillCurrent: @escaping () -> Bool) async throws {
         func current() -> Bool {
             stillCurrent() && WindowContentPreview.sessionAvailable() && ProcessInfo.processInfo.systemUptime <= deadline
         }
         guard current(), let app = target.liveOwner(), let bundle = app.bundleIdentifier else {
             throw OrdinaryWindowFailure("这扇窗口已变化，请重新选择。")
+        }
+        if target.overviewSpace != nil {
+            guard let verifySpace, await verifySpace(), current() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
         }
         if hasAX {
             let directory = try OrdinaryWindowDirectory(.init(pid: target.key.pid, launch: target.key.birth, bundle: bundle, name: ""))
@@ -63,21 +66,27 @@ import NearpaneCore
             guard current(), choices.count == 1, let choice = choices.first, let handle = directory.handles[choice.id] else {
                 throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。")
             }
-            try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline)
+            try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline, space: target.overviewSpace)
             return
         }
-        guard soleWindow(target), target.isVisibleSurface() else {
+        let scoped = target.overviewSpace != nil
+        guard soleWindow(target, requireVisible: !scoped),
+              scoped ? target.sharedSurface(visible: false, matchFrame: false) : target.isVisibleSurface() else {
             throw OrdinaryWindowFailure("精确选择这扇窗口需要允许 Nearpane 使用辅助功能。")
         }
         guard current(), app.activate(options: []) else { throw OrdinaryWindowFailure("macOS 未允许这个应用置前。") }
         let end = min(deadline, ProcessInfo.processInfo.systemUptime + 0.8)
         repeat {
             if target.liveOwner() != nil, NSWorkspace.shared.frontmostApplication?.processIdentifier == target.key.pid,
-               soleWindow(target), target.isVisibleSurface(),
+               soleWindow(target), (scoped ? target.sharedSurface(visible: true, matchFrame: false) : target.isVisibleSurface()),
                let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
                let front = rows.first(where: { $0[kCGWindowLayer as String] as? Int == 0 && ($0[kCGWindowAlpha as String] as? Double ?? 0) > 0 }),
                front[kCGWindowNumber as String] as? UInt32 == target.key.number,
-               front[kCGWindowOwnerPID as String] as? Int32 == target.key.pid { return }
+               front[kCGWindowOwnerPID as String] as? Int32 == target.key.pid {
+                if !scoped { return }
+                if let verifySpace, await verifySpace(), current() { return }
+                break
+            }
             try await Task.sleep(for: .milliseconds(35))
         } while ProcessInfo.processInfo.systemUptime < end
         throw OrdinaryWindowFailure("系统未确认这扇窗口已置前。")

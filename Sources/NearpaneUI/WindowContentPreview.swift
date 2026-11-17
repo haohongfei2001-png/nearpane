@@ -97,8 +97,10 @@ struct PreviewWindowBinding: Equatable {
 
 @MainActor @Observable final class WindowContentPreview {
     let gallery: DesktopWindowGallery
-    init(permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
+    let currentDesktop: CurrentDesktopWindows?
+    init(readOverview: NativeDesktopProvider.Read? = nil, permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
         gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow)
+        currentDesktop = readOverview.map { CurrentDesktopWindows(read: $0) }
     }
     private(set) var choosing = false
     private(set) var notice = ""
@@ -132,6 +134,7 @@ struct PreviewWindowBinding: Equatable {
             gallery.clear(display: display)
             if active && (binding == nil || binding?.display == display) { clear() }
         }
+        currentDesktop?.observe(!visibleDisplays.isEmpty)
     }
 
     /// The native picker and the later capture callback share this revocable operation.
@@ -339,7 +342,7 @@ private final class WindowPickerObserver: NSObject, SCContentSharingPickerObserv
         var owners = [Int32: (UInt64, Badge)](), badges = [String: Badge]()
         for w in snapshot.windows {
             guard let m = w.metadata, let birth = m.launchMicroseconds, m.pid > 0, birth > 0,
-                  m.isOnscreen == true else { continue }
+                  m.isOnscreen == true || m.overviewSpaceID != nil else { continue }
             if owners[m.pid] == nil {
                 var info = proc_bsdinfo()
                 let size = Int32(MemoryLayout.size(ofValue: info))

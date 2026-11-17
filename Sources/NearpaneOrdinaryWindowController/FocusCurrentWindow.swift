@@ -1,10 +1,11 @@
 import AppKit
 import ApplicationServices
+import CReadOnlySpaces
 import NearpaneCore
 
 /// A direct, single user selection. No frame setters, keyboard shortcuts or Space actions.
 func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: OrdinaryOwnerIdentity,
-                        bundle: String, frame: SurfaceRect, display: String, deadline: TimeInterval) throws {
+                        bundle: String, frame: SurfaceRect, display: String, deadline: TimeInterval, space: String? = nil) throws {
     let app = AXUIElementCreateApplication(id.pid)
     try require(AXUIElementSetMessagingTimeout(app, 0.18) == .success, "无法及时核对应用。")
     func activeNumbers() -> Set<UInt32> {
@@ -17,7 +18,21 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         guard let value = attribute(app, key), CFGetTypeID(value) == AXUIElementGetTypeID() else { return false }
         return CFEqual(value, element)
     }
-    func validate() throws {
+    if space != nil {
+        try require(NPReadOnlySpacesOpen() == 1, "系统无法确认这个后台窗口所属的桌面。")
+    }
+    func isMember(_ number: UInt32) -> Bool {
+        guard let space, let scope = UInt64(space),
+              let inventory = NPReadInventory() as? [[String: Any]] else { return false }
+        let displays = inventory.filter { ($0["Display Identifier"] as? String)?.caseInsensitiveCompare(display) == .orderedSame }
+        guard displays.count == 1, let row = displays.first, let current = row["Current Space"] as? [String: Any],
+              current["id64"] as? UInt64 == scope, let records = row["Spaces"] as? [[String: Any]],
+              records.filter({ $0["id64"] as? UInt64 == scope && $0["type"] as? Int == 0 &&
+                  ($0["uuid"] as? String).flatMap(UUID.init(uuidString:)) != nil }).count == 1,
+              let members = NPReadWindowSpaces(number) as? [UInt64] else { return false }
+        return members.contains(scope)
+    }
+    func validate(presented: Bool = false, allowMinimized: Bool = false) throws {
         let now = ProcessInfo.processInfo.systemUptime
         try require(deadline >= now && deadline - now <= 12, "桌面已变化，请重新选择。")
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
@@ -26,19 +41,18 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
                     attribute(element, kAXRoleAttribute) as? String == kAXWindowRole &&
                     attribute(element, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole &&
                     attribute(element, kAXModalAttribute) as? Bool == false &&
-                    attribute(element, kAXMinimizedAttribute) as? Bool == false &&
+                    (allowMinimized || attribute(element, kAXMinimizedAttribute) as? Bool == false) &&
                     attribute(element, "AXFullScreen") as? Bool == false, "原窗口已关闭、重建或进入其他状态。")
         let ax = try axRect(element)
         let screen = try displayID(ax)
-        guard ax == frame, screen == display, activeNumbers().contains(id.number),
-              let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, id.number) as? [[String:Any]],
-              rows.count == 1, let row = rows.first, row[kCGWindowNumber as String] as? UInt32 == id.number,
-              row[kCGWindowOwnerPID as String] as? Int32 == id.pid,
-              row[kCGWindowLayer as String] as? Int == 0, row[kCGWindowIsOnscreen as String] as? Bool == true,
-              let bounds = row[kCGWindowBounds as String] as? NSDictionary,
-              let r = CGRect(dictionaryRepresentation: bounds),
-              frame == SurfaceRect(x:r.minX,y:r.minY,width:r.width,height:r.height) else {
+        guard screen == display, space == nil || isMember(id.number),
+              let row = WindowSurfaceRecord(number: id.number), row.pid == id.pid, row.layer == 0 else {
             throw Refusal("窗口已离开当前桌面，或其显示位置已改变。")
+        }
+        if space == nil || presented {
+            try require((space != nil || ax == frame) && activeNumbers().contains(id.number) &&
+                        row.isOnscreen && ax == row.frame,
+                        "系统尚未确认这扇窗口在当前桌面置前。")
         }
     }
     // NSRunningApplication properties update on the main run loop. This command is
@@ -61,8 +75,14 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         return condition()
     }
     func focused() -> Bool { frontPID() == id.pid && exact(kAXFocusedWindowAttribute) }
-    try validate()
-    if focused() { return }
+    try validate(allowMinimized: space != nil)
+    if space != nil, attribute(element, kAXMinimizedAttribute) as? Bool == true {
+        try require(AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, kCFBooleanFalse) == .success &&
+                    waitFor(0.7) { attribute(element, kAXMinimizedAttribute) as? Bool == false },
+                    "应用未能展开这扇最小化的窗口。")
+        try validate()
+    }
+    if focused() { try validate(presented: true); return }
     guard let origin = frontPID() else { throw Refusal("系统未提供当前前台应用。") }
     if origin != id.pid {
         if !exact(kAXMainWindowAttribute) {
@@ -73,7 +93,7 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         try validate()
         let siblings = try windows(id.pid)
         let active = activeNumbers()
-        let allHere = siblings.allSatisfy { number($0).map(active.contains) == true }
+        let allHere = siblings.allSatisfy { number($0).map { active.contains($0) || isMember($0) } == true }
         try require(mainIsTarget && exact(kAXMainWindowAttribute) && (allHere || exact(kAXFocusedWindowAttribute)),
                     "无法确认置前会留在当前桌面。")
         let before = frontPID()
@@ -104,6 +124,9 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         }
     }
     let confirmed = waitFor(0.65, until: focused)
-    try validate()
+    if confirmed, space != nil {
+        _ = waitFor(0.8) { (try? validate(presented: true)) != nil }
+    }
+    try validate(presented: true)
     try require(confirmed && focused(), "应用已在前台，但系统未确认这扇窗口获得焦点。")
 }

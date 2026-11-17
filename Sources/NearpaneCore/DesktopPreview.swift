@@ -98,9 +98,9 @@ public extension DesktopSnapshot {
         guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime), native?.windowLimitReached == false else { return [] }
         let current = native?.rows.first { $0.displayID == displayID }?.recordID
         return windows.filter { window in
-            guard window.displayID == displayID, let m = window.metadata,
-                  m.onActiveDesktop == true, m.isOnscreen == true, m.number > 0,
-                  m.minimized != true, m.fullScreen != true else { return false }
+            guard window.displayID == displayID, let m = window.metadata, m.number > 0, m.fullScreen != true else { return false }
+            let publiclyVisible = m.onActiveDesktop == true && m.isOnscreen == true && m.minimized != true
+            guard publiclyVisible || m.overviewSpaceID != nil else { return false }
             if let current, case .known(let records) = window.membership { return records.contains(current) }
             return true
         }.sorted { a, b in

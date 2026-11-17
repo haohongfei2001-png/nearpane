@@ -275,6 +275,13 @@ public final class HostSession {
         restartDesktopUpdates()
     }
 
+    /// Ordinary focus/window events don't invalidate the display or erase the last desktop.
+    public func refreshAfterWindowChange() {
+        guard isRunning, provider is any LiveDesktopObservationProvider else { return }
+        cancelWorkspaceGesture()
+        restartDesktopUpdates()
+    }
+
     public func setDesktopPause(_ reason: DesktopObservationPause, paused: Bool) {
         // Session notifications may arrive before the profile finishes opening.
         guard provider is any LiveDesktopObservationProvider else { return }

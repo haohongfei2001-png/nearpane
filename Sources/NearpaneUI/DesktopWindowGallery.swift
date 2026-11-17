@@ -15,30 +15,45 @@ struct DesktopWindowTarget: Equatable {
     let session: UUID
     let topology, display: String
     let current: String?
+    let overviewSpace: String?
+    let publiclyVisible: Bool
     let membership: WindowMembership
     let frame: SurfaceRect
 
     init?(_ window: WindowObservation, in snapshot: DesktopSnapshot) {
         guard let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
-              m.number > 0, m.isOnscreen == true, m.onActiveDesktop == true,
-              m.minimized != true, m.fullScreen != true, m.globalFrame.geometry.isValid,
+              m.number > 0, m.fullScreen != true, m.globalFrame.geometry.isValid,
               window.confidence != .synthetic,
               window.confidence != .ambiguous || (m.element == nil && m.axFrame == nil && m.axStandardWindowNumber == nil),
               m.axFrame == nil || m.presentation == .confirmed,
               m.axStandardWindowNumber == nil || m.axStandardWindowNumber == m.number else { return nil }
         let active = snapshot.scopes.filter { $0.displayID == window.displayID }.flatMap(\.records).filter(\.isCurrent)
         guard active.count <= 1 else { return nil }
+        publiclyVisible = m.isOnscreen == true && m.onActiveDesktop == true && m.minimized != true
+        if let space = m.overviewSpaceID {
+            guard active.first?.id == space, active.first?.ordinaryUUID != nil,
+                  case .known(let members) = window.membership, members.contains(space) else { return nil }
+        } else if !publiclyVisible { return nil }
+        overviewSpace = m.overviewSpaceID
         key = .init(pid: m.pid, birth: birth, number: m.number)
         session = snapshot.sessionID; topology = snapshot.topologyFingerprint
         display = window.displayID; current = active.first?.id
         membership = window.membership; frame = m.globalFrame
     }
 
+    /// Ordering a stage or resizing its card doesn't change the pixels' owning window.
+    /// Without a current-Space proof the original public frame binding stays strict.
+    func samePicture(as other: Self) -> Bool {
+        if self == other { return true }
+        return overviewSpace != nil && overviewSpace == other.overviewSpace && key == other.key &&
+            session == other.session && topology == other.topology && display == other.display
+    }
+
     func present(in snapshot: DesktopSnapshot?, now: Date = .now, uptime: Double = ProcessInfo.processInfo.systemUptime) -> Bool {
         guard let snapshot, snapshot.sessionID == session, snapshot.topologyFingerprint == topology else { return false }
         let matched = snapshot.currentDesktopWindows(on: display, now: now, uptime: uptime)
             .filter { $0.metadata?.number == key.number }
-        return matched.count == 1 && matched.first.flatMap { DesktopWindowTarget($0, in: snapshot) } == self
+        return matched.count == 1 && matched.first.flatMap { DesktopWindowTarget($0, in: snapshot) }.map(samePicture(as:)) == true
     }
 
     func liveOwner() -> NSRunningApplication? {
@@ -57,17 +72,15 @@ struct DesktopWindowTarget: Equatable {
     /// frame and the public current-desktop list on both sides of an asynchronous capture.
     @MainActor func isVisibleSurface() -> Bool {
         guard liveOwner() != nil,
-              (NSWindow.windowNumbers(options: .allApplications) ?? []).contains(NSNumber(value: key.number)),
-              let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, key.number) as? [[String: Any]],
-              rows.count == 1, let row = rows.first,
-              row[kCGWindowNumber as String] as? UInt32 == key.number,
-              row[kCGWindowOwnerPID as String] as? Int32 == key.pid,
-              row[kCGWindowLayer as String] as? Int == 0, row[kCGWindowIsOnscreen as String] as? Bool == true,
-              (row[kCGWindowAlpha as String] as? Double ?? 0) > 0,
-              let shared = row[kCGWindowSharingState as String] as? UInt32, shared != CGWindowSharingType.none.rawValue,
-              let bounds = row[kCGWindowBounds as String] as? NSDictionary, let r = CGRect(dictionaryRepresentation: bounds)
+              (NSWindow.windowNumbers(options: .allApplications) ?? []).contains(NSNumber(value: key.number)) else { return false }
+        return sharedSurface(visible: true, matchFrame: true)
+    }
+
+    func sharedSurface(visible: Bool, matchFrame: Bool) -> Bool {
+        guard let row = WindowSurfaceRecord(number: key.number), row.pid == key.pid, row.layer == 0,
+              row.allowsContent, !visible || row.isOnscreen
         else { return false }
-        return matches(r)
+        return !matchFrame || row.frame == frame
     }
 
     func matches(_ rect: CGRect) -> Bool {
@@ -82,9 +95,11 @@ struct DesktopWindowTarget: Equatable {
         let time: TimeInterval
     }
     private var stills = [DesktopWindowKey: Still]()
+    private var missingPictures = [DesktopWindowKey: String]()
     private(set) var generation: UInt64 = 0
     // A per-display lease prevents cancelled or superseded captures from being published.
     @ObservationIgnored private var operations = [String: UUID]()
+    @ObservationIgnored private var changes = [String: AsyncStream<Void>.Continuation]()
     private var visible = [String: Set<DesktopWindowKey>]()
     private let permitsWindow: (DesktopWindowKey) -> Bool
 
@@ -93,73 +108,157 @@ struct DesktopWindowTarget: Equatable {
     }
 
     func setCard(_ key: DesktopWindowKey, on display: String, visible onScreen: Bool) {
-        if onScreen { visible[display, default: []].insert(key) }
-        else { visible[display]?.remove(key); stills.removeValue(forKey: key) }
+        if onScreen {
+            if visible[display, default: []].insert(key).inserted { changes[display]?.yield(()) }
+        }
+        else { visible[display]?.remove(key); stills.removeValue(forKey: key); missingPictures.removeValue(forKey: key) }
     }
 
     func clear(display: String? = nil) {
         if let display {
             operations.removeValue(forKey: display)
+            changes.removeValue(forKey: display)?.finish()
             stills = stills.filter { $0.value.target.display != display }
+            missingPictures = missingPictures.filter { $0.value != display }
         } else {
             generation &+= 1
-            operations.removeAll(); stills.removeAll()
+            operations.removeAll(); stills.removeAll(); missingPictures.removeAll()
+            for events in changes.values { events.finish() }
+            changes.removeAll()
         }
     }
 
     func image(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
         guard permitted, visible[target.display]?.contains(target.key) == true,
-              let still = stills[target.key], still.target == target, now - still.time < 12 else { return nil }
+              let still = stills[target.key], still.target.samePicture(as: target), now - still.time < 12 else { return nil }
         return still.image
     }
 
-    func run(on display: String, snapshot: @escaping () -> DesktopSnapshot?, allowed: @escaping () -> Bool) async {
-        let token = UUID()
+    func lacksPicture(_ target: DesktopWindowTarget) -> Bool { missingPictures[target.key] == target.display }
+
+    /// Scope checks are batched. Each image uses a filter for exactly one shared window.
+    func run(on display: String, snapshot: @escaping () -> DesktopSnapshot?, allowed: @escaping () -> Bool,
+             recheck: (() async -> DesktopSnapshot?)? = nil) async {
+        let token = UUID(), (stream, events) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        changes[display]?.finish()
         operations[display] = token
-        var attempted = [DesktopWindowKey: TimeInterval]()
+        changes[display] = events
+        let timer = Task {
+            while !Task.isCancelled {
+                events.yield(())
+                do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+            }
+        }
         defer {
+            timer.cancel()
             if operations[display] == token { clear(display: display) }
         }
-        while !Task.isCancelled && operations[display] == token {
-            guard allowed(), WindowContentPreview.sessionAvailable(), CGPreflightScreenCaptureAccess() else { return }
-            if let sample = snapshot() {
-                let targets = sample.currentDesktopWindows(on: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
-                    .compactMap { DesktopWindowTarget($0, in: sample) }
-                    .filter { permitsWindow($0.key) && visible[display]?.contains($0.key) == true }
-                let active = Dictionary(targets.map { ($0.key, $0) }, uniquingKeysWith: { a, _ in a })
-                for key in stills.keys where stills[key]?.target.display == display && active[key] != stills[key]?.target {
-                    stills.removeValue(forKey: key)
-                }
-                attempted = attempted.filter { active[$0.key] != nil }
-                let due = targets.sorted { (attempted[$0.key] ?? 0) < (attempted[$1.key] ?? 0) }
-                    .filter { ProcessInfo.processInfo.systemUptime - (attempted[$0.key] ?? -.infinity) >= 3 }
-                if !due.isEmpty, let content = try? await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true) {
-                    for target in due.prefix(6) {
-                        attempted[target.key] = ProcessInfo.processInfo.systemUptime
-                        func valid() -> Bool {
-                            !Task.isCancelled && operations[display] == token && allowed() && permitsWindow(target.key) &&
-                                visible[display]?.contains(target.key) == true && WindowContentPreview.sessionAvailable() &&
-                                CGPreflightScreenCaptureAccess() && target.present(in: snapshot()) && target.isVisibleSurface()
-                        }
-                        guard valid() else { if operations[display] == token { stills.removeValue(forKey: target.key) }; continue }
-                        let selected = content.windows.filter { $0.windowID == target.key.number &&
-                            $0.owningApplication?.processID == target.key.pid && $0.windowLayer == 0 && $0.isOnScreen && target.matches($0.frame) }
-                        guard selected.count == 1, let window = selected.first else { stills.removeValue(forKey: target.key); continue }
-                        let config = SCStreamConfiguration()
-                        let scale = min(1, 420 / max(target.frame.width, target.frame.height))
-                        config.width = max(1, Int((target.frame.width * scale).rounded()))
-                        config.height = max(1, Int((target.frame.height * scale).rounded()))
-                        config.showsCursor = false; config.capturesAudio = false
-                        config.ignoreShadowsSingleWindow = true
-                        if #available(macOS 14.2, *) { config.includeChildWindows = false }
-                        let filter = SCContentFilter(desktopIndependentWindow: window)
-                        guard let pixels = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config),
-                              valid() else { if operations[display] == token { stills.removeValue(forKey: target.key) }; continue }
-                        stills[target.key] = Still(target: target, image: pixels, time: ProcessInfo.processInfo.systemUptime)
-                    }
+        var attempted = [DesktopWindowKey: TimeInterval]()
+        var misses = [DesktopWindowKey: Int]()
+        var lastTargets = [DesktopWindowKey: DesktopWindowTarget]()
+        func permitted() -> Bool {
+            !Task.isCancelled && operations[display] == token && allowed() &&
+                WindowContentPreview.sessionAvailable() && CGPreflightScreenCaptureAccess()
+        }
+        for await _ in stream {
+            guard permitted() else { return }
+            guard let sample = snapshot() else { continue }
+            let members = sample.currentDesktopWindows(on: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
+            let targets = members.compactMap { DesktopWindowTarget($0, in: sample) }
+                .filter { permitsWindow($0.key) && visible[display]?.contains($0.key) == true }
+            let active = Dictionary(uniqueKeysWithValues: targets.map { ($0.key, $0) })
+            for target in targets {
+                if let old = lastTargets[target.key], old.publiclyVisible != target.publiclyVisible || old.overviewSpace != target.overviewSpace {
+                    attempted.removeValue(forKey: target.key)
+                    misses.removeValue(forKey: target.key)
                 }
             }
-            do { try await Task.sleep(for: .milliseconds(850)) } catch { return }
+            lastTargets = active
+            for (key, still) in stills where still.target.display == display && active[key]?.samePicture(as: still.target) != true {
+                stills.removeValue(forKey: key)
+            }
+            attempted = attempted.filter { active[$0.key] != nil }
+            misses = misses.filter { active[$0.key] != nil }
+            let now = ProcessInfo.processInfo.systemUptime
+            let due = targets.filter { target in
+                // Newly mapped windows may be registered before SCK can deliver a surface.
+                let firstPicture = stills[target.key] == nil && (misses[target.key] ?? 0) < 4
+                let interval: TimeInterval = firstPicture ? 0.20 : (target.publiclyVisible ? 1 : 2)
+                return now - (attempted[target.key] ?? -.infinity) >= interval
+            }
+                .sorted { (attempted[$0.key] ?? 0) < (attempted[$1.key] ?? 0) }
+            guard !due.isEmpty else { continue }
+            // An on-screen card can verify public presentation synchronously. Only
+            // off-stage members need extra membership samples around their pixels.
+            let includeOffstage = due.contains { $0.overviewSpace != nil }
+            guard permitted(),
+                  let content = try? await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: !includeOffstage)
+            else { continue }
+            let shared = Dictionary(grouping: content.windows, by: \.windowID)
+            let viaMembership = Set(due.compactMap { target -> DesktopWindowKey? in
+                guard target.overviewSpace != nil, let source = shared[target.key.number]?.first else { return nil }
+                return target.publiclyVisible && source.isOnScreen && target.matches(source.frame) ? nil : target.key
+            })
+            let before = viaMembership.isEmpty ? sample : await recheck?()
+            guard let before, permitted() else { continue }
+            for start in stride(from: 0, to: due.count, by: 4) {
+                guard permitted() else { return }
+                let batch = due[start..<min(start + 4, due.count)]
+                var jobs = [(DesktopWindowTarget, Task<CGImage?, Never>)]()
+                for target in batch {
+                    attempted[target.key] = now
+                    if stills[target.key] == nil { misses[target.key, default: 0] += 1 }
+                    guard target.present(in: before), target.present(in: snapshot()), visible[display]?.contains(target.key) == true,
+                          let candidates = shared[target.key.number], candidates.count == 1, let window = candidates.first,
+                          target.liveOwner() != nil, window.owningApplication?.processID == target.key.pid,
+                          window.windowLayer == 0 else { continue }
+                    if viaMembership.contains(target.key) {
+                        guard target.sharedSurface(visible: false, matchFrame: true) else { continue }
+                    } else {
+                        guard window.isOnScreen, target.matches(window.frame), target.isVisibleSurface() else { continue }
+                    }
+                    jobs.append((target, Task { await Self.capture(window) }))
+                }
+                var pictures = [(DesktopWindowTarget, CGImage)]()
+                for (target, job) in jobs {
+                    if let image = await job.value { pictures.append((target, image)) }
+                }
+                guard permitted() else { return }
+                let returned = Set(pictures.map { $0.0.key })
+                for target in batch where !returned.contains(target.key) && (misses[target.key] ?? 0) >= 2 &&
+                    visible[display]?.contains(target.key) == true && missingPictures[target.key] == nil {
+                    missingPictures[target.key] = display
+                }
+                guard !pictures.isEmpty, permitted() else { continue }
+                // A window can be moved to another Space without the user changing desktops.
+                // A fresh independent membership read protects the publication of those pixels.
+                let after = pictures.contains { viaMembership.contains($0.0.key) } ? await recheck?() : snapshot()
+                guard permitted() else { return }
+                for (target, image) in pictures {
+                    guard target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
+                          visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
+                          (viaMembership.contains(target.key) ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
+                        stills.removeValue(forKey: target.key); continue
+                    }
+                    stills[target.key] = Still(target: target, image: image, time: ProcessInfo.processInfo.systemUptime)
+                    misses.removeValue(forKey: target.key)
+                    missingPictures.removeValue(forKey: target.key)
+                }
+            }
         }
+    }
+
+    private static func capture(_ window: SCWindow) async -> CGImage? {
+        let filter = SCContentFilter(desktopIndependentWindow: window)
+        let rect = filter.contentRect
+        guard rect.width.isFinite, rect.height.isFinite, min(rect.width, rect.height) > 0 else { return nil }
+        let scale = min(1, 420 / max(rect.width, rect.height))
+        let config = SCStreamConfiguration()
+        config.width = max(1, Int((rect.width * scale).rounded()))
+        config.height = max(1, Int((rect.height * scale).rounded()))
+        config.showsCursor = false; config.capturesAudio = false; config.ignoreShadowsSingleWindow = true
+        config.ignoreGlobalClipSingleWindow = true; config.preservesAspectRatio = true
+        if #available(macOS 14.2, *) { config.includeChildWindows = false }
+        return try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
     }
 }
