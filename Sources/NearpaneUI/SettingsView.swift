@@ -362,10 +362,22 @@ public struct SettingsView: View {
             LabeledContent("工作空间模式", value: host.workspaceMode.mode == .native ? "macOS 空间 · 只读" : "Nearpane 虚拟工作区")
             Text("当前可查看桌面。切换桌面、跨桌面移窗及虚拟工作区停放尚未开放。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
-            Toggle("只读桌面预览", isOn: Binding(get: { enabled }, set: {
-                if !$0 { domains?.windowPreviews.clear() }
+            Toggle("显示桌面与窗口", isOn: Binding(get: { enabled }, set: {
+                if !$0 { domains?.stopWindowContentPreview() }
                 host.handle(.setEnabled(BuiltinCatalog.desktop, $0))
             }))
+            Toggle("显示当前桌面的窗口缩略图", isOn: Binding(get: { host.configuration.showsWindowThumbnails }, set: { show in
+                host.setWindowThumbnails(show)
+                if !show { domains?.windowPreviews.gallery.clear() }
+            })).disabled(!enabled)
+            Text("缩略图在侧栏可见时刷新，仅保存在内存中。点击一扇窗口即可选中它。")
+                .font(.caption).foregroundStyle(.secondary)
+            if !CGPreflightScreenCaptureAccess() && host.configuration.showsWindowThumbnails {
+                Button("允许 Nearpane 读取窗口画面", action: WindowOverviewAccess.requestThumbnails)
+            }
+            if !AXIsProcessTrusted() {
+                Button("允许精确选择同一应用的不同窗口", action: WindowOverviewAccess.requestFocus)
+            }
             Toggle("识别窗口所属桌面（实验性）", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
                   set: { host.setExperimentalSpaceObservation($0) })).disabled(!enabled)
             if #available(macOS 15.2, *), let previews = domains?.windowPreviews {
@@ -379,14 +391,14 @@ public struct SettingsView: View {
                 if !previews.notice.isEmpty {
                     Text(previews.notice).font(.caption).foregroundStyle(.secondary)
                 } else if !enabled {
-                    Text("启用只读桌面预览后可选择窗口。").font(.caption).foregroundStyle(.secondary)
+                    Text("启用「显示桌面与窗口」后可选择窗口。").font(.caption).foregroundStyle(.secondary)
                 } else if previews.visibleDisplays.isEmpty || host.configuration.surfaceHidden {
                     Text("先显示并展开含空间预览的侧栏，再选择窗口。").font(.caption).foregroundStyle(.secondary)
                 } else {
                     Text("由系统选择器指定一扇窗口。快照仅在内存中保留一分钟。").font(.caption).foregroundStyle(.secondary)
                 }
             }
-            Text("默认只观察当前可见窗口的几何。实验读取仅用于已核验的系统构建。")
+            Text("未取得画面权限时，侧栏显示应用与窗口轮廓。")
                 .font(.callout).foregroundStyle(.secondary)
         }.padding(16)
     }

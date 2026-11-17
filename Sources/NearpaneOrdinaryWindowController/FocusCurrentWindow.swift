@@ -41,34 +41,69 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
             throw Refusal("窗口已离开当前桌面，或其显示位置已改变。")
         }
     }
-    func focused() -> Bool {
-        NSWorkspace.shared.frontmostApplication?.processIdentifier == id.pid && exact(kAXFocusedWindowAttribute)
+    // NSRunningApplication properties update on the main run loop. This command is
+    // itself a CFFileDescriptor callback, so sleeping here can freeze the previous PID.
+    let system = AXUIElementCreateSystemWide()
+    try require(AXUIElementSetMessagingTimeout(system, 0.18) == .success, "无法核对当前焦点。")
+    func frontPID() -> pid_t? {
+        if let value = attribute(system, kAXFocusedApplicationAttribute), CFGetTypeID(value) == AXUIElementGetTypeID() {
+            var pid: pid_t = 0
+            if AXUIElementGetPid(value as! AXUIElement, &pid) == .success && pid > 0 { return pid }
+        }
+        return NSWorkspace.shared.frontmostApplication?.processIdentifier
     }
+    func waitFor(_ seconds: Double, until condition: () -> Bool) -> Bool {
+        let end = min(deadline, ProcessInfo.processInfo.systemUptime + seconds)
+        while !condition(), ProcessInfo.processInfo.systemUptime < end {
+            // The command pipe is re-enabled only after this handler returns.
+            CFRunLoopRunInMode(.defaultMode, 0.018, false)
+        }
+        return condition()
+    }
+    func focused() -> Bool { frontPID() == id.pid && exact(kAXFocusedWindowAttribute) }
     try validate()
     if focused() { return }
-    try require(AXUIElementPerformAction(element, kAXRaiseAction as CFString) == .success, "此窗口不支持置前。")
-    if !focused() {
-        try validate()
+    guard let origin = frontPID() else { throw Refusal("系统未提供当前前台应用。") }
+    if origin != id.pid {
         if !exact(kAXMainWindowAttribute) {
             try require(AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue) == .success,
                         "应用未允许选中这扇窗口。")
         }
-        if NSWorkspace.shared.frontmostApplication?.processIdentifier != id.pid {
-            // Activation may otherwise switch to another Space. Require all candidate siblings
-            // to be in the active set and the exact selected element to be the app's main window.
-            let siblings = try windows(id.pid)
-            let active = activeNumbers()
-            guard siblings.allSatisfy({ number($0).map(active.contains) == true }),
-                  exact(kAXMainWindowAttribute) else { throw Refusal("无法确认置前会留在当前桌面。") }
-            try validate()
-            // The helper itself has no foreground UI. Use the accessible application's
-            // public frontmost attribute only after the selected main window is verified.
+        let mainIsTarget = waitFor(0.35) { exact(kAXMainWindowAttribute) }
+        try validate()
+        let siblings = try windows(id.pid)
+        let active = activeNumbers()
+        let allHere = siblings.allSatisfy { number($0).map(active.contains) == true }
+        try require(mainIsTarget && exact(kAXMainWindowAttribute) && (allHere || exact(kAXFocusedWindowAttribute)),
+                    "无法确认置前会留在当前桌面。")
+        let before = frontPID()
+        try require(before == origin || before == id.pid, "前台已变化，请重新选择。")
+        if before != id.pid {
             try require(AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue) == .success,
                         "系统未允许所选应用成为前台。")
         }
+        try require(waitFor(0.9) { frontPID() == id.pid }, "macOS 未将所选应用带到前台。")
     }
-    let end = min(deadline, ProcessInfo.processInfo.systemUptime + 0.65)
-    while !focused() && ProcessInfo.processInfo.systemUptime < end { Thread.sleep(forTimeInterval: 0.025) }
+    // Activation can restore the app's previous key window. Select the requested
+    // window after activation and never substitute a sibling.
     try validate()
-    try require(focused(), "系统未确认选中的窗口获得焦点。")
+    try require(frontPID() == id.pid, "前台已变化，请重新选择。")
+    if !focused() {
+        try require(AXUIElementPerformAction(element, kAXRaiseAction as CFString) == .success, "此窗口不支持置前。")
+        if !waitFor(0.12, until: focused) {
+            try validate()
+            try require(frontPID() == id.pid, "前台已变化，请重新选择。")
+            var writable = DarwinBoolean(false)
+            if AXUIElementIsAttributeSettable(app, kAXFocusedWindowAttribute as CFString, &writable) == .success && writable.boolValue {
+                try require(AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, element) == .success,
+                            "应用拒绝将焦点交给所选窗口。")
+            } else if !exact(kAXMainWindowAttribute) {
+                try require(AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue) == .success,
+                            "应用未允许选中这扇窗口。")
+            }
+        }
+    }
+    let confirmed = waitFor(0.65, until: focused)
+    try validate()
+    try require(confirmed && focused(), "应用已在前台，但系统未确认这扇窗口获得焦点。")
 }

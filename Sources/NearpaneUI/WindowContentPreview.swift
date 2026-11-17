@@ -96,6 +96,10 @@ struct PreviewWindowBinding: Equatable {
 }
 
 @MainActor @Observable final class WindowContentPreview {
+    let gallery: DesktopWindowGallery
+    init(permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
+        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow)
+    }
     private(set) var choosing = false
     private(set) var notice = ""
     private(set) var binding: PreviewWindowBinding?
@@ -116,13 +120,16 @@ struct PreviewWindowBinding: Equatable {
     private var expiry: Task<Void, Never>?
     private(set) var operation: UUID?
     private(set) var visibleDisplays: Set<String> = []
+    private(set) var visibilityGeneration: [String: UInt64] = [:]
 
     func setVisible(_ visible: Bool, on display: String) {
         guard visibleDisplays.contains(display) != visible else { return }
+        visibilityGeneration[display, default: 0] &+= 1
         if visible {
             visibleDisplays.insert(display)
         } else {
             visibleDisplays.remove(display)
+            gallery.clear(display: display)
             if active && (binding == nil || binding?.display == display) { clear() }
         }
     }
@@ -235,7 +242,7 @@ struct PreviewWindowBinding: Equatable {
         witness = nil; still = nil; binding = nil; notice = message
     }
 
-    private nonisolated static func sessionAvailable() -> Bool {
+    nonisolated static func sessionAvailable() -> Bool {
         guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return false }
         return session[kCGSessionOnConsoleKey as String] as? Bool == true &&
             session["CGSSessionScreenIsLocked"] as? Bool != true

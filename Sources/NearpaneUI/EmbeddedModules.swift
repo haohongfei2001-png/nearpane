@@ -15,8 +15,8 @@ public final class EmbeddedModules {
     let voicePasteboard: NSPasteboard
     #endif
 
-    let windowPreviews = WindowContentPreview()
-    public func stopWindowContentPreview() { windowPreviews.clear() }
+    let windowPreviews: WindowContentPreview
+    public func stopWindowContentPreview() { windowPreviews.gallery.clear(); windowPreviews.clear() }
 
     @MainActor public func updateRelaunchBlock() async -> String? {
         #if canImport(NearpaneVoice)
@@ -32,6 +32,7 @@ public final class EmbeddedModules {
     public let workRect: CandidateWorkRect?
     public let candidate: Bool
     public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
+        windowPreviews = WindowContentPreview(permitsGalleryWindow: { _ in testSession == nil })
         self.candidate = candidate
         workRect = candidate ? CandidateWorkRect(support: support.deletingLastPathComponent()) : nil
         #if canImport(NearpaneVoice)

@@ -24,7 +24,7 @@ for kind in owner host; do
         cp "$worker" "$dest/Contents/Helpers/NearpaneOrdinaryWindowController"
         plutil -insert NearpaneOrdinaryWindowControllerSHA256 -string "$(shasum -a 256 "$worker" | cut -d ' ' -f1)" "$plist"
     fi
-    xcrun swiftc -parse-as-library -target arm64-apple-macos14.0 -I "$debug/Modules" -module-cache-path .build/clang-cache         "${flags[@]}" "$debug"/{NearpaneCore,NearpaneUI,WindowGeometryCore}.build/*.swift.o         scripts/acceptance/current-desktop-selection.swift -o "$dest/Contents/MacOS/$exe"
+    xcrun swiftc -parse-as-library -target arm64-apple-macos14.0 -I "$debug/Modules" -module-cache-path .build/clang-cache         "${flags[@]}" -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" "$debug"/{NearpaneCore,NearpaneUI,WindowGeometryCore}.build/*.swift.o         scripts/acceptance/current-desktop-selection.swift scripts/acceptance/current-desktop-gallery.swift -o "$dest/Contents/MacOS/$exe"
     codesign --force --sign - "$dest"
     codesign --verify --strict --deep "$dest"
 done

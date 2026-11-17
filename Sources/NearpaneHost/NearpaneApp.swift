@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import Combine
 import SwiftUI
 import NearpaneCore
@@ -374,6 +375,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Report the permissions of the installed Host itself. No window identities or content.
+        let canPreview = CGPreflightScreenCaptureAccess()
+        let canSelect = AXIsProcessTrusted()
+        Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowOverview")
+            .notice("Window overview access: screen=\(canPreview, privacy: .public) accessibility=\(canSelect, privacy: .public)")
         observeDesktopSession()
         if passiveDisplayID != nil {
             // Passive runs have no menu or key window. Close through the ordinary shutdown barrier.

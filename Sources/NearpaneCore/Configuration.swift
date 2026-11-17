@@ -20,6 +20,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public var surfaceHidden: Bool = false
     public var showsMenuBarIcon = true
     public var candidateTrayConnected = true
+    public var showsWindowThumbnails = true
     public var experimentalSpaceObservation = false
     public var workspaces = WorkspacePreferences()
     public var displays: [String: DisplaySettings] = [:]
@@ -38,6 +39,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         candidateTrayConnected = try c.decodeIfPresent(Bool.self, forKey: .candidateTrayConnected) ?? true
         surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
         showsMenuBarIcon = try c.decodeIfPresent(Bool.self, forKey: .showsMenuBarIcon) ?? true
+        showsWindowThumbnails = try c.decodeIfPresent(Bool.self, forKey: .showsWindowThumbnails) ?? true
         experimentalSpaceObservation = try c.decodeIfPresent(Bool.self, forKey: .experimentalSpaceObservation) ?? false
         workspaces = try c.decodeIfPresent(WorkspacePreferences.self,forKey:.workspaces) ?? .init()
         displays = try c.decodeIfPresent([String: DisplaySettings].self, forKey: .displays) ?? [:]

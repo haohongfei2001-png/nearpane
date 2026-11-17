@@ -250,6 +250,12 @@ public final class HostSession {
         await refreshDesktop()
     }
 
+    public func setWindowThumbnails(_ enabled: Bool) {
+        guard isRunning, configuration.showsWindowThumbnails != enabled else { return }
+        configuration.showsWindowThumbnails = enabled
+        save()
+    }
+
     public func setExperimentalSpaceObservation(_ enabled: Bool) {
         guard isRunning, configuration.experimentalSpaceObservation != enabled else { return }
         if !enabled { (provider as? any LiveDesktopObservationProvider)?.discardVisitedSpaces() }
