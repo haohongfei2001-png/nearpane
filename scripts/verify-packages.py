@@ -62,6 +62,14 @@ def verify(app, lock, sandbox):
     if "_AXUIElementSetAttributeValue" not in writer_imports or writer_imports & {
             "_CGEventPost", "_CGEventPostToPid", "_AXUIElementPerformAction"}:
         raise ValueError("Unexpected ordinary window controller capabilities")
+    space_action = contents / "Helpers/NearpaneSpaceAction"
+    if package_version >= (5, 21) or "NearpaneSpaceActionSHA256" in plist:
+        if space_action.resolve() != space_action or digest(space_action) != plist.get("NearpaneSpaceActionSHA256"):
+            raise ValueError("Native Space action fingerprint mismatch")
+        subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(space_action)], check=True)
+        for notice in ("InstantSpaceSwitcher-LICENSE", "yabai-LICENSE", "SOURCES.md"):
+            if not (contents / "Resources/NativeSpaceActions" / notice).is_file():
+                raise ValueError("Missing Native Space action source notice: " + notice)
     for exe in (binary, helper, writer):
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
             raise ValueError("Private desktop framework linked directly: " + exe.name)

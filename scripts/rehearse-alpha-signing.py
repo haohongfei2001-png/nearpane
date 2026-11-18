@@ -47,7 +47,9 @@ def rehearse(source):
         writer = helpers / "NearpaneOrdinaryWindowController"
         automation = helpers / "NearpaneAutomation"
         additional = [automation] if automation.exists() else []
-        for binary in (*readers, writer, *additional):
+        space_action = helpers / "NearpaneSpaceAction"
+        action_helpers = [space_action] if space_action.exists() else []
+        for binary in (*readers, writer, *additional, *action_helpers):
             if binary.is_symlink() or not binary.is_file():
                 raise ValueError("Expected regular helper binary")
             # Keep the existing designated identifier of each standalone executable.
@@ -59,6 +61,8 @@ def rehearse(source):
         pin(fixture, "NearpaneDesktopReaderSHA256", readers[1])
         pin(temp, "NearpaneDesktopReaderSHA256", readers[0])
         pin(temp, "NearpaneOrdinaryWindowControllerSHA256", writer)
+        if action_helpers:
+            pin(temp, "NearpaneSpaceActionSHA256", space_action)
         if additional:
             plist = temp / "Contents/Info.plist"
             info = plistlib.loads(plist.read_bytes())
@@ -86,7 +90,7 @@ def rehearse(source):
                 raise ValueError("Expected only a hardened rehearsal signature: " + rel)
         if signed_tree != {p.relative_to(source): sha(p) for p in source.rglob("*") if p.is_file()}:
             raise ValueError("Input candidate changed")
-        return dict(inputUnchanged=True, sealedBinaries=len(after["binaries"]), refreshedHelperPins=3+len(additional),
+        return dict(inputUnchanged=True, sealedBinaries=len(after["binaries"]), refreshedHelperPins=3+len(additional)+len(action_helpers),
                     developerIDUsed=False, uploaded=False, notarization="NOT_TESTED", outcome="LOCAL_REHEARSAL_ONLY")
 
 
