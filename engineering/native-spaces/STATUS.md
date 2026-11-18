@@ -1,6 +1,6 @@
 # 原生空间专项状态
 
-2026-11-18，专项 **PARTIAL**。当前安装为 Nearpane 5.21（77），源码 `9239327abd17fac9a95cbcc833e6fc85aeac0cb4`。macOS 27.0（26A428），Apple Silicon，一块 1470 × 956 pt 显示器，独立 Spaces 关闭，台前调度开启。已有普通桌面 3 个，实际全屏 Space 1 个。[实现 PR #14](https://github.com/haohongfei2001-png/nearpane/pull/14) · [验收合同](ACCEPTANCE.md) · [原安装版基线](../verification/native-spaces/baseline-5.20-73/RESULTS.md)
+2026-11-18，专项 **PARTIAL**。当前安装为 Nearpane 5.21（78），源码 `30831cf1e7faf1f22fdce32d3542e027fa918ffb`。78 已采用稳定开发者签名，并从实际运行的 Host 重新采样权限。以下 WP 表格沿用 77 的空间验收记录。其环境为 macOS 27.0（26A428），Apple Silicon，一块 1470 × 956 pt 显示器，独立 Spaces 关闭，台前调度开启，普通桌面 3 个，实际全屏 Space 1 个。[78 权限与安装收据](../verification/native-spaces/5.21-78-permissions/RESULTS.md) · [实现 PR #14](https://github.com/haohongfei2001-png/nearpane/pull/14) · [验收合同](ACCEPTANCE.md) · [原安装版基线](../verification/native-spaces/baseline-5.20-73/RESULTS.md)
 
 | 工作包 | 实现及用户路径 | 安装版验证 |
 | --- | --- | --- |
