@@ -255,9 +255,13 @@ struct DesktopWindowTarget: Equatable {
             attempted = attempted.filter { active[$0.key] != nil }
             misses = misses.filter { active[$0.key] != nil }
             let now = ProcessInfo.processInfo.systemUptime
+            func hasFreshPicture(_ target: DesktopWindowTarget) -> Bool {
+                guard let still = stills.peek(target.key) else { return false }
+                return target.samePicture(as: still.target) && now - still.time < 12
+            }
             let due = targets.filter { target in
                 // Newly mapped windows may be registered before SCK can deliver a surface.
-                let firstPicture = stills.peek(target.key) == nil && (misses[target.key] ?? 0) < 4
+                let firstPicture = !hasFreshPicture(target) && (misses[target.key] ?? 0) < 4
                 let interval: TimeInterval = firstPicture ? 0.20 : (target.publiclyVisible ? 1 : 2)
                 return now - (attempted[target.key] ?? -.infinity) >= interval
             }
@@ -269,7 +273,7 @@ struct DesktopWindowTarget: Equatable {
             guard permitted() else { return }
             for target in due {
                 attempted[target.key] = now
-                if stills.peek(target.key) == nil { misses[target.key, default: 0] += 1 }
+                if !hasFreshPicture(target) { misses[target.key, default: 0] += 1 }
             }
             // Enumeration itself can fail even after a positive TCC preflight.
             // Apply the same bounded retry and feedback as a per-surface failure.
@@ -327,7 +331,9 @@ struct DesktopWindowTarget: Equatable {
                     guard target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
                           visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
                           (requiresMembership ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
-                        stills.remove(target.key); continue
+                        stills.remove(target.key)
+                        noteUnavailable([target])
+                        continue
                     }
                     guard let cost = PreviewPixelBudget.charge(capture.image) else { continue }
                     let still = Still(target: target, capture: capture, time: ProcessInfo.processInfo.systemUptime)
