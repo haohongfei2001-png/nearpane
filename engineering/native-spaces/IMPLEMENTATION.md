@@ -2,6 +2,8 @@
 
 执行依据为 [DECISIONS](DECISIONS.md)，完成判断为 [ACCEPTANCE](ACCEPTANCE.md)。本文件不要求重新审计或重写 Saytile/Riftlet。
 
+当前产品侧栏按显示器列出当前桌面的实际窗口。下文保留原工作包及其历史实现，现行入口和完成情况见 [STATUS](STATUS.md)。
+
 ## 开始前：基线与工作方式
 
 - fetch 原生分支最新提交，检查工作区、AGENTS、现有进行中的分支/PR。新建独立 worktree/分支，保留其他开发者未提交工作；不从旧官网 main 开发原生功能。
