@@ -57,6 +57,31 @@ def host_startup_permissions(host):
     return {"screen": screen == "true", "accessibility": ax == "true", "source": "installed Host startup log"}
 
 
+def native_capabilities(host):
+    if not host or not host.get("launch"):
+        return None
+    start = dt.datetime.fromtimestamp(host["launch"] - 1).strftime("%Y-%m-%d %H:%M:%S")
+    predicate = (f'processID == {int(host["pid"])} AND subsystem == "com.holdsnow.nearpane.alpha" AND '
+                 'category == "NativeSpaceActions" AND eventMessage BEGINSWITH "nativeSpaceCapabilities "')
+    try:
+        text = checked(["/usr/bin/log", "show", "--style", "compact", "--start", start, "--predicate", predicate])
+    except (subprocess.SubprocessError, OSError):
+        return None
+    matches = re.findall(r'nativeSpaceCapabilities ready=(true|false) canSwitch=(true|false) canMove=(true|false)', text)
+    return [dict(zip(("ready", "canSwitch", "canMove"), (v == "true" for v in event))) for event in matches]
+
+
+def selection_logs(pid, since):
+    start = dt.datetime.fromtimestamp(since - .01).strftime("%Y-%m-%d %H:%M:%S")
+    predicate = (f'processID == {int(pid)} AND subsystem == "com.holdsnow.nearpane.alpha" AND category == "WindowSelection"')
+    try:
+        text = checked(["/usr/bin/log", "show", "--style", "compact", "--start", start, "--predicate", predicate])
+    except (subprocess.SubprocessError, OSError):
+        return None
+    allowed = re.findall(r'(selection (?:refused|outcome unconfirmed): [a-zA-Z -]+)', text)
+    return [x.strip() for x in allowed]
+
+
 def manifest(observation):
     plist = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
     host = APP / "Contents/MacOS" / plist["CFBundleExecutable"]
@@ -75,6 +100,7 @@ def manifest(observation):
             "build": plist["CFBundleVersion"], "binaries": binaries, "signatureValid": verified.returncode == 0,
             "loadedMatchesInstalled": bool(live.get("codeHash")) and live["codeHash"] == identity(host)["CDHash"],
             "installedHostStartupPermissions": host_startup_permissions(live),
+            "nativeCapabilitiesLog": native_capabilities(live),
             "installedActionHelperPin": plist.get("NearpaneSpaceActionSHA256"),
             "os": checked(["sw_vers", "-productVersion"]).strip(), "osBuild": checked(["sw_vers", "-buildVersion"]).strip(),
             "arch": platform.machine(), "sip": checked(["csrutil", "status"]).strip(),
@@ -138,7 +164,7 @@ def wait_state(path, predicate, deadline):
     return {}
 
 
-def controlled_window(observer, initial, frozen, rec):
+def controlled_window(observer, initial, frozen, rec, count, inspect_only=False):
     if not frozen["signatureValid"] or not frozen["loadedMatchesInstalled"] or not frozen["source"]:
         return "A signed running candidate with a frozen source revision is required."
     if not initial["observerAX"] or len(initial["displays"]) != 1 or len(initial.get("scopes") or []) != 1:
@@ -155,10 +181,10 @@ def controlled_window(observer, initial, frozen, rec):
     folder = observer.parent / session
     folder.mkdir(mode=0o700)
     path = folder / "windows.json"
-    proc = subprocess.Popen([str(fx), str(folder)], stdin=subprocess.DEVNULL,
+    proc = subprocess.Popen([str(fx), str(folder), str(count)], stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     rec.log("fixture-created", fixturePID=proc.pid, cdhash=sign, session=session)
-    written = ["", ""]
+    written = [""] * count
     host = initial["host"]
     independent = lambda: json.loads(checked([str(observer)]))
     trials = []
@@ -166,25 +192,30 @@ def controlled_window(observer, initial, frozen, rec):
     reason = "Two-window fixture subtest finished; actual document application coverage requires its own run."
     try:
         state = wait_state(path, lambda d: d.get("session") == session and d.get("pid") == proc.pid and
-                           len(set(d.get("numbers", []))) == 2, time.monotonic() + 8)
+                           d.get("birth", 0) > 0 and len(set(d.get("numbers", []))) == count, time.monotonic() + 8)
         if not state:
             startup = folder / "startup.json"
             rec.log("fixture-startup-incomplete", exit=proc.poll(), startup=json.loads(startup.read_text()) if startup.exists() else None)
-            return "Fixture did not produce a unique pair of owned windows."
+            return "Fixture did not produce the requested number of unique owned windows."
         numbers = state["numbers"]
-        rec.log("fixture-bound", numbers=numbers, pid=proc.pid)
+        rec.log("fixture-bound", numbers=numbers, pid=proc.pid, generation=state["birth"])
         time.sleep(.6)
-        for turn in range(10):
-            idx = turn % 2
+        for turn in range(10 if count == 2 else 1):
+            idx = turn % count
             n = numbers[idx]
             args = [str(host["pid"]), host["codeHash"], str(proc.pid), str(n), str(app), sign,
-                    scope["scope"], str(scope["current"])]
+                    scope["scope"], str(scope["current"]), str(state["birth"])]
+            if inspect_only:
+                proof = json.loads(checked([str(observer), "fixture-inventory", *args]))
+                rec.log("fixture-only-inventory", sample=proof)
+                return "Read-only diagnostic of one independent ordinary test process; no sidebar action or input."
             before = independent()
             allowed_front = initial.get("frontmostPID") if turn == 0 else proc.pid
             if before.get("frontmostPID") != allowed_front or before.get("host") != host:
                 return "Focus or installed process changed before the next consented selection."
             intent = str(uuid.uuid4())
-            rec.log("window-intent", intent=intent, target=n, sibling=numbers[1-idx], beforeFocus=before.get("frontmostPID"))
+            rec.log("window-intent", intent=intent, target=n, sibling=numbers[1-idx] if count == 2 else None, beforeFocus=before.get("frontmostPID"))
+            issued_wall = time.time()
             click = json.loads(checked([str(observer), "press", *args]))
             rec.log("sidebar-press", intent=intent, result=click)
             if not click.get("issued"):
@@ -196,7 +227,11 @@ def controlled_window(observer, initial, frozen, rec):
                                  time.monotonic() + 4)
             if not focused or click.get("axError") != 0:
                 attempt["status"] = "FAIL"
-                rec.log("destination-not-confirmed", intent=intent, markerSubmitted=False)
+                now = independent()
+                rec.log("destination-not-confirmed", intent=intent, markerSubmitted=False,
+                        exactFocusedNumber=now.get("focusedNumber") == n, fixtureFrontmost=now.get("frontmostPID") == proc.pid,
+                        domainMessages=now.get("sidebar", {}).get("knownIssueMessages", []),
+                        productLog=selection_logs(host["pid"], issued_wall))
                 return "Product selection did not reach the exact owned key/main window; no marker was sent."
             marker = "NP" + uuid.uuid4().hex[:10]
             sent = json.loads(checked([str(observer), "marker", *args], env={**os.environ, "NP_TRIAL_MARKER": marker}))
@@ -209,11 +244,12 @@ def controlled_window(observer, initial, frozen, rec):
             after = wait_state(path, lambda d: d.get("sha256") == expected and d.get("key") == n,
                                time.monotonic() + 2)
             attempt["status"] = "PASS" if after else "FAIL"
-            rec.log("input-readback", intent=intent, match=bool(after), expectedDocumentDigests=expected)
+            rec.log("input-readback", intent=intent, match=bool(after), expectedDocumentDigests=expected,
+                    productLog=selection_logs(host["pid"], issued_wall))
             if not after:
                 return "Synthetic input receipt or unchanged sibling failed; stopped after the first discrepancy."
             trials.append(n)
-        return reason
+        return reason if count == 2 else "Single-window synthetic document received the marker through the installed sidebar; sibling/cross-Space cases are separate."
     finally:
         (folder / "close").touch()
         try:
@@ -279,7 +315,7 @@ def hidden_budget(observer, initial, frozen, rec):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--observer", required=True, type=Path)
-    ap.add_argument("mode", choices=("preflight", "controlled-window", "hidden-budget"))
+    ap.add_argument("mode", choices=("preflight", "controlled-window", "single-window", "fixture-inventory", "hidden-budget", "title-image"))
     ap.add_argument("output", type=Path, help="fresh evidence directory")
     args = ap.parse_args()
     rec = Receipt(args.output)
@@ -299,10 +335,19 @@ def main():
                                 "reason": "No controlled A/B/C inventory with independent empty/member proof in this run."}
         if len(second.get("displays") or []) < 2:
             rec.scenarios["M01"] = {"status": "BLOCKED", "reason": "One physical display attached."}
+        if args.mode == "title-image" and stable and frozen["loadedMatchesInstalled"] and frozen["signatureValid"]:
+            output = rec.output / "current-row-title.png"
+            crop = json.loads(checked([str(args.observer.parent / "capture"), str(args.observer), second["host"]["codeHash"], str(output)]))
+            if crop.get("ready") and output.is_file():
+                rec.log("title-image", screenshotSHA256=digest(output), independentGeometry=crop,
+                        includesOnlyInstalledWindow=True, croppedBeforeAcquisition=True)
+            else:
+                rec.log("title-image-refused", details=crop)
         if args.mode == "hidden-budget" and stable:
             rec.summary["hiddenBudgetConclusion"] = hidden_budget(args.observer, second, frozen, rec)
-        if args.mode == "controlled-window" and stable:
-            reason = controlled_window(args.observer, second, frozen, rec)
+        if args.mode in ("controlled-window", "single-window", "fixture-inventory") and stable:
+            reason = controlled_window(args.observer, second, frozen, rec, 2 if args.mode == "controlled-window" else 1,
+                                       inspect_only=args.mode == "fixture-inventory")
             rec.summary["controlledWindowConclusion"] = reason
             rec.scenarios["W01"] = {"status": "FAIL" if any(x["status"] == "FAIL" for x in rec.attempts) else "NOT_RUN",
                                     "reason": reason}

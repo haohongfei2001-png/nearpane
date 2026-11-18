@@ -3,8 +3,12 @@ import CryptoKit
 
 // Disposable ordinary document fixture. No product linkage, action API or focus shim.
 let app = NSApplication.shared
-guard CommandLine.arguments.count == 2 else { exit(2) }
+guard CommandLine.arguments.count == 3, let expected = Int(CommandLine.arguments[2]), (1...2).contains(expected) else { exit(2) }
 let run = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+var processInfo = proc_bsdinfo()
+let infoSize = Int32(MemoryLayout<proc_bsdinfo>.size)
+guard proc_pidinfo(getpid(), PROC_PIDTBSDINFO, 0, &processInfo, infoSize) == infoSize, processInfo.pbi_start_tvsec > 0 else { exit(3) }
+let birth = processInfo.pbi_start_tvsec * 1_000_000 + processInfo.pbi_start_tvusec
 let session = run.lastPathComponent
 guard UUID(uuidString: session) != nil else { exit(2) }
 let policy = app.activationPolicy()
@@ -19,7 +23,7 @@ var editors = [NSTextView]()
 var lastState = Data()
 NSWindow.allowsAutomaticWindowTabbing = false
 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-    for i in 0..<2 {
+    for i in 0..<expected {
         let frame = screen.visibleFrame
         let w = NSWindow(contentRect: NSRect(x: frame.midX - 180 + Double(30*i), y: frame.midY - 90 + Double(25*i),
                                              width: 320, height: 160),
@@ -44,9 +48,9 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         for w in windows { w.orderOut(nil); w.close() }
         app.terminate(nil); return
     }
-    guard windows.count == 2 else { return }
+    guard windows.count == expected else { return }
     let payload: [String: Any] = [
-        "session": session, "pid": getpid(), "numbers": windows.map { $0.windowNumber },
+        "session": session, "pid": getpid(), "birth": birth, "numbers": windows.map { $0.windowNumber },
         "key": app.keyWindow?.windowNumber ?? 0, "main": app.mainWindow?.windowNumber ?? 0,
         "editorsFocused": zip(windows, editors).map { $0.firstResponder === $1 },
         "sha256": editors.map { SHA256.hash(data: Data($0.string.utf8)).map { String(format: "%02x", $0) }.joined() }

@@ -70,9 +70,12 @@ struct Sidebar {
     var controls = [String: [AXUIElement]]()
     var legacyCards = 0
     var areas = 0
-    mutating func visit(_ element: AXUIElement, depth: Int = 0) {
+    var knownIssues = Set<String>()
+    mutating func visit(_ element: AXUIElement, depth: Int = 0, workspace: Bool = false) {
         guard depth < 36, visited.count < 5000, visited.insert(element).inserted else { return }
-        if let id = value(element, kAXIdentifierAttribute) as? String {
+        let identifier = value(element, kAXIdentifierAttribute) as? String
+        let inWorkspace = workspace || identifier == "desktop-reserved-region"
+        if let id = identifier {
             if id.hasPrefix("native-space-row:") || id.hasPrefix("native-space-window:") {
                 controls[id, default: []].append(element)
             }
@@ -80,8 +83,17 @@ struct Sidebar {
             if id == "desktop-reserved-region" { areas += 1 }
         }
         let role = value(element, kAXRoleAttribute) as? String ?? ""
+        if inWorkspace, role == "AXStaticText", identifier == nil {
+            let allowed = ["这扇窗口已变化，请重新选择。", "窗口已离开这个桌面。", "这扇窗口的系统身份已变化。",
+                           "精确选择这扇窗口需要允许 Nearpane 使用辅助功能。", "macOS 未允许这个应用置前。",
+                           "系统未确认这扇窗口已置前。", "尚未确认目标桌面。", "所选窗口已离开这个桌面。"]
+            for key in [kAXTitleAttribute, kAXValueAttribute] {
+                if let text = value(element, key) as? String, allowed.contains(text) { knownIssues.insert(text) }
+            }
+        }
+        if identifier == "current-desktop-window" || identifier?.hasPrefix("native-space-window:") == true { return }
         guard !["AXTextArea", "AXTextField", "AXStaticText", "AXWebArea", "AXImage"].contains(role) else { return }
-        for child in value(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] { visit(child, depth: depth + 1) }
+        for child in value(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] { visit(child, depth: depth + 1, workspace: inWorkspace) }
     }
 
     init(_ app: NSRunningApplication, rows: [Object]) {
@@ -128,7 +140,7 @@ struct Sidebar {
             }
         }
         return ["rows": rowReports.sorted { ($0["identifier"] as? String ?? "") < ($1["identifier"] as? String ?? "") },
-                "windowCounts": cardCounts, "legacyCardCount": legacyCards, "overviewRegions": areas]
+                "windowCounts": cardCounts, "knownIssueMessages": knownIssues.sorted(), "legacyCardCount": legacyCards, "overviewRegions": areas]
     }
 }
 
@@ -163,11 +175,50 @@ if let host {
                       "codeHash": runningCodeHash(host.processIdentifier) as Any? ?? NSNull()]
     report["sidebar"] = Sidebar(host, rows: rows).report
 }
+// Pre-capture geometry for a title-only, explicitly included product window. Never
+// capture an entire sidebar into memory to crop out the voice or screenshot modules.
+func titleCrop(_ args: [String]) -> Object {
+    guard args.count == 3, let host, runningCodeHash(host.processIdentifier) == args[2],
+          AXIsProcessTrusted(), let scope = spaces?.first, spaces?.count == 1,
+          let d = scope["scope"] as? String, let current = scope["current"] as? UInt64 else { return ["ready":false,"reason":"host/source identity"] }
+    let id = "native-space-row:" + d + ":" + String(current)
+    guard let matches = Sidebar(host, rows: rows).controls[id], matches.count == 1 else { return ["ready":false,"reason":"exact current row"] }
+    let currentNode = matches[0]
+    guard let p = value(currentNode, kAXPositionAttribute), let z = value(currentNode, kAXSizeAttribute),
+          CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(z) == AXValueGetTypeID() else { return ["ready":false,"reason":"AX frame"] }
+    var origin = CGPoint.zero, size = CGSize.zero
+    guard AXValueGetValue(p as! AXValue, .cgPoint, &origin), AXValueGetValue(z as! AXValue, .cgSize, &size),
+          size.width >= 66, size.height >= 28 else { return ["ready":false,"reason":"row label size"] }
+    var parent = currentNode
+    for _ in 0..<32 {
+        if value(parent,kAXRoleAttribute) as? String == "AXWindow" { break }
+        guard let next = value(parent,kAXParentAttribute), CFGetTypeID(next) == AXUIElementGetTypeID() else { return ["ready":false,"reason":"AX window ancestor"] }
+        parent = next as! AXUIElement
+    }
+    let n = NPReadAXWindowNumber(parent)
+    // The native cards start 22 pt below the row's top. Leave a margin entirely
+    // inside the header, and filter out every WindowServer layer except this one.
+    let crop = CGRect(x: ceil(origin.x+3), y: ceil(origin.y+2), width: 60, height: 17)
+    guard n > 0, let cg = rows.first(where: { $0[kCGWindowOwnerPID as String] as? Int32 == host.processIdentifier &&
+            $0[kCGWindowNumber as String] as? UInt32 == n && $0[kCGWindowIsOnscreen as String] as? Bool == true }),
+          let raw = cg[kCGWindowBounds as String] as? NSDictionary, let actual = CGRect(dictionaryRepresentation: raw),
+          actual.contains(crop) else { return ["ready":false,"reason":"owned visible window contains ROI"] }
+    return ["ready":true,"pid":host.processIdentifier, "number":n, "display":d, "row":id,
+            "crop":[crop.minX,crop.minY,crop.width,crop.height], "signature":args[2]]
+}
 // Mutating commands are restricted to an installed Host and this invocation's signed,
 // exact fixture generation. An event is never sent to the system-wide focused app.
+func birthMicroseconds(_ pid: pid_t) -> UInt64? {
+    var p = proc_bsdinfo()
+    let s = Int32(MemoryLayout<proc_bsdinfo>.size)
+    guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &p, s) == s, p.pbi_start_tvsec > 0 else { return nil }
+    return p.pbi_start_tvsec * 1_000_000 + p.pbi_start_tvusec
+}
+
 func fixtureResult(_ args: [String]) -> Object {
-    guard args.count == 10, let host, let givenHost = Int32(args[2]), host.processIdentifier == givenHost,
+    guard args.count == 11, let host, let givenHost = Int32(args[2]), host.processIdentifier == givenHost,
           runningCodeHash(host.processIdentifier) == args[3], let fixturePID = Int32(args[4]),
+          let birth = UInt64(args[10]), birth == birthMicroseconds(fixturePID),
           let number = UInt32(args[5]), let fx = NSRunningApplication(processIdentifier: fixturePID),
           fx.bundleURL?.resolvingSymlinksInPath().standardizedFileURL.path == URL(fileURLWithPath: args[6]).resolvingSymlinksInPath().standardizedFileURL.path,
           fx.bundleIdentifier == "net.example.spaces-document", runningCodeHash(fixturePID) == args[7],
@@ -180,6 +231,25 @@ func fixtureResult(_ args: [String]) -> Object {
         return ["issued": false, "reason": "changed source, application, window or signing identity"]
     }
     let target = "native-space-window:" + args[8] + ":" + args[9] + ":" + args[4] + ":" + args[5]
+    if args[1] == "fixture-inventory" {
+        let ax = AXUIElementCreateApplication(fixturePID)
+        _ = AXUIElementSetMessagingTimeout(ax, 0.25)
+        let axRows = (value(ax, kAXWindowsAttribute) as? [AXUIElement] ?? []).map { child -> Object in
+            ["number":NPReadAXWindowNumber(child), "role":value(child,kAXRoleAttribute) as? String ?? "",
+             "subrole":value(child,kAXSubroleAttribute) as? String ?? ""]
+        }
+        let owned = rows.compactMap { r -> Object? in
+            guard r[kCGWindowOwnerPID as String] as? pid_t == fixturePID, r[kCGWindowLayer as String] as? Int == 0,
+                  let n = r[kCGWindowNumber as String] as? UInt32 else { return nil }
+            return ["number":n, "onScreen":r[kCGWindowIsOnscreen as String] as? Bool ?? false,
+                    "alpha":r[kCGWindowAlpha as String] as? Double as Any? ?? NSNull(),
+                    "bounds":r[kCGWindowBounds as String] as? Object ?? [:],
+                    "sharing":r[kCGWindowSharingState as String] as? UInt32 as Any? ?? NSNull(),
+                    "members":NPReadWindowSpaces(n) as? [UInt64] as Any? ?? NSNull()]
+        }
+        return ["issued":false, "fixturePID":fixturePID, "birth":birth, "appKitNumber":number, "axWindows":axRows,
+                "cgLayerZero":owned, "observerAX":AXIsProcessTrusted()]
+    }
     if args[1] == "press" {
         let index = Sidebar(host, rows: rows)
         guard let exact = index.controls[target], exact.count == 1,
@@ -258,7 +328,9 @@ func surfaceToggle(_ args: [String]) -> Object {
     return ["issued":false,"reason":"menu did not expose toggle","openResult":menuResult as Any? ?? NSNull(),"actions":actions]
 }
 if CommandLine.arguments.count > 1 {
-    if CommandLine.arguments[1] == "absence" {
+    if CommandLine.arguments[1] == "crop" {
+        report = titleCrop(CommandLine.arguments)
+    } else if CommandLine.arguments[1] == "absence" {
         let ids = CommandLine.arguments.dropFirst(2).compactMap(UInt32.init)
         report = ["allGone": !ids.isEmpty && ids.allSatisfy { NPReadWindowNumberPresence($0) == 0 }]
     } else if CommandLine.arguments[1] == "surface" {
