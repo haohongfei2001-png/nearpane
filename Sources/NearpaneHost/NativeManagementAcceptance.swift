@@ -43,6 +43,9 @@ private final class PassiveManagementPanel: NSPanel {
                 owners.append(owner)
             }
             manager.restrictOrdinaryAcceptance(to: display)
+            if env["NEARPANE_DESKTOP_TILING_TRIAL"] == session.directory.lastPathComponent {
+                guard manager.enrollDesktopTrial(owners, display: display) else { throw CocoaError(.featureUnsupported) }
+            }
         }
         let originalSizes = host.configuration.displays[display] ?? .init()
         guard !(sizing && admission) else { throw CocoaError(.featureUnsupported) }

@@ -27,7 +27,7 @@ private typealias ViewState<T> = State<T>
                         if session.creationAnchor == id {
                             Button("停止接纳新窗") { perform { session.disableNewWindows() } }
                                 .accessibilityIdentifier("ordinary-scope-stop")
-                        } else if session.creationAnchor == nil && !session.paused && !session.blocked {
+                        } else if session.desktopScope == nil && session.creationAnchor == nil && !session.paused && !session.blocked {
                             Button("接纳此应用新窗…") {
                                 newWindowChoice = id
                             }.accessibilityIdentifier("ordinary-scope-offer-\(id.number)")

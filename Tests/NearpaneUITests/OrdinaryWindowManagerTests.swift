@@ -5,8 +5,10 @@ import Testing
 
 @MainActor private final class WindowDouble: OrdinaryWindowObserving {
     let id: ManagedWindowID
-    init(launch: UInt64 = UInt64.random(in: 2000...UInt64.max)) {
-        id = .init(pid: getpid(), launch: launch, number: UInt32.random(in: 100...UInt32.max), element: UUID())
+    var desktopBinding: OrdinaryDesktopIdentity?
+    init(launch: UInt64 = UInt64.random(in: 2000...UInt64.max), pid: Int32 = getpid(),
+         number: UInt32 = UInt32.random(in: 100...UInt32.max)) {
+        id = .init(pid: pid, launch: launch, number: number, element: UUID())
     }
     var nextCreation: WindowDouble?
     var watching: UUID?
@@ -111,6 +113,161 @@ import Testing
 }
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
+    @MainActor private final class DesktopFixture {
+        let space = OrdinaryDesktopIdentity(display: "side", record: "91", uuid: UUID())
+        var current: OrdinaryDesktopIdentity
+        var windows = [WindowDouble]()
+        var offStage = Set<UInt32>()
+        var sticky = Set<UInt32>()
+        init() { current = space }
+        func snapshot(_ request: DesktopReadRequest) -> DesktopSnapshot {
+            let now = Date(), time = ProcessInfo.processInfo.systemUptime
+            let f = SurfaceRect(width: 1000, height: 800)
+            let members = windows.enumerated().map { index, h in
+                let id = h.id, visible = !offStage.contains(id.number)
+                return WindowObservation(id: String(id.number), displayID: "side", bounds: h.frame,
+                    membership: .known(recordIDs: sticky.contains(id.number) ? [current.record, "900"] : [current.record]),
+                    confidence: .unknown, metadata: .init(number: id.number, pid: id.pid, launchMicroseconds: id.launch,
+                        element: nil, globalFrame: h.frame, frontToBack: index, minimized: nil, fullScreen: nil,
+                        isOnscreen: visible, onActiveDesktop: visible, overviewSpaceID: current.record))
+            }
+            return .observed(request, from: now, to: now, build: "test", topology: "one-display", consistent: true, separateSpaces: true,
+                displays: [.init(id: "side", frame: f, rotationDegrees: 0, backingScale: 2, usable: f)],
+                scopes: [.init(id: "scope", displayID: "side", records: [.init(id: current.record, isCurrent: true, ordinaryUUID: current.uuid),
+                    .init(id: "900", isCurrent: false)])], windows: members,
+                evidence: .init(population: .workWindows, accessibility: .available, spaces: .observed, rows: [],
+                    windowLimitReached: false, beganUptime: time, endedUptime: time))
+        }
+        func feed() -> CurrentDesktopWindows {
+            CurrentDesktopWindows(read: { request in await self.snapshot(request) }, sessionAvailable: { true }, fingerprint: { 0 })
+        }
+        func until(_ predicate: () -> Bool) async throws {
+            let limit = ContinuousClock.now.advanced(by: .seconds(4))
+            while !predicate() && ContinuousClock.now < limit { try await Task.sleep(for: .milliseconds(20)) }
+            try #require(predicate())
+        }
+        func automation(_ manager: OrdinaryWindowManager, _ feed: CurrentDesktopWindows) -> DesktopAutomaticTiling {
+            let result = DesktopAutomaticTiling(manager: manager) { keys, scope, prefs in
+                self.windows.filter { h in
+                    guard keys.contains(.init(pid: h.id.pid, birth: h.id.launch, number: h.id.number)),
+                          (try? prefs.excluded(h.id, bundle: h.bundle)) == false else { return false }
+                    h.desktopBinding = scope
+                    return true
+                }
+            }
+            result.connect(feed); return result
+        }
+    }
+
+    @Test func currentDeskGrantAutomaticallyTilesTwoDifferentOwnersAndRestoresThem() async throws {
+        let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
+        s.context.settings.measures[.reservedWidth] = .init(160)
+        let a = WindowDouble(pid: 101, number: 101), b = WindowDouble(pid: 102, number: 102)
+        b.bundle = "test.second.app"
+        let feed = world.feed(), automation = world.automation(manager, feed)
+        world.windows = [a]
+        let choice = try #require(await automation.proposed(on: "side"))
+        #expect(a.writes == 0 && manager.activeIDs.isEmpty)
+        await automation.start(choice)
+        try await world.until { manager.verifiedIDs.contains(a.id) && !manager.busy }
+        #expect(a.frame == .init(width: 840, height: 800))
+        world.windows.append(b); feed.changed()
+        try await world.until { manager.verifiedIDs.contains(b.id) && !manager.busy }
+        #expect(a.frame == .init(width: 420, height: 800))
+        #expect(b.frame == .init(x: 420, width: 420, height: 800))
+        let writes = [a.writes,b.writes]
+        feed.observe(false); feed.changed()
+        try await Task.sleep(for: .milliseconds(260))
+        #expect([a.writes,b.writes] == writes)
+        try await manager.performUserAction { try await manager.stop() }
+        #expect(automation.scope == nil && a.frame == a.original && b.frame == b.original)
+    }
+
+    @Test func desktopGrantExcludesAllDesktopWindowsInactiveStagesAndExcludedApps() async throws {
+        let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
+        let a = WindowDouble(number: 101), b = WindowDouble(number: 102), c = WindowDouble(number: 103), d = WindowDouble(number: 104)
+        s.context.preferences.excludedApps = ["test.excluded"]; d.bundle = "test.excluded"
+        world.windows = [a,b,c,d]; world.sticky = [102]; world.offStage = [103]
+        let feed = world.feed(), auto = world.automation(manager, feed)
+        await auto.start(world.space)
+        try await world.until { manager.verifiedIDs == [a.id] && !manager.busy }
+        #expect(b.writes == 0 && c.writes == 0 && d.writes == 0 && auto.unpresented == 1)
+        try await manager.performUserAction { try await manager.stop() }
+    }
+
+    @Test func virtualModeCannotInheritTheNativeDesktopGrant() async throws {
+        let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
+        let a = WindowDouble(); world.windows = [a]
+        let feed = world.feed(), auto = world.automation(manager, feed)
+        let proposed = try #require(await auto.proposed(on: "side"))
+        auto.nativeModeAvailable = { false }
+        await auto.start(proposed)
+        #expect(auto.scope == nil && a.writes == 0)
+        #expect(await auto.proposed(on: "side") == nil)
+    }
+
+    @Test func onlyTheOriginalProfileCanConsumeACleanDesktopHandoffOnce() throws {
+        let original = OrdinaryScope(), copy = OrdinaryScope()
+        let journal = OrdinaryJournal(support: original.support), world = DesktopFixture()
+        #expect(try journal.takeCleanDesktop() == nil)
+        try journal.rememberCleanDesktop(world.space)
+        try FileManager.default.copyItem(at: original.support, to: copy.support)
+        #expect(try OrdinaryJournal(support: copy.support).takeCleanDesktop() == nil)
+        #expect(try journal.takeCleanDesktop() == world.space)
+        #expect(try journal.takeCleanDesktop() == nil)
+        try journal.rememberCleanDesktop(world.space)
+        try Data("unresolved".utf8).write(to: journal.file)
+        #expect(try journal.takeCleanDesktop() == nil)
+    }
+
+    @Test func normalQuitReadsFreshEvidenceAndRelaunchReenrollsOnlyOnTheSavedDesktop() async throws {
+        let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
+        let a = WindowDouble(), original = a.frame
+        world.windows = [a]
+        let feed = world.feed(), auto = world.automation(manager, feed)
+        await auto.start(world.space)
+        try await world.until { manager.verifiedIDs.contains(a.id) && !manager.busy }
+        feed.invalidate()
+        let saved = try #require(await auto.prepareForExit())
+        await manager.finish()
+        #expect(a.frame == original && manager.activeIDs.isEmpty && !manager.blocked)
+        auto.end()
+        let nextManager = s.manager(), nextFeed = world.feed(), next = world.automation(nextManager, nextFeed)
+        let b = WindowDouble(number: 333)
+        world.current = .init(display: "side", record: saved.record, uuid: UUID())
+        world.windows = [b]
+        next.awaitCleanDesktop(saved)
+        try await world.until { nextFeed.snapshot != nil }
+        #expect(next.scope == nil && b.writes == 0 && next.waitingForDesktop == saved)
+        world.current = saved; nextFeed.changed()
+        try await world.until { nextManager.verifiedIDs.contains(b.id) && !nextManager.busy }
+        #expect(!nextManager.activeIDs.contains(a.id))
+        try nextManager.pause()
+        #expect(await next.prepareForExit() == nil)
+        await nextManager.finish()
+        #expect(nextManager.activeIDs.isEmpty)
+    }
+
+    @Test func movingToAnotherDesktopBetweenConsentAndAdmissionCannotMoveAWindow() async throws {
+        let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
+        let a = WindowDouble(); world.windows = [a]
+        let feed = world.feed(), auto = world.automation(manager, feed)
+        let old = try #require(await auto.proposed(on: "side"))
+        world.current = .init(display: "side", record: old.record, uuid: UUID())
+        await auto.start(old)
+        #expect(auto.scope == nil && a.writes == 0 && manager.activeIDs.isEmpty)
+        await auto.start(world.current)
+        try await world.until { manager.verifiedIDs.contains(a.id) && !manager.busy }
+        let other = WindowDouble()
+        let original = world.current
+        world.current = old; world.windows.append(other); feed.changed()
+        try await world.until { auto.notice.contains("等待回到") }
+        #expect(other.writes == 0 && !manager.blocked)
+        world.current = original; feed.changed()
+        try await world.until { manager.verifiedIDs.contains(other.id) && !manager.busy }
+        try await manager.performUserAction { try await manager.stop() }
+    }
+
     @Test func residentFractionalReservationUsesExactSystemPointsForPreviewPlacementAndDragRelease() async throws {
         let s = OrdinaryScope(), a = WindowDouble(), b = WindowDouble(), c = WindowDouble(), manager = s.manager()
         s.context.primary = true

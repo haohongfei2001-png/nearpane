@@ -228,6 +228,16 @@ struct NativeDesktopPreviewTests {
         #expect(p.hit(x: 60, y: 100, current: s, now: date, uptime: 42) == .candidate(back.id))
     }
 
+    @Test func currentMapSelectsOnePresentedWindowAndNeverSelectsThroughAnUnknownOccluder() throws {
+        let full = SurfaceRect(x: -800, y: 20, width: 800, height: 1260)
+        let back = window(3, full, 1, .known(recordIDs: ["9"]), axNumber: 3, active: true)
+        let front = window(4, .init(x: -600, y: 220, width: 200, height: 250), 0, .unknown, axNumber: 4, active: true)
+        let map = try #require(preview(sample([front, back], rows: [proof])))
+        #expect(map.presentedWindow(atX: 30, y: 30, now: date, uptime: 42) == nil)
+        #expect(map.presentedWindow(atX: 60, y: 100, now: date, uptime: 42)?.id == back.id)
+        #expect(map.presentedWindow(atX: 60, y: 100, now: date, uptime: 60) == nil)
+    }
+
     @Test func unequalPartitionsAndUnoccupiedBoundsStayProportional() throws {
         let a = window(1, .init(x: -770, y: 120, width: 480, height: 400), 1, .unknown)
         let b = window(2, .init(x: -290, y: 120, width: 240, height: 400), 0, .unknown)

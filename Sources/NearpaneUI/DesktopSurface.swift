@@ -67,7 +67,23 @@ struct DesktopSurface: View {
                                             rowViewport:.init(width:size.size.width,height:canvasHeight)) {
                                             drawing(preview, snapshot: layout)
                                                 .overlay {
-                                                    if layout.capabilities.spaceSwitching, let display { WorkspacePointerSurface(host:host,preview:preview,sample:layout,display:display) }
+                                                    if layout.capabilities.spaceSwitching, let display {
+                                                        WorkspacePointerSurface(host:host,preview:preview,sample:layout,display:display)
+                                                    } else {
+                                                        DesktopMapWindowSelection(target: { point in
+                                                            guard let current = overview,
+                                                                  let w = preview.presentedWindow(atX: point.x, y: point.y, now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+                                                                  let m = w.metadata, layout.topologyFingerprint == current.topologyFingerprint else { return nil }
+                                                            return current.currentDesktopWindows(on: w.displayID, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
+                                                                .compactMap { DesktopWindowTarget($0, in: current) }.first {
+                                                                    $0.key.number == m.number && $0.key.pid == m.pid && $0.key.birth == m.launchMicroseconds &&
+                                                                    $0.publiclyVisible && $0.frame == m.globalFrame
+                                                                }
+                                                        }, select: { target in
+                                                            guard let current = overview else { return }
+                                                            selectWindow(target, snapshot: current, hasAX: AXIsProcessTrusted() || current.native?.accessibility == .available || current.native?.accessibility == .partial)
+                                                        })
+                                                    }
                                                 }
                                                 .frame(width:size.size.width,height:canvasHeight)
                                         }
@@ -140,14 +156,11 @@ struct DesktopSurface: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("当前桌面，\(windows.count) 扇窗口")
             if visible && ((!permitted && host.configuration.showsWindowThumbnails) || !hasAX) {
-                Menu("窗口权限与调度中心") {
+                Menu("窗口权限") {
                     if host.configuration.showsWindowThumbnails && !permitted {
                         Button("允许窗口缩略图", action: WindowOverviewAccess.requestThumbnails)
                     }
                     if !hasAX { Button("允许精确切换窗口", action: WindowOverviewAccess.requestFocus) }
-                    Button("打开系统调度中心") {
-                        Task { do { try await WindowOverviewAccess.systemOverview() } catch { selectionIssue = error.localizedDescription } }
-                    }
                 }.menuStyle(.borderlessButton).font(.caption)
             }
         }
@@ -256,7 +269,7 @@ struct DesktopSurface: View {
                 .accessibilityElement(children: .contain)
             }
         }
-        .accessibilityLabel("只读窗口布局，从前到后")
+        .accessibilityLabel("桌面窗口布局，从前到后")
     }
 
     static func windowDescription(index: Int, frame: SurfaceRect, within desktop: SurfaceRect) -> String {

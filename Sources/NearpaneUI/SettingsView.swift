@@ -359,7 +359,22 @@ public struct SettingsView: View {
 
     private var desktopOptions: some View {
         Form {
-            LabeledContent("工作空间模式", value: host.workspaceMode.mode == .native ? "macOS 空间 · 只读" : "Nearpane 虚拟工作区")
+            Picker("窗口总览快捷键", selection: Binding(get: { host.configuration.overviewShortcut }, set: { choice in
+                if host.setOverviewShortcut(choice) { DesktopOverviewShortcut.shared.configure(choice) }
+            })) {
+                Text("Nearpane　⌃⌥⌘↑").tag(OverviewShortcutChoice.nearpane)
+                Text("使用 ⌃↑").tag(OverviewShortcutChoice.controlUp)
+                Text("仅从菜单打开").tag(OverviewShortcutChoice.off)
+            }
+            if !DesktopOverviewShortcut.shared.status.isEmpty {
+                Text(DesktopOverviewShortcut.shared.status).font(.caption)
+            }
+            if host.configuration.overviewShortcut != .off {
+                Button("重新注册快捷键") { DesktopOverviewShortcut.shared.configure(host.configuration.overviewShortcut) }
+            }
+            Text("若要只用 Nearpane，在系统设置中关闭调度中心的快捷键、触控板手势和对应触发角。台前调度可在「桌面与程序坞」单独关闭。")
+                .font(.caption).foregroundStyle(.secondary)
+            LabeledContent("工作空间模式", value: host.workspaceMode.mode == .native ? "macOS 桌面" : "Nearpane 虚拟工作区")
             Text("当前可查看桌面。切换桌面、跨桌面移窗及虚拟工作区停放尚未开放。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
             Toggle("显示桌面与窗口", isOn: Binding(get: { enabled }, set: {

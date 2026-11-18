@@ -8,6 +8,7 @@ import OSLog
     typealias Read = NativeDesktopProvider.Read
     private let read: Read
     private let sessionAvailable: @MainActor () -> Bool
+    private let fingerprint: @MainActor () -> Int
     private let session = UUID()
     private var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
@@ -16,9 +17,13 @@ import OSLog
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var events: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var reportedCounts: [Int]?
+    @ObservationIgnored var didSample: (() -> Void)?
+    private var panelRequested = false
+    private var managementRequested = false
 
-    init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable) {
-        self.read = read; self.sessionAvailable = sessionAvailable
+    init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
+         fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint) {
+        self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
     }
 
     func changed() { events?.yield(()) }
@@ -28,10 +33,22 @@ import OSLog
         pending?.1.cancel()
         pending = nil
         snapshot = nil
+        didSample?()
         changed()
     }
 
     func observe(_ enable: Bool) {
+        panelRequested = enable
+        updateObservation()
+    }
+
+    func observeManagement(_ enable: Bool) {
+        managementRequested = enable
+        updateObservation()
+    }
+
+    private func updateObservation() {
+        let enable = panelRequested || managementRequested
         if !enable {
             events?.finish(); events = nil
             loop?.cancel(); loop = nil
@@ -41,14 +58,15 @@ import OSLog
         guard loop == nil else { return }
         let (stream, events) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         self.events = events
+        let fingerprint = self.fingerprint
         loop = Task { [weak self] in
             let detector = Task {
                 var previous: Int?, last = ContinuousClock.now
                 var settleUntil = last
                 while !Task.isCancelled {
-                    let now = ContinuousClock.now, fingerprint = Self.windowNumbersFingerprint()
-                    if fingerprint != previous {
-                        previous = fingerprint
+                    let now = ContinuousClock.now, numbers = fingerprint()
+                    if numbers != previous {
+                        previous = numbers
                         // WindowServer's numbers can precede the settled Space membership.
                         settleUntil = now.advanced(by: .milliseconds(760))
                     }
@@ -65,6 +83,7 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                didSample?()
                 if let next {
                     let counts = [next.windows.count, next.windows.filter { $0.metadata?.onActiveDesktop == false }.count]
                     if counts != reportedCounts {

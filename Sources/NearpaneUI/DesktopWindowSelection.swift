@@ -116,13 +116,4 @@ import NearpaneCore
         _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
     }
 
-    static func systemOverview() async throws {
-        let id = "com.apple.exposelauncher"
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id),
-              url.standardizedFileURL.path == "/System/Applications/Mission Control.app",
-              Bundle(url: url)?.bundleIdentifier == id else {
-            throw OrdinaryWindowFailure("系统调度中心暂不可用。")
-        }
-        _ = try await NSWorkspace.shared.openApplication(at: url, configuration: .init())
-    }
 }

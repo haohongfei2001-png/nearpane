@@ -179,6 +179,11 @@ private actor OrdinaryWindowChannel {
         return .window(OrdinaryWindowAX(id: created, application: app, channel: channel, alerts: alerts))
     }
 
+    private(set) var desktopBinding: OrdinaryDesktopIdentity?
+    func bindDesktop(_ value: OrdinaryDesktopIdentity) throws {
+        guard desktopBinding == nil || desktopBinding == value else { throw OrdinaryRefusal.scope }
+        desktopBinding = value
+    }
     func prepare() async throws -> AdmissionPair { try await sample(.prepare) }
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
         guard !closed else { throw OrdinaryRefusal.lost }
@@ -209,7 +214,8 @@ private actor OrdinaryWindowChannel {
     private func sample(_ action: OrdinaryWindowRequest.Action, from: SurfaceRect? = nil, to: SurfaceRect? = nil, revision: UUID? = nil) async throws -> AdmissionPair {
         guard !closed else { throw OrdinaryWindowFailure("该窗口授权已结束。") }
         let response = try await channel.call(.init(action, pid: id.pid, launch: id.launch, bundle: bundle,
-                                                    id: id, expected: from, destination: to, boundaryRevision: revision))
+                                                    id: id, expected: from, destination: to, boundaryRevision: revision,
+                                                    desktop: desktopBinding))
         if !closed, action == .verify, let witness = response.closure, witness.id == id, response.pair == nil {
             throw witness
         }

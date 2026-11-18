@@ -22,15 +22,8 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         try require(NPReadOnlySpacesOpen() == 1, "系统无法确认这个后台窗口所属的桌面。")
     }
     func isMember(_ number: UInt32) -> Bool {
-        guard let space, let scope = UInt64(space),
-              let inventory = NPReadInventory() as? [[String: Any]] else { return false }
-        let displays = inventory.filter { ($0["Display Identifier"] as? String)?.caseInsensitiveCompare(display) == .orderedSame }
-        guard displays.count == 1, let row = displays.first, let current = row["Current Space"] as? [String: Any],
-              current["id64"] as? UInt64 == scope, let records = row["Spaces"] as? [[String: Any]],
-              records.filter({ $0["id64"] as? UInt64 == scope && $0["type"] as? Int == 0 &&
-                  ($0["uuid"] as? String).flatMap(UUID.init(uuidString:)) != nil }).count == 1,
-              let members = NPReadWindowSpaces(number) as? [UInt64] else { return false }
-        return members.contains(scope)
+        guard let space else { return false }
+        return OrdinaryDesktopMembership.contains(number, display: display, record: space)
     }
     func validate(presented: Bool = false, allowMinimized: Bool = false) throws {
         let now = ProcessInfo.processInfo.systemUptime

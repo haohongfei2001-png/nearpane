@@ -62,6 +62,7 @@ public final class EmbeddedModules {
     public func makeHost(store: any ConfigurationStore, provider: any DesktopObservationProvider = UnavailableDesktopProvider()) -> HostSession {
         let host = HostSession(store: store, provider: provider, includeSampleModules: !candidate, coreFactories: factories)
         workRect?.connect(to: host)
+        if let feed = windowPreviews.currentDesktop { workRect?.desktopTiling.connect(feed) }
         #if canImport(NearpaneVoice)
         voice.openingFailed = { [weak host, weak voice] in
             if let voice { host?.registry.reportFailure(BuiltinCatalog.voice, from: voice) }
@@ -77,8 +78,8 @@ public final class EmbeddedModules {
     }
 
     public func finishStopping() async {
-        stopWindowContentPreview()
         await workRect?.finish()
+        stopWindowContentPreview()
         #if canImport(NearpaneVoice)
         await voice.waitForTransition()
         await tray.finishStopping()

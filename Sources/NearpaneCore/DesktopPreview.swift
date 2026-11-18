@@ -89,6 +89,23 @@ public struct DesktopPreview: Sendable {
               let row = rows.first(where: { $0.desktop.geometry.contains(p) }) else { return .none }
         return (try? HitTesting.hit(p, regions: row.regions)) ?? .none
     }
+
+    /// Select exactly the frontmost confirmed window under the pointer. An unknown
+    /// occluder still covers the point even when it cannot be selected.
+    public func presentedWindow(atX x: Double, y: Double, now: Date, uptime: Double) -> WindowObservation? {
+        let p = Point(x, y)
+        guard snapshot.nativeIsFresh(now: now, uptime: uptime),
+              let row = rows.first(where: { $0.desktop.geometry.contains(p) }),
+              let hit = try? HitTesting.hit(p, regions: row.regions) else { return nil }
+        let id: String
+        switch (row.kind, hit) {
+        case (_, .candidate(let key)), (.visibleDisplay, .blocked(let key)): id = key
+        default: return nil
+        }
+        guard let window = snapshot.windows.first(where: { $0.id == id && $0.displayID == row.displayID }),
+              window.canWitnessCurrentSpace, window.metadata?.onActiveDesktop == true else { return nil }
+        return window
+    }
 }
 
 public extension DesktopSnapshot {

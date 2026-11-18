@@ -241,6 +241,12 @@ public final class HostSession {
         save()
     }
 
+    @discardableResult public func setOverviewShortcut(_ choice: OverviewShortcutChoice) -> Bool {
+        var next = configuration
+        next.overviewShortcut = choice
+        return persistSettings(next, updatePresentation: false)
+    }
+
     public func selectFixture(_ fixture: DesktopFixture) async {
         guard isRunning else { return }
         configuration.fixture = fixture

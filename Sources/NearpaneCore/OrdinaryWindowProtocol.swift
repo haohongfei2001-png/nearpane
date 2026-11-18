@@ -1,5 +1,16 @@
 import Foundation
 
+/// The record number alone can be reused. The display and ordinary Space UUID
+/// must still agree with the live inventory at each window write.
+public struct OrdinaryDesktopIdentity: Codable, Equatable, Sendable {
+    public let display: String
+    public let record: String
+    public let uuid: UUID
+    public init(display: String, record: String, uuid: UUID) {
+        self.display = display; self.record = record; self.uuid = uuid
+    }
+}
+
 /// Anonymous pipes connect the signed Host to one short-lived worker scoped to one process incarnation.
 public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
@@ -19,11 +30,13 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
     public let focusSpace: String?
     public let creationGrant: UUID?
     public let boundaryRevision: UUID?
+    public let desktop: OrdinaryDesktopIdentity?
 
     public init(_ action: Action, pid: Int32, launch: UInt64, bundle: String,
                 id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil,
                 boundaryRevision: UUID? = nil, creationGrant: UUID? = nil, focusDisplay: String? = nil,
-                focusDeadline: TimeInterval? = nil, focusSpace: String? = nil) {
+                focusDeadline: TimeInterval? = nil, focusSpace: String? = nil, desktop: OrdinaryDesktopIdentity? = nil) {
+        self.desktop = desktop
         self.focusSpace = focusSpace
         self.focusDisplay = focusDisplay; self.focusDeadline = focusDeadline
         self.nonce = UUID()

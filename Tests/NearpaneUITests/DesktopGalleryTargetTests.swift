@@ -141,4 +141,16 @@ import Testing
         var sibling = off; sibling[kCGWindowNumber as String] = UInt32(9)
         #expect(!DesktopWindowSelection.soleWindow(key, in: [off, sibling], requireVisible: false))
     }
+
+    @Test func shortcutConflictChecksOnlyEnabledMatchingSystemChord() {
+        let entry: [String: Any] = ["kHISymbolicHotKeyEnabled": true, "kHISymbolicHotKeyCode": 126, "kHISymbolicHotKeyModifiers": 4096]
+        #expect(DesktopOverviewShortcut.systemReserves(4096, in: [entry]))
+        #expect(!DesktopOverviewShortcut.systemReserves(6144, in: [entry]))
+        var disabled = entry
+        disabled["kHISymbolicHotKeyEnabled"] = false
+        #expect(!DesktopOverviewShortcut.systemReserves(4096, in: [disabled]))
+        var other = entry
+        other["kHISymbolicHotKeyCode"] = 125
+        #expect(!DesktopOverviewShortcut.systemReserves(4096, in: [other]))
+    }
 }

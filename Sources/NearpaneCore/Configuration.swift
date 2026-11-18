@@ -1,6 +1,10 @@
 import Foundation
 import Darwin
 
+public enum OverviewShortcutChoice: String, Codable, CaseIterable, Sendable {
+    case nearpane, controlUp, off
+}
+
 public struct ModulePreference: Codable, Equatable, Sendable {
     public var id: String
     public var enabled: Bool
@@ -19,6 +23,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     /// Missing in early v1 configurations, which always opened visible.
     public var surfaceHidden: Bool = false
     public var showsMenuBarIcon = true
+    public var overviewShortcut: OverviewShortcutChoice = .nearpane
     public var candidateTrayConnected = true
     public var showsWindowThumbnails = true
     public var experimentalSpaceObservation = false
@@ -39,6 +44,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         candidateTrayConnected = try c.decodeIfPresent(Bool.self, forKey: .candidateTrayConnected) ?? true
         surfaceHidden = try c.decodeIfPresent(Bool.self, forKey: .surfaceHidden) ?? false
         showsMenuBarIcon = try c.decodeIfPresent(Bool.self, forKey: .showsMenuBarIcon) ?? true
+        overviewShortcut = try c.decodeIfPresent(OverviewShortcutChoice.self, forKey: .overviewShortcut) ?? .nearpane
         showsWindowThumbnails = try c.decodeIfPresent(Bool.self, forKey: .showsWindowThumbnails) ?? true
         experimentalSpaceObservation = try c.decodeIfPresent(Bool.self, forKey: .experimentalSpaceObservation) ?? false
         workspaces = try c.decodeIfPresent(WorkspacePreferences.self,forKey:.workspaces) ?? .init()

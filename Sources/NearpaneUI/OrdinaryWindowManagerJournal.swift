@@ -81,6 +81,53 @@ struct OrdinaryJournal {
 
     func publish(_ record: Record) throws { try persist(record, to: file) }
 
+    /// A clean shutdown can remember permission for a desktop, never a window handle.
+    /// Binding the handoff to this directory prevents a copied/imported profile inheriting it.
+    private struct DesktopHandoff: Codable {
+        let desktop: OrdinaryDesktopIdentity
+        let device: Int64
+        let inode: UInt64
+    }
+    private var handoff: URL { directory.appendingPathComponent("next-desktop.json") }
+
+    func rememberCleanDesktop(_ desktop: OrdinaryDesktopIdentity) throws {
+        let lease = try lock()
+        try withExtendedLifetime(lease) {
+            var identity = stat()
+            guard !exists, lstat(directory.path, &identity) == 0 else { throw OrdinaryRefusal.storage }
+            let record = DesktopHandoff(desktop: desktop, device: Int64(identity.st_dev), inode: UInt64(identity.st_ino))
+            try persist(record, to: handoff)
+        }
+    }
+
+    func takeCleanDesktop() throws -> OrdinaryDesktopIdentity? {
+        try ProfileLease.checkPath(handoff)
+        var info = stat()
+        guard lstat(handoff.path, &info) == 0 else {
+            if errno == ENOENT { return nil }
+            throw OrdinaryRefusal.storage
+        }
+        let lease = try lock()
+        return try withExtendedLifetime(lease) {
+            guard info.st_mode & S_IFMT == S_IFREG, info.st_size > 0, info.st_size <= 2048,
+                  info.st_uid == getuid(), info.st_nlink == 1 else { throw OrdinaryRefusal.storage }
+            let fd = open(handoff.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+            guard fd >= 0 else { throw OrdinaryRefusal.storage }
+            let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+            defer { try? handle.close() }
+            var actual = stat(), identity = stat()
+            guard fstat(fd, &actual) == 0, actual.st_ino == info.st_ino, actual.st_dev == info.st_dev,
+                  lstat(directory.path, &identity) == 0 else { throw OrdinaryRefusal.storage }
+            let bytes = try handle.read(upToCount: 2049) ?? Data()
+            guard unlink(handoff.path) == 0 else { throw OrdinaryRefusal.storage }
+            try sync(directory)
+            guard !exists, let saved = try? JSONDecoder().decode(DesktopHandoff.self, from: bytes),
+                  saved.inode == UInt64(identity.st_ino), saved.device == Int64(identity.st_dev)
+            else { return nil }
+            return saved.desktop
+        }
+    }
+
     struct Receipt: Codable {
         let operation: UUID, session: UUID, id: ManagedWindowID, kind: String
         let previous: SurfaceRect, requested: SurfaceRect, readback: AdmissionPair

@@ -120,6 +120,7 @@ final class WindowMonitor {
         if let baseline {
             try require(sample.display == baseline.display, "窗口所属显示器已变化。")
         }
+        try checkDesktop(sample.display)
         if sample.minimum == nil, let size = baseline?.axFrame ?? sample.axFrame {
             sample.minimum = .init(width:size.width,height:size.height)
             sample.usesWitnessedSize = true
@@ -220,8 +221,25 @@ final class WindowMonitor {
         return .init(id: id, destroyed: notificationTime ?? first, firstAbsent: first, secondAbsent: second, evidence: evidence)
     }
 
+    private(set) var desktop: OrdinaryDesktopIdentity?
+
+    func bindDesktop(_ value: OrdinaryDesktopIdentity) throws {
+        try require(desktop == value || (desktop == nil && !hasObserver), "窗口授权所属桌面已变化。")
+        try require(OrdinaryDesktopMembership.contains(id.number, display: value.display, record: value.record, uuid: value.uuid),
+                    "未确认窗口唯一属于本屏当前的普通桌面。")
+        desktop = value
+    }
+
+    private func checkDesktop(_ display: String?) throws {
+        if let desktop {
+            try require(display == desktop.display && OrdinaryDesktopMembership.contains(id.number,
+                display: desktop.display, record: desktop.record, uuid: desktop.uuid), "窗口或显示器已离开获准桌面。")
+        }
+    }
+
     func write(from: SurfaceRect, to: SurfaceRect) throws -> (AdmissionPair,[OrdinaryWindowStep]) {
         let before = try verify(from)
+        try checkDesktop(before.second.display)
         guard let bounds = before.second.minimum, let display = before.second.display,
               to.geometry.isValid, to.width >= bounds.width, to.height >= bounds.height,
               try displayID(to) == display else { throw Refusal("目标超出可证实的窗口尺寸或显示区域。") }
@@ -242,6 +260,7 @@ final class WindowMonitor {
                 prior = next
             }
             let confirmed = try pair(expected:to)
+            try checkDesktop(confirmed.second.display)
             try focus.check()
             expectedFrame = to
             acknowledgedMotion = false
@@ -270,6 +289,7 @@ final class WindowMonitor {
             try require(!CGEventSource.buttonState(.combinedSessionState, button: button),
                         "鼠标操作尚未结束，暂不调整窗口。")
         }
+        try checkDesktop(pre.display)
         waitingFor = event; notificationCount = 0
         defer { waitingFor = nil }
         let rc = AXUIElementSetAttributeValue(element,key as CFString,value)

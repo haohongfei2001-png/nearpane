@@ -10,6 +10,7 @@ enum CreatedWindowResult {
     var id: ManagedWindowID { get }
     var bundle: String { get }
     var applicationName: String { get }
+    var desktopBinding: OrdinaryDesktopIdentity? { get }
     func invalidate()
     var lastWriteSteps: [OrdinaryWindowStep] { get }
     func prepare() async throws -> AdmissionPair
@@ -22,6 +23,7 @@ enum CreatedWindowResult {
     func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult
 }
 extension OrdinaryWindowObserving {
+    var desktopBinding: OrdinaryDesktopIdentity? { nil }
     func setCreationWatch(_ token: UUID, enabled: Bool) async throws { throw OrdinaryRefusal.scope }
     func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult { throw OrdinaryRefusal.scope }
     func onBoundaryChange(_ wake: (@MainActor () -> Void)?) {}
@@ -107,6 +109,9 @@ enum OrdinaryRefusal: LocalizedError {
     private(set) var busy = false
     private(set) var message = "选择具体窗口后可预览布局；确认前不会调整窗口。"
     var liveContext: (@MainActor (String) -> AdmissionContext?)?
+    var desktopScope: OrdinaryDesktopIdentity?
+    var desktopIsCurrent: (() -> Bool)?
+    var didStopDesktop: (() -> Void)?
     var presentationHeld: (@MainActor (String) -> Bool)?
     var saveExclusion: (@MainActor (ManagedWindowID) throws -> Void)?
 
@@ -161,6 +166,10 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func checkedScope(_ ctx: AdmissionContext, grant: (any OrdinaryWindowObserving)? = nil) throws {
+        if let desktopScope {
+            guard ctx.display == desktopScope.display, desktopIsCurrent?() == true,
+                  grant == nil || grant?.desktopBinding == desktopScope else { throw OrdinaryRefusal.scope }
+        }
         guard ctx.recoveryClear, ctx.exclusive != false, !ctx.hypothetical, !ctx.display.isEmpty,
               let live = liveContext?(ctx.display), live.recoveryClear, live.exclusive != false, !live.hypothetical,
               ctx.display == live.display, ctx.screen == live.screen, ctx.usable == live.usable, ctx.primary == live.primary,
@@ -168,6 +177,7 @@ enum OrdinaryRefusal: LocalizedError {
               activeDisplay == nil || grantedGeometry == live.displayGeometry,
               try area(ctx) == area(live) else { throw OrdinaryRefusal.scope }
         if let grant {
+            guard grant.desktopBinding == desktopScope else { throw OrdinaryRefusal.scope }
             guard unsavedRevocation != grant.id, try !live.preferences.excluded(grant.id, bundle: grant.bundle),
                   try !ctx.preferences.excluded(grant.id, bundle: grant.bundle) else { throw WorkspaceFailure.excluded }
         }
@@ -537,6 +547,7 @@ enum OrdinaryRefusal: LocalizedError {
 
     func stop(preservingCustomLayout: Bool = false) async throws {
         try enter(allowBlocked: true)
+        defer { if activeIDs.isEmpty { didStopDesktop?() } }
         disableNewWindows()
         defer { busy = false }
         cancelPreview()
@@ -615,6 +626,7 @@ enum OrdinaryRefusal: LocalizedError {
         let lock = try journalLease ?? journal.lock()
         try withExtendedLifetime(lock) { try journal.archive(as: "kept-current") }
         reset()
+        didStopDesktop?()
         message = "已保留当前位置并归档恢复记录。再次管理需要重新选择和授权。"
     }
 
@@ -631,6 +643,7 @@ enum OrdinaryRefusal: LocalizedError {
 
     func poll() async {
         guard !busy, !userActionReserved, !blocked, !closing, !activeIDs.isEmpty,
+              desktopScope == nil || desktopIsCurrent?() == true,
               let display = activeDisplay, presentationHeld?(display) != true else { return }
         busy = true
         passiveRead = true
@@ -753,7 +766,7 @@ enum OrdinaryRefusal: LocalizedError {
     func enableNewWindows(from id: ManagedWindowID) async throws {
         try enter()
         defer { busy = false }
-        guard creationAnchor == nil, !paused, let anchor = handles[id], verifiedIDs.contains(id),
+        guard desktopScope == nil, creationAnchor == nil, !paused, let anchor = handles[id], verifiedIDs.contains(id),
               let display = activeDisplay, let context = liveContext?(display), let entry = entries[id]
         else { throw OrdinaryRefusal.noGrant }
         try checkedScope(context, grant: anchor)

@@ -126,6 +126,19 @@ struct NearpaneApp {
                         return
                     }
                     guard args.count == 3 else { exit(2) }
+                    if CandidateProfile.selected, args[1] == "--desktop-tiling-readiness" {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        _ = NSApplication.shared.setActivationPolicy(.prohibited)
+                        Task { @MainActor in
+                            do {
+                                let proof = await CandidateWorkRect.desktopTilingReadiness()
+                                try JSONEncoder().encode(proof).write(to: session.directory.appendingPathComponent("desktop-tiling-readiness.json"), options: .withoutOverwriting)
+                                exit(0)
+                            } catch { exit(3) }
+                        }
+                        RunLoop.main.run()
+                        return
+                    }
                     if CandidateProfile.selected, args[1] == "--selected-window-readiness" {
                         let session = try NativeAcceptanceSession(id: args[2], prepare: false)
                         _ = NSApplication.shared.setActivationPolicy(.prohibited)
@@ -486,6 +499,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         await session.start()
         traceFullscreenStartup("host-started")
         guard !Task.isCancelled else { return }
+        if candidate, testSession == nil { modules.workRect?.restoreCleanDesktopPermission() }
         let updater = ApplicationUpdater(allowNetwork: testSession == nil && candidate, activityBlock: { [weak modules] in
             guard let modules else { return "暂时无法核对运行状态，请稍后安装。" }
             return await modules.updateRelaunchBlock()
@@ -623,6 +637,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         traceFullscreenStartup("panels-updated")
         if passiveDisplayID == nil {
             installMenu()
+            if ProcessInfo.processInfo.environment["NEARPANE_NATIVE_ACCEPTANCE"] == nil, testSession == nil {
+                DesktopOverviewShortcut.shared.show = { [weak self] in self?.showWindowOverview() }
+                DesktopOverviewShortcut.shared.configure(session.configuration.overviewShortcut)
+                Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowOverview").notice("Shortcut: \(DesktopOverviewShortcut.shared.status, privacy: .public)")
+            }
             if pendingMainWindow { pendingMainWindow = false; showSettings() }
         }
     }
@@ -681,6 +700,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        DesktopOverviewShortcut.shared.stop()
         updater?.stop()
         updateMenuObservation?.cancel()
         passiveShutdownTimer?.invalidate()
@@ -725,6 +745,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             entry.target = self
             return entry
         }
+        _ = action("显示本屏窗口总览", #selector(showWindowOverview))
+        _ = action("窗口管理…", #selector(showWindowManagement))
         _ = action("打开 Nearpane", #selector(openMainWindow))
         _ = action("隐藏侧栏", #selector(toggleSurface))
         menu.addItem(.separator())
@@ -742,6 +764,26 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openMainWindow() { requestMainWindow() }
+
+    @objc private func showWindowManagement() {
+        settingsNavigation.showWindowManagement()
+        showSettings()
+    }
+
+    @objc private func showWindowOverview() {
+        guard let host, host.isRunning, !sessionUnavailable, terminationTask == nil, passiveDisplayID == nil,
+              host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
+              let panels else { return }
+        let point = NSEvent.mouseLocation
+        let hits = SystemScreens.geometry().filter { screen in
+            let r = screen.frame
+            return NSPointInRect(point, NSRect(x: r.x, y: r.y, width: r.width, height: r.height))
+        }
+        guard hits.count == 1, let screen = hits.first else { return }
+        host.setSurfaceHidden(false)
+        panels.request(screen.id)
+        updatePanels()
+    }
 
     @objc private func hideStatusIcon() {
         guard host?.setShowsMenuBarIcon(false) == true else {

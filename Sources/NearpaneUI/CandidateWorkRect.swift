@@ -6,6 +6,30 @@ import SwiftUI
 @MainActor @Observable public final class CandidateWorkRect {
     let support: URL
     let ordinary: OrdinaryWindowManager
+    let desktopTiling: DesktopAutomaticTiling
+    private var enrolledDesktopFeed: CurrentDesktopWindows?
+    public func enrollDesktopTrial(_ owners: [AdmissionFixtureOwner], display: String) -> Bool {
+        guard scopedDisplay == display, enrolledDesktopFeed == nil, desktopTiling.scope == nil,
+              owners.count == 2, Set(owners.map(\.pid)).count == 2, let read = NativeDesktopProvider.packagedReader(overview: true)
+        else { return false }
+        let feed = CurrentDesktopWindows(read: read)
+        desktopTiling.connect(feed) { key in owners.contains { $0.pid == key.pid && $0.launch == key.birth } }
+        enrolledDesktopFeed = feed
+        return true
+    }
+    fileprivate var hasDesktopTrial: Bool { enrolledDesktopFeed != nil }
+    /// Readiness of the signed application and its packaged inventory reader. No AX setters or UI.
+    public static func desktopTilingReadiness() async -> [String: Bool] {
+        let screens = SystemScreens.geometry()
+        var result = ["oneDisplay": screens.count == 1, "currentOrdinarySpace": false,
+                      "hostAccessibility": AXIsProcessTrusted(), "readerAccessibility": false]
+        guard screens.count == 1, let display = screens.first?.id, let read = NativeDesktopProvider.packagedReader(overview: true),
+              let sample = try? await read(.init(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: nil,
+                                                 anchors: [], experimentalSpaces: false)) else { return result }
+        result["currentOrdinarySpace"] = DesktopTilingRoster(sample, display: display) != nil
+        result["readerAccessibility"] = sample.native?.accessibility == .available
+        return result
+    }
     private weak var host: HostSession?
     public internal(set) var scopedDisplay: String?
     public func restrictOrdinaryAcceptance(to display: String) { scopedDisplay = display }
@@ -58,6 +82,7 @@ import SwiftUI
     }
     func connect(to host: HostSession) {
         self.host = host
+        desktopTiling.nativeModeAvailable = { [weak host] in host?.workspaceMode.mode == .native }
         ordinary.liveContext = { [weak self] display in self?.context(for: display) }
         ordinary.saveExclusion = { [weak host] id in
             guard let host else { throw OrdinaryRefusal.storage }
@@ -100,15 +125,23 @@ import SwiftUI
     private(set) var blocked = false
     private(set) var trusted = false
     var updateRequiresManagementToFinish: Bool {
-        !supervisorReady || mode != "off" || count != 0 || blocked || ordinary.blocksUpdateRelaunch
+        !supervisorReady || mode != "off" || count != 0 || blocked || ordinary.blocksUpdateRelaunch || desktopTiling.scope != nil || desktopTiling.starting
     }
 
     init(support: URL) {
         self.support = support
         ordinary = OrdinaryWindowManager(support: support)
+        desktopTiling = DesktopAutomaticTiling(manager: ordinary)
         ordinary.presentationHeld = { [weak self] display in
             self?.permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime) != true
         }
+    }
+    public func restoreCleanDesktopPermission() {
+        do {
+            if let desktop = try OrdinaryJournal(support: support).takeCleanDesktop() {
+                desktopTiling.awaitCleanDesktop(desktop)
+            }
+        } catch { ordinary.report(error) }
     }
     public func start() {
         guard process == nil else { return }
@@ -146,7 +179,13 @@ import SwiftUI
         catch { message = error.localizedDescription; blocked = true }
     }
     public func finish() async {
+        let desktop = await desktopTiling.prepareForExit()
         await ordinary.finish()
+        desktopTiling.end()
+        if let desktop, ordinary.activeIDs.isEmpty, !ordinary.blocked {
+            do { try OrdinaryJournal(support: support).rememberCleanDesktop(desktop) }
+            catch { ordinary.report(error) }
+        }
         if input != nil { send("quit") }
         try? input?.close(); input = nil
         await monitor?.value
@@ -162,6 +201,8 @@ public struct CandidateWorkRectView: View {
     private let previewExposure: SettingsPreviewExposure?
     @ViewState private var showingCompatibility = false
     @ViewState private var confirm = false
+    @ViewState private var desktopChoice: OrdinaryDesktopIdentity?
+    @ViewState private var confirmingDesktop = false
     @AppStorage("managementPairPercent") private var percent = 60
     @AppStorage("managementPairSwap") private var swap = false
 
@@ -178,8 +219,10 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("先预览窗口的位置，确认后 Nearpane 才会调整所选窗口。")
-                    .font(.caption).foregroundStyle(.secondary)
+                if (!admissionFixtureOnly && !showsTestTools) || session.hasDesktopTrial {
+                    desktopControls
+                    Divider()
+                }
                 WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, owners: owners,
                                         exposure: previewExposure)
                 if showsTestTools {
@@ -201,6 +244,69 @@ public struct CandidateWorkRectView: View {
                 Text("在「外观与尺寸」调整预留宽度，在「窗口规则」设置应用排除。")
                     .font(.caption).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding()
+        }
+    }
+
+    private var desktopControls: some View {
+        let tiling = session.desktopTiling
+        return VStack(alignment: .leading, spacing: 6) {
+            if tiling.scope != nil {
+                Text("本桌面自动分屏已启用")
+                HStack {
+                    Button("停止自动分屏并恢复") {
+                        Task {
+                            do { try await session.ordinary.performUserAction { try await session.ordinary.stop() } }
+                            catch { session.ordinary.report(error) }
+                        }
+                    }.disabled(session.ordinary.unavailableForUserAction).accessibilityIdentifier("desktop-tiling-stop")
+                    Button("重新核对窗口") { tiling.retry() }.disabled(session.ordinary.paused || session.ordinary.blocked)
+                }
+            } else if tiling.waitingForDesktop != nil {
+                Text("等待上次允许的桌面。")
+                Button("停止自动分屏") { tiling.end() }
+            } else {
+                if confirmingDesktop, let choice = desktopChoice {
+                    Text("允许排列本桌面上符合条件的已有窗口和新窗口，包括不同应用。正常退出会恢复布局，下次打开会重新核对这个桌面。选择停止可撤销授权。")
+                        .font(.callout)
+                    HStack {
+                        Button("允许并自动分屏") {
+                            confirmingDesktop = false; desktopChoice = nil
+                            Task { await tiling.start(choice) }
+                        }.accessibilityIdentifier("desktop-tiling-confirm")
+                        Button("取消") { confirmingDesktop = false; desktopChoice = nil }
+                    }
+                } else {
+                    Button("启用本桌面自动分屏…") {
+                        Task {
+                            let screens = SystemScreens.geometry()
+                            let number = NSApp.keyWindow?.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+                            let id = session.scopedDisplay ?? number.flatMap { CGDisplayCreateUUIDFromDisplayID($0.uint32Value)?.takeRetainedValue() }
+                                .map { CFUUIDCreateString(nil, $0) as String } ?? (screens.count == 1 ? screens.first?.id : nil)
+                            guard let id, screens.contains(where: { $0.id == id }) else {
+                                session.ordinary.report(OrdinaryRefusal.scope); return
+                            }
+                            desktopChoice = await tiling.proposed(on: id)
+                            confirmingDesktop = desktopChoice != nil
+                        }
+                    }
+                    .disabled(tiling.starting || !session.ordinary.activeIDs.isEmpty || session.ordinary.blocked)
+                    .accessibilityIdentifier("desktop-tiling-enable")
+                }
+                Text("一扇窗口占满工作区，两扇默认左右平分。也可以在下方只选择指定窗口。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if !tiling.notice.isEmpty { Text(tiling.notice).font(.caption).foregroundStyle(.secondary) }
+            if tiling.unpresented > 0 {
+                Text("另有 \(tiling.unpresented) 扇窗口属于此桌面，目前未呈现。可在侧栏选中它们。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if StageManagerPreference.read() == true {
+                Text("台前调度已开启。要让不同组的窗口同时参与分屏，可在「系统设置 → 桌面与程序坞」关闭台前调度。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("打开桌面与程序坞设置") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") { NSWorkspace.shared.open(url) }
+                }.buttonStyle(.link)
+            }
         }
     }
 

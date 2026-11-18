@@ -16,7 +16,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[3]
 WORK = ROOT / "build/verification/p54/ordinary"
 OUT = WORK / str(uuid.uuid4())
-OUT.mkdir(mode=0o700)
+OUT.mkdir(mode=0o700, parents=True)
 OFF = ["/usr/bin/sandbox-exec", "-p",
        '(version 1)(allow default)(deny network-outbound)(deny file-read* file-write* (regex #"/Library/Application Support/(Nearpane|Riftlet|Saytile)"))']
 sys.path.insert(0, str(ROOT / "scripts/acceptance"))
@@ -200,7 +200,8 @@ class Trial:
         self.hostexe=app/"Contents/MacOS/NearpaneHost"
         sp.run(["/usr/bin/codesign","--verify","--strict","--deep",'-R=identifier "com.holdsnow.nearpane.alpha"',app],check=True)
         if not restart:
-            check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode==1, "a Host is already running")
+            if not getattr(self, "desktop_tiling", False):
+                check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode==1, "a Host is already running")
             self.sid=str(uuid.uuid4())
             self.session=ROOT/"build/native-acceptance"/self.sid
             self.records=self.session/"support/WorkRect/ordinary"
@@ -225,6 +226,8 @@ class Trial:
                  NEARPANE_ORDINARY_PID=str(self.fixture.pid))
         if getattr(self, "peer", None) is not None:
             env["NEARPANE_PALETTE_PID"] = str(self.peer.fixture.pid)
+            if getattr(self, "desktop_tiling", False):
+                env["NEARPANE_DESKTOP_TILING_TRIAL"] = self.sid
         if getattr(self,"idle_review",False):
             env["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"]=self.sid
         log=(OUT/("host-"+self.epoch+".log")).open("wb")

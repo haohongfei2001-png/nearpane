@@ -2,6 +2,39 @@ import AppKit
 import NearpaneCore
 import SwiftUI
 
+@MainActor struct DesktopMapWindowSelection: NSViewRepresentable {
+    let target: (NSPoint) -> DesktopWindowTarget?
+    let select: (DesktopWindowTarget) -> Void
+    func makeNSView(context: Context) -> MapView { MapView() }
+    func updateNSView(_ view: MapView, context: Context) { view.target = target; view.select = select }
+
+    final class MapView: NSView {
+        var target: ((NSPoint) -> DesktopWindowTarget?)?
+        var select: ((DesktopWindowTarget) -> Void)?
+        private var down: (NSPoint, DesktopWindowTarget)?
+        override var isFlipped: Bool { true }
+        override var needsPanelToBecomeKey: Bool { false }
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func mouseDown(with event: NSEvent) {
+            let p = convert(event.locationInWindow, from: nil)
+            down = target?(p).map { (p, $0) }
+        }
+        override func mouseDragged(with event: NSEvent) {
+            let p = convert(event.locationInWindow, from: nil)
+            if let (start, _) = down, hypot(p.x - start.x, p.y - start.y) >= 6 { down = nil }
+        }
+        override func mouseUp(with event: NSEvent) {
+            defer { down = nil }
+            let p = convert(event.locationInWindow, from: nil)
+            guard let (start, original) = down, hypot(p.x - start.x, p.y - start.y) < 6,
+                  let live = target?(p), original == live else { return }
+            select?(live)
+        }
+        override func scrollWheel(with event: NSEvent) { down = nil; super.scrollWheel(with: event) }
+        override func cancelOperation(_ sender: Any?) { down = nil }
+    }
+}
+
 /// AppKit keeps delivering the drag to the source view. Resolve the drop in screen coordinates
 /// against the destination Host panel, including letterboxed whitespace in the workspace row.
 @MainActor final class WorkspacePointerRegistry {
