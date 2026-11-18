@@ -121,6 +121,15 @@ private actor OrdinaryWindowChannel {
 }
 
 @MainActor final class OrdinaryWindowDirectory {
+    /// Ask the signed process that actually selects windows. This channel never lists or binds a window.
+    static func focusPermission(prompt: Bool) async -> Bool? {
+        do {
+            let channel = try OrdinaryWindowChannel(alerts: BoundaryAlerts())
+            let action: OrdinaryWindowRequest.Action = prompt ? .requestFocusPermission : .checkFocusPermission
+            return try await channel.call(.init(action, pid: 0, launch: 0, bundle: "")).focusPermission
+        } catch { return nil }
+    }
+
     let app: AdmissionApplication
     private let channel: OrdinaryWindowChannel
     private let alerts: BoundaryAlerts
@@ -135,7 +144,14 @@ private actor OrdinaryWindowChannel {
 
     func choices(initial: Bool) async throws -> [AdmissionWindowChoice] {
         let action: OrdinaryWindowRequest.Action = initial ? .list : .refresh
-        let result = try await channel.call(.init(action, pid: app.pid, launch: app.launch, bundle: app.bundle))
+        let result: OrdinaryWindowReply
+        do {
+            result = try await channel.call(.init(action, pid: app.pid, launch: app.launch, bundle: app.bundle))
+            if initial { WindowOverviewAccess.shared.recordWorkerFocus(true) }
+        } catch AdmissionReadFailure.permission {
+            WindowOverviewAccess.shared.recordWorkerFocus(false)
+            throw AdmissionReadFailure.permission
+        }
         guard let choices = result.choices, choices.count <= 64 else { throw OrdinaryWindowFailure("窗口清单不完整。") }
         var next = [UUID: OrdinaryWindowAX]()
         let rows = try choices.enumerated().map { index, id -> AdmissionWindowChoice in

@@ -7,7 +7,14 @@ xcrun clang -c Sources/CReadOnlySpaces/ReadOnlySpaces.c -I Sources/CReadOnlySpac
 xcrun swiftc -module-cache-path "$scratch/module-cache" -import-objc-header Sources/CReadOnlySpaces/include/ReadOnlySpaces.h \
     scripts/acceptance/native-spaces/observe.swift "$scratch/reader.o" -o "$scratch/observe"
 xcrun swiftc -module-cache-path "$scratch/module-cache" scripts/acceptance/native-spaces/metrics.swift -o "$scratch/metrics"
-if [[ ${1:-} == title-image || ${1:-} == candidate ]]; then
+if [[ ${1:-} == guide ]]; then
+    [[ $# == 2 ]]
+    mkdir -m 700 "$2"
+    "$scratch/observe" guide > "$2/guide.json"
+    python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print(r); sys.exit(0 if r["status"]=="PASS" else 2)' "$2/guide.json"
+    exit $?
+fi
+if [[ ${1:-} == title-image || ${1:-} == candidate || ${1:-} == roster ]]; then
     xcrun swiftc -parse-as-library -module-cache-path "$scratch/module-cache" scripts/acceptance/native-spaces/capture.swift -o "$scratch/capture"
 fi
 if [[ ${1:-} == roster || ${1:-} == controlled-window || ${1:-} == single-window || ${1:-} == fixture-inventory || ${1:-} == candidate ]]; then

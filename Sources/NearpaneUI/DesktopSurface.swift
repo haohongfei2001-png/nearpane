@@ -33,43 +33,50 @@ struct DesktopSurface: View {
     }
 
     var body: some View {
-        Group {
-            if enabled, let snapshot = overview, let native = snapshot.native,
-               let screen = snapshot.displays.first(where: { $0.id == displayID }) {
-                TimelineView(.periodic(from: .now, by: 2)) { _ in
-                    let now = Date.now
-                    let uptime = ProcessInfo.processInfo.systemUptime
-                    if snapshot.nativeIsFresh(now: now, uptime: uptime), !native.windowLimitReached {
-                        let windows = snapshot.currentDesktopWindows(on: screen.id, now: now, uptime: uptime)
-                        GeometryReader { area in
-                            let width = min(area.size.width, settings.points(.desktopWidth, in: area.size.width))
-                            let viewport = min(area.size.height, settings.points(.scrollHeight, in: area.size.height))
-                            let height = min(viewport, settings.points(.desktopHeight, in: viewport))
-                            let inset = min(settings.points(.spacePadding, in: width) + 2, width / 3)
-                            ScrollView(.vertical) {
-                                if windows.isEmpty {
-                                    status("当前屏幕没有可显示的窗口")
-                                } else {
-                                    windowList(windows, snapshot: snapshot, screen: screen, width: max(1, width - 2 * inset),
-                                               spacing: settings.points(.spaceRowGap, in: height))
-                                    if let selectionIssue {
-                                        Text(selectionIssue).font(.caption2).foregroundStyle(.secondary)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                }
-                            }
-                            .contentMargins(.horizontal, inset, for: .scrollContent)
-                            .contentMargins(.top, inset, for: .scrollContent)
-                            .defaultScrollAnchor(.top)
-                            .frame(width: width, height: height, alignment: .topLeading)
-                        }
-                    } else { status("正在更新本屏窗口") }
-                }
-            } else { status(enabled ? "正在读取本屏窗口" : "窗口预览已停用") }
+        VStack(alignment: .leading, spacing: 0) {
+            roster
+            if let selectionIssue {
+                Text(selectionIssue).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+                    .layoutPriority(1)
+            }
+            if enabled, display?.interactionVisible == true, !host.configuration.surfaceHidden,
+               WindowContentPreview.sessionAvailable() {
+                WindowAccessGuide(showPictures: host.configuration.showsWindowThumbnails)
+                    .layoutPriority(1)
+            }
         }
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
+    }
+
+    @ViewBuilder private var roster: some View {
+        if enabled, let snapshot = overview, let native = snapshot.native,
+           let screen = snapshot.displays.first(where: { $0.id == displayID }) {
+            TimelineView(.periodic(from: .now, by: 2)) { _ in
+                let now = Date.now
+                let uptime = ProcessInfo.processInfo.systemUptime
+                if snapshot.nativeIsFresh(now: now, uptime: uptime), !native.windowLimitReached {
+                    let windows = snapshot.currentDesktopWindows(on: screen.id, now: now, uptime: uptime)
+                    GeometryReader { area in
+                        let width = min(area.size.width, settings.points(.desktopWidth, in: area.size.width))
+                        let height = min(area.size.height, settings.points(.desktopHeight, in: area.size.height))
+                        let inset = min(settings.points(.spacePadding, in: width) + 2, min(width, height) / 3)
+                        Group {
+                            if windows.isEmpty {
+                                status("当前屏幕没有可显示的窗口")
+                            } else {
+                                windowList(windows, snapshot: snapshot, screen: screen,
+                                           width: max(0, width - 2 * inset), height: max(0, height - 2 * inset),
+                                           spacing: settings.points(.spaceRowGap, in: height))
+                            }
+                        }
+                        .padding(inset)
+                        .frame(width: width, height: height, alignment: .topLeading)
+                    }
+                } else { status("正在更新本屏窗口") }
+            }
+        } else { status(enabled ? "正在读取本屏窗口" : "窗口预览已停用") }
     }
 
     private struct GalleryRun: Equatable {
@@ -77,7 +84,7 @@ struct DesktopSurface: View {
     }
 
     private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot, screen: DisplayObservation,
-                            width: CGFloat, spacing: CGFloat) -> some View {
+                            width: CGFloat, height: CGFloat, spacing: CGFloat) -> some View {
         let previews = display?.pointer?.windowPreviews
         let gallery = previews?.gallery
         let id = screen.id
@@ -92,8 +99,11 @@ struct DesktopSurface: View {
             captured[proof.number] = CGSize(width: proof.bounds.width, height: proof.bounds.height)
         }
         let thumbnailLayout = DesktopWindowThumbnailLayout(windows: windows, display: screen, availableWidth: width, capturedSizes: captured)
+        let labelSize = settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10
+        let fit = DesktopRosterFit(pictures: windows.map(thumbnailLayout.size), availableHeight: height,
+                                   spacing: spacing, labelSize: labelSize)
         let groups = Dictionary(grouping: windows, by: { $0.metadata?.pid })
-        return LazyVStack(alignment: .leading, spacing: spacing) {
+        return VStack(alignment: .leading, spacing: fit.spacing) {
             ForEach(Array(windows.enumerated()), id: \.element.id) { index, window in
                 let badge = appBadges[window.id]
                 let siblings = groups[window.metadata?.pid] ?? []
@@ -105,7 +115,8 @@ struct DesktopSurface: View {
                 let automatic = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
                 let selected = pictures && automatic == nil ? selectedPicture(for: target) : nil
                 let picture = automatic ?? selected
-                let pictureSize = thumbnailLayout.size(for: window)
+                let row = fit.rows[index]
+                let pictureSize = row.picture
                 let reason: String? = if !host.configuration.showsWindowThumbnails { "窗口画面已关闭" }
                     else if !pictures { "窗口画面暂不可用" }
                     else if !permitted { nil }
@@ -115,9 +126,8 @@ struct DesktopSurface: View {
                     if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) }
                 } label: {
                     DesktopWindowCard(label: label, icon: badge?.icon, image: picture, pictureSize: pictureSize,
-                                      unavailableReason: reason, awaitingPicture: permitted,
                                       borderWidth: settings.points(.borderWidth, in: width),
-                                      labelSize: settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10,
+                                      labelSize: labelSize, row: row,
                                       currentImage: {
                         guard let target, display?.interactionVisible == true, display?.id == target.display,
                               !host.configuration.surfaceHidden, host.isRunning, host.configuration.showsWindowThumbnails,
@@ -131,7 +141,7 @@ struct DesktopSurface: View {
                 .accessibilityIdentifier("current-desktop-window:\(window.metadata?.pid ?? 0):\(window.metadata?.number ?? 0)")
                 .accessibilityValue(cardDescription(window, within: screen, size: pictureSize, index: index,
                     source: automatic != nil ? "窗口画面" : selected != nil ? "所选快照" : "窗口轮廓"))
-                .help(target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label)
+                .help([target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label, reason].compactMap { $0 }.joined(separator: " · "))
                 .onAppear { if let target { gallery?.setCard(target.key, on: id, visible: true) } }
                 .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
                 .onChange(of: target?.key) { previous, next in
@@ -139,13 +149,8 @@ struct DesktopSurface: View {
                     if let next { gallery?.setCard(next, on: id, visible: true) }
                 }
             }
-            if pictures && !permitted {
-                Text("显示实时画面需要屏幕录制权限")
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(width: width, height: height, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("本屏窗口，\(windows.count) 扇")
         .task(id: BadgeRefresh(session: snapshot.sessionID, members: windows.map(\.id), visible: visible)) {
@@ -192,14 +197,14 @@ struct DesktopSurface: View {
             host.isRunning && !host.configuration.surfaceHidden && display?.interactionVisible == true &&
                 (feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime)) &&
                 display?.id == target.display && generation == previews.gallery.generation &&
-                visibility == previews.visibilityGeneration[target.display] && target.present(in: overview) &&
+                visibility == previews.visibilityGeneration[target.display] && target.remainsSelection(in: overview) &&
                 WindowContentPreview.sessionAvailable() && NativeSelectionPermit.inputCounters() == userInput
         }
-        guard stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
+        guard target.present(in: overview), stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
         selectionIssue = nil
         choices.choose(target.key) {
             let verifySpace: (() async -> Bool)? = previews.currentDesktop.map { feed in
-                { target.present(in: await feed.readNow()) }
+                { target.remainsSelection(in: await feed.readNow()) }
             }
             do {
                 if target.overviewSpace == nil, let verifySpace {

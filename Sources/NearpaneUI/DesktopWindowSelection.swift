@@ -3,6 +3,24 @@ import ApplicationServices
 import NearpaneCore
 import OSLog
 
+extension DesktopWindowTarget {
+    /// Bringing a Stage Manager window forward can change its presented bounds before
+    /// AX acknowledges focus. Keep the original AX binding and desktop membership for
+    /// that selection; pixel reuse continues to require the stricter picture match.
+    func remainsSelection(in snapshot: DesktopSnapshot?, now: Date = .now,
+                          uptime: Double = ProcessInfo.processInfo.systemUptime) -> Bool {
+        guard let space = overviewSpace else { return present(in: snapshot, now: now, uptime: uptime) }
+        guard let snapshot, snapshot.sessionID == session, snapshot.topologyFingerprint == topology,
+              case .known(let originalSpaces) = membership else { return false }
+        let matches = snapshot.currentDesktopWindows(on: display, now: now, uptime: uptime)
+            .filter { $0.metadata?.number == key.number }
+        guard matches.count == 1, let window = matches.first, let other = DesktopWindowTarget(window, in: snapshot),
+              other.key == key, other.overviewSpace == space, other.current == current,
+              case .known(let currentSpaces) = other.membership else { return false }
+        return Set(originalSpaces) == Set(currentSpaces)
+    }
+}
+
 /// A new click can arrive after AppKit gives a window the keyboard and before the
 /// previous acknowledgement reaches the sidebar. Serialize intents and keep the last
 /// explicit choice. A refusal discards pending work.

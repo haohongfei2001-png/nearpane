@@ -33,6 +33,12 @@ def evaluate(sizes, cards):
     top, bottom = sorted(cards, key=lambda card: card["cardY"])
     vertical = all(c["cardHeight"] > 0 for c in cards) and top["cardY"] + top["cardHeight"] <= bottom["cardY"] + 1
     no_desktops = all(card["spaceRows"] == 0 for card in cards)
+    fits = all(
+        (f := card.get("fit", {})).get("cardCount", 0) >= len(cards)
+        and f.get("cardCount") == f.get("measured") and f.get("allOnscreen")
+        and f.get("insideOnePanel") and f.get("ordered") and f.get("scrollAreas") == 0
+        for card in cards
+    )
     witnesses = []
     for size, card in zip(sizes, cards):
         match = re.search(r"预览 (\d+) × (\d+) pt", card["value"])
@@ -48,14 +54,24 @@ def evaluate(sizes, cards):
                           "presentationMismatchSafelyWithheld": different and ax_confirms and withheld})
     usable = [w for w in witnesses if w["preview"] is not None]
     faithful = scale_possible([w["ownerSize"] for w in usable], [w["preview"] for w in usable]) if usable else None
-    if not no_desktops or not vertical or faithful is False:
-        status, reason = "FAIL", "Exposed window proportions, vertical order or navigation rows contradicted their witnesses"
+    if not no_desktops or not vertical or not fits or faithful is False:
+        status, reason = "FAIL", "Window shape, row order, visible non-scrolling bounds or navigation rows contradicted their witnesses"
     elif len(usable) == 2 and same_scale(sizes, [w["preview"] for w in witnesses]):
         status, reason = "PASS", "Both confirmed window dimensions used one scale in separate, vertically ordered cards"
     else:
         status, reason = "BLOCKED", "Both windows were listed but both true preview dimensions were not established"
     return {"status": status, "reason": reason, "nonoverlappingTopToBottom": vertical, "noSpaceRows": no_desktops,
-            "windowGeometry": witnesses, "realPixelsIndependentlyVerified": False}
+            "allMeasuredCardsFit": bool(fits), "windowGeometry": witnesses, "realPixelsIndependentlyVerified": False}
+
+
+def pixel_verdict(numbers, measurements):
+    if len(numbers) != 2 or len(set(numbers)) != 2 or len(measurements) != 2:
+        return "BLOCKED"
+    for number, sample in zip(numbers, measurements):
+        if not sample.get("ready") or sample.get("fixture") != number or sample.get("sampleCount") != 64:
+            return "BLOCKED"
+    first, second = measurements
+    return "PASS" if first["green"] >= 52 and second["purple"] >= 52 else "FAIL"
 
 
 def measure(observer, output):
@@ -70,7 +86,7 @@ def measure(observer, output):
     result = {"source": frozen["source"], "build": frozen["build"],
               "permissions": frozen["installedHostCurrentPermissions"],
               "fixturePresentation": kind, "stageManager": initial.get("stageManager"),
-              "status": "BLOCKED", "pixelsCapturedByObserver": 0}
+              "status": "BLOCKED", "pixelStatus": "BLOCKED", "cardCropAttempts": 0, "realPixelsIndependentlyVerified": False}
     proc = None
     numbers = []
     try:
@@ -98,6 +114,7 @@ def measure(observer, output):
         sizes = state["sizes"]
         samples = []
         first_observed = None
+        inspect_pixels = bool(initial.get("observerScreenRead") and (result.get("permissions") or {}).get("screen"))
         while time.monotonic() - start < 8:
             command = "roster-shared-card" if kind == "public-visible" else "roster-card"
             samples = [read(command, host["pid"], host["codeHash"], proc.pid, n, app, signed, scope["scope"],
@@ -105,11 +122,28 @@ def measure(observer, output):
             if all(s.get("observed") for s in samples):
                 # Geometry from the capture filter can arrive just after the member list.
                 first_observed = first_observed or time.monotonic()
-                if evaluate(sizes, samples)["status"] == "PASS" or time.monotonic() - first_observed >= 1.0:
+                geometry_observed = evaluate(sizes, samples)["status"] == "PASS" or time.monotonic() - first_observed >= 1.0
+                if geometry_observed and (not inspect_pixels or all(s.get("pixelCrop") for s in samples)):
                     break
             time.sleep(.15)
         result.update(ownerFrames=sizes, installedCards=samples, secondsToReadback=round(time.monotonic() - start, 3))
         result.update(evaluate(sizes, samples))
+        result["geometryStatus"] = result["status"]
+        if inspect_pixels and len(samples) == 2 and all(s.get("pixelCrop") for s in samples):
+            measurements = []
+            for number in numbers:
+                result["cardCropAttempts"] += 1
+                args = [observer.parent / "capture", observer, command, host["pid"], host["codeHash"],
+                        proc.pid, number, app, signed, scope["scope"], scope["current"], state["birth"]]
+                measurements.append(json.loads(checked(list(map(str, args)))))
+            result["colorWitnesses"] = measurements
+            result["pixelStatus"] = pixel_verdict(numbers, measurements)
+            result["realPixelsIndependentlyVerified"] = result["pixelStatus"] == "PASS"
+            if result["pixelStatus"] == "FAIL":
+                result.update(status="FAIL", reason="Installed card pixels contradicted the fixture content")
+        else:
+            result["pixelReason"] = ("Both signed source cards did not expose measurable pictures" if inspect_pixels
+                                     else "Screen recording access not confirmed in installed Host and observer")
     finally:
         if proc:
             (folder / "close").touch()

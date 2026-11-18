@@ -2,6 +2,8 @@ import AppKit
 import ApplicationServices
 import SwiftUI
 
+private typealias ViewState<T> = State<T>
+
 /// These observations belong to the running Nearpane process. A window reader or action
 /// helper checks its own privileges when it actually performs an operation.
 @MainActor @Observable final class WindowOverviewAccess {
@@ -17,7 +19,8 @@ import SwiftUI
     }
 
     enum Action { case request, settings }
-    static let shared = WindowOverviewAccess(read: systemGrants, request: requestSystemAccess, open: openSettings)
+    static let shared = WindowOverviewAccess(read: systemGrants, request: requestSystemAccess, open: openSettings,
+                                             readWorker: OrdinaryWindowDirectory.focusPermission)
 
     static func systemGrants() -> Set<Permission> {
         var grants = Set<Permission>()
@@ -38,14 +41,65 @@ import SwiftUI
     private let read: @MainActor () -> Set<Permission>
     private let request: @MainActor (Permission) -> Void
     private let open: @MainActor (Permission) -> Void
+    private let readWorker: @MainActor (_ prompt: Bool) async -> Bool?
     private var requested = Set<Permission>()
     private(set) var grants: Set<Permission>
+    private(set) var workerFocus: Bool?
+    private(set) var checkedWorker = false
+    private var workerRequested = false
+    private var workerQuery: UUID?
+    private var lastWorkerCheck: TimeInterval = -.infinity
+    private(set) var observeUntil: TimeInterval = 0
 
-    init(read: @escaping @MainActor () -> Set<Permission>, request: @escaping @MainActor (Permission) -> Void, open: @escaping @MainActor (Permission) -> Void) {
+    init(read: @escaping @MainActor () -> Set<Permission>, request: @escaping @MainActor (Permission) -> Void,
+         open: @escaping @MainActor (Permission) -> Void, readWorker: @escaping @MainActor (Bool) async -> Bool? = { _ in nil }) {
         self.read = read
         self.request = request
         self.open = open
+        self.readWorker = readWorker
         grants = read()
+    }
+
+    func recordWorkerFocus(_ granted: Bool?) {
+        workerQuery = nil
+        workerFocus = granted
+        checkedWorker = true
+        lastWorkerCheck = ProcessInfo.processInfo.systemUptime
+        if granted == true { workerRequested = false }
+    }
+
+    func checkGuide(force: Bool = false) async {
+        refresh()
+        guard workerQuery == nil, force || ProcessInfo.processInfo.systemUptime - lastWorkerCheck >= 3 else { return }
+        let query = UUID()
+        workerQuery = query
+        let answer = await readWorker(false)
+        if workerQuery == query { recordWorkerFocus(answer) }
+    }
+
+    func guideAction(for permission: Permission) -> Action? {
+        if permission == .thumbnails { return action(for: permission) }
+        guard workerFocus == false else { return nil }
+        return workerRequested ? .settings : .request
+    }
+
+    func performGuide(_ action: Action, for permission: Permission) async {
+        await checkGuide(force: true)
+        guard workerQuery == nil, guideAction(for: permission) == action else { return }
+        observeUntil = ProcessInfo.processInfo.systemUptime + 120
+        if permission == .thumbnails { perform(action, for: permission); return }
+        if action == .settings { open(permission); return }
+        workerRequested = true
+        let query = UUID()
+        workerQuery = query
+        let answer = await readWorker(true)
+        if workerQuery == query { recordWorkerFocus(answer) }
+    }
+
+    func checkAfterRequest() async {
+        refresh()
+        if workerRequested { await checkGuide() }
+        if !workerRequested && !requested.contains(.thumbnails) { observeUntil = 0 }
     }
 
     func refresh() {
@@ -95,6 +149,107 @@ struct WindowPermissionButton: View {
             Button(action == .request ? permission.requestLabel : permission.settingsLabel) {
                 WindowOverviewAccess.shared.perform(action, for: permission)
             }
+        }
+    }
+}
+
+/// The Host reads pixels. Its signed action helper checks Accessibility for exact window selection.
+struct WindowAccessGuide: View {
+    let showPictures: Bool
+    @ViewState private var expanded = false
+    private let access = WindowOverviewAccess.shared
+
+    var body: some View {
+        // Keep a zero-height observer even when the first preflight granted screen capture.
+        // The independent focus reply can arrive after the sidebar has already appeared.
+        VStack(alignment: .leading, spacing: 0) {
+            let missingPixels = showPictures && !access.grants.contains(.thumbnails)
+            let missingFocus = access.checkedWorker && access.workerFocus != true
+            if missingPixels || missingFocus {
+                Button {
+                    expanded = true
+                } label: {
+                    Label(missingPixels && missingFocus ? "设置窗口权限" : missingPixels ? "启用窗口画面" : "检查窗口切换",
+                          systemImage: "lock.open")
+                        .lineLimit(1)
+                }
+                .controlSize(.small)
+                .accessibilityIdentifier("window-access-guide")
+                .popover(isPresented: $expanded) {
+                    VStack(alignment: .trailing, spacing: 12) {
+                        WindowAccessSteps(showPictures: showPictures)
+                        Button("完成") { expanded = false }
+                            .controlSize(.small)
+                            .keyboardShortcut(.cancelAction)
+                            .accessibilityIdentifier("window-access-done")
+                    }
+                    .frame(width: 276).padding(14)
+                }
+            }
+        }
+        .observeWindowGuide()
+    }
+}
+
+struct WindowAccessSteps: View {
+    let showPictures: Bool
+    private let access = WindowOverviewAccess.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if showPictures {
+                step(.thumbnails, name: "窗口画面", systemName: "屏幕与系统音频录制", granted: access.grants.contains(.thumbnails))
+            }
+            step(.focus, name: "精确切换窗口", systemName: "辅助功能", granted: access.workerFocus)
+            if access.guideAction(for: .focus) == .settings || (showPictures && access.guideAction(for: .thumbnails) == .settings) {
+                Text("在系统设置中开启 Nearpane。授权后会自动检查；若 macOS 提示重新打开，请按系统提示操作。")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .observeWindowGuide()
+    }
+
+    private func step(_ permission: WindowOverviewAccess.Permission, name: String, systemName: String, granted: Bool?) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                Text(systemName).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let action = access.guideAction(for: permission) {
+                Button(action == .request ? "授权…" : "打开系统设置…") {
+                    Task { await access.performGuide(action, for: permission) }
+                }
+                .accessibilityIdentifier(permission == .thumbnails ? "window-access-allow-pictures" : "window-access-allow-focus")
+            } else if granted == true {
+                Label("已允许", systemImage: "checkmark.circle").foregroundStyle(.secondary)
+                    .accessibilityIdentifier(permission == .thumbnails ? "window-access-pictures-granted" : "window-access-focus-granted")
+            } else if !access.checkedWorker {
+                Text("正在检查…").foregroundStyle(.secondary)
+            } else {
+                Button("重新检查") { Task { await access.checkGuide(force: true) } }
+                    .accessibilityIdentifier("window-access-recheck-focus")
+                    .help("本次未能读取切换权限")
+            }
+        }
+        .controlSize(.small)
+    }
+}
+
+private extension View {
+    @MainActor func observeWindowGuide() -> some View {
+        let access = WindowOverviewAccess.shared
+        return task(id: access.observeUntil) {
+            await access.checkGuide()
+            while !Task.isCancelled, ProcessInfo.processInfo.systemUptime < access.observeUntil {
+                do { try await Task.sleep(for: .seconds(2)) } catch { return }
+                await access.checkAfterRequest()
+            }
+        }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didDeactivateApplicationNotification)) { event in
+            guard let app = event.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.bundleIdentifier == "com.apple.systempreferences" else { return }
+            Task { await access.checkGuide(force: true) }
         }
     }
 }

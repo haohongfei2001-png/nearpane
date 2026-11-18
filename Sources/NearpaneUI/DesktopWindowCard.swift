@@ -42,6 +42,57 @@ struct DesktopWindowThumbnailLayout {
     }
 }
 
+/// Fit every card in a single top-aligned column. The same extra scale applies to
+/// all pictures, including portrait and unusually small windows.
+struct DesktopRosterFit {
+    struct Row {
+        let picture: CGSize?
+        let height: CGFloat
+        let inlineCaption: Bool
+        let showsCaption: Bool
+    }
+
+    let rows: [Row]
+    let spacing: CGFloat
+
+    init(pictures: [CGSize?], availableHeight: CGFloat, spacing requestedGap: CGFloat, labelSize: CGFloat) {
+        guard !pictures.isEmpty else { rows = []; spacing = 0; return }
+        let count = CGFloat(pictures.count)
+        let height = max(0, availableHeight)
+        let line = max(14, ceil(max(10, labelSize) * 1.3))
+        spacing = min(max(0, requestedGap), height / (10 * count))
+        let budget = height - spacing * (count - 1)
+        let inline = budget / count < 2 * (line + 3)
+        let minimum = min(line, budget / count)
+
+        func rowHeight(_ picture: CGSize?, scale: CGFloat) -> CGFloat {
+            guard let picture else { return minimum }
+            return inline ? max(minimum, picture.height * scale) : line + 3 + picture.height * scale
+        }
+        func total(_ scale: CGFloat) -> CGFloat {
+            pictures.reduce(0) { $0 + rowHeight($1, scale: scale) }
+        }
+        var scale: CGFloat = 1
+        if inline && minimum == budget / count, let tallest = pictures.compactMap({ $0?.height }).max(), tallest > 0 {
+            scale = min(1, minimum / tallest)
+        } else if total(1) > budget {
+            // In dense mode caption and picture share vertical space. As pictures
+            // shrink, shorter rows reach their caption height before taller ones.
+            var lower: CGFloat = 0, upper: CGFloat = 1
+            for _ in 0..<28 {
+                let middle = (lower + upper) / 2
+                if total(middle) <= budget { lower = middle } else { upper = middle }
+            }
+            scale = lower
+        }
+        rows = pictures.map { picture in
+            let rowHeight = rowHeight(picture, scale: scale)
+            return Row(picture: picture.map { CGSize(width: $0.width * scale, height: $0.height * scale) },
+                       height: rowHeight, inlineCaption: inline, showsCaption: picture == nil || rowHeight >= line)
+        }
+    }
+}
+
 struct DesktopWindowCard: View {
     @Environment(\.colorScheme) private var scheme
     static func windowBacking(for scheme: ColorScheme) -> Color {
@@ -51,50 +102,64 @@ struct DesktopWindowCard: View {
     let icon: NSImage?
     let image: CGImage?
     let pictureSize: CGSize?
-    var unavailableReason: String?
-    var awaitingPicture = true
     var borderWidth: CGFloat = 0.8
     var labelSize: CGFloat = 10
+    var row: DesktopRosterFit.Row?
     var currentImage: (@MainActor () -> CGImage?)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            if let size = pictureSize {
-                Canvas { context, canvas in
-                    let pixels: CGImage?
-                    if let currentImage { pixels = currentImage() } else { pixels = image }
-                    let bounds = CGRect(origin: .zero, size: canvas)
-                    if let pixels {
-                        context.fill(Path(bounds), with: .color(Self.windowBacking(for: scheme)))
-                        let fit = min(canvas.width / CGFloat(pixels.width), canvas.height / CGFloat(pixels.height))
-                        let w = CGFloat(pixels.width) * fit, h = CGFloat(pixels.height) * fit
-                        context.draw(Image(decorative: pixels, scale: 1),
-                                     in: CGRect(x: (canvas.width - w) / 2, y: (canvas.height - h) / 2, width: w, height: h))
-                    } else {
-                        context.fill(Path(bounds), with: .color(.primary.opacity(0.045)))
-                    }
-                    let line = min(max(0, borderWidth), min(canvas.width, canvas.height) / 4)
-                    if line > 0 {
-                        context.stroke(Path(bounds.insetBy(dx: line / 2, dy: line / 2)), with: .color(.primary.opacity(0.32)),
-                                       lineWidth: line)
-                    }
+        Group {
+            if row?.inlineCaption == true {
+                HStack(alignment: .top, spacing: 4) {
+                    preview
+                    if row?.showsCaption == true { caption }
                 }
-                .frame(width: size.width, height: size.height)
-            }
-            HStack(spacing: 4) {
-                if let icon {
-                    Image(nsImage: icon).resizable().scaledToFit().frame(width: 14, height: 14)
-                        .accessibilityHidden(true)
+            } else {
+                VStack(alignment: .leading, spacing: 3) {
+                    preview
+                    caption
                 }
-                Text(label).font(.system(size: max(10, labelSize), weight: .semibold)).lineLimit(1)
-            }
-            if pictureSize == nil || (image == nil && (unavailableReason != nil || awaitingPicture)) {
-                Text(pictureSize == nil ? "窗口尺寸待核对" : (unavailableReason ?? "正在读取窗口画面"))
-                    .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
         .foregroundStyle(scheme == .dark ? Color.white : Color.black)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: row?.height, alignment: .topLeading)
+        .clipped()
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder private var preview: some View {
+        if let size = pictureSize {
+            Canvas { context, canvas in
+                let pixels: CGImage?
+                if let currentImage { pixels = currentImage() } else { pixels = image }
+                let bounds = CGRect(origin: .zero, size: canvas)
+                if let pixels {
+                    context.fill(Path(bounds), with: .color(Self.windowBacking(for: scheme)))
+                    let fit = min(canvas.width / CGFloat(pixels.width), canvas.height / CGFloat(pixels.height))
+                    let w = CGFloat(pixels.width) * fit, h = CGFloat(pixels.height) * fit
+                    context.draw(Image(decorative: pixels, scale: 1),
+                                 in: CGRect(x: (canvas.width - w) / 2, y: (canvas.height - h) / 2, width: w, height: h))
+                } else {
+                    context.fill(Path(bounds), with: .color(.primary.opacity(0.045)))
+                }
+                let line = min(max(0, borderWidth), min(canvas.width, canvas.height) / 4)
+                if line > 0 {
+                    context.stroke(Path(bounds.insetBy(dx: line / 2, dy: line / 2)), with: .color(.primary.opacity(0.32)),
+                                   lineWidth: line)
+                }
+            }
+            .frame(width: size.width, height: size.height)
+        }
+    }
+
+    private var caption: some View {
+        HStack(spacing: 4) {
+            if let icon {
+                Image(nsImage: icon).resizable().scaledToFit().frame(width: 14, height: 14)
+                    .accessibilityHidden(true)
+            }
+            Text(label).font(.system(size: max(10, labelSize), weight: .semibold)).lineLimit(1)
+        }
     }
 }

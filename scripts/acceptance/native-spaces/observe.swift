@@ -70,6 +70,8 @@ struct Sidebar {
     var controls = [String: [AXUIElement]]()
     var legacyCards = 0
     var areas = 0
+    var rosterScrollAreas = 0
+    var permissionControls = Set<String>()
     var knownIssues = Set<String>()
     mutating func visit(_ element: AXUIElement, depth: Int = 0, workspace: Bool = false) {
         guard depth < 36, visited.count < 5000, visited.insert(element).inserted else { return }
@@ -83,6 +85,11 @@ struct Sidebar {
             if id == "desktop-reserved-region" { areas += 1 }
         }
         let role = value(element, kAXRoleAttribute) as? String ?? ""
+        if inWorkspace && role == "AXScrollArea" { rosterScrollAreas += 1 }
+        if let id = identifier, id.hasPrefix("window-access-") {
+            permissionControls.insert(id)
+            controls[id, default: []].append(element)
+        }
         if inWorkspace, role == "AXStaticText", identifier == nil {
             let allowed = ["这扇窗口已变化，请重新选择。", "窗口已离开这个桌面。", "这扇窗口的系统身份已变化。",
                            "精确选择这扇窗口需要允许 Nearpane 使用辅助功能。", "macOS 未允许这个应用置前。",
@@ -141,7 +148,27 @@ struct Sidebar {
         }
         return ["rows": rowReports.sorted { ($0["identifier"] as? String ?? "") < ($1["identifier"] as? String ?? "") },
                 "windowCounts": cardCounts, "currentWindowCount": controls.keys.filter { $0.hasPrefix("current-desktop-window:") }.count,
+                "permissionControls": permissionControls.sorted(), "rosterScrollAreas": rosterScrollAreas,
                 "knownIssueMessages": knownIssues.sorted(), "legacyCardCount": legacyCards, "overviewRegions": areas]
+    }
+
+    // Only count positions. Other applications' titles, thumbnails and window IDs stay out of the receipt.
+    func fit(on screen: CGRect, panelFrames: [CGRect]) -> Object {
+        let cards = controls.filter { $0.key.hasPrefix("current-desktop-window:") }
+        let frames: [CGRect] = cards.compactMap { _, elements in
+            guard elements.count == 1, let p = value(elements[0], kAXPositionAttribute),
+                  let s = value(elements[0], kAXSizeAttribute),
+                  CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(s) == AXValueGetTypeID() else { return nil }
+            var origin = CGPoint.zero, size = CGSize.zero
+            guard AXValueGetValue(p as! AXValue, .cgPoint, &origin), AXValueGetValue(s as! AXValue, .cgSize, &size),
+                  size.width > 0, size.height > 0 else { return nil }
+            return CGRect(origin: origin, size: size)
+        }.sorted { $0.minY < $1.minY }
+        let all = !cards.isEmpty && cards.count == frames.count
+        let onePanel = panelFrames.contains { panel in frames.allSatisfy { panel.contains($0) } }
+        let ordered = zip(frames, frames.dropFirst()).allSatisfy { $0.maxY <= $1.minY + 0.5 }
+        return ["cardCount": cards.count, "measured": frames.count, "allOnscreen": all && frames.allSatisfy { screen.contains($0) },
+                "insideOnePanel": all && onePanel, "ordered": all && ordered, "scrollAreas": rosterScrollAreas]
     }
 }
 
@@ -216,6 +243,33 @@ func birthMicroseconds(_ pid: pid_t) -> UInt64? {
     return p.pbi_start_tvsec * 1_000_000 + p.pbi_start_tvusec
 }
 
+// Return a tiny region strictly inside this identified fixture's picture. The
+// capture executable re-runs this observation before and after its filtered read.
+func fixturePictureCrop(card: AXUIElement, bounds: CGRect, text: String, host: pid_t,
+                        number: UInt32, birth: UInt64, scope: String, current: UInt64) -> Object? {
+    let prefix = "窗口画面，预览 "
+    guard text.hasPrefix(prefix), let end = text.range(of: " pt") else { return nil }
+    let fields = text[text.index(text.startIndex, offsetBy: prefix.count)..<end.lowerBound].components(separatedBy: " × ")
+    guard fields.count == 2, let w = Double(fields[0]), let h = Double(fields[1]),
+          w >= 12, h >= 12, w <= bounds.width + 1, h <= bounds.height + 1 else { return nil }
+    let crop = CGRect(x: floor(bounds.minX + w / 2 - 2), y: floor(bounds.minY + h / 2 - 2), width: 4, height: 4)
+    guard bounds.contains(crop) else { return nil }
+    var ancestor = card
+    for _ in 0..<36 {
+        if value(ancestor, kAXRoleAttribute) as? String == "AXWindow" { break }
+        guard let parent = value(ancestor, kAXParentAttribute), CFGetTypeID(parent) == AXUIElementGetTypeID() else { return nil }
+        ancestor = parent as! AXUIElement
+    }
+    let panel = NPReadAXWindowNumber(ancestor)
+    guard panel > 0, value(ancestor, kAXRoleAttribute) as? String == "AXWindow",
+          let row = rows.first(where: { $0[kCGWindowNumber as String] as? UInt32 == panel &&
+              $0[kCGWindowOwnerPID as String] as? pid_t == host && $0[kCGWindowIsOnscreen as String] as? Bool == true }),
+          let bounds = row[kCGWindowBounds as String] as? NSDictionary,
+          CGRect(dictionaryRepresentation: bounds)?.contains(crop) == true else { return nil }
+    return ["ready": true, "pid": host, "number": panel, "display": scope, "space": current,
+            "fixtureNumber": number, "fixtureBirth": birth, "crop": [crop.minX, crop.minY, crop.width, crop.height]]
+}
+
 func fixtureResult(_ args: [String]) -> Object {
     guard args.count == 11, let host, let givenHost = Int32(args[2]), host.processIdentifier == givenHost,
           runningCodeHash(host.processIdentifier) == args[3], let fixturePID = Int32(args[4]),
@@ -236,7 +290,14 @@ func fixtureResult(_ args: [String]) -> Object {
     if args[1] == "roster-card" || args[1] == "roster-shared-card" {
         let index = Sidebar(host, rows: rows)
         let cg = owned[0]
+        let panelFrames: [CGRect] = rows.compactMap { row in
+            guard row[kCGWindowOwnerPID as String] as? pid_t == givenHost,
+                  row[kCGWindowIsOnscreen as String] as? Bool == true, let bounds = row[kCGWindowBounds as String] as? NSDictionary
+            else { return nil }
+            return CGRect(dictionaryRepresentation: bounds)
+        }
         var out: Object = ["observed": false, "window": number, "fixturePID": fixturePID,
+                           "fit": index.fit(on: CGDisplayBounds(CGMainDisplayID()), panelFrames: panelFrames),
                            "spaceRows": index.controls.keys.filter { $0.hasPrefix("native-space-row:") }.count,
                            "membershipCount": memberships.count, "currentSpaceMember": memberships.contains(sid),
                            "stageManager": stage as Any? ?? NSNull(),
@@ -265,6 +326,8 @@ func fixtureResult(_ args: [String]) -> Object {
             return out
         }
         out["observed"] = true; out["value"] = pixels; out["cardY"] = point.y; out["cardHeight"] = size.height
+        out["pixelCrop"] = fixturePictureCrop(card: exact[0], bounds: CGRect(origin: point, size: size),
+            text: pixels, host: givenHost, number: number, birth: birth, scope: args[8], current: sid)
         return out
     }
     if args[1] == "fixture-inventory" {
@@ -363,12 +426,48 @@ func surfaceToggle(_ args: [String]) -> Object {
     }
     return ["issued":false,"reason":"menu did not expose toggle","openResult":menuResult as Any? ?? NSNull(),"actions":actions]
 }
+// Exercise only the app's explanation and its dismissal. Never press a consent or System Settings button.
+func guideResult() -> Object {
+    guard let host, AXIsProcessTrusted(), let signature = runningCodeHash(host.processIdentifier) else {
+        return ["status":"BLOCKED", "reason":"installed Host or observer unavailable"]
+    }
+    func index() -> Sidebar { Sidebar(host, rows: rows) }
+    func press(_ id: String) -> Bool {
+        guard id == "window-access-guide" || id == "window-access-done",
+              !host.isTerminated, runningCodeHash(host.processIdentifier) == signature,
+              let found = index().controls[id], found.count == 1,
+              value(found[0], kAXEnabledAttribute) as? Bool == true else { return false }
+        return AXUIElementPerformAction(found[0], kAXPressAction as CFString) == .success
+    }
+    guard !index().permissionControls.contains("window-access-done") else { return ["status":"BLOCKED","reason":"guide already open"] }
+    guard press("window-access-guide") else { return ["status":"BLOCKED","reason":"no unique visible guide"] }
+    var controls = Set<String>()
+    for _ in 0..<16 {
+        controls = index().permissionControls
+        if controls.contains("window-access-done") { break }
+        Thread.sleep(forTimeInterval: 0.06)
+    }
+    let dismissed = press("window-access-done")
+    var closed = false
+    if dismissed {
+        for _ in 0..<16 {
+            if !index().permissionControls.contains("window-access-done") { closed = true; break }
+            Thread.sleep(forTimeInterval: 0.06)
+        }
+    }
+    let pictures = !controls.isDisjoint(with: ["window-access-allow-pictures","window-access-pictures-granted"])
+    let focus = !controls.isDisjoint(with: ["window-access-allow-focus","window-access-focus-granted"])
+    return ["status":pictures && focus && closed ? "PASS" : "FAIL", "visibleControls":controls.sorted(),
+            "dismissed":closed,"systemPermissionActions":0]
+}
 if CommandLine.arguments.count > 1 {
     if CommandLine.arguments[1] == "crop" {
         report = titleCrop(CommandLine.arguments)
     } else if CommandLine.arguments[1] == "absence" {
         let ids = CommandLine.arguments.dropFirst(2).compactMap(UInt32.init)
         report = ["allGone": !ids.isEmpty && ids.allSatisfy { NPReadWindowNumberPresence($0) == 0 }]
+    } else if CommandLine.arguments[1] == "guide" {
+        report = guideResult()
     } else if CommandLine.arguments[1] == "surface" {
         report = surfaceToggle(CommandLine.arguments)
     } else { report = fixtureResult(CommandLine.arguments) }

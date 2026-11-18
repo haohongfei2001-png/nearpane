@@ -388,20 +388,7 @@ public struct SettingsView: View {
             })).disabled(!enabled)
             Text("当前桌面的每扇窗口各占一项，使用本屏统一比例缩放。侧栏可见时自动更新，点击可将对应窗口置前。")
                 .font(.caption).foregroundStyle(.secondary)
-            if host.configuration.showsWindowThumbnails {
-                if WindowOverviewAccess.shared.grants.contains(.thumbnails) {
-                    LabeledContent("窗口画面", value: "已授权")
-                } else { WindowPermissionButton(permission: .thumbnails) }
-            }
-            if WindowOverviewAccess.shared.grants.contains(.focus) {
-                LabeledContent("Nearpane 辅助功能", value: "已授权")
-            } else { WindowPermissionButton(permission: .focus) }
-            if !WindowOverviewAccess.shared.grants.contains(.focus) ||
-                (host.configuration.showsWindowThumbnails && !WindowOverviewAccess.shared.grants.contains(.thumbnails)) {
-                Text("当前运行的 Nearpane 尚未收到相应授权。若系统设置中已开启，请返回这里重新检查；仍未生效时，可退出并重新打开已安装的 Nearpane。")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Button("重新检查窗口权限") { WindowOverviewAccess.shared.refresh() }
+            if enabled { WindowAccessSteps(showPictures: host.configuration.showsWindowThumbnails) }
             Toggle("识别窗口所属桌面（实验性）", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
                   set: { host.setExperimentalSpaceObservation($0) })).disabled(!enabled)
             if #available(macOS 15.2, *), let previews = domains?.windowPreviews {

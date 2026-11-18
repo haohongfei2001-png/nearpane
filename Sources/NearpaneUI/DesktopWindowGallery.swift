@@ -190,6 +190,15 @@ struct DesktopWindowTarget: Equatable {
 
     func lacksPicture(_ target: DesktopWindowTarget) -> Bool { missingPictures[target.key] == target.display }
 
+    /// A visible surface has an independent public identity check. Keep these batches
+    /// separate so an unavailable Space inventory cannot stall foreground thumbnails.
+    static func captureBatches(_ targets: [DesktopWindowTarget], membership: Set<DesktopWindowKey>) -> [[DesktopWindowTarget]] {
+        let ordered = [targets.filter { !membership.contains($0.key) }, targets.filter { membership.contains($0.key) }]
+        return ordered.flatMap { group in
+            stride(from: 0, to: group.count, by: 4).map { start in Array(group[start..<min(start + 4, group.count)]) }
+        }
+    }
+
     /// Scope checks are batched. Each image uses a filter for exactly one shared window.
     func run(on display: String, snapshot: @escaping () -> DesktopSnapshot?, allowed: @escaping () -> Bool,
              recheck: (() async -> DesktopSnapshot?)? = nil) async {
@@ -257,28 +266,42 @@ struct DesktopWindowTarget: Equatable {
             // An on-screen card can verify public presentation synchronously. Only
             // off-stage members need extra membership samples around their pixels.
             let includeOffstage = due.contains { $0.overviewSpace != nil }
-            guard permitted(),
-                  let content = try? await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: !includeOffstage)
-            else { continue }
+            guard permitted() else { return }
+            for target in due {
+                attempted[target.key] = now
+                if stills.peek(target.key) == nil { misses[target.key, default: 0] += 1 }
+            }
+            // Enumeration itself can fail even after a positive TCC preflight.
+            // Apply the same bounded retry and feedback as a per-surface failure.
+            func noteUnavailable(_ targets: [DesktopWindowTarget]) {
+                for target in targets where (misses[target.key] ?? 0) >= 2 &&
+                    visible[display]?.contains(target.key) == true && missingPictures[target.key] == nil {
+                    missingPictures[target.key] = display
+                }
+            }
+            guard let content = try? await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: !includeOffstage)
+            else {
+                if permitted() { noteUnavailable(due) }
+                continue
+            }
             let shared = Dictionary(grouping: content.windows, by: \.windowID)
             let viaMembership = Set(due.compactMap { target -> DesktopWindowKey? in
                 guard target.overviewSpace != nil, let source = shared[target.key.number]?.first else { return nil }
                 return target.publiclyVisible && source.isOnScreen && target.matches(source.frame) ? nil : target.key
             })
-            let before = viaMembership.isEmpty ? sample : await recheck?()
-            guard let before, permitted() else { continue }
-            for start in stride(from: 0, to: due.count, by: 4) {
+            for batch in Self.captureBatches(due, membership: viaMembership) {
                 guard permitted() else { return }
-                let batch = due[start..<min(start + 4, due.count)]
+                let requiresMembership = viaMembership.contains(batch[0].key)
+                let before = requiresMembership ? await recheck?() : snapshot()
+                guard permitted() else { return }
+                guard let before else { noteUnavailable(batch); continue }
                 var jobs = [(DesktopWindowTarget, Task<Capture?, Never>)]()
                 for target in batch {
-                    attempted[target.key] = now
-                    if stills.peek(target.key) == nil { misses[target.key, default: 0] += 1 }
                     guard target.present(in: before), target.present(in: snapshot()), visible[display]?.contains(target.key) == true,
                           let candidates = shared[target.key.number], candidates.count == 1, let window = candidates.first,
                           target.liveOwner() != nil, window.owningApplication?.processID == target.key.pid,
                           window.windowLayer == 0 else { continue }
-                    if viaMembership.contains(target.key) {
+                    if requiresMembership {
                         guard target.sharedSurface(visible: false, matchFrame: true) else { continue }
                     } else {
                         guard window.isOnScreen, target.matches(window.frame), target.isVisibleSurface() else { continue }
@@ -294,19 +317,16 @@ struct DesktopWindowTarget: Equatable {
                 }
                 guard permitted() else { return }
                 let returned = Set(pictures.map { $0.0.key })
-                for target in batch where !returned.contains(target.key) && (misses[target.key] ?? 0) >= 2 &&
-                    visible[display]?.contains(target.key) == true && missingPictures[target.key] == nil {
-                    missingPictures[target.key] = display
-                }
+                noteUnavailable(batch.filter { !returned.contains($0.key) })
                 guard !pictures.isEmpty, permitted() else { continue }
                 // A window can be moved to another Space without the user changing desktops.
                 // A fresh independent membership read protects the publication of those pixels.
-                let after = pictures.contains { viaMembership.contains($0.0.key) } ? await recheck?() : snapshot()
+                let after = requiresMembership ? await recheck?() : snapshot()
                 guard permitted() else { return }
                 for (target, capture) in pictures {
                     guard target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
                           visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
-                          (viaMembership.contains(target.key) ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
+                          (requiresMembership ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
                         stills.remove(target.key); continue
                     }
                     guard let cost = PreviewPixelBudget.charge(capture.image) else { continue }

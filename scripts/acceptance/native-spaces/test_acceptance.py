@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from acceptance import Receipt, catalog_match, host_current_permissions
-from roster import evaluate, same_scale
+from roster import evaluate, pixel_verdict, same_scale
 
 
 class EvidenceTests(unittest.TestCase):
@@ -13,8 +13,19 @@ class EvidenceTests(unittest.TestCase):
     def fixture_roster():
         sizes = [[540, 213], [240, 383]]
         return sizes, [dict(observed=True, cardY=y, cardHeight=43, spaceRows=0, window=i,
-                            value=desc, axSize=size, cgSize=size)
+                            value=desc, axSize=size, cgSize=size, fit=dict(cardCount=2, measured=2, allOnscreen=True,
+                                insideOnePanel=True, ordered=True, scrollAreas=0))
                        for i, (size, desc, y) in enumerate(zip(sizes, ["窗口轮廓，预览 54 × 21 pt", "窗口轮廓，预览 24 × 38 pt"], [42, 85]))]
+
+    def test_signature_bound_green_and_purple_cards_require_independent_pixels(self):
+        windows = [23, 42]
+        green = dict(ready=True, fixture=23, sampleCount=64, green=60, purple=0)
+        purple = dict(ready=True, fixture=42, sampleCount=64, green=0, purple=62)
+        self.assertEqual(pixel_verdict(windows, [green, purple]), "PASS")
+        self.assertEqual(pixel_verdict(windows, [green, dict(green, fixture=42)]), "FAIL")
+        self.assertEqual(pixel_verdict(windows, [purple, green]), "BLOCKED")
+        self.assertEqual(pixel_verdict(windows, [green, dict(ready=False)]), "BLOCKED")
+        self.assertEqual(pixel_verdict(windows, [green, dict(purple, sampleCount=0)]), "BLOCKED")
 
     def test_installed_roster_accepts_actual_distinct_relative_sizes(self):
         sizes, cards = self.fixture_roster()
@@ -49,6 +60,13 @@ class EvidenceTests(unittest.TestCase):
         self.assertFalse(same_scale(source, [[54, 21], [54, 21]]))
         self.assertFalse(same_scale(source, [[54, 21], [48, 76]]))
         self.assertFalse(same_scale(source, [[54, 21], [24, 30]]))
+
+    def test_an_offscreen_or_scrollable_list_fails_even_with_two_exact_fixture_frames(self):
+        for change in (dict(allOnscreen=False), dict(insideOnePanel=False), dict(measured=1),
+                       dict(scrollAreas=1), dict(ordered=False)):
+            sizes, cards = self.fixture_roster()
+            cards[0]["fit"].update(change)
+            self.assertEqual("FAIL", evaluate(sizes, cards)["status"])
 
     def test_current_permissions_only_accept_matched_request(self):
         nonce = "481A400A-1079-46FB-A048-3918F2B91FC4"

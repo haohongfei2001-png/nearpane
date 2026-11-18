@@ -16,19 +16,20 @@ struct Refused: Error { let stage: String; init(_ stage: String) { self.stage = 
     }
     @MainActor static func capture() async throws {
         let args = CommandLine.arguments
-        guard args.count == 4, CGPreflightScreenCaptureAccess(), !FileManager.default.fileExists(atPath: args[3]) else { throw Refused("permission, arguments or preexisting file") }
+        let card = args.count == 12 && ["roster-card", "roster-shared-card"].contains(args[2])
+        guard CGPreflightScreenCaptureAccess(), card || (args.count == 4 && !FileManager.default.fileExists(atPath: args[3])) else { throw Refused("permission, arguments or preexisting file") }
         func observe() throws -> [String: Any] {
             let p = Process(), out = Pipe()
             p.executableURL = URL(fileURLWithPath: args[1])
-            p.arguments = ["crop", args[2]]; p.standardOutput = out
+            p.arguments = card ? Array(args.dropFirst(2)) : ["crop", args[2]]; p.standardOutput = out
             try p.run(); let data = out.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()
             guard p.terminationStatus == 0, let r = try JSONSerialization.jsonObject(with:data) as? [String:Any],
-                  r["ready"] as? Bool == true else { throw Refused("could not bind crop to visible installed window") }
+                  let r = card ? r["pixelCrop"] as? [String:Any] : r, r["ready"] as? Bool == true else { throw Refused("could not bind crop to visible installed window") }
             return r
         }
         let a = try observe()
         guard let pid = a["pid"] as? pid_t, let number = a["number"] as? UInt32,
-              let rect = a["crop"] as? [NSNumber], rect.count == 4, rect[2] == 60, rect[3] == 17,
+              let rect = a["crop"] as? [NSNumber], rect.count == 4, rect[2].intValue == (card ? 4 : 60), rect[3].intValue == (card ? 4 : 17),
               let wanted = a["display"] as? String, let uuid = UUID(uuidString:wanted) else { throw Refused("unrecognized window coordinates") }
         let sharable = try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
         let displays = sharable.displays.filter { screen in
@@ -43,12 +44,28 @@ struct Refused: Error { let stage: String; init(_ stage: String) { self.stage = 
         filter.includeMenuBar = false
         let config = SCStreamConfiguration()
         config.sourceRect = crop.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)
-        config.width = 120; config.height = 34; config.showsCursor = false; config.capturesAudio = false
+        config.width = card ? 8 : 120; config.height = card ? 8 : 34; config.showsCursor = false; config.capturesAudio = false
         config.captureMicrophone = false
         // The SDK defaults to clear. Its backgroundColor property is assign, so a transient NSColor.cgColor would dangle.
         let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
-        guard image.width == 120, image.height == 34, try NSDictionary(dictionary:a).isEqual(to:observe()),
-              let bytes = NSBitmapImageRep(cgImage:image).representation(using:.png,properties:[:]) else { throw Refused("source changed or output dimensions differed") }
+        guard image.width == config.width, image.height == config.height, try NSDictionary(dictionary:a).isEqual(to:observe())
+        else { throw Refused("source changed or output dimensions differed") }
+        let rep = NSBitmapImageRep(cgImage:image)
+        if card {
+            var green = 0, purple = 0
+            for y in 0..<image.height {
+                for x in 0..<image.width {
+                    guard let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB), c.alphaComponent > 0.9 else { continue }
+                    if c.greenComponent > max(c.redComponent, c.blueComponent) + 0.15 { green += 1 }
+                    if min(c.redComponent, c.blueComponent) > c.greenComponent + 0.15 { purple += 1 }
+                }
+            }
+            let result: [String:Any] = ["ready": true, "fixture": a["fixtureNumber"]!, "sampleCount": image.width * image.height,
+                                        "green": green, "purple": purple]
+            print(String(decoding: try JSONSerialization.data(withJSONObject:result, options:.sortedKeys), as:UTF8.self))
+            return
+        }
+        guard let bytes = rep.representation(using:.png,properties:[:]) else { throw Refused("encoding failed") }
         try bytes.write(to: URL(fileURLWithPath:args[3]),options:.withoutOverwriting)
         print(String(decoding:try JSONSerialization.data(withJSONObject:a,options:.sortedKeys),as:UTF8.self))
     }

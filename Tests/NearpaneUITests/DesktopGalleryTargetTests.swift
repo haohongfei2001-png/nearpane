@@ -208,6 +208,16 @@ import Testing
         #expect(ManagedWindowID(members[1]) == nil)
     }
 
+    @Test func visiblePicturesAreProcessedBeforeAnyOffstageMembershipRecheck() throws {
+        let s = catalog([(1, 51, false, "97"), (2, 51, true, "97"), (3, 52, false, "97"),
+                         (4, 52, true, "97"), (5, 52, true, "97"), (6, 52, true, "97"), (7, 52, true, "97")])
+        let targets = try s.windows.map { try #require(DesktopWindowTarget($0, in: s)) }
+        let offstage = Set(targets.filter { !$0.publiclyVisible }.map(\.key))
+        let batches = DesktopWindowGallery.captureBatches(targets, membership: offstage)
+        #expect(batches.map { $0.map { $0.key.number } } == [[2, 4, 5, 6], [7], [1, 3]])
+        #expect(DesktopWindowGallery.captureBatches([], membership: offstage).isEmpty)
+    }
+
     @Test func scopeChangeClosureAndStaleSamplesInvalidateBackgroundPixels() throws {
         let s = catalog([(8, 51, false, "97")])
         let target = try #require(DesktopWindowTarget(s.windows[0], in: s))
@@ -225,6 +235,24 @@ import Testing
         #expect(DesktopWindowSelection.soleWindow(key, in: [off], requireVisible: false))
         var sibling = off; sibling[kCGWindowNumber as String] = UInt32(9)
         #expect(!DesktopWindowSelection.soleWindow(key, in: [off, sibling], requireVisible: false))
+    }
+
+    @Test func changingStagePresentationKeepsOnlyTheOriginalScopedFocusIntent() throws {
+        let before = catalog([(8, 51, false, "97")])
+        let selected = try #require(DesktopWindowTarget(before.windows[0], in: before))
+        var after = catalog([(8, 51, true, "97")])
+        let frame = SurfaceRect(x: 42, y: 60, width: 720, height: 480)
+        after.windows = [.init(id: "win-8", displayID: "display", bounds: frame, membership: .known(recordIDs: ["97"]),
+            confidence: .unknown, metadata: .init(number: 8, pid: 51, launchMicroseconds: 100, element: nil,
+            globalFrame: frame, frontToBack: 0, minimized: false, fullScreen: false,
+            isOnscreen: true, onActiveDesktop: true, overviewSpaceID: "97"))]
+        #expect(!selected.present(in: after, now: time, uptime: 101))
+        #expect(selected.remainsSelection(in: after, now: time, uptime: 101))
+        #expect(!selected.remainsSelection(in: after, now: time, uptime: 120))
+        for invalid in [catalog([(8, 52, true, "97")]), catalog([(8, 51, true, "98")], current: "98"),
+                        catalog([(8, 51, true, nil)]), catalog([])] {
+            #expect(!selected.remainsSelection(in: invalid, now: time, uptime: 101))
+        }
     }
 
     @Test func shortcutConflictChecksOnlyEnabledMatchingSystemChord() {

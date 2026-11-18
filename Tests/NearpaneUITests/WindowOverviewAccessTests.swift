@@ -41,4 +41,49 @@ import Testing
         #expect(WindowOverviewAccess.sidebarGuides(grants: [.focus], showPictures: false, readerDenied: true, visible: true).isEmpty)
         #expect(WindowOverviewAccess.sidebarGuides(grants: [.focus], showPictures: true, readerDenied: true, visible: true) == [.thumbnails])
     }
+
+    @Test func sidebarChecksTheSelectingProcessIndependentlyOfTheCaptureProcess() async {
+        var hostGrants: Set<WindowOverviewAccess.Permission> = [.focus, .thumbnails]
+        var helper: Bool? = false
+        var workerCalls = [Bool]()
+        var systemPanes = [WindowOverviewAccess.Permission]()
+        let access = WindowOverviewAccess(read: { hostGrants }, request: { _ in Issue.record("unexpected host prompt") },
+                                          open: { systemPanes.append($0) }, readWorker: { prompt in
+            workerCalls.append(prompt); return helper
+        })
+        await access.checkGuide(force: true)
+        #expect(access.guideAction(for: .thumbnails) == nil && access.guideAction(for: .focus) == .request)
+        await access.performGuide(.request, for: .focus)
+        await access.performGuide(.request, for: .focus)
+        #expect(workerCalls.filter { $0 }.count == 1)
+        #expect(access.guideAction(for: .focus) == .settings && systemPanes.isEmpty)
+        helper = true
+        hostGrants = [.thumbnails]
+        await access.performGuide(.settings, for: .focus)
+        #expect(access.guideAction(for: .focus) == nil && systemPanes.isEmpty)
+        await access.checkAfterRequest()
+        #expect(access.observeUntil == 0)
+        helper = nil
+        await access.checkGuide(force: true)
+        #expect(access.checkedWorker && access.workerFocus == nil && access.guideAction(for: .focus) == nil)
+    }
+
+    @Test func accessGrantedOutsideTheAppUpdatesGuideWithoutRequestOrWindowAccess() async {
+        var screen = false
+        var prompts = [WindowOverviewAccess.Permission]()
+        var workerPrompts = [Bool]()
+        let access = WindowOverviewAccess(read: { screen ? [.thumbnails] : [] }, request: { prompts.append($0) },
+                                          open: { _ in Issue.record("unexpected settings redirect") }, readWorker: { ask in
+            workerPrompts.append(ask); return true
+        })
+        await access.checkGuide()
+        #expect(access.guideAction(for: .thumbnails) == .request && access.guideAction(for: .focus) == nil)
+        await access.performGuide(.request, for: .thumbnails)
+        #expect(access.observeUntil > 0 && prompts == [.thumbnails])
+        screen = true
+        let before = workerPrompts.count
+        await access.checkAfterRequest()
+        #expect(access.observeUntil == 0 && access.guideAction(for: .thumbnails) == nil)
+        #expect(workerPrompts.count == before && !workerPrompts.contains(true))
+    }
 }

@@ -72,6 +72,37 @@ import NearpaneCore
         }
     }
 
+    @Test func allWindowsFitAtOneScaleWithoutScrollingOrDroppingUnknownGeometry() throws {
+        let pictures: [CGSize?] = (0..<30).map { index in
+            switch index % 3 {
+            case 0: CGSize(width: 180, height: 84)
+            case 1: CGSize(width: 45, height: 120)
+            default: nil
+            }
+        }
+        for height: CGFloat in [30, 240, 640, 1300, 3400] {
+            let fit = DesktopRosterFit(pictures: pictures, availableHeight: height, spacing: 6, labelSize: 10)
+            try #require(fit.rows.count == pictures.count)
+            let used = fit.rows.map(\.height).reduce(0, +) + CGFloat(fit.rows.count - 1) * fit.spacing
+            #expect(used <= height + 0.001)
+            let first = try #require(fit.rows[0].picture)
+            let scale = first.width / 180
+            #expect(scale > 0 && scale <= 1)
+            for (source, row) in zip(pictures, fit.rows) {
+                #expect(row.height > 0)
+                if let source {
+                    let image = try #require(row.picture)
+                    #expect(abs(image.width - source.width * scale) < 0.0001)
+                    #expect(abs(image.height - source.height * scale) < 0.0001)
+                    #expect(row.height >= image.height)
+                } else {
+                    #expect(row.picture == nil && row.showsCaption)
+                }
+            }
+            if height == 3400 { #expect(scale == 1 && fit.spacing == 6) }
+        }
+    }
+
     @Test func nativeRosterStartsAfterToolsAndTheFifthWindowContinuesDown() async throws {
         _ = NSApplication.shared
         let host = HostSession(store: MemoryConfigurationStore(), includeSampleModules: false)
@@ -89,7 +120,8 @@ import NearpaneCore
         let window = try #require(controller.window)
         let surface = try #require(window.contentView)
         for (voice, tray, pinClock, primary, count) in [(true,true,true,true,6), (true,true,false,true,6),
-                (true,false,false,true,1), (false,false,true,true,1), (false,false,true,false,1), (false,false,false,true,1)] {
+                (true,false,false,true,1), (false,false,true,true,1), (false,false,true,false,1), (false,false,false,true,1),
+                (true,true,true,true,18)] {
             host.handle(.setEnabled(BuiltinCatalog.voice, voice))
             host.handle(.setEnabled(BuiltinCatalog.screenshots, tray))
             host.handle(.setEnabled(clock, pinClock))
@@ -133,14 +165,18 @@ import NearpaneCore
             let pictureScale = (contentWidth - 2 * inset) / frame.width
             // The colour traversal measures the fill between the two inset outline strokes.
             let stroke = settings.points(.borderWidth, in: contentWidth - 2 * inset)
-            let heights = windows.map { $0.bounds.height * pictureScale - 2 * stroke }
+            let natural = windows.map { CGSize(width: $0.bounds.width * pictureScale, height: $0.bounds.height * pictureScale) }
+            let fit = DesktopRosterFit(pictures: natural, availableHeight: layout.windowArea.height - 2 * (rim + inset),
+                                       spacing: settings.points(.spaceRowGap, in: layout.windowArea.height), labelSize: 10)
+            let heights = count > 6 ? fit.rows.compactMap { $0.picture.map { $0.height - 2 * stroke } }
+                                    : natural.map { $0.height - 2 * stroke }
             func pictureBands(at fraction: Double) throws -> [Range<Int>] {
                 let x = Int(Double(pixels.pixelsWide) * fraction)
                 func tone(_ y: Int) throws -> [Int] {
                     let c = try #require(pixels.colorAt(x: x, y: y)?.usingColorSpace(.sRGB))
                     return [c.redComponent, c.greenComponent, c.blueComponent, c.alphaComponent].map { Int(($0 * 255).rounded()) }
                 }
-                let bandTone = try tone(Int((firstY + 20) * scale))
+                let bandTone = try tone(Int((firstY + min(20, heights[0] / 2)) * scale))
                 var runs: [Range<Int>] = [], start: Int?
                 for y in Int(layout.windowArea.y * scale)..<pixels.pixelsHigh {
                     let matches = try tone(y) == bandTone
@@ -152,7 +188,8 @@ import NearpaneCore
                 }
                 return runs
             }
-            let left = try pictureBands(at: 0.23), right = try pictureBands(at: 0.76)
+            let left = try pictureBands(at: count > 6 ? 0.16 : 0.23)
+            let right = try pictureBands(at: count > 6 ? 0.25 : 0.76)
             try #require(left.count == count && right.count == count, "left \(left), right \(right), expected first at \(firstY) pt and \(count) cards")
             #expect(abs(CGFloat(left[0].lowerBound) / scale - firstY) <= 2)
             for (index, band) in left.enumerated() {
@@ -162,6 +199,19 @@ import NearpaneCore
             for (a, b) in zip(left, left.dropFirst()) {
                 #expect(CGFloat(b.lowerBound - a.upperBound) / scale > 18)
                 #expect(CGFloat(b.lowerBound - a.upperBound) / scale < 42)
+            }
+            if count > 6 {
+                let last = try #require(left.last)
+                #expect(CGFloat(last.upperBound) / scale < layout.windowArea.y + layout.windowArea.height)
+                #expect(heights[0] < natural[0].height / 2)
+                func containsScroller(_ view: NSView) -> Bool {
+                    view is NSScrollView || view.subviews.contains { containsScroller($0) }
+                }
+                // The tools above the roster may have their own independent scroll view.
+                let desktopView = NSHostingView(rootView: DesktopSurface(host: host, displayID: screen.id, enabled: true)
+                    .frame(width: 220, height: 500))
+                desktopView.layoutSubtreeIfNeeded()
+                #expect(!containsScroller(desktopView))
             }
             #expect(!window.isVisible && !window.isKeyWindow)
         }
