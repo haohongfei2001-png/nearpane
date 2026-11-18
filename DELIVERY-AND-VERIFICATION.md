@@ -1,4 +1,6 @@
-# Nearpane — 设计交付与验证清单
+# Nearpane — 设计交付与验证清单（历史快照）
+
+本清单保留 2026-11-08 设计分支的文件路径、哈希及当时结论。当前开发入口见[仓库首页](README.md)，本机安装版本及验收见[产品完成状态](engineering/verification/PRODUCT_COMPLETION_STATE.md)。
 
 **分支：** design/integrated-architecture-20261108  
 **基线 main：** f3d8b3d3a9fd67b04e0c663e08472d81adb7bb44  

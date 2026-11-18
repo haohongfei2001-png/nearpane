@@ -21,6 +21,7 @@ const sha = createHash('sha256').update(png).digest('hex');
 if (fixture.png) assert.equal(sha,fixture.sha256);
 const profile = path.join(run, 'user-data');
 fs.mkdirSync(profile, {mode: 0o700});
+const profileIdentity = fs.lstatSync(profile);
 const rejectProxy = net.createServer(socket => socket.destroy());
 rejectProxy.listen(0,'127.0.0.1');
 await once(rejectProxy,'listening');
@@ -54,6 +55,7 @@ child.stdio[4].setEncoding('utf8').on('data', part => {
 });
 closed.then(() => { for (const waiter of pending.values()) waiter.reject(Error('Fixture browser exited')); });
 const timeout = setTimeout(() => child.kill('SIGKILL'), fixture.productDriver ? 120000 : 45000);
+let verified = false;
 const draft = fs.readFileSync(path.join(root,'scripts/acceptance/draft-observation.js'),'utf8');
 try {
   const version = await call('Browser.getVersion');
@@ -166,7 +168,20 @@ try {
   fs.writeFileSync(path.join(run,'receipt.json'),JSON.stringify(evidence,null,2),{flag:'wx'});
   console.log(JSON.stringify({directory:run,...evidence}));
   }
+  verified = true;
 } finally {
   if(child.exitCode===null && child.signalCode===null) await call('Browser.close').catch(()=>{});
-  await closed; clearTimeout(timeout); rejectProxy.close();
+  const [exitCode, signal] = await closed;
+  clearTimeout(timeout);
+  rejectProxy.close();
+  if (verified) {
+    assert.equal(exitCode, 0, 'Fixture browser did not exit normally');
+    assert.equal(signal, null);
+    const now = fs.lstatSync(profile);
+    assert.ok(now.isDirectory() && now.dev === profileIdentity.dev && now.ino === profileIdentity.ino,
+      'Fixture profile identity changed');
+    assert.equal(fs.lstatSync(path.join(profile, 'SingletonLock'), {throwIfNoEntry:false}), undefined,
+      'Fixture profile is still locked');
+    fs.rmSync(profile, {recursive: true});
+  }
 }

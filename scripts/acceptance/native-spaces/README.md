@@ -1,5 +1,15 @@
 # Installed sidebar witness
 
+## 本屏逐窗画面验收
+
+使用已安装的 Nearpane 助手和当前 checkout 的独立 Host 调试模块。首次使用可运行 `NEARPANE_FOUNDATION_ONLY=1 scripts/test.sh` 准备模块，再执行以下单次验收。
+
+```sh
+python3 scripts/acceptance/run-current-desktop-selection.py
+```
+
+默认使用不激活的自建测试面板。这个入口在私有临时目录构建两款窗口夹具和一个隔离控制器，独立验证已登记窗口的内容、比例及增减。成功或失败均会输出本次证据目录，保留日志和已生成的 JSON、局部实拍。夹具退出后按路径注销并删除。确需只编译而不执行时，仍可调用 `build-current-desktop-selection.sh`；使用者负责该目录和 Launch Services 注册的清理。正式安装版侧栏的只读测量使用 `scripts/acceptance/native-spaces/run.sh roster <新的证据目录>`。
+
 Run from the implementation checkout on the Mac with the installed candidate already running in its normal login session. Each output directory must be new. This developer-side procedure requires Xcode command line tools and Python; it adds no runtime dependency to Nearpane.
 
 ```sh
