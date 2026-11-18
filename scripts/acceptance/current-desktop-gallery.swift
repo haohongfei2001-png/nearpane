@@ -20,21 +20,33 @@ private final class GalleryPanel: NSPanel {
         }
         let shareable = try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:false)
         var images = [CGImage]()
+        var frames = [CGRect]()
         for n in owner.numbers {
             let matches = shareable.windows.filter { $0.windowID == n && $0.windowLayer == 0 &&
                 $0.owningApplication?.bundleIdentifier == "net.example.nearpane-window-selection" &&
                 $0.owningApplication?.processID == owner.pid }
             guard matches.count == 1, let window = matches.first else { throw OrdinaryWindowFailure("fixture missing from shareable catalog") }
             let cfg = SCStreamConfiguration()
-            cfg.width = 268; cfg.height = 146; cfg.showsCursor = false; cfg.ignoreShadowsSingleWindow = true
+            let filter = SCContentFilter(desktopIndependentWindow: window)
+            let size = filter.contentRect.size
+            guard size.width > 0, size.height > 0 else { throw OrdinaryWindowFailure("empty window surface") }
+            let scale = min(1, 420 / max(size.width, size.height))
+            cfg.width = max(1, Int((size.width * scale).rounded()))
+            cfg.height = max(1, Int((size.height * scale).rounded()))
+            cfg.showsCursor = false; cfg.ignoreShadowsSingleWindow = true; cfg.preservesAspectRatio = true
             if #available(macOS 14.2, *) { cfg.includeChildWindows = false }
-            images.append(try await SCScreenshotManager.captureImage(contentFilter:.init(desktopIndependentWindow:window),configuration:cfg))
+            images.append(try await SCScreenshotManager.captureImage(contentFilter:filter,configuration:cfg))
+            frames.append(window.frame)
         }
+        guard let display = shareable.displays.first(where: { display in frames.allSatisfy { display.frame.contains($0) } }) else {
+            throw OrdinaryWindowFailure("no common fixture display")
+        }
+        let scale = 216 / display.frame.width
+        let sizes = frames.map { CGSize(width: $0.width * scale, height: $0.height * scale) }
         let first = counts(images[0]), second = counts(images[1])
         let view = NSHostingView(rootView:VStack(alignment:.leading,spacing:8) {
-            Text("当前桌面").font(.caption.weight(.semibold))
-            DesktopWindowCard(label:"设计草图 · 1",icon:nil,image:images[0])
-            DesktopWindowCard(label:"项目笔记 · 2",icon:nil,image:images[1])
+            DesktopWindowCard(label:"设计草图 · 1",icon:nil,image:images[0],pictureSize:sizes[0])
+            DesktopWindowCard(label:"项目笔记 · 2",icon:nil,image:images[1],pictureSize:sizes[1])
         }.padding(8).frame(width:232).background(Color(nsColor:.windowBackgroundColor)))
         view.frame.size = view.fittingSize
         view.layoutSubtreeIfNeeded()

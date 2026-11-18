@@ -100,6 +100,8 @@ public struct OrdinaryWindowClosure: Codable, Sendable, LocalizedError {
 
 public struct OrdinaryWindowReply: Codable, Sendable {
     public let nonce: UUID
+    /// Set only for a read-only listing refused by the process that performs AX operations.
+    public var listAccessDenied: Bool?
     public var focusStep: Int?
     public var steps: [OrdinaryWindowStep]?
     public var choices: [ManagedWindowID?]?, pair: AdmissionPair?, failure: String?

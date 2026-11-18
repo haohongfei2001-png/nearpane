@@ -76,7 +76,7 @@ struct Sidebar {
         let identifier = value(element, kAXIdentifierAttribute) as? String
         let inWorkspace = workspace || identifier == "desktop-reserved-region"
         if let id = identifier {
-            if id.hasPrefix("native-space-row:") || id.hasPrefix("native-space-window:") {
+            if id.hasPrefix("native-space-row:") || id.hasPrefix("native-space-window:") || id.hasPrefix("current-desktop-window:") {
                 controls[id, default: []].append(element)
             }
             if id == "current-desktop-window" { legacyCards += 1 }
@@ -91,7 +91,7 @@ struct Sidebar {
                 if let text = value(element, key) as? String, allowed.contains(text) { knownIssues.insert(text) }
             }
         }
-        if identifier == "current-desktop-window" || identifier?.hasPrefix("native-space-window:") == true { return }
+        if identifier == "current-desktop-window" || identifier?.hasPrefix("current-desktop-window:") == true || identifier?.hasPrefix("native-space-window:") == true { return }
         guard !["AXTextArea", "AXTextField", "AXStaticText", "AXWebArea", "AXImage"].contains(role) else { return }
         for child in value(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] { visit(child, depth: depth + 1, workspace: inWorkspace) }
     }
@@ -140,7 +140,8 @@ struct Sidebar {
             }
         }
         return ["rows": rowReports.sorted { ($0["identifier"] as? String ?? "") < ($1["identifier"] as? String ?? "") },
-                "windowCounts": cardCounts, "knownIssueMessages": knownIssues.sorted(), "legacyCardCount": legacyCards, "overviewRegions": areas]
+                "windowCounts": cardCounts, "currentWindowCount": controls.keys.filter { $0.hasPrefix("current-desktop-window:") }.count,
+                "knownIssueMessages": knownIssues.sorted(), "legacyCardCount": legacyCards, "overviewRegions": areas]
     }
 }
 
@@ -230,7 +231,21 @@ func fixtureResult(_ args: [String]) -> Object {
                          $0[kCGWindowOwnerPID as String] as? pid_t == fixturePID }).count == 1 else {
         return ["issued": false, "reason": "changed source, application, window or signing identity"]
     }
-    let target = "native-space-window:" + args[8] + ":" + args[9] + ":" + args[4] + ":" + args[5]
+    let target = "current-desktop-window:" + args[4] + ":" + args[5]
+    if args[1] == "roster-card" {
+        let index = Sidebar(host, rows: rows)
+        guard let exact = index.controls[target], exact.count == 1, let pixels = value(exact[0], kAXValueAttribute) as? String,
+              let origin = value(exact[0], kAXPositionAttribute), CFGetTypeID(origin) == AXValueGetTypeID(),
+              let extent = value(exact[0], kAXSizeAttribute), CFGetTypeID(extent) == AXValueGetTypeID() else {
+            return ["observed": false, "reason": "no unique fixture card in installed sidebar"]
+        }
+        var point = CGPoint.zero, size = CGSize.zero
+        guard AXValueGetValue(origin as! AXValue, .cgPoint, &point), AXValueGetValue(extent as! AXValue, .cgSize, &size) else {
+            return ["observed": false, "reason": "no measured card bounds"]
+        }
+        return ["observed": true, "value": pixels, "cardY": point.y, "cardHeight": size.height,
+                "spaceRows": index.controls.keys.filter { $0.hasPrefix("native-space-row:") }.count]
+    }
     if args[1] == "fixture-inventory" {
         let ax = AXUIElementCreateApplication(fixturePID)
         _ = AXUIElementSetMessagingTimeout(ax, 0.25)

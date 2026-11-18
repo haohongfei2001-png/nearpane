@@ -5,6 +5,23 @@ import WindowGeometryCore
 @testable import NearpaneDesktopReader
 
 struct SpaceInventoryTests {
+    @Test func windowDisplayNeedsStableOwnershipAcrossSamplesAndUnambiguousTies() throws {
+        let left = Rect(0, 0, 800, 600), right = Rect(800, 0, 800, 600)
+        let geometry = try DesktopGeometry(displays: [
+            .init(displayID: "left", appKitFrame: left, cgBounds: left, backingScale: 2, rotation: .zero),
+            .init(displayID: "right", appKitFrame: right, cgBounds: right, backingScale: 1, rotation: .zero)
+        ], primaryID: "left")
+        let a = try geometry.slices(of: Rect(100, 40, 400, 320))
+        let b = try geometry.slices(of: Rect(1100, 40, 400, 320))
+        let split = try geometry.slices(of: Rect(600, 40, 400, 320))
+        #expect(Reader.overviewDisplay(before: a, after: b, memberDisplays: ["right"]) == nil)
+        #expect(Reader.overviewDisplay(before: b, after: b, memberDisplays: []) == "right")
+        #expect(Reader.overviewDisplay(before: split, after: split, memberDisplays: []) == nil)
+        #expect(Reader.overviewDisplay(before: split, after: split, memberDisplays: ["right"]) == "right")
+        #expect(Reader.overviewDisplay(before: [], after: [], memberDisplays: ["left","right"]) == nil)
+        #expect(Reader.overviewDisplay(before: [], after: [], memberDisplays: ["right"]) == "right")
+    }
+
     let id = "12000000-0000-0000-0000-000000000001"
     var displays: [DisplayObservation] { [.init(id: id, frame: .init(width: 800, height: 1280), rotationDegrees: 90, backingScale: 2)] }
     func scope(_ records: [Any], current: Any = 5) -> [[String: Any]] {

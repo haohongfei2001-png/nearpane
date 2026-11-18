@@ -57,6 +57,10 @@ final class Worker {
                 } else {
                     guard let app, app == (r.pid,r.launch,r.bundle) else { throw Refusal("所选应用已变化。") }
                 }
+                if r.action == .list && !AXIsProcessTrusted() {
+                    reply.listAccessDenied = true
+                    throw Refusal("窗口助手没有现有辅助功能权限。")
+                }
                 try checkOwner(owner, pid:r.pid, launch:r.launch, bundle:r.bundle)
                 app = (r.pid,r.launch,r.bundle)
                 let all = try windows(r.pid)

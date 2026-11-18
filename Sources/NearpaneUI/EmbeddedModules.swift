@@ -28,6 +28,7 @@ public final class EmbeddedModules {
                 "cacheEntries": NSNumber(value: windowPreviews.cacheCount),
                 "visibleDisplays": NSNumber(value: windowPreviews.visibleDisplays.count),
                 "gallerySessions": NSNumber(value: gallery.activeCaptureLoops),
+                "windowManagementBusy": NSNumber(value: workRect?.updateRequiresManagementToFinish ?? false),
                 "chargedPixelBytes": NSNumber(value: windowPreviews.cacheBytes),
                 "activeStreams": 0] // Both capture paths use SCScreenshotManager one-shots.
     }

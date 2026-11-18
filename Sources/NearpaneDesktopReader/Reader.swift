@@ -75,6 +75,7 @@ struct Reader {
                     let app = NSRunningApplication(processIdentifier: pid)
                     let id = app?.bundleIdentifier?.lowercased() ?? ""
                     allowed[pid] = app?.activationPolicy == .regular && !id.isEmpty && !id.hasPrefix("com.holdsnow.nearpane")
+                        && (!overview || !id.hasPrefix("org.nearpane."))
                         && !["com.apple.dock","com.apple.windowmanager","com.apple.loginwindow"].contains(id)
                 }
                 guard allowed[pid] == true else { continue }

@@ -112,7 +112,10 @@ private actor OrdinaryWindowChannel {
             if process.isRunning { process.terminate() }
             throw error
         }
-        if let error = reply.failure { throw OrdinaryWindowFailure(error) }
+        if let error = reply.failure {
+            if command.action == .list, reply.listAccessDenied == true { throw AdmissionReadFailure.permission }
+            throw OrdinaryWindowFailure(error)
+        }
         return reply
     }
 }

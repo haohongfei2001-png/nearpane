@@ -66,9 +66,12 @@ import OSLog
         return handle
     }
 
-    static func select(_ target: DesktopWindowTarget, deadline: Double, hasAX: Bool,
+    enum SelectionPath { case accessibility, soleWindowApplication }
+
+    @discardableResult
+    static func select(_ target: DesktopWindowTarget, deadline: Double,
                        verifySpace: (() async -> Bool)? = nil, stillCurrent: @escaping @MainActor @Sendable () -> Bool,
-                       bound: OrdinaryWindowAX? = nil, permit: NativeSelectionPermit? = nil) async throws {
+                       bound: OrdinaryWindowAX? = nil, permit: NativeSelectionPermit? = nil) async throws -> SelectionPath {
         func current() -> Bool {
             stillCurrent() && WindowContentPreview.sessionAvailable() && ProcessInfo.processInfo.systemUptime <= deadline
         }
@@ -78,19 +81,24 @@ import OSLog
         if target.overviewSpace != nil {
             guard let verifySpace, await verifySpace(), current() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
         }
-        if hasAX || bound != nil {
-            let handle: OrdinaryWindowAX
-            if let bound { handle = bound } else { handle = try await bind(target.key) }
+        let retained: OrdinaryWindowAX?
+        if let bound {
+            retained = bound
+        } else {
+            do { retained = try await bind(target.key) }
+            catch AdmissionReadFailure.permission { retained = nil }
+        }
+        if let handle = retained {
             guard current(), handle.id.pid == target.key.pid, handle.id.launch == target.key.birth,
                   handle.id.number == target.key.number else { throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。") }
             try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline,
                                           space: target.overviewSpace, permit: permit ?? NativeSelectionPermit(current: stillCurrent))
-            return
+            return .accessibility
         }
         let scoped = target.overviewSpace != nil
         guard soleWindow(target, requireVisible: !scoped) else {
             log.notice("selection refused: owner has no unique ordinary surface")
-            throw OrdinaryWindowFailure("精确选择这扇窗口需要允许 Nearpane 使用辅助功能。")
+            throw OrdinaryWindowFailure("窗口助手未取得辅助功能权限，无法唯一选择这扇窗口。")
         }
         guard scoped ? target.sharedSurface(visible: false, matchFrame: false, for: .windowSelection)
                      : target.isVisibleSurface(for: .windowSelection) else {
@@ -109,8 +117,8 @@ import OSLog
                let front = rows.first(where: { $0[kCGWindowLayer as String] as? Int == 0 && ($0[kCGWindowAlpha as String] as? Double ?? 0) > 0 }),
                front[kCGWindowNumber as String] as? UInt32 == target.key.number,
                front[kCGWindowOwnerPID as String] as? Int32 == target.key.pid {
-                if !scoped && current() { return }
-                if let verifySpace, await verifySpace(), current() { return }
+                if !scoped && current() { return .soleWindowApplication }
+                if let verifySpace, await verifySpace(), current() { return .soleWindowApplication }
                 break
             }
             try await Task.sleep(for: .milliseconds(35))

@@ -143,7 +143,7 @@ public struct WorkspaceDisplaySettings: View {
                         Text("底部").tag(PanelAnchor.bottom)
                     }
                     Picker("调整项目", selection: $key) {
-                        ForEach(DisplayMetric.allCases.filter { $0 != .panelWidth && $0 != .panelHeight }, id: \.self) {
+                        ForEach(DisplayMetric.allCases.filter { $0 != .panelWidth && $0 != .panelHeight && $0 != .spaceRowHeight }, id: \.self) {
                             Text($0.label).tag($0)
                         }
                     }
@@ -304,9 +304,9 @@ extension DisplayMetric {
         case .trayMenuHeight: "展开托盘高度"
         case .trayButtonSize: "截图按钮字号"
         case .spaceRowHeight: "空间行高"
-        case .spaceRowGap: "空间行距"
-        case .desktopWidth: "缩略桌面宽"
-        case .desktopHeight: "缩略桌面高"
+        case .spaceRowGap: "窗口项间距"
+        case .desktopWidth: "窗口列表宽"
+        case .desktopHeight: "窗口列表高"
         case .spacePadding: "空间内边距"
         case .scrollHeight: "空间滚动视口"
         case .cornerRadius: "容器圆角"

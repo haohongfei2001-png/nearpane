@@ -25,13 +25,16 @@ NSWindow.allowsAutomaticWindowTabbing = false
 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
     for i in 0..<expected {
         let frame = screen.visibleFrame
+        let roster = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"] == "roster"
+        let size: CGSize = roster ? (i == 0 ? CGSize(width: 540, height: 180) : CGSize(width: 240, height: 350)) : CGSize(width: 320, height: 160)
         let w = NSWindow(contentRect: NSRect(x: frame.midX - 180 + Double(30*i), y: frame.midY - 90 + Double(25*i),
-                                             width: 320, height: 160),
+                                             width: size.width, height: size.height),
                          styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
         w.title = i == 0 ? "Field Notes – A" : "Field Notes – B"
         w.isReleasedWhenClosed = false
         w.tabbingMode = .disallowed
         let editor = NSTextView(frame: w.contentView!.bounds)
+        if roster { editor.backgroundColor = i == 0 ? NSColor.systemGreen : NSColor.systemPurple }
         editor.autoresizingMask = [.width,.height]
         editor.font = .systemFont(ofSize: 16)
         w.contentView = editor
@@ -51,6 +54,7 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     guard windows.count == expected else { return }
     let payload: [String: Any] = [
         "session": session, "pid": getpid(), "birth": birth, "numbers": windows.map { $0.windowNumber },
+        "sizes": windows.map { [$0.frame.width, $0.frame.height] },
         "key": app.keyWindow?.windowNumber ?? 0, "main": app.mainWindow?.windowNumber ?? 0,
         "editorsFocused": zip(windows, editors).map { $0.firstResponder === $1 },
         "sha256": editors.map { SHA256.hash(data: Data($0.string.utf8)).map { String(format: "%02x", $0) }.joined() }

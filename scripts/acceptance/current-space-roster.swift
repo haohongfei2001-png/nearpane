@@ -36,7 +36,10 @@ private final class RosterPanel: NSPanel {
         var windows = [Int:NSWindow](), added = false, removed = false, hidden = false
         var changed = ProcessInfo.processInfo.systemUptime
         func make(_ i: Int) {
-            let rect = NSRect(x:screen.visibleFrame.midX + CGFloat(i*9), y:screen.visibleFrame.midY + CGFloat(i*8), width:260, height:146)
+            let sizes = [CGSize(width: 520, height: 175), CGSize(width: 230, height: 340),
+                         CGSize(width: 300, height: 210), CGSize(width: 420, height: 230)]
+            let rect = NSRect(origin: CGPoint(x: screen.visibleFrame.midX - 180 + CGFloat(i*9),
+                                              y: screen.visibleFrame.midY - 150 + CGFloat(i*8)), size: sizes[i])
             let style: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
             let w: NSWindow
             if sticky {

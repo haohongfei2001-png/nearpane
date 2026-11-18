@@ -19,7 +19,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .windowManagement: "窗口管理"
         case .windowRules: "窗口规则"
         case .displays: "显示器"
-        case .desktop: "空间观察"
+        case .desktop: "本屏窗口"
         case .voice: "Saytile 语音设置"
         case .tray: "Riftlet 截图设置"
         case .modules: "模块"
@@ -377,12 +377,8 @@ public struct SettingsView: View {
             if host.configuration.overviewShortcut != .off {
                 Button("重新注册快捷键") { DesktopOverviewShortcut.shared.configure(host.configuration.overviewShortcut) }
             }
-            Text("若要只用 Nearpane，在系统设置中关闭调度中心的快捷键、触控板手势和对应触发角。台前调度可在「桌面与程序坞」单独关闭。")
-                .font(.caption).foregroundStyle(.secondary)
-            LabeledContent("工作空间模式", value: host.workspaceMode.mode == .native ? "macOS 桌面" : "Nearpane 虚拟工作区")
-            Text("仅在目标桌面和操作能力通过核对后才能切换或移窗。虚拟工作区停放尚未开放。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
-            Toggle("显示桌面与窗口", isOn: Binding(get: { enabled }, set: {
+            Toggle("显示本屏窗口", isOn: Binding(get: { enabled }, set: {
                 if !$0 { domains?.stopWindowContentPreview() }
                 host.handle(.setEnabled(BuiltinCatalog.desktop, $0))
             }))
@@ -390,7 +386,7 @@ public struct SettingsView: View {
                 host.setWindowThumbnails(show)
                 if !show { domains?.windowPreviews.gallery.clear() }
             })).disabled(!enabled)
-            Text("缩略图在侧栏可见时刷新，仅保存在内存中。点击一扇窗口即可选中它。")
+            Text("当前桌面的每扇窗口各占一项，使用本屏统一比例缩放。侧栏可见时自动更新，点击可将对应窗口置前。")
                 .font(.caption).foregroundStyle(.secondary)
             if host.configuration.showsWindowThumbnails {
                 if WindowOverviewAccess.shared.grants.contains(.thumbnails) {
@@ -419,7 +415,7 @@ public struct SettingsView: View {
                 if !previews.notice.isEmpty {
                     Text(previews.notice).font(.caption).foregroundStyle(.secondary)
                 } else if !enabled {
-                    Text("启用「显示桌面与窗口」后可选择窗口。").font(.caption).foregroundStyle(.secondary)
+                    Text("启用「显示本屏窗口」后可选择窗口。").font(.caption).foregroundStyle(.secondary)
                 } else if previews.visibleDisplays.isEmpty || host.configuration.surfaceHidden {
                     Text("先显示并展开含空间预览的侧栏，再选择窗口。").font(.caption).foregroundStyle(.secondary)
                 } else {

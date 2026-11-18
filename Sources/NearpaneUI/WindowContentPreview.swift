@@ -347,9 +347,9 @@ private final class WindowPickerObserver: NSObject, SCContentSharingPickerObserv
 @MainActor enum WindowAppBadges {
     struct Badge { let name: String; let icon: NSImage }
 
-    static func resolve(_ snapshot: DesktopSnapshot) -> [String: Badge] {
+    static func resolve(_ windows: [WindowObservation]) -> [String: Badge] {
         var owners = [Int32: (UInt64, Badge)](), badges = [String: Badge]()
-        for w in snapshot.windows {
+        for w in windows {
             guard let m = w.metadata, let birth = m.launchMicroseconds, m.pid > 0, birth > 0,
                   m.isOnscreen == true || m.overviewSpaceID != nil || w.membership != .unknown else { continue }
             if owners[m.pid] == nil {

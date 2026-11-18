@@ -12,9 +12,6 @@ import OSLog
     private let session = UUID()
     private var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
-    /// Presentation can bridge a short transient. Management and actions only consume
-    /// snapshot/readNow, which lose authority on the first failed observation.
-    private(set) var lastPresentation: DesktopSnapshot?
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
@@ -41,7 +38,6 @@ import OSLog
         pending?.1.cancel()
         pending = nil
         snapshot = nil
-        lastPresentation = nil
         lifetimes.removeAll()
         retry?.cancel(); retry = nil; failures = 0
         didSample?()
@@ -74,6 +70,7 @@ import OSLog
             let detector = Task {
                 var previous: Int?, last = ContinuousClock.now
                 var settleUntil = last
+                var settledDragCount = CGEventSource.counterForEventType(.combinedSessionState, eventType: .leftMouseDragged)
                 while !Task.isCancelled {
                     let now = ContinuousClock.now, numbers = fingerprint()
                     if numbers != previous {
@@ -81,7 +78,15 @@ import OSLog
                         // WindowServer's numbers can precede the settled Space membership.
                         settleUntil = now.advanced(by: .milliseconds(760))
                     }
-                    if now < settleUntil || now - last >= .seconds(3) {
+                    // A resize or move need not change the window list. Refresh on mouse
+                    // release without monitoring events or reading their coordinates.
+                    var dragEnded = false
+                    if !CGEventSource.buttonState(.combinedSessionState, button: .left) {
+                        let count = CGEventSource.counterForEventType(.combinedSessionState, eventType: .leftMouseDragged)
+                        dragEnded = count != settledDragCount
+                        settledDragCount = count
+                    }
+                    if dragEnded || now < settleUntil || now - last >= .seconds(3) {
                         last = now; events.yield(())
                     }
                     do { try await Task.sleep(for: .milliseconds(180)) } catch { return }
@@ -96,12 +101,10 @@ import OSLog
                 snapshot = next
                 retry?.cancel()
                 retry = nil
-                if let next {
-                    lastPresentation = next
+                if next != nil {
                     failures = 0
                 } else {
                     failures = min(4, failures + 1)
-                    if failures >= 3 || !sessionAvailable() { lastPresentation = nil }
                     let delay = [180, 360, 720, 1500][failures - 1]
                     retry = Task {
                         do { try await Task.sleep(for: .milliseconds(delay)) } catch { return }

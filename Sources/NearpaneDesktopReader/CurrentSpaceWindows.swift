@@ -4,6 +4,23 @@ import NearpaneCore
 import WindowGeometryCore
 
 extension Reader {
+    /// A window crosses screens during a drag. Publish its screen only when the
+    /// two samples agree. Space membership can disambiguate an equal split or
+    /// locate an offscreen member without inventing a visible frame for it.
+    nonisolated static func overviewDisplay(before: [DisplaySlice], after: [DisplaySlice], memberDisplays: [String]) -> String? {
+        func display(_ slices: [DisplaySlice]) -> String? {
+            guard let largest = slices.map(\.fractionOfWindow).max() else {
+                return memberDisplays.count == 1 ? memberDisplays.first : nil
+            }
+            let ties = slices.filter { $0.fractionOfWindow == largest }.map(\.displayID)
+            if ties.count == 1 { return ties[0] }
+            let matching = ties.filter(memberDisplays.contains)
+            return matching.count == 1 ? matching[0] : nil
+        }
+        guard let first = display(before), first == display(after) else { return nil }
+        return first
+    }
+
     /// A read-only catalogue for the sidebar, independent of AX responsiveness.
     /// The current-window cards and the per-Space navigator share one double-read inventory.
     func windowOverview() throws -> DesktopSnapshot {
@@ -42,23 +59,20 @@ extension Reader {
             let left = firstBoundary?.membership[entry.windowID], right = lastBoundary?.membership[entry.windowID]
             guard left == right else { complete = false; continue }
             if right == nil || right == .unknown { complete = false }
-            let slice = try topology.geometry.slices(of: entry.frame).max(by: { $0.fractionOfWindow < $1.fractionOfWindow })
-            let display: DisplayObservation
-            if let hit = topology.displays.first(where: { $0.id == slice?.displayID }) {
-                display = hit
-            } else if case .known(let ids) = right {
-                let matches = topology.displays.filter { d in inventory?.scopes.contains { $0.displayID == d.id && $0.records.contains { ids.contains($0.id) } } == true }
-                guard matches.count == 1, let only = matches.first else { complete = false; continue }
-                display = only
-            } else { complete = false; continue }
+            let memberDisplays: [String]
+            if case .known(let ids) = right {
+                memberDisplays = inventory?.scopes.filter { $0.records.contains { ids.contains($0.id) } }.map(\.displayID) ?? []
+            } else { memberDisplays = [] }
+            let afterSlices = try topology.geometry.slices(of: entry.frame)
+            let beforeSlices = before.frame == entry.frame ? afterSlices : try topology.geometry.slices(of: before.frame)
+            guard let displayID = Self.overviewDisplay(before: beforeSlices, after: afterSlices, memberDisplays: memberDisplays),
+                  let display = topology.displays.first(where: { $0.id == displayID }) else { complete = false; continue }
             let record = currentByDisplay[display.id]
             var proof: String?
             var membership = WindowMembership.unknown
             var nativeMember = false
             if case .known(let ids) = right, !supported.isDisjoint(with: ids) {
-                guard inventory?.scopes.contains(where: { scope in
-                    scope.displayID == display.id && scope.records.contains(where: { ids.contains($0.id) })
-                }) == true else { complete = false; continue }
+                guard memberDisplays.contains(display.id) else { complete = false; continue }
                 nativeMember = true
                 membership = .known(recordIDs: ids)
                 if let record, record.ordinaryUUID != nil, ids.contains(record.id) { proof = record.id }
@@ -66,17 +80,13 @@ extension Reader {
             guard visible || nativeMember else { continue }
             // A background member can be stored outside the display. Keep its identity
             // for selection without inventing a frame in the Space miniature.
-            if !nativeMember {
-                let previousDisplay = try topology.geometry.slices(of: before.frame).max(by: { $0.fractionOfWindow < $1.fractionOfWindow })?.displayID
-                guard previousDisplay == display.id else { complete = false; continue }
-            }
             let global = SurfaceRect(entry.frame)
             let local = SurfaceRect(x: global.x - display.frame.x, y: global.y - display.frame.y, width: global.width, height: global.height)
             let meta = ObservedWindowMetadata(number: entry.windowID, pid: entry.process.pid,
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: nil, globalFrame: global,
                 frontToBack: windows.count, minimized: nil, fullScreen: nil, isOnscreen: entry.isOnscreen,
                 onActiveDesktop: visible, overviewSpaceID: proof,
-                hasCatalogGeometry: before.frame == entry.frame && slice?.displayID == display.id &&
+                hasCatalogGeometry: before.frame == entry.frame && afterSlices.contains(where: { $0.displayID == display.id }) &&
                     (visible || stageManager == false))
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))

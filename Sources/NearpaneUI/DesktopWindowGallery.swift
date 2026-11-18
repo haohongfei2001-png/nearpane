@@ -41,12 +41,13 @@ struct DesktopWindowTarget: Equatable {
         membership = window.membership; frame = m.globalFrame
     }
 
-    /// Ordering a stage or resizing its card doesn't change the pixels' owning window.
-    /// Without a current-Space proof the original public frame binding stays strict.
+    /// Reordering the stage can leave the same window at a new origin. Resizing the
+    /// real window invalidates the cached pixels regardless of its Space membership.
     func samePicture(as other: Self) -> Bool {
         if self == other { return true }
         return overviewSpace != nil && overviewSpace == other.overviewSpace && key == other.key &&
-            session == other.session && topology == other.topology && display == other.display
+            session == other.session && topology == other.topology && display == other.display &&
+            frame.width == other.frame.width && frame.height == other.frame.height
     }
 
     func present(in snapshot: DesktopSnapshot?, now: Date = .now, uptime: Double = ProcessInfo.processInfo.systemUptime) -> Bool {
@@ -97,9 +98,13 @@ struct DesktopWindowTarget: Equatable {
 }
 
 @MainActor @Observable final class DesktopWindowGallery {
+    private struct Capture {
+        let image: CGImage
+        let logicalSize: CGSize
+    }
     private struct Still {
         let target: DesktopWindowTarget
-        let image: CGImage
+        let capture: Capture
         let time: TimeInterval
     }
     private let stills = PreviewPixelCache<DesktopWindowKey, Still>()
@@ -146,10 +151,25 @@ struct DesktopWindowTarget: Equatable {
     }
 
     func image(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
-        guard permitted, visible[target.display]?.contains(target.key) == true,
-              let still = stills.peek(target.key), still.target.samePicture(as: target), now - still.time < 12 else { return nil }
+        guard permitted, permitsWindow(target.key), visible[target.display]?.contains(target.key) == true,
+              let still = stills.peek(target.key), still.target.samePicture(as: target), now - still.time < 12,
+              WindowContentPreview.sessionAvailable(), CGPreflightScreenCaptureAccess() else { return nil }
         stills.touch(target.key)
-        return still.image
+        return still.capture.image
+    }
+
+    /// Pixel dimensions are downsampled. Keep the independent window filter's point
+    /// dimensions with the same identity, lifetime and membership as its captured image.
+    func capturedSizes(for windows: [WindowObservation], in snapshot: DesktopSnapshot, permitted: Bool) -> [UInt32: CGSize] {
+        guard permitted else { return [:] }
+        let now = ProcessInfo.processInfo.systemUptime
+        var sizes = [UInt32: CGSize]()
+        for window in windows {
+            guard let target = DesktopWindowTarget(window, in: snapshot), permitsWindow(target.key),
+                  let still = stills.peek(target.key), still.target.samePicture(as: target), now - still.time < 12 else { continue }
+            sizes[target.key.number] = still.capture.logicalSize
+        }
+        return sizes
     }
 
     /// The caller resolves this exact key from fresh membership in the requested map row.
@@ -163,7 +183,7 @@ struct DesktopWindowTarget: Equatable {
               still.target.liveOwner() != nil, still.target.sharedSurface(visible: false, matchFrame: false)
         else { return nil }
         stills.touch(key)
-        return still.image
+        return still.capture.image
     }
 
     func lacksPicture(_ target: DesktopWindowTarget) -> Bool { missingPictures[target.key] == target.display }
@@ -200,9 +220,13 @@ struct DesktopWindowTarget: Equatable {
                 .filter { permitsWindow($0.key) && visible[display]?.contains($0.key) == true }
             let active = Dictionary(uniqueKeysWithValues: targets.map { ($0.key, $0) })
             for target in targets {
-                if let old = lastTargets[target.key], old.publiclyVisible != target.publiclyVisible || old.overviewSpace != target.overviewSpace {
+                if let old = lastTargets[target.key], old.publiclyVisible != target.publiclyVisible || !old.samePicture(as: target) {
                     attempted.removeValue(forKey: target.key)
                     misses.removeValue(forKey: target.key)
+                    if !old.samePicture(as: target) {
+                        stills.remove(target.key)
+                        missingPictures.removeValue(forKey: target.key)
+                    }
                 }
             }
             lastTargets = active
@@ -244,7 +268,7 @@ struct DesktopWindowTarget: Equatable {
             for start in stride(from: 0, to: due.count, by: 4) {
                 guard permitted() else { return }
                 let batch = due[start..<min(start + 4, due.count)]
-                var jobs = [(DesktopWindowTarget, Task<CGImage?, Never>)]()
+                var jobs = [(DesktopWindowTarget, Task<Capture?, Never>)]()
                 for target in batch {
                     attempted[target.key] = now
                     if stills.peek(target.key) == nil { misses[target.key, default: 0] += 1 }
@@ -262,9 +286,9 @@ struct DesktopWindowTarget: Equatable {
                         return await self.capture(window)
                     }))
                 }
-                var pictures = [(DesktopWindowTarget, CGImage)]()
+                var pictures = [(DesktopWindowTarget, Capture)]()
                 for (target, job) in jobs {
-                    if let image = await job.value { pictures.append((target, image)) }
+                    if let capture = await job.value { pictures.append((target, capture)) }
                 }
                 guard permitted() else { return }
                 let returned = Set(pictures.map { $0.0.key })
@@ -277,14 +301,14 @@ struct DesktopWindowTarget: Equatable {
                 // A fresh independent membership read protects the publication of those pixels.
                 let after = pictures.contains { viaMembership.contains($0.0.key) } ? await recheck?() : snapshot()
                 guard permitted() else { return }
-                for (target, image) in pictures {
+                for (target, capture) in pictures {
                     guard target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
                           visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
                           (viaMembership.contains(target.key) ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
                         stills.remove(target.key); continue
                     }
-                    guard let cost = PreviewPixelBudget.charge(image) else { continue }
-                    let still = Still(target: target, image: image, time: ProcessInfo.processInfo.systemUptime)
+                    guard let cost = PreviewPixelBudget.charge(capture.image) else { continue }
+                    let still = Still(target: target, capture: capture, time: ProcessInfo.processInfo.systemUptime)
                     stills.store(still, for: target.key, cost: cost)
                     misses.removeValue(forKey: target.key)
                     missingPictures.removeValue(forKey: target.key)
@@ -293,7 +317,7 @@ struct DesktopWindowTarget: Equatable {
         }
     }
 
-    private func capture(_ window: SCWindow) async -> CGImage? {
+    private func capture(_ window: SCWindow) async -> Capture? {
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let rect = filter.contentRect
         guard rect.width.isFinite, rect.height.isFinite, min(rect.width, rect.height) > 0 else { return nil }
@@ -307,6 +331,7 @@ struct DesktopWindowTarget: Equatable {
         captureRequests &+= 1
         capturesInFlight += 1
         defer { capturesInFlight -= 1 }
-        return try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        guard let image = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) else { return nil }
+        return Capture(image: image, logicalSize: rect.size)
     }
 }

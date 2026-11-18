@@ -162,7 +162,6 @@ struct NativeSidebarMember: Equatable {
             guard let window = member.resolve(current), let target = DesktopWindowTarget(window, in: current),
                   target.overviewSpace == destination.space else { throw OrdinaryWindowFailure("所选窗口已离开这个桌面。") }
             try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 4,
-                hasAX: AXIsProcessTrusted() || current.native?.accessibility == .available || current.native?.accessibility == .partial,
                 verifySpace: {
                     guard valid(), let fresh = await feed.readNow() else { return false }
                     return destination.resolve(fresh)?.current.id == destination.space && target.present(in: fresh)

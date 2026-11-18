@@ -24,6 +24,7 @@ let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-met
         guard let number = fields[name] as? NSNumber, number.intValue >= 0 else { return }
         output[name] = number.intValue
     }
+    if let busy = fields["windowManagementBusy"] as? NSNumber { output["windowManagementBusy"] = busy.intValue }
     received = output
 }
 var request = ["nonce": nonce]

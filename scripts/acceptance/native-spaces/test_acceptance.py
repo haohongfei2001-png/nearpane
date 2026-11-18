@@ -5,9 +5,17 @@ from pathlib import Path
 from unittest.mock import patch
 
 from acceptance import Receipt, catalog_match, host_current_permissions
+from roster import same_scale
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_same_scale_requires_relative_size_and_shape(self):
+        source = [[540, 208], [240, 378]]
+        self.assertTrue(same_scale(source, [[54, 21], [24, 38]]))
+        self.assertFalse(same_scale(source, [[54, 21], [54, 21]]))
+        self.assertFalse(same_scale(source, [[54, 21], [48, 76]]))
+        self.assertFalse(same_scale(source, [[54, 21], [24, 30]]))
+
     def test_current_permissions_only_accept_matched_request(self):
         nonce = "481A400A-1079-46FB-A048-3918F2B91FC4"
         current = f"Permission check {nonce} screen=true accessibility=false postEvent=false"

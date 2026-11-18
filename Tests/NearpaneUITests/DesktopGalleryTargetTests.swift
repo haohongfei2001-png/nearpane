@@ -32,6 +32,47 @@ import Testing
         #expect(picture.accepts(drawn: true, allowsContent: true))
     }
 
+    @Test func allCardsShareOneScaleAndKeepTheWholeWindowEvenAcrossTheScreenEdge() throws {
+        let wide = window(frame: .init(x: -120, width: 1000, height: 200))
+        let tall = window(number: 23, frame: .init(width: 200, height: 800))
+        let small = window(number: 24, frame: .init(width: 100, height: 50))
+        var other = window(number: 25, frame: .init(width: 2800, height: 900))
+        other = .init(id: "other", displayID: "second", bounds: other.bounds, membership: .unknown,
+                      confidence: .unknown, metadata: other.metadata)
+        let windows = [wide, tall, small, other]
+        let layout = DesktopWindowThumbnailLayout(windows: windows, display: sample(windows).displays.first, availableWidth: 200)
+        #expect(layout.size(for: wide) == CGSize(width: 200, height: 40))
+        #expect(layout.size(for: tall) == CGSize(width: 40, height: 160))
+        #expect(layout.size(for: small) == CGSize(width: 20, height: 10))
+        #expect(layout.size(for: other) == nil)
+        let onlySmall = DesktopWindowThumbnailLayout(windows: [small], display: sample([small]).displays.first, availableWidth: 180)
+        #expect(onlySmall.size(for: small) == CGSize(width: 20, height: 10))
+        let independentSurface = DesktopWindowThumbnailLayout(windows: [small], display: sample([small]).displays.first,
+            availableWidth: 180, capturedSizes: [24: CGSize(width: 600, height: 500)])
+        #expect(independentSurface.size(for: small) == CGSize(width: 120, height: 100))
+    }
+
+    @Test func stagePresentationDoesNotSupplyDimensionsOrRetainPixelsAfterResize() throws {
+        let stage = window(frame: .init(x: -64, y: 602, width: 49, height: 76), ax: .init(x: -681, y: 64, width: 562, height: 422))
+        let layout = DesktopWindowThumbnailLayout(windows: [stage], display: sample([stage]).displays.first, availableWidth: 200)
+        #expect(layout.size(for: stage) == nil)
+        let snapshot = catalog([(22, 41, true, "97")])
+        let target = try #require(DesktopWindowTarget(snapshot.windows[0], in: snapshot))
+        func sameSpaceTarget(_ frame: SurfaceRect) throws -> DesktopWindowTarget {
+            let before = snapshot.windows[0]
+            var member = WindowObservation(id: before.id, displayID: before.displayID, bounds: frame,
+                                           membership: before.membership, confidence: before.confidence)
+            member.metadata = .init(number: 22, pid: 41, launchMicroseconds: 100, element: nil, globalFrame: frame,
+                                    frontToBack: 0, minimized: false, fullScreen: false, isOnscreen: true,
+                                    onActiveDesktop: true, overviewSpaceID: "97", hasCatalogGeometry: true)
+            return try #require(DesktopWindowTarget(member, in: snapshot))
+        }
+        let moved = try sameSpaceTarget(.init(x: 41, y: 90, width: frame.width, height: frame.height))
+        let resized = try sameSpaceTarget(.init(x: 41, y: 90, width: frame.width / 2, height: frame.height))
+        #expect(target.samePicture(as: moved))
+        #expect(!target.samePicture(as: resized))
+    }
+
     @Test func sameAppSiblingsHaveIndependentTargetsWithoutAccessibility() throws {
         let a = window(), b = window(number:23,index:1,id:"two")
         let snapshot = sample([a,b])
