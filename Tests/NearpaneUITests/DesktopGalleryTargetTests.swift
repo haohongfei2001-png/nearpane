@@ -23,6 +23,15 @@ import Testing
             scopes:[.init(id:"scope",displayID:"display",records:[.init(id:scope,isCurrent:true)])],windows:windows,
             evidence:.init(population:.workWindows,accessibility:.denied,spaces:.observed,rows:[],windowLimitReached:false,beganUptime:99,endedUptime:100))
     }
+    @Test func protectedPixelsDoNotPreventMetadataOnlySelection() {
+        let selection = DesktopWindowTarget.SurfacePurpose.windowSelection
+        let picture = DesktopWindowTarget.SurfacePurpose.picture
+        #expect(selection.accepts(drawn: true, allowsContent: false))
+        #expect(!picture.accepts(drawn: true, allowsContent: false))
+        #expect(!selection.accepts(drawn: false, allowsContent: false))
+        #expect(picture.accepts(drawn: true, allowsContent: true))
+    }
+
     @Test func sameAppSiblingsHaveIndependentTargetsWithoutAccessibility() throws {
         let a = window(), b = window(number:23,index:1,id:"two")
         let snapshot = sample([a,b])

@@ -26,6 +26,33 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def verify_ordinary_window_actions(writer, imports):
+    if "_AXUIElementSetAttributeValue" not in imports or imports & {"_CGEventPost", "_CGEventPostToPid"}:
+        raise ValueError("Unexpected ordinary window controller capabilities")
+    if "_AXUIElementPerformAction" not in imports:
+        return
+    # The existing focused-window operation raises precisely its bound AX element.
+    # Check the shipping binary's call site as well as its source argument. Other
+    # ordinary-controller operations must never be able to press buttons or menus.
+    program = subprocess.check_output(["/usr/bin/otool", "-arch", "arm64", "-tvV", str(writer)], text=True)
+    label = None
+    sites = []
+    for line in program.splitlines():
+        if line.endswith(":") and line.startswith("_"):
+            label = line[:-1].removeprefix("_")
+        elif "symbol stub for: _AXUIElementPerformAction" in line:
+            sites.append(label)
+    if len(sites) != 1 or not sites[0]:
+        raise ValueError("Unexpected AX action call sites")
+    function = subprocess.check_output(["/usr/bin/xcrun", "swift-demangle", "--compact", sites[0]], text=True)
+    if not function.strip().startswith("NearpaneOrdinaryWindowController.focusCurrentWindow("):
+        raise ValueError("AX action outside the verified window focus path")
+    calls = [line.strip() for path in (ROOT / "Sources/NearpaneOrdinaryWindowController").rglob("*.swift")
+             for line in path.read_text().splitlines() if "AXUIElementPerformAction" in line]
+    if len(calls) != 1 or "AXUIElementPerformAction(element, kAXRaiseAction as CFString)" not in calls[0]:
+        raise ValueError("Unexpected ordinary AX action or target")
+
+
 def verify(app, lock, sandbox):
     contents = app / "Contents"
     plist = plistlib.loads((contents/"Info.plist").read_bytes())
@@ -59,9 +86,7 @@ def verify(app, lock, sandbox):
     subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(writer)], check=True)
     writer_imports = {line.split()[-1] for line in subprocess.check_output(
         ["/usr/bin/nm", "-u", str(writer)], text=True).splitlines() if line.split()}
-    if "_AXUIElementSetAttributeValue" not in writer_imports or writer_imports & {
-            "_CGEventPost", "_CGEventPostToPid", "_AXUIElementPerformAction"}:
-        raise ValueError("Unexpected ordinary window controller capabilities")
+    verify_ordinary_window_actions(writer, writer_imports)
     space_action = contents / "Helpers/NearpaneSpaceAction"
     if package_version >= (5, 21) or "NearpaneSpaceActionSHA256" in plist:
         if space_action.resolve() != space_action or digest(space_action) != plist.get("NearpaneSpaceActionSHA256"):

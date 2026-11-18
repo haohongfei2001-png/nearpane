@@ -70,15 +70,23 @@ struct DesktopWindowTarget: Equatable {
 
     /// Never read window titles. Require the same shared layer-zero surface, its on-screen
     /// frame and the public current-desktop list on both sides of an asynchronous capture.
-    @MainActor func isVisibleSurface() -> Bool {
+    @MainActor func isVisibleSurface(for purpose: SurfacePurpose = .picture) -> Bool {
         guard liveOwner() != nil,
               (NSWindow.windowNumbers(options: .allApplications) ?? []).contains(NSNumber(value: key.number)) else { return false }
-        return sharedSurface(visible: true, matchFrame: true)
+        return sharedSurface(visible: true, matchFrame: true, for: purpose)
     }
 
-    func sharedSurface(visible: Bool, matchFrame: Bool) -> Bool {
+    enum SurfacePurpose {
+        case picture, windowSelection
+
+        func accepts(drawn: Bool, allowsContent: Bool) -> Bool {
+            drawn && (self == .windowSelection || allowsContent)
+        }
+    }
+
+    func sharedSurface(visible: Bool, matchFrame: Bool, for purpose: SurfacePurpose = .picture) -> Bool {
         guard let row = WindowSurfaceRecord(number: key.number), row.pid == key.pid, row.layer == 0,
-              row.allowsContent, !visible || row.isOnscreen
+              purpose.accepts(drawn: row.isDrawn, allowsContent: row.allowsContent), !visible || row.isOnscreen
         else { return false }
         return !matchFrame || row.frame == frame
     }

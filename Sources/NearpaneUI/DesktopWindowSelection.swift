@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import NearpaneCore
+import OSLog
 
 /// A new click can arrive after AppKit gives a window the keyboard and before the
 /// previous acknowledgement reaches the sidebar. Serialize intents and keep the last
@@ -34,6 +35,8 @@ import NearpaneCore
 }
 
 @MainActor enum DesktopWindowSelection {
+    private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowSelection")
+
     /// macOS can activate an application without Accessibility. Use that path only when
     /// even the off-Space WindowServer inventory contains exactly one visible layer-zero
     /// window for this owner. The returned window number, not just the PID, must be in front.
@@ -70,15 +73,23 @@ import NearpaneCore
             return
         }
         let scoped = target.overviewSpace != nil
-        guard soleWindow(target, requireVisible: !scoped),
-              scoped ? target.sharedSurface(visible: false, matchFrame: false) : target.isVisibleSurface() else {
+        guard soleWindow(target, requireVisible: !scoped) else {
+            log.notice("selection refused: owner has no unique ordinary surface")
             throw OrdinaryWindowFailure("精确选择这扇窗口需要允许 Nearpane 使用辅助功能。")
         }
-        guard current(), app.activate(options: []) else { throw OrdinaryWindowFailure("macOS 未允许这个应用置前。") }
+        guard scoped ? target.sharedSurface(visible: false, matchFrame: false, for: .windowSelection)
+                     : target.isVisibleSurface(for: .windowSelection) else {
+            log.notice("selection refused: surface identity changed")
+            throw OrdinaryWindowFailure("系统没有确认原窗口仍然可选。")
+        }
+        guard current(), app.activate(options: []) else {
+            log.notice("selection refused: application activation unavailable")
+            throw OrdinaryWindowFailure("macOS 未允许这个应用置前。")
+        }
         let end = min(deadline, ProcessInfo.processInfo.systemUptime + 0.8)
         repeat {
             if target.liveOwner() != nil, NSWorkspace.shared.frontmostApplication?.processIdentifier == target.key.pid,
-               soleWindow(target), (scoped ? target.sharedSurface(visible: true, matchFrame: false) : target.isVisibleSurface()),
+               soleWindow(target), (scoped ? target.sharedSurface(visible: true, matchFrame: false, for: .windowSelection) : target.isVisibleSurface(for: .windowSelection)),
                let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
                let front = rows.first(where: { $0[kCGWindowLayer as String] as? Int == 0 && ($0[kCGWindowAlpha as String] as? Double ?? 0) > 0 }),
                front[kCGWindowNumber as String] as? UInt32 == target.key.number,
@@ -89,6 +100,7 @@ import NearpaneCore
             }
             try await Task.sleep(for: .milliseconds(35))
         } while ProcessInfo.processInfo.systemUptime < end
+        log.notice("selection outcome unconfirmed: front-window readback")
         throw OrdinaryWindowFailure("系统未确认这扇窗口已置前。")
     }
 }
