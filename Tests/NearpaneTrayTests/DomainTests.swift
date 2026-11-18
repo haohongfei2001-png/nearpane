@@ -927,6 +927,40 @@ extension TrayDomainTests {
         }
     }
 
+    @Test func attachmentSettingsRequestsSystemConsentOnlyAfterAnUndecidedPassiveCheck() async {
+        actor Checker: AutomationPermissionChecking {
+            let current: AutomationPermissionState
+            var flags: [Bool] = [], sessions: [String?] = []
+            init(_ current: AutomationPermissionState) { self.current = current }
+            func check(askUserIfNeeded: Bool) async -> AutomationPermissionState {
+                await check(askUserIfNeeded: askUserIfNeeded, expectedSession: nil)
+            }
+            func check(askUserIfNeeded: Bool, expectedSession: String?) async -> AutomationPermissionState {
+                flags.append(askUserIfNeeded)
+                sessions.append(expectedSession)
+                return askUserIfNeeded ? .granted : current
+            }
+        }
+        for current: AutomationPermissionState in [.granted, .denied, .browserNotRunning, .browserNotInstalled, .unavailable, .notRequested] {
+            let checker = Checker(current)
+            let check = TrayOwner.attachmentPermission(executorAvailable: true, mayPrompt: true, checker: checker)
+            let result = await check(true, "original")
+            let expectedFlags = current == .notRequested ? [false, true] : [false]
+            #expect(result == (current == .notRequested ? .granted : current))
+            #expect(await checker.flags == expectedFlags)
+            #expect(await checker.sessions == expectedFlags.map { _ in "original" })
+        }
+        let checker = Checker(.notRequested)
+        let ordinary = TrayOwner.attachmentPermission(executorAvailable: true, mayPrompt: true, checker: checker)
+        let acceptance = TrayOwner.attachmentPermission(executorAvailable: true, mayPrompt: false, checker: checker)
+        let unavailable = TrayOwner.attachmentPermission(executorAvailable: false, mayPrompt: true, checker: checker)
+        #expect(await ordinary(false, "click") == .notRequested)
+        #expect(await acceptance(true, "acceptance") == .notRequested)
+        #expect(await unavailable(true, nil) == .unavailable)
+        #expect(await checker.flags == [false, false])
+        #expect(await checker.sessions == ["click", "acceptance"])
+    }
+
     @Test func browserAvailabilityAndSystemConsentRemainDistinctAcrossRestart() async throws {
         let dir = root()
         defer { try? FileManager.default.removeItem(at: dir) }

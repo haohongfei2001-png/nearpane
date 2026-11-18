@@ -57,6 +57,25 @@ def host_startup_permissions(host):
     return {"screen": screen == "true", "accessibility": ax == "true", "source": "installed Host startup log"}
 
 
+def host_current_permissions(host, metrics):
+    if not metrics or not host.get("launch") or not host.get("pid"):
+        return None
+    try:
+        pid = int(host["pid"])
+        nonce = str(uuid.UUID(checked([str(metrics), str(pid), "--permissions"]).strip())).upper()
+        prefix = f"Permission check {nonce} "
+        predicate = (f'processID == {pid} AND subsystem == "com.holdsnow.nearpane.alpha" AND '
+                     f'category == "PermissionCheck" AND eventMessage BEGINSWITH "{prefix}"')
+        logs = checked(["/usr/bin/log", "show", "--style", "compact", "--last", "30s", "--predicate", predicate])
+        matches = re.findall(prefix + r'screen=(true|false) accessibility=(true|false) postEvent=(true|false)\b', logs)
+    except (subprocess.SubprocessError, OSError, ValueError):
+        return None
+    if len(matches) != 1:
+        return None
+    return dict(zip(("screen", "accessibility", "postEvent"), (v == "true" for v in matches[0])),
+                source="installed Host live preflight", request=nonce)
+
+
 def native_capabilities(host):
     if not host or not host.get("launch"):
         return None
@@ -82,7 +101,7 @@ def selection_logs(pid, since):
     return [x.strip() for x in allowed]
 
 
-def manifest(observation):
+def manifest(observation, metrics=None):
     plist = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
     host = APP / "Contents/MacOS" / plist["CFBundleExecutable"]
     files = [host]
@@ -95,11 +114,13 @@ def manifest(observation):
     binaries = {str(p.relative_to(APP)): {**identity(p), "sha256": digest(p)} for p in files}
     verified = subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(APP)], capture_output=True)
     live = observation.get("host", {})
+    same_host = bool(live.get("codeHash")) and live["codeHash"] == identity(host)["CDHash"]
     return {"installed": str(APP), "bundleID": plist["CFBundleIdentifier"],
             "source": plist.get("NearpaneSourceRevision"), "version": plist["CFBundleShortVersionString"],
             "build": plist["CFBundleVersion"], "binaries": binaries, "signatureValid": verified.returncode == 0,
-            "loadedMatchesInstalled": bool(live.get("codeHash")) and live["codeHash"] == identity(host)["CDHash"],
+            "loadedMatchesInstalled": same_host,
             "installedHostStartupPermissions": host_startup_permissions(live),
+            "installedHostCurrentPermissions": host_current_permissions(live, metrics) if same_host and verified.returncode == 0 else None,
             "nativeCapabilitiesLog": native_capabilities(live),
             "installedActionHelperPin": plist.get("NearpaneSpaceActionSHA256"),
             "os": checked(["sw_vers", "-productVersion"]).strip(), "osBuild": checked(["sw_vers", "-buildVersion"]).strip(),
@@ -300,7 +321,7 @@ def hidden_budget(observer, initial, frozen, rec):
                 return "Preview visible or capturing during the hidden interval."
         ok = all(m["captureRequests"] == points[0]["captureRequests"] for m in points)
         rec.summary["hiddenBudget"] = {"observedSeconds": 60, "zeroNewRequests": ok,
-                                       "priorScreenPermission": (frozen.get("installedHostStartupPermissions") or {}).get("screen")}
+                                       "priorScreenPermission": (frozen.get("installedHostCurrentPermissions") or {}).get("screen")}
         return "Hidden interval completed; remaining N01 visual, native timing and memory batches require separate samples."
     finally:
         if changed:
@@ -324,7 +345,7 @@ def main():
         first = read()
         time.sleep(.18)
         second = read()
-        frozen = manifest(second)
+        frozen = manifest(second, args.observer.parent / "metrics")
         rec.write("manifest.json", frozen)
         stable = first.get("scopes") == second.get("scopes") and first.get("host") == second.get("host")
         rec.summary.update({"mode": args.mode, "stable": stable, "catalog": catalog_match(second),

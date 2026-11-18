@@ -42,7 +42,7 @@ enum AdmissionReadFailure: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .changed: "所选应用已重启或窗口已变化，请重新选择。"
-        case .permission: "系统未允许 Nearpane 的窗口读取工具使用辅助功能。请在系统设置中核对授权，再刷新清单。"
+        case .permission: "窗口读取工具本次未取得辅助功能访问。"
         case .unknown: "系统无法确认这是你选中的那扇窗口，请刷新清单。"
         case .unavailable: "窗口读取工具未返回完整信息。请确认应用仍在运行，再刷新清单。"
         }

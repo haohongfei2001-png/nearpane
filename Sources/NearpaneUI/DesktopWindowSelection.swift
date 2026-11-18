@@ -119,28 +119,3 @@ import OSLog
         throw OrdinaryWindowFailure("系统未确认这扇窗口已置前。")
     }
 }
-
-@MainActor enum WindowOverviewAccess {
-    static func settings(_ pane: String) {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?" + pane) else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-    private static var requestedPictures = false
-    private static var requestedFocus = false
-
-    static func requestThumbnails() {
-        guard !CGPreflightScreenCaptureAccess() else { return }
-        if requestedPictures { settings("Privacy_ScreenCapture"); return }
-        requestedPictures = true
-        if !CGRequestScreenCaptureAccess() { settings("Privacy_ScreenCapture") }
-    }
-
-    static func requestFocus() {
-        guard !AXIsProcessTrusted() else { return }
-        if requestedFocus { settings("Privacy_Accessibility"); return }
-        requestedFocus = true
-        _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-    }
-
-}

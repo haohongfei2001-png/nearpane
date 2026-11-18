@@ -88,6 +88,7 @@ struct DesktopSurface: View {
                                     .frame(width: width, height: height, alignment: .topLeading)
                                     .task(id: ProbeKey(session: catalog.session, topology: catalog.topology,
                                                        available: canNavigate, accessibility: snapshot.native?.accessibility,
+                                                       hostAccessibility: AXIsProcessTrusted(),
                                                        postAccess: CGPreflightPostEventAccess())) {
                                         if canNavigate { await NativeSidebarNavigation.shared.probe(display: catalog.display.id) }
                                     }
@@ -154,10 +155,11 @@ struct DesktopSurface: View {
         }
         .accessibilityHint("选择当前桌面的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
+        .refreshWindowPermissions()
     }
 
     private struct ProbeKey: Equatable {
-        let session: UUID, topology: String, available: Bool, accessibility: AXReadStatus?, postAccess: Bool
+        let session: UUID, topology: String, available: Bool, accessibility: AXReadStatus?, hostAccessibility: Bool, postAccess: Bool
     }
 
     private var canNavigate: Bool {
@@ -173,8 +175,10 @@ struct DesktopSurface: View {
         let gallery = previews?.gallery
         let id = displayID ?? ""
         let visible = display?.interactionVisible == true && !host.configuration.surfaceHidden
-        let permitted = visible && host.configuration.showsWindowThumbnails && CGPreflightScreenCaptureAccess() && WindowContentPreview.sessionAvailable()
-        let hasAX = AXIsProcessTrusted() || snapshot.native?.accessibility == .available || snapshot.native?.accessibility == .partial
+        let grants = WindowOverviewAccess.systemGrants()
+        let sessionAvailable = WindowContentPreview.sessionAvailable()
+        let permitted = visible && host.configuration.showsWindowThumbnails && grants.contains(.thumbnails) && sessionAvailable
+        let hasAX = grants.contains(.focus) || snapshot.native?.accessibility == .available || snapshot.native?.accessibility == .partial
         let run = GalleryRun(display: id, visible: visible, permitted: permitted, generation: gallery?.generation ?? 0)
         let pictureHeight = max(42, min(96, width * 0.61))
         let groups = Dictionary(grouping: windows, by: { $0.metadata?.pid })
@@ -215,12 +219,13 @@ struct DesktopSurface: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("当前桌面，\(windows.count) 扇窗口")
-            if visible && ((!permitted && host.configuration.showsWindowThumbnails) || !hasAX) {
+            let missing = WindowOverviewAccess.sidebarGuides(grants: grants, showPictures: host.configuration.showsWindowThumbnails,
+                                                            readerDenied: snapshot.native?.accessibility == .denied,
+                                                            visible: visible && sessionAvailable)
+            if !missing.isEmpty {
                 Menu("窗口权限") {
-                    if host.configuration.showsWindowThumbnails && !permitted {
-                        Button("允许窗口缩略图", action: WindowOverviewAccess.requestThumbnails)
-                    }
-                    if !hasAX { Button("允许精确切换窗口", action: WindowOverviewAccess.requestFocus) }
+                    if missing.contains(.thumbnails) { WindowPermissionButton(permission: .thumbnails) }
+                    if missing.contains(.focus) { WindowPermissionButton(permission: .focus) }
                 }.menuStyle(.borderlessButton).font(.caption)
             }
         }

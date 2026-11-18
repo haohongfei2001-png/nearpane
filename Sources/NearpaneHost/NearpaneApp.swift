@@ -360,9 +360,25 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         readDesktopAvailability(.sample)
     }
 
+    private var lastPermissionDiagnostic: TimeInterval = -.infinity
+
     @objc private func readPreviewMetrics(_ notification: Notification) {
-        guard let value = notification.userInfo?["nonce"] as? String, let nonce = UUID(uuidString: value),
-              let metrics = modules?.windowPreviewMetrics else { return }
+        guard let value = notification.userInfo?["nonce"] as? String, let nonce = UUID(uuidString: value) else { return }
+        if notification.userInfo?["check"] as? String == "permissions" {
+            let now = ProcessInfo.processInfo.systemUptime
+            guard now - lastPermissionDiagnostic >= 1 else { return }
+            lastPermissionDiagnostic = now
+            let screen = CGPreflightScreenCaptureAccess()
+            let accessibility = AXIsProcessTrusted()
+            let postEvent = CGPreflightPostEventAccess()
+            // Keep privacy status in the Host log. The distributed reply only acknowledges sampling.
+            Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "PermissionCheck")
+                .notice("Permission check \(nonce.uuidString, privacy: .public) screen=\(screen, privacy: .public) accessibility=\(accessibility, privacy: .public) postEvent=\(postEvent, privacy: .public)")
+            DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+                object: nonce.uuidString, userInfo: ["pid": NSNumber(value: getpid()), "checked": "permissions"], deliverImmediately: true)
+            return
+        }
+        guard let metrics = modules?.windowPreviewMetrics else { return }
         DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
             object: nonce.uuidString, userInfo: metrics.merging(["pid": NSNumber(value: getpid())]) { a, _ in a },
             deliverImmediately: true)

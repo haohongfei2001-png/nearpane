@@ -137,6 +137,11 @@ extension WindowAdmissionReader: AdmissionReading {}
         expire(at: review.validUntil)
     }
 
+    func recheckListingAfterGrant(_ target: AdmissionApplication) async {
+        guard opened, app == target, permissionDenied, !reading else { return }
+        await select(target)
+    }
+
     func select(_ target: AdmissionApplication) async {
         guard apps.contains(target) else { return }
         invalidate()
@@ -392,6 +397,11 @@ enum AdmissionPlacement: String, CaseIterable {
         .onChange(of: host.configuration.preferredDisplayID) { selection.invalidate() }
         .onChange(of: manager.blocked) { selection.invalidate() }
         .onChange(of: manager.mode) { selection.invalidate() }
+        .onChange(of: WindowOverviewAccess.shared.grants.contains(.focus)) { _, granted in
+            if granted, let app = selection.app {
+                Task { await selection.recheckListingAfterGrant(app) }
+            }
+        }
         .onChange(of: manager.windows) { selection.invalidate() }
         .onChange(of: scenario) { selection.invalidate() }
         .onChange(of: custom) { selection.invalidate() }
@@ -507,9 +517,12 @@ enum AdmissionPlacement: String, CaseIterable {
                 .accessibilityIdentifier("admission-verdict")
         }
         if selection.permissionDenied || selection.readouts.contains(where: { $0.result.reasons.contains(.permission) }) {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                Link("打开系统辅助功能设置", destination: url)
-            }
+            if WindowOverviewAccess.shared.grants.contains(.focus) {
+                Text("Nearpane 本身的辅助功能已授权。可重新核对所选应用的窗口。").font(.caption)
+                if let app = selection.app {
+                    Button("重新核对所选应用") { Task { await selection.select(app) } }.disabled(selection.reading)
+                }
+            } else { WindowPermissionButton(permission: .focus) }
         }
         if let review = selection.ordinaryReview, let context = selection.ordinaryContext {
             Text("确认后将按预计位置排列这些窗口。").font(.callout)

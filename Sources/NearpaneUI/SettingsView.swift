@@ -185,6 +185,7 @@ public struct SettingsView: View {
         .onAppear {
             if !availablePages.contains(navigation.page) { navigation.showGeneral() }
         }
+        .refreshWindowPermissions()
         .productAccent(host.configuration.accent)
         .frame(minWidth: 640, minHeight: 476)
         .background(Color(nsColor: .windowBackgroundColor))
@@ -287,8 +288,12 @@ public struct SettingsView: View {
                             if domains?.candidate == true { host.setCandidateTrayConnected(false) }
                         }
                         if !tray.localOnly {
-                            Button((tray.mayAttach || tray.savedAttachmentConsent) ? "重新检查草稿附加权限" : "允许附加到当前浏览器草稿…") {
-                                Task { await tray.authorizeAttachments() }
+                            if tray.mayAttach {
+                                LabeledContent("草稿附加", value: "已启用")
+                            } else {
+                                Button(tray.savedAttachmentConsent ? "重新核对草稿附加" : "允许附加到当前浏览器草稿…") {
+                                    Task { await tray.authorizeAttachments() }
+                                }
                             }
                             if tray.productAttachments && tray.savedAttachmentConsent {
                                 Button("关闭草稿附加") { Task { await tray.disableAttachments() } }
@@ -375,7 +380,7 @@ public struct SettingsView: View {
             Text("若要只用 Nearpane，在系统设置中关闭调度中心的快捷键、触控板手势和对应触发角。台前调度可在「桌面与程序坞」单独关闭。")
                 .font(.caption).foregroundStyle(.secondary)
             LabeledContent("工作空间模式", value: host.workspaceMode.mode == .native ? "macOS 桌面" : "Nearpane 虚拟工作区")
-            Text("当前可查看桌面。切换桌面、跨桌面移窗及虚拟工作区停放尚未开放。").font(.caption)
+            Text("仅在目标桌面和操作能力通过核对后才能切换或移窗。虚拟工作区停放尚未开放。").font(.caption)
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
             Toggle("显示桌面与窗口", isOn: Binding(get: { enabled }, set: {
                 if !$0 { domains?.stopWindowContentPreview() }
@@ -387,12 +392,20 @@ public struct SettingsView: View {
             })).disabled(!enabled)
             Text("缩略图在侧栏可见时刷新，仅保存在内存中。点击一扇窗口即可选中它。")
                 .font(.caption).foregroundStyle(.secondary)
-            if !CGPreflightScreenCaptureAccess() && host.configuration.showsWindowThumbnails {
-                Button("允许 Nearpane 读取窗口画面", action: WindowOverviewAccess.requestThumbnails)
+            if host.configuration.showsWindowThumbnails {
+                if WindowOverviewAccess.shared.grants.contains(.thumbnails) {
+                    LabeledContent("窗口画面", value: "已授权")
+                } else { WindowPermissionButton(permission: .thumbnails) }
             }
-            if !AXIsProcessTrusted() {
-                Button("允许精确选择同一应用的不同窗口", action: WindowOverviewAccess.requestFocus)
+            if WindowOverviewAccess.shared.grants.contains(.focus) {
+                LabeledContent("Nearpane 辅助功能", value: "已授权")
+            } else { WindowPermissionButton(permission: .focus) }
+            if !WindowOverviewAccess.shared.grants.contains(.focus) ||
+                (host.configuration.showsWindowThumbnails && !WindowOverviewAccess.shared.grants.contains(.thumbnails)) {
+                Text("当前运行的 Nearpane 尚未收到相应授权。若系统设置中已开启，请返回这里重新检查；仍未生效时，可退出并重新打开已安装的 Nearpane。")
+                    .font(.caption).foregroundStyle(.secondary)
             }
+            Button("重新检查窗口权限") { WindowOverviewAccess.shared.refresh() }
             Toggle("识别窗口所属桌面（实验性）", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
                   set: { host.setExperimentalSpaceObservation($0) })).disabled(!enabled)
             if #available(macOS 15.2, *), let previews = domains?.windowPreviews {

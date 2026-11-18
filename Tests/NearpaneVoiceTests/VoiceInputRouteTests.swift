@@ -1,8 +1,22 @@
+import AVFoundation
 import CoreAudio
 import Testing
 @testable import NearpaneVoice
 
 struct VoiceInputRouteTests {
+    @MainActor @Test func fullscreenVoiceExplainsModuleAndTransitionStatesSeparatelyFromMicrophonePermission() {
+        func reason(_ microphone: AVAuthorizationStatus, active: Bool = true, busy: Bool = false, running: Bool = false) -> String? {
+            FullscreenVoiceButton.unavailableReason(active: active, busy: busy, running: running, microphone: microphone)
+        }
+        #expect(reason(.authorized) == nil)
+        #expect(reason(.authorized, active: false) == "语音模块已关闭")
+        #expect(reason(.authorized, busy: true) == "正在切换收音状态")
+        #expect(reason(.denied, running: true) == nil)
+        #expect(reason(.restricted)?.contains("限制") == true)
+        #expect(reason(.notDetermined)?.contains("确认麦克风权限") == true)
+        #expect(reason(.denied)?.contains("无法访问麦克风") == true)
+    }
+
     @Test func defaultMustBeAliveAndHaveAnInputStream() {
         let size = UInt32(MemoryLayout<AudioStreamID>.size)
         #expect(VoiceInputRoute.read(defaultDevice: { 2 }, alive: { _ in 1 }, streamBytes: { _ in size }) == .available)

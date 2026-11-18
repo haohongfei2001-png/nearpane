@@ -26,7 +26,7 @@ app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
 version=5.21
-build_number=77
+build_number=78
 name="Nearpane P$version Alpha.app"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-/Applications}"
 if [[ -z "${NEARPANE_CANDIDATE_OUTPUT:-}" && ! -e /Applications/Nearpane.app &&
@@ -63,6 +63,9 @@ python3 -B scripts/build-helper-runtime.py "$candidate"
 check_candidate_source
 /usr/bin/plutil -replace NearpaneSourceState -string "$source_state" "$candidate/Contents/Info.plist"
 codesign --force --sign - --identifier com.holdsnow.nearpane.alpha "$candidate"
+if [[ -n "${NEARPANE_LOCAL_SIGNING_IDENTITY:-}" ]]; then
+    python3 -I -B scripts/candidate_signing.py "$candidate" --identity "$NEARPANE_LOCAL_SIGNING_IDENTITY"
+fi
 codesign --verify --strict --deep "$candidate"
 "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
 "$candidate/Contents/MacOS/NearpaneHost" --check-helper-runtime
