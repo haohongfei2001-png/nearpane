@@ -39,10 +39,10 @@ import Testing
         let rows = try map(all).rows
         #expect(rows.map(\.id) == ["1","2","3"])
         #expect(rows.map { $0.windows.map(\.id) } == [["w7","w8"],["w7","w9"],[]])
-        #expect(rows[2].membershipComplete)
+        #expect(rows[2].regularWindowListComplete)
         #expect(all.currentDesktopWindows(on: "screen", now: .now, uptime: ProcessInfo.processInfo.systemUptime).map(\.id) == ["w7","w8"])
-        #expect(try !map(snapshot([], complete: false)).rows[2].membershipComplete)
-        #expect(try !map(snapshot([window(9, [], front: 0)])).rows[2].membershipComplete)
+        #expect(try !map(snapshot([], complete: false)).rows[2].regularWindowListComplete)
+        #expect(try !map(snapshot([window(9, [], front: 0)])).rows[2].regularWindowListComplete)
     }
 
     @Test func gestureSurvivesUnrelatedRefreshButNotReplacedOwnerSpaceOrTopology() throws {
@@ -83,4 +83,13 @@ import Testing
         for _ in 0..<100 where effects.count < 2 { await Task.yield() }
         #expect(effects == ["move", "latest"])
     }
+    @Test func revocationCancelsOnlyFutureGestureSteps() {
+        let permit = NativeSelectionPermit()
+        let command = NativeSpaceCommand(id: UUID(), action: .select, display: "", source: "", target: "", createdAtUptime: 50)
+        let started = permit.permission(for: command.id, after: 0)
+        permit.revoke()
+        #expect(started.permits(command, after: 0, now: 51))
+        #expect(!permit.permission(for: command.id, after: 1).permits(command, after: 1, now: 51))
+    }
+
 }

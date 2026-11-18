@@ -87,7 +87,8 @@ struct DesktopSurface: View {
                                     }
                                     .frame(width: width, height: height, alignment: .topLeading)
                                     .task(id: ProbeKey(session: catalog.session, topology: catalog.topology,
-                                                       available: canNavigate, accessibility: snapshot.native?.accessibility)) {
+                                                       available: canNavigate, accessibility: snapshot.native?.accessibility,
+                                                       postAccess: CGPreflightPostEventAccess())) {
                                         if canNavigate { await NativeSidebarNavigation.shared.probe(display: catalog.display.id) }
                                     }
                                     .task(id: BadgeRefresh(session: snapshot.sessionID, revision: snapshot.revision, visible: canNavigate)) {
@@ -156,7 +157,7 @@ struct DesktopSurface: View {
     }
 
     private struct ProbeKey: Equatable {
-        let session: UUID, topology: String, available: Bool, accessibility: AXReadStatus?
+        let session: UUID, topology: String, available: Bool, accessibility: AXReadStatus?, postAccess: Bool
     }
 
     private var canNavigate: Bool {

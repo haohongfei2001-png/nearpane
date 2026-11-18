@@ -1,5 +1,6 @@
 import AppKit
 import NearpaneCore
+import OSLog
 
 struct NativeSidebarDestination: Equatable {
     let session: UUID
@@ -7,13 +8,15 @@ struct NativeSidebarDestination: Equatable {
     let display: String
     let space: String
     let uuid: UUID
+    let kind: NativeSpaceKind
 
-    init(session: UUID, topology: String, display: String, space: String, uuid: UUID) {
-        self.session = session; self.topology = topology; self.display = display; self.space = space; self.uuid = uuid
+    init(session: UUID, topology: String, display: String, space: String, uuid: UUID, kind: NativeSpaceKind = .ordinary) {
+        self.session = session; self.topology = topology; self.display = display; self.space = space; self.uuid = uuid; self.kind = kind
     }
 
     init?(_ row: NativeSpaceCatalog.Row, in catalog: NativeSpaceCatalog) {
-        guard let uuid = row.record.ordinaryUUID else { return nil }
+        guard let uuid = row.record.nativeUUID, let kind = row.record.nativeKind else { return nil }
+        self.kind = kind
         self.uuid = uuid; space = row.id; display = catalog.display.id
         topology = catalog.topology; session = catalog.session
     }
@@ -21,7 +24,7 @@ struct NativeSidebarDestination: Equatable {
     func resolve(_ snapshot: DesktopSnapshot) -> NativeSpaceCatalog? {
         guard session == snapshot.sessionID, topology == snapshot.topologyFingerprint,
               let live = NativeSpaceCatalog(snapshot, displayID: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime),
-              live.rows.contains(where: { $0.id == space && $0.record.ordinaryUUID == uuid }) else { return nil }
+              live.rows.contains(where: { $0.id == space && $0.record.nativeUUID == uuid && $0.record.nativeKind == kind }) else { return nil }
         return live
     }
 }
@@ -51,6 +54,9 @@ struct NativeSidebarMember: Equatable {
     static let shared = NativeSidebarNavigation()
     typealias Work = @MainActor (UUID) async throws -> Void
     private var generation = UUID()
+    private var activeSelection: NativeSelectionPermit?
+    private var recordedCapability: String?
+    private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "NativeSpaceActions")
     private struct Job { let token: UUID, selection: Bool, run: Work }
     private var pending: [Job] = []
     private var running = false
@@ -64,11 +70,17 @@ struct NativeSidebarMember: Equatable {
         guard !Task.isCancelled, reply.id == request.id else { return }
         canSwitch = reply.state == .ready && reply.canSwitch
         canMove = reply.state == .ready && reply.canMove
+        let capability = "ready=\(reply.state == .ready) canSwitch=\(canSwitch) canMove=\(canMove)"
+        if recordedCapability != capability {
+            Self.log.notice("nativeSpaceCapabilities \(capability, privacy: .public)")
+            recordedCapability = capability
+        }
     }
 
     func submit(selection: Bool = true, _ work: @escaping Work) {
         if selection && pending.last?.selection == true { pending.removeLast() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
+        activeSelection?.revoke()
         generation = UUID(); issue = nil
         pending.append(Job(token: generation, selection: selection, run: work))
         guard !running else { return }
@@ -100,10 +112,14 @@ struct NativeSidebarMember: Equatable {
             }
             var current = before
             if map.current.id != destination.space {
-                guard let sourceUUID = map.current.ordinaryUUID else { throw OrdinaryWindowFailure("当前空间无法执行此操作。") }
+                guard let sourceUUID = map.current.nativeUUID, let sourceKind = map.current.nativeKind else { throw OrdinaryWindowFailure("当前空间无法执行此操作。") }
                 let request = NativeSpaceCommand(id: UUID(), action: .select, display: destination.display,
-                    source: map.current.id, target: destination.space, sourceUUID: sourceUUID, targetUUID: destination.uuid)
-                let reply = await NativeSpaceActionClient.shared.run(request)
+                    source: map.current.id, target: destination.space, sourceUUID: sourceUUID, targetUUID: destination.uuid,
+                    sourceKind: sourceKind, targetKind: destination.kind)
+                let permit = NativeSelectionPermit()
+                self?.activeSelection = permit
+                defer { if self?.activeSelection === permit { self?.activeSelection = nil } }
+                let reply = await NativeSpaceActionClient.shared.run(request, permit: permit)
                 feed.changed()
                 guard reply.id == request.id, reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
                 guard valid() else { return }
@@ -135,7 +151,7 @@ struct NativeSidebarMember: Equatable {
 
     func move(_ member: NativeSidebarMember, into dest: NativeSidebarDestination, lifetime: UUID, feed: CurrentDesktopWindows,
               allowed: @escaping @MainActor () -> Bool) {
-        guard member.source != dest else { return }
+        guard member.source != dest, member.source.kind == .ordinary, dest.kind == .ordinary else { return }
         submit(selection: false) { _ in
             guard allowed(), let current = await feed.readNow(), let map = dest.resolve(current),
                   member.source.display == dest.display, let w = member.resolve(current),

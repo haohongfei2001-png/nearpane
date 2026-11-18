@@ -10,7 +10,7 @@ import NearpaneCore
     private var gesture: (UUID, NativeSidebarMember, UUID, ContinuousClock.Instant)?
 
     func begin(_ member: NativeSidebarMember, feed: CurrentDesktopWindows?) -> NSItemProvider {
-        guard let lifetime = feed?.lifetime(of: member.key) else { return NSItemProvider() }
+        guard member.source.kind == .ordinary, let lifetime = feed?.lifetime(of: member.key) else { return NSItemProvider() }
         let token = UUID()
         gesture = (token, member, lifetime, .now.advanced(by: .seconds(20)))
         let item = NSItemProvider()
@@ -90,7 +90,7 @@ struct NativeSpaceNavigator: View {
                         let dy = (proxy.size.height - screen.height * scale) / 2
                         ZStack(alignment: .topLeading) {
                             if row.windows.isEmpty {
-                                Text(row.membershipComplete ? "空桌面" : "窗口归属尚未读全")
+                                Text(row.regularWindowListComplete ? "未发现普通窗口" : "窗口归属尚未读全")
                                     .font(.caption2).foregroundStyle(.secondary)
                                     .frame(maxWidth: .infinity, maxHeight: .infinity).allowsHitTesting(false)
                             }
@@ -146,7 +146,7 @@ struct NativeSpaceNavigator: View {
                     }
                 }
                 .onDrop(of: [NativeSidebarDrag.type], isTargeted: nil) { items in
-                    guard canMove, let destination else { return false }
+                    guard canMove, let destination, destination.kind == .ordinary else { return false }
                     return drag.receive(items) { move($0, destination, $1) }
                 }
             }
@@ -176,6 +176,6 @@ struct NativeSpaceNavigator: View {
         .help(name + (history == nil ? "" : " · 最近画面"))
         .accessibilityLabel(name + (history == nil ? "" : "，最近画面"))
         .accessibilityIdentifier("native-space-window:\(dest.display):\(dest.space):\(member.key.pid):\(member.key.number)")
-        .modifier(NativeWindowDragSource(member: canMove ? member : nil, drag: drag, feed: feed))
+        .modifier(NativeWindowDragSource(member: canMove && dest.kind == .ordinary ? member : nil, drag: drag, feed: feed))
     }
 }

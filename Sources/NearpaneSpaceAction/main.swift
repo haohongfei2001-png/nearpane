@@ -18,8 +18,9 @@ func isBundledChild() -> Bool {
 }
 
 @MainActor
-func run(_ request: NativeSpaceCommand, available: Bool) -> NativeSpaceReply {
-    let canSwitch = available && AXIsProcessTrusted() && CGPreflightPostEventAccess()
+func run(_ request: NativeSpaceCommand, available: Bool,
+         authorize: (NativeSpaceReply) throws -> NativeSpaceStepPermission) -> NativeSpaceReply {
+    let canSwitch = available && CGPreflightPostEventAccess()
     let canMove = available && AXIsProcessTrusted() && NPMoveAvailable()
     var before: ActionInventory?, after: ActionInventory?
     var oldMembership: [String]?, newMembership: [String]?
@@ -34,6 +35,7 @@ func run(_ request: NativeSpaceCommand, available: Bool) -> NativeSpaceReply {
     }
     do {
         guard available else { throw ActionFailure("此系统构建尚不支持原生桌面动作。") }
+        guard request.isFresh(at: ProcessInfo.processInfo.systemUptime) else { throw ActionFailure("桌面动作已过期。") }
         let start = try ActionInventory.read()
         before = start
         if request.action == .probe { return reply(.ready, "已读取当前空间能力。") }
@@ -55,27 +57,29 @@ func run(_ request: NativeSpaceCommand, available: Bool) -> NativeSpaceReply {
                   WindowWitness.membership(window.number) == oldMembership
             else { throw ActionFailure("迁移前窗口或空间已改变。") }
             let submitted = ProcessInfo.processInfo.systemUptime
+            guard request.isFresh(at: submitted) else { throw ActionFailure("迁移动作已过期。") }
             issued = NPRequestMove(window.number, target)
             if issued { issuedAt = submitted; steps = 1 }
         } else {
             guard canSwitch, request.window == nil else { throw ActionFailure("缺少向系统请求桌面切换的权限。") }
             if from == to { after = start; return reply(.confirmed, "已在目标桌面。") }
-            guard abs(from - to) <= 16,
-                  display.spaces[min(from, to)...max(from, to)].allSatisfy(\.ordinary)
-            else { throw ActionFailure("切换路径包含未确认或全屏空间。") }
             guard try ActionInventory.read() == start else { throw ActionFailure("切换前显示器或空间已改变。") }
             expected[UUID(uuidString: request.display)!.uuidString] = request.target
             let step = to > from ? 1 : -1
-            let deadline = ProcessInfo.processInfo.systemUptime + 2.5
+            let deadline = min(request.deadlineUptime, ProcessInfo.processInfo.systemUptime + 2.5)
             var previous = from
             while previous != to {
                 var allowed = start.currents
                 let key = UUID(uuidString: request.display)!.uuidString
                 allowed[key] = display.spaces[previous].id
+                let permission = try authorize(reply(.awaitingStep, "等待确认当前选择。"))
+                guard permission.permits(request, after: steps, now: ProcessInfo.processInfo.systemUptime) else {
+                    throw ActionFailure("后续桌面动作已取消或超时。")
+                }
                 let immediatelyBefore = try ActionInventory.read()
                 after = immediatelyBefore
                 guard immediatelyBefore.agrees(with: start, expected: allowed), isBundledChild(),
-                      AXIsProcessTrusted(), ProcessInfo.processInfo.systemUptime < deadline
+                      CGPreflightPostEventAccess(), ProcessInfo.processInfo.systemUptime < deadline
                 else { throw ActionFailure("下一步之前，来源桌面、授权或路由已改变。") }
                 let next = previous + step
                 let quick = next != to || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -104,7 +108,7 @@ func run(_ request: NativeSpaceCommand, available: Bool) -> NativeSpaceReply {
             }
         }
         guard issued else { throw ActionFailure("系统动作未投递，请从目标屏幕的侧栏操作。") }
-        let deadline = ProcessInfo.processInfo.systemUptime + 1.8
+        let deadline = min(request.deadlineUptime, ProcessInfo.processInfo.systemUptime + 1.8)
         var stableSince: TimeInterval?
         repeat {
             Thread.sleep(forTimeInterval: 0.035)
@@ -132,8 +136,17 @@ func run(_ request: NativeSpaceCommand, available: Bool) -> NativeSpaceReply {
     }
 }
 
+private func awaitStepPermission(_ reply: NativeSpaceReply) throws -> NativeSpaceStepPermission {
+    do {
+        return try StepHandshake.exchange(reply, input: .standardInput, output: .standardOutput)
+    } catch {
+        // A late fragment must never be parsed as a later command.
+        exit(75)
+    }
+}
+
 if CommandLine.arguments.dropFirst() == ["--self-check"] {
-    print("NearpaneSpaceAction schema=1; no action issued")
+    print("NearpaneSpaceAction schema=2; no action issued")
 } else if CommandLine.arguments.dropFirst() == ["--serve"], isBundledChild() {
     let supported = NPReadOnlySpacesOpen() == 1
     var consumed = Set<UUID>()
@@ -145,7 +158,7 @@ if CommandLine.arguments.dropFirst() == ["--self-check"] {
         if request.action != .probe && (consumed.count >= 65536 || !consumed.insert(request.id).inserted) {
             result = .init(id: request.id, state: .failed, detail: "过期或重复的动作。", canSwitch: false, canMove: false)
         } else {
-            result = autoreleasepool { run(request, available: supported) }
+            result = autoreleasepool { run(request, available: supported, authorize: awaitStepPermission) }
         }
         guard let bytes = try? JSONEncoder().encode(result) else { exit(70) }
         FileHandle.standardOutput.write(bytes + Data([10]))

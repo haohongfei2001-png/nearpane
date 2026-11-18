@@ -9,7 +9,7 @@ struct ActionInventory: Equatable {
     struct Space: Equatable {
         let id: String
         let uuid: UUID?
-        let ordinary: Bool
+        let kind: NativeSpaceKind?
     }
     struct Display: Equatable {
         let number: CGDirectDisplayID
@@ -55,11 +55,12 @@ struct ActionInventory: Equatable {
             else { throw ActionFailure("显示器与空间的对应关系不唯一。") }
             let spaces = try entries.map { row -> Space in
                 guard let id = id(row["id64"]), ids.insert(id).inserted,
-                      let type = row["type"] as? NSNumber, CFGetTypeID(type) != CFBooleanGetTypeID()
+                      let type = row["type"] as? NSNumber, CFGetTypeID(type) != CFBooleanGetTypeID(),
+                      let typeCode = Int(type.stringValue)
                 else { throw ActionFailure("空间记录存在歧义。") }
                 let uuid = (row["uuid"] as? String).flatMap(UUID.init(uuidString:))
                 if let uuid, !uuids.insert(uuid).inserted { throw ActionFailure("空间身份重复。") }
-                return .init(id: id, uuid: uuid, ordinary: type.intValue == 0)
+                return .init(id: id, uuid: uuid, kind: NativeSpaceKind(rawValue: typeCode))
             }
             guard spaces.contains(where: { $0.id == current }) else { throw ActionFailure("当前空间已改变。") }
             displays[uuid] = .init(number: number, bounds: CGDisplayBounds(number), current: current, spaces: spaces)
@@ -70,11 +71,20 @@ struct ActionInventory: Equatable {
     func route(_ request: NativeSpaceCommand) throws -> (Display, Int, Int) {
         guard let id = UUID(uuidString: request.display), let display = displays[id],
               let fromUUID = request.sourceUUID, let toUUID = request.targetUUID,
-              let from = display.spaces.firstIndex(where: { $0.ordinary && $0.id == request.source && $0.uuid == fromUUID }),
-              let to = display.spaces.firstIndex(where: { $0.ordinary && $0.id == request.target && $0.uuid == toUUID })
+              request.action == .select || (request.sourceKind == .ordinary && request.targetKind == .ordinary),
+              let from = display.spaces.firstIndex(where: { $0.kind == request.sourceKind && $0.id == request.source && $0.uuid == fromUUID }),
+              let to = display.spaces.firstIndex(where: { $0.kind == request.targetKind && $0.id == request.target && $0.uuid == toUUID })
         else { throw ActionFailure("来源或目标桌面的身份已失效。") }
         if request.action == .select, display.current != request.source {
             throw ActionFailure("当前桌面已经改变。")
+        }
+        if request.action == .select {
+            // An explicitly chosen fullscreen endpoint uses the ordinary system
+            // gesture route. Never pass through an unrelated fullscreen app.
+            let intermediates = display.spaces[min(from, to)...max(from, to)].dropFirst().dropLast()
+            guard abs(from - to) <= 16, intermediates.allSatisfy({ $0.kind == .ordinary && $0.uuid != nil }) else {
+                throw ActionFailure("该路径经过无法确认的桌面或其他全屏应用。")
+            }
         }
         return (display, from, to)
     }
