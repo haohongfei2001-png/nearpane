@@ -26,6 +26,8 @@ public final class EmbeddedModules {
         return ["captureRequests": NSNumber(value: gallery.captureRequests + windowPreviews.pickerCaptureRequests),
                 "capturesInFlight": NSNumber(value: gallery.capturesInFlight + windowPreviews.pickerInFlight),
                 "cacheEntries": NSNumber(value: windowPreviews.cacheCount),
+                "visibleDisplays": NSNumber(value: windowPreviews.visibleDisplays.count),
+                "gallerySessions": NSNumber(value: gallery.activeCaptureLoops),
                 "chargedPixelBytes": NSNumber(value: windowPreviews.cacheBytes),
                 "activeStreams": 0] // Both capture paths use SCScreenshotManager one-shots.
     }

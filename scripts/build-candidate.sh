@@ -6,8 +6,8 @@ source scripts/build-paths.sh
 app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
-version=5.20
-build_number=73
+version=5.21
+build_number=74
 name="Nearpane P$version Alpha.app"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-/Applications}"
 if [[ -z "${NEARPANE_CANDIDATE_OUTPUT:-}" && ! -e /Applications/Nearpane.app &&
@@ -30,6 +30,7 @@ ditto --norsrc --noextattr "$app" "$candidate"
 /usr/bin/plutil -replace CFBundleName -string 'Nearpane Alpha' "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace CFBundleShortVersionString -string "$version" "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace CFBundleVersion -string "$build_number" "$candidate/Contents/Info.plist"
+/usr/bin/plutil -replace NearpaneSourceRevision -string "$(git rev-parse HEAD)" "$candidate/Contents/Info.plist"
 /usr/bin/plutil -insert LSMultipleInstancesProhibited -bool true "$candidate/Contents/Info.plist"
 for helper in NearpaneFrameController NearpaneFixtureWindows; do
     ditto --norsrc --noextattr "$lab/$helper.app" "$candidate/Contents/Helpers/$helper.app"

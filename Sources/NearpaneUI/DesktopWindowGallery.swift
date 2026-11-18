@@ -98,6 +98,7 @@ struct DesktopWindowTarget: Equatable {
     @ObservationIgnored private(set) var captureRequests: UInt64 = 0
     @ObservationIgnored private(set) var capturesInFlight = 0
     var cacheCount: Int { stills.count }
+    var activeCaptureLoops: Int { operations.count }
     var cacheBytes: Int { stills.bytes }
     private var missingPictures = [DesktopWindowKey: String]()
     private(set) var generation: UInt64 = 0
