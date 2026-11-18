@@ -239,11 +239,13 @@ struct DesktopSurface: View {
     private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, hasAX: Bool) {
         guard let native = snapshot.native, let previews = display?.pointer?.windowPreviews else { return }
         let generation = previews.gallery.generation
+        let userInput = NativeSelectionPermit.inputCounters()
         let visibility = previews.visibilityGeneration[target.display]
         func stillCurrent() -> Bool {
             host.isRunning && !host.configuration.surfaceHidden && display?.interactionVisible == true &&
                 display?.id == target.display && generation == previews.gallery.generation &&
-                visibility == previews.visibilityGeneration[target.display] && target.present(in: overview)
+                visibility == previews.visibilityGeneration[target.display] && target.present(in: overview) &&
+                WindowContentPreview.sessionAvailable() && NativeSelectionPermit.inputCounters() == userInput
         }
         guard stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
         selectionIssue = nil
@@ -251,8 +253,13 @@ struct DesktopSurface: View {
             let verifySpace: (() async -> Bool)? = previews.currentDesktop.map { feed in
                 { target.present(in: await feed.readNow()) }
             }
-            try await DesktopWindowSelection.select(target, deadline: native.beganUptime + 12, hasAX: hasAX,
-                                                   verifySpace: verifySpace, stillCurrent: stillCurrent)
+            do {
+                try await DesktopWindowSelection.select(target, deadline: native.beganUptime + 12, hasAX: hasAX,
+                    verifySpace: verifySpace, stillCurrent: { choices.isLatest(target.key) && stillCurrent() })
+            } catch {
+                // An explicitly superseded choice must not clear the newer pending click.
+                if choices.isLatest(target.key) { throw error }
+            }
         } failed: { selectionIssue = $0.localizedDescription }
     }
 

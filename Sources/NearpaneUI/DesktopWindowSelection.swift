@@ -15,6 +15,8 @@ import OSLog
     private var active: DesktopWindowKey?
     private var next: Choice?
 
+    func isLatest(_ key: DesktopWindowKey) -> Bool { (next?.key ?? active) == key }
+
     func choose(_ key: DesktopWindowKey, perform: @escaping @MainActor () async throws -> Void,
                 failed: @escaping @MainActor (Error) -> Void) {
         let choice = Choice(key: key, perform: perform, failed: failed)
@@ -52,24 +54,37 @@ import OSLog
             (!requireVisible || sameOwner[0][kCGWindowIsOnscreen as String] as? Bool == true)
     }
 
+    static func bind(_ key: DesktopWindowKey) async throws -> OrdinaryWindowAX {
+        guard let owner = NSRunningApplication(processIdentifier: key.pid), let bundle = owner.bundleIdentifier else {
+            throw OrdinaryWindowFailure("所选窗口的应用已退出。")
+        }
+        let directory = try OrdinaryWindowDirectory(.init(pid: key.pid, launch: key.birth, bundle: bundle, name: ""))
+        let choices = try await directory.choices(initial: true).filter { $0.number == key.number }
+        guard choices.count == 1, let choice = choices.first, let handle = directory.handles[choice.id] else {
+            throw OrdinaryWindowFailure("无法唯一确认这扇窗口的辅助功能身份。")
+        }
+        return handle
+    }
+
     static func select(_ target: DesktopWindowTarget, deadline: Double, hasAX: Bool,
-                       verifySpace: (() async -> Bool)? = nil, stillCurrent: @escaping () -> Bool) async throws {
+                       verifySpace: (() async -> Bool)? = nil, stillCurrent: @escaping @MainActor @Sendable () -> Bool,
+                       bound: OrdinaryWindowAX? = nil, permit: NativeSelectionPermit? = nil) async throws {
         func current() -> Bool {
             stillCurrent() && WindowContentPreview.sessionAvailable() && ProcessInfo.processInfo.systemUptime <= deadline
         }
-        guard current(), let app = target.liveOwner(), let bundle = app.bundleIdentifier else {
+        guard current(), let app = target.liveOwner() else {
             throw OrdinaryWindowFailure("这扇窗口已变化，请重新选择。")
         }
         if target.overviewSpace != nil {
             guard let verifySpace, await verifySpace(), current() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
         }
-        if hasAX {
-            let directory = try OrdinaryWindowDirectory(.init(pid: target.key.pid, launch: target.key.birth, bundle: bundle, name: ""))
-            let choices = try await directory.choices(initial: true).filter { $0.number == target.key.number }
-            guard current(), choices.count == 1, let choice = choices.first, let handle = directory.handles[choice.id] else {
-                throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。")
-            }
-            try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline, space: target.overviewSpace)
+        if hasAX || bound != nil {
+            let handle: OrdinaryWindowAX
+            if let bound { handle = bound } else { handle = try await bind(target.key) }
+            guard current(), handle.id.pid == target.key.pid, handle.id.launch == target.key.birth,
+                  handle.id.number == target.key.number else { throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。") }
+            try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline,
+                                          space: target.overviewSpace, permit: permit ?? NativeSelectionPermit(current: stillCurrent))
             return
         }
         let scoped = target.overviewSpace != nil
@@ -94,7 +109,7 @@ import OSLog
                let front = rows.first(where: { $0[kCGWindowLayer as String] as? Int == 0 && ($0[kCGWindowAlpha as String] as? Double ?? 0) > 0 }),
                front[kCGWindowNumber as String] as? UInt32 == target.key.number,
                front[kCGWindowOwnerPID as String] as? Int32 == target.key.pid {
-                if !scoped { return }
+                if !scoped && current() { return }
                 if let verifySpace, await verifySpace(), current() { return }
                 break
             }

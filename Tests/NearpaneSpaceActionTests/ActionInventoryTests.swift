@@ -1,3 +1,4 @@
+import ApplicationServices
 import Foundation
 import Testing
 import NearpaneCore
@@ -103,4 +104,19 @@ struct ActionInventoryTests {
                                        output: delayedReplies.fileHandleForWriting, timeout: 0.03)
         }
     }
+    @Test func closedOrRebuiltSelectionRejectsTheNextCrossDesktopStep() throws {
+        // Local opaque AX objects only. No AX reads, input events, or windows are created.
+        let original = AXUIElementCreateApplication(401)
+        var current: AXUIElement? = original
+        let selection = try SelectedWindowWitness {
+            guard let current else { throw ActionFailure("source closed") }
+            return current
+        }
+        try selection.verify()
+        current = nil
+        #expect(throws: ActionFailure.self) { try selection.verify() }
+        current = AXUIElementCreateApplication(402)
+        #expect(throws: ActionFailure.self) { try selection.verify() }
+    }
+
 }

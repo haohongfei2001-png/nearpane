@@ -86,8 +86,19 @@ final class Worker {
                 case .focusCurrent:
                     guard let expected = r.expected, let display = r.focusDisplay, let deadline = r.focusDeadline,
                           r.destination == nil else { throw Refusal("缺少当前桌面的选窗凭据。") }
+                    var nextStep = 0
                     try focusCurrentWindow(id: id, element: m.element, owner: owner, bundle: r.bundle,
-                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace)
+                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace) {
+                        var challenge = OrdinaryWindowReply(r.nonce)
+                        challenge.focusStep = nextStep
+                        let decision: NativeSpaceStepPermission
+                        do {
+                            decision = try SelectionStepHandshake.exchange(challenge, input: .standardInput, output: .standardOutput)
+                        } catch { exit(75) } // Discard a late/partial response with this connection.
+                        try require(getppid() == parent && AXIsProcessTrusted()
+                                    && decision.permitsFocus(r, after: nextStep, now: ProcessInfo.processInfo.systemUptime), "原选窗意图已取消或超时。")
+                        nextStep += 1
+                    }
                 case .prepare:
                     if let desktop = r.desktop { try m.bindDesktop(desktop) }
                     reply.pair = try m.prepare()

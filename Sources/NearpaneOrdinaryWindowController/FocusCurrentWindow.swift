@@ -5,7 +5,7 @@ import NearpaneCore
 
 /// A direct, single user selection. No frame setters, keyboard shortcuts or Space actions.
 func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: OrdinaryOwnerIdentity,
-                        bundle: String, frame: SurfaceRect, display: String, deadline: TimeInterval, space: String? = nil) throws {
+                        bundle: String, frame: SurfaceRect, display: String, deadline: TimeInterval, space: String? = nil, permit: () throws -> Void) throws {
     let app = AXUIElementCreateApplication(id.pid)
     try require(AXUIElementSetMessagingTimeout(app, 0.18) == .success, "无法及时核对应用。")
     func activeNumbers() -> Set<UInt32> {
@@ -70,6 +70,7 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
     func focused() -> Bool { frontPID() == id.pid && exact(kAXFocusedWindowAttribute) }
     try validate(allowMinimized: space != nil)
     if space != nil, attribute(element, kAXMinimizedAttribute) as? Bool == true {
+        try permit()
         try require(AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, kCFBooleanFalse) == .success &&
                     waitFor(0.7) { attribute(element, kAXMinimizedAttribute) as? Bool == false },
                     "应用未能展开这扇最小化的窗口。")
@@ -79,6 +80,8 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
     guard let origin = frontPID() else { throw Refusal("系统未提供当前前台应用。") }
     if origin != id.pid {
         if !exact(kAXMainWindowAttribute) {
+            try validate()
+            try permit()
             try require(AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue) == .success,
                         "应用未允许选中这扇窗口。")
         }
@@ -92,6 +95,8 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         let before = frontPID()
         try require(before == origin || before == id.pid, "前台已变化，请重新选择。")
         if before != id.pid {
+            try validate()
+            try permit()
             try require(AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue) == .success,
                         "系统未允许所选应用成为前台。")
         }
@@ -102,15 +107,20 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
     try validate()
     try require(frontPID() == id.pid, "前台已变化，请重新选择。")
     if !focused() {
+        try permit()
         try require(AXUIElementPerformAction(element, kAXRaiseAction as CFString) == .success, "此窗口不支持置前。")
         if !waitFor(0.12, until: focused) {
             try validate()
             try require(frontPID() == id.pid, "前台已变化，请重新选择。")
             var writable = DarwinBoolean(false)
             if AXUIElementIsAttributeSettable(app, kAXFocusedWindowAttribute as CFString, &writable) == .success && writable.boolValue {
+                try validate()
+                try permit()
                 try require(AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, element) == .success,
                             "应用拒绝将焦点交给所选窗口。")
             } else if !exact(kAXMainWindowAttribute) {
+                try validate()
+                try permit()
                 try require(AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue) == .success,
                             "应用未允许选中这扇窗口。")
             }

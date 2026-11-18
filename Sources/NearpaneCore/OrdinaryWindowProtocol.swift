@@ -100,6 +100,7 @@ public struct OrdinaryWindowClosure: Codable, Sendable, LocalizedError {
 
 public struct OrdinaryWindowReply: Codable, Sendable {
     public let nonce: UUID
+    public var focusStep: Int?
     public var steps: [OrdinaryWindowStep]?
     public var choices: [ManagedWindowID?]?, pair: AdmissionPair?, failure: String?
     public var closure: OrdinaryWindowClosure?

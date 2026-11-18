@@ -1,3 +1,4 @@
+import CoreGraphics
 import CryptoKit
 import Darwin
 import Foundation
@@ -9,9 +10,35 @@ import Security
 final class NativeSelectionPermit: @unchecked Sendable {
     private let lock = NSLock()
     private var active = true
+    // Do not collect keys, events or window content. A new physical press supersedes an
+    // older programmatic selection even when the user clicked outside Nearpane.
+    static func inputCounters() -> [UInt32] {
+        let kinds: [CGEventType] = [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel]
+        return kinds.map { CGEventSource.counterForEventType(.hidSystemState, eventType: $0) }
+    }
+
+    private let current: @MainActor @Sendable () -> Bool
+    private let checkOriginalWindow: @MainActor @Sendable () async -> Bool
+    init(current: @escaping @MainActor @Sendable () -> Bool = { true },
+         checkOriginalWindow: @escaping @MainActor @Sendable () async -> Bool = { true }) {
+        self.current = current
+        self.checkOriginalWindow = checkOriginalWindow
+    }
+
+    func gesturePermission(for id: UUID, after steps: Int) async -> NativeSpaceStepPermission {
+        guard lock.withLock({ active }), await checkOriginalWindow() else {
+            return .init(id: id, submittedSteps: steps, proceed: false)
+        }
+        return permission(for: id, after: steps)
+    }
+
     func revoke() { lock.withLock { active = false } }
     func permission(for id: UUID, after steps: Int) -> NativeSpaceStepPermission {
-        lock.withLock { .init(id: id, submittedSteps: steps, proceed: active) }
+        // The pipe actors do synchronous I/O. Keep the pipe serialized while the Host
+        // checks this user intent, observation lifetime and sidebar visibility.
+        let current = Thread.isMainThread ? MainActor.assumeIsolated { self.current() }
+            : DispatchQueue.main.sync { self.current() }
+        return lock.withLock { .init(id: id, submittedSteps: steps, proceed: active && current) }
     }
 }
 
@@ -37,6 +64,8 @@ private actor SpaceActionChannel {
         }
     }
     private var connection: Connection?
+    private var exchanging = false
+    private var waiting = [CheckedContinuation<Void, Never>]()
 
     private func connect() throws -> Connection {
         if let connection, connection.process.isRunning { return connection }
@@ -83,7 +112,14 @@ private actor SpaceActionChannel {
         return try JSONDecoder().decode(NativeSpaceReply.self, from: payload)
     }
 
-    func exchange(_ command: NativeSpaceCommand, permit: NativeSelectionPermit?) -> NativeSpaceReply {
+    func exchange(_ command: NativeSpaceCommand, permit: NativeSelectionPermit?) async -> NativeSpaceReply {
+        // Probes can arrive while the independent window worker checks its retained AX
+        // element. Only one caller may consume replies from this helper at a time.
+        if exchanging { await withCheckedContinuation { waiting.append($0) } }
+        exchanging = true
+        defer {
+            if waiting.isEmpty { exchanging = false } else { waiting.removeFirst().resume() }
+        }
         var mayHaveIssued = false
         do {
             try Task.checkCancellation()
@@ -103,7 +139,7 @@ private actor SpaceActionChannel {
                 if reply.state != .awaitingStep { return reply }
                 guard command.action == .select, granted < 16, reply.submittedSteps == granted
                 else { throw CocoaError(.coderReadCorrupt) }
-                let decision = permit?.permission(for: command.id, after: granted)
+                let decision = await permit?.gesturePermission(for: command.id, after: granted)
                     ?? .init(id: command.id, submittedSteps: granted, proceed: false)
                 try channel.input.write(contentsOf: JSONEncoder().encode(decision) + Data([10]))
                 mayHaveIssued = mayHaveIssued || decision.proceed

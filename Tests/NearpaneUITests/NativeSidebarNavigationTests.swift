@@ -92,4 +92,36 @@ import Testing
         #expect(!permit.permission(for: command.id, after: 1).permits(command, after: 1, now: 51))
     }
 
+    @Test func eachGestureRequiresTheOriginalAXElementEvenIfTheNumericIDIsReused() async {
+        var element = UUID()
+        let original = element
+        let permit = NativeSelectionPermit(checkOriginalWindow: { element == original })
+        let id = UUID()
+        let first = await permit.gesturePermission(for: id, after: 0)
+        #expect(first.proceed)
+        element = UUID()
+        let next = await permit.gesturePermission(for: id, after: 1)
+        #expect(!next.proceed)
+    }
+
+    @Test func lateFocusWriteNeedsFreshIntentAndTheOriginalLifetime() {
+        let original = UUID()
+        var lifetime: UUID? = original
+        var physicalPress: UInt32 = 0
+        let permit = NativeSelectionPermit { lifetime == original && physicalPress == 0 }
+        let request = OrdinaryWindowRequest(.focusCurrent, pid: 42, launch: 86, bundle: "org.fixture", focusDeadline: 4)
+        let first = permit.permission(for: request.nonce, after: 0)
+        #expect(first.permitsFocus(request, after: 0, now: 1))
+        #expect(!first.permitsFocus(request, after: 1, now: 1))
+        #expect(!first.permitsFocus(request, after: 0, now: 4))
+        physicalPress += 1
+        #expect(!permit.permission(for: request.nonce, after: 1).permitsFocus(request, after: 1, now: 2))
+        physicalPress = 0
+        lifetime = UUID()
+        #expect(!permit.permission(for: request.nonce, after: 1).permitsFocus(request, after: 1, now: 2))
+        lifetime = original
+        permit.revoke()
+        #expect(!permit.permission(for: request.nonce, after: 1).permitsFocus(request, after: 1, now: 2))
+    }
+
 }

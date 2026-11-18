@@ -72,31 +72,41 @@ private actor OrdinaryWindowChannel {
         try? output.close()
     }
 
-    func call(_ command: OrdinaryWindowRequest) throws -> OrdinaryWindowReply {
+    func call(_ command: OrdinaryWindowRequest, permit: NativeSelectionPermit? = nil) throws -> OrdinaryWindowReply {
         guard process.isRunning else { throw OrdinaryWindowFailure("窗口助手已结束，原授权失效。") }
         let reply: OrdinaryWindowReply
         do {
             var bytes = try JSONEncoder().encode(command)
             bytes.append(10)
             try input.write(contentsOf: bytes)
-            var result = Data()
+            var nextStep = 0
             let deadline = ProcessInfo.processInfo.systemUptime + 8
-            while result.count <= 64_000 {
-                let remaining = deadline - ProcessInfo.processInfo.systemUptime
-                var descriptor = pollfd(fd: output.fileDescriptor, events: Int16(POLLIN), revents: 0)
-                guard remaining > 0,
-                      poll(&descriptor, 1, Int32(min(remaining * 1000, 8000))) > 0
-                else { throw OrdinaryWindowFailure("窗口助手超时或已停止，保留恢复记录。") }
-                // On Darwin FileHandle.read(upToCount:) waits for the count or EOF. This pipe
-                // carries many newline-delimited replies and intentionally stays open.
-                var buffer = [UInt8](repeating: 0, count: 8192)
-                let n = Darwin.read(output.fileDescriptor, &buffer, buffer.count)
-                guard n > 0 else { throw OrdinaryWindowFailure("窗口助手已结束，保留恢复记录。") }
-                result.append(contentsOf: buffer.prefix(n))
-                if result.last == 10 { break }
+            while true {
+                var result = Data()
+                while result.count <= 64_000 {
+                    let remaining = deadline - ProcessInfo.processInfo.systemUptime
+                    var descriptor = pollfd(fd: output.fileDescriptor, events: Int16(POLLIN), revents: 0)
+                    guard remaining > 0,
+                          poll(&descriptor, 1, Int32(min(remaining * 1000, 8000))) > 0
+                    else { throw OrdinaryWindowFailure("窗口助手超时或已停止，保留恢复记录。") }
+                    // On Darwin FileHandle.read(upToCount:) waits for the count or EOF. This pipe
+                    // carries many newline-delimited replies and intentionally stays open.
+                    var buffer = [UInt8](repeating: 0, count: 8192)
+                    let n = Darwin.read(output.fileDescriptor, &buffer, buffer.count)
+                    guard n > 0 else { throw OrdinaryWindowFailure("窗口助手已结束，保留恢复记录。") }
+                    result.append(contentsOf: buffer.prefix(n))
+                    if result.last == 10 { break }
+                }
+                let message = try JSONDecoder().decode(OrdinaryWindowReply.self, from: result)
+                guard message.nonce == command.nonce else { throw OrdinaryWindowFailure("收到过期的窗口操作回执。") }
+                guard let step = message.focusStep else { reply = message; break }
+                guard command.action == .focusCurrent, nextStep == step, step < 8, let permit else {
+                    throw OrdinaryWindowFailure("窗口助手的焦点步骤无效。")
+                }
+                let decision = permit.permission(for: command.nonce, after: step)
+                try input.write(contentsOf: JSONEncoder().encode(decision) + Data([10]))
+                nextStep += 1
             }
-            reply = try JSONDecoder().decode(OrdinaryWindowReply.self, from: result)
-            guard reply.nonce == command.nonce else { throw OrdinaryWindowFailure("收到过期的窗口操作回执。") }
         } catch {
             try? input.close()
             if process.isRunning { process.terminate() }
@@ -200,10 +210,17 @@ private actor OrdinaryWindowChannel {
         }
         return try await sample(.acknowledgeBoundary, from: observation.previous, to: frame, revision: revision)
     }
-    func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval, space: String? = nil) async throws {
+    func stillSelected() async -> Bool {
+        guard !closed, let result = try? await channel.call(.init(.refresh, pid: id.pid, launch: id.launch, bundle: bundle)),
+              let choices = result.choices, choices.count <= 64 else { return false }
+        // Refresh keeps the original element UUID only for a unique live CFEqual AX object.
+        return !closed && choices.compactMap { $0 }.filter { $0.number == id.number } == [id]
+    }
+
+    func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval, space: String?, permit: NativeSelectionPermit) async throws {
         guard !closed else { throw OrdinaryWindowFailure("窗口已关闭。") }
         _ = try await channel.call(.init(.focusCurrent, pid: id.pid, launch: id.launch, bundle: bundle, id: id,
-                                         expected: frame, focusDisplay: display, focusDeadline: deadline, focusSpace: space))
+                                         expected: frame, focusDisplay: display, focusDeadline: deadline, focusSpace: space), permit: permit)
     }
 
     func verify(expected: SurfaceRect) async throws -> AdmissionPair { try await sample(.verify, from: expected) }

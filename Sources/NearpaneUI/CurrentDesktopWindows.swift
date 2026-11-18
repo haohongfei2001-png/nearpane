@@ -24,6 +24,7 @@ import OSLog
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var events: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var reportedCounts: [Int]?
+    @ObservationIgnored weak var automaticTiling: DesktopAutomaticTiling?
     @ObservationIgnored var didSample: (() -> Void)?
     private var panelRequested = false
     private var managementRequested = false

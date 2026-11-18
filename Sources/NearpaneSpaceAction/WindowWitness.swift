@@ -6,10 +6,23 @@ struct WindowWitness {
     let identity: NativeSpaceWindow
     let element: AXUIElement
     let frame: CGRect
-    let siblings: [UInt32: [String]]
+    struct Sibling: Equatable {
+        let element: AXUIElement
+        let spaces: [String]
 
-    static func membership(_ number: UInt32) -> [String]? {
-        guard let raw = NPReadWindowSpaces(number) as? [Any], !raw.isEmpty, raw.count <= 256 else { return nil }
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            CFEqual(lhs.element, rhs.element) && lhs.spaces == rhs.spaces
+        }
+    }
+
+    let siblings: [UInt32: Sibling]
+    // Some layer-zero surfaces have no AX window, e.g. a hidden, unassigned AppKit surface.
+    // Keep them in both inventories. An empty system response is distinct from a failed read.
+    let otherCGSurfaces: [UInt32: [String]]
+
+    static func membership(_ number: UInt32, allowEmpty: Bool = false) -> [String]? {
+        guard let raw = NPReadWindowSpaces(number) as? [Any], allowEmpty || !raw.isEmpty,
+              raw.count <= 256 else { return nil }
         let values = raw.compactMap(ActionInventory.id)
         return values.count == raw.count && Set(values).count == values.count ? values.sorted() : nil
     }
@@ -19,7 +32,7 @@ struct WindowWitness {
         return AXUIElementCopyAttributeValue(window, key as CFString, &reply) == .success ? reply : nil
     }
 
-    private static func owner(_ identity: NativeSpaceWindow) -> Bool {
+    static func owner(_ identity: NativeSpaceWindow) -> Bool {
         var info = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue: info))
         return identity.pid > 1 && identity.pid != getpid() && identity.pid != getppid()
@@ -28,7 +41,7 @@ struct WindowWitness {
             && info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec == identity.birth
     }
 
-    private static func cgFrame(_ id: NativeSpaceWindow) -> CGRect? {
+    static func cgFrame(_ id: NativeSpaceWindow) -> CGRect? {
         guard let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, id.number) as? [[String: Any]],
               rows.count == 1, let row = rows.first,
               row[kCGWindowNumber as String] as? UInt32 == id.number,
@@ -64,24 +77,47 @@ struct WindowWitness {
               abs(point.x - cg.minX) <= 2, abs(point.y - cg.minY) <= 2,
               abs(size.width - cg.width) <= 2, abs(size.height - cg.height) <= 2
         else { throw ActionFailure("系统窗口几何仍在过渡。") }
-        var siblings: [UInt32: [String]] = [:]
+        var siblings: [UInt32: Sibling] = [:]
         for sibling in windows where !CFEqual(sibling, w) {
             let number = NPReadAXWindowNumber(sibling)
-            guard number > 0, number != id.number, siblings[number] == nil, let membership = membership(number)
+            var siblingPID: pid_t = 0
+            guard AXUIElementGetPid(sibling, &siblingPID) == .success, siblingPID == id.pid,
+                  number > 0, number != id.number, siblings[number] == nil, let spaces = membership(number)
             else { throw ActionFailure("同应用其他窗口的归属无法确认。") }
-            siblings[number] = membership
+            siblings[number] = Sibling(element: sibling, spaces: spaces)
         }
-        return .init(identity: id, element: w, frame: cg, siblings: siblings)
+        guard let all = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        else { throw ActionFailure("无法核对同应用窗口清单。") }
+        var numbers = Set<UInt32>()
+        var otherCGSurfaces = [UInt32: [String]]()
+        for row in all where row[kCGWindowOwnerPID as String] as? Int32 == id.pid &&
+            row[kCGWindowLayer as String] as? Int == 0 {
+            guard let n = row[kCGWindowNumber as String] as? UInt32, n > 0, numbers.insert(n).inserted, numbers.count <= 256
+            else { throw ActionFailure("同应用窗口清单不完整。") }
+            if n != id.number && siblings[n] == nil {
+                guard let spaces = membership(n, allowEmpty: true) else { throw ActionFailure("同应用窗口的归属无法核对。") }
+                otherCGSurfaces[n] = spaces
+            }
+        }
+        guard numbers.contains(id.number), owner(id), NPReadAXWindowNumber(w) == id.number else {
+            throw ActionFailure("窗口进程或目标身份已变化。")
+        }
+        return .init(identity: id, element: w, frame: cg, siblings: siblings, otherCGSurfaces: otherCGSurfaces)
     }
 
     func agreesBeforeDispatch(with other: Self) -> Bool {
-        identity == other.identity && CFEqual(element, other.element) && siblings == other.siblings &&
+        sameWindowAndSiblings(as: other) &&
         abs(frame.minX - other.frame.minX) <= 2 && abs(frame.minY - other.frame.minY) <= 2 &&
         abs(frame.width - other.frame.width) <= 2 && abs(frame.height - other.frame.height) <= 2
     }
 
+    func sameWindowAndSiblings(as other: Self) -> Bool {
+        identity == other.identity && CFEqual(element, other.element) && siblings == other.siblings &&
+        otherCGSurfaces == other.otherCGSurfaces
+    }
+
     func stillIdentical() -> Bool {
         Self.owner(identity) && Self.cgFrame(identity) != nil && NPReadAXWindowNumber(element) == identity.number &&
-        siblings.allSatisfy { Self.membership($0.key) == $0.value }
+        siblings.allSatisfy { Self.membership($0.key) == $0.value.spaces }
     }
 }

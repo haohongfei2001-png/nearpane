@@ -43,6 +43,7 @@ func run(_ request: NativeSpaceCommand, available: Bool,
         var expected = start.currents
         var progress = from
         var witness: WindowWitness?
+        var selectedWindow: SelectedWindowWitness?
         if request.action == .move {
             guard canMove, let window = request.window, let target = UInt64(request.target)
             else { throw ActionFailure("缺少窗口迁移权限或系统支持。") }
@@ -50,7 +51,6 @@ func run(_ request: NativeSpaceCommand, available: Bool,
             witness = checked
             oldMembership = WindowWitness.membership(window.number)
             guard oldMembership == [request.source] else { throw ActionFailure("窗口的来源空间已改变。") }
-            if from == to { after = start; newMembership = oldMembership; return reply(.confirmed, "窗口已在目标桌面。") }
             let live = try WindowWitness.read(window, display: display)
             guard checked.agreesBeforeDispatch(with: live), try ActionInventory.read() == start,
                   live.stillIdentical(),
@@ -58,10 +58,12 @@ func run(_ request: NativeSpaceCommand, available: Bool,
             else { throw ActionFailure("迁移前窗口或空间已改变。") }
             let submitted = ProcessInfo.processInfo.systemUptime
             guard request.isFresh(at: submitted) else { throw ActionFailure("迁移动作已过期。") }
+            if from == to { after = start; newMembership = oldMembership; return reply(.confirmed, "窗口已在目标桌面。") }
             issued = NPRequestMove(window.number, target)
             if issued { issuedAt = submitted; steps = 1 }
         } else {
-            guard canSwitch, request.window == nil else { throw ActionFailure("缺少向系统请求桌面切换的权限。") }
+            guard canSwitch else { throw ActionFailure("缺少向系统请求桌面切换的权限。") }
+            selectedWindow = try request.window.map { try SelectedWindowWitness($0, display: display, space: request.target) }
             if from == to { after = start; return reply(.confirmed, "已在目标桌面。") }
             guard try ActionInventory.read() == start else { throw ActionFailure("切换前显示器或空间已改变。") }
             expected[UUID(uuidString: request.display)!.uuidString] = request.target
@@ -72,15 +74,17 @@ func run(_ request: NativeSpaceCommand, available: Bool,
                 var allowed = start.currents
                 let key = UUID(uuidString: request.display)!.uuidString
                 allowed[key] = display.spaces[previous].id
-                let permission = try authorize(reply(.awaitingStep, "等待确认当前选择。"))
-                guard permission.permits(request, after: steps, now: ProcessInfo.processInfo.systemUptime) else {
-                    throw ActionFailure("后续桌面动作已取消或超时。")
-                }
                 let immediatelyBefore = try ActionInventory.read()
                 after = immediatelyBefore
                 guard immediatelyBefore.agrees(with: start, expected: allowed), isBundledChild(),
                       CGPreflightPostEventAccess(), ProcessInfo.processInfo.systemUptime < deadline
                 else { throw ActionFailure("下一步之前，来源桌面、授权或路由已改变。") }
+                try selectedWindow?.verify()
+                let permission = try authorize(reply(.awaitingStep, "等待确认当前选择。"))
+                guard permission.permits(request, after: steps, now: ProcessInfo.processInfo.systemUptime) else {
+                    throw ActionFailure("后续桌面动作已取消或超时。")
+                }
+                guard ProcessInfo.processInfo.systemUptime < deadline else { throw ActionFailure("桌面切换已超时。") }
                 let next = previous + step
                 let quick = next != to || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
                 let submitted = ProcessInfo.processInfo.systemUptime
@@ -114,11 +118,17 @@ func run(_ request: NativeSpaceCommand, available: Bool,
             Thread.sleep(forTimeInterval: 0.035)
             let view = try ActionInventory.read()
             after = view
-            let now = ProcessInfo.processInfo.systemUptime
             if let witness {
-                guard witness.stillIdentical() else { throw ActionFailure("提交后窗口或同应用其他窗口已改变。") }
-                newMembership = WindowWitness.membership(witness.identity.number)
+                let rebound = try WindowWitness.read(witness.identity, display: display)
+                guard witness.sameWindowAndSiblings(as: rebound),
+                      let membership = WindowWitness.membership(witness.identity.number),
+                      try ActionInventory.read() == view else {
+                    throw ActionFailure("提交后窗口、同应用其他窗口或空间已改变。")
+                }
+                newMembership = membership
             }
+            let now = ProcessInfo.processInfo.systemUptime
+            if witness != nil, now >= deadline { break }
             if request.action == .select {
                 progress = try view.transition(from: start, request: request, previous: progress)
             } else if !view.agrees(with: start, expected: expected) {
@@ -126,7 +136,10 @@ func run(_ request: NativeSpaceCommand, available: Bool,
             }
             let reached = view.currents == expected && (witness == nil || newMembership == [request.target])
             if reached {
-                if let stableSince, now - stableSince >= 0.16 { return reply(.confirmed, "已由系统连续确认目标。") }
+                if let stableSince, now - stableSince >= 0.16 {
+                    try selectedWindow?.verify()
+                    return reply(.confirmed, "已由系统连续确认目标。")
+                }
                 if stableSince == nil { stableSince = now }
             } else { stableSince = nil }
         } while ProcessInfo.processInfo.systemUptime < deadline

@@ -37,6 +37,12 @@ public struct NativeSpaceStepPermission: Codable, Sendable {
         self.proceed = proceed
     }
 
+    public func permitsFocus(_ request: OrdinaryWindowRequest, after steps: Int, now: TimeInterval) -> Bool {
+        guard request.action == .focusCurrent, let deadline = request.focusDeadline else { return false }
+        return id == request.nonce && submittedSteps == steps && (0..<8).contains(steps) && proceed &&
+            deadline > now && deadline - now <= 12
+    }
+
     public func permits(_ request: NativeSpaceCommand, after steps: Int, now: TimeInterval) -> Bool {
         request.action == .select && id == request.id && submittedSteps == steps && proceed && request.isFresh(at: now)
     }

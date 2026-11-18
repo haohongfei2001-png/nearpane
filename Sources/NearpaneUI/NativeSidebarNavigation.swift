@@ -2,6 +2,11 @@ import AppKit
 import NearpaneCore
 import OSLog
 
+struct UnconfirmedSpaceMove: LocalizedError {
+    let errorDescription: String?
+    init(_ description: String) { errorDescription = description }
+}
+
 struct NativeSidebarDestination: Equatable {
     let session: UUID
     let topology: String
@@ -100,25 +105,41 @@ struct NativeSidebarMember: Equatable {
 
     func select(_ destination: NativeSidebarDestination, member: NativeSidebarMember?, feed: CurrentDesktopWindows,
                 allowed: @escaping @MainActor () -> Bool) {
+        let userInput = NativeSelectionPermit.inputCounters()
         let lifetime = member.flatMap { feed.lifetime(of: $0.key) }
         submit { [weak self] token in
             @MainActor func valid() -> Bool {
-                guard self?.isCurrent(token) == true, allowed() else { return false }
+                guard self?.isCurrent(token) == true, allowed(), WindowContentPreview.sessionAvailable(),
+                      NativeSelectionPermit.inputCounters() == userInput else { return false }
                 return member.map { lifetime != nil && feed.lifetime(of: $0.key) == lifetime } ?? true
             }
             guard valid(), let before = await feed.readNow(), let map = destination.resolve(before),
                   member == nil || member?.resolve(before) != nil, valid() else {
                 throw OrdinaryWindowFailure("桌面或窗口已变化，请重新选择。")
             }
+            let bound: OrdinaryWindowAX?
+            if map.current.id != destination.space, let member {
+                // Retain the exact AX element across the switch and focus operation.
+                // A rebuilt window with the same CG number cannot inherit the click.
+                bound = try await DesktopWindowSelection.bind(member.key)
+                guard valid(), let fresh = await feed.readNow(), member.resolve(fresh) != nil,
+                      destination.resolve(fresh)?.current.id == map.current.id, valid() else {
+                    throw OrdinaryWindowFailure("所选窗口或来源桌面已变化。")
+                }
+            } else { bound = nil }
+            let permit = NativeSelectionPermit(current: valid, checkOriginalWindow: {
+                guard let bound else { return member == nil }
+                return await bound.stillSelected()
+            })
+            self?.activeSelection = permit
+            defer { if self?.activeSelection === permit { self?.activeSelection = nil } }
             var current = before
             if map.current.id != destination.space {
                 guard let sourceUUID = map.current.nativeUUID, let sourceKind = map.current.nativeKind else { throw OrdinaryWindowFailure("当前空间无法执行此操作。") }
                 let request = NativeSpaceCommand(id: UUID(), action: .select, display: destination.display,
                     source: map.current.id, target: destination.space, sourceUUID: sourceUUID, targetUUID: destination.uuid,
+                    window: member.map { .init(pid: $0.key.pid, birth: $0.key.birth, number: $0.key.number) },
                     sourceKind: sourceKind, targetKind: destination.kind)
-                let permit = NativeSelectionPermit()
-                self?.activeSelection = permit
-                defer { if self?.activeSelection === permit { self?.activeSelection = nil } }
                 let reply = await NativeSpaceActionClient.shared.run(request, permit: permit)
                 feed.changed()
                 guard reply.id == request.id, reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
@@ -145,26 +166,42 @@ struct NativeSidebarMember: Equatable {
                 verifySpace: {
                     guard valid(), let fresh = await feed.readNow() else { return false }
                     return destination.resolve(fresh)?.current.id == destination.space && target.present(in: fresh)
-                }, stillCurrent: valid)
+                }, stillCurrent: valid, bound: bound, permit: permit)
         }
     }
 
     func move(_ member: NativeSidebarMember, into dest: NativeSidebarDestination, lifetime: UUID, feed: CurrentDesktopWindows,
               allowed: @escaping @MainActor () -> Bool) {
         guard member.source != dest, member.source.kind == .ordinary, dest.kind == .ordinary else { return }
-        submit(selection: false) { _ in
-            guard allowed(), let current = await feed.readNow(), let map = dest.resolve(current),
-                  member.source.display == dest.display, let w = member.resolve(current),
-                  case .known(let ids) = w.membership, ids == [member.source.space],
-                  feed.lifetime(of: member.key) == lifetime, map.rows.contains(where: { $0.id == member.source.space }), allowed() else {
-                throw OrdinaryWindowFailure("拖动的窗口或目标桌面已变化。")
+        submit(selection: false) { [weak self] _ in
+            @MainActor func transfer() async throws {
+                guard allowed(), let current = await feed.readNow(), let map = dest.resolve(current),
+                      member.source.display == dest.display, let w = member.resolve(current),
+                      case .known(let ids) = w.membership, ids == [member.source.space],
+                      feed.lifetime(of: member.key) == lifetime, map.rows.contains(where: { $0.id == member.source.space }), allowed() else {
+                    throw OrdinaryWindowFailure("拖动的窗口或目标桌面已变化。")
+                }
+                let request = NativeSpaceCommand(id: UUID(), action: .move, display: dest.display,
+                    source: member.source.space, target: dest.space, sourceUUID: member.source.uuid, targetUUID: dest.uuid,
+                    window: .init(pid: member.key.pid, birth: member.key.birth, number: member.key.number))
+                let reply = await NativeSpaceActionClient.shared.run(request)
+                feed.changed()
+                guard reply.id == request.id, reply.state != .outcomeUnknown else {
+                    throw UnconfirmedSpaceMove("窗口归属变化尚未确认，已保留原管理记录。")
+                }
+                guard reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
+                guard reply.membershipBefore == [member.source.space], reply.membershipAfter == [dest.space] else {
+                    throw UnconfirmedSpaceMove("窗口迁移的归属回读不完整。")
+                }
             }
-            let request = NativeSpaceCommand(id: UUID(), action: .move, display: dest.display,
-                source: member.source.space, target: dest.space, sourceUUID: member.source.uuid, targetUUID: dest.uuid,
-                window: .init(pid: member.key.pid, birth: member.key.birth, number: member.key.number))
-            let reply = await NativeSpaceActionClient.shared.run(request)
-            feed.changed()
-            guard reply.id == request.id, reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
+            if let tiling = feed.automaticTiling {
+                let source = OrdinaryDesktopIdentity(display: member.source.display, record: member.source.space, uuid: member.source.uuid)
+                let target = OrdinaryDesktopIdentity(display: dest.display, record: dest.space, uuid: dest.uuid)
+                self?.issue = try await tiling.transfer(member.key, lifetime: lifetime, from: source, to: target, perform: transfer)
+            } else {
+                try await transfer()
+                self?.issue = "窗口已移入目标桌面。该桌面未授权自动分屏。"
+            }
         }
     }
 }
