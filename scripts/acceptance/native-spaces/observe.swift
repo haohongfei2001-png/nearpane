@@ -222,13 +222,32 @@ func surfaceToggle(_ args: [String]) -> Object {
     let item = entries[0]
     let wanted = args[4] == "hide" ? "隐藏侧栏" : "显示侧栏"
     // Setting is changed only by a labeled item in the live product's own status menu.
-    guard AXUIElementPerformAction(item, kAXPressAction as CFString) == .success else {
-        return ["issued":false, "reason":"status menu unavailable"]
+    func menus() -> [AXUIElement] {
+        (value(item, kAXChildrenAttribute) as? [AXUIElement] ?? []).filter { value($0, kAXRoleAttribute) as? String == "AXMenu" }
     }
-    defer { _ = AXUIElementPerformAction(item, kAXCancelAction as CFString) }
+    var names: CFArray?
+    _ = AXUIElementCopyActionNames(item, &names)
+    let actions = names as? [String] ?? []
+    // NSStatusItem can synchronously track its menu. AXPress may time out while the
+    // menu is actually open. A bounded AX timeout followed by readback avoids replay.
+    _ = AXUIElementSetMessagingTimeout(item, 0.4)
+    let existingMenus = menus()
+    let presented = existingMenus.isEmpty
+    var menuResult: Int32?
+    if presented {
+        guard let action = [kAXPressAction, kAXShowMenuAction].first(where: actions.contains) else {
+            return ["issued":false,"reason":"status menu has no opening action","actions":actions]
+        }
+        menuResult = AXUIElementPerformAction(item, action as CFString).rawValue
+    }
+    defer {
+        if presented {
+            for menu in menus() { _ = AXUIElementPerformAction(menu, kAXCancelAction as CFString) }
+        }
+    }
     for _ in 0..<18 {
-        let menus = (value(item, kAXChildrenAttribute) as? [AXUIElement] ?? []).filter { value($0,kAXRoleAttribute) as? String == "AXMenu" }
-        if menus.count == 1, let children = value(menus[0], kAXChildrenAttribute) as? [AXUIElement] {
+        let shown = menus()
+        if shown.count == 1, let children = value(shown[0], kAXChildrenAttribute) as? [AXUIElement] {
             let matches = children.filter { value($0, kAXRoleAttribute) as? String == "AXMenuItem" &&
                 value($0, kAXTitleAttribute) as? String == wanted && value($0, kAXEnabledAttribute) as? Bool == true }
             guard matches.count == 1 else { return ["issued":false,"reason":"toggle absent or state changed"] }
@@ -236,7 +255,7 @@ func surfaceToggle(_ args: [String]) -> Object {
         }
         Thread.sleep(forTimeInterval: 0.04)
     }
-    return ["issued":false,"reason":"menu did not expose toggle"]
+    return ["issued":false,"reason":"menu did not expose toggle","openResult":menuResult as Any? ?? NSNull(),"actions":actions]
 }
 if CommandLine.arguments.count > 1 {
     if CommandLine.arguments[1] == "absence" {
