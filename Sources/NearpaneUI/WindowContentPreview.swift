@@ -73,13 +73,15 @@ struct PreviewWindowBinding: Equatable {
 
 /// Every consumer, including a draw of the same desk revision, must still have access.
 @MainActor @Observable final class WindowPreviewStill {
+    let byteCharge: Int
     private let pixels: CGImage
     private let allowed: @MainActor () -> Bool
     private let expires = ContinuousClock.now.advanced(by: .seconds(60))
     private(set) var revision: UInt64
 
     init?(pixels: CGImage, revision: UInt64, allowed: @escaping @MainActor () -> Bool) {
-        guard allowed() else { return nil }
+        guard allowed(), let cost = PreviewPixelBudget.charge(pixels), cost <= PreviewPixelBudget.pickerBytes else { return nil }
+        byteCharge = cost
         self.pixels = pixels; self.revision = revision; self.allowed = allowed
     }
 
@@ -105,6 +107,10 @@ struct PreviewWindowBinding: Equatable {
     private(set) var choosing = false
     private(set) var notice = ""
     private(set) var binding: PreviewWindowBinding?
+    @ObservationIgnored private(set) var pickerCaptureRequests: UInt64 = 0
+    @ObservationIgnored private(set) var pickerInFlight = 0
+    var cacheBytes: Int { gallery.cacheBytes + (still?.byteCharge ?? 0) }
+    var cacheCount: Int { gallery.cacheCount + (still == nil ? 0 : 1) }
     private var still: WindowPreviewStill?
     var hasStill: Bool { still != nil }
     var revision: UInt64? { still?.revision }
@@ -276,6 +282,9 @@ struct PreviewWindowBinding: Equatable {
         config.ignoreShadowsSingleWindow = true; config.includeChildWindows = false
         config.showsCursor = false; config.capturesAudio = false
         do {
+            pickerCaptureRequests &+= 1
+            pickerInFlight += 1
+            defer { pickerInFlight -= 1 }
             let shot = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
             guard operation == op else { return }
             let stillSameWindow = await proof.verify()

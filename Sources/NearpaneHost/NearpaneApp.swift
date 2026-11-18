@@ -350,12 +350,22 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
         }
         let distributed = DistributedNotificationCenter.default()
+        distributed.addObserver(self, selector: #selector(readPreviewMetrics(_:)),
+            name: .init("com.holdsnow.nearpane.preview-metrics.request"), object: String(getpid()))
         for name in ["com.apple.screenIsLocked", "com.apple.screenIsUnlocked"] {
             distributed.addObserver(self, selector: #selector(lockChanged(_:)), name: .init(name), object: nil)
         }
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
         readDesktopAvailability(.sample)
+    }
+
+    @objc private func readPreviewMetrics(_ notification: Notification) {
+        guard let value = notification.userInfo?["nonce"] as? String, let nonce = UUID(uuidString: value),
+              let metrics = modules?.windowPreviewMetrics else { return }
+        DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+            object: nonce.uuidString, userInfo: metrics.merging(["pid": NSNumber(value: getpid())]) { a, _ in a },
+            deliverImmediately: true)
     }
 
     private func readDesktopAvailability(_ event: DesktopSessionAvailability.Event) {

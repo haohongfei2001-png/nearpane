@@ -94,7 +94,11 @@ struct DesktopWindowTarget: Equatable {
         let image: CGImage
         let time: TimeInterval
     }
-    private var stills = [DesktopWindowKey: Still]()
+    private let stills = PreviewPixelCache<DesktopWindowKey, Still>()
+    @ObservationIgnored private(set) var captureRequests: UInt64 = 0
+    @ObservationIgnored private(set) var capturesInFlight = 0
+    var cacheCount: Int { stills.count }
+    var cacheBytes: Int { stills.bytes }
     private var missingPictures = [DesktopWindowKey: String]()
     private(set) var generation: UInt64 = 0
     // A per-display lease prevents cancelled or superseded captures from being published.
@@ -111,14 +115,18 @@ struct DesktopWindowTarget: Equatable {
         if onScreen {
             if visible[display, default: []].insert(key).inserted { changes[display]?.yield(()) }
         }
-        else { visible[display]?.remove(key); stills.removeValue(forKey: key); missingPictures.removeValue(forKey: key) }
+        else {
+            visible[display]?.remove(key)
+            if stills.peek(key)?.target.overviewSpace == nil { stills.remove(key) }
+            missingPictures.removeValue(forKey: key)
+        }
     }
 
     func clear(display: String? = nil) {
         if let display {
             operations.removeValue(forKey: display)
             changes.removeValue(forKey: display)?.finish()
-            stills = stills.filter { $0.value.target.display != display }
+            stills.remove { _, still in still.target.display == display }
             missingPictures = missingPictures.filter { $0.value != display }
         } else {
             generation &+= 1
@@ -130,7 +138,22 @@ struct DesktopWindowTarget: Equatable {
 
     func image(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
         guard permitted, visible[target.display]?.contains(target.key) == true,
-              let still = stills[target.key], still.target.samePicture(as: target), now - still.time < 12 else { return nil }
+              let still = stills.peek(target.key), still.target.samePicture(as: target), now - still.time < 12 else { return nil }
+        stills.touch(target.key)
+        return still.image
+    }
+
+    /// The caller resolves this exact key from fresh membership in the requested map row.
+    /// Never reuse an unscoped foreground capture or start a capture on a background desktop.
+    func imageForMap(key: DesktopWindowKey, display: String, space: String, session: UUID,
+                     topology: String, permitted: Bool) -> CGImage? {
+        guard permitted, permitsWindow(key), WindowContentPreview.sessionAvailable(),
+              CGPreflightScreenCaptureAccess(), let still = stills.peek(key),
+              still.target.session == session, still.target.topology == topology, still.target.display == display,
+              still.target.overviewSpace == space, ProcessInfo.processInfo.systemUptime - still.time < 60,
+              still.target.liveOwner() != nil, still.target.sharedSurface(visible: false, matchFrame: false)
+        else { return nil }
+        stills.touch(key)
         return still.image
     }
 
@@ -174,15 +197,23 @@ struct DesktopWindowTarget: Equatable {
                 }
             }
             lastTargets = active
-            for (key, still) in stills where still.target.display == display && active[key]?.samePicture(as: still.target) != true {
-                stills.removeValue(forKey: key)
+            let observed = Dictionary(grouping: sample.windows, by: { $0.metadata?.number })
+            stills.remove { key, still in
+                let old = still.target
+                guard old.display == display, active[key]?.samePicture(as: old) != true else { return false }
+                guard let space = old.overviewSpace, old.session == sample.sessionID, old.topology == sample.topologyFingerprint,
+                      ProcessInfo.processInfo.systemUptime - still.time < 60, let matches = observed[key.number], matches.count == 1,
+                      let row = matches.first, row.displayID == display, row.metadata?.pid == key.pid,
+                      row.metadata?.launchMicroseconds == key.birth, case .known(let members) = row.membership,
+                      members.contains(space) else { return true }
+                return false
             }
             attempted = attempted.filter { active[$0.key] != nil }
             misses = misses.filter { active[$0.key] != nil }
             let now = ProcessInfo.processInfo.systemUptime
             let due = targets.filter { target in
                 // Newly mapped windows may be registered before SCK can deliver a surface.
-                let firstPicture = stills[target.key] == nil && (misses[target.key] ?? 0) < 4
+                let firstPicture = stills.peek(target.key) == nil && (misses[target.key] ?? 0) < 4
                 let interval: TimeInterval = firstPicture ? 0.20 : (target.publiclyVisible ? 1 : 2)
                 return now - (attempted[target.key] ?? -.infinity) >= interval
             }
@@ -207,7 +238,7 @@ struct DesktopWindowTarget: Equatable {
                 var jobs = [(DesktopWindowTarget, Task<CGImage?, Never>)]()
                 for target in batch {
                     attempted[target.key] = now
-                    if stills[target.key] == nil { misses[target.key, default: 0] += 1 }
+                    if stills.peek(target.key) == nil { misses[target.key, default: 0] += 1 }
                     guard target.present(in: before), target.present(in: snapshot()), visible[display]?.contains(target.key) == true,
                           let candidates = shared[target.key.number], candidates.count == 1, let window = candidates.first,
                           target.liveOwner() != nil, window.owningApplication?.processID == target.key.pid,
@@ -217,7 +248,10 @@ struct DesktopWindowTarget: Equatable {
                     } else {
                         guard window.isOnScreen, target.matches(window.frame), target.isVisibleSurface() else { continue }
                     }
-                    jobs.append((target, Task { await Self.capture(window) }))
+                    jobs.append((target, Task {
+                        guard permitted(), visible[display]?.contains(target.key) == true else { return nil }
+                        return await self.capture(window)
+                    }))
                 }
                 var pictures = [(DesktopWindowTarget, CGImage)]()
                 for (target, job) in jobs {
@@ -238,9 +272,11 @@ struct DesktopWindowTarget: Equatable {
                     guard target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
                           visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
                           (viaMembership.contains(target.key) ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
-                        stills.removeValue(forKey: target.key); continue
+                        stills.remove(target.key); continue
                     }
-                    stills[target.key] = Still(target: target, image: image, time: ProcessInfo.processInfo.systemUptime)
+                    guard let cost = PreviewPixelBudget.charge(image) else { continue }
+                    let still = Still(target: target, image: image, time: ProcessInfo.processInfo.systemUptime)
+                    stills.store(still, for: target.key, cost: cost)
                     misses.removeValue(forKey: target.key)
                     missingPictures.removeValue(forKey: target.key)
                 }
@@ -248,7 +284,7 @@ struct DesktopWindowTarget: Equatable {
         }
     }
 
-    private static func capture(_ window: SCWindow) async -> CGImage? {
+    private func capture(_ window: SCWindow) async -> CGImage? {
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let rect = filter.contentRect
         guard rect.width.isFinite, rect.height.isFinite, min(rect.width, rect.height) > 0 else { return nil }
@@ -259,6 +295,9 @@ struct DesktopWindowTarget: Equatable {
         config.showsCursor = false; config.capturesAudio = false; config.ignoreShadowsSingleWindow = true
         config.ignoreGlobalClipSingleWindow = true; config.preservesAspectRatio = true
         if #available(macOS 14.2, *) { config.includeChildWindows = false }
+        captureRequests &+= 1
+        capturesInFlight += 1
+        defer { capturesInFlight -= 1 }
         return try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
     }
 }
