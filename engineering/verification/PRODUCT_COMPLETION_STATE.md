@@ -1,6 +1,8 @@
 # Nearpane 产品完成状态（持续维护入口）
 
-> **原生空间专项（2026-11-18）：** 新一轮开发与验收已建立 [专项入口](../native-spaces/README.md) 和 [独立状态表](../native-spaces/STATUS.md)。下文保留历次实测的时间、范围与失败记录；旧的只读阶段、未授权操作或历史关闭状态不替代当前专项授权和实施计划。专项全部新验收目前均为 NOT_RUN，历史部分通过不能推导完整原生空间体验已经通过。
+> **原生空间专项（2026-11-18）：** 新一轮开发与验收已建立 [专项入口](../native-spaces/README.md) 和 [独立状态表](../native-spaces/STATUS.md)。下文保留历次实测的时间、范围与失败记录；旧的只读阶段、未授权操作或历史关闭状态不替代当前专项授权和实施计划。5.20 已补入单屏同桌面的跨应用分屏和四窗预览实测。跨 Space 能力继续按各自验收场景记录。
+
+**5.20 Alpha（73）**　统一安装版已运行。同一普通桌面的两款独立测试应用已从实际设置自动左右平分，包含授权后新开第二窗。停止后两窗恢复，AX/CG 最大误差 0 pt。日常安装进程读到 7 张窗口卡，隔离原生侧栏实拍匹配 4 扇窗口。启动日志显示日常进程的辅助功能和录屏尚未授权。苹果系统手势和跨 Space 切换仍有独立限制。[实机、权限与回退](P5.20-DESKTOP-OVERVIEW-AND-AUTO-TILING.md)
 
 从本文件和当前分支 HEAD 接手。权威顺序：[产品定义](../../PRODUCT_DEFINITION.md)、[ADR-010](../../decisions/ADR-010-DUAL-WORKSPACE-MODES.md)、[011](../../decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)、[012](../../decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)、[013](../../decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)、[视觉权威](../../design/NEARPANE-VISUAL-AUTHORITY.md)。固定分支 `implementation/host-foundation-20261109`；总任务开始于 `b2af573876aa120a1db003d9b82542daee6409e4`。个人资料、主屏工作窗口不作为验收对象。
 
