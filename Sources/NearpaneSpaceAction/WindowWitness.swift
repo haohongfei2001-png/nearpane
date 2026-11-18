@@ -5,6 +5,7 @@ import NearpaneCore
 struct WindowWitness {
     let identity: NativeSpaceWindow
     let element: AXUIElement
+    let frame: CGRect
     let siblings: [UInt32: [String]]
 
     static func membership(_ number: UInt32) -> [String]? {
@@ -70,7 +71,13 @@ struct WindowWitness {
             else { throw ActionFailure("同应用其他窗口的归属无法确认。") }
             siblings[number] = membership
         }
-        return .init(identity: id, element: w, siblings: siblings)
+        return .init(identity: id, element: w, frame: cg, siblings: siblings)
+    }
+
+    func agreesBeforeDispatch(with other: Self) -> Bool {
+        identity == other.identity && CFEqual(element, other.element) && siblings == other.siblings &&
+        abs(frame.minX - other.frame.minX) <= 2 && abs(frame.minY - other.frame.minY) <= 2 &&
+        abs(frame.width - other.frame.width) <= 2 && abs(frame.height - other.frame.height) <= 2
     }
 
     func stillIdentical() -> Bool {

@@ -35,6 +35,9 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     /// The overview reader twice matched this window's membership to this display's
     /// current ordinary Space. WindowServer may present it outside the active stage.
     public let overviewSpaceID: String?
+    /// Repeated CG frame and usable display intersection in the fast inventory. A
+    /// stage-strip presentation or changing frame has membership but no map geometry.
+    public let hasCatalogGeometry: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
@@ -42,7 +45,8 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
-                axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil) {
+                axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil, hasCatalogGeometry: Bool? = nil) {
+        self.hasCatalogGeometry = hasCatalogGeometry
         self.onActiveDesktop = onActiveDesktop
         self.overviewSpaceID = overviewSpaceID
         self.number = number; self.pid = pid; self.launchMicroseconds = launchMicroseconds; self.element = element
@@ -161,8 +165,12 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
         return snapshot.windows.allSatisfy { w in
             guard let m = w.metadata, m.number > 0, m.pid > 0, m.frontToBack >= 0, m.globalFrame.geometry.isValid,
                   w.confidence != .synthetic else { return false }
+            let catalogMember: Bool
+            if catalogComplete != nil, m.hasCatalogGeometry == false, case .known(let ids) = w.membership {
+                catalogMember = snapshot.scopes.contains { $0.displayID == w.displayID && $0.records.contains { ids.contains($0.id) } }
+            } else { catalogMember = false }
             guard let display = snapshot.displays.first(where: { $0.id == w.displayID }),
-                  (m.globalFrame.geometry.intersection(display.frame.geometry) != nil || m.overviewSpaceID != nil),
+                  (m.globalFrame.geometry.intersection(display.frame.geometry) != nil || m.overviewSpaceID != nil || catalogMember),
                   w.bounds == SurfaceRect(x: m.globalFrame.x - display.frame.x, y: m.globalFrame.y - display.frame.y,
                                           width: m.globalFrame.width, height: m.globalFrame.height) else { return false }
             if let ax = m.axFrame, !ax.geometry.isValid { return false }

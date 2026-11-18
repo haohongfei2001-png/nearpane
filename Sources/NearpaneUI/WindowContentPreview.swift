@@ -351,7 +351,7 @@ private final class WindowPickerObserver: NSObject, SCContentSharingPickerObserv
         var owners = [Int32: (UInt64, Badge)](), badges = [String: Badge]()
         for w in snapshot.windows {
             guard let m = w.metadata, let birth = m.launchMicroseconds, m.pid > 0, birth > 0,
-                  m.isOnscreen == true || m.overviewSpaceID != nil else { continue }
+                  m.isOnscreen == true || m.overviewSpaceID != nil || w.membership != .unknown else { continue }
             if owners[m.pid] == nil {
                 var info = proc_bsdinfo()
                 let size = Int32(MemoryLayout.size(ofValue: info))

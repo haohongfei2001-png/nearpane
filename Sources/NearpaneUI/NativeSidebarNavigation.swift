@@ -107,10 +107,19 @@ struct NativeSidebarMember: Equatable {
                 feed.changed()
                 guard reply.id == request.id, reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
                 guard valid() else { return }
-                guard let read = await feed.readNow(), destination.resolve(read)?.current.id == destination.space else {
-                    throw OrdinaryWindowFailure("尚未确认目标桌面。")
-                }
-                current = read
+                // A coalesced overview read may have begun before the helper's final
+                // WindowServer acknowledgement. Wait for an independent settled read.
+                let end = ContinuousClock.now.advanced(by: .milliseconds(1100))
+                var reached: DesktopSnapshot?
+                repeat {
+                    if let read = await feed.readNow(), destination.resolve(read)?.current.id == destination.space {
+                        reached = read; break
+                    }
+                    guard valid() else { return }
+                    try await Task.sleep(for: .milliseconds(70))
+                } while ContinuousClock.now < end
+                guard let reached else { throw OrdinaryWindowFailure("尚未确认目标桌面。") }
+                current = reached
             }
             guard valid(), let member else { return }
             guard let window = member.resolve(current), let target = DesktopWindowTarget(window, in: current),

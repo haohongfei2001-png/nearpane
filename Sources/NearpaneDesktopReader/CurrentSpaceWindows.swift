@@ -28,6 +28,7 @@ extension Reader {
         let currentByDisplay = Dictionary(uniqueKeysWithValues: (inventory?.scopes ?? []).map { scope in
             (scope.displayID, scope.records.first(where: \.isCurrent))
         }).compactMapValues { $0 }
+        let stageManager = StageManagerPreference.read()
         var windows = [WindowObservation]()
         // Absence only proves emptiness when every eligible CG surface was accounted for.
         var complete = Set(first.windows.map(\.windowID)) == Set(second.windows.map(\.windowID))
@@ -40,7 +41,7 @@ extension Reader {
             let visible = active.contains(entry.windowID) && before.isOnscreen == true && entry.isOnscreen == true
             let left = firstBoundary?.membership[entry.windowID], right = lastBoundary?.membership[entry.windowID]
             guard left == right else { complete = false; continue }
-            if case .known = right {} else { complete = false }
+            if right == nil || right == .unknown { complete = false }
             let slice = try topology.geometry.slices(of: entry.frame).max(by: { $0.fractionOfWindow < $1.fractionOfWindow })
             let display: DisplayObservation
             if let hit = topology.displays.first(where: { $0.id == slice?.displayID }) {
@@ -63,9 +64,9 @@ extension Reader {
                 if let record, record.ordinaryUUID != nil, ids.contains(record.id) { proof = record.id }
             }
             guard visible || nativeMember else { continue }
-            // Unlocatable background surfaces cannot supply a desktop frame.
-            guard slice?.displayID == display.id || proof != nil else { complete = false; continue }
-            if proof == nil {
+            // A background member can be stored outside the display. Keep its identity
+            // for selection without inventing a frame in the Space miniature.
+            if !nativeMember {
                 let previousDisplay = try topology.geometry.slices(of: before.frame).max(by: { $0.fractionOfWindow < $1.fractionOfWindow })?.displayID
                 guard previousDisplay == display.id else { complete = false; continue }
             }
@@ -74,7 +75,9 @@ extension Reader {
             let meta = ObservedWindowMetadata(number: entry.windowID, pid: entry.process.pid,
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: nil, globalFrame: global,
                 frontToBack: windows.count, minimized: nil, fullScreen: nil, isOnscreen: entry.isOnscreen,
-                onActiveDesktop: visible, overviewSpaceID: proof)
+                onActiveDesktop: visible, overviewSpaceID: proof,
+                hasCatalogGeometry: before.frame == entry.frame && slice?.displayID == display.id &&
+                    (visible || stageManager == false))
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }
@@ -83,7 +86,7 @@ extension Reader {
             displays: topology.displays, scopes: inventory?.scopes ?? [], windows: windows,
             evidence: .init(population: .workWindows, accessibility: AXIsProcessTrusted() ? .available : .denied,
                 spaces: inventory == nil ? .disabled : .observed, rows: [], windowLimitReached: false,
-                beganUptime: start, endedUptime: clock.systemUptime,
+                beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))
     }
 }

@@ -62,6 +62,7 @@ struct NativeSpaceNavigator: View {
         VStack(alignment: .leading, spacing: 5) {
             ForEach(Array(catalog.rows.enumerated()), id: \.element.id) { index, row in
                 let destination = NativeSidebarDestination(row, in: catalog)
+                let unplaced = row.windows.filter { $0.metadata?.hasCatalogGeometry == false }
                 let title = row.record.fullscreenUUID == nil ? "桌面 \(index + 1)" : "全屏"
                 ZStack(alignment: .topLeading) {
                     Button {
@@ -94,7 +95,8 @@ struct NativeSpaceNavigator: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity).allowsHitTesting(false)
                             }
                             ForEach(row.windows.reversed()) { window in
-                                if let dest = destination, let member = NativeSidebarMember(window, source: dest),
+                                if window.metadata?.hasCatalogGeometry != false,
+                                   let dest = destination, let member = NativeSidebarMember(window, source: dest),
                                    let clipped = window.bounds.geometry.intersection(
                                     SurfaceRect(x: 0, y: 0, width: screen.width, height: screen.height).geometry) {
                                     miniature(member, name: badges[window.id]?.name ?? "窗口", icon: badges[window.id]?.icon,
@@ -106,6 +108,25 @@ struct NativeSpaceNavigator: View {
                         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
                     }
                     .padding(.top, 22).padding(.horizontal, 4).padding(.bottom, 4)
+                    if let destination, !unplaced.isEmpty {
+                        // An unlocated window is still selectable from its own identity.
+                        // The menu stays outside the scaled desktop geometry.
+                        HStack {
+                            Spacer()
+                            Menu {
+                                ForEach(unplaced) { window in
+                                    if let member = NativeSidebarMember(window, source: destination) {
+                                        Button(badges[window.id]?.name ?? "窗口") { select(destination, member) }
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "macwindow.on.rectangle").font(.caption2)
+                            }
+                            .menuStyle(.borderlessButton).fixedSize().padding(3)
+                            .disabled(!canSwitch && destination.space != catalog.current.id)
+                            .accessibilityLabel("另有 " + String(unplaced.count) + " 扇窗口的位置尚未确认")
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity).aspectRatio(1.9, contentMode: .fit)
                 .background(.primary.opacity(row.record.isCurrent ? 0.09 : 0.035), in: RoundedRectangle(cornerRadius: 7))
@@ -119,6 +140,7 @@ struct NativeSpaceNavigator: View {
                                 Button((badges[w.id]?.name ?? "窗口") + (sameApp.count > 1 ? ordinal : "")) {
                                     select(destination, m)
                                 }
+                                .disabled(!canSwitch && destination.space != catalog.current.id)
                             }
                         }
                     }

@@ -49,7 +49,9 @@ func run(_ request: NativeSpaceCommand, available: Bool) -> NativeSpaceReply {
             oldMembership = WindowWitness.membership(window.number)
             guard oldMembership == [request.source] else { throw ActionFailure("窗口的来源空间已改变。") }
             if from == to { after = start; newMembership = oldMembership; return reply(.confirmed, "窗口已在目标桌面。") }
-            guard try ActionInventory.read() == start, checked.stillIdentical(),
+            let live = try WindowWitness.read(window, display: display)
+            guard checked.agreesBeforeDispatch(with: live), try ActionInventory.read() == start,
+                  live.stillIdentical(),
                   WindowWitness.membership(window.number) == oldMembership
             else { throw ActionFailure("迁移前窗口或空间已改变。") }
             let submitted = ProcessInfo.processInfo.systemUptime
