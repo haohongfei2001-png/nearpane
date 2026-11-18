@@ -84,10 +84,10 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         }
         let mainIsTarget = waitFor(0.35) { exact(kAXMainWindowAttribute) }
         try validate()
-        let siblings = try windows(id.pid)
-        let active = activeNumbers()
-        let allHere = siblings.allSatisfy { number($0).map { active.contains($0) || isMember($0) } == true }
-        try require(mainIsTarget && exact(kAXMainWindowAttribute) && (allHere || exact(kAXFocusedWindowAttribute)),
+        // Admission binds this window. A sibling on a different Space neither authorizes
+        // the selected window nor prevents selecting it after its desktop is current.
+        try require(mainIsTarget && exact(kAXMainWindowAttribute) &&
+                    (isMember(id.number) || activeNumbers().contains(id.number)),
                     "无法确认置前会留在当前桌面。")
         let before = frontPID()
         try require(before == origin || before == id.pid, "前台已变化，请重新选择。")

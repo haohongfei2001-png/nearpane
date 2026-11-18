@@ -113,7 +113,8 @@ public extension DesktopSnapshot {
     /// This public observation works even when the optional private Space inventory is disabled.
     func currentDesktopWindows(on displayID: String, now: Date, uptime: Double) -> [WindowObservation] {
         guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime), native?.windowLimitReached == false else { return [] }
-        let current = native?.rows.first { $0.displayID == displayID }?.recordID
+        let current = native?.rows.first { $0.displayID == displayID }?.recordID ??
+            scopes.first { $0.displayID == displayID }?.records.first(where: \.isCurrent)?.id
         return windows.filter { window in
             guard window.displayID == displayID, let m = window.metadata, m.number > 0, m.fullScreen != true else { return false }
             let publiclyVisible = m.onActiveDesktop == true && m.isOnscreen == true && m.minimized != true

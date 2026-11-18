@@ -27,11 +27,14 @@ struct DesktopSurface: View {
     @ViewState private var layoutBadges: [String: WindowAppBadges.Badge] = [:]
     @ViewState private var layoutExpanded = false
     @ViewState private var choices = WindowChoiceQueue()
+    @ViewState private var sidebarDrag = NativeSidebarDrag()
     @ViewState private var selectionIssue: String?
     @ViewState private var badgeSource: BadgeRefresh?
 
     private var overview: DesktopSnapshot? {
-        if let feed = display?.pointer?.windowPreviews?.currentDesktop { return feed.snapshot }
+        if let feed = display?.pointer?.windowPreviews?.currentDesktop {
+            return WindowContentPreview.sessionAvailable() ? (feed.snapshot ?? feed.lastPresentation) : nil
+        }
         return host.providerFailed ? nil : host.bus.desktop
     }
 
@@ -54,6 +57,43 @@ struct DesktopSurface: View {
                                 let desired = settings.points(.spaceRowHeight,in:available) * Double(rows)
                                 let members = snapshot.currentDesktopWindows(on: displayID ?? "", now: now, uptime: uptime)
                                 let canvasHeight = members.isEmpty ? max(1, desired) : min(max(1, desired), max(44, min(width * 0.70, available * 0.42)) * Double(rows))
+                                if let catalog = NativeSpaceCatalog(snapshot, displayID: displayID ?? "", now: now, uptime: uptime),
+                                   let feed = display?.pointer?.windowPreviews?.currentDesktop {
+                                    let inset = pad + 2
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        if !members.isEmpty {
+                                            ScrollView(.vertical) {
+                                                windowList(members, snapshot: snapshot, width: max(1, width - 2 * inset))
+                                                    .padding(.horizontal, inset).padding(.top, pad)
+                                            }
+                                            .defaultScrollAnchor(.top)
+                                            .frame(maxHeight: min(height * 0.56, CGFloat(members.count) * 132 + 26))
+                                        }
+                                        ScrollView(.vertical) {
+                                            NativeSpaceNavigator(catalog: catalog, drag: sidebarDrag, feed: feed, badges: appBadges,
+                                                gallery: display?.pointer?.windowPreviews?.gallery,
+                                                permitted: host.configuration.showsWindowThumbnails && CGPreflightScreenCaptureAccess()
+                                                    && WindowContentPreview.sessionAvailable() && canNavigate,
+                                                canSwitch: feed.snapshot != nil && NativeSidebarNavigation.shared.canSwitch,
+                                                canMove: feed.snapshot != nil && NativeSidebarNavigation.shared.canMove,
+                                                select: { dest, member in
+                                                    NativeSidebarNavigation.shared.select(dest, member: member, feed: feed, allowed: { canNavigate })
+                                                }, move: { member, dest, lifetime in
+                                                    NativeSidebarNavigation.shared.move(member, into: dest, lifetime: lifetime, feed: feed, allowed: { canNavigate })
+                                                })
+                                                .padding(.horizontal, inset)
+                                        }
+                                        .defaultScrollAnchor(.top)
+                                    }
+                                    .frame(width: width, height: height, alignment: .topLeading)
+                                    .task(id: ProbeKey(session: catalog.session, topology: catalog.topology,
+                                                       available: canNavigate, accessibility: snapshot.native?.accessibility)) {
+                                        if canNavigate { await NativeSidebarNavigation.shared.probe(display: catalog.display.id) }
+                                    }
+                                    .task(id: BadgeRefresh(session: snapshot.sessionID, revision: snapshot.revision, visible: canNavigate)) {
+                                        if canNavigate { appBadges = WindowAppBadges.resolve(snapshot) }
+                                    }
+                                } else {
                                 ScrollView(.vertical) {
                                     let bounds = SurfaceRect(x:(size.size.width-width)/2+pad,y:pad,width:width-pad*2,height:canvasHeight-pad*2)
                                     if !members.isEmpty {
@@ -97,8 +137,9 @@ struct DesktopSurface: View {
                                 .defaultScrollAnchor(.top)
                                 .frame(maxWidth: .infinity, alignment: .topLeading)
                                 .frame(height: height, alignment: .topLeading)
+                                }
                             }
-                            if let issue = selectionIssue ?? host.workspaceIssue.map({ issue in
+                            if let issue = NativeSidebarNavigation.shared.issue ?? selectionIssue ?? host.workspaceIssue.map({ issue in
                                 issue == .minimumSize ? "窗口最小尺寸超出可用区域" : "当前无法执行工作空间操作"
                             }) {
                                 Text(issue)
@@ -112,6 +153,14 @@ struct DesktopSurface: View {
         }
         .accessibilityHint("选择当前桌面的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
+    }
+
+    private struct ProbeKey: Equatable {
+        let session: UUID, topology: String, available: Bool, accessibility: AXReadStatus?
+    }
+
+    private var canNavigate: Bool {
+        host.isRunning && !host.configuration.surfaceHidden && display?.interactionVisible == true && display?.id == displayID
     }
 
     private struct GalleryRun: Equatable {
@@ -138,13 +187,23 @@ struct DesktopSurface: View {
                     let label = siblings.count > 1 ? "\(name) · \(ordinal)" : name
                     let target = DesktopWindowTarget(window, in: snapshot)
                     let picture = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
+                    let origin = snapshot.scopes.first(where: { $0.displayID == id })?.records.first(where: { $0.isCurrent })
+                    let member: NativeSidebarMember? = origin.flatMap { record in
+                        guard let uuid = record.ordinaryUUID else { return nil }
+                        let source = NativeSidebarDestination(session: snapshot.sessionID, topology: snapshot.topologyFingerprint,
+                                                             display: id, space: record.id, uuid: uuid)
+                        return NativeSidebarMember(window, source: source)
+                    }
                     Button {
-                        if let target { selectWindow(target, snapshot: snapshot, hasAX: hasAX) }
+                        if let member, let feed = previews?.currentDesktop {
+                            NativeSidebarNavigation.shared.select(member.source, member: member, feed: feed, allowed: { canNavigate })
+                        } else if let target { selectWindow(target, snapshot: snapshot, hasAX: hasAX) }
                     } label: {
                         DesktopWindowCard(label: label, icon: badge?.icon, image: picture, pictureHeight: pictureHeight,
                                           unavailable: permitted && target.map { gallery?.lacksPicture($0) == true } == true)
                     }
                     .buttonStyle(.plain).disabled(target == nil)
+                    .modifier(NativeWindowDragSource(member: NativeSidebarNavigation.shared.canMove ? member : nil, drag: sidebarDrag, feed: previews?.currentDesktop))
                     .accessibilityLabel(label).accessibilityHint("将这扇窗口切换到前台")
                     .accessibilityIdentifier("current-desktop-window")
                     .help(target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label)

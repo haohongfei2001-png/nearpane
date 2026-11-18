@@ -12,6 +12,13 @@ import OSLog
     private let session = UUID()
     private var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
+    /// Presentation can bridge a short transient. Management and actions only consume
+    /// snapshot/readNow, which lose authority on the first failed observation.
+    private(set) var lastPresentation: DesktopSnapshot?
+    @ObservationIgnored private var retry: Task<Void, Never>?
+    @ObservationIgnored private var failures = 0
+    @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
+    func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
     @ObservationIgnored private var epoch = UUID()
     @ObservationIgnored private var pending: (UUID, Task<DesktopSnapshot?, Never>)?
     @ObservationIgnored private var loop: Task<Void, Never>?
@@ -33,6 +40,9 @@ import OSLog
         pending?.1.cancel()
         pending = nil
         snapshot = nil
+        lastPresentation = nil
+        lifetimes.removeAll()
+        retry?.cancel(); retry = nil; failures = 0
         didSample?()
         changed()
     }
@@ -83,6 +93,21 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                retry?.cancel()
+                retry = nil
+                if let next {
+                    lastPresentation = next
+                    failures = 0
+                } else {
+                    failures = min(4, failures + 1)
+                    if failures >= 3 || !sessionAvailable() { lastPresentation = nil }
+                    let delay = [180, 360, 720, 1500][failures - 1]
+                    retry = Task {
+                        do { try await Task.sleep(for: .milliseconds(delay)) } catch { return }
+                        guard expected == epoch else { return }
+                        events.yield(())
+                    }
+                }
                 didSample?()
                 if let next {
                     let counts = [next.windows.count, next.windows.filter { $0.metadata?.onActiveDesktop == false }.count]
@@ -99,7 +124,7 @@ import OSLog
     /// Used on both sides of a background picture batch and before an explicit click.
     /// Concurrent consumers join the same in-flight read.
     func readNow() async -> DesktopSnapshot? {
-        guard events != nil, sessionAvailable() else { return nil }
+        guard events != nil, sessionAvailable() else { lifetimes.removeAll(); return nil }
         let expected = epoch
         if let pending {
             let result = await pending.1.value
@@ -109,10 +134,21 @@ import OSLog
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
             fixtureWindows: nil, anchors: [], experimentalSpaces: false)
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
-            guard let result = try? await read(request), let self, !Task.isCancelled,
-                  expected == self.epoch, self.sessionAvailable(),
+            let readback = try? await read(request)
+            guard let self, !Task.isCancelled, expected == self.epoch else { return nil }
+            guard let result = readback, self.sessionAvailable(),
                   result.sessionID == request.session, result.revision == request.revision, result.isStructurallyValid,
-                  result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return nil }
+                  result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
+                self.lifetimes.removeAll()
+                return nil
+            }
+            var next = [DesktopWindowKey: UUID]()
+            for window in result.windows {
+                guard let meta = window.metadata, let birth = meta.launchMicroseconds, birth > 0 else { continue }
+                let key = DesktopWindowKey(pid: meta.pid, birth: birth, number: meta.number)
+                next[key] = self.lifetimes[key] ?? UUID()
+            }
+            self.lifetimes = next
             return result
         }
         let token = UUID()

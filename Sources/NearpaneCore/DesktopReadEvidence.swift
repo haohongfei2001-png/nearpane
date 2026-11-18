@@ -115,11 +115,15 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     public var rows: [ObservedSpaceRow]
     /// Read-only system preference, independent of any individual window's presentation.
     public let stageManagerEnabled: Bool?
+    /// Completeness of the regular-app, layer-zero window inventory, including background desktops.
+    public let catalogComplete: Bool?
     public let windowLimitReached: Bool
     public let beganUptime, endedUptime: Double
 
     public init(population: DesktopReadPopulation, accessibility: AXReadStatus, spaces: SpaceReadStatus,
-                rows: [ObservedSpaceRow], windowLimitReached: Bool, beganUptime: Double, endedUptime: Double, stageManagerEnabled: Bool? = nil) {
+                rows: [ObservedSpaceRow], windowLimitReached: Bool, beganUptime: Double, endedUptime: Double, stageManagerEnabled: Bool? = nil,
+                catalogComplete: Bool? = nil) {
+        self.catalogComplete = catalogComplete
         self.stageManagerEnabled = stageManagerEnabled
         self.population = population; self.accessibility = accessibility; self.spaces = spaces; self.rows = rows
         self.windowLimitReached = windowLimitReached; self.beganUptime = beganUptime; self.endedUptime = endedUptime
