@@ -45,6 +45,10 @@ struct DesktopSurface: View {
                     .layoutPriority(1)
             }
         }
+        // Scope the region identifier to its own AX group. On macOS a VStack's identifier
+        // otherwise propagates to sibling text and buttons, including the permission guide.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("本屏窗口总览")
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()

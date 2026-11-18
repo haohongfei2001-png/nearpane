@@ -26,7 +26,7 @@ app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
 version=5.21
-build_number=81
+build_number=82
 name="Nearpane P$version Alpha.app"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-/Applications}"
 if [[ -z "${NEARPANE_CANDIDATE_OUTPUT:-}" && ! -e /Applications/Nearpane.app &&
