@@ -5,6 +5,25 @@ import WindowGeometryCore
 @testable import NearpaneDesktopReader
 
 struct SpaceInventoryTests {
+    @Test func stableStageStripCGDoesNotReplaceTheLogicalWindowFrame() {
+        // Both rectangles were stable across four samples of the same owned window on 26A428.
+        let strip = Rect(1302, 756, 152, 141), owned = Rect(465, 388, 540, 213)
+        let staged = Reader.catalogGeometry(firstLogical: owned, lastLogical: owned, firstCG: strip, lastCG: strip,
+                                             stageDefinitelyOff: false)
+        #expect(staged.logical == owned && !staged.usualPresentation)
+        let visible = Reader.catalogGeometry(firstLogical: owned, lastLogical: owned, firstCG: owned, lastCG: owned,
+                                              stageDefinitelyOff: false)
+        #expect(visible.logical == owned && visible.usualPresentation)
+        let unsupported = Reader.catalogGeometry(firstLogical: nil, lastLogical: nil, firstCG: strip, lastCG: strip,
+                                                  stageDefinitelyOff: false)
+        #expect(unsupported.logical == nil && !unsupported.usualPresentation)
+        let changing = Reader.catalogGeometry(firstLogical: owned, lastLogical: strip, firstCG: strip, lastCG: strip,
+                                               stageDefinitelyOff: true)
+        #expect(changing.logical == nil && !changing.usualPresentation)
+        let ordinary = Reader.catalogGeometry(firstLogical: nil, lastLogical: nil, firstCG: owned, lastCG: owned,
+                                               stageDefinitelyOff: true)
+        #expect(ordinary.usualPresentation)
+    }
     @Test func windowDisplayNeedsStableOwnershipAcrossSamplesAndUnambiguousTies() throws {
         let left = Rect(0, 0, 800, 600), right = Rect(800, 0, 800, 600)
         let geometry = try DesktopGeometry(displays: [

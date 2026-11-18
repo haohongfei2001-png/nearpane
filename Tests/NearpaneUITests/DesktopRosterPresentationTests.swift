@@ -99,7 +99,8 @@ import NearpaneCore
                 let r = SurfaceRect(x: Double(10 * n), y: 20, width: 1640, height: n.isMultiple(of: 2) ? 560 : 720)
                 return WindowObservation(id: "fixture-\(n)", displayID: screen.id, bounds: r, membership: .unknown,
                     confidence: .unknown, metadata: .init(number: UInt32(n), pid: 100000, launchMicroseconds: 100,
-                    element: nil, globalFrame: r, frontToBack: n - 1, minimized: false, fullScreen: false, isOnscreen: true, onActiveDesktop: true))
+                    element: nil, globalFrame: r, frontToBack: n - 1, minimized: false, fullScreen: false, isOnscreen: true,
+                    onActiveDesktop: true, hasCatalogGeometry: true))
             }
             let sample = DesktopSnapshot.observed(.init(session: UUID(), revision: 1, parentPID: 1, fixtureWindows: nil,
                 anchors: [], experimentalSpaces: false), from: now, to: now, build: "fixture", topology: "one",

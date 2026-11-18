@@ -226,25 +226,46 @@ func fixtureResult(_ args: [String]) -> Object {
           let scope = spaces?.first(where: { $0["scope"] as? String == args[8] }),
           let sid = scope["current"] as? UInt64, String(sid) == args[9],
           (scope["records"] as? [Object])?.contains(where: { $0["id"] as? UInt64 == sid && $0["type"] as? Int == 0 }) == true,
-          (NPReadWindowSpaces(number) as? [UInt64]) == [sid],
-          rows.filter({ $0[kCGWindowNumber as String] as? UInt32 == number &&
-                         $0[kCGWindowOwnerPID as String] as? pid_t == fixturePID }).count == 1 else {
+          let memberships = NPReadWindowSpaces(number) as? [UInt64],
+          args[1] == "roster-shared-card" ? memberships.contains(sid) : memberships == [sid] else {
         return ["issued": false, "reason": "changed source, application, window or signing identity"]
     }
+    let owned = rows.filter { $0[kCGWindowNumber as String] as? UInt32 == number && $0[kCGWindowOwnerPID as String] as? pid_t == fixturePID }
+    guard owned.count == 1 else { return ["issued": false, "reason": "no unique owner CG record"] }
     let target = "current-desktop-window:" + args[4] + ":" + args[5]
-    if args[1] == "roster-card" {
+    if args[1] == "roster-card" || args[1] == "roster-shared-card" {
         let index = Sidebar(host, rows: rows)
+        let cg = owned[0]
+        var out: Object = ["observed": false, "window": number, "fixturePID": fixturePID,
+                           "spaceRows": index.controls.keys.filter { $0.hasPrefix("native-space-row:") }.count,
+                           "membershipCount": memberships.count, "currentSpaceMember": memberships.contains(sid),
+                           "stageManager": stage as Any? ?? NSNull(),
+                           "publicVisible": (NSWindow.windowNumbers(options: .allApplications) ?? []).contains(NSNumber(value: number)),
+                           "cgOnscreen": cg[kCGWindowIsOnscreen as String] as? Bool ?? false,
+                           "cgLayer": cg[kCGWindowLayer as String] as Any? ?? NSNull()]
+        if let raw = cg[kCGWindowBounds as String] as? NSDictionary, let frame = CGRect(dictionaryRepresentation: raw) {
+            out["cgSize"] = [frame.width, frame.height]
+        }
+        let fixture = AXUIElementCreateApplication(fixturePID)
+        _ = AXUIElementSetMessagingTimeout(fixture, 0.2)
+        let matches = (value(fixture, kAXWindowsAttribute) as? [AXUIElement] ?? []).filter { NPReadAXWindowNumber($0) == number }
+        if matches.count == 1, let attribute = value(matches[0], kAXSizeAttribute), CFGetTypeID(attribute) == AXValueGetTypeID() {
+            var axSize = CGSize.zero
+            if AXValueGetValue(attribute as! AXValue, .cgSize, &axSize) { out["axSize"] = [axSize.width, axSize.height] }
+        }
         guard let exact = index.controls[target], exact.count == 1, let pixels = value(exact[0], kAXValueAttribute) as? String,
               let origin = value(exact[0], kAXPositionAttribute), CFGetTypeID(origin) == AXValueGetTypeID(),
               let extent = value(exact[0], kAXSizeAttribute), CFGetTypeID(extent) == AXValueGetTypeID() else {
-            return ["observed": false, "reason": "no unique fixture card in installed sidebar"]
+            out["reason"] = "no unique fixture card in installed sidebar"
+            return out
         }
         var point = CGPoint.zero, size = CGSize.zero
         guard AXValueGetValue(origin as! AXValue, .cgPoint, &point), AXValueGetValue(extent as! AXValue, .cgSize, &size) else {
-            return ["observed": false, "reason": "no measured card bounds"]
+            out["reason"] = "no measured card bounds"
+            return out
         }
-        return ["observed": true, "value": pixels, "cardY": point.y, "cardHeight": size.height,
-                "spaceRows": index.controls.keys.filter { $0.hasPrefix("native-space-row:") }.count]
+        out["observed"] = true; out["value"] = pixels; out["cardY"] = point.y; out["cardHeight"] = size.height
+        return out
     }
     if args[1] == "fixture-inventory" {
         let ax = AXUIElementCreateApplication(fixturePID)

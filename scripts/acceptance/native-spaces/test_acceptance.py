@@ -5,10 +5,44 @@ from pathlib import Path
 from unittest.mock import patch
 
 from acceptance import Receipt, catalog_match, host_current_permissions
-from roster import same_scale
+from roster import evaluate, same_scale
 
 
 class EvidenceTests(unittest.TestCase):
+    @staticmethod
+    def fixture_roster():
+        sizes = [[540, 213], [240, 383]]
+        return sizes, [dict(observed=True, cardY=y, cardHeight=43, spaceRows=0, window=i,
+                            value=desc, axSize=size, cgSize=size)
+                       for i, (size, desc, y) in enumerate(zip(sizes, ["窗口轮廓，预览 54 × 21 pt", "窗口轮廓，预览 24 × 38 pt"], [42, 85]))]
+
+    def test_installed_roster_accepts_actual_distinct_relative_sizes(self):
+        sizes, cards = self.fixture_roster()
+        self.assertEqual("PASS", evaluate(sizes, cards)["status"])
+
+    def test_presentation_rectangle_used_as_the_window_is_a_failure(self):
+        sizes, cards = self.fixture_roster()
+        cards[0].update(cgSize=[150, 139], value="窗口轮廓，预览 15 × 14 pt")
+        self.assertEqual("FAIL", evaluate(sizes, cards)["status"])
+        cards[0].update(value="窗口尺寸待核对")
+        result = evaluate(sizes, cards)
+        self.assertEqual("BLOCKED", result["status"])
+        self.assertTrue(result["windowGeometry"][0]["presentationMismatchSafelyWithheld"])
+
+    def test_unknown_size_or_skipped_card_cannot_prove_safe_rejection(self):
+        sizes, cards = self.fixture_roster()
+        cards[0].update(cgSize=None, value="窗口尺寸待核对")
+        self.assertFalse(evaluate(sizes, cards)["windowGeometry"][0]["presentationMismatchSafelyWithheld"])
+        cards[0]["observed"] = False
+        self.assertEqual("BLOCKED", evaluate(sizes, cards)["status"])
+
+    def test_correct_sizes_overlapping_or_with_desktop_rows_still_fail(self):
+        sizes, cards = self.fixture_roster()
+        cards[0]["spaceRows"] = 1
+        self.assertEqual("FAIL", evaluate(sizes, cards)["status"])
+        cards[0].update(spaceRows=0, cardY=cards[1]["cardY"])
+        self.assertEqual("FAIL", evaluate(sizes, cards)["status"])
+
     def test_same_scale_requires_relative_size_and_shape(self):
         source = [[540, 208], [240, 378]]
         self.assertTrue(same_scale(source, [[54, 21], [24, 38]]))

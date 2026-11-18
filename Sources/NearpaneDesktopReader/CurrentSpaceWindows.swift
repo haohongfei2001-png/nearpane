@@ -4,6 +4,21 @@ import NearpaneCore
 import WindowGeometryCore
 
 extension Reader {
+    private static func logicalFrame(_ number: UInt32) -> Rect? {
+        var result = CGRect.zero
+        guard NPReadCatalogLogicalBounds(number, &result) == 1 else { return nil }
+        let frame = Rect(result.minX, result.minY, result.width, result.height)
+        return frame.isValid ? frame : nil
+    }
+
+    nonisolated static func catalogGeometry(firstLogical: Rect?, lastLogical: Rect?, firstCG: Rect, lastCG: Rect,
+                                            stageDefinitelyOff: Bool) -> (logical: Rect?, usualPresentation: Bool) {
+        let logical = firstLogical == lastLogical ? lastLogical : nil
+        let confirmed = logical.map { $0 == lastCG } ??
+            (firstLogical == nil && lastLogical == nil && stageDefinitelyOff)
+        return (logical, firstCG == lastCG && confirmed)
+    }
+
     /// A window crosses screens during a drag. Publish its screen only when the
     /// two samples agree. Space membership can disambiguate an equal split or
     /// locate an offscreen member without inventing a visible frame for it.
@@ -21,18 +36,20 @@ extension Reader {
         return first
     }
 
-    /// A read-only catalogue for the sidebar, independent of AX responsiveness.
-    /// The current-window cards and the per-Space navigator share one double-read inventory.
+    /// A read-only catalogue for this screen's window roster, independent of AX responsiveness.
     func windowOverview() throws -> DesktopSnapshot {
         guard WindowServerSession.available, request.fixtureWindows == nil, request.anchors.isEmpty else {
             throw DesktopActionError.unsupported
         }
         let start = clock.systemUptime, from = Date(), topology = try Topology()
         let canRead = NPProbeReadOnlyCatalog() == 1 && (topology.displays.count == 1 || topology.separateSpaces)
+        let stageBefore = StageManagerPreference.read()
         let first = try windowList(overview: true)
         let activeBefore = activeNumbers()
         let ids = first.windows.map(\.windowID)
+        let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
+        let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let second = try windowList(overview: true)
         let active = activeBefore.intersection(activeNumbers())
         let lastBoundary = firstBoundary?.inventory == nil ? nil : SpaceBoundary.read(displays: topology.displays, windowIDs: ids)
@@ -45,7 +62,8 @@ extension Reader {
         let currentByDisplay = Dictionary(uniqueKeysWithValues: (inventory?.scopes ?? []).map { scope in
             (scope.displayID, scope.records.first(where: \.isCurrent))
         }).compactMapValues { $0 }
-        let stageManager = StageManagerPreference.read()
+        let stageAfter = StageManagerPreference.read()
+        let stageManager = stageBefore == stageAfter ? stageAfter : nil
         var windows = [WindowObservation]()
         // Absence only proves emptiness when every eligible CG surface was accounted for.
         var complete = Set(first.windows.map(\.windowID)) == Set(second.windows.map(\.windowID))
@@ -63,8 +81,11 @@ extension Reader {
             if case .known(let ids) = right {
                 memberDisplays = inventory?.scopes.filter { $0.records.contains { ids.contains($0.id) } }.map(\.displayID) ?? []
             } else { memberDisplays = [] }
-            let afterSlices = try topology.geometry.slices(of: entry.frame)
-            let beforeSlices = before.frame == entry.frame ? afterSlices : try topology.geometry.slices(of: before.frame)
+            let firstRect = firstLogical[entry.windowID], lastRect = lastLogical[entry.windowID]
+            let geometry = Self.catalogGeometry(firstLogical: firstRect, lastLogical: lastRect, firstCG: before.frame,
+                                                lastCG: entry.frame, stageDefinitelyOff: stageManager == false)
+            let afterSlices = try topology.geometry.slices(of: lastRect ?? entry.frame)
+            let beforeSlices = try topology.geometry.slices(of: firstRect ?? before.frame)
             guard let displayID = Self.overviewDisplay(before: beforeSlices, after: afterSlices, memberDisplays: memberDisplays),
                   let display = topology.displays.first(where: { $0.id == displayID }) else { complete = false; continue }
             let record = currentByDisplay[display.id]
@@ -86,8 +107,8 @@ extension Reader {
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: nil, globalFrame: global,
                 frontToBack: windows.count, minimized: nil, fullScreen: nil, isOnscreen: entry.isOnscreen,
                 onActiveDesktop: visible, overviewSpaceID: proof,
-                hasCatalogGeometry: before.frame == entry.frame && afterSlices.contains(where: { $0.displayID == display.id }) &&
-                    (visible || stageManager == false))
+                hasCatalogGeometry: geometry.usualPresentation && afterSlices.contains(where: { $0.displayID == display.id }),
+                catalogLogicalFrame: geometry.logical.map(SurfaceRect.init))
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }

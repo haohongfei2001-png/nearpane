@@ -28,12 +28,16 @@ struct DesktopWindowThumbnailLayout {
 
     private static func sizeInPoints(_ window: WindowObservation, capturedSizes: [UInt32: CGSize]) -> CGSize? {
         guard let m = window.metadata else { return nil }
+        if let frame = m.catalogLogicalFrame, frame.geometry.isValid {
+            return CGSize(width: frame.width, height: frame.height)
+        }
         if let size = capturedSizes[m.number], size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 {
             return size
         }
+        let exactAX = m.axStandardWindowNumber == m.number && m.presentation == .confirmed
         guard m.globalFrame.geometry.isValid, m.hasCatalogGeometry != false,
-              m.axFrame == nil || m.presentation == .confirmed,
-              m.hasCatalogGeometry == true || (m.onActiveDesktop == true && m.isOnscreen == true) else { return nil }
+              m.axFrame == nil || exactAX,
+              m.hasCatalogGeometry == true || exactAX else { return nil }
         return CGSize(width: m.globalFrame.width, height: m.globalFrame.height)
     }
 }
@@ -48,6 +52,7 @@ struct DesktopWindowCard: View {
     let image: CGImage?
     let pictureSize: CGSize?
     var unavailableReason: String?
+    var awaitingPicture = true
     var borderWidth: CGFloat = 0.8
     var labelSize: CGFloat = 10
     var currentImage: (@MainActor () -> CGImage?)?
@@ -83,7 +88,7 @@ struct DesktopWindowCard: View {
                 }
                 Text(label).font(.system(size: max(10, labelSize), weight: .semibold)).lineLimit(1)
             }
-            if pictureSize == nil || image == nil {
+            if pictureSize == nil || (image == nil && (unavailableReason != nil || awaitingPicture)) {
                 Text(pictureSize == nil ? "窗口尺寸待核对" : (unavailableReason ?? "正在读取窗口画面"))
                     .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }

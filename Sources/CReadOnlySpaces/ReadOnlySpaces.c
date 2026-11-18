@@ -1,4 +1,5 @@
 #include "ReadOnlySpaces.h"
+#include <CoreGraphics/CGError.h>
 #include <CoreGraphics/CGWindow.h>
 #include <dlfcn.h>
 #include <pthread.h>
@@ -65,6 +66,8 @@ typedef CFArrayRef (*CopyManaged)(int);
 typedef CFArrayRef (*CopyMembership)(int, int, CFArrayRef);
 static CopyManaged managed;
 static CopyMembership membership;
+typedef CGError (*ReadLogicalBounds)(int, uint32_t, CGRect *);
+static ReadLogicalBounds logicalBounds;
 static int connection;
 
 static MainConnection mainConnection;
@@ -76,6 +79,21 @@ static void resolveGetters(void) {
     mainConnection = (MainConnection)dlsym(handle, "SLSMainConnectionID");
     managed = (CopyManaged)dlsym(handle, "SLSCopyManagedDisplaySpaces");
     membership = (CopyMembership)dlsym(handle, "SLSCopySpacesForWindows");
+#if defined(__arm64__)
+    char build[64] = {0};
+    size_t length = sizeof(build);
+    if (!sysctlbyname("kern.osversion", build, &length, NULL, 0) && !strcmp(build, "26A428"))
+        logicalBounds = (ReadLogicalBounds)dlsym(handle, "SLSGetWindowBounds");
+#endif
+}
+
+int NPReadCatalogLogicalBounds(uint32_t window, CGRect *bounds) {
+    if (!window || connection <= 0 || !logicalBounds) return 0;
+    CGRect rect = CGRectNull;
+    if (logicalBounds(connection, window, &rect) != kCGErrorSuccess ||
+        CGRectIsNull(rect) || CGRectIsInfinite(rect) || CGRectIsEmpty(rect)) return 0;
+    *bounds = rect;
+    return 1;
 }
 
 static int openGetters(int observeOnly) {

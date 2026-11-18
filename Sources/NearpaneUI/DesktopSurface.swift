@@ -85,7 +85,12 @@ struct DesktopSurface: View {
         let pictures = visible && host.configuration.showsWindowThumbnails && WindowContentPreview.sessionAvailable()
         let permitted = pictures && CGPreflightScreenCaptureAccess()
         let run = GalleryRun(display: id, visible: visible, permitted: permitted, generation: gallery?.generation ?? 0)
-        let captured = gallery?.capturedSizes(for: windows, in: snapshot, permitted: permitted) ?? [:]
+        var captured = gallery?.capturedSizes(for: windows, in: snapshot, permitted: permitted) ?? [:]
+        if pictures, let proof = previews?.binding, captured[proof.number] == nil,
+           let window = windows.first(where: { $0.metadata?.number == proof.number }),
+           let target = DesktopWindowTarget(window, in: snapshot), selectedPicture(for: target) != nil {
+            captured[proof.number] = CGSize(width: proof.bounds.width, height: proof.bounds.height)
+        }
         let thumbnailLayout = DesktopWindowThumbnailLayout(windows: windows, display: screen, availableWidth: width, capturedSizes: captured)
         let groups = Dictionary(grouping: windows, by: { $0.metadata?.pid })
         return LazyVStack(alignment: .leading, spacing: spacing) {
@@ -103,14 +108,15 @@ struct DesktopSurface: View {
                 let pictureSize = thumbnailLayout.size(for: window)
                 let reason: String? = if !host.configuration.showsWindowThumbnails { "窗口画面已关闭" }
                     else if !pictures { "窗口画面暂不可用" }
-                    else if !permitted { "窗口画面需屏幕录制权限" }
+                    else if !permitted { nil }
                     else if target == nil || target.map({ gallery?.lacksPicture($0) == true }) == true { "暂无窗口画面" }
                     else { nil }
                 Button {
                     if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) }
                 } label: {
                     DesktopWindowCard(label: label, icon: badge?.icon, image: picture, pictureSize: pictureSize,
-                                      unavailableReason: reason, borderWidth: settings.points(.borderWidth, in: width),
+                                      unavailableReason: reason, awaitingPicture: permitted,
+                                      borderWidth: settings.points(.borderWidth, in: width),
                                       labelSize: settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10,
                                       currentImage: {
                         guard let target, display?.interactionVisible == true, display?.id == target.display,
@@ -132,6 +138,11 @@ struct DesktopSurface: View {
                     if let previous { gallery?.setCard(previous, on: id, visible: false) }
                     if let next { gallery?.setCard(next, on: id, visible: true) }
                 }
+            }
+            if pictures && !permitted {
+                Text("显示实时画面需要屏幕录制权限")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -162,7 +173,10 @@ struct DesktopSurface: View {
                                  index: Int, source: String) -> String {
         guard let size else { return "窗口尺寸待核对" }
         let pixels = "\(source)，预览 \(Int(size.width.rounded())) × \(Int(size.height.rounded())) pt"
-        guard window.metadata?.hasCatalogGeometry != false else { return pixels + "，窗口位置待核对" }
+        guard let m = window.metadata,
+              m.hasCatalogGeometry == true || (m.axStandardWindowNumber == m.number && m.presentation == .confirmed) else {
+            return pixels + "，窗口位置待核对"
+        }
         let geometry = Self.windowDescription(index: index, frame: window.bounds,
                                              within: SurfaceRect(width: screen.frame.width, height: screen.frame.height))
         return pixels + "，" + geometry

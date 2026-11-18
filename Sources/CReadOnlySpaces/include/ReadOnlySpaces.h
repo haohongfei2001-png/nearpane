@@ -1,4 +1,5 @@
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreGraphics/CGGeometry.h>
 #include <stdint.h>
 
 // The disposable readers and action helper link this shim. The Host does not.
@@ -8,6 +9,10 @@ int NPReadOnlySpacesOpen(void);
 int NPProbeReadOnlyCatalog(void);
 CFArrayRef _Nullable NPReadInventory(void) CF_RETURNS_RETAINED;
 CFArrayRef _Nullable NPReadWindowSpaces(uint32_t window) CF_RETURNS_RETAINED;
+
+// Pre-compositor logical rectangle for the read-only roster. No content or action authority.
+// Returns zero on unverified builds or when the window disappears.
+int NPReadCatalogLogicalBounds(uint32_t window, CGRect * _Nonnull bounds);
 
 // Window-number read witnessed in P4.7.3; unavailable on unverified OS builds.
 uint32_t NPReadAXWindowNumber(CFTypeRef _Nonnull element);

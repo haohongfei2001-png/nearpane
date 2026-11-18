@@ -22,14 +22,28 @@ var windows = [NSWindow]()
 var editors = [NSTextView]()
 var lastState = Data()
 NSWindow.allowsAutomaticWindowTabbing = false
+let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
+final class SharedFixtureWindow: NSPanel {
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
     for i in 0..<expected {
         let frame = screen.visibleFrame
-        let roster = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"] == "roster"
+        let roster = presentation == "roster" || presentation == "public-visible"
         let size: CGSize = roster ? (i == 0 ? CGSize(width: 540, height: 180) : CGSize(width: 240, height: 350)) : CGSize(width: 320, height: 160)
-        let w = NSWindow(contentRect: NSRect(x: frame.midX - 180 + Double(30*i), y: frame.midY - 90 + Double(25*i),
-                                             width: size.width, height: size.height),
-                         styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
+        let rect = NSRect(x: frame.midX - 180 + Double(30*i), y: frame.midY - 90 + Double(25*i), width: size.width, height: size.height)
+        let style: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
+        let w: NSWindow
+        if presentation == "public-visible" {
+            let panel = SharedFixtureWindow(contentRect: rect, styleMask: style.union(.nonactivatingPanel), backing: .buffered, defer: false)
+            panel.hidesOnDeactivate = false
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .canJoinAllApplications]
+            panel.level = .normal
+            w = panel
+        } else {
+            w = NSWindow(contentRect: rect, styleMask: style, backing: .buffered, defer: false)
+        }
         w.title = i == 0 ? "Field Notes – A" : "Field Notes – B"
         w.isReleasedWhenClosed = false
         w.tabbingMode = .disallowed
@@ -54,6 +68,7 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     guard windows.count == expected else { return }
     let payload: [String: Any] = [
         "session": session, "pid": getpid(), "birth": birth, "numbers": windows.map { $0.windowNumber },
+        "presentation": presentation ?? "ordinary",
         "sizes": windows.map { [$0.frame.width, $0.frame.height] },
         "key": app.keyWindow?.windowNumber ?? 0, "main": app.mainWindow?.windowNumber ?? 0,
         "editorsFocused": zip(windows, editors).map { $0.firstResponder === $1 },

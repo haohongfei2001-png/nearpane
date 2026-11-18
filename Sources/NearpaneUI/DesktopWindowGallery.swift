@@ -19,6 +19,7 @@ struct DesktopWindowTarget: Equatable {
     let publiclyVisible: Bool
     let membership: WindowMembership
     let frame: SurfaceRect
+    private let catalogSize: CGSize?
 
     init?(_ window: WindowObservation, in snapshot: DesktopSnapshot) {
         guard let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
@@ -39,6 +40,7 @@ struct DesktopWindowTarget: Equatable {
         session = snapshot.sessionID; topology = snapshot.topologyFingerprint
         display = window.displayID; current = active.first?.id
         membership = window.membership; frame = m.globalFrame
+        catalogSize = m.catalogLogicalFrame.map { CGSize(width: $0.width, height: $0.height) }
     }
 
     /// Reordering the stage can leave the same window at a new origin. Resizing the
@@ -47,7 +49,7 @@ struct DesktopWindowTarget: Equatable {
         if self == other { return true }
         return overviewSpace != nil && overviewSpace == other.overviewSpace && key == other.key &&
             session == other.session && topology == other.topology && display == other.display &&
-            frame.width == other.frame.width && frame.height == other.frame.height
+            frame.width == other.frame.width && frame.height == other.frame.height && catalogSize == other.catalogSize
     }
 
     func present(in snapshot: DesktopSnapshot?, now: Date = .now, uptime: Double = ProcessInfo.processInfo.systemUptime) -> Bool {

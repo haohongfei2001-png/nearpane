@@ -13,7 +13,8 @@ import Testing
         let rect = override ?? frame
         return .init(id:id,displayID:"display",bounds:rect,membership:.unknown,confidence:.unknown,
             metadata:.init(number:number,pid:pid,launchMicroseconds:birth,element:nil,globalFrame:rect,
-                frontToBack:index,minimized:nil,fullScreen:nil,axFrame:ax,isOnscreen:true,onActiveDesktop:active))
+                frontToBack:index,minimized:nil,fullScreen:nil,axFrame:ax,isOnscreen:true,onActiveDesktop:active,
+                hasCatalogGeometry: true))
     }
     func sample(_ windows: [WindowObservation], revision: UInt64 = 1, scope: String = "A") -> DesktopSnapshot {
         let rect = SurfaceRect(width:900,height:650)
@@ -71,6 +72,40 @@ import Testing
         let resized = try sameSpaceTarget(.init(x: 41, y: 90, width: frame.width / 2, height: frame.height))
         #expect(target.samePicture(as: moved))
         #expect(!target.samePicture(as: resized))
+    }
+
+    @Test func membershipAloneCannotTurnTheStageStripIntoTheWindow() throws {
+        func staged(logical: SurfaceRect?) -> WindowObservation {
+            let strip = SurfaceRect(x: 1300, y: 740, width: 152, height: 141)
+            return .init(id: "wide", displayID: "display", bounds: strip, membership: .known(recordIDs: ["A"]),
+                         confidence: .unknown, metadata: .init(number: 22, pid: 41, launchMicroseconds: 100,
+                            element: nil, globalFrame: strip, frontToBack: 0, minimized: nil, fullScreen: nil,
+                            isOnscreen: true, onActiveDesktop: true, overviewSpaceID: "A", catalogLogicalFrame: logical))
+        }
+        let unknown = staged(logical: nil)
+        let wide = staged(logical: .init(width: 540, height: 213))
+        let display = sample([wide]).displays.first
+        #expect(DesktopWindowThumbnailLayout(windows: [unknown], display: display, availableWidth: 180).size(for: unknown) == nil)
+        let size = try #require(DesktopWindowThumbnailLayout(windows: [wide], display: display, availableWidth: 180).size(for: wide))
+        #expect(abs(size.width - 108) < 0.001 && abs(size.height - 42.6) < 0.001)
+        let withStageImage = DesktopWindowThumbnailLayout(windows: [wide], display: display, availableWidth: 180,
+            capturedSizes: [22: CGSize(width: 152, height: 141)])
+        #expect(withStageImage.size(for: wide) == size)
+    }
+
+    @Test func resizingAWindowInvalidatesItsPictureEvenWhenStageStripIsUnchanged() throws {
+        let snapshot = catalog([(22, 41, true, "97")])
+        func target(logicalWidth: Double) throws -> DesktopWindowTarget {
+            var member = snapshot.windows[0]
+            let strip = SurfaceRect(x: 1300, y: 740, width: 152, height: 141)
+            member.metadata = .init(number: 22, pid: 41, launchMicroseconds: 100, element: nil, globalFrame: strip,
+                frontToBack: 0, minimized: false, fullScreen: false, isOnscreen: true, onActiveDesktop: true,
+                overviewSpaceID: "97", hasCatalogGeometry: false, catalogLogicalFrame: .init(width: logicalWidth, height: 213))
+            return try #require(DesktopWindowTarget(member, in: snapshot))
+        }
+        let original = try target(logicalWidth: 540)
+        #expect(try original.samePicture(as: target(logicalWidth: 540)))
+        #expect(try !original.samePicture(as: target(logicalWidth: 740)))
     }
 
     @Test func sameAppSiblingsHaveIndependentTargetsWithoutAccessibility() throws {
