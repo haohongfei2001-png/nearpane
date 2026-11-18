@@ -173,6 +173,7 @@ import Testing
         #expect(a.frame == .init(width: 840, height: 800))
         world.windows.append(b); feed.changed()
         try await world.until { manager.verifiedIDs.contains(b.id) && !manager.busy }
+        try await world.until { automation.notice.contains("新窗口已在本桌面分屏") }
         #expect(a.frame == .init(width: 420, height: 800))
         #expect(b.frame == .init(x: 420, width: 420, height: 800))
         let writes = [a.writes,b.writes]

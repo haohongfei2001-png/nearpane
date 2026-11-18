@@ -6,7 +6,9 @@ public struct NativeSpaceCatalog {
     public struct Row: Identifiable {
         public let record: SpaceRecord
         public let windows: [WindowObservation]
-        public let membershipComplete: Bool
+        /// This reader covers regular app surfaces. Even a complete empty catalogue
+        /// cannot certify a Space is empty for removal.
+        public let regularWindowListComplete: Bool
         public var id: String { record.id }
     }
     public let session: UUID
@@ -42,7 +44,7 @@ public struct NativeSpaceCatalog {
         rows = records.map { record in
             Row(record: record, windows: (membership[record.id] ?? []).sorted {
                 ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max)
-            }, membershipComplete: complete)
+            }, regularWindowListComplete: complete)
         }
         session = snapshot.sessionID; topology = snapshot.topologyFingerprint
         self.display = display; self.current = current

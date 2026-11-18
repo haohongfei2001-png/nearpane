@@ -549,7 +549,9 @@ func live(_ supplied: [String]) throws {
         let report = try JSONSerialization.jsonObject(with:data) as? [String:Any] ?? [:]
         emit(["event":"scopedOccupancy","sample":report,"exit":process.terminationStatus])
         try need(process.terminationStatus == 0 && (report["occupancy"] as? String) ==
-                 (target == nil ? "SOURCE_WITNESSED" : "NO_RELOCATION_OBSERVED"), "disposable desktop could not be safely verified")
+                 (target == nil ? "SOURCE_WITNESSED" : "NO_RELOCATION_OBSERVED") &&
+                 (target == nil || (report["blockingWindows"] as? Int == 0 &&
+                   report["corroboratedShared"] as? Int == 0 && report["scopeSamples"] as? Int == 2)), "disposable desktop could not be safely verified")
       }
       if mode == "prepare-and-restore" { try need(end.timeIntervalSinceNow > 55,"insufficient time for provision and verified rollback") }
       let firstOperation = mode == "prepare-and-restore" ? "create" : mode

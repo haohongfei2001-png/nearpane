@@ -161,6 +161,7 @@ struct DesktopTilingRoster: Equatable {
         let presented = Set(roster.keys)
         guard presented != previous || ctx.preferences != preferences || lastPaused else { return }
         lastPaused = false
+        let priorMembers = previous
         previous = presented; preferences = ctx.preferences
         let managed = Set(manager.activeIDs.map { DesktopWindowKey(pid: $0.pid, birth: $0.launch, number: $0.number) })
         let added = roster.keys.filter { permitsOwner($0) && !managed.contains($0) }
@@ -181,6 +182,11 @@ struct DesktopTilingRoster: Equatable {
                     if grant == token { notice = "等待可核对身份、尺寸和桌面归属的普通窗口。" }
                     return
                 }
+                let requestedCreation = handles.enumerated().contains { index, handle in
+                    let key = DesktopWindowKey(pid: handle.id.pid, birth: handle.id.launch, number: handle.id.number)
+                    return priorMembers?.contains(key) == false && WorkspaceAdmissionPlanner.requestsCreation(
+                        existingCount: manager.activeIDs.count + index, source: .application, preferences: ctx.preferences)
+                }
                 try await manager.performUserAction {
                     let review = try await manager.prepare(handles, context: ctx)
                     try Task.checkCancellation()
@@ -190,7 +196,8 @@ struct DesktopTilingRoster: Equatable {
                     }
                     try await manager.confirm(review, context: ctx)
                 }
-                notice = "已核对本桌面 \(manager.activeIDs.count) 扇窗口的布局。"
+                notice = requestedCreation ? "系统桌面创建尚未开放，新窗口已在本桌面分屏。" :
+                    "已核对本桌面 \(manager.activeIDs.count) 扇窗口的布局。"
             } catch {
                 if grant == token { notice = "本次自动分屏未完成。\(error.localizedDescription)" }
             }

@@ -608,6 +608,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     let primaryScope: String?
     let geometry: [String]
     let sideOrder: [String]
+    let spaceUUIDs: [String: UUID]
     init(_ display: UUID, source: String, currentDisplay: Bool) throws {
       let uuid = display.uuidString
       let scopes = try scoped(uuid, source, currentDisplay: currentDisplay)
@@ -626,6 +627,21 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       guard Set(ids).count == ids.count, ids.contains(source) else {
         throw Refusal("ambiguous secondary desktop identity")
       }
+      guard let inventory = NPReadInventory() as? [[String: Any]],
+            let row = inventory.first(where: { $0["Display Identifier"] as? String == uuid }),
+            let active = row["Current Space"] as? [String: Any],
+            (active["id64"] as? NSNumber)?.stringValue == source,
+            let records = row["Spaces"] as? [[String: Any]], records.count == ids.count else {
+        throw Refusal("cannot independently bind Space UUIDs to the observed order")
+      }
+      var bound = [String: UUID]()
+      for (id, record) in zip(ids, records) {
+        guard (record["id64"] as? NSNumber)?.stringValue == id, record["type"] as? Int == 0,
+              let raw = record["uuid"] as? String, let space = UUID(uuidString: raw),
+              !bound.values.contains(space) else { throw Refusal("Space UUID changed or is not unique") }
+        bound[id] = space
+      }
+      spaceUUIDs = bound
       primaryScope = main.first
       sideOrder = ids
       geometry = try NSScreen.screens.map { screen in
@@ -640,7 +656,8 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     }
 
     func addition(to before: Self, source: String) throws -> String {
-      guard primaryScope == before.primaryScope, geometry == before.geometry
+      guard primaryScope == before.primaryScope, geometry == before.geometry,
+            before.spaceUUIDs.allSatisfy({ spaceUUIDs[$0.key] == $0.value })
       else { throw Refusal("unrelated display or geometry changed") }
       return try newlyAddedDesktop(before: before.sideOrder, after: sideOrder, source: source,
                                    currentDisplay: primaryScope == nil)
@@ -1301,7 +1318,9 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       (actions as? [String])?.contains(remove) == true
     else { throw Refusal("exact inactive B tile or Remove Desktop action unavailable") }
     try folder.put(created, "remove-intent.json")
+    try requireSafeOccupancy(created.target)
     try ui.recheckBeforeInput()
+    try need(try state() == original, "Space identity or display changed before deletion")
     try requireAuthorizedAction()
     guard AXUIElementPerformAction(ui.tiles[b], remove as CFString) == .success else {
       throw Refusal("removal outcome unknown; do not replay")
