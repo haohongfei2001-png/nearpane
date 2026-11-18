@@ -85,10 +85,7 @@ PERMISSION_SUBJECTS = (
 
 def designated_requirement(path):
     output = gate.cmd("/usr/bin/codesign", "-d", "-r-", str(path))
-    values = [line.removeprefix("designated => ") for line in output.splitlines() if line.startswith("designated => ")]
-    if len(values) != 1 or not values[0]:
-        raise ValueError(f"Cannot verify designated requirement of {path.name}")
-    return values[0]
+    return gate.requirement(output)
 
 
 def check_continuity(previous, candidate):
@@ -135,12 +132,10 @@ def sign_staged(candidate, fingerprint):
     after = gate.inspect(app)
     if set(original["binaries"]) != set(after["binaries"]):
         raise ValueError("Nested binary inventory changed during local signing")
-    for relative in after["binaries"]:
-        component = app / "Contents" / relative
-        meta = gate.cmd("/usr/bin/codesign", "-dvvv", str(component)).splitlines()
-        if (f"TeamIdentifier={team}" not in meta
-                or not any(line.startswith("Authority=Developer ID Application:") for line in meta)
-                or "anchor apple generic" not in designated_requirement(component)):
+    for relative, meta in after["binaries"].items():
+        requirement = meta["designatedRequirement"]
+        if (meta["signingTeam"] != team or "anchor apple generic" not in requirement
+                or "certificate leaf[field.1.2.840.113635.100.6.1.13]" not in requirement):
             raise ValueError(f"Packaged component lacks the expected stable signing identity: {relative}")
 
 
