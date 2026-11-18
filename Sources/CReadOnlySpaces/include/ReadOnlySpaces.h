@@ -1,8 +1,11 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <stdint.h>
 
-// Only the disposable reader executable links this shim. Both successful copies transfer ownership.
+// The disposable readers and action helper link this shim. The Host does not.
+// The existing entry point keeps the reviewed write/identity build gate.
 int NPReadOnlySpacesOpen(void);
+// Metadata-only inventory on the reviewed Darwin ABI family, after a runtime shape probe.
+int NPProbeReadOnlyCatalog(void);
 CFArrayRef _Nullable NPReadInventory(void) CF_RETURNS_RETAINED;
 CFArrayRef _Nullable NPReadWindowSpaces(uint32_t window) CF_RETURNS_RETAINED;
 

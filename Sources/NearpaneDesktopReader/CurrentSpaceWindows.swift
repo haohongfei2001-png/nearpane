@@ -11,7 +11,7 @@ extension Reader {
             throw DesktopActionError.unsupported
         }
         let start = clock.systemUptime, from = Date(), topology = try Topology()
-        let canRead = NPReadOnlySpacesOpen() == 1 && (topology.displays.count == 1 || topology.separateSpaces)
+        let canRead = NPProbeReadOnlyCatalog() == 1 && (topology.displays.count == 1 || topology.separateSpaces)
         let first = try windowList(overview: true)
         let activeBefore = activeNumbers()
         let ids = first.windows.map(\.windowID)
