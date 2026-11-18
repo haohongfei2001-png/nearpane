@@ -32,6 +32,6 @@
 - 本机 Debug、冻结 Release 构建成功。集成 472/472，独立 Host 最终单独运行 383/383。并发构建期间的首次 Host 回归共一项失败，临时 reader 的就绪文件未在期限内出现。单独复核沿用原断言和期限。
 - 窗口图库专项 13/13。输入守卫 17 项及 Swift 提供的完整组合网页程序 18 项通过。依赖解析 8 项、原生回执判定 27 项、隔离资料升级/回退 18 项、领域资料 10 项通过。升级样本的原目录指纹保持一致。
 - 固定资源为 Saytile 121 个文件、Riftlet 89 个文件。独立核对安装资源 39 项，资源 SHA-256 为 `14209815d4e81b3e6df8ba7f1e3261589f57e951be5766614a71f718313df1e0`。安装版 Host SHA-256 为 `ac403f4c620b5308791fe8fedf24278ca12263bf320d4dd4f1212016309700b7`。完整嵌套签名和 ZIP 解包复核通过。
-- 安装包按本地开发身份签名。已将 23,759,824 字节 ZIP 附入 GitHub 未发布草稿，远端 SHA-256 与本机相同。本机可直接使用系统“应用程序”中的 Nearpane。[安装/归档指纹](installation.json) · [维护者候选附件](https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-475bb3612010386f7b87)
+- 安装包按本地开发身份签名。已将 23,759,824 字节 ZIP 附入 GitHub 未发布草稿，远端 SHA-256 与本机相同。本机可直接使用系统“应用程序”中的 Nearpane。[安装/归档指纹](installation.json) · [维护者候选附件](https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-be50e69ed2c00cf6b396)
 - 原 5.20（73）及中间 74、75 的签名回退包和匹配的 `package-*.json` 保存在本机 checkout 的 `build/verification/native12/rollback/`。安装前已解包对照旧 App 的文件与可执行位。需要回退时正常退出 Nearpane，待持有资料写锁的 Host 及 helpers 退出，将相应 ZIP 中的签名 App 恢复到同一安装路径并核对配套收据。此次候选替换仅交换 App 及工程构建收据。
 - 账号所有者可为这个安装身份一次核对辅助功能和屏幕录制。工程验收器随后准备合成窗口和可回收的测试桌面，从同一生产侧栏继续运行。两屏实测独立等待第二块硬件。缺少受控证据时，原有桌面保持原状。[机器可读矩阵](results.json) · [验收合同](../../../native-spaces/ACCEPTANCE.md)

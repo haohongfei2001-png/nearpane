@@ -21,7 +21,7 @@ if [[ ${1:-} == candidate ]]; then
     [[ $# == 2 ]]
     mkdir "$2"
     failures=0
-    for mode in single-window controlled-window title-image hidden-budget; do
+    for mode in preflight single-window controlled-window title-image hidden-budget; do
         python3 scripts/acceptance/native-spaces/acceptance.py --observer "$scratch/observe" "$mode" "$2/$mode" || failures=1
     done
     exit "$failures"
