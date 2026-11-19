@@ -50,6 +50,23 @@ extension Reader {
         return publiclyVisible || (currentMember && (orderedAcrossSpaces || drawnInStage))
     }
 
+    nonisolated static func roleTargets(_ list: List, active: Set<UInt32>, currentIDs: Set<String>?,
+                                        memberships: [UInt32: WindowMembership]) -> [OverviewWindowRole.Target] {
+        var order: [Int32] = [], numbers: [Int32: Set<UInt32>] = [:]
+        for w in list.windows {
+            guard list.unhiddenOwners.contains(w.process.pid), w.process.hasLifecycleEvidence else { continue }
+            if let currentIDs {
+                guard case let .known(ids) = memberships[w.windowID], !currentIDs.isDisjoint(with: ids),
+                      w.isOnscreen == true || active.contains(w.windowID) || list.orderedAcrossSpaces.contains(w.windowID) else { continue }
+            } else {
+                guard w.isOnscreen == true, active.contains(w.windowID) else { continue }
+            }
+            if numbers[w.process.pid] == nil { order.append(w.process.pid) }
+            numbers[w.process.pid, default: []].insert(w.windowID)
+        }
+        return order.compactMap { pid in numbers[pid].map { .init(pid: pid, numbers: $0) } }
+    }
+
     /// A read-only catalogue for this screen's window roster, independent of AX responsiveness.
     func windowOverview() throws -> DesktopSnapshot {
         guard WindowServerSession.available, request.fixtureWindows == nil, request.anchors.isEmpty else {
@@ -64,14 +81,13 @@ extension Reader {
         let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
         let trusted = AXIsProcessTrusted()
-        // Bound unresponsive applications independently of capture and selection. Ask only
-        // about owners with a public ordering witness; hidden surfaces do not need AX calls.
-        var visited = Set<Int32>()
-        let pids = first.windows.filter {
-            ($0.isOnscreen == true || activeBefore.contains($0.windowID) || first.orderedAcrossSpaces.contains($0.windowID)) &&
-                first.unhiddenOwners.contains($0.process.pid) && visited.insert($0.process.pid).inserted
-        }.map(\.process.pid)
-        let roles = trusted ? OverviewWindowRole.read(pids: pids, deadline: start + 0.8) : [:]
+        let currentIDs = firstBoundary?.inventory.map { inventory in
+            Set(inventory.scopes.flatMap(\.records).filter { $0.isCurrent && $0.ordinaryUUID != nil }.map(\.id))
+        }
+        let targets = Self.roleTargets(first, active: activeBefore, currentIDs: currentIDs,
+                                       memberships: firstBoundary?.membership ?? [:])
+        let requestedNumbers = Set(targets.flatMap(\.numbers))
+        let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8) : [:]
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let second = try windowList(overview: true)
         let active = activeBefore.intersection(activeNumbers())
@@ -130,7 +146,7 @@ extension Reader {
             // for selection without inventing a frame in the Space miniature.
             let global = SurfaceRect(entry.frame)
             let local = SurfaceRect(x: global.x - display.frame.x, y: global.y - display.frame.y, width: global.width, height: global.height)
-            let ownerRoles = roles[entry.process.pid]
+            let ownerRoles = requestedNumbers.contains(entry.windowID) ? roles[entry.process.pid] : nil
             let role = ownerRoles?.windows[entry.windowID]
             let presented = Self.presentedInOverview(publiclyVisible: visible,
                 orderedAcrossSpaces: first.orderedAcrossSpaces.contains(entry.windowID) && second.orderedAcrossSpaces.contains(entry.windowID),
@@ -152,7 +168,7 @@ extension Reader {
         return .observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
             topology: topology.fingerprint, consistent: true, separateSpaces: topology.separateSpaces,
             displays: topology.displays, scopes: inventory?.scopes ?? [], windows: windows,
-            evidence: .init(population: .workWindows, accessibility: trusted ? (pids.allSatisfy { roles[$0]?.everyNumberKnown == true } ? .available : .partial) : .denied,
+            evidence: .init(population: .workWindows, accessibility: trusted ? (targets.allSatisfy { roles[$0.pid]?.everyNumberKnown == true && roles[$0.pid]?.allRolesRead == true } ? .available : .partial) : .denied,
                 spaces: inventory == nil ? .disabled : .observed, rows: [], windowLimitReached: false,
                 beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))
