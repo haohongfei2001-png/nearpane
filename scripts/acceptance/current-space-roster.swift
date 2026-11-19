@@ -162,8 +162,9 @@ private final class RosterPanel: NSPanel {
                 return ids
             }
             func complete(_ count: Int) -> Bool {
-                let ids = Set(members().compactMap{$0.metadata?.number})
-                return ids.count == count && ids == expected()
+                let rows = members()
+                let ids = Set(rows.compactMap{$0.metadata?.number})
+                return rows.count == count && ids.count == count && ids == expected()
             }
             func sourceCount() -> Int {
                 guard let sample=previews.currentDesktop?.snapshot else {return 0}
@@ -249,24 +250,24 @@ private final class RosterPanel: NSPanel {
             }
             result["colorPixels"]=counts
             result["literalColorPixels"]=literalCounts
-            if let sample=previews.currentDesktop?.snapshot {
-                var attributed=0
-                for owner in [report("notes"), report("board")].compactMap({$0}) {
-                    for (slot, id) in owner.windows {
-                        guard let k=Int(slot), let w=members().first(where:{$0.metadata?.number==id && $0.metadata?.pid==owner.pid}),
-                              let target=DesktopWindowTarget(w,in:sample), let pixels=previews.gallery.image(for:target,permitted:true) else { continue }
-                        let hues=colorCounts(pixels,stageShading: !sticky)
-                        if hues.count==4 && hues[k]>200 && hues[k] == hues.max() { attributed+=1 }
-                    }
+            guard let sample = previews.currentDesktop?.snapshot else { throw TrialError("色块核对前窗口观察已失效") }
+            var attributed=0
+            for owner in [report("notes"), report("board")].compactMap({$0}) {
+                for (slot, id) in owner.windows {
+                    guard let k=Int(slot), let w=members().first(where:{$0.metadata?.number==id && $0.metadata?.pid==owner.pid}),
+                          let target=DesktopWindowTarget(w,in:sample), let pixels=previews.gallery.image(for:target,permitted:true) else { continue }
+                    let hues=colorCounts(pixels,stageShading: !sticky)
+                    if hues.count==4 && hues[k]>200 && hues[k] == hues.max() { attributed+=1 }
                 }
-                result["individuallyMatchedPictures"]=attributed
-                guard attributed==4 else { throw TrialError("缩略图与窗口本身的测试色不对应") }
             }
+            result["individuallyMatchedPictures"]=attributed
+            guard attributed==4 else { throw TrialError("缩略图与窗口本身的测试色不对应") }
             guard counts.count==4 && counts.allSatisfy({$0>200}) else { throw TrialError("面板中没有同时显示四个真实画面") }
             try Data().write(to:folder.appendingPathComponent("close-window"),options:.atomic)
             guard await wait(4,{complete(3) && report("notes")?.windows["1"]==nil}), let closed=report("notes") else { throw TrialError("关闭的窗口未自动移除") }
             result["removeMs"]=milliseconds(closed.changed)
-            if !coldBackground, let id=report("board")?.windows["2"] {
+            if !coldBackground {
+                guard let id = report("board")?.windows["2"] else { throw TrialError("无法确认将要收起的测试窗口") }
                 try Data().write(to:folder.appendingPathComponent("order-out"),options:.atomic)
                 guard await wait(4, {
                     guard let board = report("board"), board.orderedOut, board.windows["2"] == id else { return false }
@@ -276,6 +277,21 @@ private final class RosterPanel: NSPanel {
                     throw TrialError("收起的原窗口仍在列表中，或剩余两扇窗口的画面不全")
                 }
                 result["orderedOutExcluded"] = true
+                var remainingColors = [Int]()
+                for _ in 0..<5 {
+                    let image = try await SCScreenshotManager.captureImage(contentFilter: .init(desktopIndependentWindow: sc), configuration: cfg)
+                    remainingColors = colorCounts(image, stageShading: !sticky)
+                    if remainingColors.count == 4, remainingColors[0] > 200, remainingColors[3] > 200,
+                       remainingColors[1] < 40, remainingColors[2] < 40 {
+                        try NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?
+                            .write(to: folder.appendingPathComponent("two-window-sidebar.png"), options: .atomic)
+                        break
+                    }
+                    try await Task.sleep(for: .milliseconds(60))
+                }
+                result["afterCloseAndOrderOutColorPixels"] = remainingColors
+                guard remainingColors.count == 4, remainingColors[0] > 200, remainingColors[3] > 200,
+                      remainingColors[1] < 40, remainingColors[2] < 40 else { throw TrialError("侧栏仍有已关闭或已收起窗口的测试色，或遗漏了剩余窗口画面") }
             }
             result["owners"]=pids.count; result["pass"]=true
         } catch {result["pass"]=false; result["reason"]=error.localizedDescription}
