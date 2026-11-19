@@ -22,12 +22,17 @@ private typealias ViewState<T> = State<T>
     static let shared = WindowOverviewAccess(read: systemGrants, request: requestSystemAccess, open: openSettings,
                                              readWorker: OrdinaryWindowDirectory.focusPermission)
 
-    private static let hostFocusProbe = WindowPermissionProbe(read: AXIsProcessTrusted)
-
     static func systemGrants() -> Set<Permission> {
+        systemGrants(readFocus: AXIsProcessTrusted, screen: WindowPermissionProbe.screen)
+    }
+
+    static func systemGrants(readFocus: () -> Bool, screen: WindowPermissionProbe) -> Set<Permission> {
+        // Card rendering can coalesce denials. A guide refresh must see a change made
+        // in System Settings even if a card checked a moment before the user granted it.
+        screen.invalidate()
         var grants = Set<Permission>()
-        if hostFocusProbe.allowed() { grants.insert(.focus) }
-        if WindowPermissionProbe.screen.allowed() { grants.insert(.thumbnails) }
+        if readFocus() { grants.insert(.focus) }
+        if screen.allowed() { grants.insert(.thumbnails) }
         return grants
     }
 
@@ -48,7 +53,7 @@ private typealias ViewState<T> = State<T>
     private(set) var grants: Set<Permission>
     private(set) var workerFocus: Bool?
     private(set) var checkedWorker = false
-    private var workerQuery: UUID?
+    @ObservationIgnored private var workerQuery: (id: UUID, task: Task<Bool?, Never>)?
     private var lastWorkerCheck: TimeInterval = -.infinity
     private(set) var observeUntil: TimeInterval = 0
 
@@ -71,11 +76,16 @@ private typealias ViewState<T> = State<T>
 
     func checkGuide(force: Bool = false) async {
         refresh()
-        guard workerQuery == nil, force || ProcessInfo.processInfo.systemUptime - lastWorkerCheck >= 3 else { return }
-        let query = UUID()
-        workerQuery = query
-        let answer = await readWorker(false)
-        if workerQuery == query { recordWorkerFocus(answer) }
+        let query: (id: UUID, task: Task<Bool?, Never>)
+        if let pending = workerQuery {
+            query = pending
+        } else {
+            guard force || ProcessInfo.processInfo.systemUptime - lastWorkerCheck >= 3 else { return }
+            query = (UUID(), Task { [readWorker] in await readWorker(false) })
+            workerQuery = query
+        }
+        let answer = await query.task.value
+        if workerQuery?.id == query.id { recordWorkerFocus(answer) }
     }
 
     var focusAvailable: Bool? { grants.contains(.focus) ? true : workerFocus }
@@ -87,8 +97,9 @@ private typealias ViewState<T> = State<T>
     }
 
     func performGuide(_ action: Action, for permission: Permission) async {
-        await checkGuide(force: true)
-        guard workerQuery == nil, guideAction(for: permission) == action else { return }
+        if permission == .focus { await checkGuide(force: true) }
+        refresh()
+        guard guideAction(for: permission) == action else { return }
         observeUntil = ProcessInfo.processInfo.systemUptime + 120
         // The visible installation is the stable TCC principal. Never ask the user
         // to approve a short-lived helper when a bundled app entry is actionable.
@@ -96,8 +107,11 @@ private typealias ViewState<T> = State<T>
     }
 
     func checkAfterRequest() async {
+        let previousFocus = grants.contains(.focus)
         refresh()
-        if requested.contains(.focus) { await checkGuide() }
+        if requested.contains(.focus) || previousFocus != grants.contains(.focus) {
+            await checkGuide(force: previousFocus != grants.contains(.focus))
+        }
         if requested.isEmpty { observeUntil = 0 }
     }
 
@@ -129,7 +143,6 @@ private typealias ViewState<T> = State<T>
     private static func requestSystemAccess(_ permission: Permission) {
         switch permission {
         case .focus:
-            hostFocusProbe.invalidate()
             _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
         case .thumbnails:
             _ = CGRequestScreenCaptureAccess()
@@ -191,7 +204,7 @@ struct WindowAccessGuide: View {
                 }
             }
         }
-        .observeWindowGuide()
+        .modifier(WindowGuideObserver(access: access))
     }
 }
 
@@ -208,7 +221,7 @@ struct WindowAccessSteps: View {
             if access.guideAction(for: .focus) != nil || (showPictures && access.guideAction(for: .thumbnails) != nil) {
                 DisclosureGroup("系统开关已经打开？") {
                     VStack(alignment: .leading, spacing: 7) {
-                        Text("旧版可能留下了同名授权。请在对应的隐私设置中移除旧 Nearpane，重新添加此处的应用，然后退出并重新打开 Nearpane。")
+                        Text("如果这项开关已打开，但当前版本仍读不到许可，可以移除旧的 Nearpane 条目，再添加此处的应用。权限生效后这里会自动更新。若系统提示重新打开，请按提示操作。")
                             .fixedSize(horizontal: false, vertical: true)
                         Button("在访达中显示当前 Nearpane") {
                             NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
@@ -224,7 +237,7 @@ struct WindowAccessSteps: View {
                 .controlSize(.small)
             }
         }
-        .observeWindowGuide()
+        .modifier(WindowGuideObserver(access: access))
     }
 
     private func step(_ permission: WindowOverviewAccess.Permission, name: String, systemName: String, granted: Bool?) -> some View {
@@ -254,21 +267,40 @@ struct WindowAccessSteps: View {
     }
 }
 
-private extension View {
-    @MainActor func observeWindowGuide() -> some View {
-        let access = WindowOverviewAccess.shared
-        return task(id: access.observeUntil) {
-            await access.checkGuide()
-            while !Task.isCancelled, ProcessInfo.processInfo.systemUptime < access.observeUntil {
-                do { try await Task.sleep(for: .seconds(2)) } catch { return }
-                await access.checkAfterRequest()
+private struct WindowGuideObserver: ViewModifier {
+    private struct Observation: Equatable {
+        let settingsActive: Bool
+        let deadline: TimeInterval
+    }
+
+    let access: WindowOverviewAccess
+    @ViewState private var settingsActive = false
+
+    func body(content: Content) -> some View {
+        let observation = Observation(settingsActive: settingsActive, deadline: access.observeUntil)
+        return content
+            .onAppear {
+                settingsActive = NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences"
             }
-        }
-        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didDeactivateApplicationNotification)) { event in
-            guard let app = event.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                  app.bundleIdentifier == "com.apple.systempreferences" else { return }
-            Task { await access.checkGuide(force: true) }
-        }
+            .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didActivateApplicationNotification)) { event in
+                guard let app = event.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+                settingsActive = app.bundleIdentifier == "com.apple.systempreferences"
+            }
+            .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didDeactivateApplicationNotification)) { event in
+                guard let app = event.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                      app.bundleIdentifier == "com.apple.systempreferences" else { return }
+                settingsActive = false
+                Task { await access.checkGuide(force: true) }
+            }
+            .task(id: observation) {
+                await access.checkGuide()
+                // Also observe changes made directly in System Settings while
+                // the sidebar stays visible in the background.
+                while !Task.isCancelled && (observation.settingsActive || ProcessInfo.processInfo.systemUptime < observation.deadline) {
+                    do { try await Task.sleep(for: .seconds(2)) } catch { return }
+                    await access.checkAfterRequest()
+                }
+            }
     }
 }
 

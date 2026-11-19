@@ -72,6 +72,59 @@ import Testing
         #expect(access.checkedWorker && access.workerFocus == nil && access.guideAction(for: .focus) == nil)
     }
 
+    @Test func systemSettingsChangeWhileSidebarIsIdleBypassesTheCardDenialCache() async {
+        var screenGranted = false, focusGranted = false
+        let probe = WindowPermissionProbe(read: { screenGranted }, uptime: { 10 })
+        var prompts = [WindowOverviewAccess.Permission]()
+        let access = WindowOverviewAccess(read: { WindowOverviewAccess.systemGrants(readFocus: { focusGranted }, screen: probe) },
+                                          request: { prompts.append($0) }, open: { _ in Issue.record("unexpected system settings") },
+                                          readWorker: { _ in false })
+        await access.checkGuide()
+        #expect(!probe.allowed())
+        screenGranted = true
+        await access.checkAfterRequest()
+        #expect(access.guideAction(for: .thumbnails) == nil && probe.allowed())
+        #expect(access.guideAction(for: .focus) == .request)
+        focusGranted = true
+        screenGranted = false
+        await access.checkAfterRequest()
+        #expect(access.guideAction(for: .focus) == nil && access.guideAction(for: .thumbnails) == .request)
+        #expect(!probe.allowed() && prompts.isEmpty && access.observeUntil == 0)
+    }
+
+    @Test func userRequestJoinsAnInFlightPassiveHelperReadAndPicturesCanProceedIndependently() async {
+        let started = AsyncStream<Void>.makeStream(), focusCheck = AsyncStream<Void>.makeStream()
+        var release: CheckedContinuation<Bool?, Never>?
+        final class TapSignal { var armed = false }
+        let tapSignal = TapSignal()
+        var workerCalls = 0
+        var prompts = [WindowOverviewAccess.Permission]()
+        let access = WindowOverviewAccess(read: {
+            if tapSignal.armed { focusCheck.continuation.yield() }
+            return []
+        }, request: { prompts.append($0) }, open: { _ in Issue.record("unexpected system settings") }, readWorker: { _ in
+            workerCalls += 1
+            return await withCheckedContinuation {
+                release = $0
+                started.continuation.yield()
+            }
+        })
+        access.recordWorkerFocus(false)
+        let passive = Task { await access.checkGuide(force: true) }
+        var pending = started.stream.makeAsyncIterator()
+        _ = await pending.next()
+        await access.performGuide(.request, for: .thumbnails)
+        #expect(prompts == [.thumbnails])
+        tapSignal.armed = true
+        let tap = Task { await access.performGuide(.request, for: .focus) }
+        var checked = focusCheck.stream.makeAsyncIterator()
+        _ = await checked.next()
+        release?.resume(returning: false)
+        await passive.value
+        await tap.value
+        #expect(workerCalls == 1 && prompts == [.thumbnails, .focus])
+    }
+
     @Test func hostWindowBindingRequiresTheSelectedPublicNumberExactlyOnce() {
         #expect(HostCurrentWindowFocus.exactIndex(numbers: [44, 55], selected: 55) == 1)
         #expect(HostCurrentWindowFocus.exactIndex(numbers: [nil, 44], selected: 55) == nil)
