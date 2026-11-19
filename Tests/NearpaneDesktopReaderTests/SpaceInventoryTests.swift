@@ -14,7 +14,8 @@ struct SpaceInventoryTests {
         }
         let ordinary = OverviewWindowRole(ordinary: true, minimized: false, fullscreen: false)
         #expect(shown(active: true))
-        #expect(shown(ordered: true))
+        #expect(!shown(ordered: true)) // all-Spaces ordering does not attest a non-minimized document
+        #expect(!shown(ordered: true, staged: true))
         #expect(shown(ordered: true, ax: true, role: ordinary))
         #expect(shown(ax: true, role: ordinary, staged: true))
         #expect(!shown(staged: true))
@@ -30,6 +31,7 @@ struct SpaceInventoryTests {
                            .init(ordinary: true, minimized: nil, fullscreen: false),
                            .init(ordinary: true, minimized: false, fullscreen: true)] {
             #expect(!shown(active: true, ordered: true, ax: true, role: ineligible))
+            #expect(!shown(active: true, ordered: true, role: ineligible))
         }
     }
 

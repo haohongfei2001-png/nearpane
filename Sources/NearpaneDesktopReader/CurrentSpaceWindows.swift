@@ -39,14 +39,15 @@ extension Reader {
     nonisolated static func presentedInOverview(publiclyVisible: Bool, orderedAcrossSpaces: Bool, currentMember: Bool,
                                                 onDisplay: Bool, ownerUnhidden: Bool, readsAX: Bool,
                                                 role: OverviewWindowRole?, drawnInStage: Bool = false) -> Bool {
-        // An inactive Stage Manager group may drop out of AppKit's ordered list
-        // while WindowServer still draws its exact, unminimized AX document.
-        let stageWindow = drawnInStage && role?.ordinary == true && role?.minimized == false
-        guard ownerUnhidden, onDisplay, publiclyVisible || (currentMember && (orderedAcrossSpaces || stageWindow)) else { return false }
-        if readsAX {
-            return role?.ordinary == true && role?.minimized == false && role?.fullscreen != true
+        guard ownerUnhidden, onDisplay else { return false }
+        guard let role else {
+            // Public ordering across *all* Spaces also includes surfaces whose role
+            // and minimized state we cannot attest. Keep only the doubly observed
+            // current AppKit and onscreen CG surface as a read-only candidate.
+            return !readsAX && publiclyVisible
         }
-        return true
+        guard role.ordinary, role.minimized == false, role.fullscreen != true else { return false }
+        return publiclyVisible || (currentMember && (orderedAcrossSpaces || drawnInStage))
     }
 
     /// A read-only catalogue for this screen's window roster, independent of AX responsiveness.

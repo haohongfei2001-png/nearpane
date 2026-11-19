@@ -105,6 +105,13 @@ import Testing
         #expect(!target.samePicture(as: resized))
     }
 
+    @Test func absentAXKeepsPubliclyDrawnSiblingsAndRejectsMembershipOnlyTargets() {
+        let s = catalog([(1, 51, true, "97"), (2, 51, true, "97"), (3, 51, false, "97")],
+                        accessibility: .denied)
+        #expect(s.currentDesktopWindows(on: "display", now: time, uptime: 101).compactMap { $0.metadata?.number } == [1, 2])
+        #expect(s.windows.compactMap { DesktopWindowTarget($0, in: s)?.key.number } == [1, 2])
+    }
+
     @Test func membershipAloneCannotTurnTheStageStripIntoTheWindow() throws {
         func staged(logical: SurfaceRect?) -> WindowObservation {
             let strip = SurfaceRect(x: 1300, y: 740, width: 152, height: 141)
@@ -220,23 +227,26 @@ import Testing
         #expect(try JSONDecoder().decode(HostConfiguration.self,from:JSONSerialization.data(withJSONObject:old)).showsWindowThumbnails)
     }
 
-    private func catalog(_ numbers: [(UInt32, Int32, Bool, String?)], current: String = "97") -> DesktopSnapshot {
+    private func catalog(_ numbers: [(UInt32, Int32, Bool, String?)], current: String = "97",
+                         accessibility: AXReadStatus = .available) -> DesktopSnapshot {
         let w = numbers.enumerated().map { index, entry in
             let (n, pid, visible, proof) = entry
             return WindowObservation(id: "win-\(n)", displayID: "display", bounds: frame,
                 membership: proof.map { .known(recordIDs: [$0]) } ?? .unknown, confidence: .unknown,
                 metadata: .init(number: n, pid: pid, launchMicroseconds: 100, element: nil, globalFrame: frame,
-                    frontToBack: index, minimized: nil, fullScreen: nil, isOnscreen: visible,
+                    frontToBack: index, minimized: accessibility == .available ? false : nil, fullScreen: nil, isOnscreen: visible,
                     onActiveDesktop: visible, overviewSpaceID: proof, overviewIsPresented: visible || proof != nil))
         }
         var sample = sample(w)
+        sample.native = .init(population: .workWindows, accessibility: accessibility, spaces: .observed,
+            rows: [], windowLimitReached: false, beganUptime: 99, endedUptime: 100)
         sample.scopes = [.init(id: "scope", displayID: "display", records: ["97", "98"].map {
             .init(id: $0, isCurrent: $0 == current, ordinaryUUID: UUID())
         })]
         return sample
     }
 
-    @Test func backgroundAppsAndCoveredSiblingsStayInTheSameDeskWithoutAX() throws {
+    @Test func coveredSiblingsAndClassifiedStageWindowsStayInTheSameDesk() throws {
         let s = catalog([(1, 51, true, "97"), (2, 51, false, "97"), (3, 52, false, "97"), (4, 52, false, nil)])
         let members = s.currentDesktopWindows(on: "display", now: time, uptime: 101)
         #expect(members.compactMap { $0.metadata?.number } == [1, 2, 3])
@@ -261,7 +271,7 @@ import Testing
                   isOnscreen: active, onActiveDesktop: active, overviewSpaceID: space == "97" ? space : nil, overviewIsPresented: presented))
         }
         s.windows = [member(1, "97", active: true, presented: true), member(2, "97", active: true, presented: true),
-                     member(3, "97", active: false, presented: true), // independently ordered stage member
+                     member(3, "97", active: false, presented: true, minimized: false), // independently ordered stage member
                      member(4, "97", active: false, presented: true, minimized: true),
                      member(5, "97", active: false, presented: nil), member(6, "97", active: true, presented: false),
                      member(7, "98", active: true, presented: true), member(8, "internal", active: true, presented: true),

@@ -11,6 +11,7 @@ private struct OwnerReport: Codable {
     var pid: Int32
     var windows: [String: UInt32]
     var changed: Double
+    var frameSizes: [String: [Double]]
     var orderedOut: Bool
 }
 private struct TrialError: LocalizedError {
@@ -18,6 +19,23 @@ private struct TrialError: LocalizedError {
     init(_ message: String) { self.message = message }
     var errorDescription: String? { message }
 }
+private final class MarkedContent: NSView {
+    let swatch: NSColor
+    init(swatch: NSColor) { self.swatch = swatch; super.init(frame: .zero) }
+    required init?(coder: NSCoder) { nil }
+    override func draw(_ dirtyRect: NSRect) {
+        swatch.setFill(); bounds.fill()
+        NSColor.cyan.setFill()
+        for x in [8, Int(bounds.width) - 16] {
+            for y in [8, Int(bounds.height) - 16] { NSRect(x: x, y: y, width: 8, height: 8).fill() }
+        }
+        for k in 0..<48 {
+            (k.isMultiple(of: 2) ? NSColor.white : NSColor.black).setFill()
+            NSRect(x: 24 + k, y: 12, width: 1, height: 10).fill()
+        }
+    }
+}
+
 private final class RosterPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
@@ -48,13 +66,15 @@ private final class RosterPanel: NSPanel {
                 w.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary,.canJoinAllApplications]
             } else {
                 w = NSWindow(contentRect:rect,styleMask:style,backing:.buffered,defer:true,screen:screen)
+                if CommandLine.arguments.contains("--all-spaces-documents") {
+                    w.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications]
+                }
             }
             w.level = .normal; w.isReleasedWhenClosed = false
             w.tabbingMode = .disallowed; w.setFrame(rect,display:false)
             w.title = ["旅行手记", "阅读笔记", "设计草图", "色彩样本"][i]
             let (r,g,b) = swatches[i]
-            let content = NSView()
-            content.wantsLayer = true; content.layer?.backgroundColor = NSColor(srgbRed:CGFloat(r)/255,green:CGFloat(g)/255,blue:CGFloat(b)/255,alpha:1).cgColor
+            let content = MarkedContent(swatch: NSColor(srgbRed: CGFloat(r)/255, green: CGFloat(g)/255, blue: CGFloat(b)/255, alpha: 1))
             let label = NSTextField(labelWithString:w.title)
             label.font = .systemFont(ofSize:21,weight:.semibold); label.textColor = .white
             label.frame = NSRect(x:20,y:42,width:192,height:32); content.addSubview(label); w.contentView = content
@@ -63,6 +83,7 @@ private final class RosterPanel: NSPanel {
         }
         func write() {
             let report = OwnerReport(pid:getpid(), windows: Dictionary(uniqueKeysWithValues:windows.map { (String($0.key),UInt32($0.value.windowNumber)) }), changed:changed,
+                                     frameSizes: Dictionary(uniqueKeysWithValues:windows.map { (String($0.key), [$0.value.frame.width, $0.value.frame.height]) }),
                                      orderedOut: hidden && windows[2]?.isVisible == false)
             try? JSONEncoder().encode(report).write(to:folder.appendingPathComponent(name+".json"),options:.atomic)
         }
@@ -92,35 +113,39 @@ private final class RosterPanel: NSPanel {
         NSApplication.shared.setActivationPolicy(.prohibited)
         let original = NSWorkspace.shared.frontmostApplication?.processIdentifier
         var result = [String:Any](), owners = [Process]()
-        do {
+        verification: do {
             guard let original, WindowContentPreview.sessionAvailable(), let screen = NSScreen.screens.first,
                   NSScreen.screens.count == 1, let d = SystemScreens.geometry().first, CGPreflightScreenCaptureAccess(),
                   let read = NativeDesktopProvider.packagedReader(overview:true) else { throw TrialError("窗口或现有取图权限不可用") }
             let sticky = CommandLine.arguments.contains("--public-visible")
             let coldBackground = CommandLine.arguments.contains("--cold-background")
+            let allSpacesDocuments = CommandLine.arguments.contains("--all-spaces-documents")
+            result["allSpacesDocuments"] = allSpacesDocuments
             result["publicVisibleFixture"] = sticky
             result["coldBackgroundFixture"] = coldBackground
             for (bundle,exe,id) in [("Design Notes.app","Notes","net.example.nearpane-window-selection"),("Sketch Board.app","Board","net.example.nearpane-window-board")] {
                 let url=folder.appendingPathComponent(bundle)
                 guard Bundle(url:url)?.bundleIdentifier == id else { throw TrialError("测试包身份不符") }
                 let p=Process(); p.executableURL=url.appendingPathComponent("Contents/MacOS/"+exe)
-                p.arguments=sticky ? ["--roster","--public-visible"] : ["--roster"]
+                p.arguments = ["--roster"] + (sticky ? ["--public-visible"] : []) + (allSpacesDocuments ? ["--all-spaces-documents"] : [])
                 try p.run(); owners.append(p)
             }
             func report(_ name: String) -> OwnerReport? {
                 (try? Data(contentsOf:folder.appendingPathComponent(name+".json"))).flatMap { try? JSONDecoder().decode(OwnerReport.self,from:$0) }
             }
+            var focusDeparture = false
             func wait(_ seconds: Double, _ predicate: () -> Bool) async -> Bool {
                 let end=ProcessInfo.processInfo.systemUptime+seconds
                 repeat {
                     if predicate() { return true }
-                    if NSWorkspace.shared.frontmostApplication?.processIdentifier != original { return false }
+                    if NSWorkspace.shared.frontmostApplication?.processIdentifier != original { focusDeparture = true; return false }
                     try? await Task.sleep(for:.milliseconds(15))
                 } while ProcessInfo.processInfo.systemUptime < end
                 return predicate()
             }
-            guard await wait(3,{report("notes")?.pid == owners[0].processIdentifier && report("board")?.pid == owners[1].processIdentifier}) else {
-                throw TrialError("测试窗未就绪或前台变化")
+            guard await wait(6,{report("notes")?.pid == owners[0].processIdentifier && report("board")?.pid == owners[1].processIdentifier}) else {
+                result["focusDeparture"] = focusDeparture
+                throw TrialError(focusDeparture ? "测试窗口启动时出现前台变化" : "未在时限内同时读到两个测试窗口所属者")
             }
             if coldBackground {
                 try Data().write(to:folder.appendingPathComponent("order-out"),options:.atomic)
@@ -199,6 +224,18 @@ private final class RosterPanel: NSPanel {
                 }) else { throw TrialError("原测试窗口重新显示后未恢复到列表") }
                 result["orderedInOriginalMember"] = true
             }
+            if sticky {
+                guard await wait(4, {
+                    guard let snapshot = previews.currentDesktop?.snapshot, !snapshot.displays.isEmpty,
+                          snapshot.native?.spaces == .observed, snapshot.native?.accessibility == .available,
+                          expected().count == 3 else { return false }
+                    return members().isEmpty && sourceCount() == 0
+                }) else { throw TrialError("已有辅助功能核对时仍出现辅助面板，或无法证明读取已完成") }
+                result["excludedAuxiliaryPanels"] = 3
+                result["windowEvidence"] = ownerWitness()
+                result["pass"] = true
+                break verification
+            }
             guard await wait(3,{complete(3)}) else {
                 result["windowEvidence"]=ownerWitness()
                 let finalRead=await previews.currentDesktop?.readNow()
@@ -212,8 +249,32 @@ private final class RosterPanel: NSPanel {
             result["initialCardsMs"]=milliseconds(start)
             result["initialBackground"]=members().filter{$0.metadata?.onActiveDesktop == false}.count
             result["currentMembership"]=members().filter{$0.metadata?.overviewSpaceID != nil}.count
+            if CommandLine.arguments.contains("--source-readback") {
+                guard #available(macOS 26, *) else { throw TrialError("需要 macOS 26 单窗原始画面接口") }
+                result["sourceReadback"] = try await readSourceSizes([report("notes"), report("board")].compactMap { $0 }, original: original)
+                result["diagnosticOnly"] = true
+            }
             guard await wait(4,{sourceCount()==3}) else {
                 result["images"]=sourceCount(); result["windowEvidence"]=ownerWitness()
+                if #available(macOS 14.4, *), !focusDeparture, panel.isOpaque, panel.isVisible,
+                   NSWorkspace.shared.frontmostApplication?.processIdentifier == original,
+                   let own = try? await SCShareableContent.currentProcess.windows.first(where: {
+                       $0.windowID == panel.windowNumber && $0.owningApplication?.processID == getpid()
+                   }) {
+                    let cfg = SCStreamConfiguration()
+                    cfg.width = 412; cfg.height = 1080; cfg.showsCursor = false
+                    cfg.ignoreShadowsSingleWindow = true; cfg.includeChildWindows = false
+                    if let observed = try? await SCScreenshotManager.captureImage(contentFilter: .init(desktopIndependentWindow: own), configuration: cfg) {
+                        try NSBitmapImageRep(cgImage: observed).representation(using: .png, properties: [:])?
+                            .write(to: folder.appendingPathComponent("partial-window-sidebar.png"), options: .atomic)
+                    }
+                }
+                view.layoutSubtreeIfNeeded()
+                if let rendered = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                    view.cacheDisplay(in: view.bounds, to: rendered)
+                    try rendered.representation(using: .png, properties: [:])?
+                        .write(to: folder.appendingPathComponent("partial-window-rendered-view.png"), options: .atomic)
+                }
                 let shareable=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:false)
                 if let sample=previews.currentDesktop?.snapshot {
                     result["captureEvidence"]=members().compactMap { DesktopWindowTarget($0,in:sample) }.map { t in
@@ -303,6 +364,80 @@ private final class RosterPanel: NSPanel {
         if let data = try? JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]) { FileHandle.standardOutput.write(data) }
         exit(result["pass"] as? Bool == true ? 0 : 3)
     }
+    @available(macOS 26, *)
+    private static func readSourceSizes(_ owners: [OwnerReport], original: pid_t) async throws -> [[String: Any]] {
+        guard CGPreflightScreenCaptureAccess() else { throw TrialError("验证进程没有既有的取图权限") }
+        let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
+        var evidence = [[String: Any]]()
+        for owner in owners {
+            let bundles = ["net.example.nearpane-window-board": ("Sketch Board.app", "Board"),
+                           "net.example.nearpane-window-selection": ("Design Notes.app", "Notes")]
+            guard let app = NSRunningApplication(processIdentifier: owner.pid), let id = app.bundleIdentifier,
+                  let (bundle, name) = bundles[id] else { throw TrialError("测试 PID 的 bundle 身份不符") }
+            let expected = folder.appendingPathComponent(bundle).appendingPathComponent("Contents/MacOS/" + name)
+                .resolvingSymlinksInPath().path
+            func ownerBirth() -> UInt64? {
+                var bytes = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+                var info = proc_bsdinfo()
+                let n = Int32(MemoryLayout.size(ofValue: info))
+                guard proc_pidpath(owner.pid, &bytes, UInt32(bytes.count)) > 0,
+                      URL(fileURLWithPath: String(cString: bytes)).resolvingSymlinksInPath().path == expected,
+                      proc_pidinfo(owner.pid, PROC_PIDTBSDINFO, 0, &info, n) == n else { return nil }
+                return info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec
+            }
+            guard let birth = ownerBirth(), birth > 0 else { throw TrialError("测试进程的可执行文件或出生代际不符") }
+            for (slot, number) in owner.windows.sorted(by: { $0.key < $1.key }) {
+                let matches = content.windows.filter { $0.windowID == number && $0.owningApplication?.processID == owner.pid }
+                func valid() -> Bool {
+                    guard let row = WindowSurfaceRecord(number: number), row.pid == owner.pid, row.layer == 0, row.allowsContent,
+                          ownerBirth() == birth, !app.isTerminated, CGPreflightScreenCaptureAccess() else { return false }
+                    return NSWorkspace.shared.frontmostApplication?.processIdentifier == original
+                }
+                guard valid(), matches.count == 1, let window = matches.first, let size = owner.frameSizes[slot], size.count == 2 else {
+                    throw TrialError("无法确认合成窗口的唯一共享身份")
+                }
+                let filter = SCContentFilter(desktopIndependentWindow: window)
+                let scale = Double(filter.pointPixelScale)
+                var row: [String: Any] = ["slot": slot, "ownerSize": size, "scale": scale,
+                    "scWindow": [window.frame.width, window.frame.height],
+                    "filterPoints": [filter.contentRect.width, filter.contentRect.height]]
+                for mode in ["native", "requested", "streamRequested"] {
+                    let config = SCScreenshotConfiguration()
+                    config.dynamicRange = .sdr; config.showsCursor = false; config.includeChildWindows = false
+                    config.ignoreShadows = true; config.ignoreClipping = true
+                    if mode == "requested" {
+                        config.width = Int((size[0]*scale).rounded()); config.height = Int((size[1]*scale).rounded())
+                    }
+                    guard valid() else { throw TrialError("目标或前台变化") }
+                    let image: CGImage
+                    do {
+                        if mode == "streamRequested" {
+                            let stream = SCStreamConfiguration()
+                            stream.width = Int((size[0]*scale).rounded()); stream.height = Int((size[1]*scale).rounded())
+                            stream.ignoreGlobalClipSingleWindow = true; stream.ignoreShadowsSingleWindow = true
+                            stream.includeChildWindows = false; stream.showsCursor = false; stream.capturesAudio = false
+                            image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: stream)
+                        } else {
+                            let shot = try await SCScreenshotManager.captureScreenshot(contentFilter: filter, configuration: config)
+                            guard let bitmap = shot.sdrImage else { throw TrialError("无 SDR 画面") }
+                            image = bitmap
+                        }
+                    } catch {
+                        let e = error as NSError
+                        row[mode + "Error"] = [e.domain, String(e.code)]
+                        continue
+                    }
+                    guard valid() else { throw TrialError("原窗口或权限已变") }
+                    row[mode] = [image.width, image.height]
+                    try NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(
+                        to: folder.appendingPathComponent("source-" + slot + "-" + mode + ".png"), options: .atomic)
+                }
+                evidence.append(row)
+            }
+        }
+        return evidence
+    }
+
     private static func colorCounts(_ image: CGImage, stageShading: Bool = false) -> [Int] {
         guard let ctx=CGContext(data:nil,width:image.width,height:image.height,bitsPerComponent:8,bytesPerRow:image.width*4,
             space:CGColorSpace(name:CGColorSpace.sRGB)!,bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue|CGBitmapInfo.byteOrder32Big.rawValue),

@@ -17,6 +17,8 @@ REGISTER = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchS
 APPS = ("Controller.app", "Design Notes.app", "Sketch Board.app")
 MODES = {
     "roster": ["--roster"],
+    "source-readback": ["--roster", "--source-readback"],
+    "all-spaces-documents": ["--roster", "--all-spaces-documents", "--source-readback"],
     "public-roster": ["--roster", "--public-visible"],
     "cold-roster": ["--roster", "--cold-background"],
     "gallery": ["--gallery"],
@@ -63,7 +65,7 @@ def cleanup(root, evidence):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", nargs="?", choices=MODES, default="public-roster")
+    parser.add_argument("mode", nargs="?", choices=MODES, default="roster")
     args = parser.parse_args()
     dest = ROOT / "build/verification"
     dest.mkdir(parents=True, exist_ok=True)

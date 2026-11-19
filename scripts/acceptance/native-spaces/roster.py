@@ -145,6 +145,10 @@ def measure(observer, output):
             result["pixelReason"] = ("Both signed source cards did not expose measurable pictures" if inspect_pixels
                                      else "Screen recording access not confirmed in installed Host and observer")
         if kind == "roster" and all(card.get("observed") for card in samples):
+            result["currentRosterAudit"] = read("compare-roster")
+            if result["currentRosterAudit"]["status"] == "FAIL":
+                result.update(status="FAIL", reason="Installed card set disagrees with independently identified visible windows")
+
             def card_counts():
                 rows = [read("fixture-card-presence", host["pid"], host["codeHash"], proc.pid, n, app, signed,
                              scope["scope"], scope["current"], state["birth"]) for n in numbers]

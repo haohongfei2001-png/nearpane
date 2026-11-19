@@ -134,7 +134,8 @@ public extension DesktopSnapshot {
             return false
         }
         if m.onActiveDesktop == true && m.isOnscreen == true { return true }
-        return m.overviewSpaceID != nil && m.overviewIsPresented == true
+        return native?.accessibility == .available && m.minimized == false &&
+            m.overviewSpaceID != nil && m.overviewIsPresented == true
     }
 
     func desktopPreviewRowCount(for displayID: String?) -> Int {
