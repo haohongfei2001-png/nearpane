@@ -129,7 +129,7 @@ import Testing
                     membership: .known(recordIDs: sticky.contains(id.number) ? [current.record, "900"] : [current.record]),
                     confidence: .unknown, metadata: .init(number: id.number, pid: id.pid, launchMicroseconds: id.launch,
                         element: nil, globalFrame: h.frame, frontToBack: index, minimized: nil, fullScreen: nil,
-                        isOnscreen: visible, onActiveDesktop: visible, overviewSpaceID: current.record))
+                        isOnscreen: visible, onActiveDesktop: visible, overviewSpaceID: current.record, overviewIsPresented: true))
             }
             return .observed(request, from: now, to: now, build: "test", topology: "one-display", consistent: true, separateSpaces: true,
                 displays: [.init(id: "side", frame: f, rotationDegrees: 0, backingScale: 2, usable: f)],

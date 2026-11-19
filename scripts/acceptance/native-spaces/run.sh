@@ -7,6 +7,13 @@ xcrun clang -c Sources/CReadOnlySpaces/ReadOnlySpaces.c -I Sources/CReadOnlySpac
 xcrun swiftc -module-cache-path "$scratch/module-cache" -import-objc-header Sources/CReadOnlySpaces/include/ReadOnlySpaces.h \
     scripts/acceptance/native-spaces/observe.swift "$scratch/reader.o" -o "$scratch/observe"
 xcrun swiftc -module-cache-path "$scratch/module-cache" scripts/acceptance/native-spaces/metrics.swift -o "$scratch/metrics"
+if [[ ${1:-} == compare-roster ]]; then
+    [[ $# == 2 ]]
+    mkdir -m 700 "$2"
+    "$scratch/observe" compare-roster | tee "$2/membership.json"
+    python3 -c 'import json,sys;sys.exit(0 if json.load(open(sys.argv[1]))["status"]=="PASS" else 2)' "$2/membership.json"
+    exit $?
+fi
 if [[ ${1:-} == guide ]]; then
     [[ $# == 2 ]]
     mkdir -m 700 "$2"

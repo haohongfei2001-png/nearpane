@@ -280,7 +280,16 @@ func fixtureResult(_ args: [String]) -> Object {
           let scope = spaces?.first(where: { $0["scope"] as? String == args[8] }),
           let sid = scope["current"] as? UInt64, String(sid) == args[9],
           (scope["records"] as? [Object])?.contains(where: { $0["id"] as? UInt64 == sid && $0["type"] as? Int == 0 }) == true,
-          let memberships = NPReadWindowSpaces(number) as? [UInt64],
+          (args[1] == "fixture-card-presence" || NPReadWindowNumberPresence(number) == 1) else {
+        return ["issued": false, "reason": "changed scope or fixture identity"]
+    }
+    if args[1] == "fixture-card-presence" {
+        let key = "current-desktop-window:" + args[4] + ":" + args[5]
+        let index = Sidebar(host, rows: rows)
+        guard index.areas == 1 else { return ["issued": false] }
+        return ["issued": true, "matches": index.controls[key]?.count ?? 0]
+    }
+    guard let memberships = NPReadWindowSpaces(number) as? [UInt64],
           args[1] == "roster-shared-card" ? memberships.contains(sid) : memberships == [sid] else {
         return ["issued": false, "reason": "changed source, application, window or signing identity"]
     }
@@ -460,8 +469,87 @@ func guideResult() -> Object {
     return ["status":pictures && focus && closed ? "PASS" : "FAIL", "visibleControls":controls.sorted(),
             "dismissed":closed,"systemPermissionActions":0]
 }
+// Independent check of membership and window kind. Read only CG/AX metadata;
+// never request titles, window contents or a permission prompt. Record counts only.
+func compareCurrentRoster() -> Object {
+    guard let host, AXIsProcessTrusted(), let scope = spaces?.first, spaces?.count == 1,
+          let current = scope["current"] as? UInt64, let display = scope["scope"] as? String,
+          let screen = displays().first, displays().count == 1, screen["uuid"] as? String == display,
+          let records = scope["records"] as? [Object],
+          records.contains(where: { $0["id"] as? UInt64 == current && $0["type"] as? Int == 0 }),
+          let list else { return ["status": "BLOCKED", "reason": "single ordinary desktop, observer AX or installed Host unavailable"] }
+    let index = Sidebar(host, rows: list)
+    guard index.areas == 1 else { return ["status": "BLOCKED", "reason": "no unique installed roster"] }
+    let cards = index.controls.filter { $0.key.hasPrefix("current-desktop-window:") }
+    var owners = [pid_t: [AXUIElement]](), classifications = [String: String]()
+    let publicNumbers = Set((NSWindow.windowNumbers(options: .allApplications) ?? []).map(\.uint32Value))
+    let allNumbers = Set((NSWindow.windowNumbers(options: [.allSpaces, .allApplications]) ?? []).map(\.uint32Value))
+    var unconfirmedEvidence = [String: Int](), excluded = [String: Int](), proven = Set<String>()
+    for row in list {
+        guard let pid = row[kCGWindowOwnerPID as String] as? pid_t, let number = row[kCGWindowNumber as String] as? UInt32,
+              let app = NSRunningApplication(processIdentifier: pid), app.activationPolicy == .regular,
+              let bundle = app.bundleIdentifier, !bundle.hasPrefix("com.holdsnow.nearpane"), !bundle.hasPrefix("org.nearpane.") else { continue }
+        let key = "current-desktop-window:\(pid):\(number)"
+        let why: String
+        if row[kCGWindowLayer as String] as? Int != 0 { why = "otherLayer" }
+        else if app.isHidden { why = "hiddenApp" }
+        else if let memberships = NPReadWindowSpaces(number) as? [UInt64], !memberships.isEmpty {
+            if !memberships.contains(current) { why = "otherSpace" }
+            else {
+                if owners[pid] == nil {
+                    let owner = AXUIElementCreateApplication(pid)
+                    _ = AXUIElementSetMessagingTimeout(owner, 0.20)
+                    owners[pid] = value(owner, kAXWindowsAttribute) as? [AXUIElement] ?? []
+                }
+                let matches = (owners[pid] ?? []).filter { NPReadAXWindowNumber($0) == number }
+                if matches.isEmpty, !publicNumbers.contains(number), !allNumbers.contains(number),
+                   row[kCGWindowIsOnscreen as String] as? Bool != true { why = "noPresentation" }
+                else if matches.count != 1 { why = "unconfirmed" }
+                else if let role = value(matches[0], kAXSubroleAttribute) as? String,
+                        let mini = value(matches[0], kAXMinimizedAttribute) as? Bool {
+                    if mini { why = "minimized" }
+                    else if role != kAXStandardWindowSubrole { why = "auxiliary" }
+                    else if (value(matches[0], kAXModalAttribute) as? Bool) == true { why = "modal" }
+                    else if row[kCGWindowIsOnscreen as String] as? Bool == true,
+                            ((row[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 0) > 0 { why = "visibleStandard" }
+                    else { why = "backgroundStandard" }
+                } else { why = "unconfirmed" }
+            }
+        } else { why = "unconfirmed" }
+        if why == "unconfirmed", cards[key] != nil {
+            let state = [publicNumbers.contains(number) ? "publicCurrent" : "notPublicCurrent",
+                         allNumbers.contains(number) ? "publicOrdered" : "notPublicOrdered",
+                         row[kCGWindowIsOnscreen as String] as? Bool == true ? "cgOn" : "cgOff",
+                         owners[pid]?.isEmpty == false ? "ownerAXWindows" : "noOwnerAXWindows"].joined(separator: "/")
+            unconfirmedEvidence[state, default: 0] += 1
+        }
+        classifications[key] = why
+        if why == "visibleStandard" { proven.insert(key) }
+        if !["visibleStandard", "backgroundStandard", "unconfirmed"].contains(why) {
+            excluded[why, default: 0] += 1
+        }
+    }
+    let currentInventory = inventory()
+    guard let after = currentInventory?.first, currentInventory?.count == 1, after["current"] as? UInt64 == current,
+          after["scope"] as? String == display,
+          Set(Sidebar(host, rows: list).controls.filter { $0.key.hasPrefix("current-desktop-window:") }.keys) == Set(cards.keys) else {
+        return ["status": "INCONCLUSIVE", "reason": "roster or desktop changed during the observation"]
+    }
+    var drawn = [String: Int]()
+    for key in cards.keys { drawn[classifications[key] ?? "unconfirmed", default: 0] += 1 }
+    let wrong = excluded.keys.reduce(0) { $0 + drawn[$1, default: 0] }
+    let missing = proven.subtracting(cards.keys).count
+    let uncertain = drawn["unconfirmed", default: 0]
+    let duplicate = cards.values.filter { $0.count != 1 }.count
+    let status = (wrong > 0 || missing > 0 || duplicate > 0) ? "FAIL" : (uncertain > 0 || proven.isEmpty ? "INCONCLUSIVE" : "PASS")
+    return ["status": status, "cards": cards.count, "classifiedCards": drawn, "unconfirmedEvidence": unconfirmedEvidence, "systemExcluded": excluded,
+            "provenVisibleStandard": proven.count, "missingProvenVisible": missing, "knownWrongCards": wrong,
+            "duplicateControls": duplicate, "unconfirmedCards": uncertain, "privateTitlesRead": false, "pixelsRequested": 0]
+}
 if CommandLine.arguments.count > 1 {
-    if CommandLine.arguments[1] == "crop" {
+    if CommandLine.arguments[1] == "compare-roster" {
+        report = compareCurrentRoster()
+    } else if CommandLine.arguments[1] == "crop" {
         report = titleCrop(CommandLine.arguments)
     } else if CommandLine.arguments[1] == "absence" {
         let ids = CommandLine.arguments.dropFirst(2).compactMap(UInt32.init)

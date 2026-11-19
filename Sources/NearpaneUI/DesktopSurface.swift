@@ -94,7 +94,7 @@ struct DesktopSurface: View {
         let id = screen.id
         let visible = display?.interactionVisible == true && !host.configuration.surfaceHidden
         let pictures = visible && host.configuration.showsWindowThumbnails && WindowContentPreview.sessionAvailable()
-        let permitted = pictures && CGPreflightScreenCaptureAccess()
+        let permitted = pictures && WindowPermissionProbe.screen.allowed()
         let run = GalleryRun(display: id, visible: visible, permitted: permitted, generation: gallery?.generation ?? 0)
         var captured = gallery?.capturedSizes(for: windows, in: snapshot, permitted: permitted) ?? [:]
         if pictures, let proof = previews?.binding, captured[proof.number] == nil,
@@ -164,6 +164,7 @@ struct DesktopSurface: View {
             if let previews, previews.binding?.display == screen.id { await previews.validate(host.bus.desktop) }
         }
         .task(id: run) {
+            WindowOverviewAccess.shared.refresh()
             guard permitted, let gallery else { return }
             await gallery.run(on: id, snapshot: { overview }, allowed: {
                 host.isRunning && !host.configuration.surfaceHidden && host.configuration.showsWindowThumbnails &&

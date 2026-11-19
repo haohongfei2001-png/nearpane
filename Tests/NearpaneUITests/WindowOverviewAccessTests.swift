@@ -42,23 +42,27 @@ import Testing
         #expect(WindowOverviewAccess.sidebarGuides(grants: [.focus], showPictures: true, readerDenied: true, visible: true) == [.thumbnails])
     }
 
-    @Test func sidebarChecksTheSelectingProcessIndependentlyOfTheCaptureProcess() async {
+    @Test func accessGuideUsesTheStableAppForRequestsAndRecognizesEitherActualPrincipal() async {
         var hostGrants: Set<WindowOverviewAccess.Permission> = [.focus, .thumbnails]
         var helper: Bool? = false
+        var hostRequests = [WindowOverviewAccess.Permission]()
         var workerCalls = [Bool]()
         var systemPanes = [WindowOverviewAccess.Permission]()
-        let access = WindowOverviewAccess(read: { hostGrants }, request: { _ in Issue.record("unexpected host prompt") },
+        let access = WindowOverviewAccess(read: { hostGrants }, request: { hostRequests.append($0) },
                                           open: { systemPanes.append($0) }, readWorker: { prompt in
             workerCalls.append(prompt); return helper
         })
         await access.checkGuide(force: true)
-        #expect(access.guideAction(for: .thumbnails) == nil && access.guideAction(for: .focus) == .request)
+        #expect(access.guideAction(for: .thumbnails) == nil && access.guideAction(for: .focus) == nil)
+        #expect(access.focusAvailable == true && access.workerFocus == false)
+        hostGrants.remove(.focus)
+        await access.checkGuide(force: true)
+        #expect(access.guideAction(for: .focus) == .request)
         await access.performGuide(.request, for: .focus)
         await access.performGuide(.request, for: .focus)
-        #expect(workerCalls.filter { $0 }.count == 1)
+        #expect(hostRequests == [.focus] && !workerCalls.contains(true))
         #expect(access.guideAction(for: .focus) == .settings && systemPanes.isEmpty)
         helper = true
-        hostGrants = [.thumbnails]
         await access.performGuide(.settings, for: .focus)
         #expect(access.guideAction(for: .focus) == nil && systemPanes.isEmpty)
         await access.checkAfterRequest()
@@ -66,6 +70,14 @@ import Testing
         helper = nil
         await access.checkGuide(force: true)
         #expect(access.checkedWorker && access.workerFocus == nil && access.guideAction(for: .focus) == nil)
+    }
+
+    @Test func hostWindowBindingRequiresTheSelectedPublicNumberExactlyOnce() {
+        #expect(HostCurrentWindowFocus.exactIndex(numbers: [44, 55], selected: 55) == 1)
+        #expect(HostCurrentWindowFocus.exactIndex(numbers: [nil, 44], selected: 55) == nil)
+        #expect(HostCurrentWindowFocus.exactIndex(numbers: [55, 55], selected: 55) == nil)
+        #expect(HostCurrentWindowFocus.exactIndex(numbers: [0], selected: 0) == nil)
+        #expect(HostCurrentWindowFocus.exactIndex(numbers: [55] + Array(repeating: nil, count: 64), selected: 55) == nil)
     }
 
     @Test func accessGrantedOutsideTheAppUpdatesGuideWithoutRequestOrWindowAccess() async {

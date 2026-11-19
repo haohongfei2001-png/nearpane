@@ -21,6 +21,7 @@ guard Bundle.main.bundleIdentifier == "net.example.spaces-document",
 var windows = [NSWindow]()
 var editors = [NSTextView]()
 var lastState = Data()
+var withdrew = false, minimized = false
 NSWindow.allowsAutomaticWindowTabbing = false
 let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
 final class SharedFixtureWindow: NSPanel {
@@ -66,9 +67,20 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         app.terminate(nil); return
     }
     guard windows.count == expected else { return }
+    if presentation == "roster", windows.count == 2 {
+        if !withdrew, FileManager.default.fileExists(atPath: run.appendingPathComponent("withdraw-first").path) {
+            withdrew = true
+            windows[0].orderOut(nil)
+        }
+        if !minimized, FileManager.default.fileExists(atPath: run.appendingPathComponent("minimize-second").path) {
+            minimized = true
+            windows[1].miniaturize(nil)
+        }
+    }
     let payload: [String: Any] = [
         "session": session, "pid": getpid(), "birth": birth, "numbers": windows.map { $0.windowNumber },
         "presentation": presentation ?? "ordinary",
+        "visible": windows.map(\.isVisible), "minimized": windows.map(\.isMiniaturized),
         "sizes": windows.map { [$0.frame.width, $0.frame.height] },
         "key": app.keyWindow?.windowNumber ?? 0, "main": app.mainWindow?.windowNumber ?? 0,
         "editorsFocused": zip(windows, editors).map { $0.firstResponder === $1 },

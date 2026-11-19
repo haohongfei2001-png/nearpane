@@ -144,6 +144,32 @@ def measure(observer, output):
         else:
             result["pixelReason"] = ("Both signed source cards did not expose measurable pictures" if inspect_pixels
                                      else "Screen recording access not confirmed in installed Host and observer")
+        if kind == "roster" and all(card.get("observed") for card in samples):
+            def card_counts():
+                rows = [read("fixture-card-presence", host["pid"], host["codeHash"], proc.pid, n, app, signed,
+                             scope["scope"], scope["current"], state["birth"]) for n in numbers]
+                return [r.get("matches") if r.get("issued") else None for r in rows]
+
+            def wait_counts(expected):
+                until = time.monotonic() + 4
+                while time.monotonic() < until:
+                    counts = card_counts()
+                    if counts == expected:
+                        return True
+                    time.sleep(.12)
+                return False
+
+            (folder / "withdraw-first").touch()
+            matches_owner = lambda d: d.get("birth") == state["birth"] and d.get("pid") == proc.pid and d.get("numbers") == numbers
+            withdrawn = wait_state(folder / "windows.json", lambda d: matches_owner(d) and d.get("visible") == [False, True],
+                                   time.monotonic() + 3)
+            result["withdrawnWindow"] = ("PASS" if wait_counts([0, 1]) else "FAIL") if withdrawn else "INCONCLUSIVE"
+            (folder / "minimize-second").touch()
+            mini = wait_state(folder / "windows.json", lambda d: matches_owner(d) and d.get("minimized") == [False, True],
+                              time.monotonic() + 3)
+            result["minimizedWindow"] = ("PASS" if wait_counts([0, 0]) else "FAIL") if mini else "INCONCLUSIVE"
+            if "FAIL" in (result["withdrawnWindow"], result["minimizedWindow"]):
+                result.update(status="FAIL", reason="An ineligible fixture stayed in the installed sidebar or its eligible sibling disappeared")
     finally:
         if proc:
             (folder / "close").touch()

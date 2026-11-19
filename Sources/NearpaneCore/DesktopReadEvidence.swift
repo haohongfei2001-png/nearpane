@@ -41,6 +41,9 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     /// Stable logical rectangle, independent of the compositor's current presentation.
     /// Only the roster uses it. Selection, management and recovery retain their separate evidence.
     public let catalogLogicalFrame: SurfaceRect?
+    /// Public ordering, owner visibility and (when available) exact AX window classification.
+    /// Membership alone also includes minimized, hidden and ordered-out surfaces.
+    public let overviewIsPresented: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
@@ -49,7 +52,8 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
                 axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil, hasCatalogGeometry: Bool? = nil,
-                catalogLogicalFrame: SurfaceRect? = nil) {
+                catalogLogicalFrame: SurfaceRect? = nil, overviewIsPresented: Bool? = nil) {
+        self.overviewIsPresented = overviewIsPresented
         self.hasCatalogGeometry = hasCatalogGeometry
         self.catalogLogicalFrame = catalogLogicalFrame
         self.onActiveDesktop = onActiveDesktop

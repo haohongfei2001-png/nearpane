@@ -99,6 +99,21 @@ extension DesktopWindowTarget {
         if target.overviewSpace != nil {
             guard let verifySpace, await verifySpace(), current() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
         }
+        if bound == nil, permit == nil, let bundle = app.bundleIdentifier, target.publiclyVisible {
+            let host = HostCurrentWindowFocus(target: target, bundle: bundle)
+            if await host.bind() {
+                if let verifySpace {
+                    guard await verifySpace() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
+                }
+                guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+                try await host.focus(deadline: deadline, current: stillCurrent)
+                if let verifySpace {
+                    guard await verifySpace() else { throw OrdinaryWindowFailure("无法确认焦点仍在所选桌面。") }
+                }
+                guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+                return .accessibility
+            }
+        }
         let retained: OrdinaryWindowAX?
         if let bound {
             retained = bound
@@ -122,6 +137,13 @@ extension DesktopWindowTarget {
                      : target.isVisibleSurface(for: .windowSelection) else {
             log.notice("selection refused: surface identity changed")
             throw OrdinaryWindowFailure("系统没有确认原窗口仍然可选。")
+        }
+        if scoped {
+            guard let verifySpace, await verifySpace(), target.liveOwner() != nil,
+                  soleWindow(target, requireVisible: false),
+                  target.sharedSurface(visible: false, matchFrame: false, for: .windowSelection) else {
+                throw OrdinaryWindowFailure("窗口或桌面已变化，请重新选择。")
+            }
         }
         guard current(), app.activate(options: []) else {
             log.notice("selection refused: application activation unavailable")

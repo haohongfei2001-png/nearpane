@@ -5,22 +5,21 @@ import Security
 
 // No command-line targeting: one installed Host owns both pipes and the worker can bind only one
 // same-user regular application. EOF or parent death discards all AX references.
-func executablePath(_ pid: pid_t) -> URL? {
-    var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
-    guard proc_pidpath(pid, &path, UInt32(path.count)) > 0 else { return nil }
-    return URL(fileURLWithPath: String(decoding:path.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)),as:UTF8.self))
-}
-
 func verifyParent(_ parent: pid_t) -> Bool {
-    guard parent > 1, let own = executablePath(getpid()), let host = executablePath(parent),
+    guard parent > 1, let own = windowExecutablePath(getpid()), let host = windowExecutablePath(parent),
           own.lastPathComponent == "NearpaneOrdinaryWindowController",
           own.deletingLastPathComponent().lastPathComponent == "Helpers" else { return false }
     let contents = own.deletingLastPathComponent().deletingLastPathComponent()
     let root = contents.deletingLastPathComponent()
+    #if NEARPANE_WINDOW_SELECTION_FIXTURE
+    let requiredBundleID = "net.example.nearpane-sidebar-observer"
+    #else
+    let requiredBundleID = "com.holdsnow.nearpane.alpha"
+    #endif
     guard root.pathExtension == "app", contents.lastPathComponent == "Contents",
           Bundle(url:root)?.executableURL?.standardizedFileURL.path == host.standardizedFileURL.path,
           host.lastPathComponent == "NearpaneHost",
-          Bundle(url:root)?.bundleIdentifier == "com.holdsnow.nearpane.alpha" else { return false }
+          Bundle(url:root)?.bundleIdentifier == requiredBundleID else { return false }
     // A clone with new code and copied Info.plist does not validate against the sealed app.
     var signed: SecStaticCode?
     guard SecStaticCodeCreateWithPath(root as CFURL, [], &signed) == errSecSuccess, let signed,

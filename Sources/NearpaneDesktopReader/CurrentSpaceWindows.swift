@@ -36,6 +36,19 @@ extension Reader {
         return first
     }
 
+    nonisolated static func presentedInOverview(publiclyVisible: Bool, orderedAcrossSpaces: Bool, currentMember: Bool,
+                                                onDisplay: Bool, ownerUnhidden: Bool, readsAX: Bool,
+                                                role: OverviewWindowRole?, drawnInStage: Bool = false) -> Bool {
+        // An inactive Stage Manager group may drop out of AppKit's ordered list
+        // while WindowServer still draws its exact, unminimized AX document.
+        let stageWindow = drawnInStage && role?.ordinary == true && role?.minimized == false
+        guard ownerUnhidden, onDisplay, publiclyVisible || (currentMember && (orderedAcrossSpaces || stageWindow)) else { return false }
+        if readsAX {
+            return role?.ordinary == true && role?.minimized == false && role?.fullscreen != true
+        }
+        return true
+    }
+
     /// A read-only catalogue for this screen's window roster, independent of AX responsiveness.
     func windowOverview() throws -> DesktopSnapshot {
         guard WindowServerSession.available, request.fixtureWindows == nil, request.anchors.isEmpty else {
@@ -49,6 +62,15 @@ extension Reader {
         let ids = first.windows.map(\.windowID)
         let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
+        let trusted = AXIsProcessTrusted()
+        // Bound unresponsive applications independently of capture and selection. Ask only
+        // about owners with a public ordering witness; hidden surfaces do not need AX calls.
+        var visited = Set<Int32>()
+        let pids = first.windows.filter {
+            ($0.isOnscreen == true || activeBefore.contains($0.windowID) || first.orderedAcrossSpaces.contains($0.windowID)) &&
+                first.unhiddenOwners.contains($0.process.pid) && visited.insert($0.process.pid).inserted
+        }.map(\.process.pid)
+        let roles = trusted ? OverviewWindowRole.read(pids: pids, deadline: start + 0.8) : [:]
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let second = try windowList(overview: true)
         let active = activeBefore.intersection(activeNumbers())
@@ -92,10 +114,14 @@ extension Reader {
             var proof: String?
             var membership = WindowMembership.unknown
             var nativeMember = false
+            if case .known(let ids) = right {
+                // Preserve the negative evidence from internal/other-Space records.
+                // Otherwise a public surface could be relabelled as unknown or current.
+                membership = .known(recordIDs: ids)
+            }
             if case .known(let ids) = right, !supported.isDisjoint(with: ids) {
                 guard memberDisplays.contains(display.id) else { complete = false; continue }
                 nativeMember = true
-                membership = .known(recordIDs: ids)
                 if let record, record.ordinaryUUID != nil, ids.contains(record.id) { proof = record.id }
             }
             guard visible || nativeMember else { continue }
@@ -103,12 +129,21 @@ extension Reader {
             // for selection without inventing a frame in the Space miniature.
             let global = SurfaceRect(entry.frame)
             let local = SurfaceRect(x: global.x - display.frame.x, y: global.y - display.frame.y, width: global.width, height: global.height)
+            let ownerRoles = roles[entry.process.pid]
+            let role = ownerRoles?.windows[entry.windowID]
+            let presented = Self.presentedInOverview(publiclyVisible: visible,
+                orderedAcrossSpaces: first.orderedAcrossSpaces.contains(entry.windowID) && second.orderedAcrossSpaces.contains(entry.windowID),
+                currentMember: proof != nil, onDisplay: afterSlices.contains { $0.displayID == display.id } &&
+                    beforeSlices.contains { $0.displayID == display.id },
+                ownerUnhidden: first.unhiddenOwners.contains(entry.process.pid) && second.unhiddenOwners.contains(entry.process.pid),
+                readsAX: role != nil || ownerRoles?.everyNumberKnown == true, role: role,
+                drawnInStage: stageManager == true && before.isOnscreen == true && entry.isOnscreen == true)
             let meta = ObservedWindowMetadata(number: entry.windowID, pid: entry.process.pid,
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: nil, globalFrame: global,
-                frontToBack: windows.count, minimized: nil, fullScreen: nil, isOnscreen: entry.isOnscreen,
+                frontToBack: windows.count, minimized: role?.minimized, fullScreen: role?.fullscreen, isOnscreen: entry.isOnscreen,
                 onActiveDesktop: visible, overviewSpaceID: proof,
                 hasCatalogGeometry: geometry.usualPresentation && afterSlices.contains(where: { $0.displayID == display.id }),
-                catalogLogicalFrame: geometry.logical.map(SurfaceRect.init))
+                catalogLogicalFrame: geometry.logical.map(SurfaceRect.init), overviewIsPresented: presented)
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }

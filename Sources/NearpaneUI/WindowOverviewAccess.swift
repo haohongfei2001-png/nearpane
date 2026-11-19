@@ -22,10 +22,12 @@ private typealias ViewState<T> = State<T>
     static let shared = WindowOverviewAccess(read: systemGrants, request: requestSystemAccess, open: openSettings,
                                              readWorker: OrdinaryWindowDirectory.focusPermission)
 
+    private static let hostFocusProbe = WindowPermissionProbe(read: AXIsProcessTrusted)
+
     static func systemGrants() -> Set<Permission> {
         var grants = Set<Permission>()
-        if AXIsProcessTrusted() { grants.insert(.focus) }
-        if CGPreflightScreenCaptureAccess() { grants.insert(.thumbnails) }
+        if hostFocusProbe.allowed() { grants.insert(.focus) }
+        if WindowPermissionProbe.screen.allowed() { grants.insert(.thumbnails) }
         return grants
     }
 
@@ -46,7 +48,6 @@ private typealias ViewState<T> = State<T>
     private(set) var grants: Set<Permission>
     private(set) var workerFocus: Bool?
     private(set) var checkedWorker = false
-    private var workerRequested = false
     private var workerQuery: UUID?
     private var lastWorkerCheck: TimeInterval = -.infinity
     private(set) var observeUntil: TimeInterval = 0
@@ -65,7 +66,7 @@ private typealias ViewState<T> = State<T>
         workerFocus = granted
         checkedWorker = true
         lastWorkerCheck = ProcessInfo.processInfo.systemUptime
-        if granted == true { workerRequested = false }
+        if granted == true { requested.remove(.focus) }
     }
 
     func checkGuide(force: Bool = false) async {
@@ -77,29 +78,27 @@ private typealias ViewState<T> = State<T>
         if workerQuery == query { recordWorkerFocus(answer) }
     }
 
+    var focusAvailable: Bool? { grants.contains(.focus) ? true : workerFocus }
+
     func guideAction(for permission: Permission) -> Action? {
         if permission == .thumbnails { return action(for: permission) }
-        guard workerFocus == false else { return nil }
-        return workerRequested ? .settings : .request
+        guard focusAvailable == false else { return nil }
+        return action(for: .focus)
     }
 
     func performGuide(_ action: Action, for permission: Permission) async {
         await checkGuide(force: true)
         guard workerQuery == nil, guideAction(for: permission) == action else { return }
         observeUntil = ProcessInfo.processInfo.systemUptime + 120
-        if permission == .thumbnails { perform(action, for: permission); return }
-        if action == .settings { open(permission); return }
-        workerRequested = true
-        let query = UUID()
-        workerQuery = query
-        let answer = await readWorker(true)
-        if workerQuery == query { recordWorkerFocus(answer) }
+        // The visible installation is the stable TCC principal. Never ask the user
+        // to approve a short-lived helper when a bundled app entry is actionable.
+        perform(action, for: permission)
     }
 
     func checkAfterRequest() async {
         refresh()
-        if workerRequested { await checkGuide() }
-        if !workerRequested && !requested.contains(.thumbnails) { observeUntil = 0 }
+        if requested.contains(.focus) { await checkGuide() }
+        if requested.isEmpty { observeUntil = 0 }
     }
 
     func refresh() {
@@ -129,8 +128,12 @@ private typealias ViewState<T> = State<T>
 
     private static func requestSystemAccess(_ permission: Permission) {
         switch permission {
-        case .focus: _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-        case .thumbnails: _ = CGRequestScreenCaptureAccess()
+        case .focus:
+            hostFocusProbe.invalidate()
+            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        case .thumbnails:
+            _ = CGRequestScreenCaptureAccess()
+            WindowPermissionProbe.screen.invalidate()
         }
     }
 
@@ -153,7 +156,8 @@ struct WindowPermissionButton: View {
     }
 }
 
-/// The Host reads pixels. Its signed action helper checks Accessibility for exact window selection.
+/// The Host reads pixels and can directly focus a publicly identified window.
+/// Apps requiring the isolated window-number reader use the signed action helper.
 struct WindowAccessGuide: View {
     let showPictures: Bool
     @ViewState private var expanded = false
@@ -164,7 +168,7 @@ struct WindowAccessGuide: View {
         // The independent focus reply can arrive after the sidebar has already appeared.
         VStack(alignment: .leading, spacing: 0) {
             let missingPixels = showPictures && !access.grants.contains(.thumbnails)
-            let missingFocus = access.checkedWorker && access.workerFocus != true
+            let missingFocus = access.checkedWorker && access.focusAvailable != true
             if missingPixels || missingFocus {
                 Button {
                     expanded = true
@@ -200,10 +204,24 @@ struct WindowAccessSteps: View {
             if showPictures {
                 step(.thumbnails, name: "窗口画面", systemName: "屏幕与系统音频录制", granted: access.grants.contains(.thumbnails))
             }
-            step(.focus, name: "精确切换窗口", systemName: "辅助功能", granted: access.workerFocus)
-            if access.guideAction(for: .focus) == .settings || (showPictures && access.guideAction(for: .thumbnails) == .settings) {
-                Text("在系统设置中开启 Nearpane。授权后会自动检查；若 macOS 提示重新打开，请按系统提示操作。")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            step(.focus, name: "精确切换窗口", systemName: "辅助功能", granted: access.focusAvailable)
+            if access.guideAction(for: .focus) != nil || (showPictures && access.guideAction(for: .thumbnails) != nil) {
+                DisclosureGroup("系统开关已经打开？") {
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text("旧版可能留下了同名授权。请在对应的隐私设置中移除旧 Nearpane，重新添加此处的应用，然后退出并重新打开 Nearpane。")
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("在访达中显示当前 Nearpane") {
+                            NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                        }
+                        .controlSize(.small)
+                        Text(Bundle.main.bundlePath)
+                            .textSelection(.enabled)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(.caption)
+                }
+                .controlSize(.small)
             }
         }
         .observeWindowGuide()

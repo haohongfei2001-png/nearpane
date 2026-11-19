@@ -5,6 +5,34 @@ import WindowGeometryCore
 @testable import NearpaneDesktopReader
 
 struct SpaceInventoryTests {
+    @Test func rosterRequiresOrderingIndependentlyOfSpaceMembership() {
+        func shown(active: Bool = false, ordered: Bool = false, member: Bool = true,
+                   onDisplay: Bool = true, unhidden: Bool = true,
+                   ax: Bool = false, role: OverviewWindowRole? = nil, staged: Bool = false) -> Bool {
+            Reader.presentedInOverview(publiclyVisible: active, orderedAcrossSpaces: ordered,
+                currentMember: member, onDisplay: onDisplay, ownerUnhidden: unhidden, readsAX: ax, role: role, drawnInStage: staged)
+        }
+        let ordinary = OverviewWindowRole(ordinary: true, minimized: false, fullscreen: false)
+        #expect(shown(active: true))
+        #expect(shown(ordered: true))
+        #expect(shown(ordered: true, ax: true, role: ordinary))
+        #expect(shown(ax: true, role: ordinary, staged: true))
+        #expect(!shown(staged: true))
+        #expect(!shown(member: false, ax: true, role: ordinary, staged: true))
+        #expect(!shown())  // An ordered-out window still has its old Space membership.
+        #expect(!shown(ax: true, role: ordinary))
+        #expect(!shown(ordered: true, member: false))
+        #expect(!shown(active: true, onDisplay: false))
+        #expect(!shown(active: true, unhidden: false))
+        #expect(!shown(active: true, ax: true, role: nil))
+        for ineligible in [OverviewWindowRole(ordinary: true, minimized: true, fullscreen: false),
+                           .init(ordinary: false, minimized: false, fullscreen: false),
+                           .init(ordinary: true, minimized: nil, fullscreen: false),
+                           .init(ordinary: true, minimized: false, fullscreen: true)] {
+            #expect(!shown(active: true, ordered: true, ax: true, role: ineligible))
+        }
+    }
+
     @Test func stableStageStripCGDoesNotReplaceTheLogicalWindowFrame() {
         // Both rectangles were stable across four samples of the same owned window on 26A428.
         let strip = Rect(1302, 756, 152, 141), owned = Rect(465, 388, 540, 213)

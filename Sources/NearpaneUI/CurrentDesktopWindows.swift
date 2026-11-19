@@ -114,11 +114,12 @@ import OSLog
                 }
                 didSample?()
                 if let next {
-                    let counts = [next.windows.count, next.windows.filter { $0.metadata?.onActiveDesktop == false }.count]
+                    let presented = next.windows.filter(next.isCurrentDesktopWindow)
+                    let counts = [presented.count, presented.filter { $0.metadata?.onActiveDesktop == false }.count, next.windows.count]
                     if counts != reportedCounts {
                         reportedCounts = counts
                         Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowOverview")
-                            .info("Current desktop windows: total=\(counts[0], privacy: .public) background=\(counts[1], privacy: .public)")
+                            .info("Current desktop windows: total=\(counts[0], privacy: .public) background=\(counts[1], privacy: .public) inventory=\(counts[2], privacy: .public)")
                     }
                 }
             }

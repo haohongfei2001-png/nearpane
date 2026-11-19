@@ -33,6 +33,37 @@ import Testing
         #expect(picture.accepts(drawn: true, allowsContent: true))
     }
 
+    @Test func vanishedAndRecreatedWindowCannotReuseAnIdenticalCachedPicture() throws {
+        let snapshot = sample([window()])
+        let target = try #require(DesktopWindowTarget(snapshot.windows[0], in: snapshot))
+        let context = try #require(CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8,
+            bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let image = try #require(context.makeImage())
+        let original = UUID()
+        let still = DesktopWindowGallery.Still(target: target, lifetime: original,
+            capture: .init(image: image, logicalSize: CGSize(width: 320, height: 240)), time: 100)
+        #expect(still.matches(target, lifetime: original, now: 101))
+        #expect(!still.matches(target, lifetime: nil, now: 101))
+        #expect(!still.matches(target, lifetime: UUID(), now: 101))
+        #expect(!still.matches(target, lifetime: original, now: 112))
+    }
+
+    @Test func denialIsCoalescedButNeverDelaysRevocationOfAnExistingGrant() {
+        var time: TimeInterval = 100, reads = 0, grant = false
+        let access = WindowPermissionProbe(read: { reads += 1; return grant }, uptime: { time })
+        for _ in 0..<75 { #expect(!access.allowed()) }
+        #expect(reads == 1)
+        grant = true
+        time += 2
+        #expect(access.allowed())
+        grant = false
+        #expect(!access.allowed())
+        grant = true
+        access.invalidate()
+        #expect(access.allowed())
+        #expect(reads == 4)
+    }
+
     @Test func allCardsShareOneScaleAndKeepTheWholeWindowEvenAcrossTheScreenEdge() throws {
         let wide = window(frame: .init(x: -120, width: 1000, height: 200))
         let tall = window(number: 23, frame: .init(width: 200, height: 800))
@@ -91,6 +122,12 @@ import Testing
         let withStageImage = DesktopWindowThumbnailLayout(windows: [wide], display: display, availableWidth: 180,
             capturedSizes: [22: CGSize(width: 152, height: 141)])
         #expect(withStageImage.size(for: wide) == size)
+        var s = sample([wide])
+        s.scopes = [.init(id: "scope", displayID: "display", records: [.init(id: "A", isCurrent: true, ordinaryUUID: UUID())])]
+        let target = try #require(DesktopWindowTarget(wide, in: s))
+        #expect(target.acceptsContentSize(CGSize(width: 540, height: 213)))
+        #expect(!target.acceptsContentSize(CGSize(width: 152, height: 141)))
+        #expect(!target.acceptsContentSize(CGSize(width: 200, height: 400)))
     }
 
     @Test func resizingAWindowInvalidatesItsPictureEvenWhenStageStripIsUnchanged() throws {
@@ -190,7 +227,7 @@ import Testing
                 membership: proof.map { .known(recordIDs: [$0]) } ?? .unknown, confidence: .unknown,
                 metadata: .init(number: n, pid: pid, launchMicroseconds: 100, element: nil, globalFrame: frame,
                     frontToBack: index, minimized: nil, fullScreen: nil, isOnscreen: visible,
-                    onActiveDesktop: visible, overviewSpaceID: proof))
+                    onActiveDesktop: visible, overviewSpaceID: proof, overviewIsPresented: visible || proof != nil))
         }
         var sample = sample(w)
         sample.scopes = [.init(id: "scope", displayID: "display", records: ["97", "98"].map {
@@ -206,6 +243,32 @@ import Testing
         #expect(members.compactMap { DesktopWindowTarget($0, in: s) }.count == 3)
         #expect(!members[1].canRequestCurrentDesktopFocus && !members[1].canWitnessCurrentSpace)
         #expect(ManagedWindowID(members[1]) == nil)
+    }
+
+    @Test func membershipAloneCannotPublishMinimizedHiddenOrOtherSpaceWindows() {
+        var s = catalog([])
+        let ids = ["97", "98", "internal"]
+        s.scopes = [.init(id: "scope", displayID: "display", records: ids.map {
+            .init(id: $0, isCurrent: $0 == "97", ordinaryUUID: $0 == "internal" ? nil : UUID())
+        })]
+        let time = s.native!.endedUptime
+        s.native = .init(population: .workWindows, accessibility: .available, spaces: .observed,
+                         rows: [], windowLimitReached: false, beganUptime: time - 1, endedUptime: time, catalogComplete: false)
+        func member(_ n: UInt32, _ space: String?, active: Bool, presented: Bool?, minimized: Bool? = nil) -> WindowObservation {
+            .init(id: "w-\(n)", displayID: "display", bounds: frame, membership: space.map { .known(recordIDs: [$0]) } ?? .unknown,
+                  confidence: .unknown, metadata: .init(number: n, pid: 51, launchMicroseconds: 100, element: nil,
+                  globalFrame: frame, frontToBack: Int(n), minimized: minimized, fullScreen: false,
+                  isOnscreen: active, onActiveDesktop: active, overviewSpaceID: space == "97" ? space : nil, overviewIsPresented: presented))
+        }
+        s.windows = [member(1, "97", active: true, presented: true), member(2, "97", active: true, presented: true),
+                     member(3, "97", active: false, presented: true), // independently ordered stage member
+                     member(4, "97", active: false, presented: true, minimized: true),
+                     member(5, "97", active: false, presented: nil), member(6, "97", active: true, presented: false),
+                     member(7, "98", active: true, presented: true), member(8, "internal", active: true, presented: true),
+                     member(9, nil, active: true, presented: true)]
+        #expect(s.isStructurallyValid)
+        #expect(s.currentDesktopWindows(on: "display", now: self.time, uptime: time).compactMap { $0.metadata?.number } == [1, 2, 3])
+        #expect(s.windows.compactMap { DesktopWindowTarget($0, in: s)?.key.number } == [1, 2, 3])
     }
 
     @Test func visiblePicturesAreProcessedBeforeAnyOffstageMembershipRecheck() throws {

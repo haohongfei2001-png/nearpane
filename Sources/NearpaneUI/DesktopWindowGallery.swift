@@ -22,7 +22,7 @@ struct DesktopWindowTarget: Equatable {
     private let catalogSize: CGSize?
 
     init?(_ window: WindowObservation, in snapshot: DesktopSnapshot) {
-        guard let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
+        guard snapshot.isCurrentDesktopWindow(window), let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
               m.number > 0, m.fullScreen != true, m.globalFrame.geometry.isValid,
               window.confidence != .synthetic,
               window.confidence != .ambiguous || (m.element == nil && m.axFrame == nil && m.axStandardWindowNumber == nil),
@@ -97,17 +97,31 @@ struct DesktopWindowTarget: Equatable {
     func matches(_ rect: CGRect) -> Bool {
         frame == SurfaceRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height)
     }
+
+    /// When the catalogue proves the logical window is larger than its transformed
+    /// WindowServer presentation, do not publish that presentation as the full picture.
+    func acceptsContentSize(_ size: CGSize) -> Bool {
+        guard size.width.isFinite, size.height.isFinite, min(size.width, size.height) > 0 else { return false }
+        let presentation = CGSize(width: frame.width, height: frame.height)
+        guard let catalogSize, catalogSize != presentation else { return true }
+        return size == catalogSize
+    }
 }
 
 @MainActor @Observable final class DesktopWindowGallery {
-    private struct Capture {
+    struct Capture {
         let image: CGImage
         let logicalSize: CGSize
     }
-    private struct Still {
+    struct Still {
         let target: DesktopWindowTarget
+        let lifetime: UUID
         let capture: Capture
         let time: TimeInterval
+
+        func matches(_ candidate: DesktopWindowTarget, lifetime current: UUID?, now: TimeInterval) -> Bool {
+            current == lifetime && target.samePicture(as: candidate) && now - time < 12
+        }
     }
     private let stills = PreviewPixelCache<DesktopWindowKey, Still>()
     @ObservationIgnored private(set) var captureRequests: UInt64 = 0
@@ -122,9 +136,11 @@ struct DesktopWindowTarget: Equatable {
     @ObservationIgnored private var changes = [String: AsyncStream<Void>.Continuation]()
     private var visible = [String: Set<DesktopWindowKey>]()
     private let permitsWindow: (DesktopWindowKey) -> Bool
+    private let lifetime: (DesktopWindowKey) -> UUID?
 
-    init(permitsWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
+    init(permitsWindow: @escaping (DesktopWindowKey) -> Bool, lifetime: @escaping (DesktopWindowKey) -> UUID?) {
         self.permitsWindow = permitsWindow
+        self.lifetime = lifetime
     }
 
     func setCard(_ key: DesktopWindowKey, on display: String, visible onScreen: Bool) {
@@ -154,8 +170,8 @@ struct DesktopWindowTarget: Equatable {
 
     func image(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
         guard permitted, permitsWindow(target.key), visible[target.display]?.contains(target.key) == true,
-              let still = stills.peek(target.key), still.target.samePicture(as: target), now - still.time < 12,
-              WindowContentPreview.sessionAvailable(), CGPreflightScreenCaptureAccess() else { return nil }
+              let still = stills.peek(target.key), still.matches(target, lifetime: lifetime(target.key), now: now),
+              WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return nil }
         stills.touch(target.key)
         return still.capture.image
     }
@@ -168,7 +184,7 @@ struct DesktopWindowTarget: Equatable {
         var sizes = [UInt32: CGSize]()
         for window in windows {
             guard let target = DesktopWindowTarget(window, in: snapshot), permitsWindow(target.key),
-                  let still = stills.peek(target.key), still.target.samePicture(as: target), now - still.time < 12 else { continue }
+                  let still = stills.peek(target.key), still.matches(target, lifetime: lifetime(target.key), now: now) else { continue }
             sizes[target.key.number] = still.capture.logicalSize
         }
         return sizes
@@ -179,7 +195,7 @@ struct DesktopWindowTarget: Equatable {
     func imageForMap(key: DesktopWindowKey, display: String, space: String, session: UUID,
                      topology: String, permitted: Bool) -> CGImage? {
         guard permitted, permitsWindow(key), WindowContentPreview.sessionAvailable(),
-              CGPreflightScreenCaptureAccess(), let still = stills.peek(key),
+              WindowPermissionProbe.screen.allowed(), let still = stills.peek(key), still.lifetime == lifetime(key),
               still.target.session == session, still.target.topology == topology, still.target.display == display,
               still.target.overviewSpace == space, ProcessInfo.processInfo.systemUptime - still.time < 60,
               still.target.liveOwner() != nil, still.target.sharedSurface(visible: false, matchFrame: false)
@@ -221,7 +237,7 @@ struct DesktopWindowTarget: Equatable {
         var lastTargets = [DesktopWindowKey: DesktopWindowTarget]()
         func permitted() -> Bool {
             !Task.isCancelled && operations[display] == token && allowed() &&
-                WindowContentPreview.sessionAvailable() && CGPreflightScreenCaptureAccess()
+                WindowContentPreview.sessionAvailable() && WindowPermissionProbe.screen.allowed()
         }
         for await _ in stream {
             guard permitted() else { return }
@@ -243,6 +259,7 @@ struct DesktopWindowTarget: Equatable {
             lastTargets = active
             let observed = Dictionary(grouping: sample.windows, by: { $0.metadata?.number })
             stills.remove { key, still in
+                if still.lifetime != lifetime(key) { return true }
                 let old = still.target
                 guard old.display == display, active[key]?.samePicture(as: old) != true else { return false }
                 guard let space = old.overviewSpace, old.session == sample.sessionID, old.topology == sample.topologyFingerprint,
@@ -256,8 +273,7 @@ struct DesktopWindowTarget: Equatable {
             misses = misses.filter { active[$0.key] != nil }
             let now = ProcessInfo.processInfo.systemUptime
             func hasFreshPicture(_ target: DesktopWindowTarget) -> Bool {
-                guard let still = stills.peek(target.key) else { return false }
-                return target.samePicture(as: still.target) && now - still.time < 12
+                stills.peek(target.key)?.matches(target, lifetime: lifetime(target.key), now: now) == true
             }
             let due = targets.filter { target in
                 // Newly mapped windows may be registered before SCK can deliver a surface.
@@ -267,6 +283,12 @@ struct DesktopWindowTarget: Equatable {
             }
                 .sorted { (attempted[$0.key] ?? 0) < (attempted[$1.key] ?? 0) }
             guard !due.isEmpty else { continue }
+            // Freeze the observed generation before awaiting ScreenCaptureKit's catalogue.
+            // Window numbers can be reused by a still-running owner.
+            let issued = Dictionary(uniqueKeysWithValues: due.compactMap { target in
+                lifetime(target.key).map { (target.key, $0) }
+            })
+            guard !issued.isEmpty else { continue }
             // An on-screen card can verify public presentation synchronously. Only
             // off-stage members need extra membership samples around their pixels.
             let includeOffstage = due.contains { $0.overviewSpace != nil }
@@ -301,7 +323,8 @@ struct DesktopWindowTarget: Equatable {
                 guard let before else { noteUnavailable(batch); continue }
                 var jobs = [(DesktopWindowTarget, Task<Capture?, Never>)]()
                 for target in batch {
-                    guard target.present(in: before), target.present(in: snapshot()), visible[display]?.contains(target.key) == true,
+                    guard let generation = issued[target.key], generation == lifetime(target.key),
+                          target.present(in: before), target.present(in: snapshot()), visible[display]?.contains(target.key) == true,
                           let candidates = shared[target.key.number], candidates.count == 1, let window = candidates.first,
                           target.liveOwner() != nil, window.owningApplication?.processID == target.key.pid,
                           window.windowLayer == 0 else { continue }
@@ -311,8 +334,8 @@ struct DesktopWindowTarget: Equatable {
                         guard window.isOnScreen, target.matches(window.frame), target.isVisibleSurface() else { continue }
                     }
                     jobs.append((target, Task {
-                        guard permitted(), visible[display]?.contains(target.key) == true else { return nil }
-                        return await self.capture(window)
+                        guard permitted(), generation == lifetime(target.key), visible[display]?.contains(target.key) == true else { return nil }
+                        return await self.capture(window, target: target)
                     }))
                 }
                 var pictures = [(DesktopWindowTarget, Capture)]()
@@ -328,7 +351,8 @@ struct DesktopWindowTarget: Equatable {
                 let after = requiresMembership ? await recheck?() : snapshot()
                 guard permitted() else { return }
                 for (target, capture) in pictures {
-                    guard target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
+                    guard let generation = issued[target.key], generation == lifetime(target.key),
+                          target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
                           visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
                           (requiresMembership ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
                         stills.remove(target.key)
@@ -336,7 +360,7 @@ struct DesktopWindowTarget: Equatable {
                         continue
                     }
                     guard let cost = PreviewPixelBudget.charge(capture.image) else { continue }
-                    let still = Still(target: target, capture: capture, time: ProcessInfo.processInfo.systemUptime)
+                    let still = Still(target: target, lifetime: generation, capture: capture, time: ProcessInfo.processInfo.systemUptime)
                     stills.store(still, for: target.key, cost: cost)
                     misses.removeValue(forKey: target.key)
                     missingPictures.removeValue(forKey: target.key)
@@ -345,10 +369,10 @@ struct DesktopWindowTarget: Equatable {
         }
     }
 
-    private func capture(_ window: SCWindow) async -> Capture? {
+    private func capture(_ window: SCWindow, target: DesktopWindowTarget) async -> Capture? {
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let rect = filter.contentRect
-        guard rect.width.isFinite, rect.height.isFinite, min(rect.width, rect.height) > 0 else { return nil }
+        guard target.acceptsContentSize(rect.size) else { return nil }
         let scale = min(1, 420 / max(rect.width, rect.height))
         let config = SCStreamConfiguration()
         config.width = max(1, Int((rect.width * scale).rounded()))

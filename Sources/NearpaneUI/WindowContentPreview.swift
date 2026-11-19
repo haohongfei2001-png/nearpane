@@ -101,8 +101,9 @@ struct PreviewWindowBinding: Equatable {
     let gallery: DesktopWindowGallery
     let currentDesktop: CurrentDesktopWindows?
     init(readOverview: NativeDesktopProvider.Read? = nil, permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
-        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow)
-        currentDesktop = readOverview.map { CurrentDesktopWindows(read: $0) }
+        let feed = readOverview.map { CurrentDesktopWindows(read: $0) }
+        currentDesktop = feed
+        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, lifetime: { key in feed?.lifetime(of: key) })
     }
     private(set) var choosing = false
     private(set) var notice = ""
@@ -155,7 +156,7 @@ struct PreviewWindowBinding: Equatable {
     private func permits(_ target: PreviewWindowBinding, host: HostSession) -> Bool {
         guard visibleDisplays.contains(target.display), host.isRunning, !host.configuration.surfaceHidden,
               host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
-              Self.sessionAvailable(), !requiresScreenRecording || CGPreflightScreenCaptureAccess(),
+              Self.sessionAvailable(), !requiresScreenRecording || WindowPermissionProbe.screen.allowed(),
               target.window(in: host.bus.desktop) != nil else { return false }
         return true
     }
@@ -195,7 +196,7 @@ struct PreviewWindowBinding: Equatable {
         guard let op = beginSelection() else { return }
         self.host = host
         requiresScreenRecording = true
-        guard CGPreflightScreenCaptureAccess() else {
+        guard WindowPermissionProbe.screen.allowed() else {
             clear("拍摄已选窗口需要已有的屏幕录制权限。也可在「桌面预览」使用系统选择器。"); return
         }
         guard let snapshot = host.bus.desktop,
@@ -213,12 +214,12 @@ struct PreviewWindowBinding: Equatable {
             let matches = content.windows.filter { $0.windowID == id.number }
             guard matches.count == 1, let chosen = matches.first, chosen.isOnScreen, chosen.windowLayer == 0,
                   chosen.owningApplication?.processID == id.pid, chosen.owningApplication?.bundleIdentifier == bundle,
-                  CGPreflightScreenCaptureAccess(), permits(target, host: host) else {
+                  WindowPermissionProbe.screen.allowed(), permits(target, host: host) else {
                 clear("系统没有提供原窗口的可见图像。"); return
             }
             let filter = SCContentFilter(desktopIndependentWindow: chosen)
             await capture(filter, operation: op, expected: target, consent: {
-                guard CGPreflightScreenCaptureAccess() else { return false }
+                guard WindowPermissionProbe.screen.allowed() else { return false }
                 return await stillSelected()
             })
         } catch {

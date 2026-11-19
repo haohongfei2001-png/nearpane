@@ -11,7 +11,7 @@ for kind in owner host; do
         dest="$root/Design Notes.app"; exe=Notes; id=net.example.nearpane-window-selection
         flags=(-D TARGET_WINDOWS)
     else
-        dest="$root/Controller.app"; exe=NearpaneHost; id=com.holdsnow.nearpane.alpha
+        dest="$root/Controller.app"; exe=NearpaneHost; id=net.example.nearpane-sidebar-observer
         flags=(-D SELECTION_CONTROLLER)
     fi
     mkdir -p "$dest/Contents/MacOS"
@@ -22,8 +22,17 @@ for kind in owner host; do
     plutil -insert CFBundlePackageType -string APPL "$plist"
     if [[ "$kind" == host ]]; then
         mkdir "$dest/Contents/Helpers"
-        cp "$worker" "$dest/Contents/Helpers/NearpaneOrdinaryWindowController"
-        plutil -insert NearpaneOrdinaryWindowControllerSHA256 -string "$(shasum -a 256 "$worker" | cut -d ' ' -f1)" "$plist"
+        # Never register a second, ad-hoc signed app with the shipping TCC identity.
+        # Only the fixture-specific worker accepts this parent; the installed worker
+        # continues to require the production bundle identifier and sealed parent.
+        fixture_worker="$dest/Contents/Helpers/NearpaneOrdinaryWindowController"
+        xcrun swiftc -target arm64-apple-macos14.0 -package-name nearpane -D NEARPANE_WINDOW_SELECTION_FIXTURE \
+            -I "$debug/Modules" -module-cache-path .build/clang-cache \
+            -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" \
+            "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" "$debug"/{NearpaneCore,WindowGeometryCore}.build/*.swift.o \
+            Sources/NearpaneOrdinaryWindowController/*.swift -o "$fixture_worker"
+        codesign --force --sign - "$fixture_worker"
+        plutil -insert NearpaneOrdinaryWindowControllerSHA256 -string "$(shasum -a 256 "$fixture_worker" | cut -d ' ' -f1)" "$plist"
         cp "$reader" "$dest/Contents/Helpers/NearpaneDesktopReader"
         plutil -insert NearpaneDesktopReaderSHA256 -string "$(shasum -a 256 "$reader" | cut -d ' ' -f1)" "$plist"
     fi
