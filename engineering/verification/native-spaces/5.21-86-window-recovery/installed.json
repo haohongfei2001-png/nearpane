@@ -1,0 +1,139 @@
+{
+  "status": "PARTIAL",
+  "release": {
+    "version": "5.21",
+    "build": "86",
+    "source": "2fc1002b1b1c1d77791c4b3a174eefc2503aed8a",
+    "hostSHA256": "946a24ef89c72339144f4a857f4708f5f258c4c6760b4690d8e2219e6a117d15",
+    "cdhash": "212f08ce48c73f10b67d4811cdd3f1811a49d2db",
+    "installed": "/Applications/Nearpane.app",
+    "allFilesCompared": true,
+    "personalFilesMigrated": false,
+    "backupSHA256": "be6fca56208d9bd33b2258d63b873c07201855616d5257479fd92d682d6d28de"
+  },
+  "compiledSwiftTests": {
+    "integrated": 511,
+    "foundationOnly": 420
+  },
+  "fixedDependencyFiles": {
+    "Saytile": 121,
+    "Riftlet": 89
+  },
+  "debugBuild": true,
+  "releaseBuild": true,
+  "installedPackageVerified": true,
+  "packagedResourceSHA256": "40e73505d92a9689a55d5668a6ce5e25551ecc9e2a3a605a4d84a5a26aaedbbb",
+  "rosterBefore": {
+    "cards": 0,
+    "classifiedCards": {},
+    "duplicateControls": 0,
+    "knownWrongCards": 0,
+    "missingProvenVisible": 4,
+    "pixelsRequested": 0,
+    "privateTitlesRead": false,
+    "provenVisibleStandard": 4,
+    "status": "FAIL",
+    "systemExcluded": {
+      "noPresentation": 3,
+      "otherLayer": 8,
+      "otherSpace": 5
+    },
+    "unconfirmedCards": 0,
+    "unconfirmedEvidence": {},
+    "unconfirmedNotice": true
+  },
+  "rosterAfter": {
+    "cards": 0,
+    "classifiedCards": {},
+    "duplicateControls": 0,
+    "knownWrongCards": 0,
+    "missingProvenVisible": 6,
+    "pixelsRequested": 0,
+    "privateTitlesRead": false,
+    "provenVisibleStandard": 6,
+    "status": "FAIL",
+    "systemExcluded": {
+      "auxiliary": 1,
+      "noPresentation": 3,
+      "otherLayer": 8,
+      "otherSpace": 5
+    },
+    "unconfirmedCards": 0,
+    "unconfirmedEvidence": {},
+    "unconfirmedNotice": true
+  },
+  "installedSidebar": {
+    "guide": "PASS",
+    "layout": "BLOCKED",
+    "pictures": "BLOCKED",
+    "confirmedWindowSelections": 0,
+    "exactFocus": false
+  },
+  "installationIdentityMatched": true,
+  "installedPermissions": {
+    "screen": false,
+    "accessibility": false,
+    "postEvent": false,
+    "source": "installed Host live preflight"
+  },
+  "signatureMismatch": {
+    "kTCCServiceAccessibility": true,
+    "kTCCServiceScreenCapture": true
+  },
+  "officialPictureCrops": 0,
+  "fixtureCleanup": {
+    "ownedProcessExited": true,
+    "ownedWindowsGone": true,
+    "frontmostPreserved": true,
+    "scopesPreserved": true,
+    "focusedWindowPreserved": true
+  },
+  "selectionCleanup": {
+    "frontmostRestored": true,
+    "originalFocusedWindowRestored": true,
+    "ownedProcessExited": true,
+    "scopesRestored": true,
+    "windowNumbersGone": true
+  },
+  "selectionAttempts": 0,
+  "isolatedWithInstalledReader": {
+    "mixedRoles": {
+      "pass": true,
+      "listedVerifiedRoles": [
+        "AXStandardWindow",
+        "AXStandardWindow"
+      ],
+      "excludedVerifiedRoles": [
+        "AXSystemFloatingWindow"
+      ],
+      "colorPixelCounts": [
+        4495,
+        0,
+        3232,
+        0
+      ]
+    },
+    "stageHistory": {
+      "pass": false,
+      "firstCGPoints": [
+        300,
+        210
+      ],
+      "stageCGPoints": [
+        92,
+        97
+      ],
+      "liveAfter": false,
+      "previousAfter": false,
+      "missingGenerationObserved": true,
+      "distinctKnownLifetimes": 2,
+      "returnTestExecuted": false
+    },
+    "cleanupAndOriginalFocus": true
+  },
+  "localEvidence": {
+    "fit86/installed-permission-notice.png": "24ec09d811a8664b708079537cd6ab93bab363f4d7e046483f002a261168c65b",
+    "current-desktop-kgjhxfqf/mixed-window-sidebar.png": "ba828ced98873cda27214a2fdbf337501b594e7dc689f986a01135003a85dbdf",
+    "current-desktop-u1au7eqc/afterNotes-rendered-view.png": "6bd4c479480cf54bb37e4e83dbe6394bf445ec8e49dba85f593af7d4c92667e2"
+  }
+}
