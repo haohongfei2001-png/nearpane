@@ -23,3 +23,11 @@ Settings 的应用页面提供每日检查开关和检查更新入口。初始�
 当前离线策略测试和固定来源测试不能代替发布通道上的完整下载、替换、重启验收。正式更新包发布后，应在专用隔离资料中完成这一轮，并独立核对资料代际、UNKNOWN 和未完成恢复日志。
 
 参考 [Sparkle 配置契约](https://sparkle-project.org/documentation/customization/)、[程序接入](https://sparkle-project.org/documentation/programmatic-setup/)，以及 [Riftlet 固定来源的更新器](https://github.com/haohongfei2001-png/Riftlet/blob/44f745a15ecb3682a9da0bda17f17a5d9fc1f07e/Sources/RiftletApp/ApplicationUpdater.swift)。
+
+## 本机安装的权限身份
+
+通过 `scripts/build-candidate.sh` 安装至系统或用户的“应用程序”目录时，沿用 `com.holdsnow.nearpane.alpha` 和 Developer ID 团队 `ZB9D4T66QB`。默认从有效的 Developer ID Application 证书中选择该团队的唯一匹配，有多张时由维护者指定证书指纹。首次安装、从旧临时签名迁移和后续覆盖安装均逐项检查 Host 和七个权限相关助手。正式安装拒绝临时签名、错误团队、改变的助手标识及指向某次构建哈希的指定要求。替换已稳定签名的旧版时还会双向验证双方的指定要求。开发目录仍可生成隔离测试包。
+
+2026-11-19 对实际 build 85 和已安装 build 86 的八个签名主体完成 16 次双向验证。清理旧成品后重新启动 build 86，其实时读数仍为辅助功能和屏幕录制均未授权。旧临时签名的授权需要账户所有者在这两个隐私设置项中移除旧 Nearpane 条目，添加当前 `/Applications/Nearpane.app` 并允许，按系统提示重启。后续符合相同指定要求的版本具备承接该授权的身份条件，用户撤销或系统另行确认时以运行时读数为准。清理已按用户要求移除旧版归档，包括此前收据中记载的 build 85 回退 ZIP。
+
+参考 [Apple 的跨版本代码身份说明](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements/)。

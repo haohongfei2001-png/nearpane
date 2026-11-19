@@ -23,6 +23,19 @@ class CandidateIdentityTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     signing.require_developer_team(fingerprint, listing)
 
+    def test_shipping_identity_rejects_version_specific_designated_requirement(self):
+        with patch.object(signing.gate, "cmd", return_value=""), patch.object(
+                signing, "designated_requirement", return_value="cdhash H'1234'"):
+            with self.assertRaisesRegex(ValueError, "Unstable permission identity"):
+                signing.verify_install_identity(Path("candidate.app"))
+
+    def test_default_install_selects_exactly_one_certificate_of_the_product_team(self):
+        matching = self.identity.replace("A012345678", signing.PRODUCT_SIGNING_TEAM)
+        self.assertEqual(signing.product_fingerprint(self.identity + "\n" + matching), self.fingerprint)
+        for listing in (self.identity, matching + "\n" + matching, matching + " (expired)"):
+            with self.assertRaises(ValueError):
+                signing.product_fingerprint(listing)
+
     def test_only_signs_private_staging_directory(self):
         with tempfile.TemporaryDirectory() as work, patch.object(signing.gate, "cmd") as command:
             outer = Path(work)
@@ -54,7 +67,7 @@ class CandidateIdentityTests(unittest.TestCase):
                     return "designated => " + args[-1]
                 return ""
 
-            with patch.object(signing, "PERMISSION_SUBJECTS", subjects), patch.object(signing.gate, "cmd", side_effect=command) as calls:
+            with patch.object(signing, "PRODUCT_IDENTIFIERS", subjects), patch.object(signing.gate, "cmd", side_effect=command) as calls:
                 signing.check_continuity(old, new)
                 for subject in subjects:
                     for left, right in ((old, new), (new, old)):
@@ -66,7 +79,7 @@ class CandidateIdentityTests(unittest.TestCase):
                     raise subprocess.CalledProcessError(3, args)
                 return command(*args)
 
-            with patch.object(signing, "PERMISSION_SUBJECTS", subjects), patch.object(signing.gate, "cmd", side_effect=wrong_signer):
+            with patch.object(signing, "PRODUCT_IDENTIFIERS", subjects), patch.object(signing.gate, "cmd", side_effect=wrong_signer):
                 with self.assertRaises(subprocess.CalledProcessError):
                     signing.check_continuity(old, new)
 

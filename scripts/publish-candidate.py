@@ -75,6 +75,8 @@ def publish(candidate, target, receipt):
             != hashlib.sha256((candidate / "Contents/MacOS/NearpaneHost").read_bytes()).hexdigest()):
         raise ValueError("Staged package does not match its verification receipt")
     incoming = verify_alpha(candidate)
+    if delivery in (Path("/Applications"), (Path.home() / "Applications").resolve()):
+        signing.verify_install_identity(candidate)
     receipt.parent.mkdir(parents=True, exist_ok=True)
     directory = os.open(delivery, os.O_RDONLY | os.O_DIRECTORY)
     try:
