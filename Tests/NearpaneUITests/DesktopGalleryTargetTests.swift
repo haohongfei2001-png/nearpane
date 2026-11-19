@@ -48,6 +48,60 @@ import Testing
         #expect(!still.matches(target, lifetime: original, now: 112))
     }
 
+    @Test func historicalStagePictureRequiresTheSameDocumentOnTheSameDeskAndExpires() throws {
+        let desk = UUID(), lifetime = UUID()
+        let logical = SurfaceRect(width: 520, height: 175)
+        let strip = SurfaceRect(width: 199, height: 129)
+        func target(_ presentation: SurfaceRect, logical logicalFrame: SurfaceRect?, deskID: UUID,
+                    stage: Bool? = true, pid: Int32 = 41, space: String = "97") throws -> DesktopWindowTarget {
+            var snapshot = catalog([(22, pid, true, "97")])
+            snapshot.scopes = [.init(id: "scope", displayID: "display", records: [.init(id: space, isCurrent: true, ordinaryUUID: deskID)])]
+            snapshot.native = .init(population: .workWindows, accessibility: .available, spaces: .observed, rows: [],
+                                    windowLimitReached: false, beganUptime: 99, endedUptime: 100, stageManagerEnabled: stage)
+            var w = WindowObservation(id: "one", displayID: "display", bounds: presentation,
+                                      membership: .known(recordIDs: [space]), confidence: .unknown)
+            w.metadata = .init(number: 22, pid: pid, launchMicroseconds: 100, element: nil, globalFrame: presentation,
+                               frontToBack: 0, minimized: false, fullScreen: false, isOnscreen: true, onActiveDesktop: true,
+                               overviewSpaceID: space, catalogLogicalFrame: logicalFrame)
+            return try #require(DesktopWindowTarget(w, in: snapshot))
+        }
+        let original = try target(logical, logical: logical, deskID: desk)
+        let staged = try target(strip, logical: logical, deskID: desk)
+        let ctx = try #require(CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let capture = DesktopWindowGallery.Capture(image: try #require(ctx.makeImage()), logicalSize: CGSize(width: 520, height: 175))
+        var still = DesktopWindowGallery.Still(target: original, lifetime: lifetime, capture: capture, time: 100)
+        #expect(still.matches(original, lifetime: lifetime, now: 101))
+        #expect(!still.matches(staged, lifetime: lifetime, now: 101))
+        #expect(still.canShowPrevious(staged, lifetime: lifetime, now: 155))
+        #expect(!still.canShowPrevious(staged, lifetime: lifetime, now: 160))
+        #expect(!still.canShowPrevious(staged, lifetime: UUID(), now: 101))
+        #expect(!still.canShowPrevious(staged, lifetime: nil, now: 101))
+        let transitioning = try target(strip, logical: nil, deskID: desk)
+        #expect(still.canRetainPrevious(transitioning, lifetime: lifetime, now: 102))
+        #expect(!still.canShowPrevious(transitioning, lifetime: lifetime, now: 102))
+        #expect(!still.canRetainPrevious(transitioning, lifetime: lifetime, now: 103))
+        #expect(!original.samePicture(as: try target(logical, logical: logical, deskID: UUID())))
+
+        for mismatch in [try target(strip, logical: nil, deskID: desk),
+                         try target(strip, logical: .init(width: 510, height: 175), deskID: desk),
+                         try target(strip, logical: logical, deskID: UUID()),
+                         try target(strip, logical: logical, deskID: desk, stage: nil),
+                         try target(strip, logical: logical, deskID: desk, pid: 72),
+                         try target(strip, logical: logical, deskID: desk, space: "98")] {
+            #expect(!still.canShowPrevious(mismatch, lifetime: lifetime, now: 101))
+        }
+        // Reappearing at its original geometry alone does not refresh the image.
+        still.use = .previous
+        #expect(still.canShowPrevious(original, lifetime: lifetime, now: 105))
+        #expect(!still.matches(original, lifetime: lifetime, now: 105))
+        still.use = .mapOnly
+        #expect(!still.canShowPrevious(staged, lifetime: lifetime, now: 105))
+        let fresh = DesktopWindowGallery.Still(target: original, lifetime: lifetime, capture: capture, time: 106)
+        #expect(fresh.matches(original, lifetime: lifetime, now: 106))
+        #expect(!fresh.canShowPrevious(original, lifetime: lifetime, now: 106))
+    }
+
     @Test func denialIsCoalescedButNeverDelaysRevocationOfAnExistingGrant() {
         var time: TimeInterval = 100, reads = 0, grant = false
         let access = WindowPermissionProbe(read: { reads += 1; return grant }, uptime: { time })
@@ -200,10 +254,10 @@ import Testing
         let b = DesktopWindowKey(pid:41,birth:100,number:2), c = DesktopWindowKey(pid:41,birth:100,number:3)
         var calls = [UInt32]()
         var resume: CheckedContinuation<Void,Never>?
-        q.choose(a) { calls.append(a.number); await withCheckedContinuation { resume = $0 } } failed: { _ in Issue.record("first") }
+        q.choose(a, input: [1]) { _ in calls.append(a.number); await withCheckedContinuation { resume = $0 } } failed: { _ in Issue.record("first") }
         while resume == nil { await Task.yield() }
         for key in [a,b,c,c] {
-            q.choose(key) { calls.append(key.number) } failed: { _ in Issue.record("unexpected refusal") }
+            q.choose(key, input: [1]) { _ in calls.append(key.number) } failed: { _ in Issue.record("unexpected refusal") }
         }
         resume?.resume()
         for _ in 0..<100 where calls.count < 2 { await Task.yield() }
@@ -212,10 +266,40 @@ import Testing
     @Test func refusalDropsQueuedWindowInsteadOfFocusingASecondTarget() async {
         let q = WindowChoiceQueue(), a = DesktopWindowKey(pid:41,birth:100,number:1), b = DesktopWindowKey(pid:41,birth:100,number:2)
         var refused = false, second = false
-        q.choose(a) { throw OrdinaryWindowFailure("stale") } failed: { _ in refused = true }
-        q.choose(b) { second = true } failed: { _ in Issue.record("second ran") }
+        q.choose(a, input: [1]) { _ in throw OrdinaryWindowFailure("stale") } failed: { _ in refused = true }
+        q.choose(b, input: [1]) { _ in second = true } failed: { _ in Issue.record("second ran") }
         for _ in 0..<100 where !refused { await Task.yield() }
         #expect(refused && !second)
+    }
+
+    @Test func latestPressOnSameWindowReplacesAnInvalidatedFocusRequest() async {
+        let a = DesktopWindowKey(pid: 41, birth: 100, number: 1)
+        let b = DesktopWindowKey(pid: 41, birth: 100, number: 2)
+        for revisitThroughSibling in [false, true] {
+            let queue = WindowChoiceQueue()
+            var release: CheckedContinuation<Void, Never>?
+            var finished = false
+            var writes: [Int] = []
+            queue.choose(a, input: [1]) { current in
+                await withCheckedContinuation { release = $0 }
+                if current() { writes.append(1) }
+            } failed: { _ in Issue.record("unexpected first refusal") }
+            while release == nil { await Task.yield() }
+            if revisitThroughSibling {
+                queue.choose(b, input: [1]) { _ in writes.append(2) } failed: { _ in Issue.record("unexpected second refusal") }
+            }
+            // AXPress may deliver A, B, A without advancing the physical-input counter.
+            // A second physical press on A advances it even when there is no sibling.
+            queue.choose(a, input: [revisitThroughSibling ? 1 : 2]) { current in
+                if current() { writes.append(3) }
+                finished = true
+            } failed: { _ in Issue.record("unexpected final refusal") }
+            release?.resume()
+            for _ in 0..<200 where !finished { await Task.yield() }
+            #expect(finished && writes == [3])
+        }
+        #expect(DesktopWindowSelection.SelectionPath.accessibility.focusNotice == nil)
+        #expect(DesktopWindowSelection.SelectionPath.soleWindowApplication.focusNotice?.contains("键盘焦点尚未确认") == true)
     }
     @Test func galleryPreferenceSurvivesSaveAndLegacyConfigurationsDecode() throws {
         var configuration = HostConfiguration()
@@ -241,7 +325,7 @@ import Testing
         sample.native = .init(population: .workWindows, accessibility: accessibility, spaces: .observed,
             rows: [], windowLimitReached: false, beganUptime: 99, endedUptime: 100)
         sample.scopes = [.init(id: "scope", displayID: "display", records: ["97", "98"].map {
-            .init(id: $0, isCurrent: $0 == current, ordinaryUUID: UUID())
+            .init(id: $0, isCurrent: $0 == current, ordinaryUUID: UUID(uuidString: "00000000-0000-0000-0000-0000000000" + $0))
         })]
         return sample
     }

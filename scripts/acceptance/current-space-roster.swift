@@ -21,7 +21,7 @@ private struct TrialError: LocalizedError {
     var errorDescription: String? { message }
 }
 private final class MarkedContent: NSView {
-    let swatch: NSColor
+    var swatch: NSColor
     init(swatch: NSColor) { self.swatch = swatch; super.init(frame: .zero) }
     required init?(coder: NSCoder) { nil }
     override func draw(_ dirtyRect: NSRect) {
@@ -53,7 +53,9 @@ private final class RosterPanel: NSPanel {
         let name = board ? "board" : "notes"
         let sticky = CommandLine.arguments.contains("--public-visible")
         let mixed = CommandLine.arguments.contains("--mixed-roles")
+        let stageHistory = CommandLine.arguments.contains("--stage-history")
         var windows = [Int:NSWindow](), added = false, removed = false, hidden = false, shownAgain = false
+        var reordered = false, joinsApplications = false
         var changed = ProcessInfo.processInfo.systemUptime
         func make(_ i: Int) {
             let sizes = [CGSize(width: 520, height: 175), CGSize(width: 230, height: 340),
@@ -95,10 +97,29 @@ private final class RosterPanel: NSPanel {
             try? JSONEncoder().encode(report).write(to:folder.appendingPathComponent(name+".json"),options:.atomic)
         }
         let start = ContinuousClock.now
-        DispatchQueue.main.async { for i in (board ? [2] : [0,1]) { make(i) }; write() }
+        DispatchQueue.main.async { for i in (board ? [2] : (stageHistory ? [] : [0,1])) { make(i) }; write() }
         let timer = Timer(timeInterval:0.025,repeats:true) { _ in MainActor.assumeIsolated {
             if FileManager.default.fileExists(atPath:folder.appendingPathComponent("finish-roster").path) || ContinuousClock.now - start > .seconds(30) {
                 for w in windows.values { w.close() }; app.terminate(nil); return
+            }
+            if stageHistory && !board && !added && FileManager.default.fileExists(atPath:folder.appendingPathComponent("show-notes").path) {
+                added = true; make(0); make(1); write()
+            }
+            if stageHistory && board, let w = windows[2] {
+                if !reordered && FileManager.default.fileExists(atPath:folder.appendingPathComponent("order-original").path) {
+                    reordered = true
+                    if let content = w.contentView as? MarkedContent {
+                        let (r,g,b) = swatches[3]
+                        content.swatch = NSColor(srgbRed: CGFloat(r)/255, green: CGFloat(g)/255, blue: CGFloat(b)/255, alpha: 1)
+                        content.needsDisplay = true
+                    }
+                    w.orderFrontRegardless()
+                }
+                if !joinsApplications && FileManager.default.fileExists(atPath:folder.appendingPathComponent("join-applications").path) {
+                    joinsApplications = true
+                    w.collectionBehavior.insert(.canJoinAllApplications)
+                    w.orderFrontRegardless()
+                }
             }
             if board && !added && FileManager.default.fileExists(atPath:folder.appendingPathComponent("add-window").path) {
                 added = true; make(3); write()
@@ -127,6 +148,7 @@ private final class RosterPanel: NSPanel {
             let sticky = CommandLine.arguments.contains("--public-visible")
             let coldBackground = CommandLine.arguments.contains("--cold-background")
             let mixed = CommandLine.arguments.contains("--mixed-roles")
+            let stageHistory = CommandLine.arguments.contains("--stage-history")
             let allSpacesDocuments = CommandLine.arguments.contains("--all-spaces-documents")
             result["mixedRoles"] = mixed
             result["allSpacesDocuments"] = allSpacesDocuments
@@ -137,6 +159,7 @@ private final class RosterPanel: NSPanel {
                 guard Bundle(url:url)?.bundleIdentifier == id else { throw TrialError("测试包身份不符") }
                 let p=Process(); p.executableURL=url.appendingPathComponent("Contents/MacOS/"+exe)
                 p.arguments = ["--roster"] + (sticky ? ["--public-visible"] : []) + (allSpacesDocuments ? ["--all-spaces-documents"] : []) + (mixed ? ["--mixed-roles"] : [])
+                if stageHistory { p.arguments?.append("--stage-history") }
                 try p.run(); owners.append(p)
             }
             func report(_ name: String) -> OwnerReport? {
@@ -218,6 +241,86 @@ private final class RosterPanel: NSPanel {
                                 "listed":members().contains { $0.metadata?.number == number }] as [String:Any]
                     }
                 }
+            }
+            if stageHistory {
+                guard let board = report("board"), let number = board.windows["2"], let size = board.frameSizes["2"], size.count == 2
+                else { throw TrialError("测试画板没有已登记的窗口身份和原尺寸") }
+                let originalSize = CGSize(width: size[0], height: size[1])
+                func actualSize() -> CGSize? {
+                    guard let cg = WindowSurfaceRecord(number: number), cg.pid == board.pid, cg.layer == 0 else { return nil }
+                    return CGSize(width: cg.frame.width, height: cg.frame.height)
+                }
+                func boardTarget() -> DesktopWindowTarget? {
+                    guard let snapshot = previews.currentDesktop?.snapshot, snapshot.native?.stageManagerEnabled == true else { return nil }
+                    let hits = members().filter { $0.metadata?.pid == board.pid && $0.metadata?.number == number }
+                    return hits.count == 1 ? hits.first.flatMap { DesktopWindowTarget($0, in: snapshot) } : nil
+                }
+                func genuine(_ previous: Bool, swatch: Int = 2) -> Bool {
+                    guard let target = boardTarget(),
+                          let image = previous ? previews.gallery.previousImage(for: target, permitted: true) :
+                              previews.gallery.image(for: target, permitted: true) else { return false }
+                    let colors = colorCounts(image, stageShading: true)
+                    return colors.count == 4 && colors[swatch] > 200 && colors[swatch] == colors.max()
+                }
+                var timeline = [[String:String]](), lastSample = [String:String]()
+                func trace() {
+                    guard timeline.count < 80 else { return }
+                    let target = boardTarget()
+                    let row = members().first { $0.metadata?.pid == board.pid && $0.metadata?.number == number }
+                    func sizeText(_ size: CGSize?) -> String {
+                        size.map { "\(Int($0.width))×\(Int($0.height))" } ?? "-"
+                    }
+                    var values = ["cg": sizeText(actualSize()), "cache": String(previews.gallery.cacheCount),
+                                  "space": row?.metadata?.overviewSpaceID ?? "-",
+                                  "lifetime": target.flatMap { previews.currentDesktop?.lifetime(of: $0.key)?.uuidString } ?? "-",
+                                  "presented": String(row?.metadata?.overviewIsPresented ?? false),
+                                  "logical": sizeText(row?.metadata?.catalogLogicalFrame.map { CGSize(width: $0.width, height: $0.height) }),
+                                  "observed": sizeText(row?.metadata.map { CGSize(width: $0.globalFrame.width, height: $0.globalFrame.height) })]
+                    guard values != lastSample else { return }
+                    lastSample = values; values["ms"] = String(milliseconds(start)); timeline.append(values)
+                }
+                func record(_ phase: String, liveSwatch: Int = 2) throws {
+                    guard let cg = actualSize(), NSWorkspace.shared.frontmostApplication?.processIdentifier == original,
+                          !focusDeparture, view.window === panel, panel.isOpaque else { throw TrialError("记录时前台、测试窗或面板已变化") }
+                    view.layoutSubtreeIfNeeded()
+                    trace()
+                    result["timeline"] = timeline
+                    result[phase] = ["ownerPoints": size, "cgPoints": [cg.width,cg.height],
+                                     "number": number, "pid": board.pid, "live": genuine(false, swatch: liveSwatch), "previous": genuine(true)]
+                    if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                        view.cacheDisplay(in: view.bounds, to: rep)
+                        try rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent(phase+"-rendered-view.png"), options: .atomic)
+                    }
+                }
+                guard await wait(5, { actualSize() == originalSize && genuine(false) }) else {
+                    throw TrialError("未取得可准确对应的前置普通窗口原画面")
+                }
+                try record("original")
+                try Data().write(to: folder.appendingPathComponent("show-notes"), options: .atomic)
+                let changed = await wait(4, {
+                    trace()
+                    return actualSize() != nil && actualSize() != originalSize && genuine(true) && !genuine(false)
+                })
+                try record("afterNotes")
+                guard changed else { throw TrialError("非激活显示同桌面第二款自建 App 后，未同时见证原窗口呈现缩小和已标记的上次画面") }
+                try Data().write(to: folder.appendingPathComponent("order-original"), options: .atomic)
+                func redrawn() -> Bool {
+                    trace()
+                    return actualSize() == originalSize && genuine(false, swatch: 3) && !genuine(true)
+                }
+                var restored = await wait(2, redrawn)
+                result["unassistedSourceReturn"] = restored
+                if !restored && !focusDeparture && NSWorkspace.shared.frontmostApplication?.processIdentifier == original {
+                    // Separate positive control: allow only this ordinary fixture window to
+                    // join all application groups. Do not activate it or change any Space.
+                    try Data().write(to: folder.appendingPathComponent("join-applications"), options: .atomic)
+                    restored = await wait(3, redrawn)
+                    result["sameWindowJoinsApplications"] = true
+                }
+                try record("afterBoard", liveSwatch: 3)
+                guard restored else { throw TrialError("未见证同一窗口恢复原尺寸并自动更新为当前画面") }
+                result["pass"] = true
+                break verification
             }
             if coldBackground {
                 guard await wait(4, { complete(2) && sourceCount() == 2 }),

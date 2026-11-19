@@ -19,7 +19,10 @@ struct DesktopWindowTarget: Equatable {
     let publiclyVisible: Bool
     let membership: WindowMembership
     let frame: SurfaceRect
-    private let catalogSize: CGSize?
+    fileprivate let catalogSize: CGSize?
+    fileprivate let desktopUUID: UUID?
+    fileprivate let stageEnabled: Bool
+    fileprivate var presentedSize: CGSize { CGSize(width: frame.width, height: frame.height) }
 
     init?(_ window: WindowObservation, in snapshot: DesktopSnapshot) {
         guard snapshot.isCurrentDesktopWindow(window) else { return nil }
@@ -52,6 +55,8 @@ struct DesktopWindowTarget: Equatable {
         session = snapshot.sessionID; topology = snapshot.topologyFingerprint
         display = window.displayID; current = active.first?.id
         membership = window.membership; frame = m.globalFrame
+        desktopUUID = active.first?.ordinaryUUID
+        stageEnabled = snapshot.native?.stageManagerEnabled == true
         catalogSize = m.catalogLogicalFrame.map { CGSize(width: $0.width, height: $0.height) }
     }
 
@@ -60,7 +65,7 @@ struct DesktopWindowTarget: Equatable {
     func samePicture(as other: Self) -> Bool {
         if self == other { return true }
         return overviewSpace != nil && overviewSpace == other.overviewSpace && key == other.key &&
-            session == other.session && topology == other.topology && display == other.display &&
+            session == other.session && topology == other.topology && display == other.display && desktopUUID == other.desktopUUID &&
             frame.width == other.frame.width && frame.height == other.frame.height && catalogSize == other.catalogSize
     }
 
@@ -130,9 +135,32 @@ struct DesktopWindowTarget: Equatable {
         let lifetime: UUID
         let capture: Capture
         let time: TimeInterval
+        enum Use { case current, previous, mapOnly }
+        var use: Use = .current
+
+        /// Only reuse a full-size original. The transformed presentation alone
+        /// cannot establish either the actual window size or the current Space.
+        func canRetainPrevious(_ candidate: DesktopWindowTarget, lifetime current: UUID?, now: TimeInterval) -> Bool {
+            guard use != .mapOnly, lifetime == current, now >= time, now - time < 60, candidate.stageEnabled,
+                  target.key == candidate.key, target.session == candidate.session,
+                  target.topology == candidate.topology, target.display == candidate.display,
+                  target.desktopUUID != nil, target.desktopUUID == candidate.desktopUUID,
+                  target.overviewSpace != nil, target.overviewSpace == candidate.overviewSpace,
+                  target.membership == candidate.membership, target.catalogSize == capture.logicalSize,
+                  target.presentedSize == capture.logicalSize else { return false }
+            // A moving presentation can temporarily prevent two independent size reads
+            // from agreeing. Keep the original in RAM briefly without publishing it.
+            guard let logicalSize = candidate.catalogSize else { return now - time < 3 }
+            return logicalSize == capture.logicalSize
+        }
+
+        func canShowPrevious(_ candidate: DesktopWindowTarget, lifetime current: UUID?, now: TimeInterval) -> Bool {
+            canRetainPrevious(candidate, lifetime: current, now: now) && candidate.catalogSize == capture.logicalSize &&
+                (use == .previous || candidate.presentedSize != capture.logicalSize)
+        }
 
         func matches(_ candidate: DesktopWindowTarget, lifetime current: UUID?, now: TimeInterval) -> Bool {
-            current == lifetime && target.samePicture(as: candidate) && now - time < 12
+            use == .current && current == lifetime && target.samePicture(as: candidate) && now >= time && now - time < 12
         }
     }
     private let stills = PreviewPixelCache<DesktopWindowKey, Still>()
@@ -161,7 +189,13 @@ struct DesktopWindowTarget: Equatable {
         }
         else {
             visible[display]?.remove(key)
-            if stills.peek(key)?.target.overviewSpace == nil { stills.remove(key) }
+            if var still = stills.peek(key) {
+                if still.use == .previous || still.target.overviewSpace == nil { stills.remove(key) }
+                else if let cost = PreviewPixelBudget.charge(still.capture.image) {
+                    still.use = .mapOnly
+                    stills.store(still, for: key, cost: cost)
+                }
+            }
             missingPictures.removeValue(forKey: key)
         }
     }
@@ -188,6 +222,34 @@ struct DesktopWindowTarget: Equatable {
         return still.capture.image
     }
 
+    /// A separately labelled previous image may only be drawn while the same
+    /// current window is still shareable. The caller also checks the live roster.
+    func previousImage(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
+        guard permitted, permitsWindow(target.key), visible[target.display]?.contains(target.key) == true,
+              let still = stills.peek(target.key), still.canShowPrevious(target, lifetime: lifetime(target.key), now: now),
+              WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed(),
+              target.liveOwner() != nil, target.sharedSurface(visible: false, matchFrame: true) else { return nil }
+        stills.touch(target.key)
+        return still.capture.image
+    }
+
+    /// Revalidate only an image already in the cache. A completed asynchronous capture
+    /// with a changed target must never supply pixels for this fallback.
+    private func keepPreviousIfEligible(for key: DesktopWindowKey, as target: DesktopWindowTarget?) {
+        guard let target, permitsWindow(key), visible[target.display]?.contains(key) == true,
+              var still = stills.peek(key),
+              still.canRetainPrevious(target, lifetime: lifetime(key), now: ProcessInfo.processInfo.systemUptime),
+              target.liveOwner() != nil, target.sharedSurface(visible: false, matchFrame: false),
+              let cost = PreviewPixelBudget.charge(still.capture.image) else {
+            stills.remove(key)
+            return
+        }
+        if still.use != .previous {
+            still.use = .previous
+            stills.store(still, for: key, cost: cost)
+        }
+    }
+
     /// Pixel dimensions are downsampled. Keep the independent window filter's point
     /// dimensions with the same identity, lifetime and membership as its captured image.
     func capturedSizes(for windows: [WindowObservation], in snapshot: DesktopSnapshot, permitted: Bool) -> [UInt32: CGSize] {
@@ -207,7 +269,7 @@ struct DesktopWindowTarget: Equatable {
     func imageForMap(key: DesktopWindowKey, display: String, space: String, session: UUID,
                      topology: String, permitted: Bool) -> CGImage? {
         guard permitted, permitsWindow(key), WindowContentPreview.sessionAvailable(),
-              WindowPermissionProbe.screen.allowed(), let still = stills.peek(key), still.lifetime == lifetime(key),
+              WindowPermissionProbe.screen.allowed(), let still = stills.peek(key), still.use != .previous, still.lifetime == lifetime(key),
               still.target.session == session, still.target.topology == topology, still.target.display == display,
               still.target.overviewSpace == space, ProcessInfo.processInfo.systemUptime - still.time < 60,
               still.target.liveOwner() != nil, still.target.sharedSurface(visible: false, matchFrame: false)
@@ -263,7 +325,7 @@ struct DesktopWindowTarget: Equatable {
                     attempted.removeValue(forKey: target.key)
                     misses.removeValue(forKey: target.key)
                     if !old.samePicture(as: target) {
-                        stills.remove(target.key)
+                        keepPreviousIfEligible(for: target.key, as: target)
                         missingPictures.removeValue(forKey: target.key)
                     }
                 }
@@ -272,6 +334,12 @@ struct DesktopWindowTarget: Equatable {
             let observed = Dictionary(grouping: sample.windows, by: { $0.metadata?.number })
             stills.remove { key, still in
                 if still.lifetime != lifetime(key) { return true }
+                if still.use == .previous && still.target.display == display {
+                    guard let member = active[key],
+                          still.canRetainPrevious(member, lifetime: lifetime(key), now: ProcessInfo.processInfo.systemUptime),
+                          member.sharedSurface(visible: false, matchFrame: false) else { return true }
+                    return false
+                }
                 let old = still.target
                 guard old.display == display, active[key]?.samePicture(as: old) != true else { return false }
                 guard let space = old.overviewSpace, old.session == sample.sessionID, old.topology == sample.topologyFingerprint,
@@ -367,7 +435,16 @@ struct DesktopWindowTarget: Equatable {
                           target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
                           visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
                           (requiresMembership ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
-                        stills.remove(target.key)
+                        func member(in latest: DesktopSnapshot?) -> DesktopWindowTarget? {
+                            guard let latest else { return nil }
+                            let rows = latest.currentDesktopWindows(on: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
+                                .filter { $0.metadata?.number == target.key.number }
+                            return rows.count == 1 ? rows.first.flatMap { DesktopWindowTarget($0, in: latest) } : nil
+                        }
+                        if let independent = member(in: after), let still = stills.peek(target.key),
+                           still.canRetainPrevious(independent, lifetime: lifetime(target.key), now: ProcessInfo.processInfo.systemUptime) {
+                            keepPreviousIfEligible(for: target.key, as: member(in: snapshot()))
+                        } else { stills.remove(target.key) }
                         noteUnavailable([target])
                         continue
                     }

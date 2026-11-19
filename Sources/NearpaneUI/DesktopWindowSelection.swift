@@ -26,29 +26,34 @@ extension DesktopWindowTarget {
 /// explicit choice. A refusal discards pending work.
 @MainActor final class WindowChoiceQueue {
     private struct Choice {
+        let id = UUID()
         let key: DesktopWindowKey
-        let perform: @MainActor () async throws -> Void
+        let input: [UInt32]
+        let perform: @MainActor (@escaping @MainActor @Sendable () -> Bool) async throws -> Void
         let failed: @MainActor (Error) -> Void
     }
-    private var active: DesktopWindowKey?
+    private var active: Choice?
     private var next: Choice?
 
-    func isLatest(_ key: DesktopWindowKey) -> Bool { (next?.key ?? active) == key }
-
-    func choose(_ key: DesktopWindowKey, perform: @escaping @MainActor () async throws -> Void,
+    func choose(_ key: DesktopWindowKey, input: [UInt32],
+                perform: @escaping @MainActor (@escaping @MainActor @Sendable () -> Bool) async throws -> Void,
                 failed: @escaping @MainActor (Error) -> Void) {
-        let choice = Choice(key: key, perform: perform, failed: failed)
-        if let active {
-            next = active == key ? nil : choice
+        // Deduplicate delivery of the same click. A new press on the same card must
+        // carry its own permission to act, including when the user chose A, B, A.
+        if let latest = next ?? active, latest.key == key && latest.input == input { return }
+        let choice = Choice(key: key, input: input, perform: perform, failed: failed)
+        if active != nil {
+            next = choice
             return
         }
-        active = key
+        active = choice
         Task {
             var current: Choice? = choice
             while let job = current {
-                do { try await job.perform() }
+                let id = job.id
+                do { try await job.perform { (self.next ?? self.active)?.id == id } }
                 catch { next = nil; job.failed(error) }
-                current = next; next = nil; active = current?.key
+                current = next; next = nil; active = current
             }
         }
     }
@@ -84,7 +89,13 @@ extension DesktopWindowTarget {
         return handle
     }
 
-    enum SelectionPath { case accessibility, soleWindowApplication }
+    enum SelectionPath {
+        case accessibility, soleWindowApplication
+
+        var focusNotice: String? {
+            self == .soleWindowApplication ? "窗口已置前，键盘焦点尚未确认。" : nil
+        }
+    }
 
     @discardableResult
     static func select(_ target: DesktopWindowTarget, deadline: Double,

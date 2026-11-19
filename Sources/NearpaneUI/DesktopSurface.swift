@@ -134,18 +134,27 @@ struct DesktopSurface: View {
                 let lifetime = target.flatMap { previews?.currentDesktop?.lifetime(of: $0.key) }
                 let automatic = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
                 let selected = pictures && automatic == nil ? selectedPicture(for: target) : nil
-                let picture = automatic ?? selected
                 let row = fit.rows[index]
                 let pictureSize = row.picture
+                // When all windows are fitted into a dense list the caption can disappear.
+                // Never display old pixels unless their visible label also fits.
+                let captionWidth = row.inlineCaption ? width - (pictureSize?.width ?? 0) - 4 : width
+                let canLabelPrevious = row.showsCaption && captionWidth >= 24 + labelSize * 4
+                let previous = automatic == nil && selected == nil && canLabelPrevious ? target.flatMap {
+                    gallery?.previousImage(for: $0, permitted: permitted)
+                } : nil
+                let caption = previous == nil ? label : "上次画面 · " + label
+                let picture = automatic ?? selected ?? previous
                 let reason: String? = if !host.configuration.showsWindowThumbnails { "窗口画面已关闭" }
                     else if !pictures { "窗口画面暂不可用" }
                     else if !permitted { nil }
+                    else if previous != nil { "上次画面，最长保留一分钟" }
                     else if target == nil || target.map({ gallery?.lacksPicture($0) == true }) == true { "暂无窗口画面" }
                     else { nil }
                 Button {
                     if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) }
                 } label: {
-                    DesktopWindowCard(label: label, icon: badge?.icon, image: picture, pictureSize: pictureSize,
+                    DesktopWindowCard(label: caption, icon: badge?.icon, image: picture, pictureSize: pictureSize,
                                       borderWidth: settings.points(.borderWidth, in: width),
                                       labelSize: labelSize, row: row,
                                       currentImage: {
@@ -153,6 +162,7 @@ struct DesktopSurface: View {
                               !host.configuration.surfaceHidden, host.isRunning, host.configuration.showsWindowThumbnails,
                               WindowContentPreview.sessionAvailable(), target.present(in: overview),
                               previews?.currentDesktop == nil || (lifetime != nil && lifetime == previews?.currentDesktop?.lifetime(of: target.key)) else { return nil }
+                        if previous != nil { return gallery?.previousImage(for: target, permitted: true) }
                         return gallery?.image(for: target, permitted: true) ?? selectedPicture(for: target)
                     })
                 }
@@ -160,7 +170,7 @@ struct DesktopSurface: View {
                 .accessibilityLabel(label).accessibilityHint("将这扇窗口切换到前台")
                 .accessibilityIdentifier("current-desktop-window:\(window.metadata?.pid ?? 0):\(window.metadata?.number ?? 0)")
                 .accessibilityValue(cardDescription(window, within: screen, size: pictureSize, index: index,
-                    source: automatic != nil ? "窗口画面" : selected != nil ? "所选快照" : "窗口轮廓"))
+                    source: automatic != nil ? "窗口画面" : selected != nil ? "所选快照" : previous != nil ? "上次画面" : "窗口轮廓"))
                 .help([target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label, reason].compactMap { $0 }.joined(separator: " · "))
                 .onAppear { if let target { gallery?.setCard(target.key, on: id, visible: true) } }
                 .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
@@ -223,7 +233,7 @@ struct DesktopSurface: View {
         }
         guard target.present(in: overview), stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
         selectionIssue = nil
-        choices.choose(target.key) {
+        choices.choose(target.key, input: userInput) { isLatest in
             let verifySpace: (() async -> Bool)? = previews.currentDesktop.map { feed in
                 { target.remainsSelection(in: await feed.readNow()) }
             }
@@ -231,11 +241,12 @@ struct DesktopSurface: View {
                 if target.overviewSpace == nil, let verifySpace {
                     guard await verifySpace(), stillCurrent() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
                 }
-                try await DesktopWindowSelection.select(target, deadline: native.beganUptime + 12,
-                    verifySpace: verifySpace, stillCurrent: { choices.isLatest(target.key) && stillCurrent() })
+                let path = try await DesktopWindowSelection.select(target, deadline: native.beganUptime + 12,
+                    verifySpace: verifySpace, stillCurrent: { isLatest() && stillCurrent() })
+                if isLatest() { selectionIssue = path.focusNotice }
             } catch {
                 // An explicitly superseded choice must not clear the newer pending click.
-                if choices.isLatest(target.key) { throw error }
+                if isLatest() { throw error }
             }
         } failed: { selectionIssue = $0.localizedDescription }
     }
