@@ -19,6 +19,7 @@ MODES = {
     "roster": ["--roster"],
     "source-readback": ["--roster", "--source-readback"],
     "all-spaces-documents": ["--roster", "--all-spaces-documents", "--source-readback"],
+    "mixed-roles": ["--roster", "--mixed-roles"],
     "public-roster": ["--roster", "--public-visible"],
     "cold-roster": ["--roster", "--cold-background"],
     "gallery": ["--gallery"],

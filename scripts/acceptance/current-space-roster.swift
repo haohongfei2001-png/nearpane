@@ -11,6 +11,7 @@ private struct OwnerReport: Codable {
     var pid: Int32
     var windows: [String: UInt32]
     var changed: Double
+    var accessibility: [String: [String]]
     var frameSizes: [String: [Double]]
     var orderedOut: Bool
 }
@@ -51,6 +52,7 @@ private final class RosterPanel: NSPanel {
         NSWindow.allowsAutomaticWindowTabbing = false
         let name = board ? "board" : "notes"
         let sticky = CommandLine.arguments.contains("--public-visible")
+        let mixed = CommandLine.arguments.contains("--mixed-roles")
         var windows = [Int:NSWindow](), added = false, removed = false, hidden = false, shownAgain = false
         var changed = ProcessInfo.processInfo.systemUptime
         func make(_ i: Int) {
@@ -60,13 +62,15 @@ private final class RosterPanel: NSPanel {
                                               y: screen.visibleFrame.midY - 150 + CGFloat(i*8)), size: sizes[i])
             let style: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
             let w: NSWindow
-            if sticky {
-                let panel = RosterPanel(contentRect:rect,styleMask:style.union(.nonactivatingPanel),backing:.buffered,defer:true)
+            if sticky || (mixed && i == 1) {
+                var panelStyle = style.union(.nonactivatingPanel)
+                if mixed { panelStyle.insert(.utilityWindow) }
+                let panel = RosterPanel(contentRect:rect,styleMask:panelStyle,backing:.buffered,defer:true)
                 panel.hidesOnDeactivate = false; w = panel
                 w.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary,.canJoinAllApplications]
             } else {
                 w = NSWindow(contentRect:rect,styleMask:style,backing:.buffered,defer:true,screen:screen)
-                if CommandLine.arguments.contains("--all-spaces-documents") {
+                if mixed || CommandLine.arguments.contains("--all-spaces-documents") {
                     w.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications]
                 }
             }
@@ -83,6 +87,9 @@ private final class RosterPanel: NSPanel {
         }
         func write() {
             let report = OwnerReport(pid:getpid(), windows: Dictionary(uniqueKeysWithValues:windows.map { (String($0.key),UInt32($0.value.windowNumber)) }), changed:changed,
+                                     accessibility: Dictionary(uniqueKeysWithValues: windows.map {
+                                         (String($0.key), [$0.value.accessibilityRole()?.rawValue ?? "", $0.value.accessibilitySubrole()?.rawValue ?? ""])
+                                     }),
                                      frameSizes: Dictionary(uniqueKeysWithValues:windows.map { (String($0.key), [$0.value.frame.width, $0.value.frame.height]) }),
                                      orderedOut: hidden && windows[2]?.isVisible == false)
             try? JSONEncoder().encode(report).write(to:folder.appendingPathComponent(name+".json"),options:.atomic)
@@ -119,7 +126,9 @@ private final class RosterPanel: NSPanel {
                   let read = NativeDesktopProvider.packagedReader(overview:true) else { throw TrialError("窗口或现有取图权限不可用") }
             let sticky = CommandLine.arguments.contains("--public-visible")
             let coldBackground = CommandLine.arguments.contains("--cold-background")
+            let mixed = CommandLine.arguments.contains("--mixed-roles")
             let allSpacesDocuments = CommandLine.arguments.contains("--all-spaces-documents")
+            result["mixedRoles"] = mixed
             result["allSpacesDocuments"] = allSpacesDocuments
             result["publicVisibleFixture"] = sticky
             result["coldBackgroundFixture"] = coldBackground
@@ -127,7 +136,7 @@ private final class RosterPanel: NSPanel {
                 let url=folder.appendingPathComponent(bundle)
                 guard Bundle(url:url)?.bundleIdentifier == id else { throw TrialError("测试包身份不符") }
                 let p=Process(); p.executableURL=url.appendingPathComponent("Contents/MacOS/"+exe)
-                p.arguments = ["--roster"] + (sticky ? ["--public-visible"] : []) + (allSpacesDocuments ? ["--all-spaces-documents"] : [])
+                p.arguments = ["--roster"] + (sticky ? ["--public-visible"] : []) + (allSpacesDocuments ? ["--all-spaces-documents"] : []) + (mixed ? ["--mixed-roles"] : [])
                 try p.run(); owners.append(p)
             }
             func report(_ name: String) -> OwnerReport? {
@@ -224,13 +233,84 @@ private final class RosterPanel: NSPanel {
                 }) else { throw TrialError("原测试窗口重新显示后未恢复到列表") }
                 result["orderedInOriginalMember"] = true
             }
+            if mixed {
+                guard let notes = report("notes"), let board = report("board"),
+                      let first = notes.windows["0"], let second = board.windows["2"], let panelID = notes.windows["1"],
+                      Set([first, second, panelID]).count == 3 else { throw TrialError("合成窗口或所属者身份不完整") }
+                let documents: Set<UInt32> = [first, second]
+                let listSettled = await wait(5, {
+                    guard let snap = previews.currentDesktop?.snapshot, snap.native?.spaces == .observed else { return false }
+                    return members().count == 2 && Set(members().compactMap { $0.metadata?.number }) == documents && sourceCount() == 2
+                })
+                result["windowEvidence"] = ownerWitness()
+                result["listSettled"] = listSettled
+                result["readerAX"] = previews.currentDesktop?.snapshot?.native?.accessibility.rawValue ?? "noSample"
+                result["readerSpaces"] = previews.currentDesktop?.snapshot?.native?.spaces.rawValue ?? "noSample"
+                result["observerAX"] = AXIsProcessTrusted()
+                var allProved = true, rows = [[String: Any]]()
+                let here = Set((NSWindow.windowNumbers(options: .allApplications) ?? []).map(\.uint32Value))
+                for owner in [notes, board] {
+                    let app = AXUIElementCreateApplication(owner.pid)
+                    AXUIElementSetMessagingTimeout(app, 0.3)
+                    func value(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
+                        var out: CFTypeRef?
+                        return AXUIElementCopyAttributeValue(element, key as CFString, &out) == .success ? out : nil
+                    }
+                    let elements = AXIsProcessTrusted() ? value(app, kAXWindowsAttribute) as? [AXUIElement] : nil
+                    for (slot, id) in owner.windows.sorted(by: { $0.key < $1.key }) {
+                        let hits = (elements ?? []).filter { NPReadAXWindowNumber($0) == id }
+                        var role: String?, subrole: String?, axOwner: pid_t = -1
+                        if hits.count == 1, let w = hits.first {
+                            AXUIElementGetPid(w, &axOwner)
+                            role = value(w, kAXRoleAttribute) as? String
+                            subrole = value(w, kAXSubroleAttribute) as? String
+                        }
+                        let ordinary = documents.contains(id)
+                        let cg = WindowSurfaceRecord(number: id)
+                        let presented = cg?.pid == owner.pid && cg?.layer == 0 && cg?.isOnscreen == true && cg?.isDrawn == true && here.contains(id)
+                        let reported = owner.accessibility[slot] ?? []
+                        let sameRole = role == kAXWindowRole && subrole != nil && reported == [role ?? "", subrole ?? ""]
+                        let classified = ordinary ? subrole == kAXStandardWindowSubrole :
+                            [kAXFloatingWindowSubrole, kAXSystemFloatingWindowSubrole, kAXDialogSubrole].contains(subrole ?? "")
+                        let listed = members().contains { $0.metadata?.pid == owner.pid && $0.metadata?.number == id }
+                        let proved = presented && axOwner == owner.pid && sameRole && classified && listed == ordinary
+                        allProved = allProved && proved
+                        rows.append(["slot": slot, "pid": owner.pid, "number": id, "ownerAX": reported, "axMatches": hits.count,
+                                     "externalAX": [role ?? "", subrole ?? ""], "axOwnerMatched": axOwner == owner.pid,
+                                     "presented": presented, "listed": listed, "proved": proved])
+                    }
+                }
+                result["perWindow"] = rows
+                guard !focusDeparture, NSWorkspace.shared.frontmostApplication?.processIdentifier == original,
+                      #available(macOS 14.4, *), let own = try await SCShareableContent.currentProcess.windows.first(where: {
+                          $0.windowID == panel.windowNumber && $0.owningApplication?.processID == getpid()
+                      }) else { throw TrialError("侧栏取证前焦点或窗口身份已变") }
+                let cfg = SCStreamConfiguration()
+                cfg.width = 412; cfg.height = 1080; cfg.showsCursor = false; cfg.ignoreShadowsSingleWindow = true; cfg.includeChildWindows = false
+                let image = try await SCScreenshotManager.captureImage(contentFilter: .init(desktopIndependentWindow: own), configuration: cfg)
+                try NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?
+                    .write(to: folder.appendingPathComponent("mixed-window-sidebar.png"), options: .atomic)
+                let counts = colorCounts(image)
+                result["colorPixels"] = counts
+                guard listSettled, rows.count == 3, allProved, counts.count == 4, counts[0] > 200, counts[2] > 200,
+                      counts[1] < 40, counts[3] < 40 else { throw TrialError("逐窗所有者、AX 身份、可见性、名册或画面未同时成立") }
+                result["pass"] = true
+                break verification
+            }
             if sticky {
                 guard await wait(4, {
                     guard let snapshot = previews.currentDesktop?.snapshot, !snapshot.displays.isEmpty,
                           snapshot.native?.spaces == .observed, snapshot.native?.accessibility == .available,
                           expected().count == 3 else { return false }
                     return members().isEmpty && sourceCount() == 0
-                }) else { throw TrialError("已有辅助功能核对时仍出现辅助面板，或无法证明读取已完成") }
+                }) else {
+                    result["windowEvidence"] = ownerWitness()
+                    result["readerAX"] = previews.currentDesktop?.snapshot?.native?.accessibility.rawValue ?? "noSample"
+                    result["readerSpaces"] = previews.currentDesktop?.snapshot?.native?.spaces.rawValue ?? "noSample"
+                    result["listedCount"] = members().count
+                    result["ownerCount"] = expected().count
+                    throw TrialError("已有辅助功能核对时仍出现辅助面板，或无法证明读取已完成")
+                }
                 result["excludedAuxiliaryPanels"] = 3
                 result["windowEvidence"] = ownerWitness()
                 result["pass"] = true
