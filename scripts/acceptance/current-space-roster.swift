@@ -33,7 +33,7 @@ private final class RosterPanel: NSPanel {
         NSWindow.allowsAutomaticWindowTabbing = false
         let name = board ? "board" : "notes"
         let sticky = CommandLine.arguments.contains("--public-visible")
-        var windows = [Int:NSWindow](), added = false, removed = false, hidden = false
+        var windows = [Int:NSWindow](), added = false, removed = false, hidden = false, shownAgain = false
         var changed = ProcessInfo.processInfo.systemUptime
         func make(_ i: Int) {
             let sizes = [CGSize(width: 520, height: 175), CGSize(width: 230, height: 340),
@@ -62,7 +62,8 @@ private final class RosterPanel: NSPanel {
             changed = ProcessInfo.processInfo.systemUptime
         }
         func write() {
-            let report = OwnerReport(pid:getpid(), windows: Dictionary(uniqueKeysWithValues:windows.map { (String($0.key),UInt32($0.value.windowNumber)) }), changed:changed, orderedOut:hidden)
+            let report = OwnerReport(pid:getpid(), windows: Dictionary(uniqueKeysWithValues:windows.map { (String($0.key),UInt32($0.value.windowNumber)) }), changed:changed,
+                                     orderedOut: hidden && windows[2]?.isVisible == false)
             try? JSONEncoder().encode(report).write(to:folder.appendingPathComponent(name+".json"),options:.atomic)
         }
         let start = ContinuousClock.now
@@ -79,6 +80,9 @@ private final class RosterPanel: NSPanel {
             }
             if board && !hidden && FileManager.default.fileExists(atPath:folder.appendingPathComponent("order-out").path) {
                 hidden = true; windows[2]?.orderOut(nil); changed = ProcessInfo.processInfo.systemUptime; write()
+            }
+            if board && hidden && !shownAgain && FileManager.default.fileExists(atPath:folder.appendingPathComponent("order-in").path) {
+                shownAgain = true; windows[2]?.orderFrontRegardless(); changed = ProcessInfo.processInfo.systemUptime; write()
             }
         }}
         RunLoop.main.add(timer,forMode:.common); app.run()
@@ -149,7 +153,13 @@ private final class RosterPanel: NSPanel {
                 previews.currentDesktop?.snapshot?.currentDesktopWindows(on:d.id,now:.now,uptime:ProcessInfo.processInfo.systemUptime) ?? []
             }
             func expected() -> Set<UInt32> {
-                Set([report("notes"),report("board")].compactMap{$0}.flatMap{$0.windows.values})
+                var ids = Set(report("notes")?.windows.values.map { $0 } ?? [])
+                if let board = report("board") {
+                    for (slot, number) in board.windows where !(slot == "2" && board.orderedOut) {
+                        ids.insert(number)
+                    }
+                }
+                return ids
             }
             func complete(_ count: Int) -> Bool {
                 let ids = Set(members().compactMap{$0.metadata?.number})
@@ -173,6 +183,20 @@ private final class RosterPanel: NSPanel {
                                 "listed":members().contains { $0.metadata?.number == number }] as [String:Any]
                     }
                 }
+            }
+            if coldBackground {
+                guard await wait(4, { complete(2) && sourceCount() == 2 }),
+                      let board = report("board"), board.orderedOut, let originalNumber = board.windows["2"] else {
+                    result["windowEvidence"] = ownerWitness()
+                    throw TrialError("启动时已收起的测试窗口仍在列表中，或另两扇可见窗口的画面不全")
+                }
+                result["coldOrderedOutExcluded"] = true
+                try Data().write(to: folder.appendingPathComponent("order-in"), options: .atomic)
+                guard await wait(4, {
+                    guard let board = report("board") else { return false }
+                    return !board.orderedOut && board.windows["2"] == originalNumber && complete(3)
+                }) else { throw TrialError("原测试窗口重新显示后未恢复到列表") }
+                result["orderedInOriginalMember"] = true
             }
             guard await wait(3,{complete(3)}) else {
                 result["windowEvidence"]=ownerWitness()
@@ -242,11 +266,16 @@ private final class RosterPanel: NSPanel {
             try Data().write(to:folder.appendingPathComponent("close-window"),options:.atomic)
             guard await wait(4,{complete(3) && report("notes")?.windows["1"]==nil}), let closed=report("notes") else { throw TrialError("关闭的窗口未自动移除") }
             result["removeMs"]=milliseconds(closed.changed)
-            if !sticky, !coldBackground, let id=report("board")?.windows["2"] {
+            if !coldBackground, let id=report("board")?.windows["2"] {
                 try Data().write(to:folder.appendingPathComponent("order-out"),options:.atomic)
-                let verified=await wait(4,{members().contains{$0.metadata?.number==id && $0.metadata?.isOnscreen==false && $0.metadata?.overviewSpaceID != nil}})
-                result["orderedOutMember"]=verified
-                if verified { result["orderedOutRealPicture"]=sourceCount()==3 }
+                guard await wait(4, {
+                    guard let board = report("board"), board.orderedOut, board.windows["2"] == id else { return false }
+                    return complete(2) && sourceCount() == 2
+                }) else {
+                    result["windowEvidence"] = ownerWitness()
+                    throw TrialError("收起的原窗口仍在列表中，或剩余两扇窗口的画面不全")
+                }
+                result["orderedOutExcluded"] = true
             }
             result["owners"]=pids.count; result["pass"]=true
         } catch {result["pass"]=false; result["reason"]=error.localizedDescription}
