@@ -46,7 +46,7 @@ extension Reader {
             // current AppKit and onscreen CG surface as a read-only candidate.
             return !readsAX && publiclyVisible
         }
-        guard role.ordinary, role.minimized == false, role.fullscreen != true else { return false }
+        guard role.ordinary == true, role.minimized == false, role.fullscreen != true else { return false }
         return publiclyVisible || (currentMember && (orderedAcrossSpaces || drawnInStage))
     }
 
@@ -144,14 +144,15 @@ extension Reader {
                 frontToBack: windows.count, minimized: role?.minimized, fullScreen: role?.fullscreen, isOnscreen: entry.isOnscreen,
                 onActiveDesktop: visible, overviewSpaceID: proof,
                 hasCatalogGeometry: geometry.usualPresentation && afterSlices.contains(where: { $0.displayID == display.id }),
-                catalogLogicalFrame: geometry.logical.map(SurfaceRect.init), overviewIsPresented: presented)
+                catalogLogicalFrame: geometry.logical.map(SurfaceRect.init), overviewIsPresented: presented,
+                overviewOrdinaryRole: role?.ordinary ?? (role == nil && ownerRoles?.everyNumberKnown == true ? false : nil))
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }
         return .observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
             topology: topology.fingerprint, consistent: true, separateSpaces: topology.separateSpaces,
             displays: topology.displays, scopes: inventory?.scopes ?? [], windows: windows,
-            evidence: .init(population: .workWindows, accessibility: AXIsProcessTrusted() ? .available : .denied,
+            evidence: .init(population: .workWindows, accessibility: trusted ? (pids.allSatisfy { roles[$0]?.everyNumberKnown == true } ? .available : .partial) : .denied,
                 spaces: inventory == nil ? .disabled : .observed, rows: [], windowLimitReached: false,
                 beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))

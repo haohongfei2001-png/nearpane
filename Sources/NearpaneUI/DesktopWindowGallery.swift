@@ -22,7 +22,19 @@ struct DesktopWindowTarget: Equatable {
     private let catalogSize: CGSize?
 
     init?(_ window: WindowObservation, in snapshot: DesktopSnapshot) {
-        guard snapshot.isCurrentDesktopWindow(window), let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
+        guard snapshot.isCurrentDesktopWindow(window) else { return nil }
+        self.init(surface: window, in: snapshot)
+    }
+
+    /// For the tiler's separately authorized AX resolver. No gallery or input target escapes.
+    static func tilingCandidate(_ window: WindowObservation, in snapshot: DesktopSnapshot) -> (key: DesktopWindowKey, visible: Bool)? {
+        guard let target = Self(surface: window, in: snapshot), let current = target.overviewSpace,
+              target.membership == .known(recordIDs: [current]) else { return nil }
+        return (target.key, target.publiclyVisible)
+    }
+
+    private init?(surface window: WindowObservation, in snapshot: DesktopSnapshot) {
+        guard snapshot.isCurrentDesktopSurface(window), let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
               m.number > 0, m.fullScreen != true, m.globalFrame.geometry.isValid,
               window.confidence != .synthetic,
               window.confidence != .ambiguous || (m.element == nil && m.axFrame == nil && m.axStandardWindowNumber == nil),

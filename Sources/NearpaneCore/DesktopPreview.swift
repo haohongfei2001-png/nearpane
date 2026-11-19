@@ -121,6 +121,31 @@ public extension DesktopSnapshot {
 
     /// Used by both the card list and capture/selection target construction.
     func isCurrentDesktopWindow(_ window: WindowObservation) -> Bool {
+        // The public CG/AppKit lists also contain ordinary-layer auxiliary panels.
+        // The catalogue must supply an exact role before publishing a card or target.
+        if native?.catalogComplete != nil {
+            guard native?.accessibility != .denied, window.metadata?.overviewOrdinaryRole == true,
+                  window.metadata?.minimized == false else { return false }
+        }
+        return isCurrentDesktopSurface(window)
+    }
+
+    /// Diagnostic count only. These public surfaces do not become cards, pixels or click targets.
+    func unconfirmedCurrentDesktopWindowCount(on displayID: String, now: Date, uptime: Double) -> Int {
+        guard native?.population == .workWindows, isStructurallyValid, nativeIsFresh(now: now, uptime: uptime),
+              native?.windowLimitReached == false else { return 0 }
+        if native?.catalogComplete == nil {
+            return windows.filter { $0.displayID == displayID && isCurrentDesktopSurface($0) && !$0.canWitnessCurrentSpace }.count
+        }
+        return windows.filter {
+            $0.displayID == displayID && $0.metadata?.overviewOrdinaryRole != false &&
+                isCurrentDesktopSurface($0) && !isCurrentDesktopWindow($0)
+        }.count
+    }
+
+    /// Visible surface discovery for an already authorized tiling session.
+    /// The tiler revalidates the exact AX window before each write.
+    func isCurrentDesktopSurface(_ window: WindowObservation) -> Bool {
         guard let m = window.metadata, m.number > 0, m.fullScreen != true, m.minimized != true,
               m.overviewIsPresented != false else { return false }
         let current = scopes.first { $0.displayID == window.displayID }?.records.first(where: \.isCurrent)
@@ -134,7 +159,7 @@ public extension DesktopSnapshot {
             return false
         }
         if m.onActiveDesktop == true && m.isOnscreen == true { return true }
-        return native?.accessibility == .available && m.minimized == false &&
+        return native?.accessibility != .denied && m.minimized == false &&
             m.overviewSpaceID != nil && m.overviewIsPresented == true
     }
 

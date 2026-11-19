@@ -134,10 +134,10 @@ import NearpaneCore
                     element: nil, globalFrame: r, frontToBack: n - 1, minimized: false, fullScreen: false, isOnscreen: true,
                     onActiveDesktop: true, hasCatalogGeometry: true))
             }
-            let sample = DesktopSnapshot.observed(.init(session: UUID(), revision: 1, parentPID: 1, fixtureWindows: nil,
+            let sample = DesktopSnapshot.observed(.init(session: UUID(), revision: 1, parentPID: 1, fixtureWindows: windows.compactMap { $0.metadata?.number },
                 anchors: [], experimentalSpaces: false), from: now, to: now, build: "fixture", topology: "one",
                 consistent: true, separateSpaces: true, displays: [.init(id: screen.id, frame: frame, rotationDegrees: 0,
-                    backingScale: 1, usable: frame)], scopes: [], windows: windows, evidence: .init(population: .workWindows,
+                    backingScale: 1, usable: frame)], scopes: [], windows: windows, evidence: .init(population: .markedFixture,
                     accessibility: .denied, spaces: .unavailable, rows: [], windowLimitReached: false, beganUptime: up, endedUptime: up))
             host.bus.resetDesktopSession()
             try #require(host.bus.acceptDesktop(sample))

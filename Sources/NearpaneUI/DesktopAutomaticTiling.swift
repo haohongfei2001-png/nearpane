@@ -23,10 +23,9 @@ struct DesktopTilingRoster: Equatable {
         guard scopes.count == 1, current.count == 1, let record = current.first, let uuid = record.ordinaryUUID,
               sample.scopes.flatMap(\.records).filter({ $0.ordinaryUUID == uuid }).count == 1 else { return nil }
         self.space = .init(display: display, record: record.id, uuid: uuid)
-        let members = sample.currentDesktopWindows(on: display, now: now, uptime: uptime)
-            .compactMap { DesktopWindowTarget($0, in: sample) }
-            .filter { $0.overviewSpace == record.id && $0.membership == .known(recordIDs: [record.id]) }
-        self.keys = members.filter(\.publiclyVisible).map(\.key)
+        let members = sample.windows.filter { $0.displayID == display && $0.metadata?.overviewSpaceID == record.id }
+            .compactMap { DesktopWindowTarget.tilingCandidate($0, in: sample) }
+        self.keys = members.filter(\.visible).map(\.key).sorted { $0.number < $1.number }
         self.unpresented = members.count - keys.count
     }
 }

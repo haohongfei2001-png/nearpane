@@ -3,7 +3,7 @@ import ApplicationServices
 
 /// Roster evidence only. No title, document, child contents or action handle leaves this read.
 struct OverviewWindowRole {
-    let ordinary: Bool
+    let ordinary: Bool?
     let minimized: Bool?
     let fullscreen: Bool?
 
@@ -35,13 +35,20 @@ struct OverviewWindowRole {
                 }
                 // A duplicate or unreadable exact match is ineligible, including when
                 // the rest of this application's AX list was only partially available.
-                snapshot.windows[number] = Self(ordinary: false, minimized: nil, fullscreen: nil)
-                guard seen.insert(number).inserted else { continue }
+                guard seen.insert(number).inserted else {
+                    snapshot.windows[number] = Self(ordinary: false, minimized: nil, fullscreen: nil)
+                    continue
+                }
+                snapshot.windows[number] = Self(ordinary: nil, minimized: nil, fullscreen: nil)
                 var values: CFArray?
                 guard AXUIElementCopyMultipleAttributeValues(window, keys, [], &values) == .success,
                       let fields = values as? [Any], fields.count == 5 else { continue }
-                let standard = fields[0] as? String == kAXWindowRole && fields[1] as? String == kAXStandardWindowSubrole
-                snapshot.windows[number] = Self(ordinary: standard && (fields[4] as? Bool) != true,
+                let role = fields[0] as? String, subrole = fields[1] as? String
+                let ordinary: Bool?
+                if (fields[4] as? Bool) == true { ordinary = false }
+                else if let role, let subrole { ordinary = role == kAXWindowRole && subrole == kAXStandardWindowSubrole }
+                else { ordinary = nil }
+                snapshot.windows[number] = Self(ordinary: ordinary,
                                                 minimized: fields[2] as? Bool, fullscreen: fields[3] as? Bool)
             }
             result[pid] = snapshot

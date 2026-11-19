@@ -25,11 +25,21 @@ struct DesktopSurface: View {
     @ViewState private var choices = WindowChoiceQueue()
     @ViewState private var selectionIssue: String?
 
-    private var overview: DesktopSnapshot? {
+    private var rawOverview: DesktopSnapshot? {
         if let feed = display?.pointer?.windowPreviews?.currentDesktop {
             return WindowContentPreview.sessionAvailable() ? feed.snapshot : nil
         }
         return host.providerFailed ? nil : host.bus.desktop
+    }
+
+    private var overview: DesktopSnapshot? {
+        guard var snapshot = rawOverview else { return nil }
+        if snapshot.native?.population == .workWindows && snapshot.native?.catalogComplete == nil {
+            // The general desktop reader has no catalogue role field. Its exact AX
+            // standard-window witness is the only usable fallback for actual users.
+            snapshot.windows.removeAll { !$0.canWitnessCurrentSpace }
+        }
+        return snapshot
     }
 
     var body: some View {
@@ -68,7 +78,13 @@ struct DesktopSurface: View {
                         let inset = min(settings.points(.spacePadding, in: width) + 2, min(width, height) / 3)
                         Group {
                             if windows.isEmpty {
-                                status("当前屏幕没有可显示的窗口")
+                                let unconfirmed = (rawOverview ?? snapshot).unconfirmedCurrentDesktopWindowCount(on: screen.id, now: now, uptime: uptime)
+                                if unconfirmed > 0 {
+                                    status(native.accessibility == .denied ? "辅助功能权限尚未生效，暂时无法核对窗口。" : "正在等待应用确认窗口类型。")
+                                        .accessibilityIdentifier("window-roster-unconfirmed")
+                                } else {
+                                    status("当前屏幕没有可显示的窗口")
+                                }
                             } else {
                                 windowList(windows, snapshot: snapshot, screen: screen,
                                            width: max(0, width - 2 * inset), height: max(0, height - 2 * inset),

@@ -71,6 +71,7 @@ struct Sidebar {
     var legacyCards = 0
     var areas = 0
     var rosterScrollAreas = 0
+    var unconfirmedNotice = false
     var permissionControls = Set<String>()
     var knownIssues = Set<String>()
     mutating func visit(_ element: AXUIElement, depth: Int = 0, workspace: Bool = false) {
@@ -83,6 +84,7 @@ struct Sidebar {
             }
             if id == "current-desktop-window" { legacyCards += 1 }
             if id == "desktop-reserved-region" { areas += 1 }
+            if id == "window-roster-unconfirmed" { unconfirmedNotice = true }
         }
         let role = value(element, kAXRoleAttribute) as? String ?? ""
         if inWorkspace && role == "AXScrollArea" { rosterScrollAreas += 1 }
@@ -544,7 +546,7 @@ func compareCurrentRoster() -> Object {
     let status = (wrong > 0 || missing > 0 || duplicate > 0) ? "FAIL" : (uncertain > 0 || proven.isEmpty ? "INCONCLUSIVE" : "PASS")
     return ["status": status, "cards": cards.count, "classifiedCards": drawn, "unconfirmedEvidence": unconfirmedEvidence, "systemExcluded": excluded,
             "provenVisibleStandard": proven.count, "missingProvenVisible": missing, "knownWrongCards": wrong,
-            "duplicateControls": duplicate, "unconfirmedCards": uncertain, "privateTitlesRead": false, "pixelsRequested": 0]
+            "duplicateControls": duplicate, "unconfirmedNotice": index.unconfirmedNotice, "unconfirmedCards": uncertain, "privateTitlesRead": false, "pixelsRequested": 0]
 }
 if CommandLine.arguments.count > 1 {
     if CommandLine.arguments[1] == "compare-roster" {

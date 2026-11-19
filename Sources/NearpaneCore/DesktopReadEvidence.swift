@@ -44,6 +44,8 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     /// Public ordering, owner visibility and (when available) exact AX window classification.
     /// Membership alone also includes minimized, hidden and ordered-out surfaces.
     public let overviewIsPresented: Bool?
+    /// Exact-number AX role classification for the overview reader. Nil means no role evidence.
+    public let overviewOrdinaryRole: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
@@ -52,7 +54,8 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
                 axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil, hasCatalogGeometry: Bool? = nil,
-                catalogLogicalFrame: SurfaceRect? = nil, overviewIsPresented: Bool? = nil) {
+                catalogLogicalFrame: SurfaceRect? = nil, overviewIsPresented: Bool? = nil, overviewOrdinaryRole: Bool? = nil) {
+        self.overviewOrdinaryRole = overviewOrdinaryRole
         self.overviewIsPresented = overviewIsPresented
         self.hasCatalogGeometry = hasCatalogGeometry
         self.catalogLogicalFrame = catalogLogicalFrame

@@ -264,21 +264,33 @@ import Testing
         let time = s.native!.endedUptime
         s.native = .init(population: .workWindows, accessibility: .available, spaces: .observed,
                          rows: [], windowLimitReached: false, beganUptime: time - 1, endedUptime: time, catalogComplete: false)
-        func member(_ n: UInt32, _ space: String?, active: Bool, presented: Bool?, minimized: Bool? = nil) -> WindowObservation {
+        func member(_ n: UInt32, _ space: String?, active: Bool, presented: Bool?, minimized: Bool? = false, ordinary: Bool? = true) -> WindowObservation {
             .init(id: "w-\(n)", displayID: "display", bounds: frame, membership: space.map { .known(recordIDs: [$0]) } ?? .unknown,
                   confidence: .unknown, metadata: .init(number: n, pid: 51, launchMicroseconds: 100, element: nil,
                   globalFrame: frame, frontToBack: Int(n), minimized: minimized, fullScreen: false,
-                  isOnscreen: active, onActiveDesktop: active, overviewSpaceID: space == "97" ? space : nil, overviewIsPresented: presented))
+                  isOnscreen: active, onActiveDesktop: active, overviewSpaceID: space == "97" ? space : nil, overviewIsPresented: presented, overviewOrdinaryRole: ordinary))
         }
         s.windows = [member(1, "97", active: true, presented: true), member(2, "97", active: true, presented: true),
                      member(3, "97", active: false, presented: true, minimized: false), // independently ordered stage member
                      member(4, "97", active: false, presented: true, minimized: true),
                      member(5, "97", active: false, presented: nil), member(6, "97", active: true, presented: false),
                      member(7, "98", active: true, presented: true), member(8, "internal", active: true, presented: true),
-                     member(9, nil, active: true, presented: true)]
+                     member(9, nil, active: true, presented: true),
+                     member(10, "97", active: true, presented: true, minimized: nil, ordinary: nil),
+                     member(11, "97", active: true, presented: true, ordinary: false)]
         #expect(s.isStructurallyValid)
         #expect(s.currentDesktopWindows(on: "display", now: self.time, uptime: time).compactMap { $0.metadata?.number } == [1, 2, 3])
         #expect(s.windows.compactMap { DesktopWindowTarget($0, in: s)?.key.number } == [1, 2, 3])
+        #expect(s.unconfirmedCurrentDesktopWindowCount(on: "display", now: self.time, uptime: time) == 1)
+        let candidate = s.windows[9]
+        #expect(DesktopWindowTarget.tilingCandidate(candidate, in: s) != nil)
+        #expect(DesktopWindowTarget(candidate, in: s) == nil)
+        s.native = .init(population: .workWindows, accessibility: .denied, spaces: .observed,
+                         rows: [], windowLimitReached: false, beganUptime: time - 1, endedUptime: time, catalogComplete: false)
+        #expect(s.currentDesktopWindows(on: "display", now: self.time, uptime: time).isEmpty)
+        #expect(s.unconfirmedCurrentDesktopWindowCount(on: "display", now: self.time, uptime: time) == 3)
+        #expect(s.unconfirmedCurrentDesktopWindowCount(on: "another-display", now: self.time, uptime: time) == 0)
+        #expect(s.unconfirmedCurrentDesktopWindowCount(on: "display", now: self.time, uptime: time + 120) == 0)
     }
 
     @Test func visiblePicturesAreProcessedBeforeAnyOffstageMembershipRecheck() throws {

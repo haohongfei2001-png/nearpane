@@ -11,8 +11,8 @@ import Testing
         .init(id: "w" + String(number), displayID: "screen", bounds: frame,
               membership: spaces.isEmpty ? .unknown : .known(recordIDs: spaces), confidence: .unknown,
               metadata: .init(number: number, pid: 54, launchMicroseconds: birth, element: nil, globalFrame: frame,
-                frontToBack: front, minimized: nil, fullScreen: nil, isOnscreen: spaces.contains("1"),
-                onActiveDesktop: spaces.contains("1"), overviewSpaceID: spaces.contains("1") ? "1" : nil))
+                frontToBack: front, minimized: false, fullScreen: nil, isOnscreen: spaces.contains("1"),
+                onActiveDesktop: spaces.contains("1"), overviewSpaceID: spaces.contains("1") ? "1" : nil, overviewOrdinaryRole: true))
     }
 
     func snapshot(_ windows: [WindowObservation], complete: Bool = true, rev: UInt64 = 1,
