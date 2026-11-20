@@ -31,6 +31,7 @@
 | [额外窗口身份查明](15-fixture-auxiliary/owned-auxiliary-diagnosis.json) | 同一安装版再次往返 2/2，第 1 次交替实际到达。显示时序、持续亮度及目标色均通过。20 次独立清点证实额外窗号 50369 属于受控 Field Notes 的同一签名进程，其 AX 子角色为非标准、非主窗，位于取样区外。目标文档窗号为 50319。此轮按旧规则停在末端交叉截图之前，整体仍为 UNKNOWN。[全部原始收据](15-fixture-auxiliary/original-receipts.tar.gz) |
 | [切换过程中的一次系统通知](16-handoff-frame/handoff-readback.json) | 正式侧栏往返 2/2，第 1 次交替落点已确认。辅助窗资格、两次终点清点、真实显示流目标色和独立终点截图全部通过。193 个呈现中有一帧的两次元数据都确认了同一受控目标表面，但活动 Space 在两读之间由源变为目标。当时的观察器没有读取此帧像素，持续亮度保留 UNKNOWN，后续选择已停止。[原始收据](16-handoff-frame/original-receipts.tar.gz) |
 | [系统 Dock 身份读取中断](17-system-dock-identity/results.json) | 建场进程从内核和 Apple 签名确认了原 Dock，但读取概览控件时又通过 Launch Services 查找 Dock，第二次查找未得到唯一结果。系统“添加桌面”按钮与正式侧栏均未按下。此轮新建桌面 0 个、真实切换 0 次。原有两个桌面的身份及顺序、原始焦点和日常配置均已核实恢复。[原始事件](17-system-dock-identity/actions.jsonl) · [独立复算](17-system-dock-identity/readback.json) |
+| [一次完整视觉观测后的桌面变化](18-late-space-change/late-change-readback.json) | 已修复的 Dock 身份读取完成建场。正式侧栏往返 2/2，随后第 1 次交替落点与防黑屏均通过，194 个呈现，最长间隔 16.667 毫秒，目标颜色与独立终点截图一致。第 2 次按压前当前桌面已改变，未投递。收尾时在原有桌面 6，八项输入计数与开始时一致，变化原因未知。两张临时桌面已移除，日常配置已恢复，未确认恢复原焦点。冻结 26A428 适配器，停止 10/50 和迁窗集成。[逐次原件](18-late-space-change/original-receipts.tar.gz) · [真实夹具录屏](18-late-space-change/ten-01-fixture-only.mp4) |
 
 以上建场成功次数和历史版本的尝试均不计入本候选的往返、10 次或 50 次门槛。
 

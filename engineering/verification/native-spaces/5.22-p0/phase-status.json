@@ -15,8 +15,8 @@
   "P0": {
     "status": "BLOCKED",
     "roundTrip": "PASS",
-    "productionAXPress": 27,
-    "productionGestureSequences": 27,
+    "productionAXPress": 30,
+    "productionGestureSequences": 30,
     "ten": "BLOCKED",
     "fifty": "NOT_RUN",
     "evidence": "11-adjacent-round-trip/results.json",
@@ -25,10 +25,10 @@
     "tenBlackout": "UNKNOWN",
     "latestSignedSource": "96a3e3d1e74ea490dee798385cbef207a6013609",
     "repeatRoundTrip": "PASS",
-    "mostRecentTenGate": "NOT_RUN",
-    "mostRecentTenAttempted": 0,
-    "mostRecentTenCoverage": "Last measured signed run #16: real stream and independent terminal target confirmed. One of 193 native events had no acquired pixel. Setup #17 issued zero product actions.",
-    "mostRecentEvidence": "17-system-dock-identity/results.json",
+    "mostRecentTenGate": "BLOCKED",
+    "mostRecentTenAttempted": 1,
+    "mostRecentTenCoverage": "One whole physical switch PASS across 194 native presentations. Before the second press the expected Space no longer matched. Original hardware counters remained equal; causal attribution unknown.",
+    "mostRecentEvidence": "18-late-space-change/results.json",
     "candidateRuns": [
       {
         "evidence": "11-adjacent-round-trip/results.json",
@@ -281,16 +281,54 @@
             "visualUnknown": 0
           }
         }
+      },
+      {
+        "evidence": "18-late-space-change/results.json",
+        "cleanup": "UNKNOWN",
+        "stages": {
+          "roundTrip": {
+            "status": "PASS",
+            "requested": 2,
+            "attempts": 2,
+            "productionAXPress": 2,
+            "gestureSequences": 2,
+            "independentlyLanded": 2,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 2
+          },
+          "ten": {
+            "status": "BLOCKED",
+            "requested": 10,
+            "attempts": 2,
+            "productionAXPress": 1,
+            "gestureSequences": 1,
+            "independentlyLanded": 1,
+            "observedBlackoutFree": 1,
+            "visualUnknown": 0
+          },
+          "fifty": {
+            "status": "NOT_RUN",
+            "requested": 50,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          }
+        }
       }
     ],
-    "independentlyLanded": 27,
+    "independentlyLanded": 30,
     "bestSingleRunConfirmedTen": 10,
     "compatibility": {
       "27.0 (26A428)": "installed on one real arm64 display; see individual gates",
       "26.7.2 hosted": "protocol/UI compilation and tests only",
       "other 26.6+ installations": "NOT_RUN",
       "26.0-26.5 enhanced gesture": "unsupported"
-    }
+    },
+    "runtimeDisposition": "26A428 quarantined after late change; use native Mission Control",
+    "bestQualifiedBlackoutFreeSwitchesInOneTenRun": 1
   },
   "P1": {
     "installedMoves": 0,
