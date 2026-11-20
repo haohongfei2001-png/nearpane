@@ -43,12 +43,15 @@ def regular_file(path, limit):
         return data
 
 
-def binding(result):
-    require(result.get('fixtureLaunched') is True and result.get('captureAttempted') is True and
+def binding(result,sampler=True):
+    require(result.get('fixtureLaunched') is True and (not sampler or result.get('captureAttempted') is True) and
             result.get('cleanup', {}).get('status') == 'PASS' and result['cleanup'].get('windowNumbersGone') is True,
             'closedIsolatedFixtureRequired')
-    base, final = result['binding'], result['finalBinding']
-    require(all(p.get('ready') is True and p.get('present') == [True, True] and p.get('ordinaryCount') == 2
+    if sampler or 'overviewBinding' not in result:
+        base, final = result['binding'], result['finalBinding']
+    else:
+        base = final = result['overviewBinding']
+    require(all((p.get('ready') is True or (not sampler and p.get('pictureInteriorsProven') is True)) and p.get('present') == [True, True] and (p.get('ordinaryCount') == 2 or (p.get('sourceProven') is True and p.get('cardIdentityProven') is True and p.get('windowCensus',{}).get('expectedProven') is True))
                 for p in [base, final]) and all(k in base and base[k] == final.get(k) for k in MATCH_KEYS),
             'signedCardsOrDesktopChanged')
     require(str(uuid.UUID(base['display'])).lower() == base['display'].lower() and
@@ -65,6 +68,7 @@ def binding(result):
     crops = base['pictures']
     require(len(crops) == 2 and crops[0] != crops[1] and all(len(c) == 4 and c[2:] == [4,4] and all(math.isfinite(v) for v in c) for c in crops),
             'unboundPanelCrops')
+    if not sampler:return base
     sampler = result['sampler']
     require(sampler.get('exit') == 0 and sampler.get('timedOut') is False and
             any(e.get('completedBatches') == len(result['samples']) for e in sampler['events']), 'incompletePhysicalSampler')
@@ -93,7 +97,7 @@ def validated_frames(result, proof, folder):
         require(type(i) is int and 1 <= i <= len(batches) and i not in seen and
                 type(e) is int and e in range(len(PALETTE)), 'invalidWitnessBatch')
         seen.add(i)
-        require(all(witness.get(k) == proof[k] for k in ('hostPID','fixturePID','panel','numbers')) and witness.get('cardKinds') == LIVE,
+        require(all(witness.get(k) == proof[k] for k in ('hostPID','fixturePID','panel','numbers')) and (witness.get('cardKinds') == LIVE or (witness.get('physicalFourPatch') is True and proof.get('cardIdentityProven') is True)),
                 'witnessNotBoundToBothLiveCards')
         row = batches[i-1]
         require(len(row) == 4 and [o['color'] for o in row] == [f'0/{e}',f'1/{e}']*2 and
@@ -206,12 +210,12 @@ def publish(output):
         try:
             raw=regular_file(output/'result.json',12_000_000)
             result=json.loads(raw)
-            proof=binding(result)
+            proof=binding(result,sampler=False)
             witness=output/'witness'
             require(witness.is_dir() and not witness.is_symlink(), 'missingOriginalWitnessDirectory')
             failures=(ValueError,KeyError,TypeError,IndexError,AttributeError,OverflowError,OSError)
             try:
-                frames=validated_frames(result,proof,witness)
+                frames=validated_frames(result,binding(result),witness)
                 receipt['microCrops']={'status':'CAPTURED' if frames else 'NOT_CAPTURED','qualifiedFrames':len(frames)}
             except failures as error:
                 frames=[]

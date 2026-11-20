@@ -2,6 +2,7 @@
 """Measure a signed installed Host's actual simultaneous live thumbnails on a clean ordinary Space."""
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import plistlib
@@ -43,7 +44,7 @@ def collect(command, proof, folder, retain=False):
 ERRORS=(ValueError,KeyError,OSError,RuntimeError,subprocess.SubprocessError)
 INVARIANT=("hostPID","hostBirth","hostHash","display","space","panel")
 PROOF_KEYS=("ready","reason","present","kinds","ordinaryCount","panel","hostCardCount","windowCensus","sourceProven",
-            "launchServices","fixtureBirth","numbers","hostBirth","space")
+            "launchServices","fixtureBirth","numbers","hostBirth","space","cardGeometry","exactCardIDs","cardIdentityProven","sources","pictures")
 
 def measured(action):
     try:return action()
@@ -69,13 +70,30 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
             sample=read(query, min(5,deadline-time.monotonic()))
             attempts.append({k:sample[k] for k in PROOF_KEYS if k in sample})
             proof=sample
-            if sample.get("ready") and sample.get("kinds")==["窗口画面","窗口画面"]:break
-            if not sample.get("ready") and sample.get("reason") not in ("missingOrUnexpectedSidebarCard","boundPictureGeometryUnavailable",
+            if sample.get("ready") and sample.get("cardIdentityProven"):break
+            if not sample.get("exactCardIDs") and not sample.get("ready") and sample.get("reason") not in ("missingOrUnexpectedSidebarCard","boundPictureGeometryUnavailable",
                     "activeSpaceContainsUnexpectedMembers","fixtureLaunchServicesRegistrationUnconfirmed","ordinaryWindowCensusIncomplete"):break
         except ERRORS as error:
             last_error=type(error).__name__;attempts.append({"readError":last_error})
         time.sleep(.15)
     save()
+    def source_reference():
+        value=required()
+        by_number={r["number"]:r for r in value["windowCensus"]["expectedEvidence"] if r.get("accepted")}
+        ref=dict(value,pictures=[])
+        ref["sources"]=[]
+        for n in value["numbers"]:
+            x,y,width,height=by_number[n]["bounds"]
+            ref["sources"].append([math.floor(x+width/2)-2,math.floor(y+height/2)-2,4,4])
+        run=subprocess.run([kit/"paired-capture",folder,"--sources"],input=json.dumps(ref),capture_output=True,text=True,timeout=8)
+        rows=[json.loads(line) for line in run.stdout.splitlines()]
+        last=rows[-1] if rows else {}
+        if run.returncode or "sources" not in last:raise ValueError(last.get("refusal","noExactSourcePixels"))
+        samples=last["sources"]
+        return dict(status="MATCH" if len(samples)==2 and all(p["color"].startswith(str(i)+"/") for i,p in enumerate(samples)) else "UNCONFIRMED",
+                    fixtureNumbers=ref["numbers"],crops=ref["sources"],filters=next((r["filterGeometry"] for r in rows if "filterGeometry" in r),[]),observations=samples)
+    if witness and proof.get("sourceProven"):
+        result["sourceReference"]=measured(source_reference);save()
     if audit:result["auditBeforeSampling"]=measured(lambda:audit.evidence("before-sampling"))
     events=[];batches=[]
     try:
@@ -105,11 +123,17 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
     if witness or budget:
         result["twoCardSurface"]=measured(lambda:surface_checkpoint(kit,host_id,before["space"],False,2));save()
     if witness:
-        result["overview"]=measured(lambda:overview(kit,folder,output,required(cards=True)));save()
+        def static_overview():
+            proof=required()
+            if not proof.get("cardIdentityProven") or not proof.get("pictureInteriorsProven"):
+                raise ValueError(proof.get("reason","boundedInstalledCardInteriorsUnconfirmed"))
+            result["overviewBinding"]=proof
+            return overview(kit,folder,output,proof)
+        result["overview"]=measured(static_overview);save()
     if budget:
         def hidden():
-            value=required(cards=True,sterile=True)
-            if value.get("kinds")!=["窗口画面","窗口画面"]:raise ValueError("bothInstalledCardsAreNotLive")
+            value=required(sterile=True)
+            if not value.get("cardIdentityProven"):raise ValueError("bothInstalledCardIdentitiesUnconfirmed")
             return with_current_streams(kit,host_id,lambda:owns_profile(host,profile),fresh,output/"hidden")
         result["hiddenBudget"]=measured(hidden);save()
     if cross_space:

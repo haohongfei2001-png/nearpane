@@ -113,11 +113,11 @@ private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws ->
             var s=stat();guard lstat(u.path,&s)==0,s.st_uid==getuid(),s.st_mode & 0o177777 == 0o40700 else{throw Refusal("unownedSessionFolder")}
         }
         let r=try dictionary(FileHandle.standardInput.readDataToEndOfFile())
-        guard r["ready"] as? Bool==true,let host=r["hostPID"] as? pid_t,let h=r["hostHash"] as? String,
+        guard r["pictureInteriorsProven"] as? Bool==true,r["cardIdentityProven"] as? Bool==true,let host=r["hostPID"] as? pid_t,let h=r["hostHash"] as? String,
               let hostBirth=r["hostBirth"] as? UInt64,let fixture=r["fixturePID"] as? pid_t,let born=r["fixtureBirth"] as? UInt64,let f=r["fixtureHash"] as? String,
               let ids=r["numbers"] as? [UInt32],ids.count==2,Set(ids).count==2,let panel=r["panel"] as? UInt32,
               let sid=r["space"] as? UInt64,let displayID=r["display"] as? String,let sources=r["sources"] as? [[Double]],sources.count==2,
-              r["kinds"] as? [String]==["窗口画面","窗口画面"],r["present"] as? [Bool]==[true,true] else {throw Refusal("twoLiveProductCardsRequired")}
+              r["present"] as? [Bool]==[true,true] else {throw Refusal("twoLiveProductCardsRequired")}
         var executable=[CChar](repeating:0,count:4096)
         guard proc_pidpath(getpid(),&executable,UInt32(executable.count))>0,
               let reader=overviewTemporaryURL(String(cString:executable)),reader.lastPathComponent=="paired-overview" else{
@@ -139,7 +139,7 @@ private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws ->
             p.arguments=[String(host),h,String(fixture),String(born),f,fixtureExe.path,String(ids[0]),String(ids[1]),String(sid)]
             try p.run();let data=pipe.fileHandleForReading.readDataToEndOfFile();p.waitUntilExit()
             let fresh=try dictionary(data)
-            guard p.terminationStatus==0,fresh["ready"] as? Bool==true,sameBinding(fresh,r),let overview=fresh["overview"] as? Row else{
+            guard p.terminationStatus==0,fresh["pictureInteriorsProven"] as? Bool==true,fresh["cardIdentityProven"] as? Bool==true,sameBinding(fresh,r),let overview=fresh["overview"] as? Row else{
                 throw Refusal("signedWindowCardOrDesktopBindingChanged")
             }
             guard overview["ready"] as? Bool==true else{throw Refusal(overview["reason"] as? String ?? "unconfirmedCardRegion")}

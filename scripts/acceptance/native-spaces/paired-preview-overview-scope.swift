@@ -1,7 +1,7 @@
 // Used only by the optional, one-frame shareable evidence capture.
 func pairedOverviewScope(_ index: Sidebar, region: AXUIElement, regionFrame: CGRect, panel: UInt32,
                          display: String, space: UInt64, ids: [String], windows: [UInt32],
-                         fixture: pid_t, hostPID: pid_t, pictures: [[Double]]) -> Object {
+                         fixture: pid_t, hostPID: pid_t, pictures: [[Double]], geometry:[Object]) -> Object {
     func stop(_ reason: String) -> Object { ["ready": false, "reason": reason] }
     guard ids.count == 2, pictures.count == 2, let owned = ProcessInfo.processInfo.environment["NEARPANE_TEST_HOME"] else {
         return stop("isolatedProfileMissing")
@@ -37,18 +37,23 @@ func pairedOverviewScope(_ index: Sidebar, region: AXUIElement, regionFrame: CGR
     func numbers(_ rect: CGRect) -> [Double] { [rect.minX,rect.minY,rect.width,rect.height] }
     let expected = Set(ids), fixed = Set(["Field Notes · 1","Field Notes · 2"])
     var captions = Set<String>(), cardFrames = [CGRect](), previews = [CGRect]()
-    for id in ids {
-        guard let card = index.controls[id]?.first, value(card,kAXRoleAttribute) as? String == "AXButton",
-              let rect=frame(card), regionFrame.contains(rect), rect.width >= 25, rect.height >= 25,
-              let text=value(card,kAXValueAttribute) as? String, text.hasPrefix("窗口画面，预览 "),
-              let delimiter=text.range(of:" pt") else { return stop("liveCardFrameUnavailable") }
-        let labels = Set([kAXTitleAttribute,kAXDescriptionAttribute].compactMap { value(card,$0) as? String }.filter { !$0.isEmpty })
-        guard labels.count == 1, labels.isSubset(of:fixed) else { return stop("fixedFixtureCaptionUnconfirmed") }
-        captions.formUnion(labels)
-        let size=text[text.index(text.startIndex,offsetBy:"窗口画面，预览 ".count)..<delimiter.lowerBound].components(separatedBy:" × ")
-        guard size.count == 2, let w=Double(size[0]),let h=Double(size[1]),w>=12,h>=12,
-              w<=rect.width+1,h<=rect.height-10 else { return stop("cardPictureBoundsUnavailable") }
-        cardFrames.append(rect);previews.append(CGRect(x:rect.midX-w/2,y:rect.minY,width:w,height:h))
+    guard geometry.count==ids.count else{return stop("enrolledCardGeometryUnavailable")}
+    for (i,id) in ids.enumerated() {
+        guard let card=index.controls[id]?.first,geometry[i]["panelBound"] as? Bool==true,geometry[i]["geometryReady"] as? Bool==true,
+              let coords=geometry[i]["frame"] as? [Double],coords.count==4,let body=geometry[i]["pictureFrame"] as? [Double],body.count==4
+        else{return stop("boundedCardFrameUnavailable")}
+        let rect=CGRect(x:coords[0],y:coords[1],width:coords[2],height:coords[3])
+        guard regionFrame.contains(rect),rect.width>=25,rect.height>=25 else{return stop("completeCardFrameNotVisible")}
+        let labels=Set([kAXTitleAttribute,kAXDescriptionAttribute].compactMap{value(card,$0) as? String}.filter{!$0.isEmpty})
+        guard labels.count==1,labels.isSubset(of:fixed) else{return stop("fixedFixtureCaptionUnconfirmed")}
+        captions.formUnion(labels);cardFrames.append(rect)
+        var picture=CGRect(x:body[0],y:body[1],width:body[2],height:body[3])
+        if let info=geometry[i]["axValue"] as? Object,let size=info["declaredPreviewPoints"] as? [Double],size.count==2,
+           size[0]>=12,size[1]>=12,size[0]<=rect.width+1,size[1]<=rect.height-10 {
+            picture=CGRect(x:rect.midX-size[0]/2,y:rect.minY,width:size[0],height:size[1])
+        }
+        guard picture.width>=12,picture.height>=12,rect.contains(picture) else{return stop("cardPictureBoundsUnavailable")}
+        previews.append(picture)
     }
     let ordered=cardFrames.sorted { $0.minY < $1.minY }
     guard captions == fixed, !ordered[0].intersects(ordered[1]), ordered[1].minY-ordered[0].maxY <= 18,

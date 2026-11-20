@@ -2,6 +2,9 @@ import importlib
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import sys
+import shutil
 import unittest
 from unittest.mock import Mock,patch
 
@@ -11,6 +14,29 @@ paired=importlib.import_module("paired-preview")
 
 
 class PairedScope(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=="darwin" and shutil.which("swift"),"requires macOS Foundation")
+    def test_native_numeric_crop_crosses_swift_any_without_an_unrelated_cast(self):
+        source=Path(__file__).with_name("observe.swift").read_text()
+        declaration=next(line for line in source.splitlines() if line.startswith("func windowReceiptRect("))
+        self.assertIn("let coordinates = windowReceiptRect(crop)",source)
+        swift="import AppKit\n"+declaration+"""
+let r=CGRect(x:12.5,y:13,width:4,height:4)
+let old:[String:Any]=["crop":[r.minX,r.minY,r.width,r.height]]
+let corrected:[String:Any]=["crop":windowReceiptRect(r)]
+precondition(old["crop"] is [CGFloat] && !(old["crop"] is [Double]))
+precondition(corrected["crop"] as? [Double]==[12.5,13,4,4])
+"""
+        subprocess.run(["swift","-e",swift],check=True,timeout=15)
+
+    def test_exact_card_identity_is_independent_of_source_picture_geometry(self):
+        ws=importlib.import_module("preview-workspace")
+        fixture=dict(numbers=[52350,52351],fixtureBirth=101,hostBirth=90)
+        row=dict(fixture,space=5092,panel=52326,hostCardCount=2,sourceProven=True,cardIdentityProven=True,
+                 present=[True,True],ready=False,reason="boundPictureGeometryUnavailable")
+        self.assertTrue(ws.exact_source_cards([row,row],5092,fixture))
+        for update in (dict(numbers=[52351,52350]),dict(hostBirth=91),dict(panel=7),dict(cardIdentityProven=False)):
+            self.assertFalse(ws.exact_source_cards([row,dict(row,**update)],5092,fixture))
+
     def test_missing_visual_keeps_separate_catalog_surface_and_system_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             d=Path(tmp);before=dict(hostPID=7,hostBirth=8,hostHash="hash",display="d",space=5,panel=1)

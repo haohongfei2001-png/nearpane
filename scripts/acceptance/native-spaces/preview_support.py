@@ -63,7 +63,7 @@ def copy_witnesses(folder, output, events, batches, identity):
                 "witness batch/epoch invalid")
         observed=batches[n-1]
         require(all(w[k]==identity[k] for k in ("hostPID","fixturePID","numbers","panel"))
-                and w["file"]==f"preview-{n:05d}.rgba" and w["cardKinds"]==["窗口画面","窗口画面"]
+                and w["file"]==f"preview-{n:05d}.rgba" and (w["cardKinds"]==["窗口画面","窗口画面"] or w.get("physicalFourPatch") is True)
                 and w["bindingBefore"]<=min(p["start"] for p in observed) and w["bindingAfter"]>=max(p["end"] for p in observed)
                 and w["bindingAfter"]-w["bindingBefore"]<=3 and w["uptime"]==observed[2]["end"]
                 and [p["color"] for p in observed]==[f"0/{epoch}",f"1/{epoch}"]*2,"raw witness has no matching bound sample")
@@ -98,13 +98,16 @@ def with_current_streams(kit, host, profile_holds, binding, output):
             points.append({**s,"uptime":time.monotonic()})
             if "deliveredFrames" not in s:return points,False
             if len(points)>=2 and all(p.get("surfaceHidden")==0 and p.get("visibleDisplays")==1 and
-                    p.get("stageManagerOwnsDispatch")==0 and p.get("activeStreams",0)>0 for p in points[-2:]) and s["deliveredFrames"]>points[-2]["deliveredFrames"]:
+                    p.get("stageManagerOwnsDispatch")==0 and p.get("activeStreams")==2 for p in points[-2:]) and s["deliveredFrames"]>points[-2]["deliveredFrames"]:
                 return points,True
             time.sleep(.16)
         return points,False
     try:
         points,positive=advancing();result["before"]=points
-        require(positive and binding().get("kinds")==["窗口画面","窗口画面"],"positiveVisibleProductionStreamOrDeliveryUnproven")
+        before=binding()
+        result["originalCardKinds"]=before.get("kinds")
+        require(positive and before.get("cardIdentityProven") and before.get("present")==[True,True],
+                "exactTwoVisibleCardsAndTwoDeliveringProductionStreamsUnproven")
         observation=json.loads(subprocess.check_output([kit/"observe"],text=True,timeout=6))
         require(all(observation.get("host",{}).get(k)==v for k,v in host.items()),"installedHostGenerationChangedBeforeHiddenBudget")
         conclusion=hidden_budget(kit/"observe",observation,{"signatureValid":True,"loadedMatchesInstalled":True},rec)
@@ -123,7 +126,7 @@ def with_current_streams(kit, host, profile_holds, binding, output):
         if not rec.summary.get("sidebarVisibilityRestored"):result["status"]="FAIL";return result
         result["after"],running=advancing()
         fresh=binding()
-        result["restoredBoundCards"]=fresh.get("ready") is True and fresh.get("kinds")==["窗口画面","窗口画面"]
+        result["restoredBoundCards"]=fresh.get("cardIdentityProven") is True and fresh.get("present")==[True,True]
         result["status"]="PASS" if (stopped and flat and running and result["restoredBoundCards"] and
                                      rec.summary.get("hiddenBudget",{}).get("zeroNewRequests") is True) else "FAIL"
     except (ValueError,KeyError,OSError,subprocess.SubprocessError) as exc:

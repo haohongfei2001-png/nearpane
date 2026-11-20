@@ -47,3 +47,6 @@ python3 scripts/acceptance/native-spaces/live-preview-media.py build/preview-wit
 Field Notes 由 Launch Services 以独立实例启动，使用临时 HOME。两扇窗口必须来自同一可执行路径、签名与进程出生时间，且被系统登记为普通应用。相邻无关窗口的进程和标题不写入收据。几何采样只读取这两个窗口和正式侧栏内绑定的色块，每次都验证实际遮挡。桌面选择和隐藏测试另需完整的受控成员清单。
 
 双窗启动后，隔离 Host 的既有 `p0-window-audit-targets.json` 绑定这两个编号。`preview/host-window-audit/final-records.json` 保留正式 Reader、目录和呈现层实际给出的元数据。没有记录时会给出 `UNAVAILABLE`。预览计时、双卡实拍、隐藏预算和系统 A→空 B→A 分项输出，便于在缺卡时区分窗口归属、正式目录与像素读回。
+
+
+计时采样在每张已核准的正式卡按钮内取中央 4×4 pt，避开 18 pt 标题栏。收据保留 AX 数值类型、识别到的状态、子元素几何与采样坐标。动态预览必须由同一正式面板帧中的两个不同色标及后续真实变化证明。单独的 `sourceReference` 只读取两扇夹具窗口。系统选择与隐藏预算分别按两次真实卡片身份读回、两条生产流及实际交付计数判定。

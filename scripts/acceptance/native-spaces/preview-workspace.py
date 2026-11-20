@@ -138,6 +138,13 @@ class PreviewWorkspace(Workspace):
         return self.settled(lambda o:self.check(o)["current"]==n and self.check(o)["records"]==top["records"],"systemSelectionArrivalNotStable")
 
 
+def exact_source_cards(reads,space,fixture):
+    return len(reads)==2 and all(r.get("cardIdentityProven") is True and r.get("sourceProven") is True
+                    and r.get("present")==[True,True] and r.get("hostCardCount")==2 and r.get("space")==space
+                    and r.get("numbers")==fixture["numbers"] and r.get("fixtureBirth")==fixture["fixtureBirth"]
+                    and r.get("hostBirth")==fixture["hostBirth"] and r.get("panel",0)>0 for r in reads) and reads[0]["panel"]==reads[1]["panel"]
+
+
 def system_switch(ws, a, fixture, folder):
     """System selection A → empty B → A. Every read is bound to the original two window numbers."""
     folder.mkdir(mode=0o700)
@@ -178,9 +185,8 @@ def system_switch(ws, a, fixture, folder):
         for i in range(2):
             if i:time.sleep(.17)
             report=json.loads(subprocess.check_output(list(map(str,args)),text=True,timeout=5))
-            rows.append({k:report[k] for k in ("ready","reason","space","numbers","fixtureBirth","hostBirth","kinds","present") if k in report})
-        return {"reads":rows,"exact":all(r.get("ready") and r.get("space")==a and r.get("numbers")==windows and
-                      r.get("fixtureBirth")==fixture["fixtureBirth"] and r.get("hostBirth")==fixture["hostBirth"] for r in rows)}
+            rows.append({k:report[k] for k in ("ready","reason","space","numbers","fixtureBirth","hostBirth","kinds","present","sourceProven","hostCardCount","exactCardIDs","cardIdentityProven","panel") if k in report})
+        return {"reads":rows,"exact":exact_source_cards(rows,a,fixture)}
     b=None;baseline=ws.hardware();persist();ws.fixture=fixture
     try:
         require(a in ws.ids() and ws.check(ws.read())["current"]==a and states(ws.kit)[-1]["state"] is False,"requiresStageOffOwnedSpaceA")

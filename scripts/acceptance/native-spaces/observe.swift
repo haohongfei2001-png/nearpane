@@ -290,6 +290,9 @@ func birthMicroseconds(_ pid: pid_t) -> UInt64? {
     return p.pbi_start_tvsec * 1_000_000 + p.pbi_start_tvusec
 }
 
+// Native CGFloat arrays stored in Any cannot be cast to [Double] by the peer observer on macOS.
+func windowReceiptRect(_ rect:CGRect)->[Double] { [rect.minX,rect.minY,rect.width,rect.height] }
+
 // Return a tiny region strictly inside this identified fixture's picture. The
 // capture executable re-runs this observation before and after its filtered read.
 func fixturePictureCrop(card: AXUIElement, bounds: CGRect, text: String, host: pid_t,
@@ -315,8 +318,9 @@ func fixturePictureCrop(card: AXUIElement, bounds: CGRect, text: String, host: p
               $0[kCGWindowOwnerPID as String] as? pid_t == host && $0[kCGWindowIsOnscreen as String] as? Bool == true }),
           let bounds = row[kCGWindowBounds as String] as? NSDictionary,
           CGRect(dictionaryRepresentation: bounds)?.contains(crop) == true else { return nil }
+    let coordinates = windowReceiptRect(crop)
     return ["ready": true, "pid": host, "number": panel, "display": scope, "space": current,
-            "fixtureNumber": number, "fixtureBirth": birth, "crop": [crop.minX, crop.minY, crop.width, crop.height]]
+            "fixtureNumber": number, "fixtureBirth": birth, "crop": coordinates]
 }
 
 func fixtureResult(_ args: [String]) -> Object {

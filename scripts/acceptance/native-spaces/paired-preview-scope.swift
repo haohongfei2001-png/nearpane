@@ -1,3 +1,83 @@
+// Read only the two enrolled controls. Bound the numerical evidence and never serialize AX strings from documents.
+func pairedRect(_ node:AXUIElement)->CGRect? {
+    guard let position=value(node,kAXPositionAttribute),let size=value(node,kAXSizeAttribute),
+          CFGetTypeID(position)==AXValueGetTypeID(),CFGetTypeID(size)==AXValueGetTypeID() else{return nil}
+    var point=CGPoint.zero,extent=CGSize.zero
+    guard AXValueGetValue(position as! AXValue,.cgPoint,&point),AXValueGetValue(size as! AXValue,.cgSize,&extent),
+          [point.x,point.y,extent.width,extent.height].allSatisfy(\.isFinite),extent.width>0,extent.height>0 else{return nil}
+    return CGRect(origin:point,size:extent)
+}
+func pairedAX(_ node:AXUIElement)->Object {
+    let raw=value(node,kAXValueAttribute)
+    let text=(raw as? String) ?? (raw as? NSAttributedString)?.string
+    let known=["窗口画面","窗口轮廓","上次画面","所选快照"]
+    var result:Object=["kind":known.first(where:{text?.hasPrefix($0)==true}) ?? "unreported",
+                       "valueType":raw==nil ? "absent" : text != nil ? "text" : raw is NSNumber ? "number":"other"]
+    if let text {
+        let regex=try? NSRegularExpression(pattern:#"预览\s*(\d+)\s*[×x]\s*(\d+)\s*pt"#)
+        let ns=text as NSString
+        if let match=regex?.firstMatch(in:text,range:NSRange(location:0,length:ns.length)),
+           let w=Double(ns.substring(with:match.range(at:1))),let h=Double(ns.substring(with:match.range(at:2))),w>0,h>0 {
+            result["declaredPreviewPoints"]=[w,h]
+        }
+        result["sizePending"]=text=="窗口尺寸待核对"
+    }
+    return result
+}
+func pairedCard(_ card:AXUIElement,host:pid_t,panel:UInt32,region:CGRect,panelFrame:CGRect,id:String)->Object {
+    func role(_ el:AXUIElement)->String {
+        let r=value(el,kAXRoleAttribute) as? String ?? "unknown"
+        return ["AXWindow","AXButton","AXGroup","AXImage","AXStaticText","AXScrollArea","AXCell","AXLayoutItem"].contains(r) ? r:"other"
+    }
+    func owned(_ el:AXUIElement)->Bool {var p:pid_t=0;return AXUIElementGetPid(el,&p) == .success && p==host}
+    var out:Object=["role":role(card),"axValue":pairedAX(card),"panelBound":false,"geometryReady":false]
+    func stop(_ why:String)->Object { out["reason"]=why;return out }
+    guard owned(card),value(card,kAXIdentifierAttribute) as? String==id else{return stop("cardIdentityChanged")}
+    let descendants=(value(card,kAXChildrenAttribute) as? [AXUIElement] ?? []).prefix(12).filter(owned)
+    out["children"]=descendants.map{el -> Object in
+        var data:Object=["role":role(el),"axValue":pairedAX(el)]
+        if let r=pairedRect(el){data["frame"]=windowReceiptRect(r)};return data
+    }
+    let buttons=descendants.filter{role($0)=="AXButton"}
+    let semantic=role(card)=="AXButton" ? card : buttons.count==1 ? buttons.first : nil
+    let rect=pairedRect(card) ?? semantic.flatMap(pairedRect)
+    if let rect {out["frame"]=windowReceiptRect(rect)}
+    if (out["axValue"] as? Object)?["kind"] as? String=="unreported",let semantic {
+        let detail=pairedAX(semantic)
+        if detail["kind"] as? String != "unreported"{out["axValue"]=detail}
+    }
+    func element(_ raw:CFTypeRef?)->AXUIElement? {
+        guard let raw,CFGetTypeID(raw)==AXUIElementGetTypeID() else{return nil};return (raw as! AXUIElement)
+    }
+    var ancestor:AXUIElement?=card,seen=Set<AXUIElement>(),panelBound=false
+    for _ in 0..<40 {
+        guard let a=ancestor,owned(a),seen.insert(a).inserted else{break}
+        if role(a)=="AXWindow" && NPReadAXWindowNumber(a)==panel {panelBound=true;break}
+        if let parentWindow=element(value(a,kAXWindowAttribute)),owned(parentWindow),NPReadAXWindowNumber(parentWindow)==panel {
+            panelBound=true;break
+        }
+        ancestor=element(value(a,kAXParentAttribute))
+    }
+    out["panelBound"]=panelBound
+    guard panelBound else{return stop("enrolledAXCardWindowDoesNotMatchSignedPanel")}
+    guard let rect,rect.width>=12,rect.height>=28 else{return stop("enrolledAXCardFrameUnavailableOrClipped")}
+    let panelRegion=rect.intersection(region).intersection(panelFrame)
+    guard !panelRegion.isNull else{return stop("enrolledAXCardFrameUnavailableOrClipped")}
+    let ownImage=descendants.filter{role($0)=="AXImage"}.compactMap(pairedRect).filter{
+        rect.contains($0) && $0.width>=24 && $0.height>=20
+    }
+    // The production VStack has one picture and an 18-point caption below it. The measured
+    // ROI comes from the real AX card and an actual source-colored panel frame proves its content.
+    let content=ownImage.count==1 ? ownImage[0] : CGRect(x:rect.minX,y:rect.minY,width:rect.width,height:rect.height-18)
+    let interior=content.insetBy(dx:2,dy:2).intersection(panelRegion)
+    guard interior.width>=8,interior.height>=8 else{return stop("noInteriorOfBoundCardVisibleAboveCaption")}
+    let patch=CGRect(x:floor(interior.midX)-2,y:floor(interior.midY)-2,width:4,height:4)
+    guard content.contains(patch),region.contains(patch),panelFrame.contains(patch),interior.contains(patch) else{return stop("cardInteriorOutsideVisiblePanel")}
+    out["pictureFrame"]=windowReceiptRect(content);out["patch"]=windowReceiptRect(patch);out["geometryReady"]=true
+    out["geometrySource"]=ownImage.count==1 ? "AXImageChild":"boundCardAboveFixedCaption"
+    return out
+}
+
 // Appended to the existing independent observer; only fixture identities, card geometry and counts leave this process.
 func pairedPreviewProof(_ args: [String]) -> Object {
     var out: Object = ["ready":false,"stageManager":stage as Any? ?? NSNull(),"observerAX":AXIsProcessTrusted(),
@@ -60,23 +140,35 @@ func pairedPreviewProof(_ args: [String]) -> Object {
     guard regular else{return stop("fixtureLaunchServicesRegistrationUnconfirmed")}
     guard windowCensus["expectedProven"] as? Bool==true else {return stop("activeSpaceContainsUnexpectedMembers")}
     guard Set(cards.keys)==Set(ids),ids.allSatisfy({cards[$0]?.count==1}) else {return stop("missingOrUnexpectedSidebarCard")}
-    var sources=[[Double]](),pictures=[[Double]](),kinds=[String]()
+    out["exactCardIDs"]=true
+    guard let panelFrame=bounds(panels[0]) else{return stop("boundCGPanelGeometryUnavailable")}
+    var evidence=[Object](),sources=[[Double]](),pictures=[[Double]](),kinds=[String]()
     for (i,n) in nums.enumerated() {
-        let records=rows.filter{$0[kCGWindowNumber as String] as? UInt32==n && $0[kCGWindowOwnerPID as String] as? Int32==fixture &&
-            $0[kCGWindowLayer as String] as? Int==0 && $0[kCGWindowIsOnscreen as String] as? Bool==true}
-        guard records.count==1,let source=bounds(records[0]),source.width>=96,source.height>=90,
-              NPReadWindowSpaces(n) as? [UInt64]==[space],let card=cards[ids[i]]?.first,let cardFrame=frame(card),
-              let label=value(card,kAXValueAttribute) as? String,let kind=label.components(separatedBy:"，").first,
-              let proof=fixturePictureCrop(card:card,bounds:cardFrame,text:label,host:pid,number:n,birth:birth,scope:display,current:space,paired:true),
-              proof["number"] as? UInt32==panel,let picture=proof["crop"] as? [Double] else {return stop("boundPictureGeometryUnavailable")}
-        sources.append([floor(source.midX)-2,floor(source.midY)-2,4,4]);pictures.append(picture);kinds.append(kind)
+        guard let card=cards[ids[i]]?.first else{return stop("boundCardIdentityLost")}
+        var row=pairedCard(card,host:pid,panel:panel,region:regionFrame,panelFrame:panelFrame,id:ids[i])
+        let kind=(row["axValue"] as? Object)?["kind"] as? String ?? "unreported"
+        kinds.append(kind)
+        let record=PreviewCensus.windowRows(n)?.filter {
+            $0[kCGWindowNumber as String] as? UInt32==n && $0[kCGWindowOwnerPID as String] as? pid_t==fixture &&
+            $0[kCGWindowLayer as String] as? Int==0 && $0[kCGWindowIsOnscreen as String] as? Bool==true
+        }
+        if record?.count==1,let source=record?.first.flatMap(bounds),source.width>=96,source.height>=90,NPReadWindowSpaces(n) as? [UInt64]==[space] {
+            let sample:[Double]=[floor(source.midX)-2,floor(source.midY)-2,4,4]
+            row["sourcePatch"]=sample;row["sourceFrame"]=windowReceiptRect(source);sources.append(sample)
+        }
+        if let patch=row["patch"] as? [Double] {pictures.append(patch)}
+        row["number"]=n;evidence.append(row)
     }
+    out["cardIdentityProven"]=evidence.allSatisfy{$0["panelBound"] as? Bool==true};out["cardGeometry"]=evidence;out["sources"]=sources;out["kinds"]=kinds;out["pictures"]=pictures
+    guard sources.count==2 else{return stop("twoExactSourceCGFramesUnavailable")}
+    guard pictures.count==2 else{return stop(evidence.first(where:{$0["geometryReady"] as? Bool != true})?["reason"] as? String ?? "boundCardInteriorUnavailable")}
+    out["pictureInteriorsProven"]=true
     let cardRects=pictures.map { CGRect(x:$0[0],y:$0[1],width:4,height:4) },strip=cardRects[0].union(cardRects[1])
-    guard !cardRects[0].intersects(cardRects[1]),strip.width<=8,strip.height<=400,regionFrame.contains(strip) else{return stop("pairedCardStripOutsideControlledRoster")}
     #if PAIRED_OVERVIEW
     out["overview"] = pairedOverviewScope(index,region:region,regionFrame:regionFrame,panel:panel,display:display,
-                                         space:space,ids:ids,windows:nums,fixture:fixture,hostPID:pid,pictures:pictures)
+                                         space:space,ids:ids,windows:nums,fixture:fixture,hostPID:pid,pictures:pictures,geometry:evidence)
     #endif
+    guard !cardRects[0].intersects(cardRects[1]),strip.width<=8,strip.height<=400,regionFrame.contains(strip) else{return stop("pairedCardStripOutsideControlledRoster")}
     out["sources"]=sources;out["pictures"]=pictures;out["kinds"]=kinds;out["ready"]=true;return out
 }
 print(String(decoding:try JSONSerialization.data(withJSONObject:pairedPreviewProof(CommandLine.arguments),options:.sortedKeys),as:UTF8.self))

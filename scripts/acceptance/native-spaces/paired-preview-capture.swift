@@ -15,10 +15,14 @@ private struct Observation: Encodable {
     var patch:Data? = nil
     private enum CodingKeys:String,CodingKey {case start,end,color,displayTime,frameStatus}
 }
+private struct FilterGeometry:Encodable {
+    let window:UInt32,frame:[Double],filterRect:[Double],requested:[Double],includedWindowCount:Int,nativePointPixelScale:Float
+}
+private func numbers(_ r:CGRect)->[Double] {[r.minX,r.minY,r.width,r.height]}
 private struct PendingWitness {let batch:Int,epoch:Int,uptime:Double,data:Data}
 private struct Witness:Encodable {
     let file:String,sha256:String,epoch:Int,batch:Int,hostPID:pid_t,fixturePID:pid_t,numbers:[UInt32],panel:UInt32
-    let uptime:Double,bindingBefore:Double,bindingAfter:Double,cardKinds:[String]
+    let uptime:Double,bindingBefore:Double,bindingAfter:Double,cardKinds:[String],physicalFourPatch:Bool
 }
 private func now() -> Double { ProcessInfo.processInfo.systemUptime }
 private func emit<T:Encodable>(_ value:T) throws { FileHandle.standardOutput.write(try JSONEncoder().encode(value)+Data([10])) }
@@ -28,28 +32,34 @@ private func birth(_ pid:pid_t) -> UInt64? {
     return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
 }
 private func hardware() -> [UInt32] { [.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map{CGEventSource.counterForEventType(.hidSystemState,eventType:$0)} }
-private func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> Bool {
+private func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> String? {
     guard hardware()==input,NSEvent.pressedMouseButtons==0,birth(r.hostPID)==r.hostBirth,birth(r.fixturePID)==r.fixtureBirth,
           let scopes=NPReadInventory() as? [[String:Any]],scopes.count==1,scopes[0]["Display Identifier"] as? String==r.display,
           (scopes[0]["Current Space"] as? [String:Any])?["id64"] as? UInt64==r.space,
           let forward=NPReadCatalogSpaceWindowNumbers(r.space) as? [UInt32],
           r.numbers.allSatisfy({forward.contains($0) && NPReadWindowSpaces($0) as? [UInt64]==[r.space]}),
-          let rows=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else{return false}
-    for crop in crops {
+          let rows=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else{return "scopeInputOrSignedGenerationOrSpaceChanged"}
+    for (index,crop) in crops.enumerated() {
+        let kind=index==2 ? "Panel" : "Source"+String(index+1)
         var found=false
         for row in rows {
-            guard let box=row[kCGWindowBounds as String] as? NSDictionary,let bounds=CGRect(dictionaryRepresentation:box) else{return false}
+            guard let box=row[kCGWindowBounds as String] as? NSDictionary,let bounds=CGRect(dictionaryRepresentation:box) else{return "unreadableWindowBoundsBefore"+kind}
             if row[kCGWindowNumber as String] as? UInt32==crop.number {
                 found=row[kCGWindowOwnerPID as String] as? Int32==crop.pid && bounds.contains(crop.rect)
                 break
             }
-            if bounds.intersects(crop.rect), (row[kCGWindowAlpha as String] as? Double ?? 1)>0 {return false}
+            if crop.patches.contains(where:{bounds.intersects($0)}), (row[kCGWindowAlpha as String] as? Double ?? 1)>0 {
+                let pid=row[kCGWindowOwnerPID as String] as? pid_t
+                let who=pid==r.fixturePID ? "Fixture" : pid==r.hostPID ? "Host":"Other"
+                return kind+"OccludedBy"+who
+            }
         }
-        if !found{return false}
+        if !found{return "boundWindowUnavailableAt"+kind}
     }
-    return true
+    return nil
 }
-private func observe(_ crop:Crop,witness:Bool) async -> [Observation] {
+private func observe(_ crop:Crop,witness requestedWitness:Bool) async -> [Observation] {
+    let witness=requestedWitness && crop.filter.pointPixelScale==2
     let t=now();var displayed:Double?, status:Int?
     func sample(_ color:String)->Observation{Observation(start:t,end:now(),color:color,displayTime:displayed,frameStatus:status)}
     func uniform(_ color:String)->[Observation]{let value=sample(color);return crop.patches.map{_ in value}}
@@ -93,8 +103,9 @@ private func observe(_ crop:Crop,witness:Bool) async -> [Observation] {
     }
     static func capture() async throws {
         let data=FileHandle.standardInput.readDataToEndOfFile();let r=try JSONDecoder().decode(Request.self,from:data)
-        guard CommandLine.arguments.count==2,CGPreflightScreenCaptureAccess(),NPReadOnlySpacesOpen()==1,
-              Set(r.numbers).count==2,r.numbers.count==2,r.pictures.count==2,r.sources.count==2 else{throw Refusal("invalidCaptureAdmission")}
+        let sourceOnly=CommandLine.arguments.count==3 && CommandLine.arguments[2]=="--sources"
+        guard CommandLine.arguments.count==2 || sourceOnly,CGPreflightScreenCaptureAccess(),NPReadOnlySpacesOpen()==1,
+              Set(r.numbers).count==2,r.numbers.count==2,(r.pictures.count==2 || sourceOnly),r.sources.count==2 else{throw Refusal("invalidCaptureAdmission")}
         guard let folder=PreviewCensus.ownedTemporaryURL(CommandLine.arguments[1]) else{throw Refusal("unownedTriggerDirectory")}
         let temp=folder.deletingLastPathComponent();var info=stat()
         guard UUID(uuidString:folder.lastPathComponent) != nil,temp.lastPathComponent.hasPrefix("nearpane-preview-pair."),
@@ -108,17 +119,30 @@ private func observe(_ crop:Crop,witness:Bool) async -> [Observation] {
                              kit.appendingPathComponent("Field Notes.app/Contents/MacOS/FieldNotes").path,
                              String(r.numbers[0]),String(r.numbers[1]),String(r.space)]
             child.standardOutput=pipe;try child.run();let data=pipe.fileHandleForReading.readDataToEndOfFile();child.waitUntilExit()
-            guard child.terminationStatus==0,(try? JSONDecoder().decode(Request.self,from:data))==r,
-                  let proof=try? JSONSerialization.jsonObject(with:data) as? [String:Any],proof["ready"] as? Bool==true,
-                  let kinds=proof["kinds"] as? [String],kinds.count==2 else{throw Refusal("independentCardBindingChanged")}
+            guard child.terminationStatus==0,let proof=try? JSONSerialization.jsonObject(with:data) as? [String:Any] else{throw Refusal("missingSignedScopeReadback")}
+            if sourceOnly {
+                guard proof["sourceProven"] as? Bool==true,proof["space"] as? UInt64==r.space,proof["display"] as? String==r.display,
+                      proof["fixtureBirth"] as? UInt64==r.fixtureBirth,proof["hostBirth"] as? UInt64==r.hostBirth,
+                      proof["fixturePID"] as? pid_t==r.fixturePID,proof["hostPID"] as? pid_t==r.hostPID,proof["numbers"] as? [UInt32]==r.numbers,
+                      let census=proof["windowCensus"] as? [String:Any],let rows=census["expectedEvidence"] as? [[String:Any]],
+                      r.numbers.enumerated().allSatisfy({i,n in
+                          guard let row=rows.first(where:{$0["number"] as? UInt32==n}),row["accepted"] as? Bool==true,
+                                let b=row["bounds"] as? [Double],b.count==4 else{return false}
+                          return r.sources[i]==[floor(b[0]+b[2]/2)-2,floor(b[1]+b[3]/2)-2,4,4]
+                      }) else{throw Refusal("independentSourceBindingChanged")}
+                return []
+            }
+            guard (try? JSONDecoder().decode(Request.self,from:data))==r,proof["ready"] as? Bool==true,
+                  proof["cardIdentityProven"] as? Bool==true,let kinds=proof["kinds"] as? [String],kinds.count==2 else{throw Refusal("independentCardBindingChanged")}
             return kinds
         }
-        var lastKinds=try confirmCards()
+        _ = try confirmCards()
         var lastBinding=now()
         let available=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
         guard let display=available.displays.first(where:{ d in CGDisplayCreateUUIDFromDisplayID(d.displayID).map{CFUUIDCreateString(nil,$0.takeRetainedValue()) as String}==r.display }) else{throw Refusal("displayUnavailable")}
-        var crops=[Crop]()
-        let groups=[(r.numbers[0],r.fixturePID,[r.sources[0]]),(r.numbers[1],r.fixturePID,[r.sources[1]]),(r.panel,r.hostPID,r.pictures)]
+        var crops=[Crop](),filterGeometry=[FilterGeometry]()
+        var groups=[(r.numbers[0],r.fixturePID,[r.sources[0]]),(r.numbers[1],r.fixturePID,[r.sources[1]])]
+        if !sourceOnly {groups.append((r.panel,r.hostPID,r.pictures))}
         for (id,pid,regions) in groups {
             guard let window=available.windows.first(where:{$0.windowID==id && $0.owningApplication?.processID==pid && $0.isOnScreen}) else{throw Refusal("boundWindowUnavailable")}
             let patches=try regions.map { raw -> CGRect in
@@ -132,33 +156,43 @@ private func observe(_ crop:Crop,witness:Bool) async -> [Observation] {
             let config=SCStreamConfiguration();config.sourceRect=rect.offsetBy(dx:-display.frame.minX,dy:-display.frame.minY)
             config.width=Int(rect.width)*2;config.height=Int(rect.height)*2;config.pixelFormat=kCVPixelFormatType_32BGRA;config.colorSpaceName=CGColorSpace.sRGB
             config.showsCursor=false;config.capturesAudio=false;config.captureMicrophone=false;config.includeChildWindows=false
+            filterGeometry.append(FilterGeometry(window:id,frame:numbers(window.frame),filterRect:numbers(filter.contentRect),requested:numbers(config.sourceRect),
+                                                 includedWindowCount:filter.includedWindows.count,nativePointPixelScale:filter.pointPixelScale))
             crops.append(Crop(number:id,pid:pid,rect:rect,patches:patches,filter:filter,config:config))
         }
+        try emit(["filterGeometry":filterGeometry])
         let input=hardware(),began=now(),regions=crops
-        let witness=ProcessInfo.processInfo.environment["NEARPANE_PAIRED_EVIDENCE"]=="1",liveKinds=["窗口画面","窗口画面"]
+        if sourceOnly {
+            if let reason=scope(r,regions,input){throw Refusal(reason)}
+            async let a=observe(regions[0],witness:false);async let b=observe(regions[1],witness:false)
+            let samples=await [a,b].flatMap{$0}
+            if let reason=scope(r,regions,input){throw Refusal(reason)}
+            _=try confirmCards();try emit(["sources":samples]);return
+        }
+        let witness=ProcessInfo.processInfo.environment["NEARPANE_PAIRED_EVIDENCE"]=="1"
         var triggered=false,batches=0,pending=[PendingWitness]()
         func validateAndSave() throws {
             let kinds=try confirmCards(),after=now()
-            if witness && kinds==liveKinds && lastKinds==liveKinds && after-lastBinding<=3.0 {
+            if witness && kinds.count==2 && after-lastBinding<=3.0 {
                 for item in pending {
                     let name=String(format:"preview-%05d.rgba",item.batch)
                     try item.data.write(to:folder.appendingPathComponent(name),options:.withoutOverwriting)
                     let hash=SHA256.hash(data:item.data).map{String(format:"%02x",$0)}.joined()
                     let proof=Witness(file:name,sha256:hash,epoch:item.epoch,batch:item.batch,hostPID:r.hostPID,fixturePID:r.fixturePID,
-                                      numbers:r.numbers,panel:r.panel,uptime:item.uptime,bindingBefore:lastBinding,bindingAfter:after,cardKinds:kinds)
+                                      numbers:r.numbers,panel:r.panel,uptime:item.uptime,bindingBefore:lastBinding,bindingAfter:after,cardKinds:kinds,physicalFourPatch:true)
                     try emit(["witness":proof])
                 }
             }
-            pending.removeAll(keepingCapacity:true);lastBinding=after;lastKinds=kinds
+            pending.removeAll(keepingCapacity:true);lastBinding=after
         }
         while now()-began<16.5 && batches<180 {
             if now()-lastBinding>=1.0 {try validateAndSave()}
-            guard scope(r,regions,input) else{throw Refusal("foregroundMembershipGeometryOrInputChanged")}
+            if let reason=scope(r,regions,input){throw Refusal(reason)}
             async let s0=observe(regions[0],witness:witness);async let s1=observe(regions[1],witness:witness);async let panel=observe(regions[2],witness:witness)
             let batch=await [s0,s1,panel].flatMap{$0}
-            guard scope(r,regions,input) else{throw Refusal("scopeChangedDuringSamples")}
+            if let reason=scope(r,regions,input){throw Refusal(reason)}
             try emit(["batch":batch]);batches+=1
-            if witness,lastKinds==liveKinds,batch.count==4,let epoch=PairedPreviewPalette.epochs.indices.first(where:{ e in
+            if witness,batch.count==4,let epoch=PairedPreviewPalette.epochs.indices.first(where:{ e in
                 batch.map(\.color)==["0/\(e)","1/\(e)","0/\(e)","1/\(e)"]
             }),batch.allSatisfy({$0.patch?.count==256}) {
                 pending.append(PendingWitness(batch:batches,epoch:epoch,uptime:batch[2].end,data:batch.compactMap{$0.patch}.reduce(into:Data()){$0.append($1)}))
