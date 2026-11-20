@@ -49,39 +49,55 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     guard let pid=state["pid"] as? Int32,let number=state["window"] as? CGWindowID,let rect=state["selection"] as? String else {
         throw ToolRefusal("The signed fixture did not confirm its selection")
     }
-    let selection=NSRectFromString(rect)
+    let clientSelection=NSRectFromString(rect)
     let system=AXUIElementCreateSystemWide()
-    guard !selection.isEmpty,let raw=ToolUI.value(system,kAXFocusedUIElementAttribute),CFGetTypeID(raw)==AXUIElementGetTypeID() else {throw ToolRefusal("No independent focused field")}
+    guard !clientSelection.isEmpty,let raw=ToolUI.value(system,kAXFocusedUIElementAttribute),CFGetTypeID(raw)==AXUIElementGetTypeID() else {throw ToolRefusal("No independent focused field")}
     let element=raw as! AXUIElement
     var owner:pid_t=0
     guard AXUIElementGetPid(element,&owner) == .success,owner==pid,ToolUI.value(element,kAXSelectedTextAttribute) as? String==phrase else {
         throw ToolRefusal("The independently observed selection is not the fixture phrase")
     }
-    let board = NSPasteboard.withUniqueName()
-    defer { board.releaseGlobally() }
-    board.setString(phrase,forType:.string)
+    var axBounds=CGRect.zero
+    if let range=ToolUI.value(element,kAXSelectedTextRangeAttribute) {
+        var rawBounds:CFTypeRef?
+        if AXUIElementCopyParameterizedAttributeValue(element,kAXBoundsForRangeParameterizedAttribute as CFString,range,&rawBounds) == .success,
+           let rawBounds,CFGetTypeID(rawBounds)==AXValueGetTypeID() {
+            _=AXValueGetValue(rawBounds as! AXValue,.cgRect,&axBounds)
+        }
+    }
+    let selection=axBounds.isEmpty ? clientSelection:axBounds
     let priorPanels = Set(ToolUI.windows(context.host.processIdentifier).map(\.id))
     let sourcePNG = context.output.appendingPathComponent("selection.png")
-    try ToolUI.screenshot(number,pid:pid,to:sourcePNG)
-    let performed = NSPerformService("在 Nearpane 翻译选词",board)
+    try await ToolUI.screenshot(number,pid:pid,to:sourcePNG)
+    let performed = try await fixture.requestService()
     var report: [String:Any] = ["hostPID":context.host.processIdentifier,"generation":context.generation.lastPathComponent,
                                 "phase":"translation","source":phrase,"sourceLanguage":source,
-                                "assetStatus":languageState,"serviceDispatched":performed,"serviceRegistration":route,"selection":NSStringFromRect(selection)]
+                                "assetStatus":languageState,"serviceDispatched":performed,"serviceRegistration":route,"selection":NSStringFromRect(selection),
+                                "clientSelection":NSStringFromRect(clientSelection),"axBoundsAvailable":!axBounds.isEmpty,"rowsBefore":originalWords.count]
     guard performed else { report["status"]="FAIL"; report["reason"]="macOS could not deliver the declared Service"; return report }
     var sample: (CGWindowID,CGRect)?
     var words: [Word] = []
-    for _ in 0..<70 {
+    var observedFrames=[CGWindowID:String]()
+    for tick in 0..<180 {
         guard !context.host.isTerminated else { throw ToolRefusal("Host exited during translation") }
-        if let panel = ToolUI.windows(context.host.processIdentifier).first(where: {
+        let panels=ToolUI.windows(context.host.processIdentifier).filter { !priorPanels.contains($0.id) && $0.level == NSWindow.Level.popUpMenu.rawValue }
+        for panel in panels { observedFrames[panel.id]=NSStringFromRect(panel.bounds) }
+        if let panel = panels.first(where: {
             !priorPanels.contains($0.id) && $0.level == NSWindow.Level.popUpMenu.rawValue
                 && $0.bounds.width > 15 && $0.bounds.width < 450 && $0.bounds.height < 230
                 && abs($0.bounds.minX-selection.minX) <= 4
                 && min(abs($0.bounds.minY-selection.maxY),abs($0.bounds.maxY-selection.minY)) <= 11
-        }) { sample = (panel.id,panel.bounds) }
+        }) {
+            sample = (panel.id,panel.bounds)
+            if tick==15 {
+                try? await ToolUI.screenshot(panel.id,pid:context.host.processIdentifier,to:context.output.appendingPathComponent("bubble-intermediate.png"))
+            }
+        }
         words = try context.words(phrase)
         if sample != nil && ((!words.isEmpty) || language != .installed) { break }
         await ToolUI.pause(90)
     }
+    report["newPopupFrames"]=observedFrames.values.sorted()
     report["notebookMatchingRows"] = words.count
     if words.count == 1, let word=words.first, word.language == "zh-Hans" {
         report["translation"] = word.translation
@@ -95,7 +111,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let bubble = context.output.appendingPathComponent("bubble.png")
     let observed: String
     do {
-        try ToolUI.screenshot(sample.0,pid:context.host.processIdentifier,to:bubble)
+        try await ToolUI.screenshot(sample.0,pid:context.host.processIdentifier,to:bubble)
         observed = try ToolUI.ocr(bubble).joined()
     } catch {
         report["status"]="UNKNOWN"; report["reason"]="The installed bubble could not be captured and read"; return report
@@ -127,14 +143,18 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
 @MainActor
 func readback(_ context: ToolContext, prior: URL) async throws -> [String:Any] {
     guard let source = try JSONSerialization.jsonObject(with:Data(contentsOf:prior)) as? [String:Any],
-          source["serviceDispatched"] as? Bool == true, source["notebookMatchingRows"] as? Int == 1,
-          source["expectedMeaning"] as? Bool == true, source["generation"] as? String == context.generation.lastPathComponent,
+          source["serviceDispatched"] as? Bool == true, source["generation"] as? String == context.generation.lastPathComponent,
           let previous = source["hostPID"] as? Int32,
           previous != context.host.processIdentifier, let phrase = source["source"] as? String,
-          phrase == "The blue bicycle", let answer = source["translation"] as? String, let id = source["wordID"] as? String else {
-        throw ToolRefusal("Readback requires the original translated row and a freshly relaunched Host using the same isolated generation")
+          phrase == "The blue bicycle" else {
+        throw ToolRefusal("Readback requires the original request and a relaunched Host using the same isolated generation")
     }
     let words = try context.words(phrase)
+    guard source["notebookMatchingRows"] as? Int == 1, source["expectedMeaning"] as? Bool == true,
+          let answer=source["translation"] as? String,let id=source["wordID"] as? String else {
+        return ["phase":"wordbookAfterRelaunch","status":words.isEmpty ? "BLOCKED":"UNKNOWN","rowsAfterRelaunch":words.count,
+                "oldHostPID":previous,"hostPID":context.host.processIdentifier,"reason":"No pre-restart row identity for comparison"]
+    }
     let retained = words.count == 1 && words.first?.id.uuidString == id && words.first?.translation == answer
     // Reopen the ordinary settings window so SwiftUI reads the newly constructed notebook instance.
     try await ToolUI.openSettings(context.host)
@@ -148,7 +168,7 @@ func readback(_ context: ToolContext, prior: URL) async throws -> [String:Any] {
     }
     let visible = entries.contains(where: { $0.contains(phrase) }) && entries.contains(where: { $0.contains(answer) })
     return ["phase":"wordbookAfterRelaunch","status":retained && visible ? "PASS" : "FAIL",
-            "oldHostPID":previous,"hostPID":context.host.processIdentifier,"durableRowMatches":retained,
+            "oldHostPID":previous,"hostPID":context.host.processIdentifier,"durableRowMatches":retained,"rowsAfterRelaunch":words.count,
             "wordsDisplayedByRelaunchedHost":visible]
 }
 

@@ -2,6 +2,7 @@
 import AppKit
 import ApplicationServices
 import Vision
+import ScreenCaptureKit
 
 struct ToolRefusal: LocalizedError {
     var errorDescription: String?
@@ -103,11 +104,23 @@ enum ToolUI {
         return String(decoding:bytes,as:UTF8.self)
     }
 
-    static func screenshot(_ number: CGWindowID, pid: pid_t, to url: URL) throws {
+    static func screenshot(_ number: CGWindowID, pid: pid_t, to url: URL) async throws {
         guard number != 0, windows(pid).contains(where: { $0.id == number }), !FileManager.default.fileExists(atPath:url.path) else {
             throw ToolRefusal("Owned window no longer exists or output already exists")
         }
-        _ = try run("/usr/sbin/screencapture",["-x","-o","-l",String(number),url.path])
+        let content=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
+        guard let source=content.windows.first(where:{ $0.windowID==number && $0.owningApplication?.processID==pid }) else {
+            throw ToolRefusal("The verified source is no longer available for a window-only capture")
+        }
+        let filter=SCContentFilter(desktopIndependentWindow:source), configuration=SCStreamConfiguration()
+        configuration.ignoreShadowsSingleWindow=true;configuration.showsCursor=false
+        configuration.width=Int((source.frame.width*CGFloat(filter.pointPixelScale)).rounded())
+        configuration.height=Int((source.frame.height*CGFloat(filter.pointPixelScale)).rounded())
+        let image=try await SCScreenshotManager.captureImage(contentFilter:filter,configuration:configuration)
+        guard windows(pid).contains(where:{ $0.id==number }),let png=NSBitmapImageRep(cgImage:image).representation(using:.png,properties:[:]) else {
+            throw ToolRefusal("The source changed during image capture")
+        }
+        try png.write(to:url,options:.withoutOverwriting)
     }
 
     static func ocr(_ file: URL) throws -> [String] {
@@ -153,6 +166,20 @@ struct Index: Decodable { let active: String }
             await ToolUI.pause(100)
         }
         throw ToolRefusal("Signed test window was not ready (registered=\(client != nil), key=\(last["key"] as? Bool ?? false), front=\(last["front"] as? Bool ?? false))")
+    }
+    func requestService() async throws -> Bool {
+        guard kind=="selection", let client,!client.isTerminated, NSWorkspace.shared.frontmostApplication?.processIdentifier==client.processIdentifier else {
+            throw ToolRefusal("Only the still-focused selected text client may issue the service")
+        }
+        try Data().write(to:directory.appendingPathComponent("perform-service"),options:.withoutOverwriting)
+        for _ in 0..<80 {
+            if let data=try? Data(contentsOf:directory.appendingPathComponent("state.json")),
+               let state=try? JSONSerialization.jsonObject(with:data) as? [String:Any],
+               state["session"] as? String==directory.lastPathComponent, state["pid"] as? Int32==client.processIdentifier,
+               state["serviceAttempted"] as? Bool==true {return state["serviceDispatched"] as? Bool==true}
+            await ToolUI.pause(100)
+        }
+        throw ToolRefusal("The source client did not confirm the single service invocation")
     }
     func close() {
         let ownFront=client != nil && NSWorkspace.shared.frontmostApplication?.processIdentifier==client?.processIdentifier

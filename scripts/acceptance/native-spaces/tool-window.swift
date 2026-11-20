@@ -26,13 +26,14 @@ let window = NSWindow(contentRect:NSRect(origin:.zero,size:size),styleMask:[.tit
 window.isReleasedWhenClosed=false; window.title="Nearpane controlled tool fixture"
 let field = NSTextView(frame:NSRect(x:25,y:38,width:411,height:70))
 if capture {
-    window.level = .floating; window.contentView=Pattern(frame:NSRect(origin:.zero,size:size))
+    window.level = .statusBar; window.contentView=Pattern(frame:NSRect(origin:.zero,size:size))
 } else {
     field.isRichText=false;field.isEditable=true;field.isSelectable=true
     field.font = .systemFont(ofSize:23);field.string="The blue bicycle"
     window.contentView?.addSubview(field)
 }
 var pose = -1, selected = false, last = Data()
+var serviceAttempted=false,serviceDispatched=false,board:NSPasteboard?
 let started = ProcessInfo.processInfo.systemUptime
 func quartz(_ rect:NSRect) -> String {
     NSStringFromRect(NSRect(x:rect.minX,y:(NSScreen.screens.first?.frame.maxY ?? 0)-rect.maxY,width:rect.width,height:rect.height))
@@ -42,6 +43,7 @@ DispatchQueue.main.async {
 }
 let timer = Timer(timeInterval:0.06,repeats:true) { _ in
     if FileManager.default.fileExists(atPath:dir.appendingPathComponent("close").path) || ProcessInfo.processInfo.systemUptime-started>90 {
+        board?.releaseGlobally()
         try? Data().write(to:dir.appendingPathComponent("closed"))
         window.close(); app.terminate(nil); return
     }
@@ -60,12 +62,19 @@ let timer = Timer(timeInterval:0.06,repeats:true) { _ in
         field.setSelectedRange(NSRange(location:0,length:(field.string as NSString).length))
     }
     let focused=window.isKeyWindow && front && (capture || (selected && window.firstResponder===field && field.selectedRange().length==(field.string as NSString).length))
+    if !capture, focused, !serviceAttempted, FileManager.default.fileExists(atPath:dir.appendingPathComponent("perform-service").path) {
+        serviceAttempted=true
+        let privateBoard=NSPasteboard.withUniqueName()
+        board=privateBoard
+        if privateBoard.setString(field.string,forType:.string) {serviceDispatched=NSPerformService("在 Nearpane 翻译选词",privateBoard)}
+    }
     let areas=[0.5,0.3,0.7].map { fraction in
         let crop=NSRect(x:view.bounds.midX-65,y:(view.bounds.height*fraction).rounded()-38,width:130,height:76)
         return quartz(window.convertToScreen(view.convert(crop,to:nil)))
     }
     var state:[String:Any]=["session":dir.lastPathComponent,"kind":args[0],"pid":getpid(),"window":window.windowNumber,
-                           "key":window.isKeyWindow,"front":front,"focused":focused,"pose":capture ? pose:0,"areas":areas]
+                           "key":window.isKeyWindow,"front":front,"focused":focused,"pose":capture ? pose:0,"areas":areas,
+                           "serviceAttempted":serviceAttempted,"serviceDispatched":serviceDispatched]
     if !capture && focused { state["selection"]=quartz(field.firstRect(forCharacterRange:field.selectedRange(),actualRange:nil)) }
     if let data=try? JSONSerialization.data(withJSONObject:state,options:.sortedKeys),data != last {
         try? data.write(to:dir.appendingPathComponent("state.json"),options:.atomic);last=data

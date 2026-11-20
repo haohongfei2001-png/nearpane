@@ -37,7 +37,8 @@ import CryptoKit
         let pid=entry[kCGWindowOwnerPID as String] as? pid_t
         let system:Set<String>=["Window Server","WindowManager","Dock","Control Center","Notification Center","SystemUIServer"]
         let name=entry[kCGWindowOwnerName as String] as? String ?? ""
-        let group = fixture != nil && pid==fixture ? "fixture" : pid==host ? "Nearpane" : system.contains(name) ? name : "other"
+        let applicationID=pid.flatMap(NSRunningApplication.init(processIdentifier:))?.bundleIdentifier
+        let group = fixture != nil && pid==fixture ? "fixture" : pid==host ? "Nearpane" : applicationID=="com.apple.screencaptureui" ? "Apple Screenshot" : system.contains(name) ? name : "other"
         return ["ownerClass":group,"level":entry[kCGWindowLayer as String] as? Int ?? -1,
                 "overlap":NSStringFromRect(bounds.intersection(region)),"requested":NSStringFromRect(region)]
     }
