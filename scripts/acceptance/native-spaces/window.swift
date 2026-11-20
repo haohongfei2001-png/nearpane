@@ -24,6 +24,10 @@ var lastState = Data()
 var withdrew = false, minimized = false
 NSWindow.allowsAutomaticWindowTabbing = false
 let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
+#if PAIRED_PREVIEW
+let paired = presentation == "paired-preview" && expected == 2 && Bundle.main.bundleIdentifier == "net.example.spaces-document"
+var previewStarted: TimeInterval?, previewEpoch = -1
+#endif
 final class SharedFixtureWindow: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
@@ -32,7 +36,10 @@ final class SharedFixtureWindow: NSPanel {
         let frame = screen.visibleFrame
         let roster = presentation == "roster" || presentation == "roster-cycle" || presentation == "public-visible"
         let size: CGSize = roster ? (i == 0 ? CGSize(width: 540, height: 180) : CGSize(width: 240, height: 350)) : CGSize(width: 320, height: 160)
-        let rect = NSRect(x: frame.midX - 180 + Double(30*i), y: frame.midY - 90 + Double(25*i), width: size.width, height: size.height)
+        var rect = NSRect(x: frame.midX - 180 + Double(30*i), y: frame.midY - 90 + Double(25*i), width: size.width, height: size.height)
+        #if PAIRED_PREVIEW
+        if paired { rect = NSRect(x: frame.midX + (i == 0 ? -282 : 12), y: frame.midY - 90, width: 270, height: 180) }
+        #endif
         let style: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
         let w: NSWindow
         if presentation == "public-visible" {
@@ -83,6 +90,21 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         }
     }
     guard !windows.isEmpty || presentation == "roster-cycle" else { return }
+    #if PAIRED_PREVIEW
+    if paired && editors.count == 2 {
+        let now = ProcessInfo.processInfo.systemUptime
+        if previewStarted == nil && FileManager.default.fileExists(atPath: run.appendingPathComponent("preview-start").path) { previewStarted = now }
+        let epoch = previewStarted.map { min(PairedPreviewPalette.epochs.count-1, 1+Int((now-$0)/PairedPreviewPalette.seconds)) } ?? 0
+        if epoch != previewEpoch {
+            for (index, rgb) in PairedPreviewPalette.epochs[epoch].enumerated() {
+                editors[index].backgroundColor = NSColor(srgbRed: CGFloat(rgb[0])/255, green: CGFloat(rgb[1])/255,
+                                                         blue: CGFloat(rgb[2])/255, alpha: 1)
+                editors[index].needsDisplay = true
+            }
+            previewEpoch = epoch
+        }
+    }
+    #endif
     if presentation == "contract", windows.count == 2, windows.filter({ !$0.isVisible }).count == 1 {
         let recreate = run.appendingPathComponent("recreate-closed")
         if (try? FileManager.default.removeItem(at:recreate)) != nil {

@@ -1,0 +1,134 @@
+import AppKit
+import CoreMedia
+import ScreenCaptureKit
+
+private struct Request: Decodable, Equatable {
+    let display: String, space: UInt64, hostPID: pid_t, hostBirth: UInt64, panel: UInt32
+    let fixturePID: pid_t, fixtureBirth: UInt64, numbers: [UInt32], sources: [[Double]], pictures: [[Double]]
+    let hostHash: String, fixtureHash: String
+}
+private struct Refusal: Error { let reason:String; init(_ reason:String) {self.reason=reason} }
+private struct Crop { let number: UInt32, pid: pid_t, rect: CGRect, patches:[CGRect], filter: SCContentFilter, config: SCStreamConfiguration }
+private struct Observation: Encodable { let start: Double, end: Double, color:String, displayTime:Double?, frameStatus:Int? }
+private func now() -> Double { ProcessInfo.processInfo.systemUptime }
+private func emit<T:Encodable>(_ value:T) throws { FileHandle.standardOutput.write(try JSONEncoder().encode(value)+Data([10])) }
+private func birth(_ pid:pid_t) -> UInt64? {
+    var info=proc_bsdinfo();let size=Int32(MemoryLayout.size(ofValue:info))
+    guard pid>1,proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),info.pbi_uid==getuid(),info.pbi_start_tvsec>0 else{return nil}
+    return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
+}
+private func hardware() -> [UInt32] { [.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map{CGEventSource.counterForEventType(.hidSystemState,eventType:$0)} }
+private func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> Bool {
+    guard hardware()==input,NSEvent.pressedMouseButtons==0,birth(r.hostPID)==r.hostBirth,birth(r.fixturePID)==r.fixtureBirth,
+          let scopes=NPReadInventory() as? [[String:Any]],scopes.count==1,scopes[0]["Display Identifier"] as? String==r.display,
+          (scopes[0]["Current Space"] as? [String:Any])?["id64"] as? UInt64==r.space,
+          let report=NPContractMemberReport([NSNumber(value:r.space)] as CFArray,r.hostPID) as? [String:[String:Any]],
+          let record=report[String(r.space)],record["unresolved"] as? Int==0,let normal=record["ordinary"] as? [[String:NSNumber]],
+          normal.count==2,normal.allSatisfy({$0["pid"]?.int32Value==r.fixturePID}),Set(normal.compactMap{$0["number"]?.uint32Value})==Set(r.numbers),
+          let rows=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else{return false}
+    for crop in crops {
+        var found=false
+        for row in rows {
+            guard let box=row[kCGWindowBounds as String] as? NSDictionary,let bounds=CGRect(dictionaryRepresentation:box) else{return false}
+            if row[kCGWindowNumber as String] as? UInt32==crop.number {
+                found=row[kCGWindowOwnerPID as String] as? Int32==crop.pid && bounds.contains(crop.rect)
+                break
+            }
+            if bounds.intersects(crop.rect), (row[kCGWindowAlpha as String] as? Double ?? 1)>0 {return false}
+        }
+        if !found{return false}
+    }
+    return true
+}
+private func observe(_ crop:Crop) async -> [Observation] {
+    let t=now();var displayed:Double?, status:Int?
+    func sample(_ color:String)->Observation{Observation(start:t,end:now(),color:color,displayTime:displayed,frameStatus:status)}
+    func uniform(_ color:String)->[Observation]{let value=sample(color);return crop.patches.map{_ in value}}
+    do {
+        let raw=try await SCScreenshotManager.captureSampleBuffer(contentFilter:crop.filter,configuration:crop.config)
+        let attachment=(CMSampleBufferGetSampleAttachmentsArray(raw,createIfNecessary:false) as? [[SCStreamFrameInfo:Any]])?.first
+        status=(attachment?[.status] as? NSNumber)?.intValue
+        if let ticks=(attachment?[.displayTime] as? NSNumber)?.uint64Value,ticks>0 {var scale=mach_timebase_info_data_t();mach_timebase_info(&scale);displayed=Double(ticks)*Double(scale.numer)/Double(scale.denom)/1e9}
+        // A capture service blank has no usable panel pixels. Only a sampled neutral
+        // or transparent patch from an actual image may establish a blank marker.
+        if status==SCFrameStatus.blank.rawValue{return uniform("unknown")}
+        guard status==nil || status==SCFrameStatus.complete.rawValue || status==SCFrameStatus.started.rawValue,
+              CMSampleBufferIsValid(raw),CMSampleBufferDataIsReady(raw),let pixels=CMSampleBufferGetImageBuffer(raw),
+              CVPixelBufferGetWidth(pixels)==crop.config.width,CVPixelBufferGetHeight(pixels)==crop.config.height,CVPixelBufferGetPixelFormatType(pixels)==kCVPixelFormatType_32BGRA,
+              CVPixelBufferLockBaseAddress(pixels,.readOnly)==kCVReturnSuccess else{return uniform("unknown")}
+        defer{CVPixelBufferUnlockBaseAddress(pixels,.readOnly)}
+        guard let bytes=CVPixelBufferGetBaseAddress(pixels)?.assumingMemoryBound(to:UInt8.self) else{return uniform("unknown")}
+        let finished=now()
+        return crop.patches.map { patch in
+            let x0=Int((patch.minX-crop.rect.minX)*2),y0=Int((patch.minY-crop.rect.minY)*2)
+            var counts=[String:Int]()
+            for y in y0..<(y0+8) {for x in x0..<(x0+8) {let k=y*CVPixelBufferGetBytesPerRow(pixels)+4*x
+                counts[PairedPreviewPalette.classify(Int(bytes[k+2]),Int(bytes[k+1]),Int(bytes[k]),Int(bytes[k+3])),default:0]+=1}}
+            let dominant=counts.first(where:{$0.value>=52})?.key ?? "unknown"
+            return Observation(start:t,end:finished,color:dominant,displayTime:displayed,frameStatus:status)
+        }
+    } catch {return uniform("unknown")}
+}
+@main struct PairedCapture {
+    static func main() async {
+        do{try await capture()}catch{try? emit(["refusal":(error as? Refusal)?.reason ?? "captureUnavailable"]);exit(2)}
+    }
+    static func capture() async throws {
+        let data=FileHandle.standardInput.readDataToEndOfFile();let r=try JSONDecoder().decode(Request.self,from:data)
+        guard CommandLine.arguments.count==2,CGPreflightScreenCaptureAccess(),NPReadOnlySpacesOpen()==1,
+              Set(r.numbers).count==2,r.numbers.count==2,r.pictures.count==2,r.sources.count==2 else{throw Refusal("invalidCaptureAdmission")}
+        let folder=URL(fileURLWithPath:CommandLine.arguments[1]).standardizedFileURL
+        let temp=folder.deletingLastPathComponent();var info=stat()
+        guard UUID(uuidString:folder.lastPathComponent) != nil,temp.lastPathComponent.hasPrefix("nearpane-preview-pair."),
+              temp.deletingLastPathComponent().path=="/private/tmp",folder.resolvingSymlinksInPath()==folder,
+              lstat(folder.path,&info)==0,info.st_uid==getuid(),info.st_mode & 0o077==0 else{throw Refusal("unownedTriggerDirectory")}
+        let kit=URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent()
+        func confirmCards() throws {
+            let child=Process(),pipe=Pipe()
+            child.executableURL=kit.appendingPathComponent("paired-scope")
+            child.arguments=[String(r.hostPID),r.hostHash,String(r.fixturePID),String(r.fixtureBirth),r.fixtureHash,
+                             kit.appendingPathComponent("Field Notes.app/Contents/MacOS/FieldNotes").path,
+                             String(r.numbers[0]),String(r.numbers[1]),String(r.space)]
+            child.standardOutput=pipe;try child.run();let data=pipe.fileHandleForReading.readDataToEndOfFile();child.waitUntilExit()
+            guard child.terminationStatus==0,(try? JSONDecoder().decode(Request.self,from:data))==r,
+                  (try? JSONSerialization.jsonObject(with:data) as? [String:Any])?["ready"] as? Bool==true else{throw Refusal("independentCardBindingChanged")}
+        }
+        try confirmCards()
+        let available=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
+        guard let display=available.displays.first(where:{ d in CGDisplayCreateUUIDFromDisplayID(d.displayID).map{CFUUIDCreateString(nil,$0.takeRetainedValue()) as String}==r.display }) else{throw Refusal("displayUnavailable")}
+        var crops=[Crop]()
+        let groups=[(r.numbers[0],r.fixturePID,[r.sources[0]]),(r.numbers[1],r.fixturePID,[r.sources[1]]),(r.panel,r.hostPID,r.pictures)]
+        for (id,pid,regions) in groups {
+            guard let window=available.windows.first(where:{$0.windowID==id && $0.owningApplication?.processID==pid && $0.isOnScreen}) else{throw Refusal("boundWindowUnavailable")}
+            let patches=try regions.map { raw -> CGRect in
+                guard raw.count==4,raw.allSatisfy(\.isFinite),raw[0].rounded()==raw[0],raw[1].rounded()==raw[1],raw[2]==4,raw[3]==4 else{throw Refusal("invalidROI")}
+                return CGRect(x:raw[0],y:raw[1],width:4,height:4)
+            }
+            let rect=patches.dropFirst().reduce(patches[0]){$0.union($1)}
+            guard rect.width<=8,rect.height<=400,window.frame.contains(rect),display.frame.contains(rect) else{throw Refusal("uncontainedROI")}
+            let filter=SCContentFilter(display:display,including:[window]);filter.includeMenuBar=false
+            guard filter.includedWindows.count==1,filter.includedWindows.first?.windowID==id else{throw Refusal("unboundedFilter")}
+            let config=SCStreamConfiguration();config.sourceRect=rect.offsetBy(dx:-display.frame.minX,dy:-display.frame.minY)
+            config.width=Int(rect.width)*2;config.height=Int(rect.height)*2;config.pixelFormat=kCVPixelFormatType_32BGRA;config.colorSpaceName=CGColorSpace.sRGB
+            config.showsCursor=false;config.capturesAudio=false;config.captureMicrophone=false;config.includeChildWindows=false
+            crops.append(Crop(number:id,pid:pid,rect:rect,patches:patches,filter:filter,config:config))
+        }
+        let input=hardware(),began=now(),regions=crops;var triggered=false, batches=0, lastBinding=began
+        while now()-began<16.5 && batches<180 {
+            if now()-lastBinding>=1.0 {try confirmCards();lastBinding=now()}
+            guard scope(r,regions,input) else{throw Refusal("foregroundMembershipGeometryOrInputChanged")}
+            async let s0=observe(regions[0]);async let s1=observe(regions[1]);async let panel=observe(regions[2])
+            let batch=await [s0,s1,panel].flatMap{$0}
+            guard scope(r,regions,input) else{throw Refusal("scopeChangedDuringSamples")}
+            try emit(["batch":batch]);batches+=1
+            if !triggered && now()-began>=1.5 {
+                try Data().write(to:folder.appendingPathComponent("preview-start"),options:.withoutOverwriting);triggered=true
+                try emit(["pulseStarted":now()])
+            }
+            try await Task.sleep(for:.milliseconds(65))
+        }
+        guard triggered else{throw Refusal("initialSamplesIncomplete")}
+        try confirmCards()
+        try emit(["completedBatches":batches])
+    }
+}

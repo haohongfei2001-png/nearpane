@@ -293,13 +293,15 @@ func birthMicroseconds(_ pid: pid_t) -> UInt64? {
 // Return a tiny region strictly inside this identified fixture's picture. The
 // capture executable re-runs this observation before and after its filtered read.
 func fixturePictureCrop(card: AXUIElement, bounds: CGRect, text: String, host: pid_t,
-                        number: UInt32, birth: UInt64, scope: String, current: UInt64) -> Object? {
-    let prefix = "窗口画面，预览 "
-    guard text.hasPrefix(prefix), let end = text.range(of: " pt") else { return nil }
+                        number: UInt32, birth: UInt64, scope: String, current: UInt64, paired: Bool = false) -> Object? {
+    let kinds = paired ? ["窗口画面", "窗口轮廓", "上次画面", "所选快照"] : ["窗口画面"]
+    guard let kind = kinds.first(where: { text.hasPrefix($0 + "，预览 ") }), let end = text.range(of: " pt") else { return nil }
+    let prefix = kind + "，预览 "
     let fields = text[text.index(text.startIndex, offsetBy: prefix.count)..<end.lowerBound].components(separatedBy: " × ")
     guard fields.count == 2, let w = Double(fields[0]), let h = Double(fields[1]),
           w >= 12, h >= 12, w <= bounds.width + 1, h <= bounds.height + 1 else { return nil }
-    let crop = CGRect(x: floor(bounds.minX + w / 2 - 2), y: floor(bounds.minY + h / 2 - 2), width: 4, height: 4)
+    let centerX = paired ? bounds.midX : bounds.minX + w / 2
+    let crop = CGRect(x: floor(centerX - 2), y: floor(bounds.minY + h / 2 - 2), width: 4, height: 4)
     guard bounds.contains(crop) else { return nil }
     var ancestor = card
     for _ in 0..<36 {
