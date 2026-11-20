@@ -105,12 +105,12 @@ function monitor(scenario) {
   };
 }
 
-async function executeDriver({ exe, intentID, folder, browserID, host, pid, scenario, evalPage }) {
+async function executeDriver({ exe, intentID, folder, browserID, host, pid, scenario, evalPage, restart }) {
   const proc = spawn(exe, [], { stdio: ['pipe', 'pipe', 'inherit'] });
   const closed = once(proc, 'exit');
   const timer = setTimeout(() => proc.kill('SIGKILL'), 12000);
   proc.stdin.on('error', () => {});
-  proc.stdin.write(JSON.stringify({ intentID, folder, browserID, host, pid }) + '\n');
+  proc.stdin.write(JSON.stringify({ intentID, folder, browserID, host, pid, restart }) + '\n');
   let result;
   let session;
   let tabID = '1';
@@ -156,6 +156,51 @@ async function executeDriver({ exe, intentID, folder, browserID, host, pid, scen
     if (proc.exitCode === null && proc.signalCode === null) proc.kill('SIGKILL');
     await closed;
   }
+}
+
+export async function runColdRestart({ exe, run, browser, chromePID, navigate, evalPage, restart }) {
+  const { stage, intentID } = restart;
+  assert.match(intentID, /^[0-9a-f-]{36}$/);
+  assert.ok(['original', 'successor'].includes(stage));
+  const { host, fresh, editor, account } = fixtures[0];
+  const browserID = browser === 'edge' ? 'com.microsoft.edgemac' : 'com.google.Chrome';
+  let source = run;
+  if (stage === 'successor') {
+    assert.match(restart.from, /^local-browser-[A-Za-z0-9]+$/);
+    source = path.join(path.dirname(run), restart.from);
+    assert.equal(fs.realpathSync(source), source);
+    assert.equal(fs.lstatSync(path.join(source, 'user-data'), { throwIfNoEntry: false }), undefined);
+    const prior = JSON.parse(fs.readFileSync(path.join(source, 'receipt.json'), 'utf8'));
+    assert.equal(prior.intentID, intentID);
+    assert.equal(prior.browser, browser);
+    assert.equal(prior.status, 'PASS_FIXTURE');
+  }
+  const folder = path.join(source, 'cold-restart');
+  if (stage === 'original') fs.mkdirSync(folder, { mode: 0o700 });
+  else assert.equal(fs.realpathSync(folder), folder);
+  await navigate('https://' + host + fresh, '<main>' + account + '<form>' + editor +
+    '<input type="file" accept="image/*"><button type="submit">Send</button></form></main>');
+  await evalPage('(' + monitor.toString() + ')("fresh")');
+  const record = { stage, intentID, browser, browserID, status: 'UNKNOWN', before: await evalPage('readQualified()') };
+  try {
+    const { result, actions } = await executeDriver({ exe, intentID, folder, browserID, host, pid: chromePID, evalPage, restart: stage });
+    record.driver = result;
+    record.pageCommands = actions;
+    assert.deepEqual(actions, { pinTarget: 1, captureTarget: 1, validate: stage === 'original' ? 1 : 2 });
+    assert.equal(result.intentID.toLowerCase(), intentID);
+    record.status = 'PASS_FIXTURE';
+  } catch (error) {
+    record.status = 'FAIL_FIXTURE';
+    record.issue = String(error.message).slice(0, 160);
+  }
+  record.after = await evalPage('readQualified()');
+  for (const evidence of [record.before, record.after]) {
+    if (evidence.preview !== null || Object.values(evidence.counts).some(count => count !== 0)) {
+      record.status = 'FAIL_FIXTURE';
+      record.issue = 'The independent document listener observed input or sending';
+    }
+  }
+  return record;
 }
 
 function assertObserved(row, sha) {

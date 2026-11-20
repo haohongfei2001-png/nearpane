@@ -1,6 +1,6 @@
 // A new headless Chromium process with a local reject-only proxy and a private DevTools pipe.
 import assert from 'node:assert/strict';
-import { spawn, execFileSync } from 'node:child_process';
+import { spawn, execFileSync, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
@@ -43,7 +43,7 @@ const child = spawn(chrome, ['--headless=new', '--remote-debugging-pipe',
   '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1','--disable-quic','--disable-breakpad',
   '--user-data-dir=' + profile, '--use-mock-keychain', '--disable-background-networking', '--disable-sync',
   '--disable-extensions', '--no-first-run', '--no-default-browser-check', '--disable-component-update', 'about:blank'],
-  {stdio:['ignore','ignore',stderr,'pipe','pipe']});
+  {stdio:['ignore','ignore',stderr,'pipe','pipe'], detached: Boolean(fixture.qualificationRestart)});
 fs.closeSync(stderr);
 const closed = once(child, 'exit');
 let seq = 0, pending = new Map(), handlers = new Map(), bytes = '';
@@ -69,6 +69,7 @@ closed.then(() => { for (const waiter of pending.values()) waiter.reject(Error('
 const driverRun = fixture.productDriver || fixture.qualificationBrowser;
 const timeout = setTimeout(() => child.kill('SIGKILL'), driverRun ? 180000 : 45000);
 let verified = false;
+let restartEvidence;
 const draft = fs.readFileSync(path.join(root,'scripts/acceptance/draft-observation.js'),'utf8');
 try {
   const version = await call('Browser.getVersion');
@@ -109,7 +110,12 @@ try {
       assert.equal(await evalPage('location.href',targetSession),next);
     };
     let evidence;
-    if (fixture.qualificationBrowser) {
+    if (fixture.qualificationBrowser && fixture.qualificationRestart) {
+      const { runColdRestart } = await import('./draft-qualification/cases.mjs');
+      evidence = await runColdRestart({ exe: compose, run, browser: fixture.qualificationBrowser,
+        chromePID: child.pid, navigate, evalPage, restart: fixture.qualificationRestart });
+      restartEvidence = evidence;
+    } else if (fixture.qualificationBrowser) {
       const { runQualifiedCases } = await import('./draft-qualification/cases.mjs');
       evidence = await runQualifiedCases({
         exe: compose, run, browser: fixture.qualificationBrowser, chromePID: child.pid, navigate, evalPage, sha,
@@ -128,7 +134,7 @@ try {
     }
     Object.assign(evidence, {chrome:version.product, fixtureDocumentResponses:fulfilled, otherRequestsDenied:denied});
     fs.writeFileSync(path.join(run,'receipt.json'), JSON.stringify(evidence,null,2), {flag:'wx'});
-    console.log(JSON.stringify({directory:run,...evidence}));
+    if (!restartEvidence) console.log(JSON.stringify({directory:run,...evidence}));
   } else {
   const cases=[];
   for (const owned of [true,false]) {
@@ -198,20 +204,63 @@ try {
   }
   verified = true;
 } finally {
-  if(child.exitCode===null && child.signalCode===null) await call('Browser.close').catch(()=>{});
+  const terminateOriginal = restartEvidence?.stage === 'original';
+  const singleton = path.join(profile, 'SingletonLock');
+  const beforeLock = terminateOriginal ? fs.lstatSync(singleton, {throwIfNoEntry:false}) : undefined;
+  const beforeTarget = beforeLock?.isSymbolicLink() ? fs.readlinkSync(singleton) : undefined;
+  const initialGroup = restartEvidence && spawnSync('/bin/ps', ['-p', String(child.pid), '-o', 'pgid='],
+    {encoding:'utf8', timeout:1000});
+  if (child.exitCode === null && child.signalCode === null) {
+    if (terminateOriginal) assert.ok(child.kill('SIGTERM'), 'Could not terminate the owned predecessor');
+    else await call('Browser.close').catch(()=>{});
+  }
   const [exitCode, signal] = await closed;
   clearTimeout(timeout);
   rejectProxy.close();
-  if (verified) {
-    assert.equal(exitCode, 0, 'Fixture browser did not exit normally');
-    assert.equal(signal, null);
+  try {
+    if (verified) {
+      if (terminateOriginal) assert.ok(signal === 'SIGTERM' || exitCode === 0, 'Unexpected original process exit');
+      else {
+        assert.equal(exitCode, 0, 'Fixture browser did not exit normally');
+        assert.equal(signal, null);
+      }
+    }
+    if (exitCode !== null || signal !== null) {
+      const now = fs.lstatSync(profile);
+      assert.ok(now.isDirectory() && now.dev === profileIdentity.dev && now.ino === profileIdentity.ino,
+        'Fixture profile identity changed');
+      if (restartEvidence) {
+        assert.ok(initialGroup?.status === 0 && initialGroup.stdout.trim() === String(child.pid),
+          'Browser did not own its dedicated process group');
+        // Query only the new process group. macOS can deny signal permission to
+        // an exiting signed helper while still allowing a read-only group query.
+        const deadline = performance.now() + 4000;
+        let gone = false;
+        do {
+          const group = spawnSync('/bin/ps', ['-g', String(child.pid), '-o', 'pgid='], {encoding:'utf8', timeout:1000});
+          if (group.status === 1 && !group.stdout.trim() && !group.stderr.trim()) { gone = true; break; }
+          assert.ok(group.status === 0 && group.stdout.trim().split(/\s+/).every(id => id === String(child.pid)),
+            'Could not verify the owned process group');
+          await new Promise(resolve => setTimeout(resolve, 40));
+        } while (performance.now() < deadline);
+        restartEvidence.isolatedProcessGroupGone = gone;
+        assert.ok(gone, 'Owned browser process group is still present');
+      }
+      const afterLock = fs.lstatSync(singleton, {throwIfNoEntry:false});
+      if (afterLock && terminateOriginal) {
+        assert.ok(beforeLock?.isSymbolicLink() && afterLock.isSymbolicLink() &&
+          beforeLock.dev === afterLock.dev && beforeLock.ino === afterLock.ino &&
+          beforeTarget.endsWith('-' + child.pid) && fs.readlinkSync(singleton) === beforeTarget,
+          'Singleton does not match the reaped predecessor');
+        restartEvidence.retainedSingletonWasReapedOwner = true;
+      } else assert.equal(afterLock, undefined, 'Fixture profile is still locked');
+      fs.rmSync(profile, {recursive: true});
+    }
+  } catch (error) {
+    if (!restartEvidence) throw error;
+    restartEvidence.status = 'FAIL_FIXTURE';
+    restartEvidence.cleanupIssue = String(error.message).split('\n')[0].slice(0, 110);
   }
-  if (exitCode !== null || signal !== null) {
-    const now = fs.lstatSync(profile);
-    assert.ok(now.isDirectory() && now.dev === profileIdentity.dev && now.ino === profileIdentity.ino,
-      'Fixture profile identity changed');
-    assert.equal(fs.lstatSync(path.join(profile, 'SingletonLock'), {throwIfNoEntry:false}), undefined,
-      'Fixture profile is still locked');
-    fs.rmSync(profile, {recursive: true});
-  }
+  if (restartEvidence) console.log(JSON.stringify({directory:run,...restartEvidence, reaped:true, exitCode, signal,
+    requestedTermination: terminateOriginal ? 'SIGTERM' : 'Browser.close', privateProfileRemoved: !fs.existsSync(profile)}));
 }

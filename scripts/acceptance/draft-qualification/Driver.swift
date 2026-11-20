@@ -4,11 +4,12 @@ import Foundation
 import RiftletAdapters
 import RiftletCore
 
-private enum FixtureError: Error { case invalid, refused }
-private struct Request: Decodable {
+enum FixtureError: Error { case invalid, refused }
+struct Request: Decodable {
   let folder, browserID, host: String
   let pid: Int32
   let intentID: UUID
+  let restart: String?
 }
 
 @MainActor final class HeadlessDraftPipe: WebClickTargetPinning {
@@ -55,6 +56,17 @@ private struct Request: Decodable {
 }
 
 @main struct Driver {
+  static func syntheticAsset(in media: URL) throws -> ImportedAsset {
+    try FileManager.default.createDirectory(
+      at: media, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+    let id = UUID()
+    let png = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNQ91/l1DGH4cwql/K0UAAk9wVzjPxe1gAAAABJRU5ErkJggg==")!
+    let file = media.appendingPathComponent(id.uuidString + ".png")
+    try png.write(to: file, options: .withoutOverwriting)
+    let hash = SHA256.hash(data: png).map { String(format: "%02x", $0) }.joined()
+    return ImportedAsset(id: id, sourceKey: id.uuidString, fileName: file.lastPathComponent, sha256: hash,
+                         byteCount: Int64(png.count), pixelWidth: 2, pixelHeight: 2, mediaType: "image/png", origin: .synthetic)
+  }
   @MainActor static func main() async throws {
     guard let line = readLine() else { throw FixtureError.invalid }
     let args = try JSONDecoder().decode(Request.self, from: Data(line.utf8))
@@ -87,20 +99,18 @@ private struct Request: Decodable {
       browserID: args.browserID, selectedURL: address)
     let transport = HeadlessDraftPipe(route)
     let media = base.appendingPathComponent("media", isDirectory: true)
-    try FileManager.default.createDirectory(
-      at: media, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
-    let id = UUID()
-    let png = Data(
-      base64Encoded:
-        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNQ91/l1DGH4cwql/K0UAAk9wVzjPxe1gAAAABJRU5ErkJggg=="
-    )!
-    let file = media.appendingPathComponent(id.uuidString + ".png")
-    try png.write(to: file, options: .withoutOverwriting)
-    let hash = SHA256.hash(data: png).map { String(format: "%02x", $0) }.joined()
-    let image = ImportedAsset(
-      id: id, sourceKey: id.uuidString, fileName: file.lastPathComponent, sha256: hash,
-      byteCount: Int64(png.count), pixelWidth: 2, pixelHeight: 2, mediaType: "image/png",
-      origin: .synthetic)
+    // The peer is the newly spawned headless child identified by its kernel birth and signature.
+    FileHandle.standardOutput.write(
+      try JSONSerialization.data(withJSONObject: ["session": session]) + Data([10]))
+    guard readLine() == "ok" else { throw FixtureError.invalid }
+    if let stage = args.restart {
+      let report = try await ColdRestart.run(stage: stage, request: args, route: route, base: base, session: session)
+      FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject: report) + Data([10]))
+      return
+    }
+    let image = try syntheticAsset(in: media)
+    let id = image.id, hash = image.sha256
+    let file = media.appendingPathComponent(image.fileName)
     let store = try QueueStore(databaseURL: base.appendingPathComponent("queue.sqlite"))
     _ = try await store.importAsset(image)
     let adapter = try DraftAttachmentQualification.adapter(route, media: media, executor: transport)
@@ -115,12 +125,8 @@ private struct Request: Decodable {
     var result: [String: Any] = [
       "done": true, "ordinaryWriterRefused": true, "sha256": hash, "assetID": id.uuidString,
       "intentID": args.intentID.uuidString, "adapterID": route.adapterID, "processSession": session,
-      "sourceByteCount": png.count,
+      "sourceByteCount": image.byteCount,
     ]
-    // The pipe receives only the immutable identities of the headless child, its synthetic window and one enrolled tab.
-    FileHandle.standardOutput.write(
-      try JSONSerialization.data(withJSONObject: ["session": session]) + Data([10]))
-    guard readLine() == "ok" else { throw FixtureError.invalid }
     do {
       let selected = try await adapter.targetForClick().value
       guard selected.sessionID == session, selected.windowID == "1", selected.tabID == "1" else {
@@ -141,7 +147,7 @@ private struct Request: Decodable {
         operation: operation, asset: image, fileURL: file, invocationID: invocation)
       let privateOrigin = ImportedAsset(
         id: id, sourceKey: id.uuidString, fileName: file.lastPathComponent, sha256: hash,
-        byteCount: Int64(png.count), pixelWidth: 2, pixelHeight: 2, mediaType: "image/png",
+        byteCount: image.byteCount, pixelWidth: 2, pixelHeight: 2, mediaType: "image/png",
         origin: .systemScreenshot
       )
       do {

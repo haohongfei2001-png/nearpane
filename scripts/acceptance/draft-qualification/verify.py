@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import uuid
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -97,7 +98,7 @@ def materialize(repo, work, lock):
     driver = checkout / "Sources/DraftQualificationDriver"
     driver.mkdir()
     tray = ROOT / "Sources/NearpaneTray"
-    for source in [HERE / "Driver.swift", tray / "DraftCapability.swift", tray / "DraftAttachmentQualification.swift"]:
+    for source in [HERE / "Driver.swift", HERE / "ColdRestart.swift", tray / "DraftCapability.swift", tray / "DraftAttachmentQualification.swift"]:
         shutil.copyfile(source, driver / source.name)
     return checkout
 
@@ -149,10 +150,56 @@ def exercise_browser(browser, driver, work, record):
         raise ValueError("independent draft observer saw a send action")
 
 
+def exercise_restart(browser, driver, work, record):
+    intent = str(uuid.uuid4())
+    trial = {"intentID": intent, "status": "UNKNOWN"}
+    record["coldRestarts"][browser] = trial
+    original_run = None
+    for stage in ["original", "successor"]:
+        options = {"intentID": intent, "stage": stage}
+        if original_run:
+            options["from"] = original_run.name
+        request = {"qualificationBrowser": browser, "qualificationScratch": str(work), "qualificationRestart": options}
+        result = json.loads(run(["node", "scripts/acceptance/local-browser.mjs", str(driver)],
+                                data=json.dumps(request).encode(), timeout=60))
+        folder = Path(result.pop("directory"))
+        trial[stage] = result
+        if result["status"] == "FAIL_FIXTURE":
+            trial["status"] = "FAIL_FIXTURE"
+        if (folder.parent != work or not folder.name.startswith("local-browser-") or not folder.is_dir() or
+                (folder / "user-data").exists()):
+            raise ValueError("unexpected or retained cold-restart browser profile")
+        if (result["status"] != "PASS_FIXTURE" or not result["reaped"] or not result["privateProfileRemoved"] or
+                not result["isolatedProcessGroupGone"] or result["requestedTermination"] != ("SIGTERM" if stage == "original" else "Browser.close")):
+            raise ValueError(f"{browser} {stage} did not finish cleanly")
+        if any(result[phase]["counts"][key] for phase in ["before", "after"] for key in ["setter", "input", "change", "foreignSetter", "send", "submit", "enter"]):
+            raise ValueError("independent draft observer saw input or sending")
+        if not original_run:
+            original_run = folder
+    old = trial["original"]["driver"]
+    new = trial["successor"]["driver"]
+    if (not old["signedPIDVerified"] or not new["signedPIDVerified"] or old["observedUptime"] >= new["observedUptime"] or
+            old["pid"] == new["pid"] or old["processSession"] == new["processSession"] or
+            (old["kernelBirthSeconds"], old["kernelBirthMicroseconds"]) == (new["kernelBirthSeconds"], new["kernelBirthMicroseconds"])):
+        raise ValueError("distinct process births were not independently established")
+    for key in ["intentID", "assetID", "operationID", "invocationID", "attempt", "windowID", "tabID"]:
+        if old[key] != new[key]:
+            raise ValueError(f"cold restart changed {key}")
+    if (not old["currentLeaseValidatedByPage"] or not new["currentLeaseValidatedByPage"] or
+            new["oldLeaseValidInSuccessorPage"] or old["documentID"] == new["documentID"] or
+            not new["dispatchRearmRefused"] or not new["originalProcessGone"] or new["oldSessionMatchesSuccessor"] or
+            new["oldSessionMatchesSuccessorReadOnly"] or old["phase"] != "dispatchIntent" or new["phase"] != "unknown" or
+            new["assetVisibility"] != "visible" or old["sourceSHA256"] != new["sourceSHA256Before"] or
+            old["sourceSHA256"] != new["sourceSHA256After"]):
+        raise ValueError("invalid recovery state or original asset readback")
+    trial["status"] = "PASS_FIXTURE"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--upstream", type=Path, help="existing read-only Riftlet clone with the public base")
     parser.add_argument("--output", type=Path, required=True, help="new receipt path")
+    parser.add_argument("--cold-restart-only", action="store_true", help="run only the Chrome and Edge cold restart cases")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("output must be a new file")
@@ -164,6 +211,7 @@ def main():
     build.mkdir(exist_ok=True)
     record = {
         "schema": 1,
+        "suite": "cold-restart" if args.cold_restart_only else "matrix-and-cold-restart",
         "startedUTC": datetime.now(timezone.utc).isoformat(),
         "macOSBuild": run(["sw_vers", "-buildVersion"]).decode().strip(),
         "nearpaneSourceCommit": run(["git", "rev-parse", "HEAD"]).decode().strip(),
@@ -171,7 +219,7 @@ def main():
             str(path.relative_to(ROOT)): sha(path.read_bytes()) for path in [
                 ROOT / "Sources/NearpaneTray/DraftAttachmentQualification.swift",
                 ROOT / "Sources/NearpaneTray/DraftCapability.swift", ROOT / "scripts/acceptance/local-browser.mjs",
-                HERE / "Driver.swift", HERE / "Package.swift", HERE / "cases.mjs", HERE / "verify.py",
+                HERE / "Driver.swift", HERE / "ColdRestart.swift", HERE / "Package.swift", HERE / "cases.mjs", HERE / "verify.py",
             ]
         },
         "productionPin": ordinary["commit"],
@@ -188,6 +236,7 @@ def main():
         "safariQualification": "BLOCKED_STABLE_TAB_WITNESS_UNAVAILABLE",
         "failures": {},
         "browsers": {},
+        "coldRestarts": {},
     }
     with tempfile.TemporaryDirectory(dir=build, prefix="p3-qualified-") as scratch:
         work = Path(scratch)
@@ -204,10 +253,15 @@ def main():
             driver = build_driver(checkout)
             record["upstreamNativeRouteTest"] = "PASS"
             for browser in ["chrome", "edge"]:
+                if not args.cold_restart_only:
+                    try:
+                        exercise_browser(browser, driver, work, record)
+                    except Exception as error:
+                        record["failures"][browser] = str(error).replace(str(work), "<scratch>")
                 try:
-                    exercise_browser(browser, driver, work, record)
+                    exercise_restart(browser, driver, work, record)
                 except Exception as error:
-                    record["failures"][browser] = str(error).replace(str(work), "<scratch>")
+                    record["failures"][browser + "ColdRestart"] = str(error).replace(str(work), "<scratch>")
         except Exception as error:
             record["failures"]["build"] = str(error).replace(str(work), "<scratch>")
     record["scratchRemoved"] = not work.exists()
@@ -215,6 +269,7 @@ def main():
         record["failures"]["cleanup"] = "private qualification workspace retained"
     rows = [row for browser in record["browsers"].values() for row in browser["rows"]]
     record["outcomes"] = dict(Counter(row["result"] for row in rows))
+    record["coldRestartOutcomes"] = dict(Counter(trial["status"] for trial in record["coldRestarts"].values()))
     record["finishedUTC"] = datetime.now(timezone.utc).isoformat()
     record["result"] = "FAIL" if record["failures"] else "PASS_SYNTHETIC_ONLY"
     args.output.parent.mkdir(parents=True, exist_ok=True)
