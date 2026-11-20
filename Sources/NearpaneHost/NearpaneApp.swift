@@ -361,9 +361,33 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private var lastPermissionDiagnostic: TimeInterval = -.infinity
+    private var draftQualificationPending = false
 
     @objc private func readPreviewMetrics(_ notification: Notification) {
         guard let value = notification.userInfo?["nonce"] as? String, let nonce = UUID(uuidString: value) else { return }
+        #if canImport(RiftletAdapters) && canImport(SaytileKit)
+        if notification.userInfo?["check"] as? String == "draft-qualification-read-only-v1" {
+            guard !draftQualificationPending, let privateHome = ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"],
+                  let pw = getpwuid(getuid()), let lease = profileLease else { return }
+            let home = URL(fileURLWithPath:privateHome), base = home.deletingLastPathComponent()
+            let caches = URL(fileURLWithPath:String(cString:pw.pointee.pw_dir)).appendingPathComponent("Library/Caches")
+            guard home.path == home.resolvingSymlinksInPath().path, home.lastPathComponent == "home",
+                  base.deletingLastPathComponent().path == caches.path, base.lastPathComponent.hasPrefix("nearpane-native-acceptance."),
+                  lease.root.path == home.appendingPathComponent("Library/Application Support").appendingPathComponent(CandidateProfile.containerName).path,
+                  ProcessInfo.processInfo.systemUptime - lastPermissionDiagnostic >= 1 else { return }
+            lastPermissionDiagnostic = ProcessInfo.processInfo.systemUptime
+            draftQualificationPending = true
+            Task {
+                defer { draftQualificationPending = false }
+                let state = await TrayModule.existingChromeAutomation()
+                Logger(subsystem:"com.holdsnow.nearpane.alpha",category:"PermissionCheck")
+                    .notice("Draft qualification \(nonce.uuidString, privacy: .public) chrome=\(state, privacy: .public)")
+                DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+                    object:nonce.uuidString, userInfo:["pid":NSNumber(value:getpid()),"checked":"draft-qualification-read-only-v1"],deliverImmediately:true)
+            }
+            return
+        }
+        #endif
         if notification.userInfo?["check"] as? String == "permissions" {
             let now = ProcessInfo.processInfo.systemUptime
             guard now - lastPermissionDiagnostic >= 1 else { return }

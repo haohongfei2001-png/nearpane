@@ -1,7 +1,8 @@
 import AppKit
 import Foundation
 
-let checkPermissions = CommandLine.arguments.count == 3 && CommandLine.arguments.last == "--permissions"
+let check = CommandLine.arguments.count == 3 ? ["--permissions":"permissions","--draft-qualification":"draft-qualification-read-only-v1"][CommandLine.arguments[2]] : nil
+let checkPermissions = check != nil
 guard CommandLine.arguments.count == 2 || checkPermissions, let pid = Int32(CommandLine.arguments[1]),
       let app = NSRunningApplication(processIdentifier: pid),
       app.bundleURL?.standardizedFileURL.path == "/Applications/Nearpane.app",
@@ -13,7 +14,7 @@ let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-met
                                object: nonce, queue: .main) { notice in
     guard let fields = notice.userInfo, fields["pid"] as? Int32 == pid else { return }
     if checkPermissions {
-        guard fields["checked"] as? String == "permissions" else { return }
+        guard fields["checked"] as? String == check else { return }
         received = ["pid": Int(pid)]
         return
     }
@@ -30,10 +31,10 @@ let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-met
     received = output
 }
 var request = ["nonce": nonce]
-if checkPermissions { request["check"] = "permissions" }
+if let check { request["check"] = check }
 center.postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.request"), object: String(pid),
                             userInfo: request, deliverImmediately: true)
-let until = ProcessInfo.processInfo.systemUptime + 1.25
+let until = ProcessInfo.processInfo.systemUptime + (check == "draft-qualification-read-only-v1" ? 5 : 1.25)
 while received == nil, ProcessInfo.processInfo.systemUptime < until { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.03)) }
 center.removeObserver(token)
 guard let received, !app.isTerminated else { exit(3) }

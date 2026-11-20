@@ -51,6 +51,26 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
         return "(" + guardSource + ")({...(" + spec + "),mode:'product'},{action:'armProductDraft'})"
     }
 
+    /// Read the exact installed browser generation's existing grant. This operation
+    /// does not address a browser window, resolve a tab, or construct an attachment.
+    @MainActor static func existingChromeAutomation() async -> String {
+        guard NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome") != nil else { return "browserNotInstalled" }
+        let apps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.google.Chrome").filter { !$0.isTerminated }
+        guard !apps.isEmpty else { return "browserNotRunning" }
+        guard apps.count == 1, let identity = ChromeProcessIdentity.read(pid: apps[0].processIdentifier),
+              signedChrome(pid: identity.pid), identity.isCurrent() else { return "unverifiedBrowser" }
+        let access = await NativeAutomationPermissionChecker().check(askUserIfNeeded: false, expectedSession: identity.session)
+        guard identity.isCurrent(), signedChrome(pid: identity.pid) else { return "generationChanged" }
+        switch access {
+        case .granted: return "granted"
+        case .denied: return "denied"
+        case .notRequested: return "notRequested"
+        case .browserNotRunning: return "browserNotRunning"
+        case .browserNotInstalled: return "browserNotInstalled"
+        case .notNeeded, .unavailable: return "unavailable"
+        }
+    }
+
     @MainActor static func arm(_ asset: ImportedAsset, guardSource: String) throws -> Self {
         guard let app = NSWorkspace.shared.frontmostApplication, app.bundleIdentifier == "com.google.Chrome",
               let identity = ChromeProcessIdentity.read(pid: app.processIdentifier), signedChrome(pid: identity.pid)
@@ -289,5 +309,12 @@ enum ImportedAttachmentError: Error { case previousAttempt }
         guard dir >= 0 else { throw WebAdapterError.invalidPrivateFile }
         defer { close(dir) }
         guard fsync(dir) == 0 else { throw WebAdapterError.invalidPrivateFile }
+    }
+}
+
+
+extension TrayModule {
+    @MainActor public static func existingChromeAutomation() async -> String {
+        await ProductDraftBinding.existingChromeAutomation()
     }
 }
