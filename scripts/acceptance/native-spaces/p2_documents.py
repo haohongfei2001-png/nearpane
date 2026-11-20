@@ -125,7 +125,8 @@ class RegisteredRun:
         self.attempt = None
         self.samples = []
         self.out = dict(status="BLOCKED",reason="notStarted",passes=0,launch="Launch Services open -n -g -W",
-                        registration=None,superseded=False,focusRestoreRequested=False,attempts=[],cleanup={"status":"NOT_RUN"})
+                        registration=None,superseded=False,focusRestoreRequested=False,attempts=[],cleanup={"status":"NOT_RUN"},
+                        firstDocumentCapture={"status":"NOT_RUN","reason":"firstIndependentlyVerifiedInputUnavailable"})
 
     def call(self, mode, extra=None, env=None, timeout=6):
         request = {**self.binding, **(extra or {}), "mode":mode}
