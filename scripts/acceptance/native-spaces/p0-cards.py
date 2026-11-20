@@ -204,7 +204,7 @@ def finish_visual(module,kit,folder,pressed,ended):
         if archived.get('status')==result['status']:return result['status']
     return 'UNKNOWN'
 
-def attempt(tool,p,folder,journal,log,visual=False):
+def attempt(tool,p,folder,journal,log,visual_stage=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
     action = {}; holder = None; host = None; watch = None; recorder = None; called = False
@@ -220,13 +220,15 @@ def attempt(tool,p,folder,journal,log,visual=False):
             break
         store(folder/'card-before.json',inspect)
         require(inspect.get('ready'),inspect.get('error','installed background card unavailable'))
-        if visual:
+        if visual_stage in ('roundTrip','ten'):
             try:
                 recorder=visual_module()
-                if recorder:
+                if recorder and visual_stage=='roundTrip':
+                    store(folder/'visual-enrollment.json',recorder.enroll(tool.parent,folder,p))
+                elif recorder:
                     called=True;started=recorder.start(tool.parent,folder,p);store(folder/'visual-start.json',started)
-            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,ImportError) as error:
-                store(folder/'visual-start.json',dict(status='UNKNOWN',reason=str(error)))
+            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,ImportError,AttributeError) as error:
+                store(folder/('visual-enrollment.json' if visual_stage=='roundTrip' else 'visual-start.json'),dict(status='UNKNOWN',reason=str(error)))
         with Watch(tool) as watch:
             first = watch.next(); require(first.get('topology') == p['topology'] and first.get('hid') == p['hid'],'source changed before dispatch')
             log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
@@ -430,6 +432,11 @@ def run(args):
                 a=ws.create();one=state();require(owned_insertion(origin,one['topology'],0)==a,'first lease mismatch')
                 checkpoint('first-lease')
                 require(one['hid']==initial['hid'] and one['topology']['current'] in (staging,a),'new human input or unrelated foreground Space after first insertion')
+                overview=until(lambda:cmd(args.kit/'system-workspace','overview-state'),
+                               lambda s:s.get('stable') is True and s.get('visible') is False,
+                               'signed Dock did not independently confirm closure of the first owned overview; second desktop was not requested',4)
+                log('first-overview-closed-before-second-create',**overview)
+                require(state().get('hid')==initial['hid'],'new physical input before second ordinary desktop creation')
                 b=ws.create();both=state();top=both['topology']
                 require(confirm_lease_pair(origin,one['topology'],top)==(a,b) and top['current'] in (staging,a,b),'new lease pair differs from the registered Spaces')
                 checkpoint('second-lease')
@@ -470,7 +477,7 @@ def run(args):
                     if sample.get('topology')!=req['topology'] or sample.get('hid')!=initial['hid']:
                         trial=dict(status='BLOCKED',reason='new input or topology changed before the next sample',hostIssued=False,axIssued=False)
                         sample_dir=out/f'{gate}-{n:02}';sample_dir.mkdir();store(sample_dir/'result.json',trial);log('card-not-issued',**trial)
-                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual=gate=='ten')
+                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate)
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break
