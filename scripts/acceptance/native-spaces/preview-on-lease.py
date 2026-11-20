@@ -17,12 +17,23 @@ driver = importlib.import_module("preview-workspace")
 
 def empty_system_desktop(workspace, target):
     observations = []
+    prior_surfaces = None
     for _ in range(2):
         inventory = workspace.read()
         state = workspace.check(inventory)
         census = inventory["scopedMembers"][str(target)]
-        require(state["current"] == target and census["ordinary"] == [] and census["unresolved"] == 0,
-                "leased desktop has an ordinary or unidentified member")
+        require(state["current"] == target and census["unresolved"] == 0, "leased desktop has an unidentified member")
+        surfaces = []
+        for member in census["ordinary"]:
+            query = dict(display=workspace.display, space=target, pid=member["pid"], number=member["number"])
+            proof = json.loads(subprocess.check_output(
+                [workspace.kit / "split-view-read", "compare-roster", "inactive-stage-surface"],
+                input=json.dumps(query), text=True, timeout=4))
+            require(proof.get("admitted") is True, "leased desktop has an ordinary application window")
+            surfaces.append(proof)
+        surfaces.sort(key=lambda entry: entry["number"])
+        require(prior_surfaces is None or prior_surfaces == surfaces, "inactive Stage Manager surfaces changed")
+        prior_surfaces = surfaces
         others = census["otherDetails"]
         require(len(others) == census["otherMembers"] and all(
             member["installedHost"] == 1 or
@@ -30,7 +41,7 @@ def empty_system_desktop(workspace, target):
              ("com.apple.dock", "com.apple.WindowServer", "com.apple.WindowManager"))
             for member in others), "extra surface does not belong to the enrolled Host or system compositor")
         observations.append(dict(uptime=inventory["uptime"], ordinary=0, unresolved=0,
-                                 extraOwners=[m["code"]["identifier"] for m in others]))
+                                 inactiveStageSurfaces=surfaces, extraOwners=[m["code"]["identifier"] for m in others]))
         time.sleep(.16)
     return observations
 
@@ -59,7 +70,13 @@ def run(args):
     original_stage = None
     save()
     try:
-        workspace = driver.PreviewWorkspace(kit, args.workspace.resolve(strict=True), record, resume=True)
+        ledgers = None
+        if args.original_checkout:
+            ledgers = args.original_checkout / "build/verification/secondary-route-followup"
+            require(ledgers.resolve(strict=True) == ledgers and ledgers.is_dir(), "unrecognized original lease directory")
+        workspace = driver.PreviewWorkspace(kit, args.workspace.resolve(strict=True), record, resume=True,
+                                            previous_archive=args.previous_archive, install_receipt=args.install_receipt,
+                                            original_ledgers=ledgers)
         workspace.bind_quiet_cleanup()
         home = Path(os.environ["NEARPANE_TEST_HOME"])
         require(owns_profile(workspace.host["pid"], home / PROFILE), "installed Host does not hold the isolated profile")
@@ -109,6 +126,9 @@ if __name__ == "__main__":
     parser.add_argument("workspace", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--expected-space", required=True, type=int)
+    parser.add_argument("--previous-archive", type=Path)
+    parser.add_argument("--install-receipt", type=Path)
+    parser.add_argument("--original-checkout", type=Path)
     src = Path(__file__).resolve().parent
     parser.add_argument("--preview", type=Path, default=src / "paired-preview.py")
     parser.add_argument("--media", type=Path, default=src / "live-preview-media.py")
