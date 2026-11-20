@@ -15,21 +15,6 @@ guard numbers.allSatisfy({ n in rows.contains { ($0[kCGWindowNumber as String] a
     ($0[kCGWindowOwnerPID as String] as? pid_t) == pid } }) else { exit(3) }
 let memberships = numbers.map { NPReadWindowSpaces($0) as? [UInt64] ?? [] }
 let fixtureAX = AXUIElementCreateApplication(pid)
-func scan(_ root: AXUIElement, _ visit: (AXUIElement,[String])->Void) {
-    var todo:[(AXUIElement,[String],Int)] = [(root,[],0)]
-    var count=0
-    while let (node,parents,depth) = todo.popLast(), count < 1500 {
-        count += 1
-        let title = value(node,kAXTitleAttribute) as? String ?? ""
-        let parts = title.isEmpty ? parents : parents + [title]
-        visit(node,parts)
-        if depth < 9 {
-            for child in value(node,kAXChildrenAttribute) as? [AXUIElement] ?? [] {
-                todo.append((child,parts,depth+1))
-            }
-        }
-    }
-}
 var result:Object = ["current":current,"scopes":records,"memberships":memberships,
                      "frontmostFixture":front?.processIdentifier == pid, "sidebarRows":(report["sidebar"] as? Object)?["rows"] as Any? ?? NSNull()]
 switch args[1] {
@@ -44,16 +29,7 @@ case "row":
         result["issued"]=true; result["axError"]=AXUIElementPerformAction(hits[0],kAXPressAction as CFString).rawValue
     } else {result["issued"]=false}
 case "menu","tile":
-    guard let bar=value(fixtureAX,kAXMenuBarAttribute), CFGetTypeID(bar)==AXUIElementGetTypeID() else {exit(3)}
-    var options=[(AXUIElement,[String])]()
-    var names=[[String]]()
-    scan(bar as! AXUIElement) { node,path in
-        guard value(node,kAXRoleAttribute) as? String == kAXMenuItemRole, let label=path.last else{return}
-        let relevant=path.contains { $0.localizedCaseInsensitiveContains("full screen") || $0.contains("全屏") }
-        if relevant { names.append(path) }
-        if relevant && (label.localizedCaseInsensitiveContains("left of screen") || label.localizedCaseInsensitiveContains("left side") || label.contains("屏幕左侧") || label=="左侧" || label=="Left"),
-           value(node,kAXEnabledAttribute) as? Bool == true {options.append((node,path))}
-    }
+    let (options, names) = lifecycleLeftMenu(fixtureAX)
     result["fullscreenMenuPaths"]=names
     if args[1]=="tile" {
         guard options.count==1, front?.processIdentifier==pid, focusedNumber(pid)==first else {result["issued"]=false;break}
@@ -63,7 +39,7 @@ case "pair":
     guard front?.processIdentifier == pid || front?.bundleIdentifier=="com.apple.dock",
           let dock=NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock").first else {exit(3)}
     var exact=[AXUIElement]()
-    scan(AXUIElementCreateApplication(dock.processIdentifier)) { node,_ in
+    scanLifecycleAX(AXUIElementCreateApplication(dock.processIdentifier)) { node,_ in
         let fixtureName = [kAXTitleAttribute,kAXDescriptionAttribute].compactMap {value(node,$0) as? String}.contains("Nearpane Test Document B")
         var actions: CFArray?
         if fixtureName && AXUIElementCopyActionNames(node,&actions) == .success &&

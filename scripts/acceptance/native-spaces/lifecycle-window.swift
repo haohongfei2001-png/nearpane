@@ -2,8 +2,13 @@ import AppKit
 
 // A disposable document application. Its controls change only its own two windows.
 let app = NSApplication.shared
+#if SPLIT_VIEW_FIXTURE
+let fixtureID = "net.example.spaces-split-documents"
+#else
+let fixtureID = "org.nearpane.acceptance.LifecycleWindow"
+#endif
 guard CommandLine.arguments.count == 2,
-      Bundle.main.bundleIdentifier == "org.nearpane.acceptance.LifecycleWindow" else { exit(2) }
+      Bundle.main.bundleIdentifier == fixtureID else { exit(2) }
 let folder = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
 guard UUID(uuidString: folder.lastPathComponent) != nil else { exit(2) }
 app.setActivationPolicy(.regular)
@@ -24,6 +29,10 @@ var captions = [NSTextField]()
 var lastCommand = ""
 var lastState = Data()
 let start = ProcessInfo.processInfo.systemUptime
+var bsd = proc_bsdinfo()
+let infoSize = Int32(MemoryLayout<proc_bsdinfo>.size)
+guard proc_pidinfo(getpid(), PROC_PIDTBSDINFO, 0, &bsd, infoSize) == infoSize else { exit(3) }
+let birth = bsd.pbi_start_tvsec * 1_000_000 + bsd.pbi_start_tvusec
 DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
     guard let screen = NSScreen.main else { app.terminate(nil); return }
     for index in 0..<2 {
@@ -33,7 +42,11 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
                          backing: .buffered, defer: false)
         w.isReleasedWhenClosed = false; w.tabbingMode = .disallowed
         w.collectionBehavior = [.fullScreenPrimary,.fullScreenAllowsTiling]
+        #if SPLIT_VIEW_FIXTURE
+        w.title = "Nearpane Split " + folder.lastPathComponent + (index == 0 ? " A" : " B")
+        #else
         w.title = index == 0 ? "Nearpane Test Document A" : "Nearpane Test Document B"
+        #endif
         w.backgroundColor = index == 0 ? .systemTeal : .systemIndigo
         let label = NSTextField(wrappingLabelWithString: w.title)
         label.font = .systemFont(ofSize: 28, weight: .medium)
@@ -70,7 +83,7 @@ let timer = Timer(timeInterval: 0.08, repeats: true) { _ in
     for (i, w) in windows.enumerated() {
         captions[i].stringValue = "\(w.title)\n\(w.styleMask.contains(.fullScreen) ? "Full screen" : "Ordinary window")  ·  \(Int(ProcessInfo.processInfo.systemUptime - start)) s"
     }
-    let state: [String:Any] = ["session": folder.lastPathComponent, "pid": getpid(), "lastCommand": lastCommand,
+    let state: [String:Any] = ["session": folder.lastPathComponent, "pid": getpid(), "birth": birth, "lastCommand": lastCommand,
         "numbers": windows.map(\.windowNumber), "fullscreen": windows.map { $0.styleMask.contains(.fullScreen) },
         "zoomed": windows.map(\.isZoomed), "key": app.keyWindow?.windowNumber ?? 0,
         "frames": windows.map { [$0.frame.minX,$0.frame.minY,$0.frame.width,$0.frame.height] }]

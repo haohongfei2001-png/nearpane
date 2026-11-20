@@ -20,7 +20,7 @@ import sys
 src,kit=map(Path,sys.argv[1:])
 s=(src/'observe.swift').read_text().split('if CommandLine.arguments.count > 1 {')
 assert len(s)==2
-(kit/'main.swift').write_text(s[0]+'\n'+(src/'lifecycle-read.swift').read_text())
+(kit/'main.swift').write_text(s[0]+'\n'+(src/'lifecycle-menu.swift').read_text()+'\n'+(src/'lifecycle-read.swift').read_text())
 PY
 xcrun swiftc -import-objc-header Sources/CReadOnlySpaces/include/ReadOnlySpaces.h "$kit/main.swift" "$kit/r.o" -o "$kit/lifecycle-read"
 xcrun swiftc -parse-as-library "$root/fixture-film.swift" -o "$kit/film"

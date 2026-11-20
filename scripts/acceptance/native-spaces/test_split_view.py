@@ -1,0 +1,49 @@
+import copy
+import importlib.util
+from pathlib import Path
+import unittest
+
+path=Path(__file__).with_name('split-view.py')
+spec=importlib.util.spec_from_file_location('split_view',path)
+module=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+
+class SplitObservationTests(unittest.TestCase):
+    def setUp(self):
+        self.view=dict(space=70,type=4,spaceUUID='controlled-F',newFullscreenIDs=[70],
+            memberships=[[70],[70]],forward=[True,True],drawn=[True,True],axStandard=[True,True],
+            foreignVisibleMembers=0,unknownVisibleMembers=0,hostPanelPresent=True,displayFrame=[-1000,80,1000,600],cgFrames=[[-658,80,658,600],[-1000,80,330,600]],
+            axFrames=[[-658,80,658,600],[-1000,80,330,600]],
+            hostGroupCount=1,hostMemberCounts=[1,1],hostGroupFrame=[50,200,120,90],
+            hostPaneFrames=[[91.04,200,78.96,72],[50,200,39.6,72]])
+
+    def test_actual_unequal_geometry_and_window_order(self):
+        self.assertTrue(module.system_pair(self.view,4))
+        self.assertTrue(module.host_layout(self.view))
+
+    def test_two_ordinary_side_by_side_single_fullscreen_and_half_completed_picker_are_ineligible(self):
+        for change in [dict(type=0),dict(space=4),dict(foreignVisibleMembers=1),dict(unknownVisibleMembers=1),dict(memberships=[[70],[4]]),dict(axStandard=[True,False]),
+                       dict(newFullscreenIDs=[66,70]),dict(forward=[True,False]),dict(drawn=[False,True]),
+                       dict(axFrames=[None,self.view['cgFrames'][1]]),dict(axFrames=list(reversed(self.view['cgFrames'])))]:
+            with self.subTest(change=change):
+                self.assertFalse(module.system_pair({**self.view,**change},4))
+
+    def test_a_physical_pair_does_not_confirm_absent_reversed_equalized_or_stale_installed_cards(self):
+        for change in [dict(hostGroupCount=0),dict(hostPanelPresent=False),dict(hostMemberCounts=[1,0]),
+                       dict(hostPaneFrames=list(reversed(self.view['hostPaneFrames']))),
+                       dict(hostPaneFrames=[[111,200,59,72],[50,200,60,72]]),
+                       dict(hostPaneFrames=[None,self.view['hostPaneFrames'][1]])]:
+            with self.subTest(change=change):
+                self.assertTrue(module.system_pair({**self.view,**change},4))
+                self.assertFalse(module.host_layout({**self.view,**change}))
+
+    def test_missing_too_wide_or_overlapping_divider_has_no_independent_system_pass(self):
+        for right in [[-690,80,690,600],[-610,80,610,600],[-658,180,658,500]]:
+            sample=copy.deepcopy(self.view)
+            sample['cgFrames'][0]=sample['axFrames'][0]=right
+            self.assertFalse(module.system_pair(sample,4))
+
+
+if __name__=='__main__':
+    unittest.main()
