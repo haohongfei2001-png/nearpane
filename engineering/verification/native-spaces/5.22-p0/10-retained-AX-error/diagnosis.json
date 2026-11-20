@@ -1,0 +1,40 @@
+{
+  "source": "1ddec43949bcea670bae36a0b662a71225615905",
+  "firstWindow": {
+    "birth": 1795173230836416,
+    "number": 49190,
+    "pid": 5733
+  },
+  "installedHelperChecks": [
+    {
+      "current": false,
+      "reason": "original-not-held-or-expired",
+      "count": 12
+    },
+    {
+      "current": false,
+      "reason": "owner-ax-list-status--25201",
+      "count": 1
+    },
+    {
+      "current": true,
+      "reason": "foreground-original-bound",
+      "count": 1
+    },
+    {
+      "current": true,
+      "reason": "owner-not-regular",
+      "count": 1
+    },
+    {
+      "current": true,
+      "reason": "same-original-confirmed",
+      "count": 4
+    }
+  ],
+  "productAXPress": 0,
+  "productGestureSequence": 0,
+  "topologyRestored": true,
+  "testDailyProfileRestored": true,
+  "verification": "retained identity and independent membership confirmed; signed helper reported -25201 on inactive app AXWindows list at revision 56"
+}

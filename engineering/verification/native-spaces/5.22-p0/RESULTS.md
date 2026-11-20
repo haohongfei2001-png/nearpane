@@ -23,6 +23,7 @@
 | [清点空桌面期间有新用户输入](07-new-input/results.json) | 取消建场，退出两个自有应用。随后按 ID/UUID 独立回收两租约，保留新选中的全屏空间；精确焦点恢复为 UNKNOWN。[回收收据](07-new-input/lease-cleanup.json) |
 | [独立空间清单复读](08-native-list/results.json) | 稳定空清点通过，识别到 WindowManager 的真实 AX 按钮，第二次读取清单时不能确认系统显示组，选择未投递。两租约已回收。[系统按钮分项读回](08-native-list/setup-press-4995.json) |
 | [安装版保留窗口测试](09-installed-background-card/results.json) | `da46651` 的两扇受控窗口均已在各自的普通桌面显示，正式侧栏分别连续两次给出可按的正确当前卡。独立读回确认独占归属和原窗口身份。首次 B→A 在 5 秒内仅出现一张当前卡，后台目标卡为 0，正式按压和 helper 投递均为 0。原桌面顺序已恢复、无遗留临时桌面，瞬时前台及焦点恢复为 UNKNOWN。[正式按钮读回](09-installed-background-card/roundTrip-01/card-before.json) · [安装身份](09-installed-background-card/installed.json) |
+| [正式 Host 逐层读回](10-retained-AX-error/diagnosis.json) | `1ddec43` 在有界的专用测试目录写入了两扇夹具的诊断。A 在前台已绑定原 AX 对象；切到 B 后 Reader 仍交付 A 和独占归属，签名动作助手首次读取后台应用窗口列表返回 `AXError.illegalArgument (-25201)`，后续丢失原对象。正式按压为 0。两租约均已回收，日常前台原为已被替换的 Nearpane 进程，原窗口引用恢复为 UNKNOWN。[Host 原始事件](10-retained-AX-error/host-window-audit/installed.jsonl) · [日常配置和焦点](10-retained-AX-error/profile-session.json) |
 
 以上建场成功次数和历史版本的尝试均不计入本候选的往返、10 次或 50 次门槛。
 
