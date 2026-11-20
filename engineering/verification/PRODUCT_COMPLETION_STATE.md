@@ -1,6 +1,8 @@
 # Nearpane 产品完成状态（持续维护入口）
 
-**当前安装版 5.22（90），源码 `0777130`。** 系统权限在同签名换装后保留，正式安装版与隔离资料在单台物理 Mac 实测，核心验收保持 PARTIAL，候选仅在 Draft PR #15 内提供。[逐项结果、媒体与候选](native-spaces/5.22-90-installed-contract/RESULTS.md)
+**当前安装版 5.22（90），源码 `365fdc4`。** 无可列窗口时工具下方留白。正式 Host 实测 0→2→0，窗口区三个状态均无独立桌面卡。原跨桌面能力继续逐项验收。[实测与签名候选](native-spaces/5.22-90-window-roster/RESULTS.md)
+
+**此前的 5.22（90），源码 `0777130`。** 系统权限在同签名换装后保留，正式安装版与隔离资料在单台物理 Mac 实测，核心验收保持 PARTIAL，候选仅在 Draft PR #15 内提供。[逐项结果、媒体与候选](native-spaces/5.22-90-installed-contract/RESULTS.md)
 
 **先前安装版 5.22（91）**　已实测签名候选从 90 原位升级至 91，应用及七个权限助手的签名要求均连续。设备控制和录屏待系统放行，精确选窗、桌面切换和迁移仍待验。[91 升级与权限实测](native-spaces/5.22-91-permissions/RESULTS.md) · [R4 视觉与工具实测](native-spaces/5.22-90-r4/RESULTS.md)
 

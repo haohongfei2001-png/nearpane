@@ -1,5 +1,7 @@
 # Nearpane 5.22（90）正式安装版验收
 
+本页记录 `0777130` 的历史合同。更新候选 `365fdc4` 已将窗口调度区改为只呈现真实窗口。现装包及其截图见[后续窗口区复测](../5.22-90-window-roster/RESULTS.md)。
+
 2026-11-20，Apple Silicon，macOS 27.0（26A428），一块物理显示器。**核心合同未通过，PR #15 保持 Draft。** 目前正式 Host 已有辅助功能、屏幕录制和事件投递权限。普通桌面切换、精确输入和迁窗仍有实机失败或阻塞。[机器可读汇总](summary.json) · [验收合同](../../../native-spaces/ACCEPTANCE.md)
 
 ## 安装、旧版本与权限
@@ -8,7 +10,7 @@
 
 以前的两条授权曾只匹配旧构建。本轮另查到正式版与开发中间包同时登记了同一个选词服务。已修正服务声明和打包流程，移除两个旧 App 副本，导出目录也已注销。收尾时系统只登记正式路径，选词服务提供者由两个减为一个。之前每次弹窗的触发方无法逐次还原。本轮保留了现有系统授权。[早期权限记录](../5.22-91-permissions/RESULTS.md) · [旧副本](installation/removed-copies.json) · [服务修复前](tools/service-before.json) · [服务修复后](tools/service-after.json)
 
-**arm64 签名候选** `Nearpane-5.22-90-0777130-macOS-arm64.zip`，24,459,785 字节，SHA-256 `f5bafe650ca73fc1b92b038b55818d3cf3571dc4b558501cac9658fe6640439f`。GitHub Draft 中的资产与实机使用的包一致。此候选未经 Apple 公证。[下载草稿候选](https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f) · [源码及资源标识](candidate.json)
+**arm64 签名候选** `Nearpane-5.22-90-0777130-macOS-arm64.zip`，24,459,785 字节，SHA-256 `f5bafe650ca73fc1b92b038b55818d3cf3571dc4b558501cac9658fe6640439f`。验收当天的 GitHub 资产与实机使用的包一致；草稿随后更新为上述窗口区修正版。此历史候选未经 Apple 公证。[当前草稿候选](https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f) · [源码及资源标识](candidate.json)
 
 ## Native Spaces
 
