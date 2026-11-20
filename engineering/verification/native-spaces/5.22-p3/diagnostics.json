@@ -1,0 +1,26 @@
+{
+  "scope": "recoverable development verification attempts before the retained P3 run",
+  "attempts": [
+    {
+      "area": "existing product browser fixture driver",
+      "result": "FAILED_COMPILE",
+      "cause": "fixture closure returned Bool after TrayOwner had moved to AutomationPermissionState",
+      "correction": "use the explicit granted state only inside the injected fixture checker",
+      "realSystemConsent": null
+    },
+    {
+      "area": "isolated Swift fixture in a macOS private temporary worktree",
+      "result": "FAILED_PREFLIGHT",
+      "cause": "Foundation canonicalizes the private temporary directory differently from the working-directory string",
+      "correction": "compare canonical parent directories and require the generated local-browser directory",
+      "cleanup": "the generated profile from the failed attempt was removed after process exit, inode, UID, lock and lsof checks; the harness now also cleans its own failed run"
+    },
+    {
+      "area": "stopping during a pending tray input",
+      "result": "FAILED_REGRESSION",
+      "cause": "the new cancellation callback retained the retired TrayOwner and its library lock",
+      "correction": "retain the reporting closure and evidence provider, release the retired owner",
+      "regression": "stopWaitsForTheOriginalPhasedAppendButDoesNotReplayDurableUnknown"
+    }
+  ]
+}

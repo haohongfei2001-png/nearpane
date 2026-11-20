@@ -1,0 +1,1920 @@
+{
+  "schema": 1,
+  "startedUTC": "2026-11-20T10:20:23.529450+00:00",
+  "macOSBuild": "26A428",
+  "scope": "P3 source checkout and network-isolated fixtures",
+  "sourceBase": "90808bd37123cc281e5ec6239c5d22e1c342ff7f",
+  "riftlet": {
+    "commit": "189782dd943f5215da43539b30db27e482a78b3c",
+    "treeSHA256": "b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a"
+  },
+  "sourceSHA256": {
+    "Resources/AcceptanceTargetGuard.js": "2ae04bd92da50e01b8084af676d5685423925c1d3c2d1badb7ec078cecd5204e",
+    "Sources/NearpaneTray/DraftCapability.swift": "2fe21196f19341d6878a54f71a7370260053a8cd745240dc4c6221040c651c4e",
+    "Sources/NearpaneTray/CaptureAttachmentProvider.swift": "991d14d14790761ec37cc4dad775fe18f4d8e350499e36c031de8c09d23d0c4c",
+    "Sources/NearpaneTray/AcceptanceBrowserRoute.swift": "785fb1211b996e4d870f6271cc370d806d8a63c61c1f1451726eba0acc0c9139",
+    "Sources/NearpaneTray/ProductDraftBinding.swift": "117a7cb48f2ed9bdfedcd418abfdb0801f1139dcf8f0732a1bc737271a934cb0",
+    "Sources/NearpaneTray/TrayOwner.swift": "eb4cd332440d3c377e61510c341f49cbd6c789905d70b1f69cba3c5725cc34dd",
+    "Sources/NearpaneTray/TrayModule.swift": "2b237d1f897807ca93602ebeaea8dca7fcf533c3b8436112bdef3499598f635d",
+    "Sources/NearpaneTray/ScreenshotArchive.swift": "93284e06e680e052329cd8589cff8c744f80b20da64aee8fb011afbbb3c395c8",
+    "Sources/NearpaneTray/TrayAttachmentFeedback.swift": "40f9edfa421b7caaa63c4b7183b9d4036070c419de094ddef51c6c1512f293ab",
+    "Sources/NearpaneTray/TraySurface.swift": "1743fc1fe04e547281a351ca0699f173cc614c2a3de606b169562bfab7c4611a"
+  },
+  "browserInstallations": {
+    "chrome": {
+      "installed": true,
+      "bundleID": "com.google.Chrome",
+      "version": "157.0.8103.79",
+      "dictionarySHA256": "cd0453c2e166a0b664f8ea1d1ac04b53a54eed14835569b6104a7823dbb950f2",
+      "declaresStableTabID": true,
+      "declaresSelectedTabJavaScript": true
+    },
+    "edge": {
+      "installed": true,
+      "bundleID": "com.microsoft.edgemac",
+      "version": "157.0.4341.60",
+      "dictionarySHA256": "cd0453c2e166a0b664f8ea1d1ac04b53a54eed14835569b6104a7823dbb950f2",
+      "declaresStableTabID": true,
+      "declaresSelectedTabJavaScript": true
+    },
+    "safari": {
+      "installed": true,
+      "bundleID": "com.apple.Safari",
+      "version": "27.0",
+      "dictionarySHA256": "a0a05c6e4a37f30e78545c3e715d57facd6217864b252bcd07fbfd579a62b049",
+      "declaresStableTabID": false,
+      "declaresSelectedTabJavaScript": true
+    }
+  },
+  "capabilityFixtures": {
+    "chrome": {
+      "result": "PASS_FIXTURE",
+      "privateProfileRemoved": true,
+      "browserVersion": "Chrome/157.0.8103.79",
+      "interceptedDocuments": 16,
+      "cases": [
+        {
+          "service": "chatgpt.com",
+          "state": "fresh",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chatgpt.com",
+          "state": "signedOut",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chatgpt.com",
+          "state": "existing",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chatgpt.com",
+          "state": "ambiguous",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "fresh",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "signedOut",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "existing",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "ambiguous",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "fresh",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "signedOut",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "existing",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "ambiguous",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "fresh",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "signedOut",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "existing",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "ambiguous",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        }
+      ]
+    },
+    "edge": {
+      "result": "PASS_FIXTURE",
+      "privateProfileRemoved": true,
+      "browserVersion": "Edg/157.0.4341.60",
+      "interceptedDocuments": 16,
+      "cases": [
+        {
+          "service": "chatgpt.com",
+          "state": "fresh",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chatgpt.com",
+          "state": "signedOut",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chatgpt.com",
+          "state": "existing",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chatgpt.com",
+          "state": "ambiguous",
+          "observed": {
+            "service": "chatgpt.com",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "fresh",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "signedOut",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "existing",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "claude.ai",
+          "state": "ambiguous",
+          "observed": {
+            "service": "claude.ai",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "fresh",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "signedOut",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "existing",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "gemini.google.com",
+          "state": "ambiguous",
+          "observed": {
+            "service": "gemini.google.com",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "fresh",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "signedOut",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": false,
+            "loginControl": true,
+            "authenticated": false,
+            "blankEditorAtFreshRoute": null,
+            "editorPresent": false,
+            "uniqueEditor": false,
+            "ownedFileControl": null,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "existing",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": true,
+            "loginControl": false,
+            "authenticated": true,
+            "blankEditorAtFreshRoute": false,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        },
+        {
+          "service": "chat.deepseek.com",
+          "state": "ambiguous",
+          "observed": {
+            "service": "chat.deepseek.com",
+            "accountControl": true,
+            "loginControl": true,
+            "authenticated": null,
+            "blankEditorAtFreshRoute": true,
+            "editorPresent": true,
+            "uniqueEditor": true,
+            "ownedFileControl": true,
+            "modal": false,
+            "pickerAccepted": null,
+            "attachmentRendered": null,
+            "uploadComplete": null,
+            "sendEvents": null
+          },
+          "independent": {
+            "events": {
+              "change": 0,
+              "click": 0,
+              "submit": 0,
+              "input": 0
+            },
+            "unchanged": true
+          }
+        }
+      ]
+    }
+  },
+  "realDesktopCapture": "NOT_RUN",
+  "realDisplayRotationAndMirroring": "NOT_RUN",
+  "liveProfile": "BLOCKED_NO_AUTHORIZED_ISOLATED_AUTHENTICATED_PROFILE",
+  "liveAttempts": 0,
+  "liveObservedSendEvents": null,
+  "installedHostOnThisRevision": "NOT_RUN",
+  "errors": {},
+  "swiftTests": {
+    "result": "PASS",
+    "count": 46,
+    "suites": 7
+  },
+  "browserRestartFixture": {
+    "scope": "New real headless Chrome process, original persisted claim and production process-birth check.",
+    "refusedRestartedProcess": true,
+    "sameOperation": true,
+    "sameAttempt": true,
+    "oldStatus": "unknown",
+    "currentStatus": "unknown",
+    "browserCommands": 0,
+    "setter": 0,
+    "input": 0,
+    "sendClicks": 0,
+    "submits": 0,
+    "chrome": "Chrome/157.0.8103.79",
+    "fixtureDocumentResponses": 1,
+    "otherRequestsDenied": 0,
+    "privateProfileRemoved": true
+  },
+  "productFixture": {
+    "result": "PASS_FIXTURE",
+    "nativeBrowserAddress": "replaced by private pipe",
+    "browserVersion": "Chrome/157.0.8103.79",
+    "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+    "privateProfileRemoved": true,
+    "interceptedDocuments": 15,
+    "otherRequestsDenied": 0,
+    "cases": [
+      {
+        "case": "owned-normal",
+        "independentDOM": {
+          "setter": 1,
+          "change": 1,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 1,
+          "previewSize": [
+            2,
+            2
+          ],
+          "pickerCanceled": null
+        },
+        "fileHashMatches": true,
+        "attempt": 1,
+        "durablePhase": "inputTriggered",
+        "uploadStartReceipt": "uploadStarted",
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "A55474DC-ECFD-48CF-865E-4BF6481DBC3F",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243425235869541,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "A55474DC-ECFD-48CF-865E-4BF6481DBC3F",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243425274680583
+          },
+          {
+            "intentID": "A55474DC-ECFD-48CF-865E-4BF6481DBC3F",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243425281453708,
+            "operationID": "5D9F12CC-B805-4786-830A-D2E341222801",
+            "invocationID": "73D994C1-D00B-40B5-87B1-6AA8A8847E0C",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "A55474DC-ECFD-48CF-865E-4BF6481DBC3F",
+            "stage": "uploadStart",
+            "state": "uploadStarted",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "matchingUploadStartReceipt",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243425295424333,
+            "operationID": "5D9F12CC-B805-4786-830A-D2E341222801",
+            "invocationID": "73D994C1-D00B-40B5-87B1-6AA8A8847E0C",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          }
+        ]
+      },
+      {
+        "case": "fresh-delay",
+        "independentDOM": {
+          "setter": 1,
+          "change": 1,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 1,
+          "previewSize": [
+            2,
+            2
+          ],
+          "pickerCanceled": null
+        },
+        "fileHashMatches": true,
+        "attempt": 1,
+        "durablePhase": "inputTriggered",
+        "uploadStartReceipt": "uploadStarted",
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "C5236A49-B577-41D8-8360-02BCC95C7243",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243425368084458,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "C5236A49-B577-41D8-8360-02BCC95C7243",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243425394651208
+          },
+          {
+            "intentID": "C5236A49-B577-41D8-8360-02BCC95C7243",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243425400009375,
+            "operationID": "93693957-083F-47C7-B5DA-ED638946595A",
+            "invocationID": "44D961BB-AAA9-4D23-AE63-0082C4D1DC7A",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "C5236A49-B577-41D8-8360-02BCC95C7243",
+            "stage": "uploadStart",
+            "state": "uploadStarted",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "matchingUploadStartReceipt",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243425926615750,
+            "operationID": "93693957-083F-47C7-B5DA-ED638946595A",
+            "invocationID": "44D961BB-AAA9-4D23-AE63-0082C4D1DC7A",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          }
+        ]
+      },
+      {
+        "case": "owned",
+        "independentDOM": {
+          "setter": 1,
+          "change": 1,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": true,
+        "attempt": 1,
+        "durablePhase": "unknown",
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": true,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "539C6A09-3CCC-494E-AFC5-7EBD5BA46095",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243425993099041,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "539C6A09-3CCC-494E-AFC5-7EBD5BA46095",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243426022846875
+          },
+          {
+            "intentID": "539C6A09-3CCC-494E-AFC5-7EBD5BA46095",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243426029318375,
+            "operationID": "37AD83AB-6B80-47B4-9CD2-16E5F7D65535",
+            "invocationID": "FC35717D-F3C3-4406-A6CF-8872B545E89F",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "020891E5-E045-4440-BDC7-2DDA1728ABF3",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243429589357458,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "020891E5-E045-4440-BDC7-2DDA1728ABF3",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243429613269583
+          },
+          {
+            "intentID": "020891E5-E045-4440-BDC7-2DDA1728ABF3",
+            "stage": "terminal",
+            "state": "noNewOperation",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "previousOperation",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243429614297375,
+            "operationID": "37AD83AB-6B80-47B4-9CD2-16E5F7D65535"
+          },
+          {
+            "intentID": "4E0359C9-6B2D-4EAB-BE2A-2E3BE2CF457E",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243444696452208,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "4E0359C9-6B2D-4EAB-BE2A-2E3BE2CF457E",
+            "stage": "terminal",
+            "state": "draftUnconfirmed",
+            "dispatch": "notIssued",
+            "independentObservation": "noBrowserInput",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243444726424333
+          }
+        ]
+      },
+      {
+        "case": "detached",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": 1,
+        "durablePhase": "failed",
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "8AF3F19D-138E-483D-A375-995D9550C946",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243429653103291,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "8AF3F19D-138E-483D-A375-995D9550C946",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243429680981958
+          },
+          {
+            "intentID": "8AF3F19D-138E-483D-A375-995D9550C946",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243429685909458,
+            "operationID": "910CD203-8E47-4922-B374-F0DFB96C5EFF",
+            "invocationID": "6D3FA108-77B6-452C-A55D-4D8DC269D2BE",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "8AF3F19D-138E-483D-A375-995D9550C946",
+            "stage": "terminal",
+            "state": "failed",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:failed",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243429800192541,
+            "operationID": "910CD203-8E47-4922-B374-F0DFB96C5EFF",
+            "invocationID": "6D3FA108-77B6-452C-A55D-4D8DC269D2BE",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+            "timedOut": false
+          }
+        ]
+      },
+      {
+        "case": "canceled-picker",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": 1
+        },
+        "fileHashMatches": null,
+        "attempt": 1,
+        "durablePhase": "failed",
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "698C0CC9-7B8C-4452-AE9A-6DAF44C479AC",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243429881954833,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "698C0CC9-7B8C-4452-AE9A-6DAF44C479AC",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243429910006958
+          },
+          {
+            "intentID": "698C0CC9-7B8C-4452-AE9A-6DAF44C479AC",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243429914798333,
+            "operationID": "B04E9B73-FD9E-471E-900D-BB16DDB6075A",
+            "invocationID": "89D7DF8B-85B0-4010-96C5-D7FBA0B26898",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "698C0CC9-7B8C-4452-AE9A-6DAF44C479AC",
+            "stage": "terminal",
+            "state": "failed",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:failed",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243432926810833,
+            "operationID": "B04E9B73-FD9E-471E-900D-BB16DDB6075A",
+            "invocationID": "89D7DF8B-85B0-4010-96C5-D7FBA0B26898",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+            "timedOut": false
+          }
+        ]
+      },
+      {
+        "case": "editor-absent",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": null,
+        "durablePhase": null,
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "28ACC584-C495-4C8B-BF94-7F48D51CE575",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243433009107750,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "28ACC584-C495-4C8B-BF94-7F48D51CE575",
+            "stage": "terminal",
+            "state": "draftUnconfirmed",
+            "dispatch": "notIssued",
+            "independentObservation": "noBrowserInput",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243433035507458
+          }
+        ]
+      },
+      {
+        "case": "multiple-dialogs",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": null,
+        "durablePhase": null,
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "78512EFC-B346-4747-B0D6-A35051140B4B",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243433070716500,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "78512EFC-B346-4747-B0D6-A35051140B4B",
+            "stage": "terminal",
+            "state": "draftUnconfirmed",
+            "dispatch": "notIssued",
+            "independentObservation": "noBrowserInput",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243433094413458
+          }
+        ]
+      },
+      {
+        "case": "composer-replaced",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": 1,
+        "durablePhase": "unknown",
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "95FB52F9-0A0E-4F17-8FBB-02D586DDF9F9",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243433129914791,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "95FB52F9-0A0E-4F17-8FBB-02D586DDF9F9",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243433156112125
+          },
+          {
+            "intentID": "95FB52F9-0A0E-4F17-8FBB-02D586DDF9F9",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243433161492791,
+            "operationID": "EF441553-BD7E-48D6-BB0F-8270758E874F",
+            "invocationID": "16B3173F-B35A-4407-9142-3FE9EC2C478E",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          }
+        ]
+      },
+      {
+        "case": "reload",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": 1,
+        "durablePhase": "unknown",
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "3D347ACF-60EF-4160-82B0-F1833E8D2DA3",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243436761398916,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "3D347ACF-60EF-4160-82B0-F1833E8D2DA3",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243436791195958
+          },
+          {
+            "intentID": "3D347ACF-60EF-4160-82B0-F1833E8D2DA3",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243436796331708,
+            "operationID": "E0B36E1F-6B3E-4F17-96B7-056507ABFE91",
+            "invocationID": "7075C813-A480-4A43-A212-121FBF818E2A",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          }
+        ]
+      },
+      {
+        "case": "tab-switch",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": null,
+        "durablePhase": null,
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "CBB051B5-0B63-4D94-893D-B2F3961FF87F",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243440388769291,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "CBB051B5-0B63-4D94-893D-B2F3961FF87F",
+            "stage": "terminal",
+            "state": "refused",
+            "dispatch": "notIssued",
+            "independentObservation": "noMatchingOperation",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243440451946333
+          }
+        ]
+      },
+      {
+        "case": "route-changed",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": 1,
+        "durablePhase": "unknown",
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "EBF84484-BD7C-4290-8B9A-58B24C0540B5",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243440495571083,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "EBF84484-BD7C-4290-8B9A-58B24C0540B5",
+            "stage": "dispatch",
+            "state": "bound",
+            "dispatch": "handedToRiftlet",
+            "independentObservation": "pending",
+            "cleanup": "pending",
+            "monotonicNanoseconds": 243440521502333
+          },
+          {
+            "intentID": "EBF84484-BD7C-4290-8B9A-58B24C0540B5",
+            "stage": "readback",
+            "state": "unknown",
+            "dispatch": "dispatchIntentCheckpoint",
+            "independentObservation": "durableOperation:dispatchIntent",
+            "cleanup": "originalOperationRetained",
+            "monotonicNanoseconds": 243440526456250,
+            "operationID": "59367AB6-7244-432A-A384-04F13A125340",
+            "invocationID": "FCF1C1B8-368A-4607-AFE0-5098AEA8729A",
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          }
+        ]
+      },
+      {
+        "case": "focused-other-editor",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": null,
+        "durablePhase": null,
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "6E6A7C97-0EC4-47ED-93FE-560680FEACE0",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243444130700625,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "6E6A7C97-0EC4-47ED-93FE-560680FEACE0",
+            "stage": "terminal",
+            "state": "draftUnconfirmed",
+            "dispatch": "notIssued",
+            "independentObservation": "noBrowserInput",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243444158411333
+          }
+        ]
+      },
+      {
+        "case": "modal-over-composer",
+        "independentDOM": {
+          "setter": 0,
+          "change": 0,
+          "foreignChange": 0,
+          "sendClick": 0,
+          "submit": 0,
+          "previews": 0,
+          "previewSize": null,
+          "pickerCanceled": null
+        },
+        "fileHashMatches": null,
+        "attempt": null,
+        "durablePhase": null,
+        "uploadStartReceipt": null,
+        "uploadCompleted": null,
+        "repeatSameAttempt": null,
+        "reopenedSameStatus": true,
+        "intentEvents": [
+          {
+            "intentID": "E0CC5542-81E4-43AF-BCC1-2D38919CEA64",
+            "stage": "intent",
+            "state": "requested",
+            "dispatch": "notIssued",
+            "independentObservation": "notRun",
+            "cleanup": "notStarted",
+            "monotonicNanoseconds": 243444196931791,
+            "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016"
+          },
+          {
+            "intentID": "E0CC5542-81E4-43AF-BCC1-2D38919CEA64",
+            "stage": "terminal",
+            "state": "draftUnconfirmed",
+            "dispatch": "notIssued",
+            "independentObservation": "noBrowserInput",
+            "cleanup": "selectionReleased",
+            "monotonicNanoseconds": 243444220616625
+          }
+        ]
+      }
+    ]
+  },
+  "matrix": [
+    {
+      "browser": "chrome",
+      "service": "chatgpt.com",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "chatgpt-web",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "chrome",
+      "service": "claude.ai",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "chrome",
+      "service": "gemini.google.com",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "chrome",
+      "service": "chat.deepseek.com",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "edge",
+      "service": "chatgpt.com",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "edge",
+      "service": "claude.ai",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "edge",
+      "service": "gemini.google.com",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "edge",
+      "service": "chat.deepseek.com",
+      "nativeAddress": "signed PID, birth, window ID and tab ID",
+      "siteProbeFixture": "PASS_FIXTURE",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "safari",
+      "service": "chatgpt.com",
+      "nativeAddress": "signed PID, birth and window; tab index only",
+      "siteProbeFixture": "NOT_RUN_WEBKIT",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "safari",
+      "service": "claude.ai",
+      "nativeAddress": "signed PID, birth and window; tab index only",
+      "siteProbeFixture": "NOT_RUN_WEBKIT",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "safari",
+      "service": "gemini.google.com",
+      "nativeAddress": "signed PID, birth and window; tab index only",
+      "siteProbeFixture": "NOT_RUN_WEBKIT",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    },
+    {
+      "browser": "safari",
+      "service": "chat.deepseek.com",
+      "nativeAddress": "signed PID, birth and window; tab index only",
+      "siteProbeFixture": "NOT_RUN_WEBKIT",
+      "lockedWriter": "NOT_IMPLEMENTED_AT_THIS_PIN",
+      "liveAuthentication": null,
+      "freshConversationCreated": null,
+      "editor": null,
+      "pickerAccepted": null,
+      "attachmentRendered": null,
+      "uploadComplete": null,
+      "liveSendEventCount": null,
+      "live": "BLOCKED"
+    }
+  ],
+  "finishedUTC": "2026-11-20T10:20:53.410978+00:00",
+  "assessment": "LIVE_BLOCKED"
+}
