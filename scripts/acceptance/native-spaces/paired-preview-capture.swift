@@ -117,7 +117,7 @@ private func observe(_ crop:Crop,witness requestedWitness:Bool) async -> [Observ
         do{
             if CommandLine.arguments.count==2 && CommandLine.arguments[1]=="--stream-self-test" {try PairedStreams.offlineChecks();return}
             try await capture()
-        }catch{try? emit(["refusal":(error as? Refusal)?.reason ?? "captureUnavailable"]);exit(2)}
+        }catch{try? emit(["refusal":(error as? Refusal)?.reason ?? (error as? PreviewClock.Failure)?.rawValue ?? "captureUnavailable"]);exit(2)}
     }
     static func capture() async throws {
         let data=FileHandle.standardInput.readDataToEndOfFile();let r=try JSONDecoder().decode(Request.self,from:data)

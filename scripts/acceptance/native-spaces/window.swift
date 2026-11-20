@@ -126,6 +126,9 @@ final class SharedFixtureWindow: NSPanel {
         if registeredDocuments {
             guard let file=FieldDocumentFile(folder:run,slot:i,session:session) else { exit(5) }
             let name = i == 0 ? "A" : "B"
+            #if P2_PAIR_POINTER
+            PairPointerPalette.install(slot: i, editor: editor, window: w)
+            #endif
             w.representedURL=file.url
             w.setAccessibilityDocument(file.url.absoluteString)
             w.setAccessibilityIdentifier("p2-document-window-"+name)
