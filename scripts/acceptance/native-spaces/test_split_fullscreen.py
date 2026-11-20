@@ -26,6 +26,13 @@ class Tests(unittest.TestCase):
             self.assertFalse(fs.full_geometry({**s,'cgFrames':[f,None],'axFrames':[f,None]}))
         self.assertFalse(fs.full_geometry({**s,'axFrames':[[-1000,40,1000,540],None]}))
 
+    def test_only_the_preenrolled_installed_host_layer_zero_on_the_exact_lease_is_exempt(self):
+        row=dict(number=31,pid=72,installedHost=1,layer=0,forward=[LEASE],reverse=[LEASE])
+        self.assertEqual(fs.host_window_numbers([row],72,LEASE),[31])
+        for change in [dict(pid=99),dict(installedHost=0),dict(layer=-1),dict(forward=[LEASE,FULL]),
+                       dict(reverse=[FULL]),dict(number=32,forward=[])]:
+            self.assertEqual(fs.host_window_numbers([{**row,**change}],72,LEASE),[])
+
     def test_normal_window_must_be_the_enrolled_fullscreen_member(self):
         base=tiled(False,current=LEASE)
         flags={'fullscreen':[True,False]}

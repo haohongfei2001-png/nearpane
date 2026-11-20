@@ -44,6 +44,11 @@ def resume_lease(workspace, target):
     return display,protected
 
 
+def host_window_numbers(layers,host,lease):
+    return sorted(v['number'] for v in layers if v.get('installedHost')==1 and v.get('pid')==host and
+                  v.get('layer')==0 and v.get('forward')==[lease] and v.get('reverse')==[lease])
+
+
 def request(folder,fixture,verb,index):
     nonce=str(uuid.uuid4());tmp=folder/'next.json'
     tmp.write_text(json.dumps(dict(nonce=nonce,action=verb,index=index)))

@@ -4,7 +4,7 @@ struct SplitEnrollment: Decodable {
     let fixturePID: Int32, fixtureBirth: UInt64, fixtureHash: String, fixturePath: String
     let numbers: [UInt32], session: UUID, display: String, lease: UInt64
     let protected: [String: String], hardware: [UInt32]?
-    let observedStage: Bool?, protectedTypes: [String:Int]?
+    let observedStage: Bool?, protectedTypes: [String:Int]?, enrolledHostWindows: [UInt32]?
 }
 func splitInput() -> [UInt32] {
     [CGEventType.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .flagsChanged,
@@ -166,6 +166,15 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
                   let a=cg[kCGWindowAlpha as String] as? Double,a>0,
                   let b=row[kCGWindowBounds as String] as? NSDictionary,let rect=CGRect(dictionaryRepresentation:b),
                   let again=cg[kCGWindowBounds as String] as? NSDictionary,CGRect(dictionaryRepresentation:again)==rect else{unknown+=1;continue}
+            if verb=="fullscreen-read",r.observedStage != nil,p==r.hostPID {
+                let enrolled=r.enrolledHostWindows?.contains(n)==true
+                let exact=enrolled && reverse==[sid] && r.protected[String(sid)] != nil &&
+                    birthMicroseconds(p)==r.hostBirth && splitProcessPath(p)==installed &&
+                    splitSignedPID(p,identifier:"com.holdsnow.nearpane.alpha") && runningCodeHash(p)==r.hostHash
+                classes[exact ? "installedHost/enrolledLayerZero":"installedHost/unregisteredOrSharedLayerZero",default:0]+=1
+                if !exact {foreign+=1}
+                continue
+            }
             let matches=p==r.fixturePID ? fixtureAX?.filter{NPReadAXWindowNumber($0)==n}:nil
             let el=matches?.count==1 ? PreviewCensus.ownedAX(matches?.first,pid:p):nil
             let evidence=PreviewCensus.extra(pid:p,fixture:r.fixturePID,rect:rect,on:true,drawn:rect.width>1 && rect.height>1,

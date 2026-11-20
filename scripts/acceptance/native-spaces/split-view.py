@@ -145,7 +145,7 @@ def fixture_directory():
 
 def fullscreen_admission(kit,host,host_hash,display,target,protected):
     """Only the leased ordinary Space is inspected for ordinary documents."""
-    last=None;types=None
+    last=None;types=None;host_numbers=None
     for _ in range(2):
         raw=subprocess.check_output([kit/'observe'],env={**os.environ,'NEARPANE_CONTRACT_SPACE_IDS':str(target)},
                                     timeout=6,stderr=subprocess.DEVNULL)
@@ -163,11 +163,14 @@ def fullscreen_admission(kit,host,host_hash,display,target,protected):
         require(c.get('ordinary')==[] and c.get('unresolved')==0 and c.get('otherMembers')==len(layers) and all(
             v.get('installedHost')==1 or (v.get('code',{}).get('apple') is True and v['code'].get('identifier') in permitted)
             for v in layers),'leasedFullscreenSourceNotIndependentlyEmpty')
+        witnessed=split_fullscreen.host_window_numbers(layers,host,target)
+        require(host_numbers is None or witnessed==host_numbers,'isolatedHostSurfaceChangedDuringAdmission')
+        host_numbers=witnessed
         stage=view.get('stageManager')
         require(isinstance(stage,bool) and (last is None or stage==last),'stagePreferenceUnstable')
         last=stage;time.sleep(.18)
     birth=int(subprocess.check_output([kit/'system-workspace','birth',str(host)],timeout=4))
-    return dict(hostBirth=birth,stageManager=last,protectedTypes=types)
+    return dict(hostBirth=birth,stageManager=last,protectedTypes=types,enrolledHostWindows=host_numbers)
 
 
 def run(kit, output, target, *, fullscreen_roundtrip=False, resume_workspace=None):
@@ -235,7 +238,10 @@ def run(kit, output, target, *, fullscreen_roundtrip=False, resume_workspace=Non
                     require(f.get('pid')==proc.pid and f.get('birth')==req['fixtureBirth'] and f.get('session')==session
                             and f.get('numbers')==numbers and proc.poll() is None,'registeredFixtureGenerationChanged')
                     return f
-                if fullscreen_roundtrip:req.update(observedStage=clean['stageManager'],protectedTypes=clean['protectedTypes'])
+                if fullscreen_roundtrip:
+                    req.update(observedStage=clean['stageManager'],protectedTypes=clean['protectedTypes'],
+                               enrolledHostWindows=clean['enrolledHostWindows'])
+                    result['enrolledHostWindows']=clean['enrolledHostWindows'];save()
                 def read_full():
                     v=sample('fullscreen-read')
                     hardware=v.get('hardware')
