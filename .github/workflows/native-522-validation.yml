@@ -1,0 +1,40 @@
+name: Nearpane native 5.22 protocol
+on:
+  push:
+    branches: [codex/r4-native-candidate-20261120]
+    paths:
+      - '.github/workflows/native-522-validation.yml'
+      - 'Sources/CNativeSpaceActions/**'
+      - 'Sources/NearpaneSpaceAction/**'
+      - 'Tests/NearpaneSpaceActionTests/**'
+      - 'scripts/acceptance/native-spaces/**'
+permissions:
+  contents: read
+concurrency:
+  group: native-522-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  protocol:
+    runs-on: macos-26
+    timeout-minutes: 18
+    env:
+      NEARPANE_FOUNDATION_ONLY: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Identify hosted environment
+        run: |
+          sw_vers
+          uname -m
+          swift --version
+      - name: Verify acceptance arithmetic and routing fixtures
+        run: |
+          python3 -m unittest discover -s scripts/acceptance/native-spaces -p 'test_*.py'
+          if test -f scripts/acceptance/native-spaces/p0-tests.py; then
+            python3 scripts/acceptance/native-spaces/p0-tests.py
+          fi
+      - name: Build production helper and run no-input protocol tests
+        run: |
+          swift build --target NearpaneSpaceAction
+          swift test --disable-xctest --enable-swift-testing --filter 'DockGestureTests|ActionInventoryTests|NativeSwitchJournalTests'
