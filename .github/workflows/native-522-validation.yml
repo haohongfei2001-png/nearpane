@@ -11,6 +11,7 @@ on:
       - 'Sources/NearpaneUI/**'
       - 'Tests/NearpaneSpaceActionTests/**'
       - 'Tests/NearpaneUITests/NativeSidebarWindowHistoryTests.swift'
+      - 'Tests/NearpaneCoreTests/AXWindowListTests.swift'
       - 'scripts/acceptance/native-spaces/**'
 permissions:
   contents: read
@@ -46,5 +47,6 @@ jobs:
         run: swift build --target NearpaneUI
       - name: Verify retained windows in the complete production UI module
         run: |
-          swift test --disable-xctest --enable-swift-testing --filter NativeSidebarWindowHistoryTests 2>&1 | tee "$RUNNER_TEMP/retained-tests.log"
+          swift test --disable-xctest --enable-swift-testing --filter 'NativeSidebarWindowHistoryTests|AXWindowListTests' 2>&1 | tee "$RUNNER_TEMP/retained-tests.log"
           grep -F 'Suite NativeSidebarWindowHistoryTests passed' "$RUNNER_TEMP/retained-tests.log"
+          grep -F 'Suite AXWindowListTests passed' "$RUNNER_TEMP/retained-tests.log"
