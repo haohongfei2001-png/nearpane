@@ -47,7 +47,7 @@
 
 ## 签名候选与回退
 
-当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[源码包与实际安装比对](11-adjacent-round-trip/candidate/zip-installed-tree.json)[签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
+当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json)[签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
 
 此候选的侧栏实拍 0→2→0，无占位标签和空间行，14 帧、15.69 秒。双窗时候选显示了两张身份正确的卡，独立观察器本次报告了 0 扇可证明可见窗口，故此轮窗口完整性为 BLOCKED。夹具退出后两个号码均已消失。[截图](11-adjacent-round-trip/window-roster/two-documents-sidebar.png) · [侧栏录屏](11-adjacent-round-trip/window-roster/installed-sidebar.mp4) · [完整性分项](11-adjacent-round-trip/window-roster/results.json)
 
