@@ -16,17 +16,17 @@ if (( $# > 1 )); then
 fi
 scratch="$build_root/app-native"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then scratch="$build_root/foundation-app-native"; fi
-diagnostic_flags=()
+compile=(swift build --build-system native -c "$configuration")
 if [[ -n "${NEARPANE_P0_DIAGNOSTIC_PUBLIC_KEY:-}" ]]; then
   [[ -n "$candidate_dir" && "${NEARPANE_FROZEN_SOURCE:-0}" == 1 && "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]] ||
     { echo "A diagnostic build requires the private frozen full-candidate staging entry" >&2; exit 2; }
-  diagnostic_flags=(-Xswiftc -DNEARPANE_P0_DIAGNOSTIC -Xcc -DNEARPANE_P0_DIAGNOSTIC=1)
+  compile+=(-Xswiftc -DNEARPANE_P0_DIAGNOSTIC -Xcc -DNEARPANE_P0_DIAGNOSTIC=1)
   scratch="$build_root/p0-diagnostic-app-native"
 fi
-swift build --build-system native -c "$configuration" "${diagnostic_flags[@]}" --disable-sandbox \
-  --scratch-path "$scratch" --cache-path "$build_root/cache" --config-path "$build_root/config" --security-path "$build_root/security"
-binary_dir="$(swift build --build-system native -c "$configuration" "${diagnostic_flags[@]}" --show-bin-path --disable-sandbox \
-  --scratch-path "$scratch" --cache-path "$build_root/cache" --config-path "$build_root/config" --security-path "$build_root/security")"
+compile+=(--disable-sandbox --scratch-path "$scratch" --cache-path "$build_root/cache"
+          --config-path "$build_root/config" --security-path "$build_root/security")
+"${compile[@]}"
+binary_dir="$("${compile[@]}" --show-bin-path)"
 destination="$product_root/$configuration"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then destination="$product_root/foundation/$configuration"; fi
 if [[ -n "$candidate_dir" ]]; then destination="$candidate_dir"; fi
