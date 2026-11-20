@@ -39,6 +39,7 @@ NSWindow.allowsAutomaticWindowTabbing = false
 #if P2_DOCUMENT_FIXTURE
 let registeredDocuments = presentation == "p2-documents"
 let p2LaunchHID = registeredDocuments ? p2Physical() : []
+let p2FirstActivation=MainActor.assumeIsolated { P2FirstDocumentActivation() }
 var documentFiles = [FieldDocumentFile]()
 #else
 let registeredDocuments = false
@@ -173,6 +174,7 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : (presentation=="paired-preview" ? 240 : 150))
     var yieldToUser = inactiveCleanup
     #if P2_DOCUMENT_FIXTURE
+    if registeredDocuments && !closing { MainActor.assumeIsolated { p2FirstActivation.tick(folder:run,birth:birth,windows:windows) } }
     if closing && registeredDocuments && (p2Physical() != p2LaunchHID || NSEvent.pressedMouseButtons != 0) {
         yieldToUser=true
         let flag=run.appendingPathComponent("p2-user-superseded")

@@ -154,3 +154,5 @@ NP_P2_DOCUMENT_KIT="$document_kit" python3 "$src/installed_profile.py" --p0-focu
 双文档标记由 12 个随机数字组成，十个标记互异。签名发送进程在每轮内持有同一私有 Quartz 事件源。夹具从其内核生辰和签名确认发送者后，发送者对已核实的 PID、CGID 和系统焦点投递正常数字小键盘的按下/抬起事件。每对按键都在同一夹具的 AppKit 收据确认后继续；发生拒绝或超时即封存该轮。键码对应的实际输入继续经过 NSTextView 与输入法。
 
 `marker-witness-NN.json` 的 `receiverDisposition` 和 `keyDelivery` 区分夹具内没有看到按键、看到无法归属的按键、仅收到部分已归属事件和确认完整序列。校验继续使用两个文件的 AX、AppKit 和落盘摘要。首个确认的输入另行尝试保存 `first-registered-document.png`；截图前后复核同一进程/窗口、物理输入计数和两个文件的摘要。收据中的 `firstDocumentCapture` 记录是否成功。
+
+W01 以同一 App 的一个受控文档已经取得键盘焦点为起点。后台启动后，两窗和初始文件摘要须同时得到系统与夹具确认。若当前仍为本轮登记的原前台，且两个文件窗都没有有效焦点，签名读取器可在真实 HID 保持原值时授权夹具一次正常 AppKit 激活。夹具在缺少 key window 时先呈现首个已登记文档。准备完成需两次独立确认系统 AX、CGID、AppKit key/main 及编辑器。第一个侧栏目标始终为另一扇窗口。准备阶段单列 `fixturePreparation`。选择失败的系统读回保留 `frontIsFixture` 和正式侧栏已知的固定错误文案。

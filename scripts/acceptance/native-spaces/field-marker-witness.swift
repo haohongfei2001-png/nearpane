@@ -79,14 +79,7 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
     private func enrolledPoster(_ grant:FieldMarkerGrant) -> FieldMarkerPoster? {
         guard let record=read("marker-watch-poster-"+grant.intent+".json",as:FieldMarkerPoster.self),
               record.matches(grant:grant,source:Int64(record.sender),now:ProcessInfo.processInfo.systemUptime,eventTime:0) else{return nil}
-        var info=proc_bsdinfo(), code:SecCode?, rule:SecRequirement?
-        let size=Int32(MemoryLayout<proc_bsdinfo>.size)
-        let requirement="identifier \"net.example.nearpane.p2-observer\" and cdhash H\""+grant.readerHash+"\""
-        guard proc_pidinfo(record.sender,PROC_PIDTBSDINFO,0,&info,size)==size,
-              info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec==record.birth,
-              SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:record.sender] as CFDictionary,[],&code)==errSecSuccess,
-              SecRequirementCreateWithString(requirement as CFString,[],&rule)==errSecSuccess,
-              let code,let rule,SecCodeCheckValidity(code,[],rule)==errSecSuccess else{return nil}
+        guard p2TrustedObserver(record.sender,record.birth,grant.readerHash) else{return nil}
         return record
     }
     var currentDocumentIntent:String? { grant?.intent }

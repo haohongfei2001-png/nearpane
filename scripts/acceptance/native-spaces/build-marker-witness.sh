@@ -22,8 +22,8 @@ if [[ "$flavor" == --registered-documents ]]; then
     flags=(-D P2_DOCUMENT_FIXTURE)
     mkdir "$work/observer"
     cp "$src/observe.swift" "$work/observer/main.swift"
-    observer_sources=("$work/observer/main.swift" "$src/p2-document-scope.swift" "$src/p2-document-post.swift" "$src/p2-keypad.swift" "$src/p2-document-physical.swift" Sources/NearpaneCore/AXWindowList.swift)
-    fixture_sources+=("$src/p2-keypad.swift" "$src/p2-document-files.swift" "$src/p2-document-physical.swift")
+    observer_sources=("$work/observer/main.swift" "$src/p2-document-scope.swift" "$src/p2-document-post.swift" "$src/p2-document-prepare.swift" "$src/p2-keypad.swift" "$src/p2-document-physical.swift" Sources/NearpaneCore/AXWindowList.swift)
+    fixture_sources+=("$src/p2-document-prepare.swift" "$src/p2-keypad.swift" "$src/p2-document-files.swift" "$src/p2-document-physical.swift")
 fi
 xcrun swiftc -D NATIVE_CONTRACT "${flags[@]}" -module-cache-path "$work/cache" -Xcc -I -Xcc "$inc" -import-objc-header "$src/contract_members.h" \
     "${observer_sources[@]}" "$work/reader.o" "$work/members.o" -framework ColorSync -o "$kit/observe"

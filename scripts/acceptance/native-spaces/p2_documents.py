@@ -103,6 +103,10 @@ def classify_read(q, state, disk, target, hashes, expect_focus):
         return False
     if not expect_focus:
         return True
+    if target is None:
+        target=q.get("focused")
+    if target not in q["numbers"]:
+        return False
     index = q["numbers"].index(target)
     return (q.get("focused") == q.get("main") == state.get("key") == state.get("main") == target
             and q.get("editorFocused") is True and state.get("editorsFocused",[])[index:index+1] == [True])
@@ -117,7 +121,7 @@ class RegisteredRun:
         self.folder = self.kit/str(uuid.uuid4())
         self.rec, self.initial, self.lease_hid = rec, initial, lease_hid
         scope = initial["scopes"][0]
-        self.binding = dict(hostPID=initial["host"]["pid"],hostHash=initial["host"]["codeHash"],display=scope["scope"],space=scope["current"])
+        self.binding = dict(hostPID=initial["host"]["pid"],hostHash=initial["host"]["codeHash"],display=scope["scope"],space=scope["current"],allowedFront=initial.get("frontmostPID"))
         self.baseline = None
         self.launcher = None
         self.watch = None
@@ -126,7 +130,8 @@ class RegisteredRun:
         self.samples = []
         self.out = dict(status="BLOCKED",reason="notStarted",passes=0,launch="Launch Services open -n -g -W",
                         registration=None,superseded=False,focusRestoreRequested=False,attempts=[],cleanup={"status":"NOT_RUN"},
-                        firstDocumentCapture={"status":"NOT_RUN","reason":"firstIndependentlyVerifiedInputUnavailable"})
+                        firstDocumentCapture={"status":"NOT_RUN","reason":"firstIndependentlyVerifiedInputUnavailable"},
+                        fixturePreparation={"status":"NOT_RUN","issued":False,"productAction":False})
 
     def call(self, mode, extra=None, env=None, timeout=6):
         request = {**self.binding, **(extra or {}), "mode":mode}
@@ -165,12 +170,18 @@ class RegisteredRun:
         good=0
         last, mismatch, consistent_mismatches = {}, None, 0
         recent = []
+        observed_issues=set()
+        front_counts={"fixture":0,"other":0}
         while (remaining:=deadline-time.monotonic())>=.12:
             try:
                 q=self.call("read",timeout=remaining)
                 check_hid(q,self.baseline)
                 last = {k:q[k] for k in ("status","reason","clock","hostBirth","reportedWindows","copiedWindows","enrolledAXMatches","ownedLayerZero","enrolledMemberships","slot",
-                                            "urlMatches","roleMatches","identifierMatches","editorCount","registrationStage") if k in q}
+                                            "urlMatches","roleMatches","identifierMatches","editorCount","registrationStage",
+                                            "frontIsFixture","frontMatchesOriginal","knownIssueMessages") if k in q}
+                observed_issues.update(q.get("knownIssueMessages",[]))
+                if type(q.get("frontIsFixture")) is bool:
+                    front_counts["fixture" if q["frontIsFixture"] else "other"]+=1
                 if q.get("registration"):
                     self.out["registration"]=q["registration"]
                 if q.get("status")=="READ":
@@ -205,7 +216,8 @@ class RegisteredRun:
                 mismatch,consistent_mismatches=None,0
                 if not last: last={"reason":type(e).__name__}
             time.sleep(max(0,min(.09,deadline-time.monotonic())))
-        self.rec.log("P2-independent-document-read",trial=self.trial,stage=stage,confirmed=False,expectedSHA256=hashes,reads=recent,last=last)
+        self.rec.log("P2-independent-document-read",trial=self.trial,stage=stage,confirmed=False,expectedSHA256=hashes,reads=recent,last=last,
+                     observedKnownIssueMessages=sorted(observed_issues),frontmostCounts=front_counts)
         raise TrialStop("independent"+stage+"Unconfirmed","FAIL" if consistent_mismatches>=2 and focus else "UNKNOWN" if self.attempt else "BLOCKED")
 
     def partial_readback(self, texts, marker):
@@ -270,19 +282,53 @@ class RegisteredRun:
                      closureConfirmed=result["closureConfirmed"],receiverDisposition=result.get("receiverDisposition"),steps=[v["step"] for v in result["events"]])
         return result
 
+    def prepare_front(self, hashes, reader):
+        numbers=self.binding["numbers"]
+        initial=self.read_until(None,hashes,"Initial",ready=True,seconds=6)
+        prep=self.out["fixturePreparation"]
+        prep.update(before=dict(frontIsFixture=initial.get("frontIsFixture"),frontMatchesOriginal=initial.get("frontMatchesOriginal"),
+                                focused=initial.get("focused"),main=initial.get("main"),editorFocused=initial.get("editorFocused")))
+        stable=initial.get("frontIsFixture") is True and initial.get("focused") in numbers and (
+            initial.get("focused")==initial.get("main") and initial.get("editorFocused") is True)
+        if not stable:
+            require(self.trial==0 and not self.out["attempts"],"formalWindowTrialAlreadyBegan")
+            require(prep["status"]=="NOT_RUN","initialFixturePreparationAlreadyAttempted")
+            require(initial.get("frontIsFixture") is True or initial.get("frontMatchesOriginal") is True,"initialForegroundChanged")
+            intent=str(uuid.uuid4())
+            prep.update(status="INTENT",id=intent,issued=None)
+            self.rec.log("P2-fixture-preparation-intent",id=intent,productAction=False)
+            reply=self.call("prepare-active",{"intent":intent,"readerHash":reader,"digests":hashes},timeout=3.5)
+            prep.update(status="ACKNOWLEDGED" if reply.get("issued") is True else "UNCONFIRMED",
+                        issued=reply.get("issued"),reason=reply.get("reason"))
+            self.rec.log("P2-fixture-preparation-delivery",id=intent,productAction=False,result=reply)
+            check_hid(reply,self.baseline)
+            require(reply.get("issued") is True,"initialAppKitPreparationUnconfirmed","BLOCKED")
+        try:
+            ready=self.read_until(None,hashes,"PreparedFixtureFocus",ready=True,focus=True,seconds=4)
+        except Superseded:
+            prep.update(status="SUPERSEDED",reason="userSuperseded")
+            raise
+        except TrialStop as error:
+            prep.update(status="BLOCKED",reason=error.reason)
+            raise TrialStop("fixturePreparationUnconfirmed:"+error.reason,"BLOCKED") from error
+        require(ready.get("frontIsFixture") is True and ready.get("focused") in numbers,"independentInitialFixtureFocusUnavailable")
+        prep.update(status="VERIFIED",method="alreadyFocused" if stable else "oneTimeNormalAppKitActivation",focused=ready["focused"])
+        self.rec.log("P2-fixture-preparation-readback",productAction=False,**{k:v for k,v in prep.items() if k!="productAction"})
+        return ready["focused"]
+
     def trials(self, reader):
         texts=[f"Field Notes {n} {self.folder.name}\n" for n in ("A","B")]
         hashes=[digest(t.encode()) for t in texts]
-        first=self.read_until(None,hashes,"Initial",ready=True,seconds=6)
+        initial_focus=self.prepare_front(hashes,reader)
         numbers=self.binding["numbers"]
-        first_slot=1 if first.get("focused")==numbers[0] else 0
+        first_slot=1 if initial_focus==numbers[0] else 0
         unique_tokens=secrets.SystemRandom().sample(range(10**12),10)
         for turn in range(10):
             self.trial=turn+1; self.attempt=None
             slot=(first_slot+turn)%2; n=numbers[slot]
-            before=self.read_until(None,hashes,"BeforeSelection",ready=True)
-            require(before.get("focused")!=n,"targetAlreadyFocusedBeforeNewSelection")
-            target={"target":n,"digests":hashes,"allowedFront":self.initial.get("frontmostPID") if turn==0 else self.binding["pid"]}
+            before=self.read_until(numbers[1-slot],hashes,"BeforeSelection",ready=True,focus=True)
+            require(before.get("focused")==numbers[1-slot],"siblingLostFocusBeforeNewSelection")
+            target={"target":n,"digests":hashes,"allowedFront":self.binding["pid"]}
             intent=str(uuid.uuid4()); marker=f"{unique_tokens[turn]:012d}"
             self.watch=MarkerWatch(self.folder,self.folder.name,intent,self.binding["pid"],self.binding["birth"],numbers,n,marker,reader,transport="pidNumericKeypad")
             require(self.watch.arm(),"postReceiverEnrollmentUnavailable")
@@ -292,6 +338,7 @@ class RegisteredRun:
             click=self.call("press",target)
             self.rec.log("sidebar-press",intent=intent,result=click)
             attempt["pressIssued"]=click.get("issued")
+            attempt["pressGateReason"]=click.get("reason","exactInstalledSidebarControlAdmitted")
             check_hid(click,self.baseline)
             require(click.get("issued") is True,"installedSidebarPressRefused","BLOCKED" if click.get("issued") is False else "UNKNOWN")
             require(type(click.get("axError")) is int and click["axError"]==0,"installedSidebarRejectedAXPress","FAIL")
@@ -303,6 +350,7 @@ class RegisteredRun:
             sent=self.call("marker",target,env,timeout=min(11,max(0.1,self.watch.grant["expires"]-time.monotonic())))
             tagged=self.watch.dispatched(sent)
             attempt["markerIssued"]=sent.get("issued")
+            attempt["markerGateReason"]=sent.get("reason")
             self.rec.log("pid-targeted-marker",intent=intent,result=sent)
             check_hid(sent,self.baseline)
             require(sent.get("issued") is True,"targetedMarkerNotAdmitted","UNKNOWN")
@@ -387,10 +435,10 @@ class RegisteredRun:
             except (OSError,ValueError,subprocess.SubprocessError):self.out["cleanup"]={"status":"UNKNOWN","reason":"ownedCleanupReadbackUnavailable"}
             if self.out["superseded"] and os.environ.get("NEARPANE_TEST_HOME"):
                 (Path(os.environ["NEARPANE_TEST_HOME"])/"p2-user-superseded").touch(mode=0o600,exist_ok=True)
-            self.out["operationStatus"]=self.out["status"]
+            self.out["operationStatus"]=self.out["status"] if self.out["attempts"] else "NOT_RUN"
             if self.out["status"]=="PASS" and self.out["cleanup"]["status"]!="PASS":self.out.update(status="UNKNOWN",reason="ownedCleanupUnconfirmed")
             self.rec.write("registered-documents.json",self.out)
             self.rec.summary["controlledWindowTrials"]=self.out["passes"]
             self.rec.scenarios["W01"]={"status":self.out["status"],"reason":self.out["reason"]}
-            self.rec.summary["registeredDocuments"]={k:self.out[k] for k in ("status","operationStatus","reason","passes","superseded","focusRestoreRequested","cleanup")}
+            self.rec.summary["registeredDocuments"]={k:self.out[k] for k in ("status","operationStatus","reason","passes","superseded","focusRestoreRequested","fixturePreparation","firstDocumentCapture","cleanup")}
         return self.out["reason"]

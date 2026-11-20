@@ -69,12 +69,12 @@ class DocumentsTests(unittest.TestCase):
     def simulate(self, *, drop=None, user_after=None, armed=True):
         numbers=self.numbers
         docs=[f"Field Notes {s} {self.folder.name}\n" for s in "AB"]
-        calls=[]; markers=[]; focused=None
+        calls=[]; markers=[]; focused=numbers[1]
         self.seen_actions=calls; self.markers=markers
         def proof(target,hashes,stage,**kwargs):
-            if [p2.digest(v.encode()) for v in docs]!=hashes or kwargs.get("focus") and focused!=target:
+            if [p2.digest(v.encode()) for v in docs]!=hashes or kwargs.get("focus") and (focused not in numbers or target is not None and focused!=target):
                 raise p2.TrialStop("independent"+stage+"Unconfirmed","FAIL")
-            return dict(focused=focused,cards=[True,True])
+            return dict(focused=focused,main=focused,frontIsFixture=True,editorFocused=True,cards=[True,True])
         def dispatch(mode,target,env=None,timeout=None):
             nonlocal focused
             trial=self.run.trial
@@ -101,6 +101,45 @@ class DocumentsTests(unittest.TestCase):
             return item
         with patch.object(p2,"MarkerWatch",side_effect=watch),patch.object(self.run,"call",side_effect=dispatch),patch.object(self.run,"read_until",side_effect=proof):
             self.run.trials("f"*40)
+
+    def test_only_setup_can_activate_once_and_it_cannot_be_a_product_intent(self):
+        background={"frontIsFixture":False,"frontMatchesOriginal":True,"focused":None,"main":None,"editorFocused":False}
+        ready={"frontIsFixture":True,"focused":409,"main":409,"editorFocused":True}
+        with patch.object(self.run,"read_until",side_effect=[background,ready]) as reads, \
+             patch.object(self.run,"call",return_value={"status":"PREPARATION","issued":True,"reason":"initialAppKitActivationRequested"}) as action:
+            self.assertEqual(self.run.prepare_front(["a","b"],"ab"*20),409)
+        self.assertEqual([c.args[0] for c in action.call_args_list],["prepare-active"])
+        self.assertEqual(reads.call_args_list[-1].kwargs["focus"],True)
+        self.assertEqual((self.run.out["fixturePreparation"]["status"],self.r.attempts),("VERIFIED",[]))
+        self.run.trial=1
+        with patch.object(self.run,"read_until",return_value=background),patch.object(self.run,"call") as action:
+            with self.assertRaisesRegex(p2.TrialStop,"formalWindowTrialAlreadyBegan"):self.run.prepare_front(["a","b"],"ab"*20)
+        action.assert_not_called()
+
+    def test_refusal_new_foreground_or_missing_key_after_preparation_never_start_the_product(self):
+        background={"frontIsFixture":False,"frontMatchesOriginal":True,"focused":None}
+        with patch.object(self.run,"read_until",return_value=background|{"frontMatchesOriginal":False}),patch.object(self.run,"call") as action:
+            with self.assertRaisesRegex(p2.TrialStop,"initialForegroundChanged"):self.run.trials("a"*40)
+            action.assert_not_called()
+        with patch.object(self.run,"read_until",side_effect=[background,p2.TrialStop("focusMissing","UNKNOWN")]), \
+             patch.object(self.run,"call",return_value={"issued":True}) as action:
+            with self.assertRaisesRegex(p2.TrialStop,"focusMissing"):self.run.trials("a"*40)
+            self.assertEqual([c.args[0] for c in action.call_args_list],["prepare-active"])
+        self.assertEqual(self.r.attempts,[])
+
+    def test_native_setup_admission_without_application_launch(self):
+        src=Path(__file__).resolve().parent
+        binary=self.folder/"pure-preparation"
+        subprocess.run(["xcrun","swiftc",src/"p2-document-prepare.swift",src/"p2-document-physical.swift",
+                        src/"test_p2_prepare.swift","-o",binary],check=True,timeout=45)
+        subprocess.run([binary],check=True,timeout=3)
+
+    def test_foreground_already_at_an_enrolled_editor_gets_no_setup_action(self):
+        focused={"frontIsFixture":True,"focused":317,"main":317,"editorFocused":True}
+        with patch.object(self.run,"read_until",return_value=focused),patch.object(self.run,"call") as action:
+            self.assertEqual(self.run.prepare_front(["a","b"],"9"*40),317)
+        action.assert_not_called()
+        self.assertEqual(self.run.out["fixturePreparation"]["method"],"alreadyFocused")
 
     def test_ten_unique_single_posts_alternate_using_two_file_outcomes(self):
         self.simulate()
@@ -149,7 +188,7 @@ class DocumentsTests(unittest.TestCase):
         w=Mock(identity={"intent":"i"},grant={"tag":1,"expires":float("inf")})
         w.arm.return_value=True
         w.seal.return_value=dict(status="SEALED",closureConfirmed=True,events=[],receiverDisposition="NO_APPKIT_KEY_SEEN_DURING_REGISTERED_DELIVERY")
-        with patch.object(p2,"MarkerWatch",return_value=w),patch.object(self.run,"read_until",return_value={"focused":None}), \
+        with patch.object(p2,"MarkerWatch",return_value=w),patch.object(self.run,"read_until",return_value={"focused":self.numbers[1],"main":self.numbers[1],"frontIsFixture":True,"editorFocused":True}), \
              patch.object(self.run,"call",side_effect=replies) as calls,patch.object(self.run,"partial_readback",return_value="FAIL"):
             with self.assertRaisesRegex(p2.TrialStop,"receiverPairUnconfirmed"):self.run.trials("f"*40)
         self.assertEqual([c.args[0] for c in calls.call_args_list],["press","marker"])
