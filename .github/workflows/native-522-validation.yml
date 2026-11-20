@@ -7,13 +7,16 @@ on:
       - 'Sources/CNativeSpaceActions/**'
       - 'Sources/NearpaneSpaceAction/**'
       - 'Sources/NearpaneCore/**'
+      - 'Sources/NearpaneDesktopReader/**'
       - 'Sources/NearpaneHost/**'
       - 'Sources/NearpaneUI/**'
       - 'Sources/NearpaneOrdinaryWindowController/**'
       - 'Tests/NearpaneOrdinaryWindowControllerTests/ExplicitPairPlacementTests.swift'
+      - 'Tests/NearpaneOrdinaryWindowControllerTests/TargetedCurrentFocusTests.swift'
       - 'Tests/NearpaneCoreTests/OrdinaryFocusAttributesTests.swift'
       - 'Tests/NearpaneUITests/WindowFocusLatencyTests.swift'
       - 'Tests/NearpaneUITests/CurrentCardFocusPreparationTests.swift'
+      - 'Tests/NearpaneUITests/TargetedCurrentCardTests.swift'
       - 'Tests/NearpaneUITests/OrdinaryWindowManagerTests.swift'
       - 'Tests/NearpaneSpaceActionTests/**'
       - 'Tests/NearpaneUITests/NativeSidebarWindowHistoryTests.swift'
@@ -82,7 +85,7 @@ jobs:
       - name: Verify window identity, Services source and Host open handling
         run: |
           set -euo pipefail
-          suites=(NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests)
+          suites=(NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests)
           filter=$(IFS='|'; echo "${suites[*]}")
           swift test --disable-xctest --enable-swift-testing --filter "$filter" 2>&1 | tee "$RUNNER_TEMP/native-ui-tests.log"
           for suite in "${suites[@]}"; do
