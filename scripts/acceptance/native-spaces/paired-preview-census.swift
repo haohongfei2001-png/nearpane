@@ -101,7 +101,7 @@ enum PreviewCensus {
                         "fixtureAXSubroleReported":isFixture ? (subrole != nil) as Any:NSNull()]
         return Extra(owner:owner,category:kind,details:detail)
     }
-    static func report(_ space:UInt64,host:pid_t,fixture:pid_t,expected:[UInt32],visible:Bool,strictExtras:Bool=false)->Row {
+    static func report(_ space:UInt64,host:pid_t,fixture:pid_t,expected:[UInt32],visible:Bool,strictExtras:Bool=false,enrolledOwners:[UInt32:pid_t]?=nil)->Row {
         var out:Row=["admitted":false,"expected":expected,"unknown":0]
         func fail(_ why:String)->Row {out["reason"]=why;return out}
         guard NPReadOnlySpacesOpen()==1,let record=(NPContractMemberReport([NSNumber(value:space)] as CFArray,host) as? [String:Row])?[String(space)],
@@ -114,13 +114,19 @@ enum PreviewCensus {
         }
         let numbers=Set(expected)
         guard numbers.count==expected.count && (numbers.isEmpty || fixture>1) else{return fail("invalidEnrolledFixtureNumbers")}
+        let owners=enrolledOwners ?? Dictionary(uniqueKeysWithValues:expected.map{($0,fixture)})
+        guard Set(owners.keys)==numbers,owners.values.allSatisfy({$0>1}),enrolledOwners==nil || owners.isEmpty || owners.values.contains(fixture)
+        else{return fail("invalidEnrolledOwners")}
+        var cohort=Set(owners.values)
+        if fixture>1 {cohort.insert(fixture)}
         let publicNow=NSWindow.windowNumbers(options:.allApplications).map{Set($0.map(\.uint32Value))}
         let publicAll=NSWindow.windowNumbers(options:[.allApplications,.allSpaces]).map{Set($0.map(\.uint32Value))}
-        let windows:[AXUIElement]?=fixture>1 ? {
-            let ax=AXUIElementCreateApplication(fixture)
+        var windowsByOwner=[pid_t:[AXUIElement]]()
+        for pid in cohort {
+            let ax=AXUIElementCreateApplication(pid)
             _=AXUIElementSetMessagingTimeout(ax,0.4)
-            return prop(ax,kAXWindowsAttribute) as? [AXUIElement]
-        }():nil
+            windowsByOwner[pid]=prop(ax,kAXWindowsAttribute) as? [AXUIElement]
+        }
         var seen=Set<UInt32>(),expectedRows=[Row](),extra=[String:Int](),unknown=0,details=[Row]()
         for member in ordinary {
             guard let p=member["pid"]?.int32Value,let n=member["number"]?.uint32Value,let individual=windowRows(n),individual.count==1,
@@ -138,12 +144,13 @@ enum PreviewCensus {
             }
             let on=cg[kCGWindowIsOnscreen as String] as? Bool==true
             let drawn=(cg[kCGWindowAlpha as String] as? Double ?? 0)>0 && rect.width>1 && rect.height>1
+            let windows=windowsByOwner[p]
             let list=windows?.filter{NPReadAXWindowNumber($0)==n}
             let item=list?.count==1 ? (strictExtras ? ownedAX(list?.first,pid:p):list?.first):nil
             let role=item.flatMap{prop($0,kAXRoleAttribute) as? String},subrole=item.flatMap{prop($0,kAXSubroleAttribute) as? String}
             let standard=role==kAXWindowRole && subrole==kAXStandardWindowSubrole
             let validShape=rect.origin.x.isFinite && rect.origin.y.isFinite && rect.width>0 && rect.height>0
-            if numbers.contains(n) && p==fixture {
+            if owners[n]==p {
                 let direct=standard && item.flatMap{prop($0,kAXMinimizedAttribute) as? Bool}==false && item.flatMap{prop($0,kAXModalAttribute) as? Bool} != true
                 let accepted=validShape && reverse==[space] && (!visible || (direct && on && drawn))
                 if accepted {seen.insert(n)}
@@ -152,7 +159,7 @@ enum PreviewCensus {
                     "axStandard":standard,"cgOnscreen":on,"drawn":drawn,"bounds":[rect.minX,rect.minY,rect.width,rect.height],"accepted":accepted])
                 continue
             }
-            let evidence=Self.extra(pid:p,fixture:fixture,rect:rect,on:on,drawn:drawn,singleSpace:reverse==[space],
+            let evidence=Self.extra(pid:p,fixture:cohort.contains(p) ? p:fixture,rect:rect,on:on,drawn:drawn,singleSpace:reverse==[space],
                                     publicNow:publicNow?.contains(n),publicAll:publicAll?.contains(n),
                                     axCount:list?.count,role:role,subrole:subrole,strict:strictExtras)
             if !evidence.admitted {unknown+=1}

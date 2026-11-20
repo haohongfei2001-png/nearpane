@@ -24,6 +24,14 @@ var lastState = Data()
 var withdrew = false, minimized = false
 NSWindow.allowsAutomaticWindowTabbing = false
 let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
+#if FIVE_PREVIEW
+let fiveSlot = (0..<5).first { Bundle.main.bundleIdentifier == FivePreviewWindow.identifier($0) }
+guard presentation == "five-preview", expected == 1, fiveSlot != nil,
+      let privateParent = PreviewFixtureDirectory(run), NSScreen.screens.count == 1,
+      ["HOME", "CFFIXED_USER_HOME"].allSatisfy({ ProcessInfo.processInfo.environment[$0] == privateParent.appendingPathComponent("home").path })
+else { exit(4) }
+var fivePhase = 0
+#endif
 #if PAIRED_PREVIEW
 let paired = presentation == "paired-preview" && expected == 2 && Bundle.main.bundleIdentifier == "net.example.spaces-document"
 if paired {
@@ -60,6 +68,9 @@ final class SharedFixtureWindow: NSPanel {
         #if PAIRED_PREVIEW
         if paired { rect = NSRect(x: frame.midX + (i == 0 ? -282 : 12), y: frame.midY - 90, width: 270, height: 180) }
         #endif
+        #if FIVE_PREVIEW
+        rect = FivePreviewWindow.frame(slot: fiveSlot!, in: frame)
+        #endif
         let style: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
         let w: NSWindow
         if presentation == "public-visible" {
@@ -75,6 +86,11 @@ final class SharedFixtureWindow: NSPanel {
         w.isReleasedWhenClosed = false
         w.tabbingMode = .disallowed
         let editor = NSTextView(frame: w.contentView!.bounds)
+        #if FIVE_PREVIEW
+        w.title = "Field Notes " + String(fiveSlot! + 1)
+        w.colorSpace = .sRGB
+        editor.backgroundColor = FivePreviewWindow.color(slot: fiveSlot!, phase: 0)
+        #endif
         if roster { editor.backgroundColor = i == 0 ? NSColor.systemGreen : NSColor.systemPurple }
         editor.autoresizingMask = [.width,.height]
         editor.font = .systemFont(ofSize: 16)
@@ -82,7 +98,7 @@ final class SharedFixtureWindow: NSPanel {
         w.initialFirstResponder = editor
         _ = w.makeFirstResponder(editor)
         windows.append(w); editors.append(editor)
-        if presentation == "contract" || presentation == "contract-split" || presentation == "roster-cycle" {
+        if presentation == "contract" || presentation == "contract-split" || presentation == "roster-cycle" || presentation == "five-preview" {
             w.makeKeyAndOrderFront(nil)
             app.activate(ignoringOtherApps:true)
         } else { w.orderFrontRegardless() }
@@ -130,6 +146,16 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         }
     }
     guard !windows.isEmpty || presentation == "roster-cycle" else { return }
+    #if FIVE_PREVIEW
+    if fivePhase == 0, let window = windows.first, let editor = editors.first,
+       let data = try? Data(contentsOf: run.appendingPathComponent("advance.json")),
+       let mark = try? JSONDecoder().decode(FivePreviewMarker.self, from: data),
+       mark.matches(session: session, pid: getpid(), birth: birth, number: window.windowNumber, slot: fiveSlot!) {
+        fivePhase = 1
+        editor.backgroundColor = FivePreviewWindow.color(slot: fiveSlot!, phase: 1)
+        editor.needsDisplay = true
+    }
+    #endif
     #if PAIRED_PREVIEW
     if paired && editors.count == 2 {
         let now = ProcessInfo.processInfo.systemUptime
@@ -176,7 +202,7 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
             windows[1].miniaturize(nil)
         }
     }
-    let payload: [String: Any] = [
+    var payload: [String: Any] = [
         "session": session, "pid": getpid(), "birth": birth, "numbers": windows.map { $0.windowNumber },
         "presentation": presentation ?? "ordinary", "bundle": Bundle.main.bundleIdentifier ?? "",
         "visible": windows.map(\.isVisible), "minimized": windows.map(\.isMiniaturized),
@@ -185,6 +211,10 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         "editorsFocused": zip(windows, editors).map { $0.firstResponder === $1 },
         "sha256": editors.map { SHA256.hash(data: Data($0.string.utf8)).map { String(format: "%02x", $0) }.joined() }
     ]
+    #if FIVE_PREVIEW
+    payload["slot"] = fiveSlot!
+    payload["phase"] = fivePhase
+    #endif
     if let data = try? JSONSerialization.data(withJSONObject: payload, options: .sortedKeys), data != lastState {
         try? data.write(to: run.appendingPathComponent("windows.json"), options: .atomic); lastState = data
     }
