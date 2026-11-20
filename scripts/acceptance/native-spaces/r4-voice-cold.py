@@ -159,13 +159,50 @@ def summarize(attempts):
                  if any(a["status"] == state for a in attempts)), "PASS")
 
 
-def run(output):
+def calibrate(driver, stimulus, voice, attempt):
+    evidence = attempt.get("readback", {})
+    ids, chunks = evidence.get("newIDs", []), evidence.get("chunks", [])
+    if len(ids) != 1 or len(chunks) != 1 or not chunks[0]["pcm16Mono16kMatchesIndex"]:
+        return {"status": "UNKNOWN", "reason": "Requires a unique, verified single-chunk controlled utterance"}
+    rid, = ids
+    with closing(database(voice)) as db:
+        row = db.execute("SELECT path FROM chunks WHERE recording_id=?", (rid,)).fetchone()
+    relative = Path(row["path"])
+    if relative.is_absolute() or len(relative.parts) != 2 or relative.parts[0] != rid or relative.suffix != ".wav":
+        raise RuntimeError("Unexpected isolated calibration path")
+    recorded = voice / "Audio" / relative
+    if recorded.resolve() != recorded or digest(recorded.read_bytes()) != chunks[0]["sha256"]:
+        raise RuntimeError("Isolated audio changed since the production readback")
+    proc = subprocess.run([str(driver), str(stimulus), str(recorded)], capture_output=True, timeout=38)
+    if proc.returncode:
+        return {"status": "UNKNOWN", "reason": "File-only calibration failed", "exit": proc.returncode}
+    observed = json.loads(proc.stdout)
+    report = {"status": "COMPLETE", "wavSHA256": chunks[0]["sha256"], "alignment": observed["alignment"]}
+    # Never copy raw microphone audio, unrelated transcript text, or the whole DB to a public receipt.
+    for key in ("clean", "captured"):
+        if key in observed:
+            report[key] = compare(attempt["phrase"], observed[key])
+        else:
+            report[key] = {"status": "UNKNOWN"}
+            report["status"] = "PARTIAL"
+    return report
+
+
+def run(output, calibration=False):
     import installed_profile as profile  # A normal Launch Services session owned by the outer wrapper.
-    attempts = [{"phrase": phrase, "status": "NOT_RUN"} for phrase in PHRASES]
-    summary = {"app": "/Applications/Nearpane.app", "rounds": attempts, "speech": "local Tingting, rate 165, physical speaker to microphone",
+    phrases = (PHRASES[1], PHRASES[0]) if calibration else PHRASES
+    attempts = [{"phrase": phrase, "status": "NOT_RUN"} for phrase in phrases]
+    summary = {"mode": "counterbalanced diagnostic" if calibration else "three independent cold starts", "app": "/Applications/Nearpane.app", "rounds": attempts, "speech": "local Tingting, rate 165, physical speaker to microphone",
                "textComparison": "NFKC, omit spaces and punctuation only; unrelated characters masked in published readback"}
     def snapshot():
         summary["status"] = summarize(attempts)
+        if calibration:
+            summary["physicalStatus"] = summary["status"]
+            controls = [a.get("calibration", {}).get("status", "PENDING") for a in attempts]
+            summary["calibrationState"] = ("PENDING" if "PENDING" in controls else
+                                           "COMPLETE" if all(state == "COMPLETE" for state in controls) else "UNKNOWN")
+            if summary["physicalStatus"] == "PASS" and summary["calibrationState"] != "COMPLETE":
+                summary["status"] = "UNKNOWN"
         save(output / "results.json", summary)
     snapshot()
     try:
@@ -195,6 +232,11 @@ def run(output):
             subprocess.run(["/usr/bin/xcrun", "swiftc", "-parse-as-library", "-import-objc-header", str(header),
                             str(Path(__file__).with_name("r4-cold-microphone.swift")), str(observer), "-o", str(driver)],
                            check=True, timeout=90)
+            if calibration:
+                replay = temp / "file-only-calibration"
+                subprocess.run(["/usr/bin/xcrun", "swiftc", "-O", "-parse-as-library",
+                                str(Path(__file__).with_name("r4-voice-replay.swift")), "-o", str(replay)],
+                               check=True, timeout=90)
             for number, attempt in enumerate(attempts, start=1):
                 pid = None
                 try:
@@ -242,6 +284,15 @@ def run(output):
                     snapshot()
                     if pid and profile.owns_profile(pid, root):
                         profile.quit_host(pid)
+            # Finish all physical trials before initializing the independent recognizer; its Apple asset cache
+            # must not warm the second live trial. Use the same, hashed PCM before the outer cleanup removes it.
+            if calibration:
+                for number, attempt in enumerate(attempts, start=1):
+                    try:
+                        attempt["calibration"] = calibrate(replay, temp / f"{number}.wav", voice, attempt)
+                    except (OSError, KeyError, ValueError, RuntimeError, sqlite3.Error, subprocess.SubprocessError) as error:
+                        attempt["calibration"] = {"status": "UNKNOWN", "reason": type(error).__name__}
+                    snapshot()
     except (KeyError, OSError, RuntimeError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
         summary["setupOrCleanupIssue"] = str(error)
         snapshot()
@@ -253,11 +304,13 @@ def run(output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--calibrate", action="store_true",
+                        help="two counterbalanced cold starts and file-only controls; retain the original acceptance outcomes")
     parser.add_argument("output", type=Path, help="new directory for receipts, outside the disposable home")
     args = parser.parse_args()
     os.umask(0o077)
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
-    return run(args.output.resolve())
+    return run(args.output.resolve(), calibration=args.calibrate)
 
 
 if __name__ == "__main__":
