@@ -1,0 +1,453 @@
+{
+  "status": "CONFIRMED",
+  "reason": "bothOriginalsConfirmed",
+  "issued": false,
+  "actualAXWrites": 0,
+  "hostPID": 97282,
+  "windows": [
+    {
+      "number": 54490,
+      "pid": 97935,
+      "birth": 1795217601146235,
+      "workerPID": 97998,
+      "state": "confirmed",
+      "findings": [
+        {
+          "state": "confirmed",
+          "reason": "physicalDisplayCount",
+          "observed": 1,
+          "point": "opening",
+          "expected": 1
+        },
+        {
+          "state": "confirmed",
+          "point": "opening",
+          "reason": "physicalDisplayID"
+        },
+        {
+          "observed": 0,
+          "reason": "physicalFrame",
+          "point": "opening",
+          "state": "confirmed",
+          "expected": 0
+        },
+        {
+          "reason": "usableFrame",
+          "expected": 0,
+          "observed": 0,
+          "point": "opening",
+          "state": "confirmed"
+        },
+        {
+          "reason": "backingScale",
+          "point": "opening",
+          "state": "confirmed"
+        },
+        {
+          "observed": 0,
+          "reason": "rotation",
+          "state": "confirmed",
+          "expected": 0,
+          "point": "opening"
+        },
+        {
+          "state": "confirmed",
+          "reason": "separateSpaces",
+          "point": "opening"
+        },
+        {
+          "reason": "physicalTopology",
+          "point": "opening",
+          "state": "confirmed"
+        },
+        {
+          "state": "confirmed",
+          "reason": "stagePreference",
+          "expected": 0,
+          "point": "opening",
+          "observed": 0
+        },
+        {
+          "state": "confirmed",
+          "observed": 4,
+          "reason": "spaceInventory",
+          "expected": 4,
+          "point": "opening"
+        },
+        {
+          "expected": 1,
+          "state": "confirmed",
+          "observed": 1,
+          "reason": "surfaceOwner",
+          "point": "surface"
+        },
+        {
+          "point": "surface",
+          "state": "confirmed",
+          "reason": "surfaceLayer",
+          "expected": 0,
+          "observed": 0
+        },
+        {
+          "point": "surface",
+          "expected": 1,
+          "state": "confirmed",
+          "reason": "surfaceVisibility",
+          "observed": 1
+        },
+        {
+          "point": "surface",
+          "observed": 1,
+          "reason": "surfaceAlpha",
+          "state": "confirmed",
+          "expected": 1
+        },
+        {
+          "reason": "surfaceFrame",
+          "point": "surface",
+          "state": "confirmed",
+          "observed": 0,
+          "expected": 0
+        },
+        {
+          "state": "confirmed",
+          "reason": "frameDisplay",
+          "point": "surface"
+        },
+        {
+          "observed": 1,
+          "point": "retainedAX",
+          "state": "confirmed",
+          "reason": "originalElement",
+          "expected": 1
+        },
+        {
+          "reason": "axFrame",
+          "expected": 0,
+          "observed": 0,
+          "state": "confirmed",
+          "point": "retainedAX"
+        },
+        {
+          "point": "retainedAX",
+          "reason": "axMinimized",
+          "expected": 0,
+          "observed": 0,
+          "state": "confirmed"
+        },
+        {
+          "reason": "spaceInventory",
+          "observed": 4,
+          "point": "closing",
+          "state": "confirmed",
+          "expected": 4
+        },
+        {
+          "state": "confirmed",
+          "point": "opening",
+          "observed": 1,
+          "expected": 1,
+          "reason": "forwardMembership"
+        },
+        {
+          "reason": "reverseMembership",
+          "point": "opening",
+          "observed": 1,
+          "state": "confirmed",
+          "expected": 1
+        },
+        {
+          "state": "confirmed",
+          "reason": "forwardMembership",
+          "observed": 1,
+          "point": "closing",
+          "expected": 1
+        },
+        {
+          "observed": 1,
+          "state": "confirmed",
+          "point": "closing",
+          "expected": 1,
+          "reason": "reverseMembership"
+        },
+        {
+          "observed": 1,
+          "state": "confirmed",
+          "reason": "physicalDisplayCount",
+          "expected": 1,
+          "point": "closing"
+        },
+        {
+          "state": "confirmed",
+          "point": "closing",
+          "reason": "physicalDisplayID"
+        },
+        {
+          "state": "confirmed",
+          "expected": 0,
+          "observed": 0,
+          "reason": "physicalFrame",
+          "point": "closing"
+        },
+        {
+          "point": "closing",
+          "observed": 0,
+          "reason": "usableFrame",
+          "state": "confirmed",
+          "expected": 0
+        },
+        {
+          "reason": "backingScale",
+          "state": "confirmed",
+          "point": "closing"
+        },
+        {
+          "reason": "rotation",
+          "point": "closing",
+          "observed": 0,
+          "expected": 0,
+          "state": "confirmed"
+        },
+        {
+          "point": "closing",
+          "state": "confirmed",
+          "reason": "separateSpaces"
+        },
+        {
+          "point": "closing",
+          "reason": "physicalTopology",
+          "state": "confirmed"
+        },
+        {
+          "reason": "stagePreference",
+          "observed": 0,
+          "state": "confirmed",
+          "point": "closing",
+          "expected": 0
+        }
+      ]
+    },
+    {
+      "pid": 97935,
+      "number": 54492,
+      "birth": 1795217601146235,
+      "workerPID": 98000,
+      "state": "confirmed",
+      "findings": [
+        {
+          "reason": "physicalDisplayCount",
+          "expected": 1,
+          "point": "opening",
+          "observed": 1,
+          "state": "confirmed"
+        },
+        {
+          "point": "opening",
+          "reason": "physicalDisplayID",
+          "state": "confirmed"
+        },
+        {
+          "state": "confirmed",
+          "point": "opening",
+          "expected": 0,
+          "observed": 0,
+          "reason": "physicalFrame"
+        },
+        {
+          "state": "confirmed",
+          "reason": "usableFrame",
+          "observed": 0,
+          "point": "opening",
+          "expected": 0
+        },
+        {
+          "reason": "backingScale",
+          "point": "opening",
+          "state": "confirmed"
+        },
+        {
+          "observed": 0,
+          "reason": "rotation",
+          "state": "confirmed",
+          "expected": 0,
+          "point": "opening"
+        },
+        {
+          "state": "confirmed",
+          "point": "opening",
+          "reason": "separateSpaces"
+        },
+        {
+          "reason": "physicalTopology",
+          "point": "opening",
+          "state": "confirmed"
+        },
+        {
+          "reason": "stagePreference",
+          "state": "confirmed",
+          "expected": 0,
+          "point": "opening",
+          "observed": 0
+        },
+        {
+          "state": "confirmed",
+          "observed": 4,
+          "reason": "spaceInventory",
+          "expected": 4,
+          "point": "opening"
+        },
+        {
+          "expected": 1,
+          "state": "confirmed",
+          "observed": 1,
+          "reason": "surfaceOwner",
+          "point": "surface"
+        },
+        {
+          "point": "surface",
+          "state": "confirmed",
+          "reason": "surfaceLayer",
+          "expected": 0,
+          "observed": 0
+        },
+        {
+          "point": "surface",
+          "expected": 1,
+          "state": "confirmed",
+          "reason": "surfaceVisibility",
+          "observed": 1
+        },
+        {
+          "point": "surface",
+          "observed": 1,
+          "reason": "surfaceAlpha",
+          "state": "confirmed",
+          "expected": 1
+        },
+        {
+          "reason": "surfaceFrame",
+          "point": "surface",
+          "state": "confirmed",
+          "observed": 0,
+          "expected": 0
+        },
+        {
+          "reason": "frameDisplay",
+          "state": "confirmed",
+          "point": "surface"
+        },
+        {
+          "observed": 1,
+          "point": "retainedAX",
+          "state": "confirmed",
+          "reason": "originalElement",
+          "expected": 1
+        },
+        {
+          "reason": "axFrame",
+          "expected": 0,
+          "observed": 0,
+          "point": "retainedAX",
+          "state": "confirmed"
+        },
+        {
+          "state": "confirmed",
+          "reason": "axMinimized",
+          "expected": 0,
+          "observed": 0,
+          "point": "retainedAX"
+        },
+        {
+          "reason": "spaceInventory",
+          "observed": 4,
+          "point": "closing",
+          "state": "confirmed",
+          "expected": 4
+        },
+        {
+          "state": "confirmed",
+          "point": "opening",
+          "observed": 1,
+          "expected": 1,
+          "reason": "forwardMembership"
+        },
+        {
+          "reason": "reverseMembership",
+          "point": "opening",
+          "observed": 1,
+          "state": "confirmed",
+          "expected": 1
+        },
+        {
+          "reason": "forwardMembership",
+          "state": "confirmed",
+          "observed": 1,
+          "point": "closing",
+          "expected": 1
+        },
+        {
+          "observed": 1,
+          "state": "confirmed",
+          "point": "closing",
+          "expected": 1,
+          "reason": "reverseMembership"
+        },
+        {
+          "observed": 1,
+          "state": "confirmed",
+          "reason": "physicalDisplayCount",
+          "expected": 1,
+          "point": "closing"
+        },
+        {
+          "reason": "physicalDisplayID",
+          "point": "closing",
+          "state": "confirmed"
+        },
+        {
+          "state": "confirmed",
+          "expected": 0,
+          "observed": 0,
+          "reason": "physicalFrame",
+          "point": "closing"
+        },
+        {
+          "point": "closing",
+          "observed": 0,
+          "reason": "usableFrame",
+          "state": "confirmed",
+          "expected": 0
+        },
+        {
+          "reason": "backingScale",
+          "state": "confirmed",
+          "point": "closing"
+        },
+        {
+          "reason": "rotation",
+          "point": "closing",
+          "observed": 0,
+          "expected": 0,
+          "state": "confirmed"
+        },
+        {
+          "state": "confirmed",
+          "reason": "separateSpaces",
+          "point": "closing"
+        },
+        {
+          "state": "confirmed",
+          "point": "closing",
+          "reason": "physicalTopology"
+        },
+        {
+          "reason": "stagePreference",
+          "observed": 0,
+          "state": "confirmed",
+          "point": "closing",
+          "expected": 0
+        }
+      ]
+    }
+  ]
+}
