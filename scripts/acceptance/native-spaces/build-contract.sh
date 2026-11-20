@@ -8,6 +8,7 @@ kit="${1:?provide a fresh private /private/tmp/nearpane-d01.* directory}"
 src=scripts/acceptance/native-spaces
 inc=Sources/CReadOnlySpaces/include
 clang_flags=(-I "$inc")
+xcrun clang -Wall -Wextra -Werror "$src/textedit_process.c" -o "$kit/textedit-process"
 xcrun clang "${clang_flags[@]}" -c Sources/CReadOnlySpaces/ReadOnlySpaces.c -o "$kit/reader.o"
 xcrun clang -fobjc-arc "${clang_flags[@]}" -DNEARPANE_CONTRACT_MEMBERS -c scripts/acceptance/secondary-occupancy.m -o "$kit/members.o"
 swift_flags=(-D NATIVE_CONTRACT -module-cache-path "$PWD/.build/clang-cache" -Xcc -I -Xcc "$inc"

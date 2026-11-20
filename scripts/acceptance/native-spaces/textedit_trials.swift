@@ -8,7 +8,7 @@ struct DocumentRequest: Decodable {
     let index: Int?, marker: String?, hid: [UInt32]
 }
 struct DocumentInstance: Codable {
-    let pid: Int32, launch: TimeInterval, hash: String
+    let pid: Int32, birth: UInt64, launch: TimeInterval, hash: String
 }
 func textInputCounters() -> [UInt32] {
     [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel].map {
@@ -50,9 +50,10 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     func instance(_ application: NSRunningApplication) throws -> DocumentInstance {
         guard application.bundleURL?.standardizedFileURL.path == appURL.path,
               application.bundleIdentifier=="com.apple.TextEdit", !application.isTerminated,
-              let launch=application.launchDate?.timeIntervalSince1970, let hash=runningCodeHash(application.processIdentifier)
+              let launch=application.launchDate?.timeIntervalSince1970, let hash=runningCodeHash(application.processIdentifier),
+              let birth=birthMicroseconds(application.processIdentifier)
         else { throw DocumentRefusal("could not verify Apple TextEdit at its system path") }
-        return DocumentInstance(pid:application.processIdentifier, launch:launch, hash:hash)
+        return DocumentInstance(pid:application.processIdentifier, birth:birth, launch:launch, hash:hash)
     }
     if request.mode == "open" {
         try guardInput()
@@ -75,22 +76,21 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
                 guard let app else { throw DocumentRefusal("Launch Services did not identify the new application") }
                 let record=try instance(app)
                 try JSONEncoder().encode(record).write(to:receiptURL,options:.withoutOverwriting)
+                try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: receiptURL.path)
                 reply = .success(record)
             } catch { reply = .failure(error) }
         }
         let stop=Date().addingTimeInterval(8)
         while reply==nil, Date()<stop { RunLoop.current.run(until:Date().addingTimeInterval(0.03)) }
         guard let record=try reply?.get() else { throw DocumentRefusal("TextEdit launch receipt is unknown") }
-        return ["pid":record.pid,"launch":record.launch,"hash":record.hash]
+        return ["pid":record.pid,"birth":record.birth,"launch":record.launch,"hash":record.hash]
     }
     let enrolled=try JSONDecoder().decode(DocumentInstance.self,from:Data(contentsOf:receiptURL))
     guard let app=NSRunningApplication(processIdentifier:enrolled.pid) else {
-        if ["terminated","close"].contains(request.mode) { return ["terminated":true,"pid":enrolled.pid] }
-        throw DocumentRefusal("enrolled TextEdit exited")
+        throw DocumentRefusal("enrolled TextEdit is not registered with Launch Services")
     }
-    if request.mode=="terminated" { return ["terminated":app.isTerminated || app.launchDate?.timeIntervalSince1970 != enrolled.launch,"pid":enrolled.pid] }
     let live=try instance(app)
-    guard live.launch==enrolled.launch && live.hash==enrolled.hash else { throw DocumentRefusal("TextEdit process generation changed") }
+    guard live.birth == enrolled.birth && live.launch==enrolled.launch && live.hash==enrolled.hash else { throw DocumentRefusal("TextEdit process generation changed") }
     let root=AXUIElementCreateApplication(enrolled.pid)
     _=AXUIElementSetMessagingTimeout(root,0.5)
     func boundWindows() throws -> [AXUIElement] {
@@ -110,13 +110,8 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     let windows=try boundWindows()
     if request.mode=="close" {
         // A new user document in our process revokes permission to terminate it.
-        guard textInputCounters()==request.hid, app.terminate() else {throw DocumentRefusal("could not quit the owned TextEdit instance")}
-        let deadline=Date().addingTimeInterval(2)
-        while !app.isTerminated && Date()<deadline { usleep(60_000) }
-        if !app.isTerminated {
-            _=try boundWindows()
-            guard textInputCounters()==request.hid && app.forceTerminate() else {throw DocumentRefusal("test TextEdit did not terminate")}
-        }
+        guard textInputCounters()==request.hid, birthMicroseconds(enrolled.pid)==enrolled.birth,
+              app.terminate() else {throw DocumentRefusal("could not quit the owned TextEdit instance")}
         return ["quitRequested":true,"pid":enrolled.pid]
     }
     try guardInput()
@@ -176,6 +171,9 @@ do {
     let result=try textDocuments(request)
     FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject:result)+Data([10]))
 } catch {
-    let reason=(error as? DocumentRefusal)?.reason ?? "system document fixture failed: \(error.localizedDescription)"
-    FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject:["issued":false,"reason":reason])+Data([10]));exit(2)
+    // Only our explicit guards prove that this invocation stopped before AXPress.
+    let refusal = error as? DocumentRefusal
+    let reply: Object = ["issued": refusal == nil ? NSNull() as Any : false,
+                         "reason": refusal?.reason ?? "system document helper did not produce a confirmed reply"]
+    FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject:reply)+Data([10]));exit(2)
 }

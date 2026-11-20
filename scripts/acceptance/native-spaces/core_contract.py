@@ -213,8 +213,10 @@ def main():
         if "W01" in wanted:
             def w01():
                 actual=document_trials(ws,receipt,a)
-                if actual["status"] in ("PASS","FAIL"):
-                    mark("W01",actual["status"],actual["reason"],issued=actual["issued"],passes=actual["passes"])
+                # Once TextEdit recorded a sidebar intent, even a lost reply stops this input chain.
+                if actual["attempts"] or actual["status"] != "BLOCKED" or actual["cleanup"]["status"] not in ("PASS","NOT_RUN"):
+                    mark("W01",actual["status"],actual["reason"],issued=actual["issued"],passes=actual["passes"],
+                         operationStatus=actual["operationStatus"],pressCounts=actual["pressCounts"],cleanup=actual["cleanup"])
                     return
                 child=Receipt(out/"same-app-documents")
                 try:
