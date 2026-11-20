@@ -5,7 +5,7 @@ import CryptoKit
 struct DocumentRefusal: Error { let reason: String; init(_ reason: String) { self.reason = reason } }
 struct DocumentRequest: Decodable {
     let mode: String, folder: String, display: String, space: UInt64, hostPID: Int32, hostHash: String
-    let index: Int?, marker: String?, hid: [UInt32]
+    let hostBirth: UInt64, index: Int?, target: UInt32?, numbers: [UInt32]?, panel: UInt32?, marker: String?, hid: [UInt32]
 }
 struct DocumentInstance: Codable {
     let pid: Int32, birth: UInt64, launch: TimeInterval?, hash: String
@@ -34,7 +34,75 @@ func ownedDocumentNode(_ path: String, directory: Bool) -> Bool {
     guard lstat(path,&info)==0,info.st_uid==getuid(),info.st_mode & 0o077 == 0 else {return false}
     return info.st_mode & S_IFMT == (directory ? S_IFDIR : S_IFREG) && (directory || info.st_nlink==1)
 }
-func textDocuments(_ request: DocumentRequest, reads: inout [Object]) throws -> Object {
+// The product card is queried by its opaque AX identifier. No window labels are exported.
+func documentControl(_ host: NSRunningApplication, id: String, display: String) -> (AXUIElement?, Object) {
+    let hostRows = rows.filter { $0[kCGWindowOwnerPID as String] as? pid_t == host.processIdentifier &&
+        $0[kCGWindowIsOnscreen as String] as? Bool == true }
+    let index = Sidebar(host, rows: hostRows)
+    let matches = index.controls[id] ?? []
+    var note: Object = ["matches": matches.count, "regions": index.areas]
+    func stop(_ state: String) -> (AXUIElement?, Object) { note["state"] = state; return (nil, note) }
+    if let state = TextEditSidebarButtonRead.matchState(count:matches.count,rosterCount:index.areas) { return stop(state) }
+    let node = matches[0]
+    func owned(_ element: AXUIElement) -> Bool {
+        var pid: pid_t = 0
+        return AXUIElementGetPid(element,&pid) == .success && pid == host.processIdentifier
+    }
+    guard owned(node), value(node,kAXIdentifierAttribute) as? String == id else { return stop("identityChanged") }
+    let role = value(node,kAXRoleAttribute) as? String
+    note["button"] = role == kAXButtonRole
+    guard role == kAXButtonRole else { return stop("buttonUnavailable") }
+    var raw: CFTypeRef?
+    let error = AXUIElementCopyAttributeValue(node,kAXEnabledAttribute as CFString,&raw)
+    note["enabledAXError"] = error.rawValue
+    guard let enabled = TextEditSidebarButtonRead.enabled(status:error,value:raw) else { return stop("enabledUnreadable") }
+    note["enabled"] = enabled
+    guard enabled else { return stop("disabled") }
+    var names: CFArray?
+    let actionError = AXUIElementCopyActionNames(node,&names)
+    note["actionsAXError"] = actionError.rawValue
+    guard actionError == .success, (names as? [String])?.contains(kAXPressAction) == true else { return stop("pressActionUnavailable") }
+    func rect(_ element: AXUIElement) -> CGRect? {
+        guard let p = value(element,kAXPositionAttribute), let s = value(element,kAXSizeAttribute),
+              CFGetTypeID(p) == AXValueGetTypeID(), CFGetTypeID(s) == AXValueGetTypeID() else { return nil }
+        var origin = CGPoint.zero, size = CGSize.zero
+        guard AXValueGetValue(p as! AXValue,.cgPoint,&origin), AXValueGetValue(s as! AXValue,.cgSize,&size),
+              size.width > 0, size.height > 0 else { return nil }
+        return CGRect(origin:origin,size:size)
+    }
+    guard index.regions.count == 1, owned(index.regions[0]), let region = rect(index.regions[0]), let card = rect(node) else { return stop("rosterGeometryUnavailable") }
+    let center = CGPoint(x:card.midX,y:card.midY)
+    guard region.contains(center) else { return stop("cardOutsideRoster") }
+    func axElement(_ raw: CFTypeRef?) -> AXUIElement? {
+        guard let raw, CFGetTypeID(raw) == AXUIElementGetTypeID() else { return nil }
+        return (raw as! AXUIElement)
+    }
+    var ancestor = axElement(value(node,kAXWindowAttribute)) ?? node
+    for _ in 0..<36 {
+        guard owned(ancestor) else { return stop("panelUnverified") }
+        if value(ancestor,kAXRoleAttribute) as? String == kAXWindowRole { break }
+        guard let parent = axElement(value(ancestor,kAXParentAttribute)) else { return stop("panelUnverified") }
+        ancestor = parent
+    }
+    let panel = NPReadAXWindowNumber(ancestor)
+    guard panel > 0, owned(ancestor), value(ancestor,kAXRoleAttribute) as? String == kAXWindowRole,
+          hostRows.contains(where: { row in
+              guard row[kCGWindowNumber as String] as? UInt32 == panel,
+                    row[kCGWindowLayer as String] as? Int == Int(CGWindowLevelForKey(.floatingWindow)),
+                    let raw = row[kCGWindowBounds as String] as? NSDictionary else { return false }
+              return CGRect(dictionaryRepresentation:raw)?.contains(center) == true
+          }) else { return stop("panelUnverified") }
+    let screens = displays().filter { screen in
+        display == "Main" ? screen["main"] as? Bool == true : (screen["uuid"] as? String)?.caseInsensitiveCompare(display) == .orderedSame
+    }
+    guard screens.count == 1, let frame = screens[0]["bounds"] as? [CGFloat], frame.count == 4,
+          CGRect(x:frame[0],y:frame[1],width:frame[2],height:frame[3]).contains(center) else { return stop("wrongDisplay") }
+    note["panel"] = panel
+    note["state"] = "ready"
+    return (node, note)
+}
+
+func textDocuments(_ request: DocumentRequest, reads: inout [Object], controlRead: inout Object?) throws -> Object {
     let folder = URL(fileURLWithPath:request.folder, isDirectory:true)
     let kit = folder.deletingLastPathComponent()
     let manager = FileManager.default
@@ -52,7 +120,8 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object]) throws -> 
     guard NPReadOnlySpacesOpen()==1 else {throw DocumentRefusal("system Space readback unavailable")}
     func guardInput() throws {
         let active = inventory()?.first { $0["scope"] as? String == request.display }
-        guard let host, host.processIdentifier == request.hostPID, runningCodeHash(host.processIdentifier) == request.hostHash,
+        guard let host, !host.isTerminated, host.processIdentifier == request.hostPID,
+              birthMicroseconds(host.processIdentifier) == request.hostBirth, runningCodeHash(host.processIdentifier) == request.hostHash,
               active?["current"] as? UInt64 == request.space,
               (active?["records"] as? [Object])?.contains(where: { $0["id"] as? UInt64 == request.space && $0["type"] as? Int == 0 }) == true,
               textInputCounters()==request.hid, NSEvent.pressedMouseButtons==0
@@ -234,6 +303,7 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object]) throws -> 
     }
     func guardBoundary() throws {
         guard TextEditProcessIdentity.kernelBirth(enrolled.pid)==enrolled.birth,
+              birthMicroseconds(request.hostPID)==request.hostBirth,
               textInputCounters()==request.hid,NSEvent.pressedMouseButtons==0 else {
             throw DocumentRefusal("console owner, process generation or physical input changed during the focus proof")
         }
@@ -258,20 +328,27 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object]) throws -> 
     guard let i=request.index, (0..<2).contains(i), let host else {
         throw DocumentRefusal("test document lost foreground ownership")
     }
-    if request.mode=="press" {
+    guard request.numbers == numbers, request.target == numbers[i] else { throw DocumentRefusal("enrolled window pair or target window number changed") }
+    if request.mode == "ready" || request.mode == "press" {
         let id="current-desktop-window:\(enrolled.pid):\(numbers[i])"
-        let sidebar=Sidebar(host,rows:rows)
-        guard let exact=sidebar.controls[id],exact.count==1,value(exact[0],kAXEnabledAttribute) as? Bool == true else {
-            throw DocumentRefusal("installed sidebar has no unique enabled document control")
-        }
+        let (exact, info) = documentControl(host,id:id,display:request.display)
+        controlRead = info
         try guardInput()
         try verifyWindows()
-        guard owner(exact[0])==host.processIdentifier,value(exact[0],kAXIdentifierAttribute) as? String==id,
-              value(exact[0],kAXEnabledAttribute) as? Bool==true,try focus().focused==initial.focused else {
+        if request.mode == "ready" {
+            guard try focus().focused == initial.focused else { throw DocumentRefusal("focused document changed while reading sidebar control") }
+            try guardBoundary()
+            return ["control":id, "hostPID":host.processIdentifier, "hostBirth":request.hostBirth, "hostHash":request.hostHash,
+                    "documentBirth":enrolled.birth, "numbers":numbers, "display":request.display, "space":request.space]
+        }
+        guard let exact else { throw DocumentRefusal("installed sidebar control unavailable before press: \(info["state"] ?? "unknown")") }
+        guard let panel = request.panel, panel > 0, info["panel"] as? UInt32 == panel else { throw DocumentRefusal("installed sidebar panel changed before press") }
+        guard owner(exact)==host.processIdentifier,value(exact,kAXIdentifierAttribute) as? String==id,
+              value(exact,kAXEnabledAttribute) as? Bool==true, try focus().focused==initial.focused else {
             throw DocumentRefusal("sidebar control or focused document changed before press")
         }
         try guardBoundary()
-        let error=AXUIElementPerformAction(exact[0],kAXPressAction as CFString)
+        let error=AXUIElementPerformAction(exact,kAXPressAction as CFString)
         return ["issued":true,"axError":error.rawValue,"control":id,"focusWitness":"systemAX"]
     }
     guard request.mode=="marker", let marker=request.marker,marker.utf8.count==12,marker.hasPrefix("NP"),marker.dropFirst(2).allSatisfy(\.isHexDigit),
@@ -292,9 +369,11 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object]) throws -> 
 }
 
 var documentWindowReads = [Object]()
+var documentControlRead: Object?
 do {
     let request=try JSONDecoder().decode(DocumentRequest.self,from:FileHandle.standardInput.readDataToEndOfFile())
-    var result=try textDocuments(request, reads: &documentWindowReads)
+    var result=try textDocuments(request, reads: &documentWindowReads, controlRead: &documentControlRead)
+    if let documentControlRead { result["controlRead"] = documentControlRead }
     if !documentWindowReads.isEmpty { result["windowReads"] = documentWindowReads }
     FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject:result)+Data([10]))
 } catch {
@@ -304,6 +383,7 @@ do {
     var reply: Object = ["issued": refusal == nil && identity == nil ? NSNull() as Any : false,
                          "stage":identity?.stage as Any? ?? NSNull(),
                          "reason": identity?.reason ?? refusal?.reason ?? "system document helper did not produce a confirmed reply"]
+    if let documentControlRead { reply["controlRead"] = documentControlRead }
     if !documentWindowReads.isEmpty { reply["windowReads"] = documentWindowReads }
     FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject:reply)+Data([10]));exit(2)
 }

@@ -29,7 +29,7 @@ class DocumentTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.kit = Path(temporary.name).resolve()
         self.instance = {"pid": 27, "birth": 123450000, "launch": 4.1, "hash": "code"}
-        self.workspace = SimpleNamespace(kit=self.kit, display="screen", host={"pid": 28, "codeHash": "host"}, hid=[])
+        self.workspace = SimpleNamespace(kit=self.kit, display="screen", host={"pid": 28, "codeHash": "host"}, host_birth=987654321, hid=[])
         self.calls = []
         self.receipt = SimpleNamespace(attempts=[], log=Mock(), write=Mock())
         self.clock = Clock()
@@ -37,6 +37,13 @@ class DocumentTests(unittest.TestCase):
             p = patch.object(doc.time, name, fn)
             p.start()
             self.addCleanup(p.stop)
+
+    def ready(self, target, state="ready", panel=90):
+        note = dict(state=state, matches=1, regions=1, button=True, enabled=True, enabledAXError=0, actionsAXError=0)
+        if state == "ready":
+            note["panel"] = panel
+        return dict(control=f"current-desktop-window:27:{target}", hostPID=28, hostBirth=self.workspace.host_birth, hostHash="host",
+                    documentBirth=self.instance["birth"], numbers=[31, 32], display="screen", space=47, controlRead=note)
 
     def simulate(self, reply, process, close_error=None):
         def helper(workspace, folder, desktop, mode, **kwargs):
@@ -49,6 +56,8 @@ class DocumentTests(unittest.TestCase):
             if mode == "sample":
                 empty = hashlib.sha256(b"").hexdigest()
                 return {"front": True, "numbers": [31, 32], "focused": 31, "main": 31, "hashes": [empty, empty]}
+            if mode == "ready":
+                return self.ready(kwargs["target"])
             if mode == "press":
                 if isinstance(reply, Exception):
                     raise reply
@@ -106,6 +115,69 @@ class DocumentTests(unittest.TestCase):
         a = result["attempts"][0]
         self.assertEqual((a["pressDisposition"], a["axIssued"], a["inputAcknowledged"]), ("ISSUED", True, False))
 
+    def test_control_wait_resets_on_absence_duplicates_disabling_and_visible_panel_replacement(self):
+        expected = self.ready(32)
+        expected.pop("controlRead")
+        seq = iter([("missing", 0), ("disabled", 0), ("ready", 70), ("duplicate", 0), ("ready", 70), ("ready", 80), ("ready", 80)])
+        def action(mode, **kwargs):
+            self.assertEqual(mode, "ready")
+            self.assertEqual((kwargs["index"], kwargs["target"]), (1, 32))
+            state, panel = next(seq)
+            proof = self.ready(32, state, panel)
+            if state == "missing":
+                proof["controlRead"].update(matches=0)
+            elif state == "disabled":
+                proof["controlRead"].update(enabled=False)
+            elif state == "duplicate":
+                proof["controlRead"].update(matches=2)
+            return proof
+        result = doc.wait_for_control(action, 1, 32, expected, 1, self.receipt)
+        self.assertEqual((result["status"], result["panel"]), ("READY", 80))
+        self.assertEqual([o["state"] for o in result["observations"]], ["missing", "disabled", "ready", "duplicate", "ready", "ready", "ready"])
+
+    def test_unready_sidebar_expires_without_product_attempt_or_marker_and_closes_the_owned_fixture(self):
+        def action(workspace, folder, desktop, mode, **kwargs):
+            self.calls.append(mode)
+            if mode == "open":
+                path = folder/"instance.json"
+                path.write_text(json.dumps(self.instance))
+                path.chmod(0o600)
+                return self.instance
+            if mode == "sample":
+                empty = hashlib.sha256(b"").hexdigest()
+                return dict(front=True, numbers=[31, 32], focused=31, main=31, hashes=[empty, empty])
+            if mode == "ready":
+                proof = self.ready(32, "missing")
+                proof["controlRead"] = dict(state="missing", matches=0, regions=1)
+                return proof
+            self.assertEqual(mode, "close")
+            return dict(quitRequested=True)
+        with patch.object(doc, "document_action", side_effect=action), patch.object(doc, "kernel_state", return_value=dict(state="ABSENT")):
+            result = doc.run(self.workspace, self.receipt, 47)
+        self.assertEqual((result["status"], result["operationStage"], result["issued"], result["attempts"]), ("BLOCKED", "control-readiness", 0, []))
+        self.assertNotIn("marker", self.calls)
+        self.assertNotIn("press", self.calls)
+        self.assertEqual(result["cleanup"]["status"], "PASS")
+        obs = result["controlReadiness"][0]["observations"]
+        self.assertGreater(len(obs), 1)
+        self.assertLessEqual(obs[-1]["afterSeconds"], 5)
+        self.assertTrue(all(o["matches"] == 0 and o["state"] == "missing" for o in obs))
+
+    def test_one_ready_read_cannot_survive_a_changed_identity_scope_or_lost_proof(self):
+        expected = self.ready(32)
+        expected.pop("controlRead")
+        failures = [({"hostPID": 32}, "readIdentityChanged"), ({"hostBirth": 10}, "readIdentityChanged"),
+                    ({"documentBirth": 12}, "readIdentityChanged"), ({"numbers":[31, 33]}, "readIdentityChanged"), ({"control":"other"}, "readIdentityChanged"),
+                    ({"space":9}, "readIdentityChanged"), ({"controlRead":{"state":"ready", "matches":1}}, "invalidRead"),
+                    (subprocess.TimeoutExpired("readonly", 0.2), "readTimedOut"), (doc.ScopeError("HID changed"), "guardRefused")]
+        for change, reason in failures:
+            with self.subTest(reason=reason):
+                tail = change if isinstance(change, Exception) else {**self.ready(32), **change}
+                action = Mock(side_effect=[self.ready(32), tail])
+                result = doc.wait_for_control(action, 1, 32, expected, 1, self.receipt)
+                self.assertEqual((result["status"], result["observations"][-1]["state"]), ("BLOCKED", reason))
+                self.assertEqual([c.args for c in action.call_args_list], [("ready",), ("ready",)])
+
     def test_issued_and_acknowledged_requires_the_exact_target_control(self):
         def helper(mode, **kwargs):
             return {"exitCode": 0, "control": "current-desktop-window:27:32", "axError": 0, "issued": True}
@@ -130,11 +202,14 @@ class DocumentTests(unittest.TestCase):
                 return {"numbers": numbers, "focused": numbers[focused], "main": numbers[focused], "front": True,
                         "hashes": [hashlib.sha256(t.encode()).hexdigest() for t in text],
                         "markerCounts": [t.count(marker) if marker else 0 for t in text]}
+            if mode == "ready":
+                return self.ready(kwargs["target"])
             if mode == "press":
+                self.assertEqual((kwargs["panel"], kwargs["target"], kwargs["numbers"]), (90, numbers[kwargs["index"]], numbers))
                 focused = kwargs["index"]
                 return {"issued": True, "exitCode": 0, "axError": 0, "control": f"current-desktop-window:27:{numbers[focused]}"}
             if mode == "marker":
-                self.assertEqual(focused, kwargs["index"])
+                self.assertEqual((focused, kwargs["target"], kwargs["numbers"]), (kwargs["index"], numbers[focused], numbers))
                 text[focused] += kwargs["marker"]
                 return {"issued": True}
             self.assertEqual(mode, "close")
@@ -147,6 +222,10 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual([r["target"] for r in result["attempts"]], [32, 31] * 5)
         self.assertTrue(result["cleanup"]["terminated"])
         self.assertEqual(self.calls.count("close"), 1)
+        self.assertEqual(self.calls.count("ready"), 20)
+        for i, call in enumerate(self.calls):
+            if call == "press":
+                self.assertEqual(self.calls[i-2:i], ["ready", "ready"])
 
     def test_kernel_witness_accepts_only_the_enrolled_pid_and_valid_generation(self):
         def sample(payload):

@@ -48,3 +48,16 @@ struct TextEditWindowList {
         return Self(windows: state == "twoAXWindows" ? list.windows : nil, status: state, evidence: note)
     }
 }
+
+// Interpret only the registered product identifier's cardinality and the AXBoolean
+// on that node. A missing or malformed attribute cannot establish disablement.
+enum TextEditSidebarButtonRead {
+    static func matchState(count: Int, rosterCount: Int) -> String? {
+        if count == 0 { return rosterCount == 1 ? "missing" : "rosterUnavailable" }
+        return count == 1 ? nil : "duplicate"
+    }
+    static func enabled(status: AXError, value: CFTypeRef?) -> Bool? {
+        guard status == .success, let value, CFGetTypeID(value) == CFBooleanGetTypeID() else { return nil }
+        return value as? Bool
+    }
+}

@@ -42,13 +42,13 @@ def window_reads(value):
     return "RECORDED", value
 
 
-def document_action(workspace, folder, desktop, mode, *, record_reads=None, **extra):
+def document_action(workspace, folder, desktop, mode, *, record_reads=None, witness_timeout=13, **extra):
     request = dict(mode=mode, folder=str(folder), display=workspace.display, space=desktop,
-                   hostPID=workspace.host["pid"], hostHash=workspace.host["codeHash"], hid=workspace.hid, **extra)
-    track = record_reads is not None and mode in ("sample", "press", "marker", "close")
+                   hostPID=workspace.host["pid"], hostBirth=workspace.host_birth, hostHash=workspace.host["codeHash"], hid=workspace.hid, **extra)
+    track = record_reads is not None and mode in ("sample", "ready", "press", "marker", "close")
     try:
         cmd = subprocess.run([str(workspace.kit/"textedit")], input=json.dumps(request),
-                             capture_output=True, text=True, timeout=13)
+                             capture_output=True, text=True, timeout=witness_timeout)
     except (OSError, subprocess.SubprocessError):
         if track:
             record_reads(mode, "NO_REPLY", [])
@@ -73,24 +73,87 @@ def document_action(workspace, folder, desktop, mode, *, record_reads=None, **ex
     return data
 
 
-def press_once(action, index, control):
+def control_read(value):
+    states = {"ready", "missing", "rosterUnavailable", "duplicate", "identityChanged", "buttonUnavailable", "enabledUnreadable",
+              "disabled", "pressActionUnavailable", "rosterGeometryUnavailable", "cardOutsideRoster", "panelUnverified", "wrongDisplay"}
+    if not isinstance(value, dict) or not isinstance(value.get("state"), str) or value["state"] not in states:
+        return {"state": "invalidRead"}
+    row = {"state": value["state"]}
+    for key in ("matches", "regions", "enabledAXError", "actionsAXError", "panel"):
+        if type(value.get(key)) is int:
+            row[key] = value[key]
+    for key in ("button", "enabled"):
+        if type(value.get(key)) is bool:
+            row[key] = value[key]
+    return row
+
+
+def wait_for_control(action, index, target, identity, trial, receipt, seconds=5):
+    """Two completed, independent reads of the same installed panel before a single dispatch."""
+    start = time.monotonic()
+    deadline = start + seconds
+    previous = None
+    observations = []
+    result = dict(trial=trial, **identity, status="BLOCKED", observationDeadlineSeconds=seconds, observations=observations)
+    while (remaining := deadline - time.monotonic()) >= .15:
+        row = {}
+        stop = False
+        try:
+            data = action("ready", index=index, target=target, numbers=identity["numbers"], witness_timeout=remaining)
+        except subprocess.TimeoutExpired:
+            row["state"] = "readTimedOut"
+            stop = True
+        except ERRORS as error:
+            row.update(state="guardRefused", reason=str(error))
+            stop = True
+        else:
+            if not isinstance(data, dict) or any(data.get(k) != v for k, v in identity.items()):
+                row["state"] = "readIdentityChanged"
+                stop = True
+            else:
+                row = control_read(data.get("controlRead"))
+                stop = row["state"] == "invalidRead"
+        panel = row.get("panel")
+        ready = (row["state"] == "ready" and row.get("matches") == row.get("regions") == 1 and
+                 row.get("button") is True and row.get("enabled") is True and
+                 row.get("enabledAXError") == row.get("actionsAXError") == 0 and type(panel) is int and panel > 0)
+        if row["state"] == "ready" and not ready:
+            row["state"] = "invalidRead"
+            stop = True
+        now = time.monotonic()
+        row["afterSeconds"] = round(now-start, 4)
+        observations.append(row)
+        receipt.log("W01-sidebar-control-read", trial=trial, target=target, **row)
+        if ready and now <= deadline and previous == panel:
+            result.update(status="READY", panel=panel)
+            return result
+        if stop:
+            break
+        previous = panel if ready else None
+        time.sleep(max(0, min(.12, deadline-now)))
+    result["reason"] = "two stable installed sidebar control reads unavailable: " + (observations[-1]["state"] if observations else "noRead")
+    return result
+
+
+def press_once(action, index, control, **binding):
     try:
-        reply = action("press", index=index)
+        reply = action("press", index=index, **binding)
     except ERRORS as exc:
         return dict(pressDisposition="UNKNOWN", axIssued=None, inputAcknowledged=None, reason=str(exc))
     code = reply.get("exitCode")
+    observed = {"controlRead": control_read(reply["controlRead"])} if "controlRead" in reply else {}
     if reply.get("issued") is False and code == 2:
         detail = dict(pressDisposition="REFUSED", axIssued=False, inputAcknowledged=None, exitCode=code,
-                      reason=reply.get("reason", "TextEdit witness refused before AXPress"))
+                      reason=reply.get("reason", "TextEdit witness refused before AXPress"), **observed)
         if isinstance(reply.get("stage"), str):
             detail["identityRefusalStage"] = reply["stage"]
         return detail
     if reply.get("issued") is not True:
         return dict(pressDisposition="UNKNOWN", axIssued=None, inputAcknowledged=None, exitCode=code,
-                    reason=reply.get("reason", "TextEdit witness did not confirm whether AXPress was issued"))
+                    reason=reply.get("reason", "TextEdit witness did not confirm whether AXPress was issued"), **observed)
     error = reply.get("axError")
     detail = dict(pressDisposition="ISSUED", axIssued=True, axError=error, control=reply.get("control"),
-                  inputAcknowledged=None, exitCode=code)
+                  inputAcknowledged=None, exitCode=code, **observed)
     if reply.get("focusWitness") == "systemAX":
         detail["focusWitness"] = "systemAX"
     if code != 0 or reply.get("control") != control or type(error) is not int:
@@ -219,7 +282,7 @@ def run(workspace, receipt, desktop):
             name = row["status"]
             read_summary["outcomes"][name] = read_summary["outcomes"].get(name, 0) + 1
         receipt.log("W01-AX-window-read", operationStage="cleanup" if mode == "close" else stage, mode=mode,
-                    trial=attempt["trial"] if attempt else None, coverage=coverage, reads=readings)
+                    trial=trial, coverage=coverage, reads=readings)
 
     def action(mode, **extra):
         return document_action(workspace, folder, desktop, mode, record_reads=record_reads, **extra)
@@ -239,9 +302,10 @@ def run(workspace, receipt, desktop):
             time.sleep(.1)
         raise ScopeError(latest)
 
-    status = dict(status="BLOCKED", reason="TextEdit was not launched", issued=0, passes=0, cleanup=None, attempts=[])
+    status = dict(status="BLOCKED", reason="TextEdit was not launched", issued=0, passes=0, cleanup=None, attempts=[], controlReadiness=[])
     launched = None
     attempt = None
+    trial = None
     stage = "launch"
     try:
         launched = action("open")
@@ -256,15 +320,23 @@ def run(workspace, receipt, desktop):
             index = (first+turn) % 2
             n = numbers[index]
             attempt = None
+            trial = turn + 1
             stage = "before-press"
             before = wait(lambda d: d["front"] and d["numbers"] == numbers)
-            attempt = dict(scenario="W01", application="com.apple.TextEdit", trial=turn+1, target=n,
+            stage = "control-readiness"
+            control = f"current-desktop-window:{launched['pid']}:{n}"
+            identity = dict(control=control, hostPID=workspace.host["pid"], hostBirth=workspace.host_birth,
+                            hostHash=workspace.host["codeHash"], documentBirth=launched["birth"], numbers=numbers, display=workspace.display, space=desktop)
+            readiness = wait_for_control(action, index, n, identity, trial, receipt)
+            status["controlReadiness"].append(readiness)
+            require(readiness["status"] == "READY", readiness.get("reason", "installed sidebar control unavailable"))
+            attempt = dict(scenario="W01", application="com.apple.TextEdit", trial=trial, target=n,
                            status="UNKNOWN", pressDisposition="UNKNOWN", axIssued=None, inputAcknowledged=None)
             receipt.attempts.append(attempt)
             status["attempts"].append(attempt)
             receipt.log("W01-system-document-intent", **attempt)
             stage = "sidebar-press"
-            reply = press_once(action, index, f"current-desktop-window:{launched['pid']}:{n}")
+            reply = press_once(action, index, control, target=n, numbers=numbers, panel=readiness["panel"])
             attempt.update(reply)
             status["issued"] += int(reply["axIssued"] is True)
             receipt.log("W01-installed-sidebar-press", trial=turn+1, target=n, **reply)
@@ -289,7 +361,7 @@ def run(workspace, receipt, desktop):
                 raise
             stage = "marker"
             marker = "NP"+uuid.uuid4().hex[:10]
-            marker_reply = action("marker", index=index, marker=marker)
+            marker_reply = action("marker", index=index, target=n, numbers=numbers, marker=marker)
             require(marker_reply.get("issued") is True, "marker was not admitted in the exact target editor")
             counts = [0, 0]
             counts[index] = 1

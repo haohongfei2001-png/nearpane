@@ -64,6 +64,15 @@ private final class Fixture {
             let omitted = TextEditWindowList.inspect(count: { count }, copy: { fatalError("must not enumerate unqualified windows") })
             precondition(omitted.status == label && omitted.evidence["copyAXError"] == nil)
         }
+        for (count, rosters, expected) in [(0, 0, "rosterUnavailable"), (0, 1, "missing"), (2, 1, "duplicate")] {
+            precondition(TextEditSidebarButtonRead.matchState(count:count,rosterCount:rosters) == expected)
+        }
+        precondition(TextEditSidebarButtonRead.matchState(count:1,rosterCount:1) == nil)
+        precondition(TextEditSidebarButtonRead.enabled(status:.success,value:kCFBooleanTrue) == true)
+        precondition(TextEditSidebarButtonRead.enabled(status:.success,value:kCFBooleanFalse) == false)
+        precondition(TextEditSidebarButtonRead.enabled(status:.success,value:NSNumber(value:7)) == nil)
+        precondition(TextEditSidebarButtonRead.enabled(status:.success,value:nil) == nil)
+        precondition(TextEditSidebarButtonRead.enabled(status:.cannotComplete,value:kCFBooleanTrue) == nil)
         let fixture = Fixture()
         precondition(fixture.indices()?.focused == 0 && fixture.indices(editor: 4)?.main == 0)
         precondition(fixture.indices(editor: 5) == nil)
