@@ -1,0 +1,21 @@
+{
+  "candidateSource": "f50d6ac5394be994e657abd77e7fdca79a77b4bc",
+  "inputArchiveSHA256": "ca53b88ba1b174a8f0a443990403bb4122dd55ab7796824184e9011c9b3b9bd6",
+  "preliminaryDistributionSigning": "PASS",
+  "notarization": "NOT_RUN",
+  "installed": false,
+  "publicRelease": false,
+  "distributionBinaryCount": 13,
+  "missing": 0,
+  "stagedZipSHA256": "fdcdcfa14e1dadcaa5463eba273dbf1661e52f3ee192e8dd60ba559a2dffaf32",
+  "signingContinuity": "PASS",
+  "notaryAuth": {
+    "configuredProductEnvironment": false,
+    "standardKeychainServiceMatched": false,
+    "repositoryActionsCredentialNameMatched": false,
+    "submission": "NOT_RUN"
+  },
+  "stapler": "NOT_RUN",
+  "cleanMac": "BLOCKED",
+  "currentInstalledArchiveStillOriginal": true
+}

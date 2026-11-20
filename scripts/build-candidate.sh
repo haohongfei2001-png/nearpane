@@ -36,6 +36,12 @@ version=5.22
 build_number=90
 name="Nearpane.app"
 signing_identity="${NEARPANE_LOCAL_SIGNING_IDENTITY:-installed-product}"
+signing_arguments=(--identity "$signing_identity")
+case "${NEARPANE_SIGNING_MODE:-local}" in
+    local) ;;
+    distribution) signing_arguments+=(--distribution) ;;
+    *) echo "Unknown candidate signing mode" >&2; exit 1 ;;
+esac
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-/Applications}"
 if [[ -z "${NEARPANE_CANDIDATE_OUTPUT:-}" && ! -e /Applications/Nearpane.app &&
       ( -d "$HOME/Applications/Nearpane.app" || ! -w /Applications ) ]]; then
@@ -72,7 +78,7 @@ python3 -B scripts/build-helper-runtime.py "$candidate"
 check_candidate_source
 /usr/bin/plutil -replace NearpaneSourceState -string "$source_state" "$candidate/Contents/Info.plist"
 codesign --force --sign - --identifier com.holdsnow.nearpane.alpha "$candidate"
-python3 -I -B scripts/candidate_signing.py "$candidate" --identity "$signing_identity"
+python3 -I -B scripts/candidate_signing.py "$candidate" "${signing_arguments[@]}"
 codesign --verify --strict --deep "$candidate"
 "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
 "$candidate/Contents/MacOS/NearpaneHost" --check-helper-runtime

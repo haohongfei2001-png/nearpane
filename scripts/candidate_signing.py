@@ -102,7 +102,7 @@ def product_fingerprint(listing):
     return possible[0]
 
 
-def sign_staged(candidate, fingerprint):
+def sign_staged(candidate, fingerprint, *, distribution=False):
     if (candidate.is_symlink() or candidate.parent.is_symlink()
             or not candidate.parent.name.startswith(".nearpane-stage.")
             or candidate.parent.stat().st_uid != os.getuid() or candidate.parent.stat().st_mode & 0o077):
@@ -117,16 +117,18 @@ def sign_staged(candidate, fingerprint):
         raise ValueError("Selected certificate belongs to a different Developer ID team")
 
     def seal(component, identifier):
-        # Keep the current local package's hardened-runtime and entitlement semantics.
+        # Internal builds retain their original flags. Distribution requires a secure Apple timestamp and runtime on every nested executable.
         metadata = gate.cmd("/usr/bin/codesign", "-dvvv", str(component))
-        runtime = ["--options", "runtime"] if re.search(r"flags=0x[\da-f]+\([^)]*\bruntime\b", metadata) else []
-        gate.cmd("/usr/bin/codesign", "--force", "--sign", fingerprint, "--timestamp=none",
+        runtime = ["--options", "runtime"] if distribution or re.search(r"flags=0x[\da-f]+\([^)]*\bruntime\b", metadata) else []
+        gate.cmd("/usr/bin/codesign", "--force", "--sign", fingerprint, "--timestamp" if distribution else "--timestamp=none",
                  "--preserve-metadata=entitlements", *runtime, "--identifier", identifier, str(component))
 
     seal_components(app, seal)
     after = gate.inspect(app)
     if set(original["binaries"]) != set(after["binaries"]):
         raise ValueError("Nested binary inventory changed during local signing")
+    if distribution and after["missingDistributionSignatures"]:
+        raise ValueError("Distribution signature fields missing: " + ", ".join(after["missingDistributionSignatures"]))
     for relative, meta in after["binaries"].items():
         requirement = meta["designatedRequirement"]
         if (meta["signingTeam"] != team or "anchor apple generic" not in requirement
@@ -138,9 +140,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("staged_app", type=Path)
     parser.add_argument("--identity", required=True, help="Authorized local Developer ID Application fingerprint")
+    parser.add_argument("--distribution", action="store_true", help="Apply hardened runtime and secure timestamps to the staged package")
     args = parser.parse_args()
     try:
-        sign_staged(args.staged_app, args.identity)
+        sign_staged(args.staged_app, args.identity, distribution=args.distribution)
     except subprocess.CalledProcessError as error:
         parser.exit(1, f"{error}\n{error.stdout or ''}\n")
     except (KeyError, OSError, ValueError) as error:
