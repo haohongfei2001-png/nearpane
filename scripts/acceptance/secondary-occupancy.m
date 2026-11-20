@@ -241,13 +241,18 @@ static NSDictionary *scopedSample(NSString *p, NSString *s, NSString *pc, NSStri
     NSMutableSet *targetIDs = b ? [reverse[b] mutableCopy] : [NSMutableSet new];
     NSMutableDictionary *membership = [NSMutableDictionary new];
     NSMutableSet *inspect = [all mutableCopy];
-    if (!p) [inspect unionSet:targetIDs];
+    need([nonDesktop isSubsetOfSet:all], @"public window inventory changed during observation");
+    [inspect unionSet:targetIDs];
     for (NSNumber *wid in inspect) {
         NSArray *raw = CFBridgingRelease(NPReadWindowSpaces(wid.unsignedIntValue));
-        if (![raw isKindOfClass:NSArray.class]) continue;
+        if (![raw isKindOfClass:NSArray.class] || raw.count == 0) {
+            need(!b || ![nonDesktop containsObject:wid], @"cannot exclude an unclassified window from the target");
+            continue;
+        }
         NSMutableSet *set = [NSMutableSet new];
         for (id row in raw) {
             NSString *sid = spaceID(row);
+            need([sids containsObject:sid] && ![set containsObject:sid], @"window membership is inconsistent");
             [set addObject:sid];
         }
         if ([anchor isEqual:wid]) need([set isEqual:[NSSet setWithObject:a]], @"A witness forward membership mismatch");
@@ -258,8 +263,7 @@ static NSDictionary *scopedSample(NSString *p, NSString *s, NSString *pc, NSStri
     NSDictionary *classified = classifyTargetWindows(targetIDs, all, nonDesktop, order, reverse, membership);
     NSMutableDictionary *verifiedOwners = [NSMutableDictionary new];
     if (!p && b) {
-        // Existing B is still required to have zero shared non-desktop objects. Only a
-        // caller with its own creation receipt may use the no-relocation verdict for B.
+        // Both shared and exclusive non-desktop members block deletion.
         NSMutableSet *blocking = [classified[@"blocking"] mutableCopy];
         NSMutableSet *shared = [classified[@"shared"] mutableCopy];
         NSMutableSet *other = [blocking mutableCopy];
@@ -278,7 +282,9 @@ static NSDictionary *scopedSample(NSString *p, NSString *s, NSString *pc, NSStri
         }
         classified = @{@"desktop":classified[@"desktop"], @"blocking":blocking, @"shared":shared};
     }
-    need([inventory(p,s) isEqual:scopes], @"desktop arrangement changed during occupancy observation");
+    need([windowNumbers(kCGWindowListOptionAll) isEqual:all] &&
+         [windowNumbers(kCGWindowListOptionAll | kCGWindowListExcludeDesktopElements) isEqual:nonDesktop] &&
+         [inventory(p,s) isEqual:scopes], @"window inventory or desktop arrangement changed during observation");
     NSMutableDictionary *sample = [classified mutableCopy];
     sample[@"scopes"] = scopes;
     sample[@"corroboratedOwners"] = verifiedOwners;
@@ -318,7 +324,7 @@ int main(int argc, const char **argv) { @autoreleasepool {
             NSDictionary *second = scopedSample(nil, display, nil, a, b, pid, window);
             need([first isEqual:second], @"target occupancy, witness generation or arrangement changed");
             NSUInteger blocking = [second[@"blocking"] count], shared = [second[@"shared"] count];
-            BOOL clear = blocking == 0 && (removal || shared == 0);
+            BOOL clear = blocking == 0 && shared == 0;
             NSString *result = !b ? @"SOURCE_WITNESSED" : (removal ? @"NO_RELOCATION_OBSERVED" : @"OBSERVED_EMPTY");
             emit(@{@"occupancy": clear ? result : @"REFUSED", @"display":display,
                    @"source":a, @"target":b ?: NSNull.null, @"scopeSamples":@2, @"scopeCount":@([second[@"scopes"] count]),
@@ -338,7 +344,7 @@ int main(int argc, const char **argv) { @autoreleasepool {
             usleep(200000);
             NSDictionary *second = scopedSample(p,s,pc,a,b,(pid_t)pid,@(wid));
             need([first isEqual:second], @"target occupancy, witness generation or arrangement changed");
-            BOOL clear = [second[@"blocking"] count] == 0;
+            BOOL clear = [second[@"blocking"] count] == 0 && [second[@"shared"] count] == 0;
             emit(@{@"occupancy":b ? (clear ? @"NO_RELOCATION_OBSERVED" : @"REFUSED") : @"SOURCE_WITNESSED",
                    @"source":a, @"target":b ?: NSNull.null, @"primary":p, @"secondary":s, @"primaryCurrent":pc,
                    @"sourcePID":@(pid), @"sourceWindow":@(wid), @"sourceBirthSeconds":second[@"pidStartSeconds"],

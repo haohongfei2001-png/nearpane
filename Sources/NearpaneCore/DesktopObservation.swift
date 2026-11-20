@@ -43,10 +43,13 @@ public struct SpaceRecord: Codable, Equatable, Identifiable, Sendable {
     public let isCurrent: Bool
     /// Optional WindowServer UUID from a type-0 record on a reader-supported build.
     public let ordinaryUUID: UUID?
+    /// Type-4 system Space, distinct from an ordinary desktop.
+    public let fullscreenUUID: UUID?
     public fileprivate(set) var previouslyWitnessed = false
     // Only the local Host can add historical evidence after validating the reader's live witness.
-    private enum CodingKeys: String, CodingKey { case id, isCurrent, ordinaryUUID }
-    public init(id: String, isCurrent: Bool, ordinaryUUID: UUID? = nil) {
+    private enum CodingKeys: String, CodingKey { case id, isCurrent, ordinaryUUID, fullscreenUUID }
+    public init(id: String, isCurrent: Bool, ordinaryUUID: UUID? = nil, fullscreenUUID: UUID? = nil) {
+        self.fullscreenUUID = fullscreenUUID
         self.id = id; self.isCurrent = isCurrent; self.ordinaryUUID = ordinaryUUID
     }
 }

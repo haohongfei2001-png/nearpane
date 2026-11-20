@@ -28,6 +28,14 @@ def version(value):
     return tuple((list(map(int, value.split("."))) + [0, 0, 0])[:3])
 
 
+def requirement(output):
+    # codesign prefixes a synthesized requirement (such as an ad-hoc cdhash) with "# ".
+    values = re.findall(r"^(?:# )?designated => (.+)$", output, re.MULTILINE)
+    if len(values) != 1:
+        raise ValueError("The executable has no unambiguous designated requirement")
+    return values[0]
+
+
 def inspect(app):
     app = app.resolve(strict=True)
     contents = app / "Contents"
@@ -62,14 +70,17 @@ def inspect(app):
         target = re.findall(r"cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform (?:1|MACOS)\s+minos (\S+)", load)
         if len(target) != 1 or version(target[0]) > version(deployment):
             raise ValueError("Missing/incompatible macOS arm64 slice: " + rel)
-        sign = cmd("/usr/bin/codesign", "-dvvv", str(path))
+        sign = cmd("/usr/bin/codesign", "-dvvv", "-r-", str(path))
         cmd("/usr/bin/codesign", "--strict", "--verify", str(path))
         release = ("Authority=Developer ID Application:" in sign and "Timestamp=" in sign
                    and re.search(r"flags=0x[\da-f]+\([^)]*runtime", sign) is not None)
         if not release:
             issues.append(rel)
+        team = re.search(r"^TeamIdentifier=(.+)$", sign, re.MULTILINE)
         inventory[rel] = dict(sha256=hashlib.sha256(path.read_bytes()).hexdigest(), architectures=arches,
-                              minimumOS=target[0], distributionSignatureFields=release)
+                              minimumOS=target[0], distributionSignatureFields=release,
+                              signingTeam=team[1] if team and team[1] != "not set" else None,
+                              designatedRequirement=requirement(sign))
     if "MacOS/" + info["CFBundleExecutable"] not in inventory:
         raise ValueError("Host missing from inventory")
     if version(info["CFBundleShortVersionString"]) >= (5, 9, 0):

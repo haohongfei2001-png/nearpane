@@ -23,10 +23,9 @@ struct DesktopTilingRoster: Equatable {
         guard scopes.count == 1, current.count == 1, let record = current.first, let uuid = record.ordinaryUUID,
               sample.scopes.flatMap(\.records).filter({ $0.ordinaryUUID == uuid }).count == 1 else { return nil }
         self.space = .init(display: display, record: record.id, uuid: uuid)
-        let members = sample.currentDesktopWindows(on: display, now: now, uptime: uptime)
-            .compactMap { DesktopWindowTarget($0, in: sample) }
-            .filter { $0.overviewSpace == record.id && $0.membership == .known(recordIDs: [record.id]) }
-        self.keys = members.filter(\.publiclyVisible).map(\.key)
+        let members = sample.windows.filter { $0.displayID == display && $0.metadata?.overviewSpaceID == record.id }
+            .compactMap { DesktopWindowTarget.tilingCandidate($0, in: sample) }
+        self.keys = members.filter(\.visible).map(\.key).sorted { $0.number < $1.number }
         self.unpresented = members.count - keys.count
     }
 }
@@ -52,13 +51,16 @@ struct DesktopTilingRoster: Equatable {
     private var preferences: WorkspacePreferences?
     private var observedSpace: OrdinaryDesktopIdentity?
     private var lastPaused = false
+    private var explicitArrivals = [DesktopWindowKey: UUID]()
 
     init(manager: OrdinaryWindowManager, resolve: @escaping Resolve = DesktopAutomaticTiling.resolveWindows) {
         self.manager = manager; self.resolve = resolve
     }
 
     func connect(_ feed: CurrentDesktopWindows, permitsOwner: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
+        self.feed?.automaticTiling = nil
         self.feed = feed
+        feed.automaticTiling = self
         self.permitsOwner = permitsOwner
         feed.didSample = { [weak self] in self?.changed() }
         manager.desktopIsCurrent = { [weak self] in
@@ -105,6 +107,25 @@ struct DesktopTilingRoster: Equatable {
         changed()
     }
 
+    /// Serialize an explicit Space move with frame transactions. Frame writes remain
+    /// conditional on the destination desktop grant and a later fresh roster.
+    func transfer(_ key: DesktopWindowKey, lifetime: UUID, from source: OrdinaryDesktopIdentity,
+                  to target: OrdinaryDesktopIdentity, perform: () async throws -> Void) async throws -> String {
+        guard !ending, nativeModeAvailable() else { throw OrdinaryRefusal.stale }
+        try await manager.performUserAction {
+            try await manager.releaseForTransfer(key, from: source, perform: perform)
+        }
+        guard scope == target, let feed, grant != nil else {
+            return "窗口已移入目标桌面。该桌面未授权自动分屏。"
+        }
+        guard permitsOwner(key) else { return "窗口已移入目标桌面，未纳入自动分屏。" }
+        explicitArrivals[key] = lifetime
+        previous?.remove(key)
+        feed.changed()
+        return manager.paused || manager.blocked ? "窗口已移入目标桌面，自动分屏已暂停。" :
+            "窗口已移入目标桌面，等待核对目标桌面的布局。"
+    }
+
     func retry() { previous = nil; feed?.changed(); changed() }
     func awaitCleanDesktop(_ desktop: OrdinaryDesktopIdentity) {
         guard !ending, scope == nil, feed != nil, !manager.blocked else { return }
@@ -127,6 +148,7 @@ struct DesktopTilingRoster: Equatable {
 
     func end() {
         grant = nil; job?.cancel(); job = nil
+        explicitArrivals.removeAll()
         manager.desktopScope = nil
         waitingForDesktop = nil
         previous = nil; preferences = nil; observedSpace = nil; unpresented = 0; lastPaused = false; notice = ""
@@ -147,6 +169,7 @@ struct DesktopTilingRoster: Equatable {
             return
         }
         guard let scope, let token = grant, let feed else { return }
+        explicitArrivals = explicitArrivals.filter { feed.lifetime(of: $0.key) == $0.value }
         let roster = DesktopTilingRoster(feed.snapshot, display: scope.display)
         observedSpace = roster?.space
         unpresented = roster?.space == scope ? roster?.unpresented ?? 0 : 0
@@ -161,6 +184,7 @@ struct DesktopTilingRoster: Equatable {
         let presented = Set(roster.keys)
         guard presented != previous || ctx.preferences != preferences || lastPaused else { return }
         lastPaused = false
+        let priorMembers = previous
         previous = presented; preferences = ctx.preferences
         let managed = Set(manager.activeIDs.map { DesktopWindowKey(pid: $0.pid, birth: $0.launch, number: $0.number) })
         let added = roster.keys.filter { permitsOwner($0) && !managed.contains($0) }
@@ -181,6 +205,11 @@ struct DesktopTilingRoster: Equatable {
                     if grant == token { notice = "等待可核对身份、尺寸和桌面归属的普通窗口。" }
                     return
                 }
+                let requestedCreation = handles.enumerated().contains { index, handle in
+                    let key = DesktopWindowKey(pid: handle.id.pid, birth: handle.id.launch, number: handle.id.number)
+                    return explicitArrivals[key] == nil && priorMembers?.contains(key) == false && WorkspaceAdmissionPlanner.requestsCreation(
+                        existingCount: manager.activeIDs.count + index, source: .application, preferences: ctx.preferences)
+                }
                 try await manager.performUserAction {
                     let review = try await manager.prepare(handles, context: ctx)
                     try Task.checkCancellation()
@@ -190,7 +219,9 @@ struct DesktopTilingRoster: Equatable {
                     }
                     try await manager.confirm(review, context: ctx)
                 }
-                notice = "已核对本桌面 \(manager.activeIDs.count) 扇窗口的布局。"
+                for key in added { explicitArrivals.removeValue(forKey: key) }
+                notice = requestedCreation ? "系统桌面创建尚未开放，新窗口已在本桌面分屏。" :
+                    "已核对本桌面 \(manager.activeIDs.count) 扇窗口的布局。"
             } catch {
                 if grant == token { notice = "本次自动分屏未完成。\(error.localizedDescription)" }
             }

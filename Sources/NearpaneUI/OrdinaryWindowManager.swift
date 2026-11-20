@@ -510,6 +510,42 @@ enum OrdinaryRefusal: LocalizedError {
         try save()
     }
 
+    /// Called inside performUserAction. Keep an unresolved journal untouched and
+    /// give up the original grant only after the external membership receipt.
+    func releaseForTransfer(_ key: DesktopWindowKey, from source: OrdinaryDesktopIdentity,
+                            perform: () async throws -> Void) async throws {
+        guard userActionReserved, !closing, !blocked else { throw OrdinaryRefusal.lost }
+        guard let id = activeIDs.first(where: { $0.pid == key.pid && $0.launch == key.birth && $0.number == key.number }) else {
+            try await perform()
+            return
+        }
+        guard let handle = handles[id], let entry = entries[id], entry.refusal == nil, entry.intended == nil,
+              let area = appliedArea, source.display == activeDisplay,
+              handle.desktopBinding == nil || handle.desktopBinding == source else { throw OrdinaryRefusal.stale }
+        _ = try await handle.verify(expected: entry.confirmed)
+        let remaining = try tiler.removing(id, in: area)
+        do { try await perform() }
+        catch let uncertain as UnconfirmedSpaceMove {
+            entries[id]?.refusal = uncertain.localizedDescription
+            fail(uncertain)
+            throw uncertain
+        }
+        do {
+            if activeIDs.count == 1 {
+                try finishRecord("transferred")
+            } else {
+                cancelPreview()
+                detach(id)
+                tiler = remaining
+                appliedArea = nil
+                try save()
+            }
+        } catch {
+            fail(error)
+            throw OrdinaryWindowFailure("窗口已迁移，原桌面分屏记录未能更新；自动管理已暂停。")
+        }
+    }
+
     private func detach(_ id: ManagedWindowID) {
         if creationAnchor == id { disableNewWindows() }
         handles[id]?.onBoundaryChange(nil)

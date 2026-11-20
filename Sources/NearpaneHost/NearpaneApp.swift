@@ -350,12 +350,38 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(desktopChanged(_:)), name: name, object: nil)
         }
         let distributed = DistributedNotificationCenter.default()
+        distributed.addObserver(self, selector: #selector(readPreviewMetrics(_:)),
+            name: .init("com.holdsnow.nearpane.preview-metrics.request"), object: String(getpid()))
         for name in ["com.apple.screenIsLocked", "com.apple.screenIsUnlocked"] {
             distributed.addObserver(self, selector: #selector(lockChanged(_:)), name: .init(name), object: nil)
         }
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
         readDesktopAvailability(.sample)
+    }
+
+    private var lastPermissionDiagnostic: TimeInterval = -.infinity
+
+    @objc private func readPreviewMetrics(_ notification: Notification) {
+        guard let value = notification.userInfo?["nonce"] as? String, let nonce = UUID(uuidString: value) else { return }
+        if notification.userInfo?["check"] as? String == "permissions" {
+            let now = ProcessInfo.processInfo.systemUptime
+            guard now - lastPermissionDiagnostic >= 1 else { return }
+            lastPermissionDiagnostic = now
+            let screen = CGPreflightScreenCaptureAccess()
+            let accessibility = AXIsProcessTrusted()
+            let postEvent = CGPreflightPostEventAccess()
+            // Keep privacy status in the Host log. The distributed reply only acknowledges sampling.
+            Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "PermissionCheck")
+                .notice("Permission check \(nonce.uuidString, privacy: .public) screen=\(screen, privacy: .public) accessibility=\(accessibility, privacy: .public) postEvent=\(postEvent, privacy: .public)")
+            DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+                object: nonce.uuidString, userInfo: ["pid": NSNumber(value: getpid()), "checked": "permissions"], deliverImmediately: true)
+            return
+        }
+        guard let metrics = modules?.windowPreviewMetrics else { return }
+        DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+            object: nonce.uuidString, userInfo: metrics.merging(["pid": NSNumber(value: getpid())]) { a, _ in a },
+            deliverImmediately: true)
     }
 
     private func readDesktopAvailability(_ event: DesktopSessionAvailability.Event) {

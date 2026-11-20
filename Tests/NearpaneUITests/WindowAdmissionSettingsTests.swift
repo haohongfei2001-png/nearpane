@@ -179,6 +179,23 @@ import Testing
         #expect(!selection.permissionDenied && selection.failure == nil)
     }
 
+    @Test func reportedGrantRefreshesOnlyAnOpenDeniedListingWithoutSelectingOrManagingWindows() async {
+        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        selection.open()
+        reader.listingFailure = .permission
+        await selection.select(reader.app)
+        reader.listingFailure = nil
+        let other = AdmissionApplication(pid: reader.app.pid, launch: reader.app.launch + 1, bundle: reader.app.bundle, name: reader.app.name)
+        await selection.recheckListingAfterGrant(other)
+        #expect(selection.permissionDenied && selection.choices.isEmpty)
+        await selection.recheckListingAfterGrant(reader.app)
+        #expect(!selection.permissionDenied && selection.choices == [reader.row])
+        #expect(selection.picks.isEmpty && reader.inspections == 0)
+        selection.close()
+        await selection.recheckListingAfterGrant(reader.app)
+        #expect(selection.app == nil && selection.choices.isEmpty)
+    }
+
     @Test func expiredOrdinaryPreviewWithdrawsConfirmationWithoutClearingSelectedWindows() async throws {
         let reader = Reader(), selection = AdmissionSelection(reader: reader)
         selection.open()

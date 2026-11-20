@@ -73,13 +73,15 @@ struct PreviewWindowBinding: Equatable {
 
 /// Every consumer, including a draw of the same desk revision, must still have access.
 @MainActor @Observable final class WindowPreviewStill {
+    let byteCharge: Int
     private let pixels: CGImage
     private let allowed: @MainActor () -> Bool
     private let expires = ContinuousClock.now.advanced(by: .seconds(60))
     private(set) var revision: UInt64
 
     init?(pixels: CGImage, revision: UInt64, allowed: @escaping @MainActor () -> Bool) {
-        guard allowed() else { return nil }
+        guard allowed(), let cost = PreviewPixelBudget.charge(pixels), cost <= PreviewPixelBudget.pickerBytes else { return nil }
+        byteCharge = cost
         self.pixels = pixels; self.revision = revision; self.allowed = allowed
     }
 
@@ -99,12 +101,17 @@ struct PreviewWindowBinding: Equatable {
     let gallery: DesktopWindowGallery
     let currentDesktop: CurrentDesktopWindows?
     init(readOverview: NativeDesktopProvider.Read? = nil, permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
-        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow)
-        currentDesktop = readOverview.map { CurrentDesktopWindows(read: $0) }
+        let feed = readOverview.map { CurrentDesktopWindows(read: $0) }
+        currentDesktop = feed
+        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, lifetime: { key in feed?.lifetime(of: key) })
     }
     private(set) var choosing = false
     private(set) var notice = ""
     private(set) var binding: PreviewWindowBinding?
+    @ObservationIgnored private(set) var pickerCaptureRequests: UInt64 = 0
+    @ObservationIgnored private(set) var pickerInFlight = 0
+    var cacheBytes: Int { gallery.cacheBytes + (still?.byteCharge ?? 0) }
+    var cacheCount: Int { gallery.cacheCount + (still == nil ? 0 : 1) }
     private var still: WindowPreviewStill?
     var hasStill: Bool { still != nil }
     var revision: UInt64? { still?.revision }
@@ -149,7 +156,7 @@ struct PreviewWindowBinding: Equatable {
     private func permits(_ target: PreviewWindowBinding, host: HostSession) -> Bool {
         guard visibleDisplays.contains(target.display), host.isRunning, !host.configuration.surfaceHidden,
               host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
-              Self.sessionAvailable(), !requiresScreenRecording || CGPreflightScreenCaptureAccess(),
+              Self.sessionAvailable(), !requiresScreenRecording || WindowPermissionProbe.screen.allowed(),
               target.window(in: host.bus.desktop) != nil else { return false }
         return true
     }
@@ -189,7 +196,7 @@ struct PreviewWindowBinding: Equatable {
         guard let op = beginSelection() else { return }
         self.host = host
         requiresScreenRecording = true
-        guard CGPreflightScreenCaptureAccess() else {
+        guard WindowPermissionProbe.screen.allowed() else {
             clear("拍摄已选窗口需要已有的屏幕录制权限。也可在「桌面预览」使用系统选择器。"); return
         }
         guard let snapshot = host.bus.desktop,
@@ -207,12 +214,12 @@ struct PreviewWindowBinding: Equatable {
             let matches = content.windows.filter { $0.windowID == id.number }
             guard matches.count == 1, let chosen = matches.first, chosen.isOnScreen, chosen.windowLayer == 0,
                   chosen.owningApplication?.processID == id.pid, chosen.owningApplication?.bundleIdentifier == bundle,
-                  CGPreflightScreenCaptureAccess(), permits(target, host: host) else {
+                  WindowPermissionProbe.screen.allowed(), permits(target, host: host) else {
                 clear("系统没有提供原窗口的可见图像。"); return
             }
             let filter = SCContentFilter(desktopIndependentWindow: chosen)
             await capture(filter, operation: op, expected: target, consent: {
-                guard CGPreflightScreenCaptureAccess() else { return false }
+                guard WindowPermissionProbe.screen.allowed() else { return false }
                 return await stillSelected()
             })
         } catch {
@@ -276,6 +283,9 @@ struct PreviewWindowBinding: Equatable {
         config.ignoreShadowsSingleWindow = true; config.includeChildWindows = false
         config.showsCursor = false; config.capturesAudio = false
         do {
+            pickerCaptureRequests &+= 1
+            pickerInFlight += 1
+            defer { pickerInFlight -= 1 }
             let shot = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
             guard operation == op else { return }
             let stillSameWindow = await proof.verify()
@@ -338,11 +348,11 @@ private final class WindowPickerObserver: NSObject, SCContentSharingPickerObserv
 @MainActor enum WindowAppBadges {
     struct Badge { let name: String; let icon: NSImage }
 
-    static func resolve(_ snapshot: DesktopSnapshot) -> [String: Badge] {
+    static func resolve(_ windows: [WindowObservation]) -> [String: Badge] {
         var owners = [Int32: (UInt64, Badge)](), badges = [String: Badge]()
-        for w in snapshot.windows {
+        for w in windows {
             guard let m = w.metadata, let birth = m.launchMicroseconds, m.pid > 0, birth > 0,
-                  m.isOnscreen == true || m.overviewSpaceID != nil else { continue }
+                  m.isOnscreen == true || m.overviewSpaceID != nil || w.membership != .unknown else { continue }
             if owners[m.pid] == nil {
                 var info = proc_bsdinfo()
                 let size = Int32(MemoryLayout.size(ofValue: info))

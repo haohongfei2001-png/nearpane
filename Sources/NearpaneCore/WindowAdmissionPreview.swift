@@ -76,7 +76,7 @@ public enum AdmissionReason: String, Codable, Sendable {
         case .identity: "无法确认系统报告的是你选中的那扇窗口"
         case .selectionContinuity: "选择之后窗口的身份未能持续确认，请重新选择"
         case .duplicate: "系统返回了重复的窗口身份"
-        case .permission: "系统未允许读取窗口，请在系统设置中核对辅助功能授权"
+        case .permission: "窗口读取工具本次未取得辅助功能访问"
         case .excluded: "此应用或窗口已被排除"
         case .role: "菜单、对话框、全屏、最小化或非普通窗口不在范围内"
         case .unknownRole: "普通窗口类型及状态尚未核实"

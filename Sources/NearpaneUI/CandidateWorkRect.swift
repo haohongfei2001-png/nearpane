@@ -33,7 +33,7 @@ import SwiftUI
     private weak var host: HostSession?
     public internal(set) var scopedDisplay: String?
     public func restrictOrdinaryAcceptance(to display: String) { scopedDisplay = display }
-    private var supervisorReady = false
+    fileprivate private(set) var supervisorReady = false
     private var suspended = false
     private enum DesktopWitness {
         case ordinary(until: Double)
@@ -331,8 +331,11 @@ public struct CandidateWorkRectView: View {
                     if session.blocked { Button("重新核对并恢复") { session.send("retry") } }
                 }
             }
-            Text(session.trusted ? "控制器辅助功能已核对 · 已登记 \(session.windows.count) 扇 · 当前范围 \(session.count) 扇" : "窗口写入需要单独核对随包控制器的辅助功能权限。")
-                .font(.caption)
+            Group {
+                if session.supervisorReady {
+                    Text(session.trusted ? "控制器辅助功能已核对 · 已登记 \(session.windows.count) 扇 · 当前范围 \(session.count) 扇" : "窗口控制器本次未取得辅助功能访问。")
+                } else { Text("等候窗口控制器状态。") }
+            }.font(.caption)
             HStack {
                 Button("打开兼容应用窗口") { session.send("open") }
                 if !session.windows.isEmpty { Button("关闭末个兼容窗口") { session.send("close") } }

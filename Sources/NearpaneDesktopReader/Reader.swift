@@ -33,6 +33,8 @@ struct Reader {
     struct List: Equatable {
         var windows: [CGWindowMetadata] = []
         var limited = false
+        var orderedAcrossSpaces = Set<UInt32>()
+        var unhiddenOwners = Set<Int32>()
     }
 
     func windowList(overview: Bool = false) throws -> List {
@@ -46,20 +48,22 @@ struct Reader {
             descriptions = CGWindowListCopyWindowInfo([overview ? .optionAll : .optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
         }
         guard var list = descriptions as? [[String: Any]] else { throw DesktopActionError.unsupported }
+        var result = List()
         if overview {
             // The WindowServer enumeration and AppKit's ordered window numbers are
             // independent during a stage transition. Resolve a missing number against
             // its own CG record; never infer its owner or Space from another window.
             let known = Set(list.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value })
             let publicIDs = NSWindow.windowNumbers(options: [.allApplications, .allSpaces]) ?? []
-            for id in Set(publicIDs.map(\.uint32Value)).subtracting(known) {
+            result.orderedAcrossSpaces = Set(publicIDs.map(\.uint32Value))
+            for id in result.orderedAcrossSpaces.subtracting(known) {
                 if let exact = CGWindowListCopyWindowInfo(.optionIncludingWindow, id) as? [[String: Any]],
                    exact.count == 1, exact[0][kCGWindowNumber as String] as? UInt32 == id {
                     list.append(exact[0])
                 }
             }
         }
-        var result = List(), seen = Set<UInt32>(), allowed = [Int32: Bool](), processes = [Int32: ProcessIdentity]()
+        var seen = Set<UInt32>(), allowed = [Int32: Bool](), processes = [Int32: ProcessIdentity]()
         for row in list {
             guard let pid = (row[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, pid > 0,
                   let number = (row[kCGWindowNumber as String] as? NSNumber)?.uint32Value, number != 0,
@@ -73,8 +77,10 @@ struct Reader {
             } else {
                 if allowed[pid] == nil {
                     let app = NSRunningApplication(processIdentifier: pid)
+                    if overview, app?.isHidden == false { result.unhiddenOwners.insert(pid) }
                     let id = app?.bundleIdentifier?.lowercased() ?? ""
                     allowed[pid] = app?.activationPolicy == .regular && !id.isEmpty && !id.hasPrefix("com.holdsnow.nearpane")
+                        && (!overview || !id.hasPrefix("org.nearpane."))
                         && !["com.apple.dock","com.apple.windowmanager","com.apple.loginwindow"].contains(id)
                 }
                 guard allowed[pid] == true else { continue }

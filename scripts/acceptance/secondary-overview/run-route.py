@@ -388,13 +388,10 @@ class Session:
             sample = sp.run([self.args.kit / "occupancy", *occupancy_args], capture_output=True, timeout=6)
             proof = json.loads(sample.stdout)
             save(self.out / "target-occupancy.json", dict(run=run, exit=sample.returncode, sample=proof))
-            # The removal helper allows shared non-desktop windows since removal would not
-            # relocate them. An initially blank test B cannot make that exemption.
+            # A shared non-desktop window is still a member of a disposable Space.
             required = dict(**display_proof, source=self.a, target=self.b,
                             sourcePID=child.pid, sourceWindow=window, scopeSamples=2,
-                            blockingWindows=0)
-            if not (self.current_display and getattr(self.args, "provision_current", False)):
-                required["corroboratedShared"] = 0
+                            blockingWindows=0, corroboratedShared=0)
             need(sample.returncode == 0 and child.poll() is None and all(
                 type(proof.get(k)) is type(v) and proof[k] == v for k, v in required.items()
             ), "blank secondary B not verified; no calibration input")

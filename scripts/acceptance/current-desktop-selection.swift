@@ -194,13 +194,14 @@ struct Witness: Codable {
                 guard let target = DesktopWindowTarget(observed,in:sample), DesktopWindowSelection.soleWindow(target) else {
                     throw Rejected("one and only one WindowServer window required")
                 }
-                try await DesktopWindowSelection.select(target,deadline:u+6,hasAX:false,stillCurrent:{
+                let path = try await DesktopWindowSelection.select(target,deadline:u+6,stillCurrent:{
                     state()?.numbers == w.numbers && target.present(in:sample) && target.isVisibleSurface()
                 })
                 for _ in 0..<12 where state()?.key != w.numbers.first { try await Task.sleep(for:.milliseconds(35)) }
                 guard state()?.key == w.numbers.first, state()?.main == w.numbers.first,
                       NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { throw Rejected("single window failed independent key/main") }
-                result["singleWindowPublicActivation"] = true
+                result["singleWindowPublicActivation"] = path == .soleWindowApplication
+                guard path == .soleWindowApplication else { throw Rejected("Window selected using AX; public-only activation not exercised") }
             } else if CommandLine.arguments.contains("--click-cards") && !galleryOnly {
                 guard Self.ordinarySource(origin) == baselineSpace, let original = baselineSpace,
                       w.numbers.allSatisfy({ (NPReadWindowSpaces($0) as? [UInt64])?.contains(original) == true }) else {
@@ -256,7 +257,17 @@ struct Witness: Codable {
                           let d = SystemScreens.geometry().first else { throw Rejected("scope or focus changed") }
                     let frame = SurfaceRect(x:r.minX,y:r.minY,width:r.width,height:r.height)
                     result["phase"] = "select " + String(confirmed.count + 1)
-                    do { try await handle.focusCurrent(frame:frame,display:d.id,deadline:ProcessInfo.processInfo.systemUptime+5) }
+                    guard let original = baselineSpace else { throw Rejected("unknown source desktop") }
+                    let counters = NativeSelectionPermit.inputCounters()
+                    let permit = NativeSelectionPermit(current: {
+                        guard NativeSelectionPermit.inputCounters() == counters, state()?.numbers == w.numbers,
+                              let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                              [origin, pid].contains(front), Self.ordinarySource(front, sharedWindow: front == pid) == original
+                        else { return false }
+                        return (NPReadWindowSpaces(n) as? [UInt64])?.contains(original) == true
+                    })
+                    do { try await handle.focusCurrent(frame:frame,display:d.id,deadline:ProcessInfo.processInfo.systemUptime+5,
+                                                       space: String(original), permit: permit) }
                     catch {
                         let actual = state()
                         result["ownerKeyIsSelected"] = actual?.key == n

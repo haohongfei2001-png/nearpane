@@ -15,7 +15,7 @@ public struct OrdinaryDesktopIdentity: Codable, Equatable, Sendable {
 public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
         case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
-        case watchCreated, takeCreated, endCreated, focusCurrent
+        case watchCreated, takeCreated, endCreated, focusCurrent, checkFocusPermission, requestFocusPermission
 
         public var allowedForStillPreview: Bool {
             switch self {
@@ -100,6 +100,10 @@ public struct OrdinaryWindowClosure: Codable, Sendable, LocalizedError {
 
 public struct OrdinaryWindowReply: Codable, Sendable {
     public let nonce: UUID
+    /// Set only for a read-only listing refused by the process that performs AX operations.
+    public var listAccessDenied: Bool?
+    public var focusPermission: Bool?
+    public var focusStep: Int?
     public var steps: [OrdinaryWindowStep]?
     public var choices: [ManagedWindowID?]?, pair: AdmissionPair?, failure: String?
     public var closure: OrdinaryWindowClosure?

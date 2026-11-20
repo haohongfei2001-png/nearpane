@@ -6,7 +6,7 @@ public struct WindowSurfaceRecord {
     public let pid: Int32
     public let layer: Int
     public let frame: SurfaceRect
-    public let isOnscreen, allowsContent: Bool
+    public let isOnscreen, isDrawn, allowsContent: Bool
 
     public init?(number: CGWindowID) {
         guard number != kCGNullWindowID else { return nil }
@@ -24,7 +24,7 @@ public struct WindowSurfaceRecord {
         frame = .init(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height)
         isOnscreen = row[kCGWindowIsOnscreen as String] as? Bool == true
         let share = row[kCGWindowSharingState as String] as? UInt32
-        allowsContent = (share == CGWindowSharingType.readOnly.rawValue || share == CGWindowSharingType.readWrite.rawValue)
-            && (row[kCGWindowAlpha as String] as? Double ?? 0) > 0
+        isDrawn = (row[kCGWindowAlpha as String] as? Double ?? 0) > 0
+        allowsContent = isDrawn && (share == CGWindowSharingType.readOnly.rawValue || share == CGWindowSharingType.readWrite.rawValue)
     }
 }

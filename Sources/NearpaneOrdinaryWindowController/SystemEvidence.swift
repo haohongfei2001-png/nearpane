@@ -4,7 +4,7 @@ import CReadOnlySpaces
 import Darwin
 import NearpaneCore
 
-struct Refusal: Error { let message: String; init(_ message: String) { self.message = message } }
+typealias Refusal = WindowIdentityFailure
 func require(_ test: Bool, _ reason: String) throws { if !test { throw Refusal(reason) } }
 
 func attribute(_ e: AXUIElement, _ key: String) -> CFTypeRef? {

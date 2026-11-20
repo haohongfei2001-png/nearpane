@@ -5,22 +5,21 @@ import Security
 
 // No command-line targeting: one installed Host owns both pipes and the worker can bind only one
 // same-user regular application. EOF or parent death discards all AX references.
-func executablePath(_ pid: pid_t) -> URL? {
-    var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
-    guard proc_pidpath(pid, &path, UInt32(path.count)) > 0 else { return nil }
-    return URL(fileURLWithPath: String(decoding:path.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)),as:UTF8.self))
-}
-
 func verifyParent(_ parent: pid_t) -> Bool {
-    guard parent > 1, let own = executablePath(getpid()), let host = executablePath(parent),
+    guard parent > 1, let own = windowExecutablePath(getpid()), let host = windowExecutablePath(parent),
           own.lastPathComponent == "NearpaneOrdinaryWindowController",
           own.deletingLastPathComponent().lastPathComponent == "Helpers" else { return false }
     let contents = own.deletingLastPathComponent().deletingLastPathComponent()
     let root = contents.deletingLastPathComponent()
+    #if NEARPANE_WINDOW_SELECTION_FIXTURE
+    let requiredBundleID = "net.example.nearpane-sidebar-observer"
+    #else
+    let requiredBundleID = "com.holdsnow.nearpane.alpha"
+    #endif
     guard root.pathExtension == "app", contents.lastPathComponent == "Contents",
           Bundle(url:root)?.executableURL?.standardizedFileURL.path == host.standardizedFileURL.path,
           host.lastPathComponent == "NearpaneHost",
-          Bundle(url:root)?.bundleIdentifier == "com.holdsnow.nearpane.alpha" else { return false }
+          Bundle(url:root)?.bundleIdentifier == requiredBundleID else { return false }
     // A clone with new code and copied Info.plist does not validate against the sealed app.
     var signed: SecStaticCode?
     guard SecStaticCodeCreateWithPath(root as CFURL, [], &signed) == errSecSuccess, let signed,
@@ -50,12 +49,25 @@ final class Worker {
                 try require(r.action.allowedForStillPreview && r.destination == nil &&
                             (r.action == .list || r.id?.number == previewWindow), "此通道仅核对已选预览窗口。")
             }
+            if r.action == .checkFocusPermission || r.action == .requestFocusPermission {
+                try require(app == nil && r.pid == 0 && r.launch == 0 && r.bundle.isEmpty &&
+                            r.id == nil && r.destination == nil, "权限检查不能指定窗口。")
+                if r.action == .requestFocusPermission && !AXIsProcessTrusted() {
+                    _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+                }
+                reply.focusPermission = AXIsProcessTrusted()
+                return reply
+            }
             if r.action == .list || r.action == .refresh {
                 try require(r.id == nil, "窗口清单只能按已选进程查询。")
                 if r.action == .list {
                     try require(app == nil, "一个控制进程仅绑定一次应用。")
                 } else {
                     guard let app, app == (r.pid,r.launch,r.bundle) else { throw Refusal("所选应用已变化。") }
+                }
+                if r.action == .list && !AXIsProcessTrusted() {
+                    reply.listAccessDenied = true
+                    throw Refusal("窗口助手没有现有辅助功能权限。")
                 }
                 try checkOwner(owner, pid:r.pid, launch:r.launch, bundle:r.bundle)
                 app = (r.pid,r.launch,r.bundle)
@@ -86,8 +98,19 @@ final class Worker {
                 case .focusCurrent:
                     guard let expected = r.expected, let display = r.focusDisplay, let deadline = r.focusDeadline,
                           r.destination == nil else { throw Refusal("缺少当前桌面的选窗凭据。") }
+                    var nextStep = 0
                     try focusCurrentWindow(id: id, element: m.element, owner: owner, bundle: r.bundle,
-                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace)
+                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace) {
+                        var challenge = OrdinaryWindowReply(r.nonce)
+                        challenge.focusStep = nextStep
+                        let decision: NativeSpaceStepPermission
+                        do {
+                            decision = try SelectionStepHandshake.exchange(challenge, input: .standardInput, output: .standardOutput)
+                        } catch { exit(75) } // Discard a late/partial response with this connection.
+                        try require(getppid() == parent && AXIsProcessTrusted()
+                                    && decision.permitsFocus(r, after: nextStep, now: ProcessInfo.processInfo.systemUptime), "原选窗意图已取消或超时。")
+                        nextStep += 1
+                    }
                 case .prepare:
                     if let desktop = r.desktop { try m.bindDesktop(desktop) }
                     reply.pair = try m.prepare()
@@ -143,7 +166,7 @@ final class Worker {
                     creationHandles.remove(id)
                     m.stop()
                     windowsByID.removeValue(forKey:id)
-                case .list, .refresh: break
+                case .list, .refresh, .checkFocusPermission, .requestFocusPermission: break
                 }
             }
         } catch { reply.failure = (error as? Refusal)?.message ?? "无法核对系统窗口状态。" }

@@ -1,10 +1,18 @@
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreGraphics/CGGeometry.h>
 #include <stdint.h>
 
-// Only the disposable reader executable links this shim. Both successful copies transfer ownership.
+// The disposable readers and action helper link this shim. The Host does not.
+// The existing entry point keeps the reviewed write/identity build gate.
 int NPReadOnlySpacesOpen(void);
+// Metadata-only inventory on the reviewed Darwin ABI family, after a runtime shape probe.
+int NPProbeReadOnlyCatalog(void);
 CFArrayRef _Nullable NPReadInventory(void) CF_RETURNS_RETAINED;
 CFArrayRef _Nullable NPReadWindowSpaces(uint32_t window) CF_RETURNS_RETAINED;
+
+// Pre-compositor logical rectangle for the read-only roster. No content or action authority.
+// Returns zero on unverified builds or when the window disappears.
+int NPReadCatalogLogicalBounds(uint32_t window, CGRect * _Nonnull bounds);
 
 // Window-number read witnessed in P4.7.3; unavailable on unverified OS builds.
 uint32_t NPReadAXWindowNumber(CFTypeRef _Nonnull element);

@@ -5,6 +5,72 @@ import WindowGeometryCore
 @testable import NearpaneDesktopReader
 
 struct SpaceInventoryTests {
+    @Test func rosterRequiresOrderingIndependentlyOfSpaceMembership() {
+        func shown(active: Bool = false, ordered: Bool = false, member: Bool = true,
+                   onDisplay: Bool = true, unhidden: Bool = true,
+                   ax: Bool = false, role: OverviewWindowRole? = nil, staged: Bool = false) -> Bool {
+            Reader.presentedInOverview(publiclyVisible: active, orderedAcrossSpaces: ordered,
+                currentMember: member, onDisplay: onDisplay, ownerUnhidden: unhidden, readsAX: ax, role: role, drawnInStage: staged)
+        }
+        let ordinary = OverviewWindowRole(ordinary: true, minimized: false, fullscreen: false)
+        #expect(shown(active: true))
+        #expect(!shown(ordered: true)) // all-Spaces ordering does not attest a non-minimized document
+        #expect(!shown(ordered: true, staged: true))
+        #expect(shown(ordered: true, ax: true, role: ordinary))
+        #expect(shown(ax: true, role: ordinary, staged: true))
+        #expect(!shown(staged: true))
+        #expect(!shown(member: false, ax: true, role: ordinary, staged: true))
+        #expect(!shown())  // An ordered-out window still has its old Space membership.
+        #expect(!shown(ax: true, role: ordinary))
+        #expect(!shown(ordered: true, member: false))
+        #expect(!shown(active: true, onDisplay: false))
+        #expect(!shown(active: true, unhidden: false))
+        #expect(!shown(active: true, ax: true, role: nil))
+        for ineligible in [OverviewWindowRole(ordinary: true, minimized: true, fullscreen: false),
+                           .init(ordinary: false, minimized: false, fullscreen: false),
+                           .init(ordinary: true, minimized: nil, fullscreen: false),
+                           .init(ordinary: true, minimized: false, fullscreen: true)] {
+            #expect(!shown(active: true, ordered: true, ax: true, role: ineligible))
+            #expect(!shown(active: true, ordered: true, role: ineligible))
+        }
+    }
+
+    @Test func stableStageStripCGDoesNotReplaceTheLogicalWindowFrame() {
+        // Both rectangles were stable across four samples of the same owned window on 26A428.
+        let strip = Rect(1302, 756, 152, 141), owned = Rect(465, 388, 540, 213)
+        let staged = Reader.catalogGeometry(firstLogical: owned, lastLogical: owned, firstCG: strip, lastCG: strip,
+                                             stageDefinitelyOff: false)
+        #expect(staged.logical == owned && !staged.usualPresentation)
+        let visible = Reader.catalogGeometry(firstLogical: owned, lastLogical: owned, firstCG: owned, lastCG: owned,
+                                              stageDefinitelyOff: false)
+        #expect(visible.logical == owned && visible.usualPresentation)
+        let unsupported = Reader.catalogGeometry(firstLogical: nil, lastLogical: nil, firstCG: strip, lastCG: strip,
+                                                  stageDefinitelyOff: false)
+        #expect(unsupported.logical == nil && !unsupported.usualPresentation)
+        let changing = Reader.catalogGeometry(firstLogical: owned, lastLogical: strip, firstCG: strip, lastCG: strip,
+                                               stageDefinitelyOff: true)
+        #expect(changing.logical == nil && !changing.usualPresentation)
+        let ordinary = Reader.catalogGeometry(firstLogical: nil, lastLogical: nil, firstCG: owned, lastCG: owned,
+                                               stageDefinitelyOff: true)
+        #expect(ordinary.usualPresentation)
+    }
+    @Test func windowDisplayNeedsStableOwnershipAcrossSamplesAndUnambiguousTies() throws {
+        let left = Rect(0, 0, 800, 600), right = Rect(800, 0, 800, 600)
+        let geometry = try DesktopGeometry(displays: [
+            .init(displayID: "left", appKitFrame: left, cgBounds: left, backingScale: 2, rotation: .zero),
+            .init(displayID: "right", appKitFrame: right, cgBounds: right, backingScale: 1, rotation: .zero)
+        ], primaryID: "left")
+        let a = try geometry.slices(of: Rect(100, 40, 400, 320))
+        let b = try geometry.slices(of: Rect(1100, 40, 400, 320))
+        let split = try geometry.slices(of: Rect(600, 40, 400, 320))
+        #expect(Reader.overviewDisplay(before: a, after: b, memberDisplays: ["right"]) == nil)
+        #expect(Reader.overviewDisplay(before: b, after: b, memberDisplays: []) == "right")
+        #expect(Reader.overviewDisplay(before: split, after: split, memberDisplays: []) == nil)
+        #expect(Reader.overviewDisplay(before: split, after: split, memberDisplays: ["right"]) == "right")
+        #expect(Reader.overviewDisplay(before: [], after: [], memberDisplays: ["left","right"]) == nil)
+        #expect(Reader.overviewDisplay(before: [], after: [], memberDisplays: ["right"]) == "right")
+    }
+
     let id = "12000000-0000-0000-0000-000000000001"
     var displays: [DisplayObservation] { [.init(id: id, frame: .init(width: 800, height: 1280), rotationDegrees: 90, backingScale: 2)] }
     func scope(_ records: [Any], current: Any = 5) -> [[String: Any]] {

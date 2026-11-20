@@ -1,0 +1,95 @@
+{
+  "version": "5.21",
+  "build": 76,
+  "source": "7f95f05e17f0715d1f6ac3a3505a486d5e32a083",
+  "basis": "final normal Launch Services installation",
+  "allRequiredPassed": false,
+  "scenarios": {
+    "S01": {
+      "status": "BLOCKED",
+      "reason": "四个系统 ID 与正式侧栏逐一匹配，当前高亮正确。缺少已见证的可处置 A/B/C 和空桌面实际点击。"
+    },
+    "S02": {
+      "status": "BLOCKED",
+      "reason": "正式后端 canSwitch=false，发起 0/50 次，未生成性能分位数。"
+    },
+    "S03": {
+      "status": "NOT_RUN",
+      "reason": "先后观察到普通桌面和全屏空间为 current。没有受控的系统重排和侧栏返回。"
+    },
+    "W01": {
+      "status": "FAIL",
+      "reason": "单窗和同应用双窗各点击一次。两次均未得到精确 key/main 和 AX 焦点，输入标记 0 次。实际文档应用的十次交替尚未达成。"
+    },
+    "W02": {
+      "status": "BLOCKED",
+      "reason": "无法从当前安装身份切至受控目标桌面验证跨 Space 精确输入。"
+    },
+    "W03": {
+      "status": "NOT_RUN",
+      "reason": "没有实际文档、Chromium、Electron 三类窗口的输入验收。"
+    },
+    "V01": {
+      "status": "BLOCKED",
+      "reason": "已实拍当前行标题。无录屏权限，正式 Host 尚无受控前后台逐窗画面与遮挡对照。"
+    },
+    "D01": {
+      "status": "BLOCKED",
+      "reason": "后端 canMove=false，拖动及 membership 改变均为 0 次。没有受控源窗/目标 Space 迁移收据。"
+    },
+    "L01": {
+      "status": "NOT_RUN",
+      "reason": "本构建未对完整 1/2/3/4/8/9 窗矩阵做系统几何回读。既有 5.20 同桌面验收单列保存。"
+    },
+    "L02": {
+      "status": "NOT_RUN",
+      "reason": "设置和无创建能力的分割/拒绝有回归；本构建未验证完整新窗策略、排除、显隐的真实组合。"
+    },
+    "C01": {
+      "status": "BLOCKED",
+      "reason": "产品未开放创建/删除能力。测试工具可记录创建及完整占用证明；没有满足合同的正式产品创建、迁入、迁出和删除。"
+    },
+    "F01": {
+      "status": "NOT_RUN",
+      "reason": "独立预检曾读到 type 4 为当前空间、普通侧栏行数为 0。未完成从正式入口进入、区分最大化和返回的闭环。"
+    },
+    "M01": {
+      "status": "BLOCKED",
+      "reason": "仅连接一块物理显示器，未执行两屏独立与共享空间组合。"
+    },
+    "R01": {
+      "status": "BLOCKED",
+      "reason": "快速选择和变更意图有自动化回归。真实 20 组均未投递。"
+    },
+    "P01": {
+      "status": "BLOCKED",
+      "reason": "已安装进程的拒绝状态已见证；授权、撤销和权能恢复的完整序列尚未验证。"
+    },
+    "R02": {
+      "status": "NOT_RUN",
+      "reason": "候选安装与正常启动、测试窗清理均有实证；睡眠唤醒、锁定解锁和硬件变化组合未执行。"
+    },
+    "N01": {
+      "status": "BLOCKED",
+      "reason": "隐藏后连续 60 秒无新增采集。缺正常原生/产品切换配对录像、时延和全进程树稳态内存样本。"
+    },
+    "I01": {
+      "status": "BLOCKED",
+      "reason": "统一安装、签名、运行身份及回退包已验证；最终安装身份的 S02/W01/W02/D01 仍未通过。"
+    }
+  },
+  "trials": {
+    "windowPresses": 2,
+    "failedWindowPresses": 2,
+    "confirmedRequestedInputs": 0,
+    "spaceSelectIssued": 0,
+    "realWindowMovesIssued": 0,
+    "hiddenBudget": {
+      "observedSeconds": 60,
+      "priorScreenPermission": false,
+      "zeroNewRequests": true
+    },
+    "visibleTransitionPercentiles": null
+  },
+  "package": "installation.json"
+}

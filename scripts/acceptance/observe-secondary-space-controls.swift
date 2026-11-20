@@ -366,6 +366,28 @@ private func provisionDisplay(_ uuid: UUID, currentDisplay: Bool) -> CGDirectDis
   return target
 }
 
+// Cross-check the complete inventory, including fullscreen records. Only ordinary
+// Spaces can be the source or the single appended target of provisioning.
+private func provisionRecords(_ description: String, source: String, live: [[String: Any]]) throws
+  -> (order: [String], identities: [String: UUID], fullscreen: Set<String>?) {
+  let entries = description.components(separatedBy: ",")
+  guard entries.count == live.count, !live.isEmpty else { throw Refusal("incomplete desktop inventory") }
+  var order = [String](), identities = [String: UUID](), fullscreen = Set<String>()
+  for (entry, record) in zip(entries, live) {
+    let fields = entry.components(separatedBy: "/")
+    guard fields.count == 2, let id = UInt64(fields[0]), id > 0, String(id) == fields[0],
+          let kind = record["type"] as? Int, (kind == 0 || kind == 4), String(kind) == fields[1],
+          (record["id64"] as? NSNumber)?.stringValue == fields[0], identities[fields[0]] == nil,
+          let raw = record["uuid"] as? String, let uid = UUID(uuidString: raw), !identities.values.contains(uid)
+    else { throw Refusal("desktop type, number, order or UUID is ambiguous") }
+    order.append(fields[0])
+    identities[fields[0]] = uid
+    if kind == 4 { fullscreen.insert(fields[0]) }
+  }
+  guard identities[source] != nil, !fullscreen.contains(source) else { throw Refusal("source is not ordinary") }
+  return (order, identities, fullscreen.isEmpty ? nil : fullscreen)
+}
+
 private func newlyAddedDesktop(before: [String], after: [String], source: String, currentDisplay: Bool) throws -> String {
   guard before.last == source, Set(before).count == before.count, Set(after).count == after.count,
         after.count == before.count + 1 else { throw Refusal("original desktop order or size changed") }
@@ -497,6 +519,27 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
           }
           return
         }
+        if CommandLine.arguments.dropFirst().elementsEqual(["--test-provision-record-types"]) {
+          let ids = [UUID(), UUID(), UUID()]
+          func records(_ kinds: [Int]) -> [[String:Any]] {
+            kinds.enumerated().map { ["id64": $0.offset + 1, "type": $0.element, "uuid": ids[$0.offset].uuidString] }
+          }
+          let mixed = records([4, 0, 0]), ordinary = records([0, 0, 0])
+          var duplicate = mixed
+          duplicate[2]["uuid"] = ids[1].uuidString
+          let valid = try provisionRecords("1/4,2/0,3/0", source:"3", live:mixed)
+          let cases = [
+            valid.order == ["1","2","3"], valid.fullscreen == ["1"], valid.identities["1"] == ids[0],
+            (try provisionRecords("1/0,2/0,3/0", source:"3", live:ordinary)).fullscreen == nil,
+            (try? provisionRecords("1/4,2/0,3/0", source:"1", live:mixed)) == nil,
+            (try? provisionRecords("1/0,2/0,3/0", source:"3", live:mixed)) == nil,
+            (try? provisionRecords("1/4,2/0,3/0", source:"3", live:duplicate)) == nil,
+            (try? provisionRecords("1/4,2/0,3/1", source:"2", live:records([4,0,1]))) == nil
+          ]
+          guard cases.allSatisfy({$0}) else { exit(2) }
+          print("8 ordinary/fullscreen inventory identity and refusal cases passed")
+          return
+        }
         if CommandLine.arguments.dropFirst().elementsEqual(["--test-append-order"]) {
           let cases: [([String], [String], Bool, String?)] = [
             (["a"], ["b","a"], false, "b"), (["p","a"], ["p","a","b"], false, nil),
@@ -608,6 +651,8 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     let primaryScope: String?
     let geometry: [String]
     let sideOrder: [String]
+    let spaceUUIDs: [String: UUID]
+    let fullscreenIDs: Set<String>?  // nil also decodes earlier all-ordinary creation journals
     init(_ display: UUID, source: String, currentDisplay: Bool) throws {
       let uuid = display.uuidString
       let scopes = try scoped(uuid, source, currentDisplay: currentDisplay)
@@ -616,18 +661,18 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       guard sides.count == 1, main.count == (currentDisplay ? 0 : 1) else { throw Refusal("ambiguous provision scopes") }
       let fields = sides[0].components(separatedBy: ":")
       guard fields.count == 3, fields[1] == source else { throw Refusal("not on source desktop") }
-      let ids = try fields[2].components(separatedBy: ",").map { value -> String in
-        let entry = value.components(separatedBy: "/")
-        guard entry.count == 2, entry[1] == "0", let id = UInt64(entry[0]), id > 0,
-          String(id) == entry[0]
-        else { throw Refusal("nonordinary or malformed secondary desktop") }
-        return entry[0]
+      guard let inventory = NPReadInventory() as? [[String: Any]],
+            let row = inventory.first(where: { $0["Display Identifier"] as? String == uuid }),
+            let active = row["Current Space"] as? [String: Any],
+            (active["id64"] as? NSNumber)?.stringValue == source,
+            let records = row["Spaces"] as? [[String: Any]] else {
+        throw Refusal("cannot independently bind Space UUIDs to the observed order")
       }
-      guard Set(ids).count == ids.count, ids.contains(source) else {
-        throw Refusal("ambiguous secondary desktop identity")
-      }
+      let proven = try provisionRecords(fields[2], source: source, live: records)
+      spaceUUIDs = proven.identities
+      fullscreenIDs = proven.fullscreen
       primaryScope = main.first
-      sideOrder = ids
+      sideOrder = proven.order
       geometry = try NSScreen.screens.map { screen in
         guard let n = screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber,
           let uuid = CGDisplayCreateUUIDFromDisplayID(n.uint32Value)?.takeRetainedValue()
@@ -640,7 +685,8 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     }
 
     func addition(to before: Self, source: String) throws -> String {
-      guard primaryScope == before.primaryScope, geometry == before.geometry
+      guard primaryScope == before.primaryScope, geometry == before.geometry, fullscreenIDs == before.fullscreenIDs,
+            before.spaceUUIDs.allSatisfy({ spaceUUIDs[$0.key] == $0.value })
       else { throw Refusal("unrelated display or geometry changed") }
       return try newlyAddedDesktop(before: before.sideOrder, after: sideOrder, source: source,
                                    currentDisplay: primaryScope == nil)
@@ -1301,7 +1347,9 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       (actions as? [String])?.contains(remove) == true
     else { throw Refusal("exact inactive B tile or Remove Desktop action unavailable") }
     try folder.put(created, "remove-intent.json")
+    try requireSafeOccupancy(created.target)
     try ui.recheckBeforeInput()
+    try need(try state() == original, "Space identity or display changed before deletion")
     try requireAuthorizedAction()
     guard AXUIElementPerformAction(ui.tiles[b], remove as CFString) == .success else {
       throw Refusal("removal outcome unknown; do not replay")

@@ -33,14 +33,18 @@ private final class PreviewReadbackPanel: NSPanel {
               let handle = reader.handle(choice, app: app) else { throw OrdinaryWindowFailure("Original AX element unavailable: \(selection.failure ?? "window helper did not hold the one selected window").") }
         selection.toggle(choice)
         let begin = Date()
+        func onCurrentDesktop() -> Bool {
+            NSWindow.windowNumbers(options: .allApplications)?.contains(NSNumber(value: number)) == true
+        }
+        let activeBefore = onCurrentDesktop()
         let pair = try await handle.prepare()
         let sample = pair.second
-        guard let frame = sample.cgFrame, sample.axFrame == frame, sample.axNumber == number,
+        guard activeBefore, onCurrentDesktop(), let frame = sample.cgFrame, sample.axFrame == frame, sample.axNumber == number,
               sample.display == geometry.id, let selected = selection.ruleID, selected == handle.id else { throw OrdinaryWindowFailure("The retained fixture window did not corroborate its CG/AX geometry.") }
         let observed = WindowObservation(id: choice.id.uuidString, displayID: geometry.id, bounds: frame, membership: .unknown,
             confidence: .corroboratedMetadata, metadata: .init(number: number, pid: owner.pid, launchMicroseconds: owner.launch,
                 element: selected.element, globalFrame: frame, frontToBack: 0, minimized: sample.minimized, fullScreen: sample.fullscreen,
-                axFrame: sample.axFrame, isOnscreen: sample.onScreen, axStandardWindowNumber: sample.axNumber))
+                axFrame: sample.axFrame, isOnscreen: sample.onScreen, axStandardWindowNumber: sample.axNumber, onActiveDesktop: true))
         let size = screen.frame.size
         let usable = screen.visibleFrame
         let observation = DisplayObservation(id: geometry.id, frame: .init(width: size.width, height: size.height),
@@ -55,7 +59,8 @@ private final class PreviewReadbackPanel: NSPanel {
                 accessibility: .available, spaces: .disabled, rows: [], windowLimitReached: false,
                 beganUptime: pair.first.uptime, endedUptime: sample.uptime))
         guard host.bus.acceptDesktop(snapshot) else { throw OrdinaryWindowFailure("The fixture observation failed validation.") }
-        let previews = WindowContentPreview(), display = SurfaceDisplay(), pointer = WorkspacePointerRegistry()
+        // Isolate the explicit selected-still path in this readback. Automatic gallery capture is tested separately.
+        let previews = WindowContentPreview(permitsGalleryWindow: { _ in false }), display = SurfaceDisplay(), pointer = WorkspacePointerRegistry()
         display.id = geometry.id; display.interactionVisible = true; display.pointer = pointer
         pointer.windowPreviews = previews
         previews.setVisible(true, on: geometry.id)

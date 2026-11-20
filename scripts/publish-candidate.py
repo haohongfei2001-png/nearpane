@@ -2,6 +2,7 @@
 import ctypes
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,10 @@ import stat
 import subprocess
 import sys
 import tempfile
+
+spec = importlib.util.spec_from_file_location("candidate_signing", Path(__file__).with_name("candidate_signing.py"))
+signing = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(signing)
 
 
 def rename(source, target, flags):
@@ -70,6 +75,8 @@ def publish(candidate, target, receipt):
             != hashlib.sha256((candidate / "Contents/MacOS/NearpaneHost").read_bytes()).hexdigest()):
         raise ValueError("Staged package does not match its verification receipt")
     incoming = verify_alpha(candidate)
+    if delivery in (Path("/Applications"), (Path.home() / "Applications").resolve()):
+        signing.verify_install_identity(candidate)
     receipt.parent.mkdir(parents=True, exist_ok=True)
     directory = os.open(delivery, os.O_RDONLY | os.O_DIRECTORY)
     try:
@@ -77,6 +84,8 @@ def publish(candidate, target, receipt):
         if receipt.is_symlink() or (receipt.exists() and not receipt.is_file()):
             raise ValueError(f"Invalid receipt destination: {receipt}")
         previous = verify_alpha(target) if os.path.lexists(target) else None
+        if previous:
+            signing.check_continuity(target, candidate)
         with tempfile.NamedTemporaryFile(prefix=".nearpane-receipt.", dir=receipt.parent, delete=False) as out:
             temp = Path(out.name)
         try:

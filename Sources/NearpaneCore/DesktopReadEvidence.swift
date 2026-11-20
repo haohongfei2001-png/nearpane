@@ -35,6 +35,17 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     /// The overview reader twice matched this window's membership to this display's
     /// current ordinary Space. WindowServer may present it outside the active stage.
     public let overviewSpaceID: String?
+    /// Repeated CG frame and usable display intersection in the fast inventory. A
+    /// stage-strip presentation or changing frame has membership but no map geometry.
+    public let hasCatalogGeometry: Bool?
+    /// Stable logical rectangle, independent of the compositor's current presentation.
+    /// Only the roster uses it. Selection, management and recovery retain their separate evidence.
+    public let catalogLogicalFrame: SurfaceRect?
+    /// Public ordering, owner visibility and (when available) exact AX window classification.
+    /// Membership alone also includes minimized, hidden and ordered-out surfaces.
+    public let overviewIsPresented: Bool?
+    /// Exact-number AX role classification for the overview reader. Nil means no role evidence.
+    public let overviewOrdinaryRole: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
@@ -42,7 +53,12 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
-                axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil) {
+                axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil, hasCatalogGeometry: Bool? = nil,
+                catalogLogicalFrame: SurfaceRect? = nil, overviewIsPresented: Bool? = nil, overviewOrdinaryRole: Bool? = nil) {
+        self.overviewOrdinaryRole = overviewOrdinaryRole
+        self.overviewIsPresented = overviewIsPresented
+        self.hasCatalogGeometry = hasCatalogGeometry
+        self.catalogLogicalFrame = catalogLogicalFrame
         self.onActiveDesktop = onActiveDesktop
         self.overviewSpaceID = overviewSpaceID
         self.number = number; self.pid = pid; self.launchMicroseconds = launchMicroseconds; self.element = element
@@ -115,11 +131,15 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     public var rows: [ObservedSpaceRow]
     /// Read-only system preference, independent of any individual window's presentation.
     public let stageManagerEnabled: Bool?
+    /// Completeness of the regular-app, layer-zero window inventory, including background desktops.
+    public let catalogComplete: Bool?
     public let windowLimitReached: Bool
     public let beganUptime, endedUptime: Double
 
     public init(population: DesktopReadPopulation, accessibility: AXReadStatus, spaces: SpaceReadStatus,
-                rows: [ObservedSpaceRow], windowLimitReached: Bool, beganUptime: Double, endedUptime: Double, stageManagerEnabled: Bool? = nil) {
+                rows: [ObservedSpaceRow], windowLimitReached: Bool, beganUptime: Double, endedUptime: Double, stageManagerEnabled: Bool? = nil,
+                catalogComplete: Bool? = nil) {
+        self.catalogComplete = catalogComplete
         self.stageManagerEnabled = stageManagerEnabled
         self.population = population; self.accessibility = accessibility; self.spaces = spaces; self.rows = rows
         self.windowLimitReached = windowLimitReached; self.beganUptime = beganUptime; self.endedUptime = endedUptime
@@ -157,11 +177,17 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
         return snapshot.windows.allSatisfy { w in
             guard let m = w.metadata, m.number > 0, m.pid > 0, m.frontToBack >= 0, m.globalFrame.geometry.isValid,
                   w.confidence != .synthetic else { return false }
+            let catalogMember: Bool
+            if catalogComplete != nil, m.hasCatalogGeometry == false, case .known(let ids) = w.membership {
+                catalogMember = snapshot.scopes.contains { $0.displayID == w.displayID && $0.records.contains { ids.contains($0.id) } }
+            } else { catalogMember = false }
             guard let display = snapshot.displays.first(where: { $0.id == w.displayID }),
-                  (m.globalFrame.geometry.intersection(display.frame.geometry) != nil || m.overviewSpaceID != nil),
+                  (m.globalFrame.geometry.intersection(display.frame.geometry) != nil || m.overviewSpaceID != nil || catalogMember ||
+                    (catalogComplete != nil && m.catalogLogicalFrame?.geometry.intersection(display.frame.geometry) != nil)),
                   w.bounds == SurfaceRect(x: m.globalFrame.x - display.frame.x, y: m.globalFrame.y - display.frame.y,
                                           width: m.globalFrame.width, height: m.globalFrame.height) else { return false }
             if let ax = m.axFrame, !ax.geometry.isValid { return false }
+            if let logical = m.catalogLogicalFrame, catalogComplete == nil || !logical.geometry.isValid { return false }
             if let id = m.overviewSpaceID {
                 guard (m.launchMicroseconds ?? 0) > 0, case .known(let ids) = w.membership, ids.contains(id),
                       snapshot.scopes.contains(where: { $0.displayID == w.displayID &&

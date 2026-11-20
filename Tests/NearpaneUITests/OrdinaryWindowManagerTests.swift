@@ -128,8 +128,8 @@ import Testing
                 return WindowObservation(id: String(id.number), displayID: "side", bounds: h.frame,
                     membership: .known(recordIDs: sticky.contains(id.number) ? [current.record, "900"] : [current.record]),
                     confidence: .unknown, metadata: .init(number: id.number, pid: id.pid, launchMicroseconds: id.launch,
-                        element: nil, globalFrame: h.frame, frontToBack: index, minimized: nil, fullScreen: nil,
-                        isOnscreen: visible, onActiveDesktop: visible, overviewSpaceID: current.record))
+                        element: nil, globalFrame: h.frame, frontToBack: index, minimized: false, fullScreen: nil,
+                        isOnscreen: visible, onActiveDesktop: visible, overviewSpaceID: current.record, overviewIsPresented: true))
             }
             return .observed(request, from: now, to: now, build: "test", topology: "one-display", consistent: true, separateSpaces: true,
                 displays: [.init(id: "side", frame: f, rotationDegrees: 0, backingScale: 2, usable: f)],
@@ -173,6 +173,7 @@ import Testing
         #expect(a.frame == .init(width: 840, height: 800))
         world.windows.append(b); feed.changed()
         try await world.until { manager.verifiedIDs.contains(b.id) && !manager.busy }
+        try await world.until { automation.notice.contains("新窗口已在本桌面分屏") }
         #expect(a.frame == .init(width: 420, height: 800))
         #expect(b.frame == .init(x: 420, width: 420, height: 800))
         let writes = [a.writes,b.writes]
@@ -181,6 +182,72 @@ import Testing
         #expect([a.writes,b.writes] == writes)
         try await manager.performUserAction { try await manager.stop() }
         #expect(automation.scope == nil && a.frame == a.original && b.frame == b.original)
+    }
+
+    @Test func confirmedDragReleasesOnlyItsOldGrantAndKeepsTheDestinationUnmanaged() async throws {
+        let env = OrdinaryScope(), manager = env.manager(), world = DesktopFixture()
+        env.context.settings.measures[.reservedWidth] = .init(160)
+        let moved = WindowDouble(number: 101), sibling = WindowDouble(number: 102)
+        let feed = world.feed(), tiling = world.automation(manager, feed)
+        world.windows = [moved, sibling]
+        await tiling.start(world.space)
+        try await world.until { manager.activeIDs.count == 2 && !manager.busy }
+        let key = DesktopWindowKey(pid: moved.id.pid, birth: moved.id.launch, number: moved.id.number)
+        let life = try #require(feed.lifetime(of: key))
+        let oldWrites = moved.writes
+        let other = OrdinaryDesktopIdentity(display: world.space.display, record: "900", uuid: UUID())
+        let status = try await tiling.transfer(key, lifetime: life, from: world.space, to: other) {
+            world.windows = [sibling]
+        }
+        #expect(status.contains("未授权") && manager.activeIDs == [sibling.id] && !manager.blocked)
+        await manager.poll()
+        #expect(moved.writes == oldWrites)
+        #expect(sibling.frame == .init(width: 840, height: 800))
+        try await manager.performUserAction { try await manager.stop() }
+        #expect(moved.writes == oldWrites && sibling.frame == sibling.original)
+    }
+
+    @Test func explicitDropIntoGrantedDesktopSchedulesTheExistingLayoutOnce() async throws {
+        let env = OrdinaryScope(), manager = env.manager(), world = DesktopFixture()
+        env.context.settings.measures[.reservedWidth] = .init(160)
+        let old = WindowDouble(number: 120), arrival = WindowDouble(number: 121)
+        let feed = world.feed(), auto = world.automation(manager, feed)
+        world.windows = [old, arrival]; world.offStage = [arrival.id.number]
+        await auto.start(world.space)
+        try await world.until { manager.activeIDs == [old.id] && !manager.busy }
+        let key = DesktopWindowKey(pid: arrival.id.pid, birth: arrival.id.launch, number: arrival.id.number)
+        let lifetime = try #require(feed.lifetime(of: key))
+        let source = OrdinaryDesktopIdentity(display: world.space.display, record: "900", uuid: UUID())
+        let notice = try await auto.transfer(key, lifetime: lifetime, from: source, to: world.space) {
+            world.offStage.remove(arrival.id.number)
+        }
+        #expect(notice.contains("等待核对"))
+        try await world.until { manager.verifiedIDs.contains(arrival.id) && !manager.busy }
+        #expect(old.frame == .init(width: 420, height: 800))
+        #expect(arrival.frame == .init(x: 420, width: 420, height: 800))
+        #expect(!auto.notice.contains("创建"))
+        try await manager.performUserAction { try await manager.stop() }
+    }
+
+    @Test func unconfirmedSpaceMoveRetainsTheWindowAndPausesFrameWrites() async throws {
+        let env = OrdinaryScope(), manager = env.manager(), world = DesktopFixture()
+        let window = WindowDouble(), feed = world.feed(), tiling = world.automation(manager, feed)
+        world.windows = [window]
+        await tiling.start(world.space)
+        try await world.until { manager.activeIDs == [window.id] && !manager.busy }
+        let before = window.writes
+        let key = DesktopWindowKey(pid: window.id.pid, birth: window.id.launch, number: window.id.number)
+        let life = try #require(feed.lifetime(of: key))
+        let other = OrdinaryDesktopIdentity(display: world.space.display, record: "900", uuid: UUID())
+        await #expect(throws: UnconfirmedSpaceMove.self) {
+            try await tiling.transfer(key, lifetime: life, from: world.space, to: other) {
+                throw UnconfirmedSpaceMove("indeterminate membership")
+            }
+        }
+        await manager.poll()
+        #expect(manager.blocked && manager.paused && manager.activeIDs == [window.id])
+        #expect(window.writes == before && FileManager.default.fileExists(atPath: env.journal.path))
+        try manager.keepCurrent()
     }
 
     @Test func desktopGrantExcludesAllDesktopWindowsInactiveStagesAndExcludedApps() async throws {

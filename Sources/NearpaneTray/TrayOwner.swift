@@ -77,11 +77,10 @@ final class TrayOwner {
             adapter = UnavailableAdapter()
             pin = { throw WebAdapterError.invalidTarget }
         }
-        let checker = NativeAutomationPermissionChecker()
         let owner = TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
                          captureEntry: prefs.builtInScreenshotEnabled, defaultMode: prefs.defaultMode,
                          ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: pin,
-                         permission: { ask, session in guard executor != nil else { return .unavailable }; return await checker.check(askUserIfNeeded: ask && testSession == nil, expectedSession: session) },
+                         permission: attachmentPermission(executorAvailable: executor != nil, mayPrompt: testSession == nil),
                          notify: notify, report: report)
         if let bound {
             owner.mayObserveTestClaim = { bound.hasClaim }
@@ -101,6 +100,19 @@ final class TrayOwner {
             report("部分截图缺失或无法校验，已保留原记录。")
         }
         return owner
+    }
+
+    static func attachmentPermission(executorAvailable: Bool, mayPrompt: Bool,
+                                     checker: any AutomationPermissionChecking = NativeAutomationPermissionChecker())
+        -> (Bool, String?) async -> AutomationPermissionState {
+        let gate = AutomationPermissionGate(requiresChrome: executorAvailable, checker: checker)
+        return { userRequested, session in
+            guard executorAvailable else { return .unavailable }
+            if userRequested && mayPrompt {
+                return await gate.requestFromUserAction(expectedSession: session)
+            }
+            return await gate.inspect(expectedSession: session)
+        }
     }
 
     init(store: QueueStore, root: URL, adapter: any AttachmentAdapter, policy: ReceiptPolicy,

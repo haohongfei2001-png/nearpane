@@ -113,17 +113,54 @@ public extension DesktopSnapshot {
     /// This public observation works even when the optional private Space inventory is disabled.
     func currentDesktopWindows(on displayID: String, now: Date, uptime: Double) -> [WindowObservation] {
         guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime), native?.windowLimitReached == false else { return [] }
-        let current = native?.rows.first { $0.displayID == displayID }?.recordID
-        return windows.filter { window in
-            guard window.displayID == displayID, let m = window.metadata, m.number > 0, m.fullScreen != true else { return false }
-            let publiclyVisible = m.onActiveDesktop == true && m.isOnscreen == true && m.minimized != true
-            guard publiclyVisible || m.overviewSpaceID != nil else { return false }
-            if let current, case .known(let records) = window.membership { return records.contains(current) }
-            return true
-        }.sorted { a, b in
+        return windows.filter { $0.displayID == displayID && isCurrentDesktopWindow($0) }.sorted { a, b in
             // WindowServer IDs preserve the ordering when raising changes the stacking order.
             (a.metadata?.number ?? 0) < (b.metadata?.number ?? 0)
         }
+    }
+
+    /// Used by both the card list and capture/selection target construction.
+    func isCurrentDesktopWindow(_ window: WindowObservation) -> Bool {
+        // The public CG/AppKit lists also contain ordinary-layer auxiliary panels.
+        // The catalogue must supply an exact role before publishing a card or target.
+        if native?.catalogComplete != nil {
+            guard native?.accessibility != .denied, window.metadata?.overviewOrdinaryRole == true,
+                  window.metadata?.minimized == false else { return false }
+        }
+        return isCurrentDesktopSurface(window)
+    }
+
+    /// Diagnostic count only. These public surfaces do not become cards, pixels or click targets.
+    func unconfirmedCurrentDesktopWindowCount(on displayID: String, now: Date, uptime: Double) -> Int {
+        guard native?.population == .workWindows, isStructurallyValid, nativeIsFresh(now: now, uptime: uptime),
+              native?.windowLimitReached == false else { return 0 }
+        if native?.catalogComplete == nil {
+            return windows.filter { $0.displayID == displayID && isCurrentDesktopSurface($0) && !$0.canWitnessCurrentSpace }.count
+        }
+        return windows.filter {
+            $0.displayID == displayID && $0.metadata?.overviewOrdinaryRole != false &&
+                isCurrentDesktopSurface($0) && !isCurrentDesktopWindow($0)
+        }.count
+    }
+
+    /// Visible surface discovery for an already authorized tiling session.
+    /// The tiler revalidates the exact AX window before each write.
+    func isCurrentDesktopSurface(_ window: WindowObservation) -> Bool {
+        guard let m = window.metadata, m.number > 0, m.fullScreen != true, m.minimized != true,
+              m.overviewIsPresented != false else { return false }
+        let current = scopes.first { $0.displayID == window.displayID }?.records.first(where: \.isCurrent)
+        if case let .known(ids) = window.membership, let current, !ids.contains(current.id) { return false }
+        if let proof = m.overviewSpaceID {
+            guard let current, current.id == proof, current.ordinaryUUID != nil,
+                  case let .known(ids) = window.membership, ids.contains(proof) else { return false }
+        } else if native?.catalogComplete != nil && native?.spaces == .observed {
+            // A functioning native catalogue genuinely identified this display's current
+            // record. Do not turn a conflicting or missing membership into an onscreen guess.
+            return false
+        }
+        if m.onActiveDesktop == true && m.isOnscreen == true { return true }
+        return native?.accessibility != .denied && m.minimized == false &&
+            m.overviewSpaceID != nil && m.overviewIsPresented == true
     }
 
     func desktopPreviewRowCount(for displayID: String?) -> Int {

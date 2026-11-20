@@ -1,6 +1,8 @@
 #include "ReadOnlySpaces.h"
+#include <CoreGraphics/CGError.h>
 #include <CoreGraphics/CGWindow.h>
 #include <dlfcn.h>
+#include <pthread.h>
 #include <string.h>
 #include <sys/sysctl.h>
 
@@ -64,24 +66,77 @@ typedef CFArrayRef (*CopyManaged)(int);
 typedef CFArrayRef (*CopyMembership)(int, int, CFArrayRef);
 static CopyManaged managed;
 static CopyMembership membership;
+typedef CGError (*ReadLogicalBounds)(int, uint32_t, CGRect *);
+static ReadLogicalBounds logicalBounds;
 static int connection;
 
-int NPReadOnlySpacesOpen(void) {
+static MainConnection mainConnection;
+static pthread_once_t resolveOnce = PTHREAD_ONCE_INIT;
+
+static void resolveGetters(void) {
+    void *handle = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LOCAL | RTLD_LAZY);
+    if (!handle) return;
+    mainConnection = (MainConnection)dlsym(handle, "SLSMainConnectionID");
+    managed = (CopyManaged)dlsym(handle, "SLSCopyManagedDisplaySpaces");
+    membership = (CopyMembership)dlsym(handle, "SLSCopySpacesForWindows");
 #if defined(__arm64__)
     char build[64] = {0};
     size_t length = sizeof(build);
-    if (sysctlbyname("kern.osversion", build, &length, NULL, 0) || strcmp(build, "26A428")) return 0;
-    void *handle = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LOCAL | RTLD_LAZY);
-    if (!handle) return -1;
-    MainConnection mainConnection = (MainConnection)dlsym(handle, "SLSMainConnectionID");
-    managed = (CopyManaged)dlsym(handle, "SLSCopyManagedDisplaySpaces");
-    membership = (CopyMembership)dlsym(handle, "SLSCopySpacesForWindows");
+    if (!sysctlbyname("kern.osversion", build, &length, NULL, 0) && !strcmp(build, "26A428"))
+        logicalBounds = (ReadLogicalBounds)dlsym(handle, "SLSGetWindowBounds");
+#endif
+}
+
+int NPReadCatalogLogicalBounds(uint32_t window, CGRect *bounds) {
+    if (!window || connection <= 0 || !logicalBounds) return 0;
+    CGRect rect = CGRectNull;
+    if (logicalBounds(connection, window, &rect) != kCGErrorSuccess ||
+        CGRectIsNull(rect) || CGRectIsInfinite(rect) || CGRectIsEmpty(rect)) return 0;
+    *bounds = rect;
+    return 1;
+}
+
+static int openGetters(int observeOnly) {
+#if defined(__arm64__)
+    char build[64] = {0};
+    size_t length = sizeof(build);
+    if (sysctlbyname("kern.osversion", build, &length, NULL, 0)) return 0;
+    // Only the read-only catalogue may probe other builds in this ABI family.
+    // Selection, movement and private AX identity have separate reviewed bounds.
+    if (observeOnly) {
+        if (strncmp(build, "26", 2) || build[2] < 'A' || build[2] > 'Z') return 0;
+    } else if (strcmp(build, "26A428")) return 0;
+    pthread_once(&resolveOnce, resolveGetters);
     if (!mainConnection || !managed || !membership) return -1;
     connection = mainConnection();
     return connection > 0 ? 1 : -1;
 #else
     return 0;
 #endif
+}
+
+int NPReadOnlySpacesOpen(void) { return openGetters(0); }
+
+int NPProbeReadOnlyCatalog(void) {
+    int opened = openGetters(1);
+    if (opened != 1) return opened;
+    CFArrayRef raw = NPReadInventory();
+    if (!raw) return -1;
+    CFIndex count = CFArrayGetCount(raw);
+    int valid = count > 0 && count <= 32;
+    for (CFIndex i = 0; valid && i < count; i++) {
+        CFDictionaryRef display = CFArrayGetValueAtIndex(raw, i);
+        if (!display || CFGetTypeID(display) != CFDictionaryGetTypeID()) { valid = 0; break; }
+        CFTypeRef identifier = CFDictionaryGetValue(display, CFSTR("Display Identifier"));
+        CFTypeRef current = CFDictionaryGetValue(display, CFSTR("Current Space"));
+        CFTypeRef spaces = CFDictionaryGetValue(display, CFSTR("Spaces"));
+        valid = identifier && CFGetTypeID(identifier) == CFStringGetTypeID() &&
+                current && CFGetTypeID(current) == CFDictionaryGetTypeID() &&
+                spaces && CFGetTypeID(spaces) == CFArrayGetTypeID() &&
+                CFArrayGetCount(spaces) > 0 && CFArrayGetCount(spaces) <= 256;
+    }
+    CFRelease(raw);
+    return valid ? 1 : -1;
 }
 
 static CFArrayRef checkedArray(CFArrayRef copy) {

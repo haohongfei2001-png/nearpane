@@ -20,6 +20,18 @@ public final class EmbeddedModules {
         windowPreviews.currentDesktop?.invalidate()
         windowPreviews.gallery.clear(); windowPreviews.clear()
     }
+    /// Aggregate counters only. Reading this snapshot cannot request pixels or operate windows.
+    public var windowPreviewMetrics: [String: NSNumber] {
+        let gallery = windowPreviews.gallery
+        return ["captureRequests": NSNumber(value: gallery.captureRequests + windowPreviews.pickerCaptureRequests),
+                "capturesInFlight": NSNumber(value: gallery.capturesInFlight + windowPreviews.pickerInFlight),
+                "cacheEntries": NSNumber(value: windowPreviews.cacheCount),
+                "visibleDisplays": NSNumber(value: windowPreviews.visibleDisplays.count),
+                "gallerySessions": NSNumber(value: gallery.activeCaptureLoops),
+                "windowManagementBusy": NSNumber(value: workRect?.updateRequiresManagementToFinish ?? false),
+                "chargedPixelBytes": NSNumber(value: windowPreviews.cacheBytes),
+                "activeStreams": 0] // Both capture paths use SCScreenshotManager one-shots.
+    }
     public func desktopWindowsChanged() { windowPreviews.currentDesktop?.changed() }
 
     @MainActor public func updateRelaunchBlock() async -> String? {

@@ -394,10 +394,8 @@ extension DisplaySettings {
             return max(0, height - min(points(.rowGap, in: height), height / 8))
         case .trayButtonSize: return sizes.tray
         case .spaceRowHeight, .spaceRowGap:
-            let viewport = min(sizes.spaces, points(.scrollHeight, in: sizes.spaces))
-            return min(viewport, points(.desktopHeight, in: viewport))
-        case .desktopHeight: return min(sizes.spaces, points(.scrollHeight, in: sizes.spaces))
-        case .scrollHeight, .moduleHeight: return sizes.spaces
+            return min(sizes.spaces, points(.desktopHeight, in: sizes.spaces))
+        case .desktopHeight, .scrollHeight, .moduleHeight: return sizes.spaces
         default: return panel.width
         }
     }

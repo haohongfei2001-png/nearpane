@@ -36,6 +36,12 @@ mkdir -p "$stage/Contents/Helpers"
 install -m 755 "$reader" "$stage/Contents/Helpers/NearpaneDesktopReader"
 /usr/bin/plutil -insert NearpaneDesktopReaderSHA256 -string "$(shasum -a 256 "$reader" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
 "$stage/Contents/Helpers/NearpaneDesktopReader" --self-check
+action="$binary_dir/NearpaneSpaceAction"
+/usr/bin/codesign --verify --strict "$action"
+install -m 755 "$action" "$stage/Contents/Helpers/NearpaneSpaceAction"
+/usr/bin/plutil -insert NearpaneSpaceActionSHA256 -string "$(shasum -a 256 "$action" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
+cp -R Resources/Upstream/NativeSpaceActions "$stage/Contents/Resources/"
+"$stage/Contents/Helpers/NearpaneSpaceAction" --self-check
 ordinary="$binary_dir/NearpaneOrdinaryWindowController"
 /usr/bin/codesign --verify --strict "$ordinary"
 install -m 755 "$ordinary" "$stage/Contents/Helpers/NearpaneOrdinaryWindowController"

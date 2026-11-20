@@ -254,9 +254,20 @@ private actor Attempts {
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
         let request = DesktopReadRequest(session: UUID(), revision: 1, parentPID: getpid(),
                                          fixtureWindows: [], anchors: [], experimentalSpaces: false)
+        // Observe the child's post-EOF marker before launching it. Its actual startup
+        // is bounded by the production reader timeout, independently of cancellation.
+        let directory = open(root.path, O_EVTONLY)
+        try #require(directory >= 0)
+        let writes = DispatchSource.makeFileSystemObjectSource(fileDescriptor: directory, eventMask: .write,
+                                                               queue: .main)
+        let (changes, notifier) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        writes.setEventHandler { notifier.yield(()) }
+        writes.setCancelHandler { close(directory) }
+        writes.activate()
+        defer { writes.cancel() }
         let (spawned, producer) = AsyncStream<pid_t>.makeStream()
         let task = Task {
-            defer { producer.finish() }
+            defer { producer.finish(); notifier.finish() }
             return try await DesktopReaderProcess.read(executable: executable, request: request) { pid in
                 producer.yield(pid)
             }
@@ -264,12 +275,15 @@ private actor Attempts {
         defer { task.cancel() }
         var iterator = spawned.makeAsyncIterator()
         let pid = try #require(await iterator.next())
-        // The EOF deadline measures the launched child, even if the suite is
-        // competing for the executor with other SwiftPM jobs.
-        for _ in 0..<100 where !fm.fileExists(atPath: ready.path) { try await Task.sleep(for: .milliseconds(10)) }
+        if !fm.fileExists(atPath: ready.path) {
+            for await _ in changes where fm.fileExists(atPath: ready.path) { break }
+        }
         try #require(fm.fileExists(atPath: ready.path))
+        try #require(kill(pid, 0) == 0)
+        let cancelledAt = ContinuousClock.now
         task.cancel()
         await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(ContinuousClock.now - cancelledAt < .seconds(1))
         var status: Int32 = 0
         #expect(waitpid(pid, &status, WNOHANG) == -1 && errno == ECHILD)
     }

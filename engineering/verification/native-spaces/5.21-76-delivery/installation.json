@@ -1,0 +1,32 @@
+{
+  "installed": "/Applications/Nearpane.app",
+  "version": "5.21",
+  "build": 76,
+  "previous": "5.21 (75)",
+  "hostSHA256": "ac403f4c620b5308791fe8fedf24278ca12263bf320d4dd4f1212016309700b7",
+  "previousHostSHA256": "6e6ed002961b03bd22a5388cea0b499101c5cfa2dea09850126a4dac9bf44c20",
+  "backup": "Nearpane-5.21-75.zip",
+  "backupSHA256": "b28479659b2446af57f9d9d7bd4548161628b2282f61fc70e7864b32ed097351",
+  "oldTreeCount": 247,
+  "newTreeCount": 247,
+  "allFilesCompared": true,
+  "oldAndNewInactive": true,
+  "personalProfileOpened": false,
+  "installedAt": "2026-11-18T01:53:59.967348+00:00",
+  "source": "7f95f05e17f0715d1f6ac3a3505a486d5e32a083",
+  "archive": {
+    "zip": "Nearpane-5.21-76-macOS-arm64.zip",
+    "sha256": "91e4e1a3d779c9dd25dc0809219e663e21ac0ed578b9c44bfaeca23d730e6e5b",
+    "bytes": 23759824,
+    "hostSHA256": "ac403f4c620b5308791fe8fedf24278ca12263bf320d4dd4f1212016309700b7",
+    "deepStrictSignatureAfterUnpack": true,
+    "githubAssetID": 761464958,
+    "githubAssetDigest": "sha256:91e4e1a3d779c9dd25dc0809219e663e21ac0ed578b9c44bfaeca23d730e6e5b",
+    "githubReleaseState": "draft"
+  },
+  "sealedResources": {
+    "files": 39,
+    "sha256": "14209815d4e81b3e6df8ba7f1e3261589f57e951be5766614a71f718313df1e0"
+  },
+  "signature": "ad-hoc, deep/strict verified on installed and independently extracted application"
+}

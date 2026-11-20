@@ -513,6 +513,23 @@ class BlankTargetCalibration(unittest.TestCase):
                 self.assertEqual([c.args[0][0].name for c in call.call_args_list], ["occupancy"])
                 (self.root / "target-occupancy.json").unlink()
 
+    def test_disposable_created_desktop_with_shared_member_refuses_calibration(self):
+        session = self.session
+        session.args.current_display = True
+        session.args.provision_current = True
+        session.ledger = self.root
+        session.origin, session.provisioned = {}, {}
+        claim = {"display": "side", "source": "10"}
+        write(self.root / "create-intent.json", claim)
+        write(self.root / "created.json", {"intent": claim, "target": "11"})
+        proof = dict(self.proof, display="side", corroboratedShared=1)
+        with patch.object(session, "check_added", return_value={"source": "10", "target": "11"}), patch.object(
+            route.sp, "run", return_value=Mock(returncode=0, stdout=json.dumps(proof))
+        ) as run:
+            with self.assertRaisesRegex(ValueError, "blank secondary B"):
+                self.calibrate()
+            self.assertEqual(run.call_count, 1)
+
     def test_stale_enrollment_rejected_without_invoking_helpers(self):
         write(self.root / "enrolled-A.json", dict(self.enrollment, run="older"))
         with patch.object(route.sp, "run") as call, self.assertRaisesRegex(ValueError, "unbound occupancy"):

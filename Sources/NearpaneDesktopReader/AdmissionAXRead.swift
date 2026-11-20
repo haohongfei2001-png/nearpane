@@ -13,9 +13,10 @@ enum AdmissionAXRead {
         return AXUIElementCopyAttributeValue(e, key as CFString, &v) == .success ? v : nil
     }
 
-    static func windowNumber(_ element: AXUIElement) -> UInt32? {
+    static func windowNumber(_ element: AXUIElement, beforeFallback: () -> Bool = { true }) -> UInt32? {
         if let value = value(element, "AXWindowNumber") as? NSNumber,
            let n = UInt32(exactly: value.int64Value), n > 0 { return n }
+        guard beforeFallback() else { return nil }
         let n = NPReadAXWindowNumber(element)
         return n > 0 ? n : nil
     }
@@ -86,7 +87,7 @@ enum AdmissionAXRead {
             return rows
         }
         if r.targets.isEmpty {
-            let numbers = try windows().map(windowNumber)
+            let numbers = try windows().map { windowNumber($0) }
             try checkOwner()
             return .init(nonce: r.nonce, permitted: true, numbers: numbers, pairs: [])
         }

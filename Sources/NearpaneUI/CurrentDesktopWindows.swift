@@ -12,11 +12,16 @@ import OSLog
     private let session = UUID()
     private var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
+    @ObservationIgnored private var retry: Task<Void, Never>?
+    @ObservationIgnored private var failures = 0
+    @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
+    func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
     @ObservationIgnored private var epoch = UUID()
     @ObservationIgnored private var pending: (UUID, Task<DesktopSnapshot?, Never>)?
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var events: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var reportedCounts: [Int]?
+    @ObservationIgnored weak var automaticTiling: DesktopAutomaticTiling?
     @ObservationIgnored var didSample: (() -> Void)?
     private var panelRequested = false
     private var managementRequested = false
@@ -33,6 +38,8 @@ import OSLog
         pending?.1.cancel()
         pending = nil
         snapshot = nil
+        lifetimes.removeAll()
+        retry?.cancel(); retry = nil; failures = 0
         didSample?()
         changed()
     }
@@ -63,6 +70,7 @@ import OSLog
             let detector = Task {
                 var previous: Int?, last = ContinuousClock.now
                 var settleUntil = last
+                var settledDragCount = CGEventSource.counterForEventType(.combinedSessionState, eventType: .leftMouseDragged)
                 while !Task.isCancelled {
                     let now = ContinuousClock.now, numbers = fingerprint()
                     if numbers != previous {
@@ -70,7 +78,15 @@ import OSLog
                         // WindowServer's numbers can precede the settled Space membership.
                         settleUntil = now.advanced(by: .milliseconds(760))
                     }
-                    if now < settleUntil || now - last >= .seconds(3) {
+                    // A resize or move need not change the window list. Refresh on mouse
+                    // release without monitoring events or reading their coordinates.
+                    var dragEnded = false
+                    if !CGEventSource.buttonState(.combinedSessionState, button: .left) {
+                        let count = CGEventSource.counterForEventType(.combinedSessionState, eventType: .leftMouseDragged)
+                        dragEnded = count != settledDragCount
+                        settledDragCount = count
+                    }
+                    if dragEnded || now < settleUntil || now - last >= .seconds(3) {
                         last = now; events.yield(())
                     }
                     do { try await Task.sleep(for: .milliseconds(180)) } catch { return }
@@ -83,13 +99,27 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                retry?.cancel()
+                retry = nil
+                if next != nil {
+                    failures = 0
+                } else {
+                    failures = min(4, failures + 1)
+                    let delay = [180, 360, 720, 1500][failures - 1]
+                    retry = Task {
+                        do { try await Task.sleep(for: .milliseconds(delay)) } catch { return }
+                        guard expected == epoch else { return }
+                        events.yield(())
+                    }
+                }
                 didSample?()
                 if let next {
-                    let counts = [next.windows.count, next.windows.filter { $0.metadata?.onActiveDesktop == false }.count]
+                    let presented = next.windows.filter(next.isCurrentDesktopWindow)
+                    let counts = [presented.count, presented.filter { $0.metadata?.onActiveDesktop == false }.count, next.windows.count]
                     if counts != reportedCounts {
                         reportedCounts = counts
                         Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowOverview")
-                            .info("Current desktop windows: total=\(counts[0], privacy: .public) background=\(counts[1], privacy: .public)")
+                            .info("Current desktop windows: total=\(counts[0], privacy: .public) background=\(counts[1], privacy: .public) inventory=\(counts[2], privacy: .public)")
                     }
                 }
             }
@@ -99,7 +129,7 @@ import OSLog
     /// Used on both sides of a background picture batch and before an explicit click.
     /// Concurrent consumers join the same in-flight read.
     func readNow() async -> DesktopSnapshot? {
-        guard events != nil, sessionAvailable() else { return nil }
+        guard events != nil, sessionAvailable() else { lifetimes.removeAll(); return nil }
         let expected = epoch
         if let pending {
             let result = await pending.1.value
@@ -109,10 +139,21 @@ import OSLog
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
             fixtureWindows: nil, anchors: [], experimentalSpaces: false)
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
-            guard let result = try? await read(request), let self, !Task.isCancelled,
-                  expected == self.epoch, self.sessionAvailable(),
+            let readback = try? await read(request)
+            guard let self, !Task.isCancelled, expected == self.epoch else { return nil }
+            guard let result = readback, self.sessionAvailable(),
                   result.sessionID == request.session, result.revision == request.revision, result.isStructurallyValid,
-                  result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return nil }
+                  result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
+                self.lifetimes.removeAll()
+                return nil
+            }
+            var next = [DesktopWindowKey: UUID]()
+            for window in result.windows {
+                guard let meta = window.metadata, let birth = meta.launchMicroseconds, birth > 0 else { continue }
+                let key = DesktopWindowKey(pid: meta.pid, birth: birth, number: meta.number)
+                next[key] = self.lifetimes[key] ?? UUID()
+            }
+            self.lifetimes = next
             return result
         }
         let token = UUID()
