@@ -1,5 +1,18 @@
 # Installed sidebar witness
 
+## 正式侧栏合同
+
+从仓库根目录运行下列命令。每项使用新证据目录。在正常 Launch Services 入口启动正式安装版，`installed_profile.py` 验证独占测试资料锁并在结束后恢复日常配置。核心合同经系统 Mission Control 创建普通 A/B/C，保存创建与移除的 UUID 收据。正式 Space 行、Apple TextEdit 或受控文档、独立 WindowServer 及键盘输入分别记录在 actions.jsonl。
+
+```sh
+python3 scripts/acceptance/native-spaces/installed_profile.py "$out/profile" -- \
+  python3 scripts/acceptance/native-spaces/acceptance.py core-contract "$out/core" \
+  --scenarios S01,S02,S03,W01,W02,D01,R01 --performance
+python3 scripts/acceptance/native-spaces/acceptance.py cleanup-contract "$out/core"
+```
+
+`run-lifecycle.sh` 使用同一个测试资料入口验证原生全屏、平铺与重启。`r4-voice-cold.py --file-readback` 在每次全新 Host 中核对真实麦克风首句和音频文件。[翻译、截图、单词本与官方草稿](TOOL-TRIALS.md)
+
 ## R4 安装版
 
 `run.sh roster <新目录>` 在本屏建立横宽和高窄两扇测试窗，逐一核对正式侧栏身份、独立等比图槽和纵向滚动区。在安装进程具备录屏权限时再比对卡片像素。`r4-scene.swift` 使用 ScreenCaptureKit 仅纳入系统桌面层、两扇登记的测试窗及安装侧栏，把台前调度对测试窗的实际呈现保存在同一画面中。
@@ -41,3 +54,5 @@ The candidate batch freezes a read-only preflight, then runs four scenarios seri
 `fixture-inventory` runs one additional read-only diagnostic. It creates one ordinary document fixture and compares only that process’s AppKit number, AX roles/numbers and layer-zero CG metadata. It never presses a sidebar control or sends keyboard input.
 
 Each scenario produces an immutable manifest, an action journal and per-scenario results. An issued click without the intended external result stays failed or unknown. A completed fixture subtest does not grant W01/W03 real-application compatibility, nor S02/D01/N01 acceptance. A disabled production Space row, missing hardware or absent grants must be reported explicitly; switching from a different privileged program would invalidate the run.
+
+`retained-selections.py KIT LEDGER_ROOT OUTPUT A.json B.json C.json` 可在同一测试会话的三个现存租用桌面上单独诊断正式行按钮。它检查每个创建回执的哈希、启动会话、显示器、Space ID 与 UUID，并从正式 Host 取行及回读 WindowServer。可进入的起点为租用桌面或当前确由自建文档持有的焦点。此诊断单独计数，完整 S02 由 `core-contract` 验证。
