@@ -229,6 +229,61 @@ class VisualTests(unittest.TestCase):
                 decision=json.loads(subprocess.check_output([os.environ["NEARPANE_P0_VISUAL_BINARY"],"--test-fixture-auxiliary"],input=json.dumps(data),text=True))
                 self.assertTrue(decision["allOrdinaryAccounted"]);self.assertEqual(decision["verifiedFixtureAuxiliaryCount"],want)
 
+    def test_handoff_requires_its_own_image_and_two_forward_opaque_foreground_reads(self):
+        self.version_three();self.data["physical"]["presentationReviewVersion"]=5
+        h=self.frames[5]
+        h.update(presentationKind="ownedHandoff",space=None,visible="ownedHandoff",handoffSpaceChanged=True,handoffSurfaceChanged=False,
+                 handoffPixelRead=True,matchesTarget=False,matchesSource=False)
+        post=h["postPresentationSurfaces"];post[0]["space"]=4
+        def proof():return visual.presentation_proof(self.frames,5,4,5,60,5)[0]
+        self.assertTrue(proof());self.assertEqual(self.result()["subchecks"]["continuousVisibleLight"],"PASS")
+        self.assertEqual(len(self.result()["coverage"]["handoffEvents"]),1)
+        h.update(handoffSurfaceChanged=True);post[0]["visible"]="source"
+        self.assertFalse(proof())
+        h["matchesSource"]=True;self.assertTrue(proof())
+        for patch in [dict(handoffPixelRead=False),dict(safe=False),dict(status=1),dict(matchesSource=False),dict(lit=None),dict(visible="target",space=5)]:
+            candidate=dict(h,**patch);self.assertFalse(visual.presentation_proof([candidate],0,4,5,60,5)[0])
+        for patch in [dict(space=7),dict(reason="verifiedSealedWallpaper"),dict(visible="appleWallpaper"),dict(sameDisplayAndInput=False),{"to":h["displayTime"]+.051}]:
+            candidate=copy.deepcopy(h);candidate["postPresentationSurfaces"][1].update(patch)
+            self.assertFalse(visual.presentation_proof([candidate],0,4,5,60,5)[0])
+        h["lit"]=False;self.assertEqual(self.result()["subchecks"]["continuousVisibleLight"],"UNKNOWN");h["lit"]=True
+        h.update(status=2,blankDisplayBound=True,safe=False,handoffPixelRead=False)
+        self.assertEqual(self.result()["status"],"FAIL")
+        h["presentationKind"]="displayBlankDuringSpaceHandoff"
+        for reading in post:reading.update(visible=None,reason="noPositivePhysicalLayer")
+        self.assertEqual(self.result()["status"],"FAIL")
+        post[1]["sameDisplayAndInput"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_handoff_rejects_returning_to_source_and_never_certifies_stable_destination(self):
+        self.version_three();self.data["physical"]["presentationReviewVersion"]=5
+        h=self.frames[5]
+        h.update(presentationKind="ownedHandoff",space=None,visible="ownedHandoff",handoffSpaceChanged=True,handoffSurfaceChanged=True,
+                 handoffPixelRead=True,matchesTarget=True,matchesSource=False)
+        reads=h["postPresentationSurfaces"];reads[0].update(space=4,visible="source")
+        span=dict(reads[0],**{"from":h["displayTime"]-.001,"to":h["displayTime"]+.001})
+        h["spanningSurface"]=span
+        self.assertEqual(self.result()["coverage"]["reverseReads"],[])
+        for field,changed in [("space",5),("visible","target"),("reason","other"),("from",h["displayTime"]-.051)]:
+            test=copy.deepcopy(h);test["spanningSurface"][field]=changed
+            self.assertFalse(visual.presentation_proof([test],0,4,5,60,5)[0])
+        self.frames[6]["postPresentationSurfaces"][0].update(visible="source")
+        self.assertTrue(self.result()["coverage"]["reverseReads"])
+        for r in self.frames[6:]:r["matchesTarget"]=False
+        self.assertFalse(self.result()["subchecks"]["streamingTargetMatched"])
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_HANDOFF") and os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires auxiliary-pair and compiled observer")
+    def test_archived_unread_handoff_is_only_positive_for_scoping(self):
+        root=Path(os.environ["NEARPANE_P0_ARCHIVED_HANDOFF"]);pair=json.loads((root/"identity.json").read_bytes())
+        row=json.loads((root/"visual/frames.json").read_bytes())["physical"]["frames"][23]
+        self.assertEqual(row["blockedBy"],"twoPostPresentationSurfacesDisagree");self.assertNotIn("lit",row)
+        data=dict(source=pair["topology"]["current"],target=pair["target"],row=row)
+        result=json.loads(subprocess.check_output([os.environ["NEARPANE_P0_VISUAL_BINARY"],"--test-handoff"],input=json.dumps(data),text=True))
+        self.assertEqual(result,dict(metadataEligible=True,surfaceChanged=False,spaceChanged=True,pixelRead=False))
+        self.assertEqual(visual.handoff_metadata(row,data["source"],data["target"]),(False,True))
+        self.assertFalse(visual.presentation_proof([row],0,data["source"],data["target"],60,4)[0])
+        self.assertEqual(json.loads((root/"visual/receipt.json").read_bytes())["status"],"UNKNOWN")
+
     def test_native_blank_survives_overlapping_static_reads(self):
         at=self.frames[7]["displayTime"]
         self.frames[7]["status"]=2

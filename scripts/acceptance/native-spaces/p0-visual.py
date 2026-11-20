@@ -253,12 +253,48 @@ def tick_matches_time(row, base):
                 abs(ticks*numer/denom/1e9-t)<=math.ulp(t))
 
 
+def handoff_metadata(row,source,target):
+    t=stamp(row,"displayTime");post=row.get("postPresentationSurfaces") or [];span=row.get("spanningSurface")
+    if not t or len(post)!=2 or source==target:return None
+    reads=([span] if span is not None else [])+post
+    for r in reads:
+        start,stop=stamp(r,"from"),stamp(r,"to")
+        if (not start or not stop or start>stop or r.get("reason")!="exactOpaqueFixture" or r.get("sameDisplayAndInput") is not True
+                or r.get("visible") not in ("source","target") or r.get("space") not in (source,target)):return None
+    if not (t<=post[0]["from"]<=post[0]["to"]<=post[1]["from"]<=post[1]["to"] and post[1]["to"]-t<=.050):return None
+    if span is not None and not (span["from"]<=t<=span["to"]<=post[0]["from"] and t-span["from"]<=.050):return None
+    windows=[r["visible"]=="target" for r in reads];spaces=[r["space"]==target for r in reads]
+    changed_window=windows[0]!=windows[-1];changed_space=spaces[0]!=spaces[-1]
+    if windows!=sorted(windows) or spaces!=sorted(spaces) or not (changed_window or changed_space or windows[-1]!=spaces[-1]):return None
+    return changed_window,changed_space
+
+
+def reverse_surface_reads(window,source,target):
+    # A real sample can be cited by neighboring frames. Order unique observations by the times they actually ran.
+    readings=set()
+    for row in window:
+        for r in [*row.get("postPresentationSurfaces",[]),row.get("spanningSurface")]:
+            if r and r.get("sameDisplayAndInput") is True and r.get("space") in (source,target) and stamp(r,"from") and stamp(r,"to"):
+                readings.add((r["from"],r["to"],r["space"],r.get("visible") or "unknown"))
+    seen_target_space=seen_target_surface=False
+    backwards=[]
+    for start,end,space,visible in sorted(readings):
+        if (seen_target_space and space==source) or (seen_target_surface and visible=="source"):
+            backwards.append({"from":start,"to":end,"spaceReversed":seen_target_space and space==source,
+                              "foregroundReversed":seen_target_surface and visible=="source"})
+        seen_target_space |= space==target
+        seen_target_surface |= visible=="target"
+    return backwards
+
+
 def presentation_proof(genuine, index, source, target, hz, version):
     row=genuine[index]
     t,callback=stamp(row,"displayTime"),stamp(row,"callback")
     bound_blank=(version>=3 and row.get("status")==2 and row.get("blankDisplayBound") is True)
-    if not t or not callback or row.get("space") not in (source,target) or (not bound_blank and
-            (row.get("safe") is not True or row.get("visible") not in ("source","target","appleWallpaper"))):
+    handoff=version>=5 and row.get("presentationKind")=="ownedHandoff"
+    crossing_blank=version>=5 and bound_blank and row.get("presentationKind")=="displayBlankDuringSpaceHandoff"
+    if not t or not callback or (not handoff and not crossing_blank and (row.get("space") not in (source,target) or (not bound_blank and
+            (row.get("safe") is not True or row.get("visible") not in ("source","target","appleWallpaper"))))):
         return False,row.get("blockedBy") or "unscopedNativePresentation",None
     if version>=3:
         reads=row.get("postPresentationSurfaces") or []
@@ -268,6 +304,26 @@ def presentation_proof(genuine, index, source, target, hz, version):
         times=[stamp(read,k) for read,k in [(a,"from"),(a,"to"),(b,"from"),(b,"to")]]
         if any(v is None for v in times) or times!=sorted(times) or times[0]<t or times[-1]-t>.050 or t-callback>1/hz:
             return False,"postPresentationReadsOutsideBound",None
+        if crossing_blank:
+            span=row.get("spanningSurface")
+            sequence=([span] if span is not None else [])+reads
+            spaces=[r.get("space")==target for r in sequence]
+            scoped=all(r.get("sameDisplayAndInput") is True and r.get("space") in (source,target) for r in sequence)
+            if (not scoped or spaces!=sorted(spaces) or spaces[0]==spaces[-1] or (span is not None and not
+                    (stamp(span,"from") and stamp(span,"to") and span["from"]<=t<=span["to"]<=times[0] and t-span["from"]<=.050))):
+                return False,"unboundDisplayBlankDuringSpaceChange",None
+            return True,"timedNativeDisplayBlankDuringSwitch",(max(0,t-callback),times[-1]-t)
+        if handoff:
+            movement=handoff_metadata(row,source,target)
+            if (movement is None or row.get("space") is not None or row.get("visible")!="ownedHandoff" or
+                    row.get("handoffSurfaceChanged") is not movement[0] or row.get("handoffSpaceChanged") is not movement[1]):
+                return False,"unverifiedOwnedHandoffDirectionOrScope",None
+            if not bound_blank and (row.get("safe") is not True or row.get("status") not in (0,4) or row.get("handoffPixelRead") is not True
+                    or type(row.get("lit")) is not bool or (movement[0] and row.get("matchesSource") is not True and row.get("matchesTarget") is not True)):
+                return False,row.get("blockedBy") or "handoffLacksItsOwnQualifiedNativeImage",None
+            return True,"monotoneOwnedHandoff",(max(0,t-callback),times[-1]-t)
+        if version>=5 and not bound_blank and ((row.get("visible")=="source" and row.get("space")==target) or (row.get("visible")=="target" and row.get("space")==source)):
+            return False,"untypedOwnedHandoff",None
         def confirms(read):
             if read.get("sameDisplayAndInput") is not True or read.get("space")!=row["space"]:return False
             if bound_blank:return True
@@ -448,6 +504,14 @@ def score(data, request, pressed, ended, pre, post):
     result["displayProbe"]["currentCropReads"]=0
     proofs=[presentation_proof(genuine,i,source,target,hz,version) for i in range(first,last+1)]
     issues=[{"displayTime":r["displayTime"],"reason":proof[1]} for r,proof in zip(window,proofs) if not proof[0]]
+    if version>=5:
+        reversed_reads=reverse_surface_reads(window,source,target)
+        result["coverage"]["reverseReads"]=reversed_reads
+        issues.extend({"displayTime":x["from"],"reason":"observedReverseSpaceOrForeground"} for x in reversed_reads)
+        result["coverage"]["handoffEvents"]=[{"displayTime":r["displayTime"],"surfaceChanged":r.get("handoffSurfaceChanged"),
+            "spaceChanged":r.get("handoffSpaceChanged"),"actualNativeImageRead":r.get("handoffPixelRead") is True,
+            "lit":r.get("lit"),"matchesSource":r.get("matchesSource"),"matchesTarget":r.get("matchesTarget")}
+            for r in window if r.get("presentationKind")=="ownedHandoff"]
     early=[proof[2] for proof in proofs if proof[0] and proof[2] and proof[2][0]>0]
     coverage=result["coverage"]
     coverage.update(timingFailures=issues[:40],timingFailureCount=len(issues),timingFailureReasons=dict(collections.Counter(i["reason"] for i in issues)),

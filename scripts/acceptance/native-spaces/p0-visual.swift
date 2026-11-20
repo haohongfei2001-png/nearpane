@@ -420,6 +420,23 @@ private struct SurfaceReading {
     var receipt:JSON {["from":start,"to":end,"sameDisplayAndInput":bound,"space":space as Any? ?? NSNull(),"visible":visible as Any? ?? NSNull(),"reason":reason]}
 }
 
+// WindowServer publishes the foremost surface and the current Space independently during a real switch.
+private func ownedHandoff(_ time:Double,_ span:SurfaceReading?,_ post:[SurfaceReading],_ source:UInt64,_ target:UInt64)->(Bool,Bool)? {
+    guard source != target,post.count==2,post[0].start>=time,post[0].end<=post[1].start,post[1].end-time<=0.050 else {return nil}
+    if let span {guard span.start<=time,time<=span.end,span.end<=post[0].start,time-span.start<=0.050 else {return nil}}
+    let reads=(span.map{[$0]} ?? [])+post
+    var surface=[Int](),space=[Int]()
+    for r in reads {
+        guard r.bound,r.reason=="exactOpaqueFixture",r.start<=r.end,
+              r.visible=="source" || r.visible=="target",r.space==source || r.space==target else {return nil}
+        surface.append(r.visible=="source" ? 0:1);space.append(r.space==source ? 0:1)
+    }
+    guard surface==surface.sorted(),space==space.sorted() else {return nil}
+    let windowMoved=surface.first != surface.last,spaceMoved=space.first != space.last
+    guard windowMoved || spaceMoved || surface.last != space.last else {return nil}
+    return(windowMoved,spaceMoved)
+}
+
 private final class PresentationSurfaces: @unchecked Sendable {
     let pair:Pair, crop:CGRect, screen:NSScreen, endpoints:[String:Endpoint]
     private let queue=DispatchQueue(label:"nearpane.acceptance.presentation-surfaces",qos:.userInteractive)
@@ -530,17 +547,37 @@ private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @u
             guard post.count==2 else {row["blockedBy"]="twoActualPostPresentationReadsUnavailable";return}
             let a=post[0],b=post[1]
             guard a.start>=t,a.start<=a.end,a.end<=b.start,b.start<=b.end,b.end-t<=0.050 else {row["blockedBy"]="postPresentationReadExceeded50ms";return}
+            if base["status"] as? Int==SCFrameStatus.blank.rawValue,a.space != b.space {
+                let readings=(spanning.map{[$0]} ?? [])+post
+                let spaces=readings.map{$0.space==pair.target ? 1:0}
+                let bound=readings.allSatisfy{$0.bound && ($0.space==pair.topology.current || $0.space==pair.target)}
+                if bound,spaces==spaces.sorted(),spanning.map({$0.start<=t && t<=$0.end && $0.end<=a.start && t-$0.start<=0.050}) ?? true {
+                    row["blankDisplayBound"]=true;row["presentationKind"]="displayBlankDuringSpaceHandoff";row["space"]=NSNull();return
+                }
+            }
             if base["status"] as? Int==SCFrameStatus.blank.rawValue,a.bound,b.bound,let space=a.space,space==b.space,
                spanning.map({$0.bound && $0.space==space}) ?? true {
                 // Apple's explicit display-blank status contains no image; the signed display and issued pair can be
                 // proved independently even when a blank screen has no visible foreground surface to attribute.
                 row["blankDisplayBound"]=true;row["space"]=space
             }
-            guard a.bound,b.bound,let space=a.space,let visible=a.visible,space==b.space,visible==b.visible else {row["blockedBy"]="twoPostPresentationSurfacesDisagree";return}
-            if let spanning,spanning.visible != visible || spanning.space != space {
-                row["blockedBy"]="surfaceChangedAcrossPresentation";return
+            let handoff=ownedHandoff(t,spanning,post,pair.topology.current,pair.target)
+            let visible:String
+            if let handoff {
+                row["presentationKind"]="ownedHandoff";row["handoffSurfaceChanged"]=handoff.0;row["handoffSpaceChanged"]=handoff.1
+                row["space"]=NSNull();visible="ownedHandoff";row["visible"]=visible
+                if base["status"] as? Int==SCFrameStatus.blank.rawValue {row["blankDisplayBound"]=true;return}
+                guard pixel != nil else {row["blockedBy"]="handoffRequiresItsOwnNativeImage";return}
+            } else {
+                guard a.bound,b.bound,let space=a.space,let observed=a.visible,space==b.space,observed==b.visible else {row["blockedBy"]="twoPostPresentationSurfacesDisagree";return}
+                if let spanning,spanning.visible != observed || spanning.space != space {row["blockedBy"]="surfaceChangedAcrossPresentation";return}
+                // Mismatched source/target coordinates must satisfy the handoff checks, including genuine image bytes.
+                if (observed=="source" && space==pair.target) || (observed=="target" && space==pair.topology.current) {
+                    row["blockedBy"]="unverifiedHandoff";return
+                }
+                visible=observed;row["space"]=space;row["visible"]=visible
             }
-            row["space"]=space;row["visible"]=visible;row["safe"]=true
+            row["safe"]=true
             guard let pixel else {return}
             guard pixelGuard.permits(t) else {row["blockedBy"]="pixelsWithheldForUnexpectedTerminalMember";row["safe"]=false;return}
             guard CVPixelBufferGetWidth(pixel)==4,CVPixelBufferGetHeight(pixel)==4,CVPixelBufferGetPixelFormatType(pixel)==kCVPixelFormatType_32BGRA,
@@ -548,15 +585,19 @@ private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @u
             var image:CGImage?
             guard VTCreateCGImageFromCVPixelBuffer(pixel,options:nil,imageOut:&image)==noErr,let image,image.width==4,image.height==4,
                   let color=rgb(image) else {row["blockedBy"]="nativeSRGBCropUnavailable";row["safe"]=false;return}
-            if visible=="source" || visible=="target" {
+            if visible=="source" || visible=="target" || handoff != nil {
                 row["colorPipeline"]="sRGB CGImage for stream and reference"
                 row["sourceColorMaxDeltaBand"]=colorBand(color,endpoints[String(pair.topology.current)]?.rgb)
                 row["targetColorMaxDeltaBand"]=colorBand(color,endpoints[String(pair.target)]?.rgb)
                 row["directBGRAAgreesWithSRGB"]=comparison(raw,color)
             }
             row["lit"]=(color.max() ?? 0)>24
-            row["matchesSource"]=comparison(color,endpoints[String(pair.topology.current)]?.rgb)
-            row["matchesTarget"]=comparison(color,endpoints[String(pair.target)]?.rgb)
+            let sourceMatch=comparison(color,endpoints[String(pair.topology.current)]?.rgb),targetMatch=comparison(color,endpoints[String(pair.target)]?.rgb)
+            row["matchesSource"]=sourceMatch;row["matchesTarget"]=targetMatch
+            if let handoff {
+                row["handoffPixelRead"]=true
+                if handoff.0 && !sourceMatch && !targetMatch {row["safe"]=false;row["blockedBy"]="changingFixtureSurfacesLackedAnEndpointColor"}
+            }
         }
     }
     func finish() async {
@@ -718,6 +759,21 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
 @main private struct P0Visual {
     @MainActor static func main() async {
         guard [2,3].contains(CommandLine.arguments.count) else { exit(2) }
+        if CommandLine.arguments[1]=="--test-handoff",CommandLine.arguments.count==2 {
+            func read(_ v:JSON)->SurfaceReading? {
+                guard let from=v["from"] as? Double,let to=v["to"] as? Double,let bound=v["sameDisplayAndInput"] as? Bool,
+                      let reason=v["reason"] as? String else {return nil}
+                return SurfaceReading(start:from,end:to,space:v["space"] as? UInt64,visible:v["visible"] as? String,reason:reason,bound:bound)
+            }
+            let bytes=FileHandle.standardInput.readDataToEndOfFile()
+            guard bytes.count<262144,let data=try? JSONSerialization.jsonObject(with:bytes) as? JSON,let source=data["source"] as? UInt64,
+                  let target=data["target"] as? UInt64,let row=data["row"] as? JSON,let t=row["displayTime"] as? Double,
+                  let post=row["postPresentationSurfaces"] as? [JSON] else {exit(2)}
+            let spanning=row["spanningSurface"] as? JSON
+            let m=ownedHandoff(t,spanning.flatMap(read),post.compactMap(read),source,target)
+            print(String(decoding:try! JSONSerialization.data(withJSONObject:["metadataEligible":m != nil && (spanning==nil || spanning.flatMap(read) != nil),
+                "surfaceChanged":m?.0 as Any? ?? NSNull(),"spaceChanged":m?.1 as Any? ?? NSNull(),"pixelRead":false] as JSON,options:.sortedKeys),as:UTF8.self));return
+        }
         if CommandLine.arguments[1]=="--test-fixture-auxiliary",CommandLine.arguments.count==2 {
             struct Input:Decodable {let endpoint:Window,opposite:Window}
             let raw=FileHandle.standardInput.readDataToEndOfFile()
@@ -1055,7 +1111,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                   "requestedHz": hz, "refreshLimitHz": screen.maximumFramesPerSecond, "displayModeHz": CGDisplayCopyDisplayMode(display.displayID)?.refreshRate ?? 0,
                   "width": width, "height": height, "filterStyle": filter.style.rawValue,
                   "windows": allowed.sorted(), "wallpaperIncluded": false, "audioEnabled": false,
-                  "physical": ["presentationReviewVersion":4,"machTimebase":probe?.timebase ?? [:],"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":finalMembership.0,"membershipAfter":finalMembership.1,
+                  "physical": ["presentationReviewVersion":5,"machTimebase":probe?.timebase ?? [:],"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":finalMembership.0,"membershipAfter":finalMembership.1,
                                "filter": "display-excluding-other-apps", "crop": crop.map(rectangle) as Any? ?? NSNull(),
                                "error": probe?.failed ?? false, "frames": probe?.rows ?? []] as JSON,
                   "changed": changed, "stoppedEarly": failed, "start": start, "stop": uptime(), "postSpace": post as Any? ?? NSNull(),
