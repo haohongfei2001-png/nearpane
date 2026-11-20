@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Combine
 import NearpaneCore
 import Observation
@@ -131,6 +132,17 @@ public final class VoiceModule: HostModule {
     public private(set) var active = false
     private(set) var busy = false
     public private(set) var capture: CaptureState = .paused
+    public var panelIsCompact: Bool {
+        switch capture {
+        case .paused, .interrupted: return true
+        case .starting, .listening, .speaking: return false
+        }
+    }
+    var microphoneDenied: Bool {
+        let permission = AVCaptureDevice.authorizationStatus(for: .audio)
+        return permission == .denied || permission == .restricted
+    }
+
     /// Only activity flags enter the app updater. Audio and transcript stay in the domain.
     public var updateRequiresVoiceToFinish: Bool {
         if busy || changingRecognition || inserting || archivePlaybackParagraph != nil { return true }

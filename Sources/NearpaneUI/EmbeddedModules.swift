@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import NearpaneCore
 #if canImport(NearpaneVoice)
@@ -15,6 +16,23 @@ public final class EmbeddedModules {
     let voicePasteboard: NSPasteboard
     #endif
 
+    let notebook: SidebarNotebook
+    private lazy var translation = SelectionTranslation(notebook: notebook)
+    public func registerSelectionService() { NSApp.servicesProvider = translation }
+    var voiceCompact: Bool {
+        #if canImport(NearpaneVoice)
+        voice.panelIsCompact
+        #else
+        false
+        #endif
+    }
+    var trayRowCount: Int {
+        #if canImport(NearpaneTray)
+        tray.rowCount
+        #else
+        1
+        #endif
+    }
     let windowPreviews: WindowContentPreview
     public func stopWindowContentPreview() {
         windowPreviews.currentDesktop?.invalidate()
@@ -48,6 +66,7 @@ public final class EmbeddedModules {
     public let workRect: CandidateWorkRect?
     public let candidate: Bool
     public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
+        notebook = SidebarNotebook(directory: support)
         windowPreviews = WindowContentPreview(readOverview: testSession == nil ? NativeDesktopProvider.packagedReader(overview: true) : nil,
             permitsGalleryWindow: { _ in testSession == nil })
         self.candidate = candidate
@@ -63,7 +82,9 @@ public final class EmbeddedModules {
     }
 
     public var factories: [String: @MainActor () -> any HostModule] {
-        var result: [String: @MainActor () -> any HostModule] = [:]
+        var result: [String: @MainActor () -> any HostModule] = [
+            BuiltinCatalog.memo: { NotebookModule() }, BuiltinCatalog.tasks: { NotebookModule() }
+        ]
         #if canImport(NearpaneVoice)
         result[BuiltinCatalog.screenshots] = { [tray] in tray }
         result[BuiltinCatalog.voice] = { [voice] in voice }

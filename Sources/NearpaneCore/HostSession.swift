@@ -69,7 +69,7 @@ public final class HostSession {
             // Static catalog registration failures are programmer errors caught by the catalog tests.
             do {
                 try registry.register(manifest) {
-                    if manifest.kind == .core, let factory = coreFactories[manifest.id] { return factory() }
+                    if let factory = coreFactories[manifest.id] { return factory() }
                     if manifest.id == BuiltinCatalog.clock { return LocalClockModule() }
                     return SampleModule(message: manifest.kind == .core ? "Domain adapter not connected." : "Synthetic module content. No account or data source is connected.")
                 }

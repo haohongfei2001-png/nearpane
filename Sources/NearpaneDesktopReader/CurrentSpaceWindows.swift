@@ -86,8 +86,16 @@ extension Reader {
         }
         let targets = Self.roleTargets(first, active: activeBefore, currentIDs: currentIDs,
                                        memberships: firstBoundary?.membership ?? [:])
-        let requestedNumbers = Set(targets.flatMap(\.numbers))
+        let otherIDs = Set(firstBoundary?.inventory?.scopes.flatMap(\.records).map(\.id) ?? []).subtracting(currentIDs ?? [])
+        let others = Self.roleTargets(first, active: activeBefore, currentIDs: otherIDs,
+                                      memberships: firstBoundary?.membership ?? [:])
+        let currentNumbers = Set(targets.flatMap(\.numbers))
+        let otherNumbers = Set(others.flatMap(\.numbers)).subtracting(currentNumbers)
         let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8) : [:]
+        // Preserve the entire current-desktop budget. Spend a separate bounded slice
+        // on known background members for the other Space cards.
+        let otherRoles = trusted ? OverviewWindowRole.read(targets: others, revision: request.revision,
+                                                           deadline: min(start + 1, clock.systemUptime + 0.2)) : [:]
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let second = try windowList(overview: true)
         let active = activeBefore.intersection(activeNumbers())
@@ -146,7 +154,8 @@ extension Reader {
             // for selection without inventing a frame in the Space miniature.
             let global = SurfaceRect(entry.frame)
             let local = SurfaceRect(x: global.x - display.frame.x, y: global.y - display.frame.y, width: global.width, height: global.height)
-            let ownerRoles = requestedNumbers.contains(entry.windowID) ? roles[entry.process.pid] : nil
+            let ownerRoles = currentNumbers.contains(entry.windowID) ? roles[entry.process.pid] :
+                (otherNumbers.contains(entry.windowID) ? otherRoles[entry.process.pid] : nil)
             let role = ownerRoles?.windows[entry.windowID]
             let presented = Self.presentedInOverview(publiclyVisible: visible,
                 orderedAcrossSpaces: first.orderedAcrossSpaces.contains(entry.windowID) && second.orderedAcrossSpaces.contains(entry.windowID),

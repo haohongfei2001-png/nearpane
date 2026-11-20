@@ -115,6 +115,12 @@ public final class EdgeWindowController: NSWindowController {
         ])
         panel.contentView = surface
         super.init(window: panel)
+        display.updateMaterial = { [weak self] layout in
+            guard let self, !folded, let placement, let size = window?.frame.size else { return }
+            var settings = host.panelPresentationSettings(on: placement.screen.id)
+            if display.usesDefaultExpandedRim { settings.glass.rimWidth = nil }
+            material.configure(size: size, layout: layout, settings: settings)
+        }
         #if canImport(NearpaneTray)
         modules?.tray.exposureChanged = { [weak self] hidden in
             guard let self, captureSuppressed != hidden else { return }
@@ -284,7 +290,9 @@ public final class EdgeWindowController: NSWindowController {
         let materialLayout = folded ? nil : LayoutComposer.compose(width: size.width,
             height: max(0, size.height + contentBottom.constant),
             pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count, expanded: false,
-            settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
+            settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
+            voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1,
+            toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
         material.configure(size: size, layout: materialLayout, settings: config)
         hasPlacement = true
     }

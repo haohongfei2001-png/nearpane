@@ -31,13 +31,22 @@ public struct EdgeSurfaceView: View {
                                                 pinnedCount: display?.secondary == true ? 0 : host.registry.pinnedModules.count,
                                                 expanded: host.registry.expandedID != nil, settings:settings, content:display?.content ?? .full,
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
-                                                referenceHeight:display?.referenceHeight)
+                                                referenceHeight: display?.referenceHeight, voiceCompact: modules?.voiceCompact ?? false,
+                                                trayRows: modules?.trayRowCount ?? 1, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
             ZStack(alignment: .topLeading) {
                 SurfaceShell(layout: layout, width: geometry.size.width, settings: settings)
                 if layout.voice.height > 0 { voice.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.voice) }
                 if layout.screenshots.height > 0 { screenshots.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.screenshots) }
+                if let notebook = modules?.notebook {
+                    ForEach(Array(layout.additionalTools.keys.sorted()), id: \.self) { id in
+                        if let rect = layout.additionalTools[id] {
+                            NotebookCard(notebook: notebook, tasks: id == BuiltinCatalog.tasks)
+                                .surfaceCard(width: geometry.size.width, settings: settings).place(in: rect)
+                        }
+                    }
+                }
                 if let rail = layout.moduleRail { moduleRail(width:geometry.size.width,height:rail.height).place(in:rail) }
-                if layout.windowArea.height > 0 { desktop.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.windowArea) }
+                if layout.windowArea.height > 0 { desktop.padding(.horizontal, settings.glass.inset(width: geometry.size.width)).place(in: layout.windowArea) }
                 if display?.secondary != true, let rect = layout.expanded, let id = host.registry.expandedID {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())
@@ -50,6 +59,7 @@ public struct EdgeSurfaceView: View {
             // Clip at the whole panel, not at the height of its largest individual region.
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             .clipped()
+            .onChange(of: layout, initial: true) { _, next in display?.updateMaterial?(next) }
             #if canImport(NearpaneTray)
             .contentShape(Rectangle())
             .simultaneousGesture(SpatialTapGesture().onEnded { event in

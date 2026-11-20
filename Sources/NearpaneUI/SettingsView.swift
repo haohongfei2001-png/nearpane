@@ -421,21 +421,29 @@ public struct SettingsView: View {
                 if let profileImport { profileImport; Divider() }
                 Text("按侧栏的播放按钮开始收音，按相同位置暂停。")
                     .font(.callout).foregroundStyle(.secondary)
+                if let notebook = domains?.notebook {
+                    DisclosureGroup("单词本") {
+                        if notebook.contents.words.isEmpty { Text("尚无查询记录").font(.caption) }
+                        ForEach(notebook.contents.words) { word in
+                            LabeledContent(word.source, value: word.translation).textSelection(.enabled)
+                        }
+                    }
+                }
                 ForEach(host.registry.preferences, id: \.id) { pref in
                     if let manifest = host.registry.manifests.first(where: { $0.id == pref.id }) {
                         VStack(alignment: .leading, spacing: 5) {
                             HStack {
                                 Toggle(manifest.name, isOn: Binding(get: { pref.enabled }, set: { host.handle(.setEnabled(pref.id, $0)) }))
                                 Spacer()
-                                if manifest.kind == .builtin {
+                                if manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(pref.id) {
                                     Toggle("固定", isOn: Binding(get: { pref.pinned }, set: { host.handle(.setPinned(pref.id, $0)) }))
                                         .fixedSize()
-                                    if host.registry.manifests.filter({ $0.kind == .builtin }).count > 1 {
+                                }
+                                if manifest.kind == .builtin || BuiltinCatalog.sidebarTools.contains(pref.id) {
                                         Button { host.handle(.move(pref.id, -1)) } label: { Image(systemName: "arrow.up") }
                                             .accessibilityLabel("Move \(manifest.name) up")
                                         Button { host.handle(.move(pref.id, 1)) } label: { Image(systemName: "arrow.down") }
                                             .accessibilityLabel("Move \(manifest.name) down")
-                                    }
                                 }
                             }
                             HStack {

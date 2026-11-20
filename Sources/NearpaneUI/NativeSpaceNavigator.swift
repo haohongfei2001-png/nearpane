@@ -46,6 +46,26 @@ struct NativeWindowDragSource: ViewModifier {
     }
 }
 
+/// The current window list is also a return drop target, without a second picture of the current Space.
+struct CurrentSpaceRegion: ViewModifier {
+    let destination: NativeSidebarDestination?
+    let canMove: Bool
+    let drag: NativeSidebarDrag
+    let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let destination {
+            content.accessibilityElement(children: .contain)
+                .accessibilityLabel("当前桌面").accessibilityAddTraits(.isSelected)
+                .accessibilityIdentifier("native-space-row:\(destination.display):\(destination.space)")
+                .onDrop(of: [NativeSidebarDrag.type], isTargeted: nil) { items in
+                    guard canMove, destination.kind == .ordinary else { return false }
+                    return drag.receive(items) { move($0, destination, $1) }
+                }
+        } else { content }
+    }
+}
+
 struct NativeSpaceNavigator: View {
     let catalog: NativeSpaceCatalog
     let drag: NativeSidebarDrag
@@ -54,15 +74,18 @@ struct NativeSpaceNavigator: View {
     let gallery: DesktopWindowGallery?
     let permitted: Bool
     let canSwitch, canMove: Bool
+    let workArea: SurfaceRect?
     let select: (NativeSidebarDestination, NativeSidebarMember?) -> Void
     let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            ForEach(Array(catalog.rows.enumerated()), id: \.element.id) { index, row in
+        VStack(alignment: .leading, spacing: 11) {
+            ForEach(Array(catalog.rows.enumerated().filter { !$0.element.record.isCurrent }), id: \.element.id) { index, row in
                 let destination = NativeSidebarDestination(row, in: catalog)
-                let unplaced = row.windows.filter { $0.metadata?.hasCatalogGeometry == false }
+                let display = catalog.display
+                let canvas = row.record.fullscreenUUID == nil ? workArea : SurfaceRect(width: display.frame.width, height: display.frame.height)
+                let unplaced = row.windows.filter { projectedFrame($0, canvas: canvas) == nil }
                 let title = row.record.fullscreenUUID == nil ? "桌面 \(index + 1)" : "全屏"
                 ZStack(alignment: .topLeading) {
                     Button {
@@ -84,10 +107,9 @@ struct NativeSpaceNavigator: View {
                     .accessibilityIdentifier("native-space-row:\(catalog.display.id):\(row.id)")
 
                     GeometryReader { proxy in
-                        let screen = catalog.display.frame
-                        let scale = min(proxy.size.width / screen.width, proxy.size.height / screen.height)
-                        let dx = (proxy.size.width - screen.width * scale) / 2
-                        let dy = (proxy.size.height - screen.height * scale) / 2
+                        let scale = canvas.map { min(proxy.size.width / $0.width, proxy.size.height / $0.height) } ?? 0
+                        let dx = (proxy.size.width - (canvas?.width ?? 0) * scale) / 2
+                        let dy = (proxy.size.height - (canvas?.height ?? 0) * scale) / 2
                         ZStack(alignment: .topLeading) {
                             if row.windows.isEmpty {
                                 Text(row.regularWindowListComplete ? "未发现普通窗口" : "窗口归属尚未读全")
@@ -95,19 +117,17 @@ struct NativeSpaceNavigator: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity).allowsHitTesting(false)
                             }
                             ForEach(row.windows.reversed()) { window in
-                                if window.metadata?.hasCatalogGeometry != false,
-                                   let dest = destination, let member = NativeSidebarMember(window, source: dest),
-                                   let clipped = window.bounds.geometry.intersection(
-                                    SurfaceRect(x: 0, y: 0, width: screen.width, height: screen.height).geometry) {
+                                if let canvas, let frame = projectedFrame(window, canvas: canvas),
+                                   let dest = destination, let member = NativeSidebarMember(window, source: dest) {
                                     miniature(member, name: badges[window.id]?.name ?? "窗口", icon: badges[window.id]?.icon,
-                                              width: clipped.width * scale, height: clipped.height * scale)
-                                        .offset(x: dx + clipped.x * scale, y: dy + clipped.y * scale)
+                                              width: frame.width * scale, height: frame.height * scale)
+                                        .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
                                 }
                             }
                         }
                         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
                     }
-                    .padding(.top, 22).padding(.horizontal, 4).padding(.bottom, 4)
+                    .clipped().padding(.top, 20).padding(.horizontal, 4).padding(.bottom, 4)
                     if let destination, !unplaced.isEmpty {
                         // An unlocated window is still selectable from its own identity.
                         // The menu stays outside the scaled desktop geometry.
@@ -128,7 +148,7 @@ struct NativeSpaceNavigator: View {
                         }
                     }
                 }
-                .frame(maxWidth: .infinity).aspectRatio(1.9, contentMode: .fit)
+                .frame(maxWidth: .infinity).aspectRatio(canvas.map { $0.width / $0.height } ?? 1.9, contentMode: .fit)
                 .background(.primary.opacity(row.record.isCurrent ? 0.09 : 0.035), in: RoundedRectangle(cornerRadius: 7))
                 .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(.primary.opacity(row.record.isCurrent ? 0.4 : 0.16)).allowsHitTesting(false) }
                 .contextMenu {
@@ -151,6 +171,19 @@ struct NativeSpaceNavigator: View {
                 }
             }
         }
+    }
+
+    private func projectedFrame(_ window: WindowObservation, canvas: SurfaceRect?) -> SurfaceRect? {
+        guard let canvas, let meta = window.metadata else { return nil }
+        let frame: SurfaceRect
+        if let logical = meta.catalogLogicalFrame {
+            frame = .init(x: logical.x - catalog.display.frame.x, y: logical.y - catalog.display.frame.y,
+                          width: logical.width, height: logical.height)
+        } else {
+            guard meta.hasCatalogGeometry == true else { return nil }
+            frame = window.bounds
+        }
+        return frame.geometry.intersection(canvas.geometry) == nil ? nil : frame
     }
 
     private func miniature(_ member: NativeSidebarMember, name: String, icon: NSImage?,

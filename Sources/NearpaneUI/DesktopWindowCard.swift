@@ -26,6 +26,13 @@ struct DesktopWindowThumbnailLayout {
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
 
+    func fittedSize(for window: WindowObservation, width: CGFloat, heightLimit: CGFloat) -> CGSize? {
+        guard window.displayID == displayID, let source = Self.sizeInPoints(window, capturedSizes: capturedSizes),
+              width > 0, heightLimit > 0 else { return nil }
+        let scale = min(width / source.width, heightLimit / source.height)
+        return CGSize(width: source.width * scale, height: source.height * scale)
+    }
+
     private static func sizeInPoints(_ window: WindowObservation, capturedSizes: [UInt32: CGSize]) -> CGSize? {
         guard let m = window.metadata else { return nil }
         if let frame = m.catalogLogicalFrame, frame.geometry.isValid {
@@ -115,14 +122,14 @@ struct DesktopWindowCard: View {
                     if row?.showsCaption == true { caption }
                 }
             } else {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .center, spacing: 0) {
                     preview
-                    caption
+                    caption.frame(height: 18)
                 }
             }
         }
         .foregroundStyle(scheme == .dark ? Color.white : Color.black)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
         .frame(height: row?.height, alignment: .topLeading)
         .clipped()
         .contentShape(Rectangle())
@@ -150,6 +157,7 @@ struct DesktopWindowCard: View {
                 }
             }
             .frame(width: size.width, height: size.height)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 

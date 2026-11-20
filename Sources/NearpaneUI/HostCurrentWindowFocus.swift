@@ -143,6 +143,11 @@ actor HostCurrentWindowFocus {
                     guard frontPID() == pid,
                           AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, original) == .success
                     else { throw OrdinaryWindowFailure("应用拒绝将键盘焦点交给所选窗口。") }
+                } else if !same(app, kAXMainWindowAttribute, original) {
+                    try await validate()
+                    guard frontPID() == pid,
+                          AXUIElementSetAttributeValue(original, kAXMainAttribute as CFString, kCFBooleanTrue) == .success
+                    else { throw OrdinaryWindowFailure("应用未允许将所选窗口设为主窗口。") }
                 }
             }
             try await wait(focused)

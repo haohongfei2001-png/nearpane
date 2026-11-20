@@ -161,11 +161,12 @@ struct NativeSidebarMember: Equatable {
             guard valid(), let member else { return }
             guard let window = member.resolve(current), let target = DesktopWindowTarget(window, in: current),
                   target.overviewSpace == destination.space else { throw OrdinaryWindowFailure("所选窗口已离开这个桌面。") }
-            try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 4,
+            let path = try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 4,
                 verifySpace: {
                     guard valid(), let fresh = await feed.readNow() else { return false }
-                    return destination.resolve(fresh)?.current.id == destination.space && target.present(in: fresh)
-                }, stillCurrent: valid, bound: bound, permit: permit)
+                    return destination.resolve(fresh)?.current.id == destination.space && target.remainsSelection(in: fresh)
+                }, stillCurrent: valid, bound: bound, permit: bound == nil ? nil : permit)
+            if valid() { self?.issue = path.focusNotice }
         }
     }
 
@@ -192,6 +193,20 @@ struct NativeSidebarMember: Equatable {
                 guard reply.membershipBefore == [member.source.space], reply.membershipAfter == [dest.space] else {
                     throw UnconfirmedSpaceMove("窗口迁移的归属回读不完整。")
                 }
+
+                // A helper reply can precede the host reader. Verify the same lifetime
+                // on the destination before granting a subsequent layout transaction.
+                let until = ContinuousClock.now.advanced(by: .seconds(2))
+                repeat {
+                    if let fresh = await feed.readNow(), let live = dest.resolve(fresh),
+                       feed.lifetime(of: member.key) == lifetime,
+                       live.rows.first(where: { $0.id == dest.space })?.windows.contains(where: {
+                           $0.metadata?.pid == member.key.pid && $0.metadata?.launchMicroseconds == member.key.birth &&
+                           $0.metadata?.number == member.key.number && $0.membership == .known(recordIDs: [dest.space])
+                       }) == true { return }
+                    try await Task.sleep(for: .milliseconds(70))
+                } while ContinuousClock.now < until
+                throw UnconfirmedSpaceMove("系统已报告迁移，但独立读数尚未确认窗口的新归属。")
             }
             if let tiling = feed.automaticTiling {
                 let source = OrdinaryDesktopIdentity(display: member.source.display, record: member.source.space, uuid: member.source.uuid)

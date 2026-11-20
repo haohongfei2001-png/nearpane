@@ -128,6 +128,17 @@ import OSLog
 
     /// Used on both sides of a background picture batch and before an explicit click.
     /// Concurrent consumers join the same in-flight read.
+    private var firstObserved = [DesktopWindowKey: UInt64]()
+    private var nextOrdinal: UInt64 = 0
+
+    func ordered(_ windows: [WindowObservation]) -> [WindowObservation] {
+        func ordinal(_ window: WindowObservation) -> UInt64 {
+            guard let m = window.metadata, let birth = m.launchMicroseconds else { return .max }
+            return firstObserved[.init(pid: m.pid, birth: birth, number: m.number)] ?? .max
+        }
+        return windows.sorted { (ordinal($0), $0.id) < (ordinal($1), $1.id) }
+    }
+
     func readNow() async -> DesktopSnapshot? {
         guard events != nil, sessionAvailable() else { lifetimes.removeAll(); return nil }
         let expected = epoch
@@ -152,6 +163,12 @@ import OSLog
                 guard let meta = window.metadata, let birth = meta.launchMicroseconds, birth > 0 else { continue }
                 let key = DesktopWindowKey(pid: meta.pid, birth: birth, number: meta.number)
                 next[key] = self.lifetimes[key] ?? UUID()
+            }
+            self.firstObserved = self.firstObserved.filter { next[$0.key] != nil }
+            // IDs order the initial batch only. A later window cannot overtake an older one.
+            for key in next.keys.sorted(by: { $0.number < $1.number }) where self.firstObserved[key] == nil {
+                self.nextOrdinal += 1
+                self.firstObserved[key] = self.nextOrdinal
             }
             self.lifetimes = next
             return result

@@ -31,6 +31,9 @@ public enum BuiltinCatalog {
     public static let voice = "com.holdsnow.nearpane.saytile"
     public static let screenshots = "com.holdsnow.nearpane.riftlet"
     public static let desktop = "com.holdsnow.nearpane.desktop"
+    public static let memo = "com.holdsnow.nearpane.memo"
+    public static let tasks = "com.holdsnow.nearpane.tasks"
+    public static let sidebarTools = [voice, screenshots, memo, tasks]
     public static let notes = "com.holdsnow.nearpane.notes-sample"
     public static let clock = "com.holdsnow.nearpane.clock-sample"
     public static let calendar = "com.holdsnow.nearpane.calendar-sample"
@@ -38,6 +41,8 @@ public enum BuiltinCatalog {
         .init(id: voice, name: "Saytile", symbol: "mic", kind: .core, actions: [:]),
         .init(id: screenshots, name: "Riftlet", symbol: "photo", kind: .core, actions: [:]),
         .init(id: desktop, name: "Spaces", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
+        .init(id: memo, name: "备忘录", symbol: "note.text"),
+        .init(id: tasks, name: "待办", symbol: "checklist"),
         .init(id: notes, name: "Notes sample", symbol: "note.text"),
         .init(id: clock, name: "时钟", symbol: "clock"),
         .init(id: "com.holdsnow.nearpane.tasks-sample", name: "Tasks sample", symbol: "checklist"),
@@ -45,7 +50,7 @@ public enum BuiltinCatalog {
         .init(id: "com.holdsnow.nearpane.weather-sample", name: "Weather sample", symbol: "cloud.sun")
     ]
 
-    public static let productManifests = manifests.filter { $0.kind == .core || $0.id == clock }
+    public static let productManifests = manifests.filter { $0.kind == .core || $0.id == clock || sidebarTools.contains($0.id) }
 }
 
 /// Trusted, bundled adapters only. Throwing failures are isolated; process crashes require a future helper/XPC boundary.
@@ -108,15 +113,16 @@ public final class ModuleRegistry {
         let known = Set(catalog.map(\.id))
         var seen: Set<String> = []
         let restored = saved.filter { known.contains($0.id) && seen.insert($0.id).inserted }
-        let coreIDs = manifests.filter { $0.kind == .core }.map(\.id)
         let merged = restored + catalog.filter { !seen.contains($0.id) }
-        preferences = coreIDs.compactMap { id in merged.first { $0.id == id } }
-            + merged.filter { !coreIDs.contains($0.id) }
+        let coreIDs = manifests.filter { $0.kind == .core }.map(\.id)
+        let base = coreIDs.compactMap { id in merged.first { $0.id == id } } + merged.filter { !coreIDs.contains($0.id) }
+        var tools = merged.filter { BuiltinCatalog.sidebarTools.contains($0.id) }.makeIterator()
+        preferences = base.map { BuiltinCatalog.sidebarTools.contains($0.id) ? (tools.next() ?? $0) : $0 }
         for pref in preferences { states[pref.id] = pref.enabled ? .available : .disabled }
     }
 
     public var pinnedModules: [ModuleManifest] {
-        preferences.filter { $0.enabled && $0.pinned }.compactMap { pref in
+        preferences.filter { $0.enabled && $0.pinned && !BuiltinCatalog.sidebarTools.contains($0.id) }.compactMap { pref in
             manifests.first { $0.id == pref.id && $0.kind == .builtin }
         }
     }
@@ -143,14 +149,16 @@ public final class ModuleRegistry {
 
     public func move(_ id: String, by offset: Int) throws {
         guard let manifest = manifests.first(where: { $0.id == id }) else { throw RegistryError.unknownModule }
-        guard manifest.kind == .builtin else { throw RegistryError.coreOrderLocked }
-        let core = preferences.filter { pref in manifests.contains { $0.id == pref.id && $0.kind == .core } }
-        var optional = preferences.filter { pref in !core.contains { $0.id == pref.id } }
-        guard let index = optional.firstIndex(where: { $0.id == id }) else { return }
-        let destination = min(optional.count - 1, max(0, index + max(-1, min(1, offset))))
-        let item = optional.remove(at: index)
-        optional.insert(item, at: destination)
-        preferences = core + optional
+        let tool = BuiltinCatalog.sidebarTools.contains(id)
+        guard tool || manifest.kind == .builtin else { throw RegistryError.coreOrderLocked }
+        let slots = preferences.indices.filter { index in
+            let sibling = preferences[index].id
+            if tool { return BuiltinCatalog.sidebarTools.contains(sibling) }
+            return !BuiltinCatalog.sidebarTools.contains(sibling) && manifests.contains { $0.id == sibling && $0.kind == .builtin }
+        }
+        guard let index = slots.firstIndex(where: { preferences[$0].id == id }) else { return }
+        let next = min(slots.count - 1, max(0, index + max(-1, min(1, offset))))
+        preferences.swapAt(slots[index], slots[next])
     }
 
     public func expand(_ id: String) throws {

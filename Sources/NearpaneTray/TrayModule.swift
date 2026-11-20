@@ -30,6 +30,44 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var pressTask: Task<TargetLease, Error>?
     @ObservationIgnored private var resolvingPresses: [UUID: Task<TargetLease, Error>] = [:]
     @ObservationIgnored var pointer = PointerSelectionGate()
+    @ObservationIgnored private var fileStore: TrayFileStore?
+    @ObservationIgnored private var expiry: Task<Void, Never>?
+    private(set) var files: [SavedTrayFile] = []
+    private(set) var fileImports = 0
+    var slots: [TrayContentSlot] {
+        TrayContentSlot.visible(shots: rows.map(\.id), files: files.map(\.id), camera: !connected || captureEntry)
+    }
+    public var rowCount: Int { slots.count > 2 ? 2 : 1 }
+    public var savedFilesDirectory: URL? { fileStore?.root }
+
+    func importFiles(_ urls: [URL]) async {
+        guard active, let fileStore else { return }
+        fileImports += 1
+        defer { fileImports -= 1 }
+        for url in urls where url.isFileURL {
+            do { _ = try await fileStore.save(url) }
+            catch { issue = "文件未保存：" + error.localizedDescription }
+        }
+        await refreshFiles()
+    }
+
+    private func refreshFiles() async {
+        guard active, let fileStore else { return }
+        do {
+            let recent = try await fileStore.recent()
+            guard active else { return }
+            files = recent.filter { $0.savedAt.addingTimeInterval(60) > .now }
+            expiry?.cancel()
+            if let oldest = files.last {
+                let delay = max(0.02, oldest.savedAt.addingTimeInterval(60).timeIntervalSinceNow)
+                expiry = Task {
+                    do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+                    await refreshFiles()
+                }
+            }
+        } catch { issue = "无法读取暂存文件：" + error.localizedDescription }
+    }
+
     private(set) var rows: [AssetRecord] = []
     public var visibleIDs: [UUID] { rows.map(\.id) }
     private(set) var swallowing = Set<UUID>()
@@ -95,7 +133,7 @@ public final class TrayModule: HostModule {
     /// Query the original coordinator; a durable UNKNOWN is not an active upload.
     public func updateRequiresTrayToFinish() async -> Bool {
         func busy() -> Bool {
-            connecting || drainingOwners > 0 || pointer.isHolding || pressTask != nil ||
+            fileImports > 0 || connecting || drainingOwners > 0 || pointer.isHolding || pressTask != nil ||
                 !resolvingPresses.isEmpty || owner?.hasInteractiveWork == true
         }
         if busy() { return true }
@@ -181,13 +219,14 @@ public final class TrayModule: HostModule {
                                          productAttachments: product, notify: change, report: error)
         }
         self.localOnly = localOnly
+        fileStore = TrayFileStore(root: existingRoot.deletingLastPathComponent().appendingPathComponent("Nearpane/Tray Files", isDirectory: true))
     }
     init(productAttachments: Bool = false, open: @escaping Open) {
         self.productAttachments = productAttachments
         self.open = open
     }
-    public func start() throws { active = true }
-    public func stop() { active = false; disconnect() }
+    public func start() throws { active = true; Task { await refreshFiles() } }
+    public func stop() { active = false; expiry?.cancel(); files = []; disconnect() }
     public func suspend() { stop() }
     public func resume() throws { try start() }
     public func perform(_ action: ModuleAction) throws {}

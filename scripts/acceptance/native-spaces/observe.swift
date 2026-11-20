@@ -138,7 +138,7 @@ struct Sidebar {
                 var names: CFArray?
                 _ = AXUIElementCopyActionNames(node, &names)
                 let text = [kAXTitleAttribute, kAXDescriptionAttribute].compactMap { value(node, $0) as? String }
-                let currentLabel = text.contains { $0.range(of: #"^(桌面 [1-9][0-9]*|全屏)，当前桌面$"#, options: .regularExpression) != nil }
+                let currentLabel = text.contains { $0 == "当前桌面" || $0.range(of: #"^(桌面 [1-9][0-9]*|全屏)，当前桌面$"#, options: .regularExpression) != nil }
                 rowReports.append(["identifier": id, "currentLabel": currentLabel, "matches": nodes.count,
                                    "enabled": value(node, kAXEnabledAttribute) as? Bool ?? false,
                                    "press": (names as? [String])?.contains(kAXPressAction) == true,

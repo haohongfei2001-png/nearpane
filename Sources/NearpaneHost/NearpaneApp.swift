@@ -492,6 +492,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
+        if testSession == nil && candidate { modules.registerSelectionService() }
         modules.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         #if canImport(SaytileKit)
         if !profileTrial && !enrolledFullscreenTrial { modules.workRect?.start() }

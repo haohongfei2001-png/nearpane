@@ -35,8 +35,13 @@ public struct NativeSpaceCatalog {
         guard let current = records.first(where: \.isCurrent) else { return nil }
         let local = snapshot.windows.filter { $0.displayID == displayID }
         var membership = [String: [WindowObservation]]()
+        var unresolved = Set<String>()
         for window in local {
             if case .known(let ids) = window.membership {
+                if evidence.catalogComplete != nil, window.metadata?.overviewOrdinaryRole != true {
+                    if window.metadata?.overviewOrdinaryRole == nil { unresolved.formUnion(ids) }
+                    continue
+                }
                 for id in ids { membership[id, default: []].append(window) }
             }
         }
@@ -44,7 +49,7 @@ public struct NativeSpaceCatalog {
         rows = records.map { record in
             Row(record: record, windows: (membership[record.id] ?? []).sorted {
                 ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max)
-            }, regularWindowListComplete: complete)
+            }, regularWindowListComplete: complete && !unresolved.contains(record.id))
         }
         session = snapshot.sessionID; topology = snapshot.topologyFingerprint
         self.display = display; self.current = current
