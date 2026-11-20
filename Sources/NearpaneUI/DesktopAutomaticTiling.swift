@@ -35,7 +35,7 @@ struct DesktopTilingRoster: Equatable {
     private static let pairLog = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "SidebarPointer")
     typealias Resolve = @MainActor ([DesktopWindowKey], OrdinaryDesktopIdentity, WorkspacePreferences) async throws -> [any OrdinaryWindowObserving]
     private let manager: OrdinaryWindowManager
-    private let resolve: Resolve
+    private let resolve: @MainActor ([DesktopWindowKey], OrdinaryDesktopIdentity, WorkspacePreferences, Bool) async throws -> [any OrdinaryWindowObserving]
     @ObservationIgnored private weak var feed: CurrentDesktopWindows?
     @ObservationIgnored private var permitsOwner: (DesktopWindowKey) -> Bool = { _ in true }
     @ObservationIgnored var nativeModeAvailable: () -> Bool = { true }
@@ -55,8 +55,11 @@ struct DesktopTilingRoster: Equatable {
     private var lastPaused = false
     private var explicitArrivals = [DesktopWindowKey: UUID]()
 
-    init(manager: OrdinaryWindowManager, resolve: @escaping Resolve = DesktopAutomaticTiling.resolveWindows) {
-        self.manager = manager; self.resolve = resolve
+    init(manager: OrdinaryWindowManager, resolve: Resolve? = nil) {
+        self.manager = manager
+        if let resolve {
+            self.resolve = { keys, scope, preferences, _ in try await resolve(keys, scope, preferences) }
+        } else { self.resolve = Self.resolveWindows }
     }
 
     func connect(_ feed: CurrentDesktopWindows, permitsOwner: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
@@ -160,9 +163,14 @@ struct DesktopTilingRoster: Equatable {
             Self.pairLog.info("phase=pairResolving")
             let keys = pair.draggedOnLeft ? [a.key, b.key] : [b.key, a.key]
             let missing = keys.filter { manager.retainedWindow($0) == nil }
-            let new = missing.isEmpty ? [] : try await resolve(missing, desktop, ctx.preferences)
+            let new = missing.isEmpty ? [] : try await resolve(missing, desktop, ctx.preferences, true)
             let selected = keys.compactMap { key in manager.retainedWindow(key) ?? new.first { key.matches($0.id) } }
-            guard selected.count == 2, current(), membersPresent(await feed.readNow()), current() else { throw OrdinaryRefusal.stale }
+            guard selected.count == 2 else { throw OrdinaryRefusal.ambiguous }
+            guard current() else { throw OrdinaryRefusal.stale }
+            guard membersPresent(await feed.readNow()), current() else {
+                Self.pairLog.info("phase=pairScopeChangedAfterBinding")
+                throw OrdinaryRefusal.stale
+            }
             Self.pairLog.info("phase=pairPlacing")
             try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
                                                context: ctx, current: current)
@@ -241,7 +249,7 @@ struct DesktopTilingRoster: Equatable {
             guard let self else { return }
             defer { if grant == token { job = nil; feed.changed() } }
             do {
-                let handles = try await resolve(added, scope, ctx.preferences)
+                let handles = try await resolve(added, scope, ctx.preferences, false)
                 try Task.checkCancellation()
                 guard nativeModeAvailable(), grant == token, !manager.paused, !manager.blocked, !handles.isEmpty,
                       let live = DesktopTilingRoster(await feed.readNow(), display: scope.display),
@@ -277,7 +285,7 @@ struct DesktopTilingRoster: Equatable {
     /// Only resolve AX for regular processes in the positively attributed catalogue.
     /// One helper per owner, retained by its admitted windows, including same-app siblings.
     static func resolveWindows(_ keys: [DesktopWindowKey], _ scope: OrdinaryDesktopIdentity,
-                               _ prefs: WorkspacePreferences) async throws -> [any OrdinaryWindowObserving] {
+                               _ prefs: WorkspacePreferences, _ explicitPair: Bool) async throws -> [any OrdinaryWindowObserving] {
         var handles = [DesktopWindowKey: OrdinaryWindowAX]()
         var failure: Error?
         for (pid, members) in Dictionary(grouping: keys, by: \.pid) {
@@ -291,17 +299,24 @@ struct DesktopTilingRoster: Equatable {
             do {
                 let directory = try OrdinaryWindowDirectory(owner)
                 let rows = try await directory.choices(initial: true)
+                if explicitPair { pairLog.info("phase=pairListed") }
                 for key in members {
                     let choices = rows.filter { $0.number == key.number }
                     guard choices.count == 1, let choice = choices.first, let h = directory.handles[choice.id],
                           (try? prefs.excluded(h.id, bundle: bundle)) == false else { continue }
                     do {
                         try h.bindDesktop(scope)
-                        _ = try await h.prepare()
+                        // The explicit transaction prepares both handles together, rechecking their
+                        // memberships and original geometry before acquiring a single write lease.
+                        if !explicitPair { _ = try await h.prepare() }
                         handles[key] = h
                     } catch { failure = error }
                 }
             } catch { failure = error }
+        }
+        if explicitPair && handles.count != keys.count {
+            pairLog.info("phase=pairBindingIncomplete")
+            throw failure ?? OrdinaryRefusal.ambiguous
         }
         if handles.isEmpty, let failure { throw failure }
         return keys.compactMap { handles[$0] }
