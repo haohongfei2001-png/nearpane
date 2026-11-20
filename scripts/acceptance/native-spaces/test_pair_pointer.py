@@ -163,6 +163,26 @@ class PointerTests(unittest.TestCase):
         self.assertEqual([c.args[0] for c in self.run.drag.call_args_list],["self","right","left"])
         self.assertEqual(self.run.out["selection"]["status"],"NOT_RUN")
 
+    def test_direct_display_samples_stay_independent_of_ax_and_save_the_complete_sidecar(self):
+        visual=dict(status="OBSERVED", frames=[{"ticks":132}], downToVisibleMS={"lower":9,"upper":27},
+                    upToVisibleMS={"lower":-1,"upper":19},targetFrameObserved=True,retainedPixelBytes=0)
+        self.run.attempt={}
+        self.run.trial=1
+        self.run.call=Mock(return_value={"presentation":visual,"issued":True})
+        self.run.packet("click",409,["a","b"])
+        self.rec.write.assert_called_once_with("window-presentation-01.json",visual)
+        item=self.run.attempt["presentation"]
+        self.assertNotIn("frames",item)
+        self.assertEqual(item["file"],"window-presentation-01.json")
+        self.run.out["operationStatus"]="UNKNOWN"
+        self.run.out["attempts"]=[self.run.attempt,{"presentation":{"status":"UNKNOWN","reason":"obscuredOrUncertainCrop"}}]
+        self.run.publish()
+        result=self.run.out["measurement"]
+        self.assertEqual(result["displayPresentation"],"PARTIAL")
+        self.assertEqual(result["presentationCounts"],{"attempts":2,"sampled":2,"observed":1})
+        self.assertEqual(result["statistics"]["downToVisibleMSUpper"]["p50"],27)
+        self.assertEqual(result["statistics"]["upToVisibleMSLower"]["p50"],-1)
+
     def test_protected_transaction_optional_scenario_leaves_enrolled_lease_intact(self):
         lease=dict(documentKit="/private/old",workspace="w",expectedSpace=99,originalCheckout="c",originArchive="a")
         record=dict(focusLease=lease,kit="/kit",focusScenario="pair-focus",pairKit="/private/pointer")

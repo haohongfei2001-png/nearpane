@@ -160,8 +160,21 @@ class PairPointerRun(RegisteredRun):
         }
 
     def packet(self, kind, target, hashes):
-        proof = self.call("pair-pointer", {"pointerKind":kind,"target":target,"digests":hashes}, timeout=7)
-        self.rec.log("pair-pointer-system-proof", trial=self.trial, kind=kind, proof=proof)
+        # Display setup/teardown has its own deadlines. The 3 s focus window starts
+        # at the mouse-up inside the native observer and is shared by both candidates.
+        proof = self.call("pair-pointer", {"pointerKind":kind,"target":target,"digests":hashes}, timeout=9 if kind=="click" else 7)
+        logged = proof
+        presentation = proof.get("presentation")
+        if kind=="click" and isinstance(presentation,dict):
+            name = f"window-presentation-{self.trial:02}.json"
+            self.rec.write(name,presentation)
+            compact = {k:presentation[k] for k in ("status","reason","downToVisibleMS","upToVisibleMS","firstTargetDisplayUptime",
+                       "firstTargetPresentationMachTicks","targetFrameObserved","retainedPixelBytes") if k in presentation}
+            compact["file"] = name
+            logged = {**proof,"presentation":compact}
+            if self.attempt is not None:
+                self.attempt["presentation"] = compact
+        self.rec.log("pair-pointer-system-proof", trial=self.trial, kind=kind, proof=logged)
         if kind in self.out["drags"]:
             self.out["drags"][kind].update(issued=proof.get("issued"), events=proof.get("events", []), hostRouting=host_route(proof))
         elif kind == "click" and self.attempt is not None:
@@ -399,6 +412,16 @@ class PairPointerRun(RegisteredRun):
             ("downToFocusLowerMs","downToFocusUpperMs","upToFocusLowerMs","upToFocusUpperMs","secondPositiveAfterUpMs")}
         callbacks = [r["hostButton"]["downToCallbackMs"] for r in rows if r.get("hostButton",{}).get("status") == "OBSERVED"]
         self.out["measurement"]["statistics"]["downToHostButtonMs"] = summary(callbacks)
+        present = [r["presentation"] for r in rows if "presentation" in r]
+        observed = [p for p in present if p.get("status") == "OBSERVED"]
+        self.out["measurement"]["displayPresentation"] = (
+            "OBSERVED" if observed and len(observed)==len(rows)==10 else "PARTIAL" if observed else "UNKNOWN" if present else "NOT_RUN")
+        self.out["measurement"]["presentationCounts"] = {"attempts":len(rows),"sampled":len(present),"observed":len(observed)}
+        for origin in ("down","up"):
+            for bound in ("lower","upper"):
+                field = origin + "ToVisibleMS"
+                values = [p[field][bound] for p in observed]
+                self.out["measurement"]["statistics"][field+bound.capitalize()] = summary(values)
         self.out["measurement"]["percentiles"] = "sample only, median p50, nearest-rank p95"
         self.rec.write("pair-pointer.json", self.out)
         self.rec.summary["pairPointer"] = {k:self.out[k] for k in ("status","operationStatus","reason","selection","measurement","cleanup")}

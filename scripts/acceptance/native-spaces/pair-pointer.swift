@@ -66,8 +66,8 @@ private struct PairCard {
         return nil
     }
 
-    func point(_ fraction: CGFloat = 0.5) -> CGPoint {
-        CGPoint(x: (rect.minX + rect.width * fraction).rounded(), y: rect.midY.rounded())
+    func point(_ fraction: CGFloat = 0.5, y: CGFloat = 0.5) -> CGPoint {
+        CGPoint(x:(rect.minX+rect.width*fraction).rounded(),y:(rect.minY+rect.height*y).rounded())
     }
 }
 
@@ -96,10 +96,30 @@ private struct PairSurface {
         self.visible = visible; self.pid = host.processIdentifier
     }
 
-    func hitIssue(_ point: CGPoint, card: PairCard?, dragging: Bool) -> String? {
-        guard panel.contains(point), let rows = pairRows() else { return "outsidePanelOrCGReadUnavailable" }
-        // The WindowServer list is front-to-back. Ignore only this same Host's
-        // transient AppKit drag image at the documented dragging-window level.
+    private func axIssue(_ point: CGPoint, _ card: PairCard?) -> String? {
+        var hit: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
+              var node = hit else { return "systemAXHitUnavailable" }
+        var sawCard = card == nil
+        for _ in 0..<40 {
+            guard pairOwner(node, pid) else { return "systemAXHitOutsideHost" }
+            if let card, CFEqual(node,card.node) { sawCard = true }
+            if value(node,kAXRoleAttribute) as? String == kAXWindowRole {
+                return sawCard && NPReadAXWindowNumber(node)==panelID ? nil : "registeredCardOrPanelNotInHitAncestry"
+            }
+            guard let parent = pairParent(node) else { return "boundPanelNotInHitAncestry" }
+            node = parent
+        }
+        return "hitAncestryOverLimit"
+    }
+
+    func hitIssue(_ point: CGPoint, card: PairCard?, dragging: Bool, cursor: (Object)->Void) -> String? {
+        guard panel.contains(point) else { return "outsidePanel" }
+        // Check the precise registered accessibility surface on both sides of the CG
+        // stacking query. Between cards the hit must still descend from the same panel.
+        let expected = card ?? cards.first { $0.rect.contains(point) }
+        if let before = axIssue(point,expected) { return before }
+        guard let rows = pairRows() else { return "CGStackUnavailable" }
         var found = false
         for row in rows {
             guard let bounds = pairBounds(row) else { return "unclassifiedSurfaceBounds" }
@@ -111,20 +131,18 @@ private struct PairSurface {
                   let layer = row[kCGWindowLayer as String] as? Int32 else { return "unclassifiedSurfaceIdentity" }
             if number == panelID && owner == pid { found = true; break }
             if dragging && owner == pid && layer == CGWindowLevelForKey(.draggingWindow) { continue }
+            if layer == CGWindowLevelForKey(.cursorWindow) {
+                guard let birth = PairSystemCursor.generation(owner) else { return "cursorLayerOwnerNotLiveAppleWindowServer" }
+                let footprint = PairSystemCursor.footprint(bounds,cursor:CGEvent(source:nil)?.location,candidate:point)
+                cursor(["number":number,"owner":"com.apple.WindowServer","pid":owner,"birth":birth,"layer":layer,
+                        "size":[bounds.width,bounds.height],"pointerAndCandidateInSmallFootprint":footprint] as Object)
+                guard footprint else { return "signedCursorLayerFootprintUnconfirmed" }
+                continue
+            }
             return (owner == pid ? "otherHostSurfaceAtLayer" : "otherSurfaceAtLayer") + String(layer)
         }
         guard found else { return "boundPanelUnavailableAtPoint" }
-        guard let card else { return nil }
-        var hit: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
-              var node = hit else { return "systemAXHitUnavailable" }
-        for _ in 0..<40 {
-            guard pairOwner(node, pid) else { return "systemAXHitOutsideHost" }
-            if CFEqual(node, card.node) { return nil }
-            guard let parent = pairParent(node) else { return "boundCardNotInHitAncestry" }
-            node = parent
-        }
-        return "hitAncestryOverLimit"
+        return axIssue(point,expected)
     }
 }
 
@@ -159,14 +177,28 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
                  numbers: [UInt32], windows: [AXUIElement], focus: () -> (UInt32?, UInt32?, Bool)) -> Object {
     var result: Object = ["status":"BLOCKED", "issued":false, "dispatch":"WindowServer.cgSessionEventTap",
                           "kind":kind, "target":target, "events":[], "hid":p2Physical()]
-    var receiver: PairPointerReceiver?
-    defer { receiver?.close() }
+    var receiver: PairPointerReceiver?, picture: PairPointerVisual?
+    var events = [Object]()
+    defer { receiver?.close(); picture?.cancel() }
     func finish() -> Object {
         if let receiver { result["hostRouting"] = receiver.receipt() }
+        if let sample = picture {
+            picture = nil
+            if result["issued"] as? Bool == true {
+                result["presentation"] = sample.finish(events: events)
+            } else {
+                sample.cancel()
+                result["presentation"] = ["status":"NOT_RUN","reason":"noAdmittedMouseEvent"]
+            }
+        }
         return result
     }
     func stop(_ reason: String) -> Object {
         result["reason"] = reason; result["hidAfter"] = p2Physical()
+        if let sample = picture, reason == "userSuperseded" || events.last?["type"] as? UInt32 != CGEventType.leftMouseUp.rawValue {
+            picture = nil; sample.cancel()
+            result["presentation"] = ["status":"UNKNOWN","reason":"gestureRelinquishedBeforeCompleteObservation","retainedPixelBytes":0] as Object
+        }
         return finish()
     }
     guard let pid = request.pid, let slot = numbers.firstIndex(of: target),
@@ -205,26 +237,45 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
     if kind == "read" { result["status"] = "READ"; return result }
 
     let source = surface.cards[slot], destination = kind == "self" || kind == "click" ? source : surface.cards[1-slot]
-    let start = source.point(), end = destination.point(kind == "left" ? 0.25 : kind == "right" ? 0.75 : 0.5)
+    var cursorChecks = [Object]()
     func admitted(_ point: CGPoint, _ card: PairCard?, dragging: Bool) -> Bool {
-        guard let issue = surface.hitIssue(point, card: card, dragging: dragging) else { return true }
+        let issue = surface.hitIssue(point, card: card, dragging: dragging) { evidence in
+            if cursorChecks.count < 40 { cursorChecks.append(evidence); result["cursorChecks"] = cursorChecks }
+        }
+        guard let issue else { return true }
         result["hitRefusal"] = ["reason":issue, "point":[point.x,point.y], "inFlight":dragging] as Object
         return false
     }
-    guard admitted(start, source, dragging: false), admitted(end, destination, dragging: false),
+    // A signed cursor is optional: prefer a different fully qualified point on the
+    // same control when one point cannot be certified, without posting any event.
+    func qualified(_ card: PairCard, fraction: CGFloat) -> CGPoint? {
+        for y in [CGFloat(0.5),0.28,0.72] {
+            let point = card.point(fraction,y:y)
+            if admitted(point,card,dragging:false) { return point }
+        }
+        return nil
+    }
+    guard let start = qualified(source,fraction:0.5),
+          let end = kind == "self" || kind == "click" ? Optional(start) : qualified(destination,fraction:kind == "left" ? 0.25 : 0.75),
           let eventSource = CGEventSource(stateID: .privateState), CGPreflightPostEventAccess() else {
         return stop("endpointCardHitOrEventPostingUnconfirmed")
     }
+    if let earlier = result.removeValue(forKey:"hitRefusal") { result["earlierCandidateRefusal"] = earlier }
+    result["qualifiedEndpoints"] = ["source":[start.x,start.y],"target":[end.x,end.y],"verified":"AX card+panel before and after Quartz stacking"] as Object
     let before = focus()
     guard kind != "click" || (before.0 == numbers[1-slot] && before.1 == before.0 && before.2) else {
         return stop("differentExactEditorNotFocusedBeforeClick")
     }
 
+    if kind == "click" {
+        picture = PairPointerVisual.start(request:request,numbers:numbers,target:target,frames:cg,displayUUID:surface.displayUUID)
+        guard p2Physical() == hid else { return stop("userSuperseded") }
+    }
     let tag = Int64.random(in: 1...Int64.max)
     receiver = PairPointerReceiver(host:host.processIdentifier, panel:surface.panelID, tag:tag)
     result["initialFocus"] = ["focused":before.0 as Any? ?? NSNull(), "main":before.1 as Any? ?? NSNull(),
                               "editor":before.2] as Object
-    var events = [Object](), down = false, previousPoint = start
+    var down = false, previousPoint = start
     func event(_ type: CGEventType, _ point: CGPoint) -> CGEvent? {
         guard let e = CGEvent(mouseEventSource: eventSource, mouseType: type, mouseCursorPosition: point, mouseButton: .left) else { return nil }
         e.flags = []
@@ -254,6 +305,12 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
             result["cancel"] = "releasedToOriginalHostAtSource"; down = false
         }
         return stop(p2Physical() == hid ? reason : "userSuperseded")
+    }
+    if kind == "click" {
+        let fresh = focus()
+        guard fresh.0 == numbers[1-slot], fresh.1 == fresh.0, fresh.2 else {
+            return stop("exactSiblingChangedDuringDisplayEnrollment")
+        }
     }
     guard scopeCurrent(), admitted(start, source, dragging: false), dispatch(.leftMouseDown, start) else {
         return abort("mouseDownAdmissionChanged")
