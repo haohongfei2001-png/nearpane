@@ -1,0 +1,25 @@
+{
+  "sourceReceipts": {
+    "actions.jsonl": "7f3af6e40fd2bfbb514846b949cb1a33f5128e6b5ca87465086bc1de1846da61",
+    "pair-pointer.json": "4269f26aad7b99aed1a96281f245f851dbf56edb3ba287b87824550c60a1c0c0"
+  },
+  "recordedStatus": "FAIL",
+  "targetSlot": "B",
+  "issued": true,
+  "targetCardContainsEndpoint": true,
+  "eventTypes": [
+    1,
+    2
+  ],
+  "createdTimestampNS": [
+    0,
+    0
+  ],
+  "downToUpBeforePostMs": 49.695833295118064,
+  "focusReads": 329,
+  "reason": "systemFocusReadbackTimedOut",
+  "markerIssued": null,
+  "hostReception": "NOT_MEASURED",
+  "underlyingFailureStage": "UNKNOWN",
+  "ownedCleanup": "PASS"
+}

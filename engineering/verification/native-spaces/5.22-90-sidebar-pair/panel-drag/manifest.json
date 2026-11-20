@@ -1,0 +1,9 @@
+{
+  "source": "6c5b4a12aff3f290d428bd8c040dbecff98ae807",
+  "fixtureAndPanelOnly": true,
+  "files": {
+    "actions.jsonl": "4c2d316f6ddf12d5b14cb0bb99b6a04fa6079b22128f1a79b498835f1c0fc0d7",
+    "pair-pointer.json": "258e342bf027e58a874716922955c54fe9a208c33c75fb7d9ffa77f96a0c75e8",
+    "protected-installation.json": "5f48ae835628c914c2274ef364906a996a7388ef334c70949d196a451e91a431"
+  }
+}
