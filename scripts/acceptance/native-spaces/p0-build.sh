@@ -35,7 +35,8 @@ cp "$kit/Field Notes.app/Contents/MacOS/FieldNotes" "$kit/Route Notes.app/Conten
 codesign --force --sign - --identifier net.example.spaces-document "$kit/Field Notes.app"
 codesign --force --sign - --identifier net.example.spaces-route-witness "$kit/Route Notes.app"
 xcrun clang -fobjc-arc -c "$src/p0-hotkey.m" -o "$kit/p0-hotkey.o"
-xcrun swiftc -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/p0-reader.h" "$src/p0-card.swift" "$kit/reader.o" "$kit/p0-hotkey.o" -framework Carbon -o "$kit/p0-card.next"
+cat "$src/p0-read-state.swift" "$src/p0-card.swift" > "$kit/p0-card-source.swift"
+xcrun swiftc -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/p0-reader.h" "$kit/p0-card-source.swift" "$kit/reader.o" "$kit/p0-hotkey.o" -framework Carbon -o "$kit/p0-card.next"
 mv "$kit/p0-card.next" "$kit/p0-card"
 # Reuse the guarded Mission Control inventory, Apple owner checks, and owned overview dismissal.
 # Only the P0 entry point differs. The existing generic selection driver stays intact.
