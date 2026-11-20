@@ -98,7 +98,8 @@ def direct_setup(kit,ws,output,initial,top,source,target,log):
     if source!=target:
         log('direct-mission-control-intent',source=source,target=target,setupOnly=True)
         proof=cmd(kit/'p0-mission',body=request,timeout=17);store(output/f'setup-press-{target}.json',proof);log('direct-mission-control-reply',source=source,target=target,proof=proof)
-        require(proof.get('issued') and proof.get('acknowledged') and not proof.get('error') and proof.get('overviewDismissed'),
+        transport=(proof.get('action')=='AXPress' and proof.get('acknowledged') is True) or (proof.get('action')=='native thumbnail click' and proof.get('clickPosted') is True)
+        require(proof.get('issued') and transport and not proof.get('error') and proof.get('overviewDismissed'),
                 proof.get('error','native AXPress or owned Mission Control dismissal not confirmed'))
     stable=0
     def reached(sample):
