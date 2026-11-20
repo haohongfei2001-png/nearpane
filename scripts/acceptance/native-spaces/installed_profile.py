@@ -151,8 +151,11 @@ def main():
     finally:
         try:
             current = installed_pid()
-            suppress_focus_restore = (home/"p2-user-superseded").is_file()
-            if suppress_focus_restore:
+            preserve_p0 = (home/"p0-preserve-foreground.json").is_file()
+            suppress_focus_restore = preserve_p0 or (home/"p2-user-superseded").is_file()
+            if preserve_p0:
+                receipt["focusRestoreSuppressed"] = "newer P0 foreground or user input"
+            elif suppress_focus_restore:
                 receipt["focusRestoreSuppressed"] = "P2 userSuperseded"
             elif p0_focus:
                 p0_focus.before_daily(current if current and owns_profile(current,home/PROFILE) else None)

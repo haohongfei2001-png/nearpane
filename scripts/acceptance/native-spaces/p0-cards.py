@@ -950,6 +950,13 @@ def run(args):
             if observer:
                 evidence=observer.close()
                 superseded=evidence.get('stopReason')=='userSuperseded' or evidence.get('status')=='userSuperseded'
+                changed_foreground=any(s.get('classification') in ('unexpectedForegroundHandoff','unexpectedSpaceDrift')
+                                       for s in evidence.get('observations',[]))
+                superseded=superseded or changed_foreground
+                if superseded:
+                    # A newer external activation can supersede the focus even when the HID counters stay constant.
+                    store(Path(os.environ['NEARPANE_TEST_HOME'])/'p0-preserve-foreground.json',
+                          {'reason':'externalActivationOrSpaceDrift' if changed_foreground else 'userSuperseded'})
                 result['observer']=dict(status=evidence.get('status'),complete=evidence.get('observationComplete'),stop=evidence.get('stopReason'))
                 if result['status']=='PASS' and (not evidence.get('observationComplete') or evidence.get('incompleteJournals') or
                         not evidence.get('observations') or any(x.get('classification')!='settled' for x in evidence['observations'])):
@@ -995,9 +1002,9 @@ def run(args):
                     clean.update(originalOrderAndUUIDsRestored=end.get('records')==initial['topology']['records'] and end.get('display')==initial['topology']['display'],
                                  originalCurrentRestored=end.get('current')==initial['topology']['current'],originalForegroundRestored=bool(initial.get('systemFocus') and last.get('systemFocus') and last['systemFocus']['pid']==initial['systemFocus']['pid']),
                                  originalFocusedWindowRestored=last.get('focusedNumber')==initial.get('focusedNumber') if initial.get('focusedNumber') else None,
-                                 newerHumanInput=last.get('hid')!=initial.get('hid'))
+                                 newerHumanInput=last.get('hid')!=initial.get('hid'),preservedNewerState=superseded)
                     if not clean['originalOrderAndUUIDsRestored']:problems.append('original Space topology was not restored')
-                    if not clean['newerHumanInput'] and (not clean['originalCurrentRestored'] or not clean['originalForegroundRestored'] or clean['originalFocusedWindowRestored'] is False):problems.append('automatic restoration of original current, foreground or exact focus unconfirmed')
+                    if not superseded and not clean['newerHumanInput'] and (not clean['originalCurrentRestored'] or not clean['originalForegroundRestored'] or clean['originalFocusedWindowRestored'] is False):problems.append('automatic restoration of original current, foreground or exact focus unconfirmed')
                 except (ValueError,OSError,KeyError,subprocess.SubprocessError) as e:problems.append(str(e))
             if focus:focus.finish(False)
             clean['errors']=problems;clean['status']='UNKNOWN' if problems else 'PASS';result['cleanup']=clean
