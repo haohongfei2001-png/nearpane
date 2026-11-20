@@ -3,6 +3,7 @@ import argparse
 import fcntl
 import hashlib
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
@@ -235,6 +236,32 @@ class TestTemporaryInstall(unittest.TestCase):
         self.assertEqual(self.mac.actions.count("installed-permissions"),1)
         self.assertEqual(report["trials"],{"P4":{"status":"PASS"}})
         self.assertEqual(report["restoration"],"PASS")
+
+    def test_registered_focus_runs_alone_under_the_same_protected_installation(self):
+        self.args.only = "p2"
+        (self.args.kit / "system-workspace").touch()
+        lease = self.base / "focus-lease.json"
+        self.args.focus_lease = lease
+        inputs = {key: str(self.args.kit) for key in ("workspace", "documentKit", "originalCheckout")}
+        for key in ("originArchive", "dailyArchive", "signingChain"):
+            target = self.base / key
+            target.touch()
+            inputs[key] = str(target)
+        inputs["expectedSpace"] = 45
+        tool.persist(lease, inputs)
+        report = tool.supervise(self.mac, self.args, lambda: 0)
+        self.assertEqual(self.mac.actions, ["quit-daily","launch-isolated","P2","quit-isolated","launch-daily"])
+        self.assertEqual(report["focusLease"], inputs)
+        self.assertEqual(report["restoration"], "PASS")
+        self.assertEqual(report["cleanup"], "PASS")
+        self.assertNotIn("wordbookHome", report)
+
+    def test_focus_rejects_an_unenrolled_desktop_before_any_installation(self):
+        from unittest.mock import patch
+        with patch.object(tool.spaces_trials, "private_file", return_value=json.dumps({
+                **{key: str(self.base) for key in ("workspace","documentKit","originalCheckout","originArchive","signingChain","dailyArchive")},
+                "expectedSpace": False}).encode()), self.assertRaisesRegex(ValueError, "Invalid enrolled"):
+            tool.spaces_trials.focus_lease(self.base/"missing.json")
 
     def test_recover_after_atomic_swap_before_observation(self):
         tx = self.prepare()

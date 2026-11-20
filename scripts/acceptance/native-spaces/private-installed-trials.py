@@ -21,6 +21,7 @@ import time
 import uuid
 
 import installed_profile as profile
+import private_spaces_trials as spaces_trials
 from acceptance import host_current_permissions, identity
 
 HERE = Path(__file__).resolve().parent
@@ -302,7 +303,15 @@ class Mac:
     def trial(self, name, rec, context, leases):
         out = Path(rec["output"])
         source = rec["candidate"]["source"]
-        if name == "P3":
+        if name == "P2":
+            original = self.canonical.parent/(".nearpane-installed-trials." + str(os.getuid()))/rec["transaction"]/"bundle.slot"
+            chain = spaces_trials.extend_focus_chain(rec, self.canonical, original, out, gate, persist)
+            cmd = spaces_trials.focus_command(HERE, rec, out, chain, context)
+            result = out/"p2/result.json"
+        elif name == "P0-diagnostic":
+            cmd = spaces_trials.diagnostic_command(HERE, rec, out)
+            result = out/"p0/results.json"
+        elif name == "P3":
             result = out/"p3.json"
             cmd = [sys.executable, HERE/"p3-installed-qualification.py", "--expected-source", source,
                    "--output", result, "--metrics", rec["metrics"], "--sessions", rec["sessions"]]
@@ -318,9 +327,12 @@ class Mac:
                                      start_new_session=True, pass_fds=leases)
             # These acceptance programs independently bound each external operation. On SIGTERM let their
             # current operation and fixture cleanup finish; the supervisor will skip the next trial and restore.
-            code = child.wait(timeout=300)
+            code = child.wait(timeout=900 if name == "P0-diagnostic" else 300)
         if result.is_file() and result.resolve() == result:
             record = read_json(result)
+            if name == "P0-diagnostic":
+                require(record.get("scope") == "DIAGNOSTIC_ONLY" and record.get("officialGateEligible") is False,
+                        "Single-run diagnostic did not preserve its evidence scope")
             return dict(status=record["status"], exit=code, receipt=result.relative_to(out).as_posix(), sha256=sha(result))
         return dict(status="UNKNOWN", exit=code, reason="missingTrialReceipt")
 
@@ -600,11 +612,25 @@ class Transaction:
         require(not any(k in os.environ for k in ("CFFIXED_USER_HOME","NEARPANE_TEST_HOME","NEARPANE_TEST_GENERATION",
                                                    "NEARPANE_PREVIEW_DIAGNOSTICS","NEARPANE_ACCEPTANCE_SESSION")),
                 "Run the supervisor outside an acceptance environment")
-        require(args.metrics.is_file() and os.access(args.metrics,os.X_OK) and
-                (args.kit/"tool-selection").is_file() and (args.kit/"Nearpane Tool Fixture.app").is_dir(),
-                "Missing P3/P4 tools")
         only=getattr(args,"only",None)
-        require(only in (None,"p4-service","p3,p4") and not (only and args.wordbook_driver),"Scoped qualification/Services trials exclude the wordbook driver")
+        choices = {"p0-diagnostic":("P0-diagnostic",), "p2":("P2",), "p4-service":("P4",),
+                   "p3,p4":("P3","P4"), None:("P3","P4","P4-wordbook")}
+        require(only in choices and not (only and args.wordbook_driver), "Invalid protected trial selection")
+        inputs = {}
+        if only == "p0-diagnostic":
+            require((HERE/"p0-host-diagnostic.py").is_file() and args.issuer_key and args.issuer_key.is_file()
+                    and (args.kit/"system-workspace").is_file(), "Missing single-run diagnostic kit or issuer")
+            inputs["issuerKey"] = str(args.issuer_key.resolve(strict=True))
+            if args.drift_kit:
+                inputs["driftKit"] = str(args.drift_kit.resolve(strict=True))
+        elif only == "p2":
+            require(args.focus_lease and (args.kit/"system-workspace").is_file(), "Missing focus kit or enrolled Space lease")
+            inputs["focusLease"] = spaces_trials.focus_lease(args.focus_lease.resolve(strict=True))
+        else:
+            require(args.metrics and args.metrics.is_file() and os.access(args.metrics,os.X_OK) and
+                    (args.kit/"tool-selection").is_file() and (args.kit/"Nearpane Tool Fixture.app").is_dir(),
+                    "Missing P3/P4 tools")
+            inputs["metrics"] = str(args.metrics.resolve(strict=True))
         require(bool(args.wordbook_driver) == bool(args.wordbook_kit), "Supply both independent wordbook inputs")
         if args.wordbook_driver:
             require(args.wordbook_driver.name == "p4-wordbook-recovery.py" and args.wordbook_driver.is_file()
@@ -617,9 +643,9 @@ class Transaction:
         output.mkdir(mode=0o700)
         owned_dir(output)
         home = mac.new_home()
-        chosen_trials={"p4-service":("P4",),"p3,p4":("P3","P4"),None:("P3","P4","P4-wordbook")}[only]
+        chosen_trials=choices[only]
         tx = cls(mac,dict(schema=1,transaction=str(uuid.uuid4()),home=str(home),output=str(output),
-                          metrics=str(args.metrics.resolve(strict=True)),kit=str(args.kit.resolve(strict=True)),
+                          kit=str(args.kit.resolve(strict=True)),**inputs,
                           sessions=str(args.sessions.resolve()),restoration="PENDING",trialScope=only or "all",
                           trials={k:dict(status="NOT_RUN") for k in chosen_trials},events=[]))
         if args.wordbook_driver:
@@ -714,11 +740,13 @@ def main():
         for field in ("source","cdhash"):
             run.add_argument("--"+subject+"-"+field,required=True)
     run.add_argument("--output",required=True,type=Path)
-    run.add_argument("--metrics",required=True,type=Path)
+    run.add_argument("--metrics",type=Path)
     run.add_argument("--kit",required=True,type=Path)
     run.add_argument("--sessions",type=Path,default=HERE.parents[2]/"build/native-acceptance")
-    run.add_argument("--only",type=str.lower,choices=("p4-service","p3,p4"),
-                     help="one installed Host permission sample and the selected cases in a single isolated home")
+    run.add_argument("--only",type=str.lower,choices=("p4-service","p3,p4","p2","p0-diagnostic"))
+    run.add_argument("--focus-lease",type=Path, help="owned lease and archive chain for a registered two-document test")
+    run.add_argument("--issuer-key",type=Path, help="one-run issuer for the separately compiled isolated diagnostic")
+    run.add_argument("--drift-kit",type=Path)
     run.add_argument("--wordbook-driver",type=Path)
     run.add_argument("--wordbook-kit",type=Path)
     commands.add_parser("recover")
