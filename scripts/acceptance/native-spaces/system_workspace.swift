@@ -18,6 +18,7 @@ struct WorkspaceRequest: Decodable {
     let hostHash: String
     let hostBirth: UInt64
     let hid: [UInt32]
+    let inactiveSystemSurfaces: Bool?
 }
 func demand(_ predicate: Bool, _ reason: String) throws {
     if !predicate { throw Refusal(reason) }
@@ -323,10 +324,43 @@ func publicWindowNumbers() throws -> Set<UInt32> {
     }
     return Set(numbers)
 }
-func requireEmpty(_ n: UInt64, host: pid_t, beforeOverview: Set<UInt32>? = nil) throws -> [String:Any]? {
+// Limited recovery for an already inactive, leased ordinary Space. The scoped C census
+// signs the live owner and binds both directions of membership. Read the same window
+// again, including the system's front-to-back list, immediately before AXRemoveDesktop.
+func inactiveSystemRows(_ row:[String:Any],on n:UInt64) -> Bool {
+    guard let count=row["otherMembers"] as? Int,let raw=row["otherDetails"] as? [[String:Any]],raw.count==count,
+          let visible=CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [[String:Any]]
+    else {return false}
+    let onscreen=Set(visible.compactMap{$0[kCGWindowNumber as String] as? UInt32})
+    return raw.allSatisfy { detail in
+        guard let id=detail["number"] as? UInt32,id>0,let pid=detail["pid"] as? pid_t,pid>1,
+              let layer=detail["layer"] as? Int, detail["installedHost"] as? Bool==false,
+              detail["onscreen"] as? Bool==false,detail["visibleQuery"] as? Bool==false,
+              detail["reverse"] as? [UInt64]==[n],detail["forward"] as? [UInt64]==[n],!onscreen.contains(id),
+              let code=detail["code"] as? [String:Any],code["apple"] as? Bool==true,
+              let identifier=code["identifier"] as? String,let slot=UnsafeRawPointer(bitPattern:UInt(id)),
+              let ids=CFArrayCreateMutable(nil,1,nil) else {return false}
+        let path:String
+        switch (identifier,layer) {
+        case ("com.apple.dock",-1):path=OverviewAgent.dock.executable
+        case ("com.apple.WindowServer",24):path="/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer"
+        default:return false
+        }
+        var bytes=[CChar](repeating:0,count:4096)
+        guard proc_pidpath(pid,&bytes,UInt32(bytes.count))>0,String(cString:bytes)==path else {return false}
+        CFArrayAppendValue(ids,slot)
+        guard let exact=CGWindowListCreateDescriptionFromArray(ids) as? [[String:Any]],exact.count==1,
+              exact[0][kCGWindowNumber as String] as? UInt32==id,exact[0][kCGWindowOwnerPID as String] as? pid_t==pid,
+              exact[0][kCGWindowLayer as String] as? Int==layer,exact[0][kCGWindowIsOnscreen as String] as? Bool != true,
+              NPReadWindowSpaces(id) as? [UInt64]==[n],(NPReadCatalogSpaceWindowNumbers(n) as? [UInt32])?.contains(id)==true
+        else {return false}
+        return true
+    }
+}
+func requireEmpty(_ n: UInt64, host: pid_t, beforeOverview: Set<UInt32>? = nil, allowInactiveSystem:Bool=false) throws -> [String:Any]? {
     let report = NPContractMemberReport([NSNumber(value:n)] as CFArray, host) as? [String:Any]
     if let row=report?[String(n)] as? [String:Any], row["unresolved"] as? Int == 0,
-       row["otherMembers"] as? Int == 0, let members=row["ordinary"] as? [[String:Any]] {
+       (row["otherMembers"] as? Int == 0 || (allowInactiveSystem && inactiveSystemRows(row,on:n))), let members=row["ordinary"] as? [[String:Any]] {
         if members.isEmpty {return nil}
         // The authenticated system overview creates a normal-layer compositing window.
         // The target had zero ordinary windows immediately before this invocation opened
@@ -369,7 +403,11 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
     var beforeOverview: Set<UInt32>?
     if r.command=="remove" {
         guard let target=r.target, r.owned.contains(target), target != r.current else {throw Refusal("only an inactive created desktop may be removed")}
-        _=try requireEmpty(target,host:r.hostPID)
+        if r.inactiveSystemSurfaces==true {
+            try demand(r.current==r.original && !r.owned.contains(r.original) && r.records.last?.id==target,
+                       "system-only removal needs an inactive last lease and the protected active origin")
+        }
+        _=try requireEmpty(target,host:r.hostPID,allowInactiveSystem:r.inactiveSystemSurfaces==true)
         beforeOverview=try publicWindowNumbers()
     }
     if try overviewVisible() {
@@ -476,7 +514,7 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         return
     }
     if r.command=="remove", let target=r.target, let beforeOverview {
-        if let surface = try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {
+        if let surface = try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview,allowInactiveSystem:r.inactiveSystemSurfaces==true) {
             proof["overviewComposite"] = surface
         }
         try guardState(r,stage:"after-empty-read",expected:overviewCurrent,admitFullscreenOverview:overviewCurrent==r.current)

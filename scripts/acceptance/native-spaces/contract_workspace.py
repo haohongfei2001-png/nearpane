@@ -36,6 +36,19 @@ def addition(old, new):
     return extra[0]
 
 
+def inactive_empty(occupancy, n, *, system_surfaces=False):
+    if occupancy.get("unresolved")!=0 or occupancy.get("ordinary")!=[]:return False
+    count=occupancy.get("otherMembers")
+    if count==0:return True
+    rows=occupancy.get("otherDetails")
+    if not system_surfaces or not isinstance(rows,list) or len(rows)!=count:return False
+    allowed={("com.apple.dock",-1),("com.apple.WindowServer",24)}
+    return all(r.get("installedHost")==0 and r.get("code",{}).get("apple") is True and
+               (r["code"].get("identifier"),r.get("layer")) in allowed and r.get("onscreen") is False and
+               r.get("visibleQuery") is False and r.get("forward")==r.get("reverse")==[n] and
+               type(r.get("number")) is int and r["number"]>0 and type(r.get("pid")) is int and r["pid"]>1 for r in rows)
+
+
 def stats(s, display):
     b = display["bounds"]
     geometry = f'{display["uuid"]}:{{{{{b[0]}, {b[1]}}}, {{{b[2]}, {b[3]}}}}}:{display["rotation"]}:{display["scale"]}'
@@ -44,7 +57,7 @@ def stats(s, display):
 
 
 class Workspace:
-    def __init__(self, kit, output, record, resume=False, previous_archive=None, install_receipt=None):
+    def __init__(self, kit, output, record, resume=False, previous_archive=None, install_receipt=None, *, original_ledgers=None):
         self.kit, self.output, self.record = kit, output, record
         self.recovering = resume
         self.boot = checked(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"]).strip()
@@ -58,7 +71,7 @@ class Workspace:
             for entry in sorted(output.glob("desktop-*.json")):
                 ref = json.loads(private_file(entry.resolve()))
                 p = Path(ref["receipt"]); raw = private_file(p)
-                require(LEDGERS == p.parent.parent.parent and p.name == "created.json" and p.parent.name == "provision"
+                require((original_ledgers or LEDGERS) == p.parent.parent.parent and p.name == "created.json" and p.parent.name == "provision"
                         and hashlib.sha256(raw).hexdigest() == ref["sha256"], "unrecognized cleanup journal")
                 self.ledgers.append(p)
                 if (p.parent/"removed.json").exists():
@@ -135,7 +148,7 @@ class Workspace:
             require(s["current"] in (self.home, self.cleanup_current) or s["current"] in leased, "unrelated desktop became current")
         return s
 
-    def command(self, name, snapshot, target=None, other=None, *, before_send=None, after_reply=None):
+    def command(self, name, snapshot, target=None, other=None, *, before_send=None, after_reply=None, inactive_system_surfaces=False):
         s = self.check(snapshot)
         # Each independent system operation binds its own quiet interval and positively
         # identified source; a change during that interval suspends dispatch.
@@ -146,6 +159,10 @@ class Workspace:
                 "physical input, focus or Space changed before system dispatch")
         req = dict(command=name, display=self.display, records=s["records"], current=s["current"], original=self.cleanup_current,
                    owned=self.ids(), target=target, other=other, hostPID=self.host["pid"], hostHash=self.host["codeHash"], hostBirth=self.host_birth, hid=self.hid)
+        if inactive_system_surfaces:
+            require(name=="remove" and target in self.ids() and s["current"]==self.home==self.cleanup_current and
+                    self.recovering and target!=self.home,"system-only cleanup requires the confirmed protected origin")
+            req["inactiveSystemSurfaces"]=True
         self.record("system-fixture-intent", operation=name, current=s["current"], target=target, other=other)
         if before_send: before_send()
         call = subprocess.run([str(self.kit/"system-workspace")], input=json.dumps(req), text=True, capture_output=True, timeout=20)
@@ -276,7 +293,7 @@ class Workspace:
             return
         raise ScopeError("No quiet interval available to recycle the inactive desktop")
 
-    def confirm_no_removal_effect(self, previous, reply, receipt):
+    def confirm_no_removal_effect(self, previous, reply, receipt, *, system_surfaces=False):
         require(self.recovering and reply.get("issued") is True and reply.get("acknowledged") is True,
                 "previous removal has an unknown delivery; retaining its journal and desktop")
         require(not previous.get("recoveryOf"),"one explicit no-effect recovery already exhausted")
@@ -294,8 +311,7 @@ class Workspace:
             expected=[r for r in state["records"] if r["id"]!=n]
             occ=(sample.get("scopedMembers") or {}).get(str(n),{})
             require(state["current"]==self.cleanup_current and state["current"]!=n and state["records"][-1]["id"]==n and
-                    expected==previous["expected"] and occ.get("ordinary")==[] and occ.get("otherMembers")==0 and
-                    occ.get("unresolved")==0 and self.hardware()==self.hid,
+                    expected==previous["expected"] and inactive_empty(occ,n,system_surfaces=system_surfaces) and self.hardware()==self.hid,
                     "pending target is not the same empty inactive last desktop with unchanged siblings")
             samples.append(dict(current=state["current"],record=state["records"][-1],uptime=sample["uptime"]))
             if i<3:time.sleep(.65)
@@ -303,14 +319,17 @@ class Workspace:
         self.record("acknowledged-removal-no-effect",previous=previous["operation"],target=n,samples=samples)
         return samples
 
-    def cleanup(self):
+    def cleanup(self, *, inactive_system_surfaces=False):
         failures = []
         try:
             self.reconcile_removed(self.read())
             if self.ids():
                 if self.recovering:
                     self.bind_quiet_cleanup()
-                if row(self.read())["current"] != self.cleanup_current:
+                active=row(self.read())["current"]
+                if inactive_system_surfaces:
+                    require(self.recovering and active==self.cleanup_current==self.home,"return to the protected origin before removing inactive leases")
+                elif active!=self.cleanup_current:
                     self.select(self.cleanup_current)
             for receipt in reversed(self.ledgers):
                 if receipt.with_name("removed.json").exists():
@@ -321,7 +340,7 @@ class Workspace:
                 require(state["current"] == self.cleanup_current, "original Space has not been restored")
                 report = before.get("scopedMembers") or {}
                 occupancy = report.get(str(n), {})
-                require(occupancy.get("unresolved") == 0 and occupancy.get("otherMembers") == 0 and occupancy.get("ordinary") == [],
+                require(inactive_empty(occupancy,n,system_surfaces=inactive_system_surfaces),
                         f"independent inventory does not establish empty desktop {n}: {occupancy or report}")
                 expected = [r for r in state["records"] if r["id"] != n]
                 pending = receipt.with_name("remove-intent.json")
@@ -334,7 +353,7 @@ class Workspace:
                     if response.get("issued") is False:
                         label="refused"
                     else:
-                        self.confirm_no_removal_effect(previous,response,receipt)
+                        self.confirm_no_removal_effect(previous,response,receipt,system_surfaces=inactive_system_surfaces)
                         label="no-effect"
                         recovery_of=previous["operation"]
                     pending.rename(receipt.with_name("remove-" + label + "-" + previous["operation"] + ".json"))
@@ -342,6 +361,7 @@ class Workspace:
                 intent = dict(operation=operation, boot=self.boot, target=n, expected=expected, recoveryOf=recovery_of)
                 self.command("remove", before, n,
                              before_send=lambda: write_owned(pending,intent),
+                             **({"inactive_system_surfaces":True} if inactive_system_surfaces else {}),
                              after_reply=lambda data: write_owned(receipt.with_name("remove-reply-"+operation+".json"),data))
                 after = self.settled(lambda o: row(o)["records"] == expected and row(o)["current"] == self.cleanup_current,
                                      "removal not independently confirmed")
