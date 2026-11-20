@@ -32,7 +32,7 @@ if capture {
     field.font = .systemFont(ofSize:23);field.string="The blue bicycle"
     window.contentView?.addSubview(field)
 }
-var pose = -1, selected = false, last = Data()
+var pose = -1, selected = false, wasKey = false, last = Data()
 var serviceAttempted=false,serviceDispatched=false,board:NSPasteboard?
 let started = ProcessInfo.processInfo.systemUptime
 func quartz(_ rect:NSRect) -> String {
@@ -56,7 +56,8 @@ let timer = Timer(timeInterval:0.06,repeats:true) { _ in
         window.orderFrontRegardless();pose=request
     }
     let front=NSWorkspace.shared.frontmostApplication?.processIdentifier==getpid()
-    if front && !window.isKeyWindow && !selected { window.makeKeyAndOrderFront(nil) }
+    if front && !window.isKeyWindow && !wasKey { window.makeKeyAndOrderFront(nil) }
+    if front && window.isKeyWindow { wasKey=true }
     if !capture && front && window.isKeyWindow && !selected {
         selected=window.makeFirstResponder(field)
         field.setSelectedRange(NSRange(location:0,length:(field.string as NSString).length))
