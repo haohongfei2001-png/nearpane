@@ -102,13 +102,13 @@ class GateTests(unittest.TestCase):
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['status']),('PASS','BLOCKED'))
     def test_host_audit_preserves_exact_complete_metadata_records_only(self):
         with tempfile.TemporaryDirectory() as tmp:
-            audit=object.__new__(runner.InstalledWindowAudit);audit.stream=Path(tmp)/'p0-window-audit.jsonl'
-            row=b'{"uptime":123, "stage":"published","windows":[{"number":66}]}'
+            audit=object.__new__(runner.InstalledWindowAudit);audit.stream=Path(tmp)/'p0-window-audit.jsonl';audit.host={'pid':23}
+            row=b'{"writerPID":23,"revision":77,"uptime":123, "stage":"published","windows":[{"number":66}]}'
             private=b'{"other":{"windowTitle":"fixture-text-sentinel"}}'
-            raw=row+b'\n'+private+b'\n{"partial":'
+            raw=row+b'\n'+private+b'\n'+row.replace(b'"writerPID":23',b'"writerPID":12')+b'\n{"partial":'
             audit.stream.write_bytes(raw);audit.stream.chmod(0o600)
             records,meta=audit.read()
-            self.assertEqual([r[2] for r in records],[row]);self.assertEqual(meta['withheldNonMetadataLines'],1)
+            self.assertEqual([r[2] for r in records],[row]);self.assertEqual(meta['withheldNonMetadataLines'],1);self.assertEqual(meta['unmatchedHostEnvelopeLines'],1)
             self.assertEqual(meta['trailingIncompleteBytes'],len(b'{"partial":'));self.assertEqual(meta['sourceSHA256'],hashlib.sha256(raw).hexdigest())
             alias=Path(tmp)/'alias';alias.symlink_to(audit.stream);audit.stream=alias
             with self.assertRaises(OSError):audit.read()

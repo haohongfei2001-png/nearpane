@@ -315,7 +315,12 @@ class InstalledWindowAudit:
         except FileNotFoundError:self.baselineLines=0
         self.registeredAt=cmd(self.kit/'p0-card','state').get('uptime')
         self.targets.append(target)
-        store(self.request,dict(version=1,targets=self.targets))
+        fd,temporary=tempfile.mkstemp(prefix='.window-audit-targets-',dir=self.home)
+        try:
+            with os.fdopen(fd,'w') as f:
+                os.fchmod(f.fileno(),0o600);json.dump(dict(version=1,targets=self.targets),f);f.flush();os.fsync(f.fileno())
+            os.replace(temporary,self.request)
+        finally:Path(temporary).unlink(missing_ok=True)
         store(self.output/'registered-targets.json',dict(version=1,targets=self.targets))
     def read(self):
         fd=os.open(self.stream,os.O_RDONLY|os.O_NOFOLLOW)
@@ -325,15 +330,18 @@ class InstalledWindowAudit:
                     and 0<=info.st_size<=16*1024*1024,'unexpected isolated Host diagnostic stream')
             raw=f.read(info.st_size)
         lines=raw.split(b'\n');trailing=len(lines.pop())
-        records=[];withheld=0;invalid=0
+        records=[];withheld=0;invalid=0;unmatched=0
         for number,line in enumerate(lines,1):
             if not line:continue
             try:row=json.loads(line)
             except (ValueError,UnicodeDecodeError):invalid+=1;continue
             if not isinstance(row,dict) or not audit_metadata_only(row):withheld+=1;continue
+            if (row.get('writerPID')!=self.host['pid'] or not isinstance(row.get('uptime'),(int,float))
+                    or not math.isfinite(row['uptime']) or row['uptime']<=0 or 'revision' not in row or not row.get('stage')):
+                unmatched+=1;continue
             records.append((number,row,line))
         return records,dict(sourceSHA256=hashlib.sha256(raw).hexdigest(),bytesRead=len(raw),sourceLines=len(lines),completeRecords=len(records),
-                            malformedLines=invalid,withheldNonMetadataLines=withheld,trailingIncompleteBytes=trailing)
+                            malformedLines=invalid,unmatchedHostEnvelopeLines=unmatched,withheldNonMetadataLines=withheld,trailingIncompleteBytes=trailing)
     def snapshot(self,phase,context,final=False):
         metadata=dict(phase=phase,source='isolated installed Host',host=self.host,targets=list(self.targets),context=context,
                       registeredAtUptime=self.registeredAt,registeredAfterLine=self.baselineLines)
@@ -352,7 +360,10 @@ class InstalledWindowAudit:
                 if latest or time.monotonic()>=deadline:break
                 time.sleep(.12)
             after=cmd(self.kit/'p0-card','state')
-            metadata.update(summary,after=after,status='OBSERVED' if latest else 'UNAVAILABLE')
+            expected=context.get('space',context.get('source'))
+            stable=(before.get('topology')==after.get('topology') and before.get('hid')==after.get('hid') and
+                    (not expected or after.get('topology',{}).get('current')==expected))
+            metadata.update(summary,after=after,sameWitnessInterval=stable,status='OBSERVED' if latest and stable else 'UNAVAILABLE')
             if final:
                 with (self.output/'installed.jsonl').open('wb') as f:
                     for _,_,line in records:f.write(line+b'\n')
