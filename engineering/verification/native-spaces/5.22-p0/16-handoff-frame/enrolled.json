@@ -1,0 +1,92 @@
+{
+  "topology": {
+    "current": 5019,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "records": [
+      {
+        "id": 4,
+        "type": 0,
+        "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+      },
+      {
+        "id": 6,
+        "type": 0,
+        "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+      },
+      {
+        "id": 5018,
+        "type": 0,
+        "uuid": "AB6EA416-2D84-CE25-7B16-83A9993242E8"
+      },
+      {
+        "id": 5019,
+        "type": 0,
+        "uuid": "81A15734-6097-38AE-9B0A-F4BFEE09C0C8"
+      }
+    ]
+  },
+  "windows": {
+    "5018": {
+      "birth": 1795178329035588,
+      "executable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+      "hash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+      "identifier": "net.example.spaces-document",
+      "number": 50447,
+      "ownerFile": "/private/tmp/nearpane-p0-owned-3od0o_95/efba3528-f1b0-4977-94c4-b57417309535/p0-generations.json",
+      "pid": 67792
+    },
+    "5019": {
+      "birth": 1795178332789572,
+      "executable": "/private/tmp/nearpane-d01.Gmxc1oSC/Route Notes.app/Contents/MacOS/FieldNotes",
+      "hash": "3ed0fbff7ce07cf9f19eacc37f8ff28865b281d4",
+      "identifier": "net.example.spaces-route-witness",
+      "number": 50463,
+      "ownerFile": "/private/tmp/nearpane-p0-owned-3od0o_95/2cda2269-11c8-400a-a6fd-99047cafdbf3/p0-generations.json",
+      "pid": 67957
+    }
+  },
+  "witnesses": [
+    {
+      "axFullscreen": null,
+      "axListRead": true,
+      "axMatches": 0,
+      "axMinimized": null,
+      "axRole": null,
+      "axStandardNow": false,
+      "axSubrole": null,
+      "axWindowListStatus": 0,
+      "birth": 1795178329035588,
+      "focused": 50447,
+      "forward": true,
+      "number": 50447,
+      "ownedWindowGeneration": "C18A6375-F928-47B7-937C-92B5D523F0D4",
+      "pid": 67792,
+      "reverse": [
+        5018
+      ],
+      "roleEvidence": "foreground AX enrollment + same live owner generation",
+      "standard": true
+    },
+    {
+      "axFullscreen": false,
+      "axListRead": true,
+      "axMatches": 1,
+      "axMinimized": false,
+      "axRole": "AXWindow",
+      "axStandardNow": true,
+      "axSubrole": "AXStandardWindow",
+      "axWindowListStatus": 0,
+      "birth": 1795178332789572,
+      "focused": 50463,
+      "forward": true,
+      "number": 50463,
+      "ownedWindowGeneration": "F8B51CE3-A991-4CBE-99DF-939030C9A25C",
+      "pid": 67957,
+      "reverse": [
+        5019
+      ],
+      "roleEvidence": "current AX list",
+      "standard": true
+    }
+  ]
+}

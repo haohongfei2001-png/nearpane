@@ -29,6 +29,7 @@
 | [显示呈现时序与目标颜色](13-presentation-timing/results.json) | 同一候选再次往返 2/2，第 1 次交替落点确认后自动停止。显示流中 6 个完整目标帧有 5 个匹配独立校准色。原生呈现间隔一处实测 50.000042 毫秒，跨越 50 毫秒上限；部分早到回调缺少同时序的后续表面见证，独立末端校验也未就绪。视觉 UNKNOWN，50 次未运行。[时间及最终颜色证据](13-presentation-timing/physical-readback.json) · [完整原件](13-presentation-timing/original-receipts.tar.gz) |
 | [真实窗口动态色标](14-moving-documents/results.json) | 正式侧栏往返 2/2，再发第 1 次交替并独立确认落点。两扇受控文档在自己的窗口内改变颜色。真实显示流的 196 个呈现均有窗口与时序证明，最长间隔 16.667 毫秒，持续可见、零原生空白、目标色均已确认。终点最后一次独立清点发现额外的层 0 窗口，身份未证实，取证在另一份截图前停止。整轮视觉继续为 UNKNOWN，两个临时桌面、日常焦点和配置均已恢复。[分项结果](14-moving-documents/target-check.json) · [每次真实按压](14-moving-documents/per-action.jsonl) |
 | [额外窗口身份查明](15-fixture-auxiliary/owned-auxiliary-diagnosis.json) | 同一安装版再次往返 2/2，第 1 次交替实际到达。显示时序、持续亮度及目标色均通过。20 次独立清点证实额外窗号 50369 属于受控 Field Notes 的同一签名进程，其 AX 子角色为非标准、非主窗，位于取样区外。目标文档窗号为 50319。此轮按旧规则停在末端交叉截图之前，整体仍为 UNKNOWN。[全部原始收据](15-fixture-auxiliary/original-receipts.tar.gz) |
+| [切换过程中的一次系统通知](16-handoff-frame/handoff-readback.json) | 正式侧栏往返 2/2，第 1 次交替落点已确认。辅助窗资格、两次终点清点、真实显示流目标色和独立终点截图全部通过。193 个呈现中有一帧的两次元数据都确认了同一受控目标表面，但活动 Space 在两读之间由源变为目标。当时的观察器没有读取此帧像素，持续亮度保留 UNKNOWN，后续选择已停止。[原始收据](16-handoff-frame/original-receipts.tar.gz) |
 
 以上建场成功次数和历史版本的尝试均不计入本候选的往返、10 次或 50 次门槛。
 
