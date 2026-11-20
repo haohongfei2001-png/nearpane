@@ -9,7 +9,7 @@ struct PanelSizeLayout {
 
     init?(settings: DisplaySettings, screen: ScreenGeometry, edge: SurfaceEdge,
           content: PanelContent, voice: Bool, tray: Bool, floating: Bool,
-          toolOrder: [String] = BuiltinCatalog.sidebarTools, voiceCompact: Bool = false, trayRows: Int = 1,
+          toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots], voiceCompact: Bool = false, trayRows: Int = 1,
           pinnedCount: Int = 0, expanded: Bool = false) {
         guard let full = settings.panel(on: screen, fallbackEdge: edge) else { return nil }
         referenceHeight = full.height
@@ -31,6 +31,7 @@ struct PanelSizeLayout {
                                         floating: floating) else { return nil }
         frame = rect
         form = settings.sizeForm(width: rect.width, height: rect.height, content: content, voice: voice, tray: tray,
-                                 referenceHeight: full.height)
+                                 referenceHeight: full.height, voiceCompact: content == .toolsOnly && voiceCompact,
+                                 trayRows: trayRows, toolOrder: toolOrder)
     }
 }

@@ -322,19 +322,26 @@ extension DisplaySettings {
 
     /// Fit ordinary module controls at their configured sizes. Condensing the panel never changes their stored metrics.
     public func sizeForm(width: Double, height: Double, content: PanelContent, voice: Bool, tray: Bool,
-                         referenceHeight: Double? = nil, temporarilyExpanded: Bool = false) -> PanelSizeForm {
+                         referenceHeight: Double? = nil, temporarilyExpanded: Bool = false,
+                         voiceCompact: Bool = false, trayRows: Int = 1,
+                         toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots]) -> PanelSizeForm {
         let minimum = PanelSizeMetrics.minimumSide
         let compactSpan = 2 * minimum + 2 * PanelSizeMetrics.glassInset
         guard width.isFinite, height.isFinite, min(width, height) >= minimum,
               max(width, height) >= compactSpan else { return .icon }
         if content == .full, (voice || tray), width < 176, !temporarilyExpanded { return .compact }
         let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
-            settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
+            settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
+            voiceCompact: voiceCompact, trayRows: trayRows, toolOrder: toolOrder)
         let cardPadding = 2 * glass.inset(width: width)
         let sections = (voice: max(0, layout.voice.height), tray: max(0, layout.screenshots.height),
                         spaces: max(0, layout.desktop.height))
         let width = max(0, width - cardPadding)
-        if voice && [.full, .compact, .toolsOnly, .voiceOnly].contains(content) {
+        let showsVoice = voice && [.full, .compact, .toolsOnly, .voiceOnly].contains(content)
+        if showsVoice && voiceCompact {
+            // Saytile's paused row contains one 48 × 27 control and two 12 pt margins.
+            if width < 72 || sections.voice < 27 { return .compact }
+        } else if showsVoice {
             let pad = points(.textPadding, in: width)
             let requestedFont = points(.textSize, in: sections.voice)
             let font = readableFontSize(.textSize, in: sections.voice) ?? requestedFont

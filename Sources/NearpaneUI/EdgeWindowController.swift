@@ -117,6 +117,12 @@ public final class EdgeWindowController: NSWindowController {
         super.init(window: panel)
         display.updateMaterial = { [weak self] layout in
             guard let self, !folded, let placement, let size = window?.frame.size else { return }
+            if placement.content == .toolsOnly {
+                // The live voice session and a second tray row can change height without
+                // touching the stored display settings. Refit the same physical panel.
+                place(on: placement.screen, primary: placement.primary, content: placement.content)
+                return
+            }
             var settings = host.panelPresentationSettings(on: placement.screen.id)
             if display.usesDefaultExpandedRim { settings.glass.rimWidth = nil }
             material.configure(size: size, layout: layout, settings: settings)

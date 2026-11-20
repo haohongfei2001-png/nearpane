@@ -6,6 +6,18 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct WorkspacePanelTests {
+    @Test func compactLiveVoiceAndTrayKeepTheirControlsWhenTheSwitcherYields() throws {
+        let rect = SurfaceRect(width: 1470, height: 923)
+        let screen = ScreenGeometry(id: "primary", frame: rect, visibleFrame: rect)
+        let layout = try #require(PanelSizeLayout(settings: .init(), screen: screen, edge: .right,
+            content: .toolsOnly, voice: true, tray: true, floating: false, voiceCompact: true))
+        #expect(layout.form == .full)
+        #expect(layout.frame.height < rect.height / 3)
+        let twoRows = try #require(PanelSizeLayout(settings: .init(), screen: screen, edge: .right,
+            content: .toolsOnly, voice: true, tray: true, floating: false, voiceCompact: true, trayRows: 2))
+        #expect(twoRows.form == .full && twoRows.frame.height > layout.frame.height)
+    }
+
     @Test func stageManagerOwnsTheSwitcherAndReleasesItWithoutChangingSettings() async throws {
         let host = HostSession(store: MemoryConfigurationStore())
         await host.start()
