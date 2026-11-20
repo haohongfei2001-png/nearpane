@@ -43,6 +43,12 @@ jobs:
           sw_vers
           uname -m
           swift --version
+          openssl_bin="$(brew --prefix openssl@3)/bin"
+          if ! test -x "$openssl_bin/openssl"; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install openssl@3
+          fi
+          "$openssl_bin/openssl" version | grep '^OpenSSL 3\.'
+          echo "$openssl_bin" >> "$GITHUB_PATH"
       - name: Verify acceptance arithmetic and routing fixtures
         run: |
           python3 -m unittest discover -s scripts/acceptance/native-spaces -p 'test_*.py'
@@ -68,7 +74,7 @@ jobs:
           grep -F 'Suite NativeSidebarNavigationTests passed' "$RUNNER_TEMP/retained-tests.log"
           grep -F 'Suite AXWindowListTests passed' "$RUNNER_TEMP/retained-tests.log"
       - name: Assess the enrolled private archive on this clean hosted Mac
-        if: contains(github.event.head_commit.message, '[private-macos-26 ')
+        if: "${{ !cancelled() && contains(github.event.head_commit.message, '[private-macos-26 ') }}"
         env:
           GH_TOKEN: ${{ github.token }}
           NEARPANE_PRIVATE_ASSET_URL: ${{ secrets.NEARPANE_PRIVATE_ASSET_URL }}
