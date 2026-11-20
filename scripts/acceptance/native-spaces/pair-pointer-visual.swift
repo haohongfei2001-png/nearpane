@@ -11,6 +11,7 @@ enum PairVisualFailure: String, Error {
     case pixelBufferUnavailable, wrongPixelFormat, invalidRasterGeometry, insufficientROISamples, pixelBufferUnreadable
     case transparentMarker, offPaletteMarker, mixedMarker, ambiguousSurface, noTargetPresentation
     case inputTimesUnavailable, targetPrecededClick, nativeClockUnavailable, noBracketedPresentation
+    case physicalStackReversed, pixelsReturnedToSource, finalTargetStackUnconfirmed
 }
 
 // Totals over front-to-back snapshots. No identifying information about other windows is retained.
@@ -28,6 +29,7 @@ struct PairStackCoverage {
 struct PairPhysicalSample {
     let from: Double, to: Double
     let slot: Int
+    var record: [Double] { [from, to, Double(slot)] }
 }
 
 struct PairVisualFrame {
@@ -116,23 +118,42 @@ enum PairVisualEvidence {
         return common.contains(r) ? r : nil
     }
 
-    static func eligible(slot: Int, target: Int, presentation: Double, uncertainty: Double,
-                         before: PairPhysicalSample, after: PairPhysicalSample) -> Bool {
+    enum Composition: String {
+        case source, sourceWhileTargetRaised, target, targetAwaitingPhysicalStack, pixelsReturnedToSource
+    }
+
+    // Both readbacks have already proved the same two opaque documents and excluded any third
+    // covering surface. WindowServer order and the compositor's pixels can change at different
+    // times. Use the pixels for the image and preserve their order relative to the stack.
+    static func composition(slot: Int, target: Int, presentation: Double, uncertainty: Double,
+                            before: PairPhysicalSample, after: PairPhysicalSample, sawTargetPixels: Bool = false) -> Composition? {
         guard (0...1).contains(slot), (0...1).contains(target), (0...1).contains(before.slot), (0...1).contains(after.slot),
               uncertainty >= 0, uncertainty <= 0.005, before.from <= before.to, after.from <= after.to,
               presentation.isFinite, before.from.isFinite, after.to.isFinite,
-              before.to <= presentation - uncertainty, after.from >= presentation + uncertainty else { return false }
-        if before.slot == after.slot { return slot == before.slot }
-        // A compositor/WindowServer notification can straddle presentation. Only a positively read
-        // target color and source -> target stack transition can establish the first target frame.
-        return before.slot == 1 - target && after.slot == target && slot == target
+              before.to <= presentation - uncertainty, after.from >= presentation + uncertainty,
+              before.slot != target || after.slot == target else { return nil }
+        if sawTargetPixels && slot != target { return .pixelsReturnedToSource }
+        if slot == target { return after.slot == target ? .target : .targetAwaitingPhysicalStack }
+        return after.slot == target ? .sourceWhileTargetRaised : .source
     }
 
-    static func receipt(frames: [PairVisualFrame], target: Int, uncertainty: Double,
+    static func lastSourceBound(frames: [PairVisualFrame], target: Int, uncertainty: Double,
+                                down: ClosedRange<Double>, up: ClosedRange<Double>) -> [String: Any]? {
+        guard (0...0.005).contains(uncertainty), down.upperBound <= up.lowerBound,
+              let first = frames.first, let last = frames.last, first.time + uncertainty < down.lowerBound,
+              frames.allSatisfy({ $0.slot == 1 - target }), last.time - uncertainty >= down.upperBound else { return nil }
+        return ["lastSourceDisplayUptime": last.time, "lastSourceMachTicks": last.ticks,
+                "downToLastSourceAtLeastMs": (last.time-uncertainty-down.upperBound)*1000,
+                "upToLastSourceAtLeastMs": (last.time-uncertainty-up.upperBound)*1000,
+                "upperBoundAvailable": false]
+    }
+
+    static func receipt(frames: [PairVisualFrame], target: Int, finalStack: Int?, uncertainty: Double,
                         down: ClosedRange<Double>, up: ClosedRange<Double>) -> [String: Any] {
         func unknown(_ reason: PairVisualFailure) -> [String: Any] { ["status":"UNKNOWN", "reason":reason.rawValue] }
         guard down.lowerBound > 0, up.lowerBound >= down.upperBound,
               let firstTargetIndex = frames.firstIndex(where: { $0.slot == target }) else { return unknown(.noTargetPresentation) }
+        guard finalStack == target else { return unknown(.finalTargetStackUnconfirmed) }
         let source = frames[..<firstTargetIndex], first = frames[firstTargetIndex]
         guard let last = source.last, source.contains(where: { $0.time + uncertainty < down.lowerBound }),
               source.allSatisfy({ $0.slot == 1 - target }), frames[firstTargetIndex...].allSatisfy({ $0.slot == target }),
@@ -238,7 +259,9 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
     private var capture: SCStream?, timer: DispatchSourceTimer?, stopped = false
     private var failure: PairVisualFailure?, stack = [PairPhysicalSample](), samples = [PairVisualFrame]()
     private var delivered = 0, idle = 0, beforeBaseline = 0, lastTicks: UInt64 = 0
-    private var guardDurations = [Double](), seenTargetInStack = false
+    private var guardDurations = [Double](), firstTargetStack: PairPhysicalSample?, reversedStack: PairPhysicalSample?
+    private var sawTargetPixels = false
+    private var confirmedTarget: Bool { sawTargetPixels && stack.last?.slot == target }
     private var stackAttempts = 0, coverage = PairStackCoverage()
     private var frameDiagnostics = [VisualRow](), startedWithoutPixels = 0, startedWithoutClock = 0
     private var lastIdleTick: UInt64?, lastIdleAnchor: UInt64?
@@ -308,8 +331,12 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
         stackAttempts += 1
         do {
             let reading = try physical()
-            guard !seenTargetInStack || reading.slot == target else { fail(.ambiguousSurface); return }
-            if reading.slot == target { seenTargetInStack = true }
+            if firstTargetStack != nil && reading.slot != target {
+                reversedStack = reading
+                fail(.physicalStackReversed)
+                return
+            }
+            if firstTargetStack == nil && reading.slot == target { firstTargetStack = reading }
             guard guardDurations.count < 800 else { fail(.presentationUnbounded); return }
             guardDurations.append(reading.to - reading.from)
             stack.append(reading)
@@ -418,14 +445,19 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             return
         }
         frameDiagnostics[index]["physicalBracket"] = [before.from, before.to, after.from, after.to]
+        frameDiagnostics[index]["physicalSlots"] = [before.slot, after.slot]
         let covered = stack.filter { $0.from >= before.from && $0.to <= after.to }.map(\.slot)
         let progress = covered.map { $0 == target ? 1 : 0 }
-        guard progress == progress.sorted() else { fail(.ambiguousSurface); return }
+        guard progress == progress.sorted() else { fail(.physicalStackReversed); return }
         let read = PairFocusRaster.measure(buffer, display: displayBounds, crop: crop)
         frameDiagnostics[index]["raster"] = read.record
         guard let slot = read.slot else { fail(read.issue ?? .pixelBufferUnavailable); return }
-        guard PairVisualEvidence.eligible(slot:slot,target:target,presentation:time,uncertainty:clock.uncertainty,
-                                          before:before,after:after) else { fail(.ambiguousSurface); return }
+        guard let state = PairVisualEvidence.composition(slot:slot,target:target,presentation:time,uncertainty:clock.uncertainty,
+                                                          before:before,after:after,sawTargetPixels:sawTargetPixels) else { fail(.noBracketedPresentation); return }
+        frameDiagnostics[index]["composition"] = state.rawValue
+        if samples.isEmpty && state != .source { fail(.noSourcePresentationBeforeClick); return }
+        if state == .pixelsReturnedToSource { fail(.pixelsReturnedToSource); return }
+        if slot == target { sawTargetPixels = true }
         samples.append(PairVisualFrame(slot:slot,ticks:ticks,time:time,callback:callback,before:before,after:after))
     }
 
@@ -487,10 +519,10 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
         }
         let down = post(.leftMouseDown), up = post(.leftMouseUp)
         if let down, let up {
-            wait(seconds:0.4) { observer in observer.failure != nil || observer.samples.contains(where: { $0.slot == observer.target }) }
+            wait(seconds:0.4) { observer in observer.failure != nil || observer.confirmedTarget }
             queue.sync { captureEndpoint(down: down, up: up) }
             wait(seconds:0.25) { observer in
-                observer.failure != nil || observer.samples.contains(where: { $0.slot == observer.target }) ||
+                observer.failure != nil || observer.confirmedTarget ||
                     (observer.endpoint != nil && !observer.endpointPending)
             }
         }
@@ -501,7 +533,7 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             }
             if !stopped {
                 readStack()
-                if samples.contains(where:{ $0.slot == target }), stack.last?.slot != target { fail(.ambiguousSurface) }
+                if sawTargetPixels && !confirmedTarget { fail(.finalTargetStackUnconfirmed) }
             }
             if !stopped, let start = clock, let end = try? PreviewClock.read(), abs(end.machOffset - start.machOffset) <= 0.002,
                abs(end.hostOffset - start.hostOffset) <= 0.002, let pid = request.pid,
@@ -510,13 +542,21 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             } else if !stopped { fail(.clockChanged) }
             var result: VisualRow = ["status":"UNKNOWN", "reason": PairVisualFailure.inputTimesUnavailable.rawValue]
             if let failure { result["reason"] = failure.rawValue }
-            else if let down, let up, let clock { result = PairVisualEvidence.receipt(frames:samples,target:target,uncertainty:clock.uncertainty,down:down,up:up) }
+            else if let down, let up, let clock { result = PairVisualEvidence.receipt(frames:samples,target:target,finalStack:stack.last?.slot,uncertainty:clock.uncertainty,down:down,up:up) }
             if failure == nil, result["reason"] as? String == PairVisualFailure.noTargetPresentation.rawValue,
                let endpoint, endpoint["status"] as? String == "BOUNDED_SCREENSHOT" {
                 for key in ["status", "evidenceKind", "sourceSlot", "targetSlot", "lastSourceDisplayUptime", "confirmedByUptime",
                             "downToVisibleMS", "upToVisibleMS"] { result[key] = endpoint[key] }
                 result.removeValue(forKey: "reason")
             }
+            if result["status"] as? String == "UNKNOWN", let down, let up, let clock,
+               let bound = PairVisualEvidence.lastSourceBound(frames:samples,target:target,uncertainty:clock.uncertainty,down:down,up:up) {
+                result["lastSourceBound"] = bound
+            }
+            result["firstPhysicalTarget"] = firstTargetStack?.record
+            result["reversedPhysicalStack"] = reversedStack?.record
+            result["lastPhysicalStack"] = stack.last?.record
+            result["finalTargetStackMatched"] = failure == nil && stack.last?.slot == target && reversedStack == nil
             result["method"] = "twoEnrolledWindowDisplayRasterWithPhysicalStackAtEightPointCrop"
             result["displayPointBounds"] = [displayBounds.minX,displayBounds.minY,displayBounds.width,displayBounds.height]
             if let cfg = displayConfig { result["requestedRaster"] = [cfg.width,cfg.height] }

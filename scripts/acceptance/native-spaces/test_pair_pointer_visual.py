@@ -18,7 +18,7 @@ class PointerVisualReplay(unittest.TestCase):
                             *(str(HERE / name) for name in sources), "-o", str(tool)], check=True)
             result = json.loads(subprocess.check_output([tool]))
             self.assertEqual(result["status"], "PASS")
-            self.assertGreaterEqual(len(result["checks"]), 60)
+            self.assertGreaterEqual(len(result["checks"]), 67)
             self.assertTrue({
                 "foreignOrdinaryInFrontDisjointAccepted",
                 "opaqueDocumentHidesIntersectingAndUnknownBackground",
@@ -29,6 +29,10 @@ class PointerVisualReplay(unittest.TestCase):
                 "realBufferScaleAndCleanAperture",
                 "terminalStackCannotSubstituteForWrongPicture",
                 "broadOrderedBracketRetainsItsUncertainty",
+                "continuedSourceAfterStackAlreadyAdvanced",
+                "firstTargetTimeComesFromPixelsNotPhysicalStack",
+                "actualTargetRequiresFinalMatchingPhysicalStack",
+                "censoredSourceHasLowerButNoVisibleUpperBound",
             }.issubset(result["checks"]))
 
 

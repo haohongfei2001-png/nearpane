@@ -113,21 +113,24 @@ struct PairPointerVisualChecks {
 
         func sample(_ s:Int,_ a:Double,_ b:Double)->PairPhysicalSample { .init(from:a,to:b,slot:s) }
         let source=sample(0,1,1.003), destination=sample(1,1.020,1.024)
-        func eligible(_ s:Int,_ b:PairPhysicalSample,_ a:PairPhysicalSample)->Bool {
-            PairVisualEvidence.eligible(slot:s,target:1,presentation:1.014,uncertainty:0.0002,before:b,after:a)
+        func composition(_ slot: Int, _ b: PairPhysicalSample, _ a: PairPhysicalSample, alreadyTarget: Bool = false) -> PairVisualEvidence.Composition? {
+            PairVisualEvidence.composition(slot:slot,target:1,presentation:1.014,uncertainty:0.0002,
+                                           before:b,after:a,sawTargetPixels:alreadyTarget)
         }
-        check("authenticatedForwardHandoff", eligible(1,source,destination))
-        check("stableTargetRequiresTargetPixels", !eligible(0,sample(1,1,1.002),destination))
-        check("reverseHandoffRefused", !eligible(0,sample(1,1,1.002),sample(0,1.020,1.024)))
-        check("noBracketingReadRefused", !eligible(1,source,sample(1,1.010,1.012)))
-        check("broadOrderedBracketRetainsItsUncertainty", eligible(1,source,sample(1,1.070,1.074)))
-        check("broadBracketWithoutSourcePixelsRefused", !eligible(0,source,sample(1,1.070,1.074)))
+        check("authenticatedForwardHandoff", composition(1,source,destination) == .target)
+        check("unchangedSourceWhileStackAdvances", composition(0,source,destination) == .sourceWhileTargetRaised)
+        check("continuedSourceAfterStackAlreadyAdvanced", composition(0,sample(1,1,1.002),destination) == .sourceWhileTargetRaised)
+        check("realTargetPixelsCanAwaitTheirPhysicalStack", composition(1,source,sample(0,1.020,1.024)) == .targetAwaitingPhysicalStack)
+        check("sourceAfterObservedTargetIsReversion", composition(0,sample(1,1,1.002),destination,alreadyTarget:true) == .pixelsReturnedToSource)
+        check("reverseHandoffRefused", composition(0,sample(1,1,1.002),sample(0,1.020,1.024)) == nil)
+        check("noBracketingReadRefused", composition(1,source,sample(1,1.010,1.012)) == nil)
+        check("broadOrderedBracketRetainsItsUncertainty", composition(1,source,sample(1,1.070,1.074)) == .target)
         func frame(_ s:Int,_ t:Double,_ n:UInt64)->PairVisualFrame {
             .init(slot:s,ticks:n,time:t,callback:t+0.001,before:sample(s,t-0.010,t-0.006),after:sample(s,t+0.005,t+0.009))
         }
         let old=frame(0,1.0,1),holding=frame(0,1.052,2),new=frame(1,1.08,3)
-        func receipt(_ samples:[PairVisualFrame])->[String:Any] {
-            PairVisualEvidence.receipt(frames:samples,target:1,uncertainty:0.0002,down:1.03...1.031,up:1.065...1.066)
+        func receipt(_ samples:[PairVisualFrame], final: Int? = 1)->[String:Any] {
+            PairVisualEvidence.receipt(frames:samples,target:1,finalStack:final,uncertainty:0.0002,down:1.03...1.031,up:1.065...1.066)
         }
         let r=receipt([old,holding,new])
         let d=r["downToVisibleMS"] as? [String:Double], u=r["upToVisibleMS"] as? [String:Double]
@@ -140,6 +143,25 @@ struct PairPointerVisualChecks {
         check("duplicatePresentationNotNewTarget", receipt([old,frame(1,1.08,1)])["status"] as? String == "UNKNOWN")
         check("earlyFrameClockMustAgree", PreviewClock.presentationBounds(display:1.005,pts:1.050,callback:1.001) == nil)
         check("earlyFrameWithMatchedClocksBounded", PreviewClock.presentationBounds(display:1.005,pts:1.005,callback:1.001) != nil)
+        // Repeat the observed d277 condition across several frames. Pixels remain the source
+        // after the CG stack changes. A timing interval exists only on the first true target.
+        let lastHold = PairVisualFrame(slot:0,ticks:25,time:1.405,callback:1.407,
+            before:sample(1,1.390,1.391),after:sample(1,1.408,1.409))
+        let actualTarget = PairVisualFrame(slot:1,ticks:26,time:1.425,callback:1.426,
+            before:sample(1,1.416,1.417),after:sample(1,1.430,1.431))
+        let lag = receipt([old,lastHold,actualTarget])
+        check("firstTargetTimeComesFromPixelsNotPhysicalStack", lag["firstTargetDisplayUptime"] as? Double == 1.425)
+        check("realSourceHoldRefinesLowerBound", ((lag["downToVisibleMS"] as? [String:Double])?["lower"] ?? 0) > 370)
+        check("physicalAdvanceWithNoTargetHasNoUpperBound", receipt([old,lastHold])["status"] as? String == "UNKNOWN")
+        check("actualTargetRequiresFinalMatchingPhysicalStack",
+              receipt([old,lastHold,actualTarget],final:0)["reason"] as? String == PairVisualFailure.finalTargetStackUnconfirmed.rawValue)
+        func censored(_ frames: [PairVisualFrame]) -> [String: Any]? {
+            PairVisualEvidence.lastSourceBound(frames:frames,target:1,uncertainty:0.0002,down:1.03...1.031,up:1.065...1.066)
+        }
+        let lower = censored([old,lastHold])
+        check("censoredSourceHasLowerButNoVisibleUpperBound", lower?["upperBoundAvailable"] as? Bool == false &&
+            (lower?["downToLastSourceAtLeastMs"] as? Double ?? 0) > 370)
+        check("preClickOnlyOrReversingTraceCannotProveCensoredLower", censored([old]) == nil && censored([old,actualTarget,lastHold]) == nil)
         let terminal = sample(1,1.26,1.28)
         func snapshot(_ measuredSlot: Int, _ before: PairPhysicalSample) -> [String: Any]? {
             PairVisualEvidence.snapshotInterval(baseline: old, source: holding, target:1, measured:measuredSlot,
