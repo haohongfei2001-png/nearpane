@@ -6,9 +6,21 @@ private func visualNow() -> Double { ProcessInfo.processInfo.systemUptime }
 
 enum PairVisualFailure: String, Error {
     case invalidBinding, inaccessibleDisplay, displayOrSpaceChanged, enrollmentChanged, userSuperseded
-    case otherOrdinaryWindow, obscuredOrUncertainCrop, geometryChanged, displayStreamUnavailable
+    case foregroundIntersectsCrop, foregroundCoverageUnknown, obscuredOrUncertainCrop, geometryChanged, displayStreamUnavailable
     case noSourcePresentationBeforeClick, streamInterrupted, clockChanged, presentationUnbounded
     case missingOpaqueMarker, ambiguousSurface, noTargetPresentation, inputTimesUnavailable, targetPrecededClick
+}
+
+// Totals over front-to-back snapshots. No identifying information about other windows is retained.
+struct PairStackCoverage {
+    var enrolledRows = 0, disjointFront = 0, transparentFront = 0, behindOpaque = 0
+    var intersectingFront = 0, unknownFront = 0
+
+    var receipt: [String: Int] {
+        ["verifiedEnrolledRows": enrolledRows, "frontDisjoint": disjointFront,
+         "frontTransparent": transparentFront, "behindOpaqueEnrolledWindow": behindOpaque,
+         "frontIntersecting": intersectingFront, "frontCoverageUnknown": unknownFront]
+    }
 }
 
 struct PairPhysicalSample {
@@ -78,27 +90,60 @@ enum PairVisualEvidence {
                 "clickUpUptime":[up.lowerBound,up.upperBound], "downToVisibleMS":fromDown, "upToVisibleMS":latency(up)]
     }
 
-    static func physicalTop(rows: [[String:Any]], frames: [CGRect], numbers: [UInt32], pid: pid_t, crop: CGRect) throws -> Int {
-        guard frames.count == 2, numbers.count == 2 else { throw PairVisualFailure.invalidBinding }
-        var top: Int?, matches = [0, 0]
-        for row in rows {
-            guard let raw = row[kCGWindowBounds as String] as? NSDictionary,
-                  let rect = CGRect(dictionaryRepresentation: raw), !rect.isInfinite else { throw PairVisualFailure.obscuredOrUncertainCrop }
-            guard rect.intersects(crop) else { continue }
-            guard let opacity = row[kCGWindowAlpha as String] as? Double else { throw PairVisualFailure.obscuredOrUncertainCrop }
-            if opacity == 0 { continue }
-            guard let owner = row[kCGWindowOwnerPID as String] as? pid_t, let number = row[kCGWindowNumber as String] as? UInt32,
-                  let layer = row[kCGWindowLayer as String] as? Int else { throw PairVisualFailure.obscuredOrUncertainCrop }
-            if owner == pid, let slot = numbers.firstIndex(of: number) {
-                guard layer == 0, opacity == 1, row[kCGWindowIsOnscreen as String] as? Bool == true,
-                      frames[slot] == rect, rect.insetBy(dx: 12, dy: 12).contains(crop) else { throw PairVisualFailure.geometryChanged }
-                matches[slot] += 1
-                if top == nil { top = slot }
-            } else if top == nil {
-                throw PairVisualFailure.obscuredOrUncertainCrop
-            }
+    static func physicalTop(rows: [[String: Any]], frames: [CGRect], numbers: [UInt32], pid: pid_t,
+                            crop: CGRect, coverage: inout PairStackCoverage) throws -> Int {
+        guard frames.count == 2, numbers.count == 2, numbers[0] != numbers[1], !crop.isEmpty else {
+            throw PairVisualFailure.invalidBinding
         }
-        guard matches == [1,1], let top else { throw PairVisualFailure.geometryChanged }
+        func bounds(_ row: [String: Any]) -> CGRect? {
+            guard let raw = row[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: raw), !rect.isNull, !rect.isInfinite,
+                  rect.origin.x.isFinite, rect.origin.y.isFinite, rect.size.width.isFinite, rect.size.height.isFinite,
+                  rect.size.width >= 0, rect.size.height >= 0 else { return nil }
+            return rect
+        }
+
+        var top: Int?, seen = [false, false]
+        // WindowServer returns this list in front-to-back order. Both exact documents must be
+        // verified even after the first completely covers the common synthetic editor patch.
+        for row in rows {
+            if let number = row[kCGWindowNumber as String] as? UInt32, let slot = numbers.firstIndex(of: number) {
+                guard !seen[slot], row[kCGWindowOwnerPID as String] as? pid_t == pid,
+                      row[kCGWindowLayer as String] as? Int == 0, row[kCGWindowAlpha as String] as? Double == 1,
+                      row[kCGWindowIsOnscreen as String] as? Bool == true, let rect = bounds(row),
+                      rect == frames[slot], rect.insetBy(dx: 12, dy: 12).contains(crop) else {
+                    throw PairVisualFailure.geometryChanged
+                }
+                seen[slot] = true
+                coverage.enrolledRows += 1
+                if top == nil { top = slot }
+                continue
+            }
+            if top != nil {
+                coverage.behindOpaque += 1
+                continue
+            }
+            let alpha = row[kCGWindowAlpha as String] as? Double
+            if alpha == 0 {
+                coverage.transparentFront += 1
+                continue
+            }
+            guard let rect = bounds(row) else {
+                coverage.unknownFront += 1
+                throw PairVisualFailure.foregroundCoverageUnknown
+            }
+            if rect.isEmpty || !rect.intersects(crop) {
+                coverage.disjointFront += 1
+                continue
+            }
+            guard let alpha, alpha > 0, alpha <= 1 else {
+                coverage.unknownFront += 1
+                throw PairVisualFailure.foregroundCoverageUnknown
+            }
+            coverage.intersectingFront += 1
+            throw PairVisualFailure.foregroundIntersectsCrop
+        }
+        guard seen == [true, true], let top else { throw PairVisualFailure.geometryChanged }
         return top
     }
 }
@@ -112,6 +157,7 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
     private var failure: PairVisualFailure?, stack = [PairPhysicalSample](), samples = [PairVisualFrame]()
     private var delivered = 0, idle = 0, beforeBaseline = 0, lastTicks: UInt64 = 0
     private var guardDurations = [Double](), seenTargetInStack = false
+    private var stackAttempts = 0, coverage = PairStackCoverage()
 
     private init(request: P2Request, numbers: [UInt32], target: UInt32, frames: [CGRect], displayUUID: String) {
         self.request = request; self.numbers = numbers; self.frames = frames; self.displayUUID = displayUUID
@@ -161,26 +207,19 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             throw PairVisualFailure.displayOrSpaceChanged
         }
         guard let catalog = NPReadCatalogSpaceWindowNumbers(request.space) as? [UInt32],
-              Set(numbers).isSubset(of: Set(catalog)), numbers.allSatisfy({ NPReadWindowSpaces($0) as? [UInt64] == [request.space] }) else {
+              numbers.allSatisfy(catalog.contains), numbers.allSatisfy({ NPReadWindowSpaces($0) as? [UInt64] == [request.space] }) else {
             throw PairVisualFailure.enrollmentChanged
         }
         guard let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [VisualRow]
         else { throw PairVisualFailure.obscuredOrUncertainCrop }
-        for row in rows where row[kCGWindowLayer as String] as? Int == 0 {
-            guard let owner = row[kCGWindowOwnerPID as String] as? pid_t, let number = row[kCGWindowNumber as String] as? UInt32 else {
-                throw PairVisualFailure.otherOrdinaryWindow
-            }
-            if owner != request.hostPID && (owner != pid || !numbers.contains(number)) {
-                guard !catalog.contains(number), let membership = NPReadWindowSpaces(number) as? [UInt64],
-                      !membership.isEmpty, !membership.contains(request.space) else { throw PairVisualFailure.otherOrdinaryWindow }
-            }
-        }
-        let slot = try PairVisualEvidence.physicalTop(rows:rows, frames:frames, numbers:numbers, pid:pid, crop:crop)
+        let slot = try PairVisualEvidence.physicalTop(rows: rows, frames: frames, numbers: numbers,
+                                                      pid: pid, crop: crop, coverage: &coverage)
         return PairPhysicalSample(from:from, to:visualNow(), slot:slot)
     }
 
     private func readStack() {
         guard !stopped else { return }
+        stackAttempts += 1
         do {
             let reading = try physical()
             guard !seenTargetInStack || reading.slot == target else { fail(.ambiguousSurface); return }
@@ -325,6 +364,8 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             result["targetFrameObserved"] = samples.contains { $0.slot == target }
             result["maxStackQueryMS"] = guardDurations.max().map { $0 * 1000 }
             result["stackQueryCount"] = guardDurations.count
+            result["stackQueryAttempts"] = stackAttempts
+            result["physicalStackCoverageTotals"] = coverage.receipt
             result["retainedPixelBytes"] = 0
             return result
         }

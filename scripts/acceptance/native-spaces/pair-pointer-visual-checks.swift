@@ -21,9 +21,17 @@ struct PairPointerVisualChecks {
              kCGWindowIsOnscreen as String:true,kCGWindowAlpha as String:alpha,kCGWindowBounds as String:frame.dictionaryRepresentation]
         }
         let first=row(21,42,a), second=row(22,42,b)
-        func top(_ rows:[[String:Any]])->Int? {
-            try? PairVisualEvidence.physicalTop(rows:rows,frames:[a,b],numbers:[21,22],pid:42,crop:crop)
+        func inspect(_ rows: [[String: Any]]) -> (slot: Int?, reason: PairVisualFailure?, coverage: PairStackCoverage) {
+            var coverage = PairStackCoverage()
+            do {
+                let slot = try PairVisualEvidence.physicalTop(rows: rows, frames: [a, b], numbers: [21, 22],
+                                                              pid: 42, crop: crop, coverage: &coverage)
+                return (slot, nil, coverage)
+            } catch {
+                return (nil, error as? PairVisualFailure, coverage)
+            }
         }
+        func top(_ rows: [[String: Any]]) -> Int? { inspect(rows).slot }
         check("frontA", top([first,second]) == 0)
         check("frontB", top([second,first]) == 1)
         check("foreignOverlayStops", top([row(9,77,crop,0.2,12),first,second]) == nil)
@@ -33,6 +41,32 @@ struct PairPointerVisualChecks {
         check("changedSiblingGeometryStops", top([first,row(22,42,b.offsetBy(dx:1,dy:0))]) == nil)
         check("missingSiblingStops", top([first]) == nil)
         check("duplicateWindowStops", top([first,first,second]) == nil)
+
+        let outside = crop.offsetBy(dx: crop.width + 4, dy: 0)
+        let corner = CGRect(x: crop.maxX - 0.25, y: crop.maxY - 0.25, width: 2, height: 2)
+        let foreign = row(90, 77, crop), disjoint = row(91, 77, outside)
+        let clear = row(92, 77, crop, 0)
+        let noBounds = [kCGWindowNumber as String: UInt32(93)]
+        let noAlpha = [kCGWindowBounds as String: crop.dictionaryRepresentation]
+        let outsideOnly = [kCGWindowBounds as String: outside.dictionaryRepresentation]
+        let finiteStack = inspect([disjoint, clear, first, foreign, noBounds, second])
+        check("foreignOrdinaryInFrontDisjointAccepted", finiteStack.slot == 0 && finiteStack.coverage.disjointFront == 1)
+        check("transparentForegroundCannotObscureCrop", finiteStack.coverage.transparentFront == 1)
+        check("opaqueDocumentHidesIntersectingAndUnknownBackground", finiteStack.coverage.behindOpaque == 2)
+        check("bothEnrolledDocumentsStillVerified", finiteStack.coverage.enrolledRows == 2)
+        check("disjointForegroundNeedsNoForeignIdentityOrAlpha", inspect([outsideOnly, second, first]).slot == 1)
+        check("ownUnenrolledWindowInFrontRefused", inspect([row(23,42,crop),second,first]).reason == .foregroundIntersectsCrop)
+        check("opaqueFrontLayerZeroIntersects", inspect([foreign,first,second]).reason == .foregroundIntersectsCrop)
+        let clipped = inspect([row(9,77,corner,0.01,12),first,second])
+        check("partialForegroundCoverageRefused", clipped.reason == .foregroundIntersectsCrop && clipped.coverage.intersectingFront == 1)
+        check("unknownForegroundBoundsRefused", inspect([noBounds, first, second]).reason == .foregroundCoverageUnknown)
+        check("unknownForegroundAlphaRefused", inspect([noAlpha, first, second]).reason == .foregroundCoverageUnknown)
+        check("invalidOpacityRefused", inspect([row(95,77,crop,-1),first,second]).reason == .foregroundCoverageUnknown)
+        check("unknownForegroundCounted", inspect([noBounds, first, second]).coverage.unknownFront == 1)
+        check("missingEnrolledOwnerBehindOpaqueRefused", inspect([first,row(22,77,b)]).reason == .geometryChanged)
+        check("translucentSiblingBehindOpaqueRefused", inspect([first,row(22,42,b,0.9)]).reason == .geometryChanged)
+        check("duplicateEnrolledCGIDBehindOpaqueRefused", inspect([first,second,row(21,77,a)]).reason == .geometryChanged)
+        check("overlayMovesInFrontOfKnownSurfaceRefused", top([second,foreign,first]) == 1 && top([foreign,second,first]) == nil)
 
         func patch(_ bgra:[UInt8])->[UInt8] { Array(repeating:bgra,count:64).flatMap{$0} }
         func slot(_ bytes:[UInt8])->Int? { bytes.withUnsafeBufferPointer { PairPointerPalette.slot(bgra:$0.baseAddress!,stride:32,side:8) } }

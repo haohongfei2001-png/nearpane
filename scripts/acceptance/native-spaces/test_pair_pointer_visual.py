@@ -18,7 +18,15 @@ class PointerVisualReplay(unittest.TestCase):
                             *(str(HERE / name) for name in sources), "-o", str(tool)], check=True)
             result = json.loads(subprocess.check_output([tool]))
             self.assertEqual(result["status"], "PASS")
-            self.assertGreaterEqual(len(result["checks"]), 30)
+            self.assertGreaterEqual(len(result["checks"]), 46)
+            self.assertTrue({
+                "foreignOrdinaryInFrontDisjointAccepted",
+                "opaqueDocumentHidesIntersectingAndUnknownBackground",
+                "partialForegroundCoverageRefused",
+                "unknownForegroundBoundsRefused",
+                "missingEnrolledOwnerBehindOpaqueRefused",
+                "overlayMovesInFrontOfKnownSurfaceRefused",
+            }.issubset(result["checks"]))
 
 
 if __name__ == "__main__":
