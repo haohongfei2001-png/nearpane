@@ -197,18 +197,26 @@ def visual_module():
     module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
     return module
 
-def finish_visual(module,kit,folder,pressed,ended):
-    result=module.finish(kit,folder,pressed,ended)
+def finish_visual(module,kit,folder,pressed,ended,request,started,observer_options):
+    result=module.finish(kit,folder,pressed,ended,**observer_options)
     file=folder/'visual'/'receipt.json'
     if result.get('status') in ('PASS','FAIL') and file.is_file() and file.resolve()==file:
         archived=json.loads(file.read_bytes())
-        if archived.get('status')==result['status']:return result['status']
+        frames=folder/'visual'/'frames.json'
+        nonce=started.get('nonce') if started else None
+        if (nonce and started.get('ready') is True and result==archived and archived.get('nonce')==nonce
+                and (archived.get('pressed'),archived.get('ended'))==(pressed,ended) and 0<pressed<ended
+                and (archived.get('source'),archived.get('target'))==(request['topology']['current'],request['target'])
+                and archived.get('frameLog')==frames.name and frames.resolve()==frames and frames.is_file()
+                and json.loads(frames.read_bytes()).get('nonce')==nonce):
+            return result['status']
     return 'UNKNOWN'
 
 def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
-    action = {}; holder = None; host = None; watch = None; recorder = None; called = False
+    action = {}; holder = None; host = None; watch = None; recorder = None; called = False; started = None
+    observer_options={'window_witness':lambda windows:keeper.call('windows',windows)} if keeper else {}
     try:
         require(not (journal/'pending.json').exists(),'installed adapter already has an unresolved transition')
         before = journal_files(journal)
@@ -225,10 +233,10 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None):
             try:
                 recorder=visual_module()
                 if recorder and visual_stage=='roundTrip':
-                    store(folder/'visual-enrollment.json',recorder.enroll(tool.parent,folder,p))
+                    store(folder/'visual-enrollment.json',recorder.enroll(tool.parent,folder,p,**observer_options))
                 elif recorder:
-                    called=True;started=recorder.start(tool.parent,folder,p);store(folder/'visual-start.json',started)
-            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,ImportError,AttributeError) as error:
+                    called=True;started=recorder.start(tool.parent,folder,p,**observer_options);store(folder/'visual-start.json',started)
+            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,ImportError,AttributeError,TypeError) as error:
                 store(folder/('visual-enrollment.json' if visual_stage=='roundTrip' else 'visual-start.json'),dict(status='UNKNOWN',reason=str(error)))
         with Watch(tool) as watch:
             first = watch.next(); require(first.get('topology') == p['topology'] and first.get('hid') == p['hid'],'source changed before dispatch')
@@ -270,8 +278,8 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None):
         if called:
             end=max((s.get('uptime',0) for s in (watch.samples if watch else [])),default=0)
             try:
-                item['blankScreen']=finish_visual(recorder,tool.parent,folder,action.get('uptime',0) if action.get('issued') else 0,end)
-            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,KeyError) as error:
+                item['blankScreen']=finish_visual(recorder,tool.parent,folder,action.get('uptime',0) if action.get('issued') else 0,end,p,started,observer_options)
+            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,KeyError,TypeError) as error:
                 item['visualReason']=str(error)
             if item['blankScreen']=='FAIL':
                 item.update(status='FAIL',reason='visual observer reported a black physical display during this action')

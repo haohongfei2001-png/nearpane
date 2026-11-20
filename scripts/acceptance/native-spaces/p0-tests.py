@@ -1,6 +1,8 @@
 """Offline regression of installed-journal correlation and fail-closed stage gates."""
 import importlib.util
 from pathlib import Path
+import tempfile
+import json
 import unittest
 from unittest import mock
 
@@ -80,6 +82,19 @@ class GateTests(unittest.TestCase):
         runner.evaluate_gate(first,'roundTrip',2);self.assertEqual(first['status'],'PASS')
         ten=dict(samples=[dict(status='PASS')]*10,blankScreen='UNKNOWN')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['status']),('PASS','BLOCKED'))
+    def test_visual_pass_is_bound_to_actual_frames_nonce_pair_and_press(self):
+        started=dict(ready=True,nonce=self.operation)
+        receipt=dict(status='PASS',nonce=self.operation,pressed=10,ended=12.1,frameLog='frames.json',source=4,target=5)
+        module=mock.Mock();module.finish.return_value=receipt
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp).resolve();(folder/'visual').mkdir()
+            runner.store(folder/'visual/receipt.json',receipt)
+            runner.store(folder/'visual/frames.json',dict(nonce=self.operation))
+            check=lambda:runner.finish_visual(module,folder,folder,10,12.1,self.req,started,{})
+            self.assertEqual(check(),'PASS')
+            runner.store(folder/'visual/frames.json',dict(nonce='stale'));self.assertEqual(check(),'UNKNOWN')
+            runner.store(folder/'visual/frames.json',dict(nonce=self.operation))
+            receipt['target']=4;runner.store(folder/'visual/receipt.json',receipt);self.assertEqual(check(),'UNKNOWN')
     def test_real_black_fails_without_misrepresenting_navigation(self):
         ten=dict(samples=[dict(status='PASS',navigationStatus='PASS',blankScreen='PASS') for _ in range(10)])
         runner.evaluate_gate(ten,'ten',10);self.assertEqual(ten['status'],'PASS')
