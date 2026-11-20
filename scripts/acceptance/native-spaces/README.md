@@ -64,3 +64,18 @@ The candidate batch runs preflight, single-window, controlled-window, hidden-bud
 Each scenario produces an immutable manifest, an action journal and per-scenario results. An issued click without the intended external result stays failed or unknown. A completed fixture subtest does not grant W01/W03 real-application compatibility, nor S02/D01/N01 acceptance. A disabled production Space row, missing hardware or absent grants must be reported explicitly; switching from a different privileged program would invalidate the run.
 
 `retained-selections.py KIT LEDGER_ROOT OUTPUT A.json B.json C.json` 可在同一测试会话的三个现存租用桌面上单独诊断正式行按钮。它检查每个创建回执的哈希、启动会话、显示器、Space ID 与 UUID，并从正式 Host 取行及回读 WindowServer。可进入的起点为租用桌面或当前确由自建文档持有的焦点。此诊断单独计数，完整 S02 由 `core-contract` 验证。
+
+## 离线复核 P0 原始收据
+
+审阅者可以在 Linux 或 macOS 的 PR checkout 上用 Python 3 逐轮复核。命令直接读取每个目录的 `original-receipts-manifest.json` 和 `original-receipts.tar.gz`，逐成员校验大小和 SHA-256，原件保留在原处。多个目录各输出一行 JSON。
+
+```sh
+python3 scripts/acceptance/native-spaces/verify-p0-receipts.py \
+  engineering/verification/native-spaces/5.22-p0/1[1-7]-*
+```
+
+`verification` 表示归档完整性和逐项交叉核对结果。退出码 0 表示所有给定归档均通过该核对，1 表示至少一份损坏、缺项或内部矛盾。每阶段保留原始的 `recordedGate`、`recordedNavigation` 和 `recordedVisual`。签名身份来自实机留存的安装路径、Team ID、CDHash 和进程出生时间，离线核对以当前 checkout 的清单为信任依据。
+
+`verifiedNavigations` 计入同时具有正式后台窗口卡 AXPress、相同夹具/Space UUID 的单次三相 Host 投递和独立 WindowServer 落点的动作。取样须保持同一物理显示、完整 Space 顺序及硬件输入计数，相邻采样间隔至多 450 毫秒，首次抵达后至少连续观察两秒。从按压起观察到的外部前台变化另列在 `externalForeground`，只输出计数及首次变化相对按压的时间。`latencyMS` 是按压到首次目标采样的毫秒数，按每阶段已复核动作重算最近秩分位数 p50、p95、p99。
+
+`visualByAttempt` 沿用绑定到同一次按压和原始呈现记录的物理观测。缺少画面证据保留 `UNKNOWN`，10 次阶段须逐次通过画面与导航才能放行 50 次。复核结果写入标准输出。
