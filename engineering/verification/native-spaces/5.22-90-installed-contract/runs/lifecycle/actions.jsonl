@@ -1,0 +1,4 @@
+{"event":"checkpoint","monotonic":233590.235236583,"name":"ordinary","current":4,"membership":[[4],[4]]}
+{"event":"checkpoint","monotonic":233590.876993083,"name":"standardZoom","current":2000,"membership":[[4],[4]]}
+{"event":"stopped","monotonic":233592.803402958,"reason":"Command '[PosixPath('/private/tmp/nearpane-lifecycle.DBTffLmQ/lifecycle-read'), 'read', '52501', '44635', '44637']' returned non-zero exit status 2."}
+{"event":"checkpoint","monotonic":233594.932810875,"name":"documentRelaunch","current":4,"membership":[[4],[4]]}

@@ -1,0 +1,90 @@
+{
+  "app": "/Applications/Nearpane.app",
+  "build": "90",
+  "generation": "6d73843d-e4e4-41bf-a7bd-cd10c63d6077",
+  "rounds": [
+    {
+      "baselineRecordings": 0,
+      "phrase": "今天测试语音",
+      "pid": 50449,
+      "previousPID": 50351,
+      "readback": {
+        "baselineIntact": true,
+        "newIDs": []
+      },
+      "reason": "Timed out waiting for the installed voice control",
+      "status": "BLOCKED",
+      "stimulus": {
+        "firstSignalSeconds": 0.0046875,
+        "sha256": "9a95f0fa7cc9ea059fbb411fe26eb6a3feccfd6f29cd76cf0de2dbad886b95c9",
+        "thresholdPCM16": 32
+      },
+      "ui": {
+        "events": [],
+        "issue": "Timed out waiting for the installed voice control",
+        "physicalInputTransport": "bltn",
+        "physicalOutputTransport": "bltn",
+        "pid": 50449,
+        "playbackVolume": 0.6499999761581421,
+        "stimulusSeconds": 1.677
+      }
+    },
+    {
+      "baselineRecordings": 0,
+      "phrase": "窗外正在下雨",
+      "pid": 50623,
+      "previousPID": null,
+      "readback": {
+        "baselineIntact": true,
+        "newIDs": []
+      },
+      "reason": "Timed out waiting for the installed voice control",
+      "status": "BLOCKED",
+      "stimulus": {
+        "firstSignalSeconds": 0.0001875,
+        "sha256": "e47f33e18472a8637411ed9c5e05555b3171921fab573973f1d78970116ca3de",
+        "thresholdPCM16": 32
+      },
+      "ui": {
+        "events": [],
+        "issue": "Timed out waiting for the installed voice control",
+        "physicalInputTransport": "bltn",
+        "physicalOutputTransport": "bltn",
+        "pid": 50623,
+        "playbackVolume": 0.6499999761581421,
+        "stimulusSeconds": 1.6450625
+      }
+    },
+    {
+      "baselineRecordings": 0,
+      "phrase": "蓝色雨伞放在门口",
+      "pid": 50778,
+      "previousPID": null,
+      "readback": {
+        "baselineIntact": true,
+        "newIDs": []
+      },
+      "reason": "Timed out waiting for the installed voice control",
+      "status": "BLOCKED",
+      "stimulus": {
+        "firstSignalSeconds": 6.25e-05,
+        "sha256": "433ac55b7a30a5b9602cedc70479a1363d54a691415beb9281a558ded6a89af2",
+        "thresholdPCM16": 32
+      },
+      "ui": {
+        "events": [],
+        "issue": "Timed out waiting for the installed voice control",
+        "physicalInputTransport": "bltn",
+        "physicalOutputTransport": "bltn",
+        "pid": 50778,
+        "playbackVolume": 0.6499999761581421,
+        "stimulusSeconds": 2.0804375
+      }
+    }
+  ],
+  "source": "00efb8b2fc6478cf842eea0c304608a946f0548e",
+  "speech": "local Tingting, rate 165, physical speaker to microphone",
+  "status": "BLOCKED",
+  "textComparison": "NFKC, omit spaces and punctuation only; unrelated characters masked in published readback",
+  "version": "5.22"
+}
