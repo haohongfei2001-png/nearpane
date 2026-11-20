@@ -40,3 +40,5 @@ jobs:
         run: |
           swift build --target NearpaneSpaceAction
           bash scripts/acceptance/native-spaces/protocol-tests.sh
+      - name: Compile the foundation-only production UI on the hosted SDK
+        run: swift build --target NearpaneUI
