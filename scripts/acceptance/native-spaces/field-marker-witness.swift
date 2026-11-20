@@ -16,6 +16,11 @@ struct FieldMarkerGrant: Codable, Equatable {
         guard let text, text.utf8.count == 12, text.hasPrefix("NP") else { return false }
         return SHA256.hash(data:Data(text.utf8)).map { String(format:"%02x",$0) }.joined() == digest
     }
+    func receipt(status: String, events: [[String: Any]], truncated: Bool) -> [String: Any] {
+        ["session": session, "intent": intent, "digest": digest, "readerHash": readerHash,
+         "pid": pid, "birth": birth, "numbers": numbers, "target": target,
+         "status": status, "events": events, "truncated": truncated]
+    }
 }
 struct FieldMarkerPoster: Decodable {
     let session:String, intent:String, digest:String, hash:String, sender:Int32, birth:UInt64, tag:Int64, target:Int, written:Double
@@ -153,8 +158,7 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
             }
         }
         guard dirty, let grant else { return }
-        let data:[String:Any]=["status":status,"session":session,"intent":grant.intent,"pid":pid,"birth":birth,"numbers":grant.numbers,
-                               "target":grant.target,"digest":grant.digest,"truncated":truncated,"events":events]
+        let data=grant.receipt(status:status,events:events,truncated:truncated)
         let output=folder.appendingPathComponent("marker-watch-response.json")
         do {
             try JSONSerialization.data(withJSONObject:data).write(to:output,options:.atomic)

@@ -100,7 +100,10 @@ class MarkerWitnessTests(unittest.TestCase):
         root=Path(__file__).resolve().parent
         binary=self.folder/"pure-marker"
         subprocess.run(["xcrun","swiftc",root/"field-marker-witness.swift",root/"test_field_marker_tag.swift","-o",binary],check=True,timeout=45)
-        subprocess.run([binary],check=True,timeout=5)
+        wire=json.loads(subprocess.check_output([binary],timeout=5))
+        enrolled=MarkerWatch(self.folder,wire["session"],wire["intent"],21,89,[45,46],46,self.marker,"1"*40)
+        self.assertEqual(enrolled.validate(wire),wire)
+        self.assertIsNone(enrolled.validate({**wire,"readerHash":"2"*40}))
 
 
 if __name__ == "__main__":

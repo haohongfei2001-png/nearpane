@@ -31,5 +31,7 @@ import CryptoKit
             precondition(size==12 && g.matches(String(decoding:text,as:UTF16.self)))
         }
         // The synthetic events never leave this process.
+        let receipt = g.receipt(status:"ARMED",events:[],truncated:false)
+        FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject:receipt))
     }
 }
