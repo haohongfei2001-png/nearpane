@@ -75,6 +75,37 @@ def assigned_ordinary(original, candidate, numbers, claims):
             and len(numbers)==len(claims) and all(p.get('number')==n and p.get('standard') and p.get('forward')
             and p.get('reverse')==[current] for n,p in zip(numbers,claims)))
 
+def confirm_lease_pair(original, one, both):
+    a=owned_insertion(original,one,0)
+    b=owned_insertion(one,both,0)
+    require(compatible(both,a,b),'the two newly inserted ordinary Spaces are not consecutive')
+    return a,b
+
+def direct_setup(kit,ws,output,initial,top,source,target,log):
+    state=lambda:cmd(kit/'p0-card','state')
+    before=state()
+    require(before.get('hid')==initial['hid'] and before['topology']==dict(top,current=source),'input or Space changed before direct native setup')
+    current=ws.read();system=ws.check(current)
+    require(system['records']==top['records'] and system['current']==source and target in ws.ids(),'signed creation ledger or native UUID order differs')
+    members=current.get('scopedMembers',{}).get(str(target),{})
+    require(members.get('ordinary')==[] and members.get('unresolved')==0 and members.get('otherMembers')==0,'native target census did not confirm an empty, exclusively leased ordinary Space')
+    request=dict(command='select',display=ws.display,records=system['records'],current=source,original=ws.home,owned=ws.ids(),
+                 target=target,hostPID=ws.host['pid'],hostHash=ws.host['codeHash'],hostBirth=ws.host_birth,hid=ws.hardware())
+    require(state().get('hid')==initial['hid'],'physical input changed before opening Mission Control')
+    if source!=target:
+        log('direct-mission-control-intent',source=source,target=target,setupOnly=True)
+        proof=cmd(kit/'p0-mission',body=request,timeout=17);store(output/f'setup-press-{target}.json',proof);log('direct-mission-control-reply',source=source,target=target,proof=proof)
+        require(proof.get('issued') and proof.get('acknowledged') and not proof.get('error') and proof.get('overviewDismissed'),
+                proof.get('error','native AXPress or owned Mission Control dismissal not confirmed'))
+    stable=0
+    def reached(sample):
+        nonlocal stable
+        t=sample['topology'];require(sample['hid']==initial['hid'] and t['records']==top['records'] and t['display']==top['display']
+                                    and t['current'] in (source,target),'new input, external desktop, or topology change during native setup')
+        stable=stable+1 if t['current']==target else 0
+        return stable>=3
+    after=until(state,reached,'direct Mission Control AXPress acknowledged but the leased UUID never became stably current',5)
+    store(output/f'setup-arrival-{target}.json',after);log('independent-setup-arrival',source=source,target=target,setupOnly=True)
 def journal_files(root):
     if not root.exists(): return set()
     require(root.is_dir() and not root.is_symlink() and root.resolve() == root, 'unexpected Host journal directory')
@@ -307,7 +338,7 @@ def run(args):
     def log(event,**data):
         with (out/'actions.jsonl').open('a') as f:
             f.write(json.dumps({'event':event,'monotonic':time.monotonic(),**data},ensure_ascii=False)+'\n');f.flush();os.fsync(f.fileno())
-    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={}
+    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None
     with tempfile.TemporaryDirectory(dir='/private/tmp',prefix='nearpane-p0-owned-') as tmp:
         documents=Documents(args.kit,Path(tmp),log)
         state=lambda:cmd(tool,'state')
@@ -315,6 +346,16 @@ def run(args):
         def anchored(windows,places):
             proof=witnesses(windows)
             return len(proof)==len(places) and all(r.get('standard') and r.get('forward') and r['reverse']==[place] for r,place in zip(proof,places))
+        def checkpoint(name):
+            own=[]
+            for doc in documents.processes:
+                f=doc['folder']/'windows.json'
+                if not f.is_file():continue
+                observed=json.loads(f.read_bytes())
+                own.append({k:observed[k] for k in ('pid','numbers','fullscreen','zoomed','key','main','visible','minimized') if k in observed})
+            w=[w for doc in documents.processes for w in doc['windows']]
+            view=dict(system=state(),owners=own,witnesses=[cmd(tool,'windows',body=[win]) for win in w])
+            store(out/f'fixture-{name}.json',view)
         try:
             host,journal=freeze(args.kit,out);require(not (journal/'pending.json').exists(),'unresolved installed switch already present')
             initial=state();require(initial.get('observerAX') and initial.get('topology'),'independent metadata or AX permission unavailable');store(out/'original.json',initial)
@@ -338,41 +379,31 @@ def run(args):
                 if s.get('frontPID')!=first['pid'] or s.get('focusedNumber')!=first['number']:return False
                 return assigned_ordinary(user,s['topology'],[first['number'],second['number']],witnesses([first,second]))
             owned=until(state,confirmed_source,'normal AppKit activation did not place both owned documents and exact focus together on an ordinary Space',9)
-            origin=owned['topology'];a=origin['current'];store(out/'owned-source.json',dict(origin=origin,originalUserSpace=user_space,owned=first,witnesses=witnesses([first,second])))
+            origin=owned['topology'];a=origin['current'];staging=a;store(out/'owned-source.json',dict(origin=origin,originalUserSpace=user_space,owned=first,witnesses=witnesses([first,second])))
             log('owned-ordinary-source',source=a,originalUserSpace=user_space,macOSAssigned=a!=user_space)
-            tail=origin['records'][-1]['id']==a
-            route='ordinary' if args.route=='auto' and tail else ('fullscreen' if args.route=='auto' else args.route)
-            require(route!='ordinary' or tail,'new ordinary Space would not be adjacent to the original ordinary Space')
+            route='ordinary' if args.route=='auto' else args.route
             result['setupRoute']=route;report()
             guard_setup(owned,initial,{a},{first['pid']})
             if route=='ordinary':
                 lease=out/'ordinary-lease';lease.mkdir(mode=0o700);ws=Workspace(args.kit,lease,log)
-                require(ws.home==a,'ordinary lease origin changed');b=ws.create()
-                added=state();require(owned_insertion(origin,added['topology'],0)==b and compatible(added['topology'],a,b),'created ordinary Space is not adjacent')
-                require(added['hid']==initial['hid'] and added['topology']['current'] in (a,b),'human input or unrelated Space after Mission Control closed')
-                if added['topology']['current']==a:
-                    # Dock may hand foreground back to another process after Mission Control.
-                    # Address the private command pipe of our known original document directly.
-                    require(anchored([first,second],[a,a]),'original document ownership changed after native desktop creation')
-                    documents.control(rootdoc,'activate',0)
-                    source=until(state,lambda s:s.get('frontPID')==first['pid'] and s.get('focusedNumber')==first['number'] and s.get('topology')==added['topology'],
-                                 'owned source failed to regain exact focus following Mission Control')
-                    guard_setup(source,initial,{a},{first['pid']})
-                    report_members=ws.read().get('scopedMembers',{}).get(str(b),{})
-                    require(report_members.get('ordinary')==[] and report_members.get('unresolved')==0 and report_members.get('otherMembers')==0,
-                            'new setup destination lacks an independent empty census')
-                    log('native-system-shortcut-intent',source=a,target=b,setupOnly=True)
-                    arrow=cmd(tool,'setup-arrow',body=dict(before=origin,topology=source['topology'],sourceWindow=first,target=b,hid=source['hid']))
-                    log('native-system-shortcut-reply',**arrow);require(arrow.get('issued'),arrow.get('error','native setup shortcut unavailable'))
-                def reached(s):
-                    current=s['topology']['current']
-                    require(s['hid']==initial['hid'] and s['topology']['records']==added['topology']['records'] and current in (a,b),
-                            'native setup shortcut saw new human input, a third Space or a topology change')
-                    return current==b
-                arriving=until(state,reached,'one native setup shortcut did not reach the newly owned adjacent desktop',6)
-                log('native-system-shortcut-landing',current=arriving['topology']['current'],setupOnly=True)
-                targetdoc=documents.launch('Route Notes');second=targetdoc['windows'][0]
-                until(lambda:anchored([first,second],[a,b]),bool,'ordinary pair has no independent exact window membership')
+                require(ws.home==staging,'ordinary lease origin changed')
+                a=ws.create();one=state();require(owned_insertion(origin,one['topology'],0)==a,'first lease mismatch')
+                checkpoint('first-lease')
+                require(one['hid']==initial['hid'] and one['topology']['current'] in (staging,a),'new human input or unrelated foreground Space after first insertion')
+                b=ws.create();both=state();top=both['topology']
+                require(confirm_lease_pair(origin,one['topology'],top)==(a,b) and top['current'] in (staging,a,b),'new lease pair differs from the registered Spaces')
+                checkpoint('second-lease')
+                direct_setup(args.kit,ws,out,initial,top,top['current'],a,log)
+                first=documents.launch('Field Notes')['windows'][0]
+                def placed(window,space):
+                    return until(state,lambda s:s.get('hid')==initial['hid'] and s.get('topology')==dict(top,current=space)
+                                 and s.get('frontPID')==window['pid'] and s.get('focusedNumber')==window['number'] and anchored([window],[space]),
+                                 'owned ordinary document was not independently placed and focused on its leased Space')
+                placed(first,a);checkpoint('first-document')
+                direct_setup(args.kit,ws,out,initial,top,a,b,log)
+                second=documents.launch('Route Notes')['windows'][0]
+                placed(second,b);checkpoint('second-document')
+                require(anchored([first,second],[a,b]),'the two ordinary documents did not remain on their separate leased Spaces')
                 initial_source=b
             else:
                 documents.control(rootdoc,'fullscreen',1)
@@ -413,6 +444,8 @@ def run(args):
                 report()
         except (OSError,RuntimeError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as e:
             result['reason']=str(e);log('stopped',reason=str(e))
+            try:checkpoint('stopped')
+            except (ValueError,OSError,KeyError,subprocess.SubprocessError) as diagnostic:log('fixture-diagnostics-unavailable',reason=str(diagnostic))
             if result['stages']['roundTrip']['status']=='NOT_RUN':
                 result['stages']['roundTrip'].update(status='BLOCKED',reason=str(e))
         finally:
@@ -421,8 +454,8 @@ def run(args):
             if rootdoc and initial and top and a and b:
                 try:
                     live=state(); current=live['topology']['current']
-                    if current==b and live['topology']['records']==top['records'] and live['hid']==initial['hid'] and live['frontPID'] in {d['proc'].pid for d in documents.processes}:
-                        documents.control(rootdoc,'activate',0);until(state,lambda s:s.get('topology',{}).get('current')==a,'own document did not return to its original desktop',5)
+                    if current in (a,b) and current!=staging and live['topology']['records']==top['records'] and live['hid']==initial['hid'] and live['frontPID'] in {d['proc'].pid for d in documents.processes}:
+                        documents.control(rootdoc,'activate',0);until(state,lambda s:s.get('topology',{}).get('current')==staging,'own staging document did not return to its original desktop',5)
                 except (ValueError,OSError,KeyError,subprocess.SubprocessError) as e:problems.append(str(e))
             problems.extend(documents.close());nums=[w['number'] for d in documents.processes for w in d['windows']];clean['ownedAppsExited']=all(d['proc'].poll() is not None for d in documents.processes)
             if nums:
@@ -445,8 +478,8 @@ def run(args):
                     if focus:
                         end=last.get('topology',{})
                         same_inventory=end.get('display')==initial['topology']['display'] and end.get('records')==initial['topology']['records']
-                        safe=bool(held.get('held') and needs_focus and same_inventory and end.get('current') in (initial['topology']['current'],a) and last.get('hid')==initial['hid'])
-                        clean['originalFocusRestoration']=focus.finish(safe,a if end.get('current')!=initial['topology']['current'] else None);focus=None
+                        safe=bool(held.get('held') and needs_focus and same_inventory and end.get('current') in (initial['topology']['current'],staging) and last.get('hid')==initial['hid'])
+                        clean['originalFocusRestoration']=focus.finish(safe,staging if end.get('current')!=initial['topology']['current'] else None);focus=None
                         if safe:last=state()
                     store(out/'final.json',last);end=last.get('topology',{})
                     clean.update(originalOrderAndUUIDsRestored=end.get('records')==initial['topology']['records'] and end.get('display')==initial['topology']['display'],

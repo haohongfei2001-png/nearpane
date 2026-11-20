@@ -51,6 +51,13 @@ class GateTests(unittest.TestCase):
         self.assertFalse(runner.assigned_ordinary(original,original,[77,78],claims))
         claims[1]['reverse']=[4,5]
         self.assertFalse(runner.assigned_ordinary(original,assigned,[77,78],claims))
+    def test_registered_targets_must_be_new_and_physically_consecutive(self):
+        first=dict(id=81,uuid=self.operation,type=0)
+        second=dict(id=82,uuid='5EBBD09D-DF27-4DFB-8771-0D3C2B4B8E6B',type=0)
+        inserted=dict(self.top,records=[*self.rows,first])
+        self.assertEqual(runner.confirm_lease_pair(self.top,inserted,dict(self.top,records=[*self.rows,first,second])),(81,82))
+        with self.assertRaises(ValueError):
+            runner.confirm_lease_pair(self.top,inserted,dict(self.top,records=[self.rows[0],second,self.rows[1],first]))
     def test_stops_before_larger_stage_and_exact_nearest_rank(self):
         self.assertEqual(runner.gate_status([dict(status='PASS')],2),'BLOCKED');self.assertEqual(runner.gate_status([dict(status='PASS'),dict(status='FAIL')],2),'FAIL')
         self.assertEqual(runner.gate_status([dict(status='PASS')]*10,10),'PASS');self.assertEqual(runner.percentile(list(range(1,51)),.95),48)

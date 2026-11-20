@@ -18,4 +18,17 @@ codesign --force --sign - "$app"
 xcrun clang -fobjc-arc -c "$src/p0-hotkey.m" -o "$kit/p0-hotkey.o"
 xcrun swiftc -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/p0-reader.h" "$src/p0-card.swift" "$kit/reader.o" "$kit/p0-hotkey.o" -framework Carbon -o "$kit/p0-card.next"
 mv "$kit/p0-card.next" "$kit/p0-card"
+# Reuse the guarded Mission Control inventory, Apple owner checks, and owned overview dismissal.
+# Only the P0 entry point differs. The existing generic selection driver stays intact.
+python3 - "$src/system_workspace.swift" "$kit/p0-system-library.swift" <<'PY'
+from pathlib import Path
+import sys
+source=Path(sys.argv[1]).read_text()
+marker='@main enum Main {'
+assert source.count(marker)==1
+Path(sys.argv[2]).write_text(source.split(marker)[0])
+PY
+xcrun swiftc -D SECONDARY_FOCUS_OBSERVER -D NATIVE_CONTRACT -parse-as-library -Xcc -I -Xcc Sources/CReadOnlySpaces/include \
+    -import-objc-header "$src/contract_members.h" scripts/acceptance/observe-secondary-space-controls.swift \
+    "$kit/p0-system-library.swift" "$src/p0-mission.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$kit/p0-mission"
 printf '%s\n' "$kit"

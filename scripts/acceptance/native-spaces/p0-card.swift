@@ -89,8 +89,13 @@ func windowProof(_ w: Window) throws -> Map {
     let matching = array(app,kAXWindowsAttribute).filter { owner($0) == w.pid && NPReadAXWindowNumber($0) == w.number }
     let reverse = NPReadWindowSpaces(w.number) as? [UInt64] ?? []
     let forward = reverse.count == 1 ? (NPReadCatalogSpaceWindowNumbers(reverse[0]) as? [UInt32])?.contains(w.number) : nil
-    let standard = matching.count == 1 && prop(matching[0],kAXRoleAttribute) as? String == kAXWindowRole && prop(matching[0],kAXSubroleAttribute) as? String == kAXStandardWindowSubrole
-    return ["number":w.number,"pid":w.pid,"birth":w.birth,"reverse":reverse,"forward":forward as Any? ?? NSNull(),"standard":standard,"focused":axFocus(w.pid) as Any? ?? NSNull()]
+    let el = matching.count == 1 ? matching[0] : nil
+    let role = el.flatMap { prop($0,kAXRoleAttribute) as? String }, subrole = el.flatMap { prop($0,kAXSubroleAttribute) as? String }
+    return ["number":w.number,"pid":w.pid,"birth":w.birth,"reverse":reverse,"forward":forward as Any? ?? NSNull(),
+            "standard":role==kAXWindowRole && subrole==kAXStandardWindowSubrole,"focused":axFocus(w.pid) as Any? ?? NSNull(),
+            "axMatches":matching.count,"axRole":role as Any? ?? NSNull(),"axSubrole":subrole as Any? ?? NSNull(),
+            "axFullscreen":el.flatMap { prop($0,"AXFullScreen") as? Bool } as Any? ?? NSNull(),
+            "axMinimized":el.flatMap { prop($0,kAXMinimizedAttribute) as? Bool } as Any? ?? NSNull()]
 }
 func bound(_ w: Window, _ space: UInt64) throws -> Map {
     let proof = try windowProof(w)
@@ -188,7 +193,7 @@ func holdOriginal() throws {
     if try topology()==original && NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":false]);return}
     var changed=false
     if try topology() != original || NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
-        try verify(allowReturn:true);changed=app.activate(options:[.activateIgnoringOtherApps])
+        try verify(allowReturn:true);changed=app.activate(options:[])
         let until=Date(timeIntervalSinceNow:2)
         while try topology() != original && Date()<until {try verify(allowReturn:true);RunLoop.current.run(until:Date(timeIntervalSinceNow:0.06))}
         try verify()
