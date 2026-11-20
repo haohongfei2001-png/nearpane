@@ -1,6 +1,6 @@
 """Verify an installed window-only roster before, during and after two owned documents."""
 import argparse
-from contextlib import nullcontext
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path
@@ -20,19 +20,68 @@ def read(command, *, timeout=8):
     return json.loads(output)
 
 
+def sample_sidebar(observe, deadline, *, clock=time.monotonic, sleep=time.sleep):
+    """Compare complete sidebar reads and preserve each bounded observation, including errors."""
+    fields = {
+        "ready", "reason", "crop", "desktopCount", "display", "documentBirth", "expectedCards", "expectedIDsMatch",
+        "explicitGroups", "hostBirth", "matchedFixtureCards", "number", "otherWindowCards", "pid", "placeholderLabels",
+        "rosterRegions", "signature", "space", "spaceRows", "windowCards",
+    }
+    required = fields - {"reason", "documentBirth"}
+    interval = .3
+    start = clock()
+    previous = last_measured = last_reply = None
+    samples = []
+    confirmed = False
+    while (remaining := deadline - clock()) >= interval:
+        began = clock()
+        timeout = min(8, remaining)
+        attempt = {"beginMilliseconds": round(1000 * (began - start)), "timeoutMilliseconds": round(1000 * timeout)}
+        try:
+            value = observe(timeout)
+            if not isinstance(value, dict) or type(value.get("ready")) is not bool:
+                raise ValueError("invalid sidebar observer reply")
+            last_reply = {key: value[key] for key in fields if key in value}
+            attempt["proof"] = last_reply
+            if "windowCards" in last_reply:
+                last_measured = last_reply
+            complete = (last_reply["ready"] and required <= last_reply.keys() and last_reply["expectedIDsMatch"] is True and
+                        last_reply["windowCards"] == last_reply["matchedFixtureCards"] == last_reply["expectedCards"] and
+                        (last_reply["expectedCards"] == 0 or (last_reply.get("documentBirth") or 0) > 0))
+            confirmed = complete and last_reply == previous
+            previous = last_reply if complete else None
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            attempt["error"] = type(error).__name__
+            previous = None
+        attempt["elapsedMilliseconds"] = round(1000 * (clock() - began))
+        samples.append(attempt)
+        # A timer expiry cannot supply a second read, even if a child manages to return after the deadline.
+        if clock() > deadline:
+            confirmed = False
+            break
+        if confirmed or deadline - clock() < 2 * interval:
+            break
+        sleep(interval)
+    decision = "two consecutive complete sidebar reads" if confirmed else "no consecutive complete sidebar reads within budget"
+    return {"proof": last_measured or last_reply, "proofConfirmed": confirmed, "proofDecision": decision, "proofSamples": samples,
+            "proofReadErrors": [row["error"] for row in samples if "error" in row]}
+
+
 def sample_census(observe, binding, count, *, budget=10, limit=8, interval=.25):
     """Retain every fresh observer result. An unknown sample breaks the matching pair."""
     deadline = time.monotonic() + budget
     samples, previous_witness = [], None
     for _ in range(limit):
         remaining = deadline - time.monotonic()
-        if remaining <= 0:
+        if remaining <= 0 or remaining < interval:
             break
         try:
             census = observe(min(8, remaining))
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             census = {"status": "INCONCLUSIVE", "reason": type(error).__name__}
         samples.append(census)
+        if time.monotonic() > deadline:
+            break
         if census.get("generationChanged") or any(key in census and census[key] != value for key, value in binding.items()):
             return samples, False, "generation changed"
         if census.get("status") == "FAIL":
@@ -52,7 +101,9 @@ def sample_census(observe, binding, count, *, budget=10, limit=8, interval=.25):
         else:
             previous_witness = None
         if len(samples) < limit:
-            time.sleep(min(interval, max(0, deadline - time.monotonic())))
+            if deadline - time.monotonic() < 2 * interval:
+                break
+            time.sleep(interval)
     return samples, False, "no consecutive independent confirmation within budget"
 
 
@@ -67,31 +118,17 @@ def run(kit, output, owned_stage, film=False):
     digest = identity(APP)["CDHash"]
     version = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
     result = dict(source=version["NearpaneSourceRevision"], hostCDHash=digest, build=version["CFBundleVersion"],
-                  checkpoints={}, fixtureExited=False, status="BLOCKED")
+                  recordingRequested=film, checkpoints={}, fixtureExited=False, status="BLOCKED")
     result_path = output / "results.json"
 
     recording = None
-    def checkpoint(label, owner_pid=0, owner_birth=0, numbers=()):
+    def measure(label, owner_pid, owner_birth, numbers, deadline, record):
         args = ["roster-content", digest, str(owner_pid if numbers else 0), *map(str, numbers)]
-        deadline = time.monotonic() + 12
-        previous = None
-        proof_errors = []
-        while True:
-            try:
-                proof = read([observer, *args], timeout=min(8, max(.01, deadline - time.monotonic())))
-            except (OSError, ValueError, subprocess.SubprocessError) as error:
-                proof = {"ready": False, "reason": type(error).__name__}
-                proof_errors.append(proof["reason"])
-            if proof.get("ready") and proof == previous:
-                break
-            if time.monotonic() >= deadline:
-                break
-            previous = proof
-            time.sleep(0.3)
-        record = {"proof": proof, "proofReadErrors": proof_errors, "status": "BLOCKED", "censusSamples": []}
-        result["checkpoints"][label] = record
+        record.update(sample_sidebar(lambda timeout: read([observer, *args], timeout=timeout), deadline))
+        result_path.write_text(encode(result))
+        proof = record["proof"] or {}
         confirmed = False
-        stable = (proof.get("ready") and proof == previous and proof.get("pid") == host and
+        stable = (record["proofConfirmed"] and proof.get("pid") == host and
                   proof.get("signature") == digest and (proof.get("hostBirth") or 0) > 0 and
                   (not numbers or proof.get("documentBirth") == owner_birth) and
                   proof.get("display") and (proof.get("space") or 0) > 0)
@@ -107,21 +144,38 @@ def run(kit, output, owned_stage, film=False):
             stable = reason != "generation changed"
         if stable:
             screenshot = output / (label + ".png")
-            with recording.camera if recording else nullcontext():
-                captured = read([capture, observer, *args, screenshot], timeout=12)
-                record["captured"] = captured == proof and screenshot.is_file()
-                if record["captured"]:
-                    record["image"] = screenshot.name
-                    panel = output / (label + "-sidebar.png")
-                    panel_proof = read([capture, observer, "roster-panel", *args[1:], panel], timeout=12)
-                    if panel_proof.get("ready") and panel.is_file():
-                        record["sidebarImage"] = panel.name
-                        record["wallpaperIncluded"] = panel_proof.get("wallpaperIncluded", False)
-                        record["isolatedProfile"] = panel_proof.get("isolatedProfile", False)
+            captured = read([capture, observer, *args, screenshot], timeout=12)
+            record["captured"] = captured == proof and screenshot.is_file()
+            if record["captured"]:
+                record["image"] = screenshot.name
+                panel = output / (label + "-sidebar.png")
+                panel_proof = read([capture, observer, "roster-panel", *args[1:], panel], timeout=12)
+                if panel_proof.get("ready") and panel.is_file():
+                    record["sidebarImage"] = panel.name
+                    record["wallpaperIncluded"] = panel_proof.get("wallpaperIncluded", False)
+                    record["isolatedProfile"] = panel_proof.get("isolatedProfile", False)
         if record.get("captured") and confirmed:
             record["status"] = "PASS"
         if proof.get("spaceRows", 0) or proof.get("placeholderLabels"):
             record["status"] = "FAIL"
+
+    def checkpoint(label, owner_pid=0, owner_birth=0, numbers=()):
+        deadline = time.monotonic() + 12
+        record = {"status": "BLOCKED", "proof": None, "proofConfirmed": False, "proofSamples": [], "censusSamples": []}
+        result["checkpoints"][label] = record
+        with ExitStack() as exclusive:
+            # The recorder also invokes observe and capture. Give the full checkpoint a single
+            # owner, and charge any wait for an in-flight frame to the original proof budget.
+            if recording:
+                started = time.monotonic()
+                acquired = recording.camera.acquire(timeout=max(0, deadline - started))
+                record["cameraWaitMilliseconds"] = round(1000 * (time.monotonic() - started))
+                if not acquired:
+                    record["proofDecision"] = "in-flight camera exhausted the sidebar budget"
+                    result_path.write_text(encode(result))
+                    return
+                exclusive.callback(recording.camera.release)
+            measure(label, owner_pid, owner_birth, numbers, deadline, record)
         result_path.write_text(encode(result))
         if recording:
             recording.witness(numbers)
