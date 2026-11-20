@@ -11,7 +11,7 @@ import sys
 import time
 
 from installed_profile import APP, PROFILE, owns_profile
-from acceptance import Receipt
+from acceptance import Receipt, controlled_window, manifest
 from contract_document import run as run_documents
 from space_scope import require
 
@@ -104,6 +104,20 @@ def run(args):
                 result["documents"] = {k: proof[k] for k in ("status", "operationStatus", "reason", "issued", "passes", "cleanup")}
             finally:
                 document_receipt.finish()
+        elif args.scenario == "controlled-window":
+            fixture_receipt = Receipt(output / "controlled-window")
+            try:
+                before = workspace.read()
+                require(workspace.check(before)["current"] == args.expected_space, "leased desktop changed")
+                reason = controlled_window(kit / "observe", before, manifest(before, kit / "metrics"), fixture_receipt, 2)
+                verdicts = [attempt["status"] for attempt in fixture_receipt.attempts]
+                complete = len(verdicts) == 10 and all(v == "PASS" for v in verdicts)
+                status = "PASS" if complete else "FAIL" if "FAIL" in verdicts else "UNKNOWN" if verdicts else "BLOCKED"
+                proof = {"status": status, "reason": reason, "trials": len(verdicts), "confirmed": verdicts.count("PASS")}
+                result["controlledWindow"] = proof
+                fixture_receipt.summary["controlledWindowSubtest"] = proof
+            finally:
+                fixture_receipt.finish()
         elif args.scenario == "five-windows":
             five_script = driver.validate_script(Path(__file__).resolve().with_name("five-preview.py"), "five-preview.py")
             require(args.five_window_kit is not None, "the five-window fixture kit is required")
@@ -132,7 +146,7 @@ def run(args):
                 result["stageRestore"] = dict(status="BLOCKED", reason=str(error)[:260])
             if result["stageRestore"]["status"] != "PASS":
                 result["status"] = "BLOCKED"
-            elif result["preview"]["status"] != "NOT_RUN" or "documents" in result or "fiveWindows" in result:
+            elif result["preview"]["status"] != "NOT_RUN" or any(k in result for k in ("documents", "fiveWindows", "controlledWindow")):
                 try:
                     result["afterFixture"] = empty_system_desktop(workspace, args.expected_space)
                 except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
@@ -156,7 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("workspace", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--expected-space", required=True, type=int)
-    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows"), default="paired-preview")
+    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows", "controlled-window"), default="paired-preview")
     parser.add_argument("--five-window-kit", type=Path, help="signed five-application kit for the five-windows scenario")
     parser.add_argument("--previous-archive", type=Path)
     parser.add_argument("--install-receipt", type=Path)
