@@ -134,8 +134,8 @@
       "independentPhysicalDisplays": "BLOCKED"
     },
     "readableCurrentCandidatePhoto": "physical-15/media/paired-overview.png",
-    "qualifiedFilm": "physical-15/media/paired-cards.mp4",
-    "filmDecoderVerification": "physical-13/media/decoded-cards.json",
+    "qualifiedFilm": "physical-15/media/paired-cards.apng",
+    "filmDecoderVerification": "physical-15/media/lossless-pixel-replay.json",
     "fullCardMovie": {
       "status": "CAPTURED",
       "evidence": "physical-15/media/receipt.json",
@@ -203,9 +203,9 @@
     "installedMoves": 0
   },
   "P2": {
-    "status": "UNKNOWN",
+    "status": "PARTIAL",
     "qualifiedTwoWindowIdentity": "PASS",
-    "installedTypingMarkerCount": 1,
+    "installedTypingMarkerCount": 2,
     "mostRecentFormalAXPresses": 1,
     "mostRecentPressAccepted": true,
     "focusReadback": "UNKNOWN",
@@ -218,7 +218,7 @@
       "evidence": "same-space-focus/distinct-read-attempt/W01-system-documents.json"
     },
     "exactFocusAfterAcceptedPress": "OBSERVED on one test before a synthetic marker was allowed",
-    "markerReadback": "NO_CONFIRMED_INPUT",
+    "markerReadback": "See realTextEditMarkers and controlledFixture for their respective input and sibling readbacks.",
     "mostRecentWitnessedExtraDialog": "same-space-focus/bounded-enrollment/diagnosis.json",
     "readyMarkerAttempt": "same-space-focus/ready-marker-attempt/W01-system-documents.json",
     "latestRealDocument": {
@@ -235,9 +235,20 @@
       "expectedTrials": 10,
       "reason": "Second target became key/main and received a PID-directed event request. Its document remained empty.",
       "status": "FAIL",
-      "evidence": "same-space-focus/owned-two-editor/keyboard-readback.json"
+      "evidence": "same-space-focus/marker-delivery/result.json",
+      "previousTrial": "same-space-focus/owned-two-editor/keyboard-readback.json",
+      "latestAttributedInput": [
+        "AppKit editor and document A",
+        "no attributed AppKit key event or document edit in B"
+      ],
+      "acrossTwoRuns": {
+        "requests": 4,
+        "confirmed": 2,
+        "realDocumentApplication": "NOT_COVERED"
+      }
     },
-    "realTextEditMarkers": 0
+    "realTextEditMarkers": 0,
+    "installedTypingMarkerScope": "Two successful A-document inputs across two separately scored controlled trials. No passing B-document or TextEdit marker."
   },
   "P3": {
     "status": "BLOCKED",
@@ -267,7 +278,8 @@
     "twoMemberNativeSplitView": "BLOCKED",
     "twoPhysicalDisplays": "BLOCKED",
     "sleepAndUnlock": "NOT_RUN",
-    "warmedProductFiveByTwenty": "NOT_RUN"
+    "warmedProductFiveByTwenty": "NOT_RUN",
+    "warmedProductFiveByTwentyPrerequisite": "Three independently verified ordinary desktops and the production sidebar Space switch. P0 is disabled on this OS build."
   },
   "P6": {
     "status": "BLOCKED",
@@ -290,9 +302,10 @@
     },
     "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
     "nativePython": {
-      "ran": 178,
+      "ran": 184,
       "skipped": 6,
-      "failed": 0
+      "failed": 0,
+      "evidence": "installed-final/native-harness.json"
     },
     "signingPythonPassed": 8,
     "p0NarrowRegressionPassed": 27,
@@ -307,6 +320,7 @@
     "exactPreviousFocusedWindow": "UNKNOWN",
     "desktopRecovery": "physical-05/recovery.json",
     "dailyTextEditFixtureClosed": true,
-    "currentOwnership": "physical-12/desktop-readback.json"
+    "currentOwnership": "installed-final/desktops.json",
+    "finalDailyStageManager": "installed-final/stage-manager.json"
   }
 }

@@ -1,0 +1,122 @@
+{
+  "status": "PASS",
+  "checks": {
+    "before": {
+      "stageActive": true,
+      "hostAcknowledged": true,
+      "toolsPresent": true,
+      "windowRegionWithdrawn": true,
+      "compactPhysicalPanel": true,
+      "noGallery": true
+    },
+    "after": {
+      "stageActive": true,
+      "hostAcknowledged": true,
+      "toolsPresent": true,
+      "windowRegionWithdrawn": true,
+      "compactPhysicalPanel": true,
+      "noGallery": true
+    }
+  },
+  "steadyCapture": true,
+  "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "version": "5.22",
+  "build": "90",
+  "app": "/Applications/Nearpane.app",
+  "before": {
+    "observed": {
+      "boundVisibleToolPanels": [
+        {
+          "height": 150,
+          "width": 240
+        }
+      ],
+      "nativeCards": 0,
+      "observerAX": true,
+      "splitMembers": 0,
+      "stageManager": true,
+      "surfaceSizes": [
+        {
+          "height": 150,
+          "width": 240
+        },
+        {
+          "height": 604,
+          "width": 752
+        }
+      ],
+      "toolAndRegionCounts": {
+        "desktop-reserved-region": 0,
+        "tray-camera-entry": 1,
+        "tray-file-drop": 1,
+        "voice-capture-toggle": 1
+      },
+      "visibleScreenHeights": [
+        923
+      ]
+    },
+    "host": {
+      "surfaceHidden": 0,
+      "captureRequests": 0,
+      "stageManagerOwnsDispatch": 1,
+      "activeStreams": 0,
+      "deliveredFrames": 0,
+      "chargedPixelBytes": 0,
+      "gallerySessions": 0,
+      "visibilityRevision": 274473896366208,
+      "capturesInFlight": 0,
+      "cacheEntries": 0,
+      "visibleDisplays": 0,
+      "windowManagementBusy": 1,
+      "pid": 29908
+    }
+  },
+  "after": {
+    "observed": {
+      "boundVisibleToolPanels": [
+        {
+          "height": 150,
+          "width": 240
+        }
+      ],
+      "nativeCards": 0,
+      "observerAX": true,
+      "splitMembers": 0,
+      "stageManager": true,
+      "surfaceSizes": [
+        {
+          "height": 150,
+          "width": 240
+        },
+        {
+          "height": 604,
+          "width": 752
+        }
+      ],
+      "toolAndRegionCounts": {
+        "desktop-reserved-region": 0,
+        "tray-camera-entry": 1,
+        "tray-file-drop": 1,
+        "voice-capture-toggle": 1
+      },
+      "visibleScreenHeights": [
+        923
+      ]
+    },
+    "host": {
+      "capturesInFlight": 0,
+      "chargedPixelBytes": 0,
+      "surfaceHidden": 0,
+      "stageManagerOwnsDispatch": 1,
+      "visibilityRevision": 274473896366208,
+      "captureRequests": 0,
+      "visibleDisplays": 0,
+      "windowManagementBusy": 1,
+      "activeStreams": 0,
+      "cacheEntries": 0,
+      "deliveredFrames": 0,
+      "gallerySessions": 0,
+      "pid": 29908
+    }
+  }
+}
