@@ -1,5 +1,7 @@
 """Installed P0. Exactly one genuine background-window card press per attempt."""
 import argparse
+import functools
+import importlib.util
 import json
 import math
 import os
@@ -9,6 +11,7 @@ import queue
 import select
 import signal
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -185,10 +188,26 @@ class Watch:
         self.proc.wait(timeout=3); self.thread.join(timeout=2); self.proc.stdout.close()
 
 
-def attempt(tool,p,folder,journal,log):
+@functools.lru_cache(maxsize=1)
+def visual_module():
+    script=Path(__file__).with_name('p0-visual.py')
+    if not script.is_file():return None
+    spec=importlib.util.spec_from_file_location('p0_visual_receipts',script)
+    module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
+    return module
+
+def finish_visual(module,kit,folder,pressed,ended):
+    result=module.finish(kit,folder,pressed,ended)
+    file=folder/'visual'/'receipt.json'
+    if result.get('status') in ('PASS','FAIL') and file.is_file() and file.resolve()==file:
+        archived=json.loads(file.read_bytes())
+        if archived.get('status')==result['status']:return result['status']
+    return 'UNKNOWN'
+
+def attempt(tool,p,folder,journal,log,visual=False):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
-    action = {}; holder = None; host = None; watch = None
+    action = {}; holder = None; host = None; watch = None; recorder = None; called = False
     try:
         require(not (journal/'pending.json').exists(),'installed adapter already has an unresolved transition')
         before = journal_files(journal)
@@ -201,6 +220,13 @@ def attempt(tool,p,folder,journal,log):
             break
         store(folder/'card-before.json',inspect)
         require(inspect.get('ready'),inspect.get('error','installed background card unavailable'))
+        if visual:
+            try:
+                recorder=visual_module()
+                if recorder:
+                    called=True;started=recorder.start(tool.parent,folder,p);store(folder/'visual-start.json',started)
+            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,ImportError) as error:
+                store(folder/'visual-start.json',dict(status='UNKNOWN',reason=str(error)))
         with Watch(tool) as watch:
             first = watch.next(); require(first.get('topology') == p['topology'] and first.get('hid') == p['hid'],'source changed before dispatch')
             log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
@@ -237,6 +263,15 @@ def attempt(tool,p,folder,journal,log):
     except (ValueError,OSError,RuntimeError,KeyError,TypeError,queue.Empty,subprocess.SubprocessError) as e:
         item.update(status='UNKNOWN' if item.get('invokedDriver') else 'BLOCKED',reason=str(e) or type(e).__name__)
     finally:
+        item['navigationStatus']=item['status']
+        if called:
+            end=max((s.get('uptime',0) for s in (watch.samples if watch else [])),default=0)
+            try:
+                item['blankScreen']=finish_visual(recorder,tool.parent,folder,action.get('uptime',0) if action.get('issued') else 0,end)
+            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,KeyError) as error:
+                item['visualReason']=str(error)
+            if item['blankScreen']=='FAIL':
+                item.update(status='FAIL',reason='visual observer reported a black physical display during this action')
         if watch:
             with (folder/'windowserver.jsonl').open('w') as f:
                 for s in watch.samples: f.write(json.dumps(s,separators=(',',':'))+'\n')
@@ -305,9 +340,14 @@ def gate_status(items,expected):
     return bad or ('PASS' if len(items)==expected else 'BLOCKED')
 
 def evaluate_gate(stage, name, expected):
-    navigation=gate_status(stage['samples'],expected)
+    samples=stage['samples']
+    navigation=gate_status([{'status':s.get('navigationStatus',s['status'])} for s in samples],expected)
     stage['navigationStatus']=navigation
-    if name=='ten' and navigation=='PASS' and stage.get('blankScreen')!='PASS':
+    if any(s.get('blankScreen')=='FAIL' for s in samples):
+        stage.update(status='FAIL',blankScreen='FAIL',reason='black physical display observed during a navigation');return
+    if name=='ten':
+        stage['blankScreen']='PASS' if len(samples)==expected and all(s.get('blankScreen')=='PASS' for s in samples) else 'UNKNOWN'
+    if name=='ten' and navigation=='PASS' and stage['blankScreen']!='PASS':
         stage.update(status='BLOCKED',reason='10 independent navigations confirmed; absence of a black physical display was not witnessed')
     else:stage['status']=navigation
 
@@ -430,8 +470,9 @@ def run(args):
                     if sample.get('topology')!=req['topology'] or sample.get('hid')!=initial['hid']:
                         trial=dict(status='BLOCKED',reason='new input or topology changed before the next sample',hostIssued=False,axIssued=False)
                         sample_dir=out/f'{gate}-{n:02}';sample_dir.mkdir();store(sample_dir/'result.json',trial);log('card-not-issued',**trial)
-                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log)
+                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual=gate=='ten')
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
+                    if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break
                     source=target
                 if stage['status']!='PASS':

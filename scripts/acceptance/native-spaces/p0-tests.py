@@ -66,6 +66,11 @@ class GateTests(unittest.TestCase):
         runner.evaluate_gate(first,'roundTrip',2);self.assertEqual(first['status'],'PASS')
         ten=dict(samples=[dict(status='PASS')]*10,blankScreen='UNKNOWN')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['status']),('PASS','BLOCKED'))
+    def test_real_black_fails_without_misrepresenting_navigation(self):
+        ten=dict(samples=[dict(status='PASS',navigationStatus='PASS',blankScreen='PASS') for _ in range(10)])
+        runner.evaluate_gate(ten,'ten',10);self.assertEqual(ten['status'],'PASS')
+        ten['samples'][-1].update(status='FAIL',blankScreen='FAIL')
+        runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['blankScreen'],ten['status']),('PASS','FAIL','FAIL'))
 
 
 if __name__=='__main__':unittest.main()
