@@ -69,6 +69,12 @@ Field Notes 由 Launch Services 以独立实例启动，使用临时 HOME。两�
 `media/paired-cards.mp4` 是正式 Host 的独立窗口录像。只复制两张受控卡框的真实像素，卡间为白色。每个编码样本在 `media/receipt.json` 的 `readableFilm.frames` 中留下原始显示时钟、媒体 PTS、两卡色标、裁剪摘要和前后身份检查索引。编码器按原呈现时间写入，并重新读取文件核对视频帧及时间。最后一次经核验的呈现限定结束时刻，最长观测间隔另行报告。两卡实际变化可能不同步，`bothChangedInEncodedFrames` 记录两张卡是否都显示了第二组实测色标。两张卡实际到达新色并稳定显示后可提前封片。某一后续卡帧或末次来源复读无法判色时立即停止采集；仅当此前的连续实帧已被两次身份与来源检查闭合，才保存那段录像，并标记 `coverage=certifiedPrefix`、首次拒绝的部位和时间。该拒绝帧及其后画面均不写入录像。身份、物理输入、区域或时间轴失去确认时停止。录屏结果不计入预览时延和 12 次变色验收。
 
 
+同一段已通过身份与像素检查的双卡裁剪另存 `media/paired-cards.apng`。H.264 MP4 是有损实拍。无损 APNG 直接使用同一批原始像素。发布时逐帧解码，复核全部不透明 BGRA 字节与各帧原摘要。动态图只播放一次，每次真实呈现各占一帧，末次观测指定结束时刻。PNG 内嵌原始显示时钟及媒体 PTS 的值、时基和 epoch。播放边界以 1/60,000 秒表示，最大边界误差和逐帧时长误差写入 `losslessCardFilm`。另一台机器可用 Python 标准库复查原始采样、画面与时间。[APNG 帧时长格式](https://www.w3.org/TR/png-3/#11fcTL)
+
+```sh
+python3 scripts/acceptance/native-spaces/paired_card_film.py "$preview_output"
+```
+
 ## Optional installed Host transition trace
 
 Set `NEARPANE_PREVIEW_DIAGNOSTICS=1` on the existing `installed_profile.py` invocation that runs the paired preview. The launcher passes the private test home to the signed Host and the paired fixture registers its two actual window numbers, process birth, fixture signature, and that Host generation. The ordinary launch path leaves the trace disabled.

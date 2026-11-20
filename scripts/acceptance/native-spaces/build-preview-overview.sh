@@ -21,6 +21,6 @@ out.write_text('\n'.join(parts))
 PY
 flags=(-D NATIVE_CONTRACT -D PAIRED_OVERVIEW -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/contract_members.h")
 xcrun swiftc "${flags[@]}" "$kit/paired-overview-scope.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$kit/paired-overview-scope"
-xcrun swiftc -O -D CARD_FILM -parse-as-library "$src/paired-preview-palette.swift" "$src/paired-preview-overview.swift" "$src/paired-card-film.swift" -o "$kit/paired-overview"
+xcrun swiftc -O -D CARD_FILM -parse-as-library "$src/paired-preview-palette.swift" "$src/paired-preview-overview.swift" "$src/paired-card-film.swift" "$src/paired-card-apng.swift" -o "$kit/paired-overview"
 codesign --verify --strict "$kit/paired-overview-scope"
 codesign --verify --strict "$kit/paired-overview"

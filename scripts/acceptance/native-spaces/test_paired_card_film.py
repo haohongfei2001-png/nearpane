@@ -1,6 +1,9 @@
 """Offline tests for the two-card evidence stream. Never start a capture or an application."""
 import copy
 import hashlib
+import json
+import struct
+import zlib
 from pathlib import Path
 import shutil
 import subprocess
@@ -8,7 +11,7 @@ import sys
 import tempfile
 import unittest
 
-from paired_card_film import verify
+from paired_card_film import verify, verify_lossless, APNG_NAME
 
 HERE=Path(__file__).resolve().parent
 
@@ -88,7 +91,20 @@ class CardFilmTests(unittest.TestCase):
     }
 }''')
             subprocess.run(["xcrun","swiftc","-suppress-warnings","-parse-as-library","-D","PAIRED_OVERVIEW_TEST","-D","CARD_FILM_TEST",
-                            HERE/"paired-preview-palette.swift",HERE/"paired-preview-overview.swift",HERE/"paired-card-film.swift",main,"-o",binary],check=True,timeout=60)
+                            HERE/"paired-preview-palette.swift",HERE/"paired-preview-overview.swift",HERE/"paired-card-film.swift",HERE/"paired-card-apng.swift",main,"-o",binary],check=True,timeout=60)
             subprocess.run([binary,folder/"encoded.mp4"],check=True,timeout=8)
+            film=json.loads((folder/"offline-frames.json").read_bytes());data=(folder/APNG_NAME).read_bytes()
+            verified=verify_lossless(film,data)
+            self.assertEqual(verified["frames"],4);self.assertTrue(verified["exactBGRA"])
+            hashes=[f["cropSHA256"] for f in film["frames"]];self.assertEqual(hashes[0],hashes[1])
+            self.assertNotEqual(hashes[1],hashes[2])
+            for key,val in (("cropSHA256","c"*64),("ptsValue",0),("relativeTime",1.5)):
+                altered=copy.deepcopy(film);altered["frames"][2][key]=val
+                with self.assertRaises(ValueError):verify_lossless(altered,data)
+            # Alter an actual wire duration and recompute its CRC and file digest.
+            modified=bytearray(data);off=modified.index(b"fcTL");modified[off+25]^=1
+            end=off+4+26;modified[end:end+4]=struct.pack(">I",zlib.crc32(modified[off:end]))
+            claimed=copy.deepcopy(film);claimed["losslessAnimation"]["sha256"]=hashlib.sha256(modified).hexdigest()
+            with self.assertRaisesRegex(ValueError,"losslessFrameDurationChanged"):verify_lossless(claimed,bytes(modified))
 
 if __name__=="__main__":unittest.main()

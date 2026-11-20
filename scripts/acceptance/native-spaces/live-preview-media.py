@@ -251,6 +251,7 @@ def publish(output):
             witness=output/'witness'
             require(witness.is_dir() and not witness.is_symlink(), 'missingOriginalWitnessDirectory')
             failures=(ValueError,KeyError,TypeError,IndexError,AttributeError,OverflowError,OSError)
+            animation_errors=failures+(struct.error,zlib.error)
             try:
                 frames=validated_frames(result,binding(result),witness)
                 receipt['microCrops']={'status':'CAPTURED' if frames else 'NOT_CAPTURED','qualifiedFrames':len(frames)}
@@ -268,14 +269,28 @@ def publish(output):
             if image is not None:
                 files['paired-overview.png']=image
             if "cardFilm" in result:
-                from paired_card_film import NAME,verify
+                from paired_card_film import NAME,APNG_NAME,APNG_LIMIT,verify,verify_lossless
                 film=result["cardFilm"]
                 try:
                     if film.get("status")!="CAPTURED":raise ValueError(film.get("reason","uncertifiedCardFilm"))
                     bound=result["filmBinding"]
                     require(all(proof[k]==bound[k] for k in MATCH_KEYS),"filmSourceGenerationChanged")
                     movie=regular_file(witness/NAME,18_000_000);verify(film,bound,movie)
-                    files[NAME]=movie;receipt["readableFilm"]=film
+                    files[NAME]=movie;receipt["readableFilm"]=dict(film,encoding="H.264 (lossy)")
+                    animation=film.get("losslessAnimation",{})
+                    if animation.get("status")=="CAPTURED":
+                        try:
+                            apng=regular_file(witness/APNG_NAME,APNG_LIMIT)
+                            verified=verify_lossless(film,apng)
+                            files[APNG_NAME]=apng
+                            receipt["losslessCardFilm"]={**animation,"independentDecode":verified}
+                        except animation_errors as error:
+                            receipt["losslessCardFilm"]={"status":"BLOCKED","reason":public_reason(error)}
+                    else:
+                        receipt["losslessCardFilm"]={"status":animation.get("status","NOT_CAPTURED"),
+                            "reason":animation.get("reason","noApprovedLosslessFramesRetained")}
+                    if animation:
+                        receipt["readableFilm"]["losslessAnimation"]=receipt["losslessCardFilm"]
                 except failures as error:
                     receipt["readableFilm"]={"status":"BLOCKED","reason":public_reason(error)}
             first={}

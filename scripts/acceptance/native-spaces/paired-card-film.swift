@@ -5,10 +5,10 @@ import CryptoKit
 import ScreenCaptureKit
 
 private typealias FilmRow=[String:Any]
-private struct FilmStamp {
+struct FilmStamp {
     let ticks:UInt64,uptime:Double,callback:Double,pts:CMTime
 }
-private struct FilmFrame {
+struct FilmFrame {
     let stamp:FilmStamp,epochs:[Int],bytes:Data
 }
 struct CardFilmFailure:Error {
@@ -233,7 +233,7 @@ enum PairedCardFilm {
             guard zip(f.epochs,first).allSatisfy({$0==$1 || ($0==next && stamp.uptime>=issued)}) else{throw OverviewRefusal("filmColorNotSeenInEnrolledSources")}
             maxGap=max(maxGap,gap);lastTime=stamp.uptime
             evidence.append(["displayTicks":stamp.ticks,"presentationUptime":stamp.uptime,"callbackUptime":stamp.callback,
-                             "ptsValue":stamp.pts.value,"ptsTimescale":stamp.pts.timescale,"cardEpochs":f.epochs,"scopeReads":bracket,
+                             "ptsValue":stamp.pts.value,"ptsTimescale":stamp.pts.timescale,"ptsEpoch":stamp.pts.epoch,"cardEpochs":f.epochs,"scopeReads":bracket,
                              "relativeTime":Double(stamp.ticks-head.stamp.ticks)*clock.ratio,"encoded":i<frames.count-1,
                              "cropSHA256":SHA256.hash(data:f.bytes).map{String(format:"%02x",$0)}.joined()])
         }
@@ -255,6 +255,12 @@ enum PairedCardFilm {
         if let bad=truncation {
             row["markerRefusal"]=bad.receipt
             row["knownFramesAfterLastClosedGuardExcluded"]=collected.count-frames.count
+        }
+        row["encoding"]="H.264 (lossy)"
+        do {
+            row["losslessAnimation"]=try PairedCardAPNG.write(frames,width:region.width,height:region.height,ratio:clock.ratio,folder:folder)
+        } catch {
+            row["losslessAnimation"]=["status":"BLOCKED","reason":(error as? OverviewRefusal)?.reason ?? "losslessAnimationWriteFailed"]
         }
         return row
         } catch {throw describeFailure(error)}
@@ -319,11 +325,40 @@ enum PairedCardFilm {
 
     #if CARD_FILM_TEST
     static func testEncoding(_ url:URL) async throws {
-        let ticks:[UInt64]=[1,100_001,130_001,291_001,411_001]
-        let frames=ticks.map{t in FilmFrame(stamp:FilmStamp(ticks:t,uptime:Double(t)/1e6,callback:Double(t)/1e6,
-                       pts:CMTime(value:Int64(t),timescale:1_000_000)),epochs:[0,0],bytes:Data(repeating:255,count:64*64*4))}
+        let ticks:[UInt64]=[9_000_000_000_001,9_000_000_099_998,9_000_000_130_055,9_000_000_291_123,9_000_000_411_024]
+        let frames=ticks.enumerated().map{i,t -> FilmFrame in
+            var pixels=Data(capacity:64*64*4)
+            for y in 0..<64 {for x in 0..<64 {
+                // Two intentionally identical original presentations have distinct native clocks.
+                let stage=i<2 ? 0:i
+                pixels.append(contentsOf:[UInt8((x*7+stage)%256),UInt8((y*5+stage)%256),UInt8((x+y*3+stage)%256),255])
+            }}
+            return FilmFrame(stamp:FilmStamp(ticks:t,uptime:Double(t)/1e6,callback:Double(t)/1e6,
+                       pts:CMTime(value:Int64(t)+7,timescale:1_000_000)),epochs:[0,0],bytes:pixels)
+        }
         let row=try await encode(frames,width:64,height:64,ratio:0.000_001,output:url)
         guard row["encodedFrames"] as? Int==4,row["audioTracks"] as? Int==0 else{throw OverviewRefusal("offlineFilmReadbackFailed")}
+        let folder=url.deletingLastPathComponent()
+        func noOutput(_ input:[FilmFrame]) throws {
+            do {
+                _=try PairedCardAPNG.write(input,width:64,height:64,ratio:0.000_001,folder:folder)
+                throw OverviewRefusal("offlineInvalidIntervalProducedLosslessFile")
+            } catch {
+                guard !FileManager.default.fileExists(atPath:folder.appendingPathComponent(PairedCardAPNG.filename).path) else{throw error}
+            }
+        }
+        try noOutput([frames[2],frames[1]])
+        var nonOpaque=frames[2].bytes;nonOpaque[3]=0
+        var rejected=frames;rejected[2]=FilmFrame(stamp:frames[2].stamp,epochs:frames[2].epochs,bytes:nonOpaque)
+        try noOutput(rejected)
+        let lossless=try PairedCardAPNG.write(frames,width:64,height:64,ratio:0.000_001,folder:folder)
+        let proof:[FilmRow]=frames.enumerated().map{i,f in
+            ["displayTicks":f.stamp.ticks,"ptsValue":f.stamp.pts.value,"ptsTimescale":f.stamp.pts.timescale,"ptsEpoch":f.stamp.pts.epoch,
+             "relativeTime":Double(f.stamp.ticks-ticks[0])*0.000_001,"encoded":i<frames.count-1,
+             "cropSHA256":SHA256.hash(data:f.bytes).map{String(format:"%02x",$0)}.joined()]
+        }
+        let result:FilmRow=["status":"CAPTURED","losslessAnimation":lossless,"width":64,"height":64,"container":row,"frames":proof]
+        try JSONSerialization.data(withJSONObject:result).write(to:folder.appendingPathComponent("offline-frames.json"))
     }
     #endif
 }

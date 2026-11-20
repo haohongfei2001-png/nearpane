@@ -2,9 +2,13 @@
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
+import struct
+import tempfile
 import subprocess
+import zlib
 
 from space_scope import private_file, require
 
@@ -80,11 +84,101 @@ def verify(film, proof, data):
             film["bothChangedInEncodedFrames"] is any(f["cardEpochs"]==[new,new] for f in frames[:-1]),"filmDurationOrChangeUnconfirmed")
 
 
+APNG_NAME = "paired-cards.apng"
+APNG_LIMIT = 48 * 1024 * 1024
+
+
+def verify_lossless(film, data):
+    """Decode each full RGBA raster and match its sealed BGRA digest and display time."""
+    animation = film["losslessAnimation"]
+    frames = film["frames"]
+    width, height = film["width"], film["height"]
+    scale = 60_000
+    require(
+        film["status"] == animation["status"] == "CAPTURED" and animation["file"] == APNG_NAME
+        and animation["frames"] == len(frames) - 1 == film["container"]["encodedFrames"]
+        and animation["systemDecodedExactBGRAFrames"] == animation["frames"]
+        and animation["width"] == width and animation["height"] == height
+        and 0 < width <= 8192 and 0 < height <= 8192 and width * height <= 1_000_000
+        and 2 <= len(frames) <= 110 and animation["timescale"] == scale
+        and animation["plays"] == 1 and animation["includesTerminalPicture"] is False
+        and animation["originalPTS"] == "NearpanePresentationTimes"
+        and 0 < len(data) <= APNG_LIMIT and hashlib.sha256(data).hexdigest() == animation["sha256"]
+        and data.startswith(bytes.fromhex("89504e470d0a1a0a")), "losslessFilmEnvelopeChanged")
+
+    pos = 8
+    def payload(expected):
+        nonlocal pos
+        require(pos + 12 <= len(data), "losslessTruncatedChunk")
+        size, tag = struct.unpack_from(">I4s", data, pos)
+        end = pos + 8 + size
+        require(tag == expected and end + 4 <= len(data)
+                and zlib.crc32(data[pos+4:end]) == struct.unpack_from(">I", data, end)[0],
+                "losslessUnexpectedOrCorruptedChunk")
+        contents = data[pos+8:end]
+        pos = end + 4
+        return contents
+
+    require(payload(b"IHDR") == struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+            and payload(b"sRGB") == bytes(1)
+            and payload(b"acTL") == struct.pack(">II", len(frames) - 1, 1), "losslessNativeRasterChanged")
+    embedded = payload(b"iTXt")
+    keyword = b"NearpanePresentationTimes" + bytes(5)
+    clock_fields = ("displayTicks", "ptsValue", "ptsTimescale", "ptsEpoch")
+    clocks = [[f[key] for key in clock_fields] for f in frames]
+    require(embedded.startswith(keyword) and json.loads(embedded[len(keyword):]) == clocks,
+            "losslessOriginalPTSChanged")
+
+    sequence = total = 0
+    max_boundary_error = max_delay_error = 0.0
+    stride = 1 + width * 4
+    for index, (frame, following) in enumerate(zip(frames, frames[1:])):
+        control = payload(b"fcTL")
+        require(len(control) == 26, "losslessFrameControlLength")
+        number, w, h, x, y, delay, den, dispose, blend = struct.unpack(">IIIIIHHBB", control)
+        require((number, w, h, x, y, den, dispose, blend) == (sequence, width, height, 0, 0, scale, 0, 0)
+                and delay > 0 and frame["encoded"] is True, "losslessFrameReorderedOrBlended")
+        sequence += 1
+        total += delay
+        start, end = frame["relativeTime"], following["relativeTime"]
+        require(delay == math.floor(end * scale + .5) - math.floor(start * scale + .5),
+                "losslessFrameDurationChanged")
+        error = abs(total / scale - end)
+        require(error <= .5 / scale + 1e-10, "losslessFrameDurationChanged")
+        max_boundary_error = max(max_boundary_error, error)
+        max_delay_error = max(max_delay_error, abs(delay / scale - (end - start)))
+
+        compressed = payload(b"IDAT" if index == 0 else b"fdAT")
+        if index:
+            require(compressed[:4] == struct.pack(">I", sequence), "losslessDataSequenceMismatch")
+            sequence += 1
+            compressed = compressed[4:]
+        decoder = zlib.decompressobj()
+        scan = decoder.decompress(compressed, stride * height + 1)
+        require(len(scan) == stride * height and decoder.eof and not decoder.unused_data
+                and not decoder.unconsumed_tail and scan[::stride] == bytes(height), "losslessUnverifiedScanline")
+        rgba = b"".join(scan[y*stride+1:(y+1)*stride] for y in range(height))
+        require(rgba[3::4] == bytes([255]) * (width * height), "losslessNonOpaquePixels")
+        bgra = bytearray(rgba)
+        bgra[0::4] = rgba[2::4]
+        bgra[2::4] = rgba[0::4]
+        require(hashlib.sha256(bgra).hexdigest() == frame["cropSHA256"], "losslessDecodedPixelsDifferFromOriginal")
+
+    require(payload(b"IEND") == b"" and pos == len(data) and frames[-1]["encoded"] is False
+            and abs(1e6 * max_boundary_error - animation["maxPlaybackBoundaryErrorMicroseconds"]) < .001
+            and abs(1e6 * max_delay_error - animation["maxFrameDelayErrorMicroseconds"]) < .001,
+            "losslessTerminalOrPlaybackErrorChanged")
+    return {"frames": len(frames)-1, "exactBGRA": True, "originalPTS": True,
+            "maxPlaybackBoundaryErrorMicroseconds": 1e6 * max_boundary_error,
+            "maxFrameDelayErrorMicroseconds": 1e6 * max_delay_error}
+
+
 def capture(kit, folder, out, proof):
     binary=kit/"paired-overview"
     if not binary.is_file():return {"status":"BLOCKED","reason":"optionalFilmKitUnavailable"}
     subprocess.run(["/usr/bin/codesign","--verify","--strict",str(binary)],check=True,timeout=4)
-    run=subprocess.run([binary,folder,"--film"],input=json.dumps(proof),text=True,capture_output=True,timeout=22)
+    # Acquisition has its own 5.5 s deadline; H.264 and lossless readback run after the stream closes.
+    run=subprocess.run([binary,folder,"--film"],input=json.dumps(proof),text=True,capture_output=True,timeout=30)
     film=json.loads(run.stdout)
     if film.get("status")!="CAPTURED":return film
     require(run.returncode==0,"filmReaderFailed")
@@ -92,4 +186,31 @@ def capture(kit, folder, out, proof):
     verify(film,proof,data)
     target=out/"witness";target.mkdir(mode=0o700,exist_ok=True)
     with (target/NAME).open("xb") as f:f.write(data)
+    animation=film.get("losslessAnimation",{})
+    if animation.get("status")=="CAPTURED":
+        try:
+            raw=private_file((folder/APNG_NAME).absolute(),limit=APNG_LIMIT)
+            verify_lossless(film,raw)
+            # Publish a completed file without clobbering existing evidence.
+            with tempfile.NamedTemporaryFile(dir=target,prefix=".paired-apng-") as tmp:
+                tmp.write(raw);tmp.flush()
+                os.link(tmp.name,target/APNG_NAME)
+        except (ValueError,KeyError,TypeError,IndexError,OSError,struct.error,zlib.error):
+            film["losslessAnimation"]={"status":"BLOCKED","reason":"losslessReadbackOrWitnessCopyFailed"}
     return film
+
+if __name__=="__main__":
+    import argparse
+    parser=argparse.ArgumentParser(description="Verify the two-card film and decode every APNG pixel against its original presentation receipt.")
+    parser.add_argument("output",type=Path,help="directory containing result.json and the local witness/ or archived media/")
+    args=parser.parse_args()
+    try:
+        run=json.loads((args.output/"result.json").read_bytes())
+        folder=args.output/"witness" if (args.output/"witness"/APNG_NAME).is_file() else args.output/"media"
+        film=run["cardFilm"]
+        verify(film,run["filmBinding"],(folder/NAME).read_bytes())
+        if film.get("losslessAnimation",{}).get("status") != "CAPTURED":
+            parser.exit(2,"No certified lossless frame file was retained for this capture.\n")
+        print(json.dumps(verify_lossless(film,(folder/APNG_NAME).read_bytes()),sort_keys=True))
+    except (KeyError,TypeError,ValueError,OSError,IndexError,struct.error,zlib.error) as error:
+        parser.exit(2,f"Cannot verify lossless pair ({type(error).__name__}).\n")
