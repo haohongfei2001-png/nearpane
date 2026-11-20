@@ -1,5 +1,6 @@
 """Installed P0. Exactly one genuine background-window card press per attempt."""
 import argparse
+from contextlib import ExitStack
 import functools
 import hashlib
 import importlib.util
@@ -254,6 +255,93 @@ def assess(samples, request, pressed_at, host_proof, ax):
     return 'PASS','one exact installed action and independently stable adjacent destination',round((first - pressed_at)*1000,2)
 
 
+def numeric_state(sample):
+    if not isinstance(sample,dict):
+        return {'error':'independent state did not return an object'}
+    allowed = ('uptime', 'hid', 'frontPID', 'workspaceFrontPID', 'focusedNumber', 'observerAX', 'error')
+    result = {k: sample[k] for k in allowed if k in sample}
+    if 'systemFocus' in sample:
+        focus = sample.get('systemFocus')
+        result['systemFocus'] = {k:focus.get(k) for k in ('pid','birth','number')} if isinstance(focus,dict) else None
+    top = sample.get('topology')
+    if isinstance(top, dict):
+        result['topology'] = {k:top[k] for k in ('display','current') if k in top}
+        if isinstance(top.get('records'),list):
+            result['topology']['records'] = [{k:r.get(k) for k in ('id','type','uuid')} for r in top['records'] if isinstance(r,dict)]
+    return result
+
+
+def window_identity(window):
+    return {key:window[key] for key in ('pid','birth','number')}
+
+
+def exact_document(sample, expected):
+    focus = sample.get('systemFocus') or {}
+    return (all(type(focus.get(k)) is int and focus[k] > 0 and focus[k] == v for k,v in expected.items())
+            and sample.get('workspaceFrontPID') == expected['pid'] and sample.get('frontPID') == expected['pid'])
+
+
+def admission_sample(sample, request):
+    actual = numeric_state(sample)
+    expected = dict(topology=request['topology'], hid=request['hid'], systemFocus=window_identity(request['sourceWindow']))
+    mismatches = [k for k in ('topology','hid') if actual.get(k) != expected[k]]
+    if not exact_document(actual, expected['systemFocus']):
+        mismatches.append('sourceDocumentFocus')
+    return dict(admitted=not mismatches, expected=expected, actual=actual, mismatches=mismatches)
+
+
+def retained_target_focus(samples, request, pressed):
+    target = request['target']
+    expected = window_identity(request['targetWindow'])
+    top = dict(request['topology'], current=target)
+    proof = dict(status='UNKNOWN', expected=expected, firstTargetOwnerUptime=None, firstExactUptime=None,
+                 lastExactUptime=None, firstLoss=None, targetSamples=0)
+    previous = None
+    for sample in samples:
+        now = sample.get('uptime')
+        if not isinstance(now,(int,float)) or not math.isfinite(now):
+            if proof['firstExactUptime'] is not None:
+                proof.update(reason='missing sample clock after target-document acquisition',firstLoss={'uptime':None})
+                return proof
+            continue
+        if now < pressed:
+            continue
+        on_target = sample.get('topology') == top
+        workspace = sample.get('workspaceFrontPID',sample.get('frontPID'))
+        exact = on_target and exact_document(sample,expected) and sample.get('hid') == request['hid'] and not sample.get('error')
+        if on_target:
+            proof['targetSamples'] += 1
+            if workspace == expected['pid'] and proof['firstTargetOwnerUptime'] is None:
+                proof['firstTargetOwnerUptime'] = now
+        loss = None
+        if proof['firstExactUptime'] is not None:
+            if previous is not None and (now < previous or now-previous > MAX_GAP):
+                loss = 'gap in exact target-document observation'
+            elif not exact:
+                loss = 'exact target-document focus departed or became unreadable after acquisition'
+        elif proof['firstTargetOwnerUptime'] is not None and type(workspace) is int and workspace > 1 and workspace != expected['pid']:
+            # Earlier archives contain only NSWorkspace's foreground PID. A change contradicts
+            # retention; a matching PID alone never proves the exact AX document.
+            loss = 'observed target foreground owner departed before exact document retention could be proved'
+        if loss:
+            proof['firstLoss'] = dict(uptime=now, secondsAfterPress=round(now-pressed,6),
+                                      current=(sample.get('topology') or {}).get('current'), frontPID=sample.get('frontPID'),
+                                      workspaceFrontPID=sample.get('workspaceFrontPID'), systemFocus=numeric_state(sample).get('systemFocus'))
+            proof['reason'] = loss
+            return proof
+        if exact:
+            if proof['firstExactUptime'] is None:
+                proof['firstExactUptime'] = now
+            proof['lastExactUptime'] = now
+        previous = now
+    first, last = proof['firstExactUptime'], proof['lastExactUptime']
+    if first is not None and last-first >= SETTLE_SECONDS:
+        proof.update(status='PASS', reason='enrolled foreground PID, kernel birth and exact AX window retained on the target')
+    else:
+        proof['reason'] = 'insufficient exact target-document focus and retention readback'
+    return proof
+
+
 class Watch:
     def __init__(self, tool): self.tool = tool; self.samples = []; self.q = queue.Queue()
     def __enter__(self):
@@ -393,12 +481,17 @@ def physical_admission(started,request):
     return False,started.get("reason") or ", ".join(reasons) or "an independently visible lit source frame was not verified before dispatch"
 
 
-def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None):
+def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,admission=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
+    if admission is not None:store(folder/'admission-before.json',admission)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
     action = {}; holder = None; host = None; watch = None; recorder = None; called = False; started = None
     observer_options={'window_witness':lambda windows:keeper.call('windows',windows)} if keeper else {}
+    lifetime=ExitStack()
     try:
+        if admission is not None and not admission['admitted']:
+            item.update(status='BLOCKED',navigationStatus='NOT_RUN',reason='next card admission refused: '+', '.join(admission['mismatches']))
+            return item
         require(not (journal/'pending.json').exists(),'installed adapter already has an unresolved transition')
         before = journal_files(journal)
         # Feed refresh and first SwiftUI AX layout can finish asynchronously. This is a read-only wait.
@@ -427,58 +520,104 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None):
                 if not allowed:
                     item.update(status='BLOCKED',navigationStatus='NOT_RUN',reason=reason,visualAdmissionBlocked=True)
                     return item
-        with Watch(tool) as watch:
-            first = watch.next(); require(first.get('topology') == p['topology'] and first.get('hid') == p['hid'],'source changed before dispatch')
-            log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
-            item['status']='UNKNOWN'; item['invokedDriver']=True; store(folder/'result.json',item)
-            action=keeper.call('press',p) if keeper else cmd(tool,'press',body=p,timeout=10); store(folder/'ax-dispatch.json',action); item['axIssued']=action.get('issued',False)
-            if not item['axIssued']:
-                item.update(status='BLOCKED',reason=action.get('error','official input refused before AXPress'));return item
-            stamp=action['uptime']; end=time.monotonic()+9; landed=None; terminal_time=None
-            while time.monotonic()<end:
-                s=watch.next()
-                if s.get('uptime',0)<stamp:continue
-                top=s.get('topology',{}); now=s['uptime']; actual=top.get('current')
-                if actual == p['target'] and landed is None: landed=now
-                wrong = actual not in (p['target'],p['topology']['current']) or (landed is not None and actual!=p['target'])
-                changed = top.get('records')!=p['topology']['records'] or s.get('hid')!=p['hid']
-                if holder is None:
-                    created=journal_files(journal)-before
-                    require(len(created)<=1,'multiple new formal Host actions observed')
-                    if created:
-                        holder=created.pop(); raw=journal_read(journal/holder); (folder/holder).write_bytes(raw)
-                        host=match_receipt(json.loads(raw),holder,p,stamp); terminal_time=now
-                # Keep taking observations after terminal reply and after landing. A refusal is never replayed.
-                # Stop accepting success on any anomaly, but let an already-issued action
-                # write its terminal Host receipt. This only observes; the gate cannot retry.
-                if (wrong or changed) and terminal_time is not None: break
-                if terminal_time is not None and landed is not None and now-max(terminal_time,landed)>=SETTLE_SECONDS:break
-                if terminal_time is not None and host['terminal']=='failed' and not host['phaseEvidence']:break
-            item['hostProof']=host; item['hostIssued']=bool(host and host['phaseEvidence'])
-            status,reason,ms=assess(watch.samples,p,stamp,host,action); item.update(status=status,reason=reason,latencyMS=ms)
-            if (journal/'pending.json').exists():
-                (folder/'pending.json').write_bytes(journal_read(journal/'pending.json'))
-                if item['status']=='PASS': item.update(status='UNKNOWN',reason='installed adapter retained an unresolved transition')
-            if host: item['hostJournalFile']=holder
+        watch=lifetime.enter_context(Watch(tool))
+        first=admission_sample(watch.next(),p)
+        store(folder/'admission-before-dispatch.json',first)
+        require(first['admitted'],'source changed before dispatch: '+', '.join(first['mismatches']))
+        log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
+        item.update(status='UNKNOWN',invokedDriver=True,axIssued=None);store(folder/'result.json',item)
+        action=keeper.call('press',p) if keeper else cmd(tool,'press',body=p,timeout=10); store(folder/'ax-dispatch.json',action); item['axIssued']=action.get('issued')
+        if item['axIssued'] is not True:
+            if item['axIssued'] is False:item.update(status='BLOCKED',reason=action.get('error','official input refused before AXPress'))
+            else:item.update(status='UNKNOWN',reason=action.get('error','AXPress issuance is unknown'))
+            return item
+        stamp=action['uptime']; end=time.monotonic()+9; landed=None; terminal_time=None
+        while time.monotonic()<end:
+            s=watch.next()
+            if s.get('uptime',0)<stamp:continue
+            top=s.get('topology',{}); now=s['uptime']; actual=top.get('current')
+            if actual == p['target'] and landed is None: landed=now
+            wrong = actual not in (p['target'],p['topology']['current']) or (landed is not None and actual!=p['target'])
+            changed = top.get('records')!=p['topology']['records'] or s.get('hid')!=p['hid']
+            if holder is None:
+                created=journal_files(journal)-before
+                require(len(created)<=1,'multiple new formal Host actions observed')
+                if created:
+                    holder=created.pop(); raw=journal_read(journal/holder); (folder/holder).write_bytes(raw)
+                    host=match_receipt(json.loads(raw),holder,p,stamp); terminal_time=now
+            # Keep taking observations after terminal reply and after landing. A refusal is never replayed.
+            # Stop accepting success on any anomaly, but let an already-issued action
+            # write its terminal Host receipt. This only observes; the gate cannot retry.
+            if (wrong or changed) and terminal_time is not None: break
+            if terminal_time is not None and landed is not None and now-max(terminal_time,landed)>=SETTLE_SECONDS:break
+            if terminal_time is not None and host['terminal']=='failed' and not host['phaseEvidence']:break
+        item['hostProof']=host; item['hostIssued']=bool(host and host['phaseEvidence'])
+        status,reason,ms=assess(watch.samples,p,stamp,host,action)
+        item.update(status=status,reason=reason,latencyMS=ms,firstTargetSpaceUptime=landed)
+        if (journal/'pending.json').exists():
+            (folder/'pending.json').write_bytes(journal_read(journal/'pending.json'))
+            if item['status']=='PASS': item.update(status='UNKNOWN',reason='installed adapter retained an unresolved transition')
+        if host: item['hostJournalFile']=holder
     except (ValueError,OSError,RuntimeError,KeyError,TypeError,queue.Empty,subprocess.SubprocessError) as e:
         item.update(status='UNKNOWN' if item.get('invokedDriver') else 'BLOCKED',reason=str(e) or type(e).__name__)
     finally:
-        item.setdefault('navigationStatus',item['status'])
-        if called:
-            end=max((s.get('uptime',0) for s in (watch.samples if watch else [])),default=0)
-            try:
-                item['blankScreen']=finish_visual(recorder,tool.parent,folder,action.get('uptime',0) if action.get('issued') else 0,end,p,started,observer_options)
-            except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,KeyError,TypeError) as error:
-                item['visualReason']=str(error)
+        item.setdefault('navigationStatus','NOT_RUN' if item['axIssued'] is False else item['status'])
+        item['navigationReason']=item.get('reason')
+        if (admission is None or admission['admitted']) and not action.get('issued') and item['status']!='PASS':
+            try:refusal_sample=cmd(tool,'state',timeout=3)
+            except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as error:refusal_sample={'error':str(error) or type(error).__name__}
+            store(folder/'admission-after-refusal.json',admission_sample(refusal_sample,p))
+        primary=list(watch.samples) if watch else []
+        after=[]
+        terminal=None
+        coverage_error=None
+        try:
+            if called:
+                end=max((s.get('uptime',0) for s in primary),default=0)
+                try:
+                    item['blankScreen']=finish_visual(recorder,tool.parent,folder,action.get('uptime',0) if action.get('issued') else 0,end,p,started,observer_options)
+                except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,KeyError,TypeError) as error:
+                    item['visualReason']=str(error)
+                if watch and action.get('issued') and primary:
+                    try:
+                        # The independent watcher stays live while the visual recorder finishes.
+                        # A fresh state read marks the end in the watcher's own macOS uptime clock.
+                        terminal=numeric_state(cmd(tool,'state',timeout=3))
+                        store(folder/'state-after-visual.json',terminal)
+                        require(terminal.get('uptime',0)>=end,'no terminal observer clock after visual finalization')
+                        deadline=time.monotonic()+3
+                        while watch.samples[-1].get('uptime',0)<terminal['uptime']:
+                            require(time.monotonic()<deadline,'continuous observer did not reach visual finalization')
+                            watch.next()
+                    except (ValueError,OSError,RuntimeError,KeyError,TypeError,queue.Empty,subprocess.SubprocessError) as error:
+                        coverage_error=str(error) or type(error).__name__
+                    after=watch.samples[len(primary):]
+            if watch and action.get('issued') and primary:
+                evidence=primary+after
+                if terminal and isinstance(terminal.get('uptime'),(int,float)):
+                    # Preserve watch ordering. Add the one-shot sample between its surrounding reads.
+                    i=next((i for i,s in enumerate(evidence) if s.get('uptime',0)>=terminal['uptime']),len(evidence))
+                    evidence=[*evidence[:i],terminal,*evidence[i:]]
+                focus=retained_target_focus(evidence,p,action['uptime'])
+                if coverage_error:
+                    focus['coverageError']=coverage_error
+                    if focus['status']=='PASS':
+                        focus.update(status='UNKNOWN',reason='continuous readback through visual finalization is incomplete')
+                item['retainedTargetFocus']=focus
+                if item['navigationStatus']=='PASS' and focus['status']!='PASS':
+                    item.update(status='UNKNOWN',reason=focus['reason'])
             if item['blankScreen']=='FAIL':
                 item.update(status='FAIL',reason='visual observer reported a black physical display during this action')
-            elif visual_stage=='ten' and item['navigationStatus']=='PASS' and item['blankScreen']!='PASS':
+            elif visual_stage=='ten' and item['status']=='PASS' and item['blankScreen']!='PASS':
                 receipt=folder/'visual'/'receipt.json'
                 reason=json.loads(receipt.read_bytes()).get('reason') if receipt.exists() else None
-                item.update(status='UNKNOWN',reason=reason or 'navigation confirmed but physical display coverage is unknown; remaining gestures stopped')
-        if watch:
-            with (folder/'windowserver.jsonl').open('w') as f:
-                for s in watch.samples: f.write(json.dumps(s,separators=(',',':'))+'\n')
+                item.update(status='UNKNOWN',reason=reason or 'physical display coverage is unknown after the navigation')
+        finally:
+            lifetime.close()
+        for name,rows in [('windowserver.jsonl',primary),('windowserver-finalization.jsonl',after)]:
+            if rows:
+                with (folder/name).open('w') as f:
+                    for sample in rows:f.write(json.dumps(sample,separators=(',',':'))+'\n')
         if (journal/'pending.json').is_file() and not (folder/'pending.json').exists():
             (folder/'pending.json').write_bytes(journal_read(journal/'pending.json'))
         store(folder/'result.json',item); log('card-outcome',**item)
@@ -571,8 +710,12 @@ def evaluate_gate(stage, name, expected):
         stage.update(status='FAIL',blankScreen='FAIL',reason='black physical display observed during a navigation');return
     if name=='ten':
         stage['blankScreen']='PASS' if len(samples)==expected and all(s.get('blankScreen')=='PASS' for s in samples) else 'UNKNOWN'
-    if name=='ten' and samples and samples[-1]['status']=='UNKNOWN' and samples[-1].get('navigationStatus')=='PASS':
-        stage.update(status='UNKNOWN',reason=samples[-1].get('reason','physical display coverage unknown after the confirmed navigation'));return
+    stage['targetFocusConfirmed']=sum((s.get('retainedTargetFocus') or {}).get('status')=='PASS' for s in samples)
+    failed=next((sample for sample in samples if sample['status']!='PASS'),None)
+    if failed:
+        stage.update(status=failed['status'],reason=failed.get('reason','installed card trial did not pass'));return
+    if any((s.get('retainedTargetFocus') or {}).get('status') != 'PASS' for s in samples):
+        stage.update(status='UNKNOWN',reason='exact target-document focus retention was not established');return
     if name=='ten' and navigation=='PASS' and stage['blankScreen']!='PASS':
         stage.update(status='BLOCKED',reason='10 independent navigations confirmed; absence of a black physical display was not witnessed')
     else:stage['status']=navigation
@@ -719,13 +862,13 @@ def run(args):
             for gate,how_many in GATES:
                 stage=result['stages'][gate];stage['status']='BLOCKED';report()
                 for n in range(1,how_many+1):
-                    sample=state();target=b if source==a else a
+                    try:sample=state()
+                    except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as error:sample={'error':str(error) or type(error).__name__}
+                    target=b if source==a else a
                     req=dict(topology={**top,'current':source},sourceWindow=enrolled[source],targetWindow=enrolled[target],target=target,
                              hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid'])
-                    if sample.get('topology')!=req['topology'] or sample.get('hid')!=initial['hid']:
-                        trial=dict(status='BLOCKED',reason='new input or topology changed before the next sample',hostIssued=False,axIssued=False)
-                        sample_dir=out/f'{gate}-{n:02}';sample_dir.mkdir();store(sample_dir/'result.json',trial);log('card-not-issued',**trial)
-                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper,audit=audit)
+                    trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper,audit=audit,
+                                  admission=admission_sample(sample,req))
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break

@@ -1,0 +1,62 @@
+{
+  "mode": "offline replay of existing action ten-01, no new gesture or frame",
+  "archive": "18-late-space-change/original-receipts.tar.gz",
+  "archiveSHA256": "41e3582be11cb74a3e040922137bda00768892161183dcf6d047158f7cc726b7",
+  "memberSHA256": {
+    "ten-01/identity.json": "d13fbf193e2fa980027fb7ba1d1378890e2414c250c6729286ab63c3124af7a0",
+    "ten-01/ax-dispatch.json": "56c24912d94710fc230de6784b9c28dcb168a223e0116404cd11c6d959d9e211",
+    "ten-01/result.json": "7c40d4d3c9a8a5cef1295a1cdd95411923cafce133432eeb6afaa15901f2aac1",
+    "ten-02/result.json": "b5e2ec78b8f87f52227f524250dde8ca734c7b2dbbbd71ecbbbef85fe6032057",
+    "ten-01/windowserver.jsonl": "709df39d3c5f58f9a35e4b7ca7d55ec6aa408bed8a2bf8ac597132c80e726000",
+    "ten-01/72AC12CE-9BF7-4B04-929B-5E3FC686D794.json": "62f18f19cdd232bdf6b56a7b07bccb41c5561aea39846e2a614743669c5212c9"
+  },
+  "historical": {
+    "trialStatus": "PASS",
+    "navigationStatus": "PASS",
+    "visualStatus": "PASS",
+    "nextCard": {
+      "axIssued": false,
+      "hostIssued": false,
+      "reason": "new input or topology changed before the next sample",
+      "status": "BLOCKED"
+    }
+  },
+  "location": {
+    "source": 5021,
+    "target": 5020,
+    "status": "PASS",
+    "reason": "one exact installed action and independently stable adjacent destination",
+    "arrivalMillisecondsAfterPress": 165.82,
+    "observations": 49,
+    "lastObservedSpace": 5020
+  },
+  "windowFocus": {
+    "status": "UNKNOWN",
+    "expected": {
+      "pid": 77006,
+      "birth": 1795179760895324,
+      "number": 50707
+    },
+    "firstTargetOwnerUptime": 253165.85616554169,
+    "firstExactUptime": null,
+    "lastExactUptime": null,
+    "firstLoss": {
+      "uptime": 253168.0678649167,
+      "secondsAfterPress": 2.377519,
+      "current": 5020,
+      "frontPID": 63480,
+      "workspaceFrontPID": null,
+      "systemFocus": null
+    },
+    "targetSamples": 34,
+    "reason": "observed target foreground owner departed before exact document retention could be proved"
+  },
+  "firstObservedTargetOwnerSecondsAfterPress": 0.165819,
+  "replayedGate": {
+    "status": "UNKNOWN",
+    "confirmedNavigations": 1,
+    "stopBeforeNextCard": true,
+    "eligibleForFifty": false
+  },
+  "evidenceLimit": "The archived watch recorded only the foreground PID. The exact focused window, the numeric next-card admission state and the cause of the later Space change are unobserved."
+}

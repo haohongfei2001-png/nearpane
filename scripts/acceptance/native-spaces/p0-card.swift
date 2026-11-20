@@ -75,8 +75,8 @@ func axFocus(_ pid: pid_t) -> UInt32? {
     let n = NPReadAXWindowNumber(value); return n > 0 ? n : nil
 }
 struct ActualFocus {
-    let pid:pid_t, element:AXUIElement?, number:UInt32?
-    var fields:Map {["pid":pid,"number":number as Any? ?? NSNull()]}
+    let pid:pid_t, element:AXUIElement?, number:UInt32?, processBirth:UInt64?
+    var fields:Map {["pid":pid,"number":number as Any? ?? NSNull(),"birth":processBirth as Any? ?? NSNull()]}
 }
 func actualFocus() -> ActualFocus? {
     let system=AXUIElementCreateSystemWide()
@@ -87,6 +87,7 @@ func actualFocus() -> ActualFocus? {
     }
     guard let app=foreground() else {return nil}
     let pid=owner(app);guard pid>1 else {return nil}
+    let born=birth(pid)
     _=AXUIElementSetMessagingTimeout(app,0.24)
     let value=prop(app,kAXFocusedWindowAttribute)
     let window:AXUIElement?
@@ -94,7 +95,7 @@ func actualFocus() -> ActualFocus? {
     else {window=nil}
     guard let again=foreground(),owner(again)==pid else {return nil}
     let n=window.map{NPReadAXWindowNumber($0)} ?? 0
-    return ActualFocus(pid:pid,element:window,number:n>0 ? n : nil)
+    return ActualFocus(pid:pid,element:window,number:n>0 ? n : nil,processBirth:born == birth(pid) ? born : nil)
 }
 func snapshot(_ detailed: Bool) throws -> Map {
     let t=try topology(),workspace=NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
@@ -419,9 +420,10 @@ func main() throws {
     guard let verb = arguments.first else {throw Refusal("missing mode")}
     switch verb {
     case "watch":
-        let end = ProcessInfo.processInfo.systemUptime + 20
+        // The read-only watcher may span the visual recorder's bounded finalization.
+        let end = ProcessInfo.processInfo.systemUptime + 40
         while ProcessInfo.processInfo.systemUptime < end {
-            do {emit(try snapshot(false))} catch {emit(["error":String(describing:error),"uptime":ProcessInfo.processInfo.systemUptime])}
+            do {emit(try snapshot(true))} catch {emit(["error":String(describing:error),"uptime":ProcessInfo.processInfo.systemUptime])}
             RunLoop.current.run(until:Date(timeIntervalSinceNow:0.06))
         }
     case "keeper":keepOwnedWindows()

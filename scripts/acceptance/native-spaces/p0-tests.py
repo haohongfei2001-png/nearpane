@@ -1,6 +1,8 @@
 """Offline regression of installed-journal correlation and fail-closed stage gates."""
 import importlib.util
 import hashlib
+import json
+import tarfile
 from pathlib import Path
 import tempfile
 import unittest
@@ -19,7 +21,8 @@ class GateTests(unittest.TestCase):
         self.rows=[dict(id=i+4,type=0,uuid=u) for i,u in enumerate(self.uuids)]
         self.top=dict(display=self.display,current=4,records=self.rows)
         self.win=dict(pid=89,birth=10011,number=77)
-        self.req=dict(topology=self.top,target=5,targetWindow=self.win,hid=[8])
+        self.source=dict(pid=72,birth=10004,number=41)
+        self.req=dict(topology=self.top,target=5,sourceWindow=self.source,targetWindow=self.win,hid=[8])
         self.ax=dict(issued=True,axError=0)
         self.intent=dict(action='select',id=self.operation,display=self.display,source='4',target='5',sourceUUID=self.uuids[0],targetUUID=self.uuids[1],window=self.win.copy(),createdAtUptime=10.1)
         self.reply=dict(id=self.operation,state='confirmed',submittedSteps=1,currentBefore={self.display:'4'},currentAfter={self.display:'5'},issuedAtUptime=10.2,confirmedAtUptime=11.3,
@@ -96,9 +99,9 @@ class GateTests(unittest.TestCase):
         self.assertEqual(runner.gate_status([dict(status='PASS')],2),'BLOCKED');self.assertEqual(runner.gate_status([dict(status='PASS'),dict(status='FAIL')],2),'FAIL')
         self.assertEqual(runner.gate_status([dict(status='PASS')]*10,10),'PASS');self.assertEqual(runner.percentile(list(range(1,51)),.95),48)
     def test_missing_physical_visual_does_not_prevent_one_round_trip_but_blocks_fifty(self):
-        first=dict(samples=[dict(status='PASS')]*2,blankScreen='UNKNOWN')
+        first=dict(samples=[dict(status='PASS',retainedTargetFocus=dict(status='PASS'))]*2,blankScreen='UNKNOWN')
         runner.evaluate_gate(first,'roundTrip',2);self.assertEqual(first['status'],'PASS')
-        ten=dict(samples=[dict(status='PASS')]*10,blankScreen='UNKNOWN')
+        ten=dict(samples=[dict(status='PASS',retainedTargetFocus=dict(status='PASS'))]*10,blankScreen='UNKNOWN')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['status']),('PASS','BLOCKED'))
     def test_actual_system_focus_overrides_a_stale_workspace_owner(self):
         held=dict(held=True,pid=89,number=77,topology=self.top,hid=[8])
@@ -127,7 +130,7 @@ class GateTests(unittest.TestCase):
         partial=dict(samples=[dict(status="UNKNOWN",navigationStatus="PASS",axIssued=True,blankScreen="UNKNOWN",reason="physical coverage gap")])
         runner.evaluate_gate(partial,"ten",10)
         self.assertEqual((partial["status"],partial["navigationConfirmed"],partial["reason"]),("UNKNOWN",1,"physical coverage gap"))
-        trip=dict(samples=[dict(status="PASS",navigationStatus="PASS",axIssued=True)]*2)
+        trip=dict(samples=[dict(status="PASS",navigationStatus="PASS",axIssued=True,retainedTargetFocus=dict(status="PASS"))]*2)
         runner.evaluate_gate(trip,"roundTrip",2);self.assertEqual(trip["status"],"PASS")
         qualified=dict(status="READY",ready=True,physicalReady=True,physicalAdmission={"sourceSpace":4,"targetSpace":5,"failed":[],
                        "physicalStreamArmed":True,"sourceFrameReadyBeforePress":True,"endpointCalibration":{"sourceEnrolled":True,"targetEnrolled":True}})
@@ -154,6 +157,112 @@ class GateTests(unittest.TestCase):
             self.assertEqual(meta['trailingIncompleteBytes'],len(b'{"partial":'));self.assertEqual(meta['sourceSHA256'],hashlib.sha256(raw).hexdigest())
             alias=Path(tmp)/'alias';alias.symlink_to(audit.stream);audit.stream=alias
             with self.assertRaises(OSError):audit.read()
+    def detailed(self, stamp, space, window):
+        return dict(uptime=stamp,topology=dict(self.top,current=space),hid=[8],frontPID=window['pid'],
+                    workspaceFrontPID=window['pid'],focusedNumber=window['number'],systemFocus=window.copy())
+
+    def test_foreground_pid_alone_or_wrong_exact_window_or_birth_never_qualifies(self):
+        rows=[self.detailed(10+i*.1,5,self.win) for i in range(25)]
+        self.assertEqual(runner.retained_target_focus(rows,self.req,10)['status'],'PASS')
+        for mismatch in ({'number':89},{'birth':111},{'pid':76}):
+            v=[*rows];v[12]=dict(v[12],systemFocus=dict(self.win,**mismatch))
+            proof=runner.retained_target_focus(v,self.req,10)
+            self.assertEqual(proof['status'],'UNKNOWN')
+            self.assertEqual(proof['firstLoss']['uptime'],v[12]['uptime'])
+        lost=[*rows];lost[3]=dict(lost[3],systemFocus=None)
+        self.assertEqual(runner.retained_target_focus(lost,self.req,10)['firstLoss']['uptime'],10.3)
+        legacy=[{k:v for k,v in s.items() if k in ('uptime','topology','frontPID','hid')} for s in rows]
+        self.assertIsNone(runner.retained_target_focus(legacy,self.req,10)['firstExactUptime'])
+        self.assertEqual(runner.retained_target_focus(legacy,self.req,10)['status'],'UNKNOWN')
+
+    def test_next_card_refusal_retains_actual_and_expected_numbers_and_never_invokes_driver(self):
+        mismatched=self.detailed(13,9,dict(pid=91,birth=345,number=881))
+        mismatched.update(hid=[30],privateTitle='excluded',systemFocus=dict(mismatched['systemFocus'],title='excluded'))
+        admission=runner.admission_sample(mismatched,self.req)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();folder=root/'ten-02'
+            with mock.patch.object(runner,'Watch',side_effect=AssertionError('refused input cannot start')), \
+                 mock.patch.object(runner,'cmd',side_effect=AssertionError('no further read needed for immediate refusal')):
+                trial=runner.attempt(root/'tool',self.req,folder,root/'journal',lambda *a,**kw:None,'ten',admission=admission)
+            recorded=json.loads((folder/'admission-before.json').read_text())
+        self.assertEqual((trial['status'],trial['navigationStatus'],trial['axIssued'],trial['hostIssued']),('BLOCKED','NOT_RUN',False,False))
+        self.assertEqual((recorded['actual']['topology']['current'],recorded['expected']['topology']['current']),(9,4))
+        self.assertEqual((recorded['actual']['hid'],recorded['expected']['hid']),([30],[8]))
+        self.assertEqual(recorded['mismatches'],['topology','hid','sourceDocumentFocus'])
+        self.assertEqual(recorded['actual']['systemFocus'],dict(pid=91,birth=345,number=881))
+        self.assertNotIn('excluded',json.dumps(recorded))
+
+    def test_read_only_watcher_spans_visual_finalization_without_extending_movie_interval(self):
+        foreign=dict(pid=92,birth=10720,number=45)
+        input_rows=[self.detailed(9.95,4,self.source)]
+        for i in range(1,36):
+            source=i<2
+            focused=self.source if source else (foreign if i==26 else self.win)
+            input_rows.append(self.detailed(10+i*.1,4 if source else 5,focused))
+
+        class FakeWatch:
+            def __init__(self):self.samples=[];self.closed=False;self.seq=iter(input_rows)
+            def __enter__(self):return self
+            def __exit__(self,*args):self.closed=True
+            def next(self):
+                row=next(self.seq);self.samples.append(row);return row
+
+        watch=FakeWatch();keeper=mock.Mock();recorder=mock.Mock()
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();folder=root/'ten-01';journal=root/'journal';journal.mkdir()
+            def call(mode,body):
+                if mode=='inspect':return dict(ready=True)
+                self.assertEqual(mode,'press')
+                runner.store(journal/(self.operation+'.json'),dict(intent=self.intent,result=self.reply))
+                return dict(issued=True,axError=0,uptime=10)
+            def finish(module,kit,path,pressed,ended,*args):
+                self.assertFalse(watch.closed)
+                self.assertLess(ended,12.6)
+                return 'PASS'
+            keeper.call.side_effect=call
+            with mock.patch.object(runner,'Watch',return_value=watch),mock.patch.object(runner,'visual_module',return_value=recorder), \
+                 mock.patch.object(runner,'physical_admission',return_value=(True,None)), \
+                 mock.patch.object(runner,'finish_visual',side_effect=finish), \
+                 mock.patch.object(runner,'cmd',return_value=self.detailed(13.03,5,self.win)):
+                trial=runner.attempt(root/'tool',self.req,folder,journal,lambda *a,**kw:None,'ten',keeper,
+                                     admission=runner.admission_sample(input_rows[0],self.req))
+            primary=[json.loads(l) for l in (folder/'windowserver.jsonl').read_text().splitlines()]
+            tail=[json.loads(l) for l in (folder/'windowserver-finalization.jsonl').read_text().splitlines()]
+        self.assertTrue(watch.closed)
+        self.assertEqual((trial['navigationStatus'],trial['blankScreen'],trial['status']),('PASS','PASS','UNKNOWN'))
+        self.assertAlmostEqual(trial['retainedTargetFocus']['firstLoss']['secondsAfterPress'],2.6)
+        self.assertLess(primary[-1]['uptime'],12.6);self.assertGreaterEqual(tail[-1]['uptime'],13.03)
+        self.assertEqual([v.args[0] for v in keeper.call.call_args_list],['inspect','press'])
+
+    def test_eighteenth_archived_trajectory_stops_after_foreground_loss(self):
+        directory=p.parents[3]/'engineering/verification/native-spaces/5.22-p0/18-late-space-change'
+        manifest=json.loads((directory/'original-receipts-manifest.json').read_text())
+        archive=directory/manifest['archive']
+        self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(),manifest['archiveSHA256'])
+        hashes={r['file']:r['sha256'] for r in manifest['files']}
+        with tarfile.open(archive,'r:gz') as tar:
+            def read(name):
+                data=tar.extractfile(name).read()
+                self.assertEqual(hashlib.sha256(data).hexdigest(),hashes[name])
+                if name.endswith('.jsonl'):return [json.loads(l) for l in data.splitlines()]
+                return json.loads(data)
+            req=read('ten-01/identity.json');ax=read('ten-01/ax-dispatch.json');samples=read('ten-01/windowserver.jsonl')
+            old=read('ten-01/result.json');name=old['hostJournalFile'];next_card=read('ten-02/result.json')
+            proof=runner.match_receipt(read('ten-01/'+name),name,req,ax['uptime'])
+        self.assertEqual((old['status'],old['navigationStatus'],old['blankScreen']),('PASS','PASS','PASS'))
+        self.assertEqual(runner.assess(samples,req,ax['uptime'],proof,ax)[0],'PASS')
+        focus=runner.retained_target_focus(samples,req,ax['uptime'])
+        self.assertEqual(focus['status'],'UNKNOWN')
+        self.assertAlmostEqual(focus['firstTargetOwnerUptime']-ax['uptime'],.16582,places=5)
+        self.assertIsNone(focus['firstExactUptime'])
+        self.assertAlmostEqual(focus['firstLoss']['secondsAfterPress'],2.37752,places=5)
+        self.assertEqual((focus['firstLoss']['current'],focus['firstLoss']['frontPID']),(req['target'],63480))
+        self.assertEqual((next_card['status'],next_card['axIssued']),('BLOCKED',False))
+        self.assertNotIn('actual',next_card)
+        stage=dict(samples=[dict(old,retainedTargetFocus=focus)])
+        runner.evaluate_gate(stage,'ten',10)
+        self.assertEqual((stage['status'],stage['navigationConfirmed']),('UNKNOWN',1))
+
     def test_visual_pass_is_bound_to_actual_frames_nonce_pair_and_press(self):
         started=dict(ready=True,nonce=self.operation)
         receipt=dict(status='PASS',nonce=self.operation,pressed=10,ended=12.1,frameLog='frames.json',source=4,target=5)
@@ -168,7 +277,7 @@ class GateTests(unittest.TestCase):
             runner.store(folder/'visual/frames.json',dict(nonce=self.operation))
             receipt['target']=4;runner.store(folder/'visual/receipt.json',receipt);self.assertEqual(check(),'UNKNOWN')
     def test_real_black_fails_without_misrepresenting_navigation(self):
-        ten=dict(samples=[dict(status='PASS',navigationStatus='PASS',blankScreen='PASS') for _ in range(10)])
+        ten=dict(samples=[dict(status='PASS',navigationStatus='PASS',blankScreen='PASS',retainedTargetFocus=dict(status='PASS')) for _ in range(10)])
         runner.evaluate_gate(ten,'ten',10);self.assertEqual(ten['status'],'PASS')
         ten['samples'][-1].update(status='FAIL',blankScreen='FAIL')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['blankScreen'],ten['status']),('PASS','FAIL','FAIL'))
