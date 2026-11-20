@@ -1,0 +1,198 @@
+{
+  "captureAttempted": false,
+  "cleanup": {
+    "fixtureExitCode": 0,
+    "forced": false,
+    "status": "PASS",
+    "windowNumbersGone": true
+  },
+  "fixture": {
+    "birth": 1795187919583488,
+    "numbers": [
+      52278,
+      52279
+    ],
+    "pid": 49042,
+    "presentation": "paired-preview"
+  },
+  "fixtureLaunched": true,
+  "geometryReads": [
+    {
+      "ordinaryCount": 2,
+      "panel": 52254,
+      "present": [
+        false,
+        false
+      ],
+      "ready": false,
+      "reason": "missingOrUnexpectedSidebarCard"
+    },
+    {
+      "ordinaryCount": 3,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 3,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 3,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 3,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 3,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 3,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 3,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    },
+    {
+      "ordinaryCount": 4,
+      "panel": 52254,
+      "ready": false,
+      "reason": "activeSpaceContainsUnexpectedMembers"
+    }
+  ],
+  "installed": {
+    "build": "90",
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "pid": 48609,
+    "source": "f50d6ac5394be994e657abd77e7fdca79a77b4bc"
+  },
+  "nativeStageManagerComparison": {
+    "latencyMs": null,
+    "status": "NOT_MEASURED"
+  },
+  "preflight": {
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "hostBirth": 1795187905023565,
+    "hostHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "hostPID": 48609,
+    "observerAX": true,
+    "observerScreen": true,
+    "ordinaryCount": 0,
+    "panel": 52254,
+    "ready": true,
+    "space": 5091,
+    "stageManager": false
+  },
+  "preflightOnly": false,
+  "reason": "activeSpaceContainsUnexpectedMembers",
+  "samples": [],
+  "scope": "two synthetic ordinary documents, same active Space, actual installed Host sidebar",
+  "status": "BLOCKED"
+}
