@@ -188,15 +188,16 @@ def calibrate(driver, stimulus, voice, attempt):
     return report
 
 
-def run(output, calibration=False):
+def run(output, calibration=False, file_readback=False):
     import installed_profile as profile  # A normal Launch Services session owned by the outer wrapper.
+    require_readback = calibration or file_readback
     phrases = (PHRASES[1], PHRASES[0]) if calibration else PHRASES
     attempts = [{"phrase": phrase, "status": "NOT_RUN"} for phrase in phrases]
     summary = {"mode": "counterbalanced diagnostic" if calibration else "three independent cold starts", "app": "/Applications/Nearpane.app", "rounds": attempts, "speech": "local Tingting, rate 165, physical speaker to microphone",
                "textComparison": "NFKC, omit spaces and punctuation only; unrelated characters masked in published readback"}
     def snapshot():
         summary["status"] = summarize(attempts)
-        if calibration:
+        if require_readback or any("calibration" in a for a in attempts):
             summary["physicalStatus"] = summary["status"]
             controls = [a.get("calibration", {}).get("status", "PENDING") for a in attempts]
             summary["calibrationState"] = ("PENDING" if "PENDING" in controls else
@@ -232,11 +233,6 @@ def run(output, calibration=False):
             subprocess.run(["/usr/bin/xcrun", "swiftc", "-parse-as-library", "-import-objc-header", str(header),
                             str(Path(__file__).with_name("r4-cold-microphone.swift")), str(observer), "-o", str(driver)],
                            check=True, timeout=90)
-            if calibration:
-                replay = temp / "file-only-calibration"
-                subprocess.run(["/usr/bin/xcrun", "swiftc", "-O", "-parse-as-library",
-                                str(Path(__file__).with_name("r4-voice-replay.swift")), "-o", str(replay)],
-                               check=True, timeout=90)
             for number, attempt in enumerate(attempts, start=1):
                 pid = None
                 try:
@@ -286,7 +282,11 @@ def run(output, calibration=False):
                         profile.quit_host(pid)
             # Finish all physical trials before initializing the independent recognizer; its Apple asset cache
             # must not warm the second live trial. Use the same, hashed PCM before the outer cleanup removes it.
-            if calibration:
+            if require_readback or any(a["status"] == "FAIL" for a in attempts):
+                replay = temp / "file-only-calibration"
+                subprocess.run(["/usr/bin/xcrun", "swiftc", "-O", "-parse-as-library",
+                                str(Path(__file__).with_name("r4-voice-replay.swift")), "-o", str(replay)],
+                               check=True, timeout=90)
                 for number, attempt in enumerate(attempts, start=1):
                     try:
                         attempt["calibration"] = calibrate(replay, temp / f"{number}.wav", voice, attempt)
@@ -304,13 +304,15 @@ def run(output, calibration=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--file-readback", action="store_true",
+                        help="analyze each existing WAV after all three physical starts; always automatic on a failed phrase")
     parser.add_argument("--calibrate", action="store_true",
                         help="two counterbalanced cold starts and file-only controls; retain the original acceptance outcomes")
     parser.add_argument("output", type=Path, help="new directory for receipts, outside the disposable home")
     args = parser.parse_args()
     os.umask(0o077)
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
-    return run(args.output.resolve(), calibration=args.calibrate)
+    return run(args.output.resolve(), calibration=args.calibrate, file_readback=args.file_readback)
 
 
 if __name__ == "__main__":
