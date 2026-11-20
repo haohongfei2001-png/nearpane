@@ -1,0 +1,49 @@
+{
+  "blankScreen": "UNKNOWN",
+  "cleanup": {
+    "errors": [
+      "automatic restoration of original current, foreground or exact focus unconfirmed"
+    ],
+    "newerHumanInput": false,
+    "originalCurrentRestored": false,
+    "originalFocusRestoration": {
+      "error": "original focus reference, topology or user input changed; preserved newer state",
+      "issued": false,
+      "ready": false
+    },
+    "originalFocusedWindowRestored": false,
+    "originalForegroundRestored": false,
+    "originalOrderAndUUIDsRestored": true,
+    "ownedAppsExited": true,
+    "ownedWindowsGone": true,
+    "status": "UNKNOWN"
+  },
+  "privateContentCaptured": false,
+  "reason": "AppKit fullscreen did not produce one new Space with both exact owned window memberships",
+  "setupRoute": "fullscreen",
+  "stages": {
+    "fifty": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "requested": 50,
+      "samples": [],
+      "status": "NOT_RUN"
+    },
+    "roundTrip": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "reason": "AppKit fullscreen did not produce one new Space with both exact owned window memberships",
+      "requested": 2,
+      "samples": [],
+      "status": "BLOCKED"
+    },
+    "ten": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "requested": 10,
+      "samples": [],
+      "status": "NOT_RUN"
+    }
+  },
+  "status": "BLOCKED"
+}

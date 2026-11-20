@@ -1,0 +1,146 @@
+{
+  "status": "CAPTURED",
+  "method": "timestamped ScreenCaptureKit sidebar samples with pre/post authorization",
+  "windowsPerRun": [
+    0,
+    2,
+    0
+  ],
+  "samples": [
+    {
+      "begin": 244263.438519458,
+      "saved": false,
+      "reason": "could not bind crop to visible installed window",
+      "end": 244263.669281416
+    },
+    {
+      "begin": 244263.745544125,
+      "saved": true,
+      "windows": [],
+      "filename": "0001.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244264.523929416
+    },
+    {
+      "begin": 244264.604047375,
+      "saved": true,
+      "windows": [],
+      "filename": "0002.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244266.576300125
+    },
+    {
+      "begin": 244266.656331166,
+      "saved": true,
+      "windows": [],
+      "filename": "0003.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244267.320870083
+    },
+    {
+      "begin": 244267.400905958,
+      "saved": true,
+      "windows": [],
+      "filename": "0004.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244268.059556583
+    },
+    {
+      "begin": 244268.139577,
+      "saved": false,
+      "reason": "could not bind crop to visible installed window",
+      "end": 244269.0054605
+    },
+    {
+      "begin": 244269.085536208,
+      "saved": true,
+      "windows": [
+        48728,
+        48729
+      ],
+      "filename": "0006.png",
+      "sha256": "704813809a30e1fc6bc2e5ecab5ab02316256f3ac6fdb7d9484d5d930eee7d8d",
+      "end": 244270.220133541
+    },
+    {
+      "begin": 244270.300242166,
+      "saved": true,
+      "windows": [
+        48728,
+        48729
+      ],
+      "filename": "0007.png",
+      "sha256": "704813809a30e1fc6bc2e5ecab5ab02316256f3ac6fdb7d9484d5d930eee7d8d",
+      "end": 244272.290922833
+    },
+    {
+      "begin": 244272.370951666,
+      "saved": true,
+      "windows": [
+        48728,
+        48729
+      ],
+      "filename": "0008.png",
+      "sha256": "704813809a30e1fc6bc2e5ecab5ab02316256f3ac6fdb7d9484d5d930eee7d8d",
+      "end": 244273.20350375
+    },
+    {
+      "begin": 244273.283532666,
+      "saved": true,
+      "windows": [
+        48728,
+        48729
+      ],
+      "filename": "0009.png",
+      "sha256": "704813809a30e1fc6bc2e5ecab5ab02316256f3ac6fdb7d9484d5d930eee7d8d",
+      "end": 244274.113223541
+    },
+    {
+      "begin": 244274.193297708,
+      "saved": false,
+      "reason": "could not bind crop to visible installed window",
+      "end": 244274.452041833
+    },
+    {
+      "begin": 244274.532097041,
+      "saved": true,
+      "windows": [],
+      "filename": "0011.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244275.539368083
+    },
+    {
+      "begin": 244275.619452083,
+      "saved": true,
+      "windows": [],
+      "filename": "0012.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244277.651294083
+    },
+    {
+      "begin": 244277.731325541,
+      "saved": true,
+      "windows": [],
+      "filename": "0013.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244278.504088625
+    },
+    {
+      "begin": 244278.5841375,
+      "saved": true,
+      "windows": [],
+      "filename": "0014.png",
+      "sha256": "abe99206008cb2e1aea2b2e779e8bfce5de026bcc3a03edd8c4802d164ae025c",
+      "end": 244279.260919916
+    }
+  ],
+  "inputFrames": 12,
+  "continuousSpaceTransition": false,
+  "tracks": {
+    "inputFrames": 12,
+    "audioTracks": 0,
+    "seconds": 14.836666666666666,
+    "videoTracks": 1
+  },
+  "sha256": "f56ea3a1b4d7ec0f267872e96dd0f3511d10dad6f5012c5f3476bec211dfd9bc"
+}

@@ -1,0 +1,155 @@
+{
+  "acknowledged": true,
+  "action": "AXPress",
+  "axError": 0,
+  "issued": true,
+  "observations": [
+    {
+      "current": 4975,
+      "uptime": 243914.16864479167
+    },
+    {
+      "current": 4976,
+      "uptime": 243914.258552
+    }
+  ],
+  "overviewComposite": {
+    "newSinceOverview": true,
+    "number": 48581,
+    "otherOrdinary": 0,
+    "owner": "com.apple.WindowManager",
+    "pid": 647
+  },
+  "overviewDismissed": true,
+  "overviewDock": {
+    "appleSignature": true,
+    "birth": 1794786957587871,
+    "executable": "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock",
+    "pid": 697
+  },
+  "setupOnly": true,
+  "targetConfirmedBeforeOwnedOverviewClosed": true,
+  "tile": {
+    "advertisedPress": true,
+    "completeList": true,
+    "dockPID": 697,
+    "equalPositiveHit": true,
+    "equalTargetProxy": true,
+    "equalUniqueGeometry": false,
+    "id": 4976,
+    "index": 4,
+    "insideDockRoot": false,
+    "left": {
+      "actionRead": true,
+      "actions": [
+        "AXPress",
+        "AXRemoveDesktop"
+      ],
+      "boundToContainer": true,
+      "boundToList": true,
+      "boundToStrip": true,
+      "enabled": true,
+      "hitPoint": [
+        1184,
+        36
+      ],
+      "listCount": 5,
+      "listRect": [
+        0,
+        0,
+        1470,
+        72
+      ],
+      "ownerBirth": 1794786957077193,
+      "ownerPID": 647,
+      "parentChain": [
+        {
+          "role": "AXButton",
+          "systemIdentifier": ""
+        },
+        {
+          "role": "AXList",
+          "systemIdentifier": "mc.spaces.list"
+        },
+        {
+          "role": "AXGroup",
+          "systemIdentifier": "mc.spaces"
+        },
+        {
+          "role": "AXGroup",
+          "systemIdentifier": "mc.display"
+        },
+        {
+          "role": "AXApplication",
+          "systemIdentifier": ""
+        }
+      ],
+      "rect": [
+        1047,
+        -0.5,
+        168.38912133891213,
+        129
+      ],
+      "role": "AXButton",
+      "uniqueTargetRect": false
+    },
+    "right": {
+      "actionRead": true,
+      "actions": [
+        "AXPress",
+        "AXRemoveDesktop"
+      ],
+      "boundToContainer": true,
+      "boundToList": true,
+      "boundToStrip": true,
+      "enabled": true,
+      "hitPoint": [
+        1184,
+        36
+      ],
+      "listCount": 5,
+      "listRect": [
+        0,
+        0,
+        1470,
+        72
+      ],
+      "ownerBirth": 1794786957077193,
+      "ownerPID": 647,
+      "parentChain": [
+        {
+          "role": "AXButton",
+          "systemIdentifier": ""
+        },
+        {
+          "role": "AXList",
+          "systemIdentifier": "mc.spaces.list"
+        },
+        {
+          "role": "AXGroup",
+          "systemIdentifier": "mc.spaces"
+        },
+        {
+          "role": "AXGroup",
+          "systemIdentifier": "mc.display"
+        },
+        {
+          "role": "AXApplication",
+          "systemIdentifier": ""
+        }
+      ],
+      "rect": [
+        1047,
+        -0.5,
+        168.38912133891213,
+        129
+      ],
+      "role": "AXButton",
+      "uniqueTargetRect": false
+    },
+    "sameOwner": true,
+    "sameTarget": true,
+    "trustedOwner": true,
+    "uuid": "D8A67979-5068-19A6-F936-5CA4E91CED1A"
+  }
+}
