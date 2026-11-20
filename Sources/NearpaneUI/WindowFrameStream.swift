@@ -89,6 +89,14 @@ import os
         return Int32(refresh > 0 ? min(60, refresh) : 30)
     }
 
+    static func sRGBConfiguration() -> SCStreamConfiguration {
+        let config = SCStreamConfiguration()
+        // Keep the captured BGRA bytes in the same color space VideoToolbox uses for untagged RGB.
+        config.pixelFormat = kCVPixelFormatType_32BGRA
+        config.colorSpaceName = CGColorSpace.sRGB
+        return config
+    }
+
     init?(window: SCWindow, target: DesktopWindowTarget) {
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let size = filter.contentRect.size
@@ -97,12 +105,11 @@ import os
               window.frame.width > 0, window.frame.height > 0 else { return nil }
         logicalSize = size
         let scale = min(1, Self.longestEdge / max(size.width, size.height))
-        let config = SCStreamConfiguration()
+        let config = Self.sRGBConfiguration()
         config.width = max(1, Int((size.width * scale).rounded()))
         config.height = max(1, Int((size.height * scale).rounded()))
         config.minimumFrameInterval = CMTime(value: 1, timescale: Self.rate(on: target.display))
         config.queueDepth = 3
-        config.pixelFormat = kCVPixelFormatType_32BGRA
         config.showsCursor = false
         config.capturesAudio = false
         config.ignoreShadowsSingleWindow = true

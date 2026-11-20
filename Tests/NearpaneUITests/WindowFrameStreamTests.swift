@@ -6,11 +6,12 @@ import Observation
 import os
 @preconcurrency import ScreenCaptureKit
 @testable import NearpaneUI
+import SwiftUI
 import Testing
 
 @MainActor struct WindowFrameStreamTests {
     // Synthetic pixels exercise the native sample handoff without enumerating or capturing the user's windows.
-    private func sample(_ byte: UInt8) throws -> CMSampleBuffer {
+    private func sample(_ blue: UInt8, green: UInt8 = 0, red: UInt8 = 0, colorSpace: CGColorSpace? = nil) throws -> CMSampleBuffer {
         var storage: CVPixelBuffer?
         #expect(CVPixelBufferCreate(nil, 4, 4, kCVPixelFormatType_32BGRA,
             [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary, &storage) == kCVReturnSuccess)
@@ -20,10 +21,11 @@ import Testing
         for y in 0..<4 {
             let row = base.advanced(by: y * CVPixelBufferGetBytesPerRow(pixel)).assumingMemoryBound(to: UInt8.self)
             for x in 0..<4 {
-                row[x * 4] = byte; row[x * 4 + 1] = 0; row[x * 4 + 2] = 0; row[x * 4 + 3] = 255
+                row[x * 4] = blue; row[x * 4 + 1] = green; row[x * 4 + 2] = red; row[x * 4 + 3] = 255
             }
         }
         CVPixelBufferUnlockBaseAddress(pixel, [])
+        if let colorSpace { CVBufferSetAttachment(pixel, kCVImageBufferCGColorSpaceKey, colorSpace, .shouldPropagate) }
         var desc: CMVideoFormatDescription?
         #expect(CMVideoFormatDescriptionCreateForImageBuffer(allocator: nil, imageBuffer: pixel, formatDescriptionOut: &desc) == noErr)
         var out: CMSampleBuffer?
@@ -32,6 +34,32 @@ import Testing
         #expect(CMSampleBufferCreateReadyWithImageBuffer(allocator: nil, imageBuffer: pixel, formatDescription: try #require(desc),
                 sampleTiming: &timing, sampleBufferOut: &out) == noErr)
         return try #require(out)
+    }
+
+    @Test func requestedColorSpaceSurvivesVideoToolboxAndTheProductionCard() throws {
+        let config = WindowFrameStream.sRGBConfiguration()
+        #expect(config.pixelFormat == kCVPixelFormatType_32BGRA)
+        #expect(config.colorSpaceName == CGColorSpace.sRGB)
+        let requested = try #require(CGColorSpace(name: config.colorSpaceName))
+        // Exercise both the explicit CV attachment and VideoToolbox's fallback for this BGRA contract.
+        for tag in [requested, nil] {
+            let green = try sample(66, green: 186, red: 53, colorSpace: tag)
+            let image = try #require(WindowFrameStream.Frame(sample: green, received: 1, epoch: 0).image())
+            #expect(image.colorSpace?.name == CGColorSpace.sRGB)
+            let card = DesktopWindowCard(label: "Field Notes", icon: nil, image: image,
+                pictureSize: CGSize(width: 32, height: 32), borderWidth: 0).frame(width: 32)
+            let renderer = ImageRenderer(content: card)
+            renderer.scale = 1
+            let rendered = try #require(renderer.cgImage)
+            let center = try #require(rendered.cropping(to: CGRect(x: 15, y: 15, width: 1, height: 1)))
+            var rgba = [UInt8](repeating: 0, count: 4)
+            try rgba.withUnsafeMutableBytes { bytes in
+                let context = try #require(CGContext(data: bytes.baseAddress, width: 1, height: 1, bitsPerComponent: 8,
+                    bytesPerRow: 4, space: requested, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+                context.draw(center, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+            }
+            #expect(rgba == [53, 186, 66, 255])
+        }
     }
 
     @Test func twoStableWindowFiltersDeliverDistinctLatestFramesAndBlankInvalidatesOnlyItsOwner() async throws {
