@@ -220,6 +220,39 @@ struct Tiles {
         return points[Int(CGFloat(points.count-1)*fraction)]
     }
 }
+func tileBodyRole(_ p: CGPoint, tile: AXUIElement, owner: pid_t) -> String? {
+    var candidate: AXUIElement?
+    guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),Float(p.x),Float(p.y),&candidate) == .success,
+          let candidate, belongs(candidate,to:tile,owner:owner),let role=attr(candidate,kAXRoleAttribute) as? String else {return nil}
+    if CFEqual(candidate,tile),role==kAXButtonRole {return "desktop button"}
+    if role==kAXImageRole, let parent=attr(candidate,kAXParentAttribute),CFEqual(parent,tile) {return "desktop image"}
+    return nil
+}
+
+func expandedBody(_ tiles: Tiles, index: Int) throws -> (CGPoint,String,CGRect) {
+    let tile=tiles.elements[index], owner=tiles.bar.owner.processIdentifier
+    guard tiles.listFrame.height>=48 else {throw Refusal("signed Space strip still exposes compact titles")}
+    if let f=frame(tile),tiles.listFrame.contains(f),f.width>=44,f.height>=40 {
+        // The central/lower interior excludes the close button and the caption.
+        for yf: CGFloat in [0.53,0.61,0.45] {
+            for xf: CGFloat in [0.5,0.42,0.58] {
+                let p=CGPoint(x:f.minX+f.width*xf,y:f.minY+f.height*yf)
+                if let role=tileBodyRole(p,tile:tile,owner:owner) {return (p,role,f)}
+            }
+        }
+    }
+    // A zero-sized tile needs two separated vertical hits on this same non-text
+    // button/image inside the expanded strip before it can receive a real click.
+    let p=try tiles.point(index,fraction:0.5)
+    let x=p.x
+    for yf: CGFloat in [0.50,0.58,0.43] {
+        let middle=CGPoint(x:x,y:tiles.listFrame.minY+tiles.listFrame.height*yf)
+        let other=CGPoint(x:x,y:middle.y+12)
+        if let role=tileBodyRole(middle,tile:tile,owner:owner),tiles.listFrame.contains(other),
+           tileBodyRole(other,tile:tile,owner:owner) != nil {return (middle,role,tiles.listFrame)}
+    }
+    throw Refusal("signed overview exposes no independently hit-tested thumbnail body")
+}
 func sendMouse(_ event: CGEventType, _ p: CGPoint) throws {
     guard let e = CGEvent(mouseEventSource: nil, mouseType:event, mouseCursorPosition:p, mouseButton:.left) else { throw Refusal("cannot emit system drag") }
     e.post(tap:.cgSessionEventTap)
@@ -307,8 +340,11 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
     try guardState(r,stage:"before-opening-overview")
     try runOverviewLauncher()
     var ownedOverview: AXUIElement?
+    var pointerBeforeHover: CGPoint?, hovered: CGPoint?
     defer {
         if let ownedOverview {finishOverview(ownedOverview,request:r,proof:&proof)}
+        if let p=pointerBeforeHover,let h=hovered,let current=CGEvent(source:nil)?.location,
+           hypot(current.x-h.x,current.y-h.y)<5,hardware()==r.hid {CGWarpMouseCursorPosition(p)}
     }
     var tiles: Tiles?
     let deadline = ProcessInfo.processInfo.systemUptime + 3.5
@@ -355,11 +391,35 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         // overview. Use one mouse click whose exact signed accessibility hit still
         // names the enrolled tile. Target selection is independently read afterwards.
         guard CGPreflightPostEventAccess() else {throw Refusal("event access unavailable for system tile selection")}
-        let point=try second.point(index,fraction:0.5)
+        let provisional=try second.point(index,fraction:0.5)
+        let before=CGEvent(source:nil)?.location
+        guard hit(provisional,second.elements[index],second.bar.owner.processIdentifier),let before else {throw Refusal("signed tile hover is unavailable")}
+        pointerBeforeHover=before;hovered=provisional
+        proof["compactOrExpandedStripHeightBeforeHover"]=second.listFrame.height
+        CGWarpMouseCursorPosition(provisional)
+        try sendMouse(.mouseMoved,provisional)
+        var body:(CGPoint,String,CGRect)?, detail="expanded Space thumbnail did not settle"
+        var settledBody=false
+        let hoverDeadline=ProcessInfo.processInfo.systemUptime+2.2
+        repeat {
+            usleep(100_000)
+            do {
+                let updated=try Tiles(r,uuid)
+                guard CFEqual(second.elements[index],updated.elements[index]) && updated.bar.owner.processIdentifier==second.bar.owner.processIdentifier else {
+                    throw Refusal("enrolled system tile changed while expanding thumbnails")
+                }
+                let candidate=try expandedBody(updated,index:index)
+                if let previous=body,previous.0==candidate.0,previous.2==candidate.2 {body=candidate;settledBody=true;break}
+                body=candidate
+            } catch let err as Refusal {body=nil;detail=err.reason}
+        } while ProcessInfo.processInfo.systemUptime<hoverDeadline
+        guard settledBody,let (point,role,thumb)=body else {throw Refusal(detail)}
         overviewCurrent=try guardState(r,stage:"before-system-tile-click",expected:overviewCurrent,
                                        admitFullscreenOverview:overviewCurrent==r.current)
-        guard hit(point,second.elements[index],second.bar.owner.processIdentifier) else {throw Refusal("system tile hit changed")}
-        let pointer=CGEvent(source:nil)?.location
+        guard tileBodyRole(point,tile:second.elements[index],owner:second.bar.owner.processIdentifier)==role else {throw Refusal("system tile body changed")}
+        proof["tileHit"]=["index":index,"role":role,"point":[point.x,point.y],
+                          "bodyOrStrip":[thumb.minX,thumb.minY,thumb.width,thumb.height]]
+        hovered=point
         issued=true
         guard let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:point,mouseButton:.left),
               let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:point,mouseButton:.left) else {
@@ -369,7 +429,6 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         up.setIntegerValueField(.mouseEventClickState,value:1)
         down.post(tap:.cgSessionEventTap);usleep(70_000);up.post(tap:.cgSessionEventTap)
         usleep(60_000)
-        if let pointer,hardware()==r.hid {CGWarpMouseCursorPosition(pointer)}
         proof["systemSelection"]="hit-tested desktop tile click"
         proof["windowServerConfirmedBeforeClose"]=witnessSystemAction(r)
         return
@@ -408,7 +467,8 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
             FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject:proof)+Data([10]))
         } catch {
             let detail=(error as? Refusal)?.reason ?? String(describing:error)
-            let data=try! JSONSerialization.data(withJSONObject:["acknowledged":false,"issued":issued,"reason":detail])
+            proof["acknowledged"]=false;proof["issued"]=issued;proof["reason"]=detail
+            let data=try! JSONSerialization.data(withJSONObject:proof)
             FileHandle.standardOutput.write(data+Data([10]));exit(2)
         }
     }

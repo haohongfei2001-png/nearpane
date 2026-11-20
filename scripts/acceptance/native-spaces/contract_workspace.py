@@ -366,10 +366,15 @@ if __name__ == "__main__":
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kit",required=True,type=Path)
     parser.add_argument("output",type=Path)
+    selection=parser.add_mutually_exclusive_group()
+    selection.add_argument("--select-new",action="store_true",help="test one newly created desktop tile before cleanup")
+    selection.add_argument("--select-owned",type=int,help="select an existing created desktop once, then clean its run")
     parser.add_argument("--previous-archive",type=Path)
     parser.add_argument("--install-receipt",type=Path)
     parser.add_argument("--cleanup",action="store_true",help="reconcile a saved run instead of creating a test desktop")
     args=parser.parse_args()
+    if args.select_owned is not None and not args.cleanup:parser.error("--select-owned requires --cleanup and the original run directory")
+    if args.select_new and args.cleanup:parser.error("--select-new requires a fresh run directory")
     os.umask(0o077)
     if not args.cleanup:args.output.mkdir(mode=0o700,parents=True,exist_ok=False)
     with (args.output/"workspace-actions.jsonl").open("a") as stream:
@@ -383,7 +388,23 @@ if __name__ == "__main__":
             event("workspace-refused",status="BLOCKED",reason=str(error),systemInputs=0)
             raise
         try:
-            if not args.cleanup:work.create()
+            target=None
+            if not args.cleanup:
+                created=work.create()
+                if args.select_new:target=created
+            elif args.select_owned is not None:
+                target=args.select_owned
+                require(target in work.ids(),"system selection requested for an inactive or unowned lease")
+                ledger=next(p for p in work.ledgers if int(json.loads(private_file(p))["target"])==target)
+                pending=ledger.with_name("remove-intent.json")
+                if pending.exists():
+                    op=str(uuid.UUID(json.loads(private_file(pending))["operation"]))
+                    reply=ledger.with_name("remove-reply-"+op+".json")
+                    require(reply.exists() and json.loads(private_file(reply)).get("issued") is False,
+                            "pending removal prevents selection of this desktop")
+            if target is not None:
+                sample=work.select(target)
+                event("witnessed-system-selection",target=target,actual=row(sample)["current"])
         finally:
             receipt=work.cleanup()
             event("workspace-cleanup",**receipt)
