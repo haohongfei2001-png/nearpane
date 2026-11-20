@@ -40,12 +40,13 @@ private func hardware() -> [UInt32] {
      .leftMouseDragged, .rightMouseDragged, .otherMouseDragged].map { CGEventSource.counterForEventType(.hidSystemState, eventType: $0) }
 }
 
-private func pairIntact(_ p: Pair) -> Bool {
-    hardware() == p.hid && [p.sourceWindow, p.targetWindow].allSatisfy { w in
-        guard birth(w.pid) == w.birth else { return false }
-        var path = [CChar](repeating: 0, count: 4096)
-        return proc_pidpath(w.pid, &path, UInt32(path.count)) > 0 && String(cString: path) == w.executable
-    }
+private func exactGeneration(_ w:Window)->Bool {
+    guard birth(w.pid)==w.birth else {return false}
+    var path=[CChar](repeating:0,count:4096)
+    return proc_pidpath(w.pid,&path,UInt32(path.count))>0 && String(cString:path)==w.executable
+}
+private func pairIntact(_ p:Pair)->Bool {
+    hardware()==p.hid && exactGeneration(p.sourceWindow) && exactGeneration(p.targetWindow)
 }
 
 // This is an independent metadata read after a callback. ScreenCaptureKit does not provide
@@ -273,62 +274,148 @@ private func probeConfiguration(_ r: CGRect, _ display: SCDisplay, _ hz: Int) ->
     return c
 }
 
-// Independent display-mode stream. The only emitted pixel information is a quantized
-// mean from a prequalified 24-point rectangle; this stream never writes video or an image.
-private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
-    let pair: Pair, crop: CGRect, screen: NSScreen, endpoints: [String: Endpoint]
-    private(set) var rows = [JSON](), failed = false
-    private var scale = mach_timebase_info_data_t()
-    init(_ pair: Pair, _ crop: CGRect, _ screen: NSScreen, _ endpoints: [String: Endpoint]) {
-        self.pair = pair; self.crop = crop; self.screen = screen; self.endpoints = endpoints
-        super.init(); mach_timebase_info(&scale)
+// Read the actual compositor ordering and current Space independently of ScreenCaptureKit delivery.
+// Only the two verified fixture IDs or strongly authenticated system wallpaper may be named in a proof.
+private struct SurfaceReading {
+    let start:Double, end:Double, space:UInt64?, visible:String?, reason:String, bound:Bool
+    var receipt:JSON {["from":start,"to":end,"sameDisplayAndInput":bound,"space":space as Any? ?? NSNull(),"visible":visible as Any? ?? NSNull(),"reason":reason]}
+}
+
+private final class PresentationSurfaces: @unchecked Sendable {
+    let pair:Pair, crop:CGRect, screen:NSScreen, endpoints:[String:Endpoint]
+    private let queue=DispatchQueue(label:"nearpane.acceptance.presentation-surfaces",qos:.userInteractive)
+    private let lock=NSLock()
+    private var history=[SurfaceReading](), timer:DispatchSourceTimer?
+    init(_ p:Pair,_ crop:CGRect,_ screen:NSScreen,_ endpoints:[String:Endpoint]) {
+        pair=p;self.crop=crop;self.screen=screen;self.endpoints=endpoints
     }
-    func stream(_ stream: SCStream, didStopWithError error: Error) { DispatchQueue.main.async { self.failed = true } }
-    func stream(_ stream: SCStream, didOutputSampleBuffer sample: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .screen, rows.count < 6_000 else { return }
-        let received=uptime()
-        let info = (CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]])?.first
-        let ticks = (info?[.displayTime] as? NSNumber)?.uint64Value ?? 0
-        let time = Double(ticks) * Double(scale.numer) / Double(scale.denom) / 1e9
-        let status = info?[.status] as? Int ?? -1
-        let space = inventory(pair).0
-        var row:JSON=["origin":"sck-display","displayTime":time,"presentationMachTicks":ticks,"callback":received,
-                      "status":status,"space":space as Any? ?? NSNull(),"safe":false]
-        defer {row["metadataThrough"]=uptime();rows.append(row)}
-        guard pairIntact(pair) else {row["blockedBy"]="fixtureGenerationOrHumanInput";return}
-        guard let space,let expected=endpoints[String(space)] else {row["blockedBy"]="spaceOrTopology";return}
-        guard wallpaper(screen)==expected.wallpaper else {row["blockedBy"]="wallpaperChanged";return}
-        let surface=probeSurface(crop,pair)
-        guard let visible=surface.value else {row["blockedBy"]=surface.category;return}
-        var color:[Int]?,legacy:[Int]?
-        if status == SCFrameStatus.complete.rawValue || status == SCFrameStatus.started.rawValue,
-           let pix = CMSampleBufferGetImageBuffer(sample), CVPixelBufferGetWidth(pix) == 4, CVPixelBufferGetHeight(pix) == 4,
-           CVPixelBufferGetPixelFormatType(pix) == kCVPixelFormatType_32BGRA {
-            guard let opaque=directColor(pix) else {row["blockedBy"]="nonopaqueOrUnreadableNativeCrop";return}
-            legacy=opaque
-            var image:CGImage?
-            if VTCreateCGImageFromCVPixelBuffer(pix,options:nil,imageOut:&image)==noErr,let image,image.width==4,image.height==4 {
-                color=rgb(image)
+    func start() {
+        let source=DispatchSource.makeTimerSource(queue:queue)
+        source.setEventHandler { [weak self] in self?.sample() }
+        source.schedule(deadline:.now(),repeating:.milliseconds(5),leeway:.microseconds(350))
+        timer=source;source.resume()
+    }
+    func stop() {timer?.cancel();timer=nil;queue.sync{}}
+    private func sample() {
+        let start=uptime()
+        var sid:UInt64?,label:String?,reason="fixtureGenerationOrHumanInput"
+        defer {
+            let bound=sid != nil && pairIntact(pair)
+            let row=SurfaceReading(start:start,end:uptime(),space:sid,visible:bound ? label:nil,reason:bound ? reason:"fixtureInputOrDisplayChanged",bound:bound)
+            lock.withLock {
+                // The whole recorder is capped at 25s. Keep more than the frame-delivery window without per-frame reallocations.
+                if history.count>=1024 {history.removeFirst(512)}
+                history.append(row)
             }
         }
-        guard inventory(pair).0==space,layerAtProbe(crop,pair)==visible,pairIntact(pair) else {row["blockedBy"]="surfaceChangedDuringRead";return}
-        row["safe"] = true
-        row["visible"] = visible == pair.sourceWindow.number ? "source" : (visible == pair.targetWindow.number ? "target" : "appleWallpaper")
-        if let color {
-            if visible==pair.targetWindow.number || visible==pair.sourceWindow.number {
+        guard pairIntact(pair) else {return}
+        guard let current=inventory(pair).0,let endpoint=endpoints[String(current)] else {reason="spaceOrTopology";return}
+        sid=current
+        let layer=probeSurface(crop,pair)
+        guard let number=layer.value else {reason=layer.category;return}
+        if number==pair.sourceWindow.number {label="source";reason="exactOpaqueFixture"}
+        else if number==pair.targetWindow.number {label="target";reason="exactOpaqueFixture"}
+        else if number==0 && wallpaper(screen)==endpoint.wallpaper {label="appleWallpaper";reason="verifiedSealedWallpaper"}
+        else {reason="wallpaperChanged";return}
+    }
+    func observations(_ time:Double)->(SurfaceReading?,[SurfaceReading]) {
+        lock.withLock {
+            var low=0,high=history.count
+            while low<high {
+                let mid=(low+high)/2
+                if history[mid].start<time {low=mid+1} else {high=mid}
+            }
+            let span=(low>0 && history[low-1].end>=time) ? history[low-1]:nil
+            return(span,Array(history[low..<min(history.count,low+2)].filter{$0.start<=time+0.050}))
+        }
+    }
+}
+
+// This single physical SCStream persists no image. Its callback records the WindowServer presentation and
+// hands the OS-owned buffer to a bounded observer. Pixel interpretation occurs only after scoped metadata.
+private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
+    let pair:Pair, endpoints:[String:Endpoint], surfaces:PresentationSurfaces
+    let queue=DispatchQueue(label:"nearpane.acceptance.physical-presentations",qos:.userInteractive)
+    private var records=[JSON?](),unresolved=[Int:JSON](),error=false
+    private var scale=mach_timebase_info_data_t()
+    var rows:[JSON] {queue.sync{Array(records.prefix(while:{$0 != nil}).compactMap{$0})}}
+    var failed:Bool {queue.sync{error}}
+    var timebase:JSON {["numerator":scale.numer,"denominator":scale.denom]}
+    init(_ p:Pair,_ crop:CGRect,_ screen:NSScreen,_ endpoints:[String:Endpoint]) {
+        pair=p;self.endpoints=endpoints;surfaces=PresentationSurfaces(p,crop,screen,endpoints)
+        super.init();mach_timebase_info(&scale)
+    }
+    func stream(_ stream:SCStream,didStopWithError error:Error) {queue.async{self.error=true}}
+    func stream(_ stream:SCStream,didOutputSampleBuffer sample:CMSampleBuffer,of type:SCStreamOutputType) {
+        guard type == .screen else {return}
+        guard records.count<6000 else {error=true;return}
+        let received=uptime(),index=records.count
+        let info=(CMSampleBufferGetSampleAttachmentsArray(sample,createIfNecessary:false) as? [[SCStreamFrameInfo:Any]])?.first
+        let ticks=(info?[.displayTime] as? NSNumber)?.uint64Value ?? 0
+        let t=Double(ticks)*Double(scale.numer)/Double(scale.denom)/1e9
+        let status=info?[.status] as? Int ?? -1
+        let base:JSON=["origin":"sck-display","displayTime":t,"presentationMachTicks":ticks,"callback":received,"status":status,"safe":false]
+        records.append(nil)
+        guard ticks>0 && t-received<=0.050 else {
+            records[index]=base.merging(["blockedBy":"missingOrInvalidPresentationTime"]){_,new in new};return
+        }
+        let complete=status==SCFrameStatus.complete.rawValue || status==SCFrameStatus.started.rawValue
+        // Retain the OS buffer only until the first two actual post-presentation reads (maximum 50ms).
+        let pixel=complete ? CMSampleBufferGetImageBuffer(sample):nil
+        unresolved[index]=base
+        schedule(index,base,t,pixel,first:true)
+    }
+    private func schedule(_ index:Int,_ base:JSON,_ t:Double,_ pixel:CVPixelBuffer?,first:Bool) {
+        let deadline=t+(first ? 0.018:0.050)
+        queue.asyncAfter(deadline:.now()+max(0,deadline-uptime())){[self] in
+            let (spanning,post)=surfaces.observations(t)
+            if post.count<2,first,uptime()<t+0.050 {schedule(index,base,t,pixel,first:false);return}
+            var row=base
+            row["postPresentationSurfaces"]=post.map(\.receipt)
+            if let spanning {row["spanningSurface"]=spanning.receipt}
+            row["metadataThrough"]=post.last?.end ?? uptime()
+            defer {records[index]=row;unresolved.removeValue(forKey:index)}
+            guard post.count==2 else {row["blockedBy"]="twoActualPostPresentationReadsUnavailable";return}
+            let a=post[0],b=post[1]
+            guard a.start>=t,a.start<=a.end,a.end<=b.start,b.start<=b.end,b.end-t<=0.050 else {row["blockedBy"]="postPresentationReadExceeded50ms";return}
+            if base["status"] as? Int==SCFrameStatus.blank.rawValue,a.bound,b.bound,let space=a.space,space==b.space,
+               spanning.map({$0.bound && $0.space==space}) ?? true {
+                // Apple's explicit display-blank status contains no image; the signed display and issued pair can be
+                // proved independently even when a blank screen has no visible foreground surface to attribute.
+                row["blankDisplayBound"]=true;row["space"]=space
+            }
+            guard a.bound,b.bound,let space=a.space,let visible=a.visible,space==b.space,visible==b.visible else {row["blockedBy"]="twoPostPresentationSurfacesDisagree";return}
+            if let spanning,spanning.visible != visible || spanning.space != space {
+                row["blockedBy"]="surfaceChangedAcrossPresentation";return
+            }
+            row["space"]=space;row["visible"]=visible;row["safe"]=true
+            guard let pixel else {return}
+            guard CVPixelBufferGetWidth(pixel)==4,CVPixelBufferGetHeight(pixel)==4,CVPixelBufferGetPixelFormatType(pixel)==kCVPixelFormatType_32BGRA,
+                  let raw=directColor(pixel) else {row["blockedBy"]="nonopaqueOrUnreadableNativeCrop";row["safe"]=false;return}
+            var image:CGImage?
+            guard VTCreateCGImageFromCVPixelBuffer(pixel,options:nil,imageOut:&image)==noErr,let image,image.width==4,image.height==4,
+                  let color=rgb(image) else {row["blockedBy"]="nativeSRGBCropUnavailable";row["safe"]=false;return}
+            if visible=="source" || visible=="target" {
                 row["colorPipeline"]="sRGB CGImage for stream and reference"
                 row["sourceColorMaxDeltaBand"]=colorBand(color,endpoints[String(pair.topology.current)]?.rgb)
                 row["targetColorMaxDeltaBand"]=colorBand(color,endpoints[String(pair.target)]?.rgb)
-                if let legacy {row["directBGRAAgreesWithSRGB"]=comparison(legacy,color)}
+                row["directBGRAAgreesWithSRGB"]=comparison(raw,color)
             }
-            row["lit"] = (color.max() ?? 0) > 24
-            row["matchesSource"] = comparison(color, endpoints[String(pair.topology.current)]?.rgb)
-            row["matchesTarget"] = comparison(color, endpoints[String(pair.target)]?.rgb)
+            row["lit"]=(color.max() ?? 0)>24
+            row["matchesSource"]=comparison(color,endpoints[String(pair.topology.current)]?.rgb)
+            row["matchesTarget"]=comparison(color,endpoints[String(pair.target)]?.rgb)
         }
     }
-    private func comparison(_ sample: [Int], _ expected: [Int]?) -> Bool {
-        guard let expected, expected.count == 3 else { return false }
-        return zip(sample, expected).allSatisfy { abs($0 - $1) <= 30 }
+    func finish() async {
+        // Deliver queued native samples and their actual follow-up observations. Keep any incomplete record explicit.
+        queue.sync{}
+        try? await Task.sleep(for:.milliseconds(105))
+        surfaces.stop()
+        queue.sync {for i in records.indices where records[i]==nil {records[i]=(unresolved[i] ?? [:]).merging(["blockedBy":"recorderStoppedBeforePresentationProof"]){_,new in new}}}
+    }
+    private func comparison(_ sample:[Int],_ expected:[Int]?)->Bool {
+        guard let expected,expected.count==3 else {return false}
+        return zip(sample,expected).allSatisfy{abs($0-$1)<=30}
     }
 }
 
@@ -506,11 +593,43 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
     @MainActor private static func verifyTarget(_ p:Pair,display:SCDisplay,screen:NSScreen,crop:CGRect,hz:Int,endpoint:Endpoint,
                                                  stream:SCStream,probe:DisplayProbe,end:End) async -> JSON {
         var result:JSON=["eligible":false,"sameStream":true,"independentTargetAndDisplayAgree":false,"linkedToNativeTarget":false]
-        func safe()->Bool {
-            pairIntact(p) && inventory(p).0==p.target && wallpaper(screen)==endpoint.wallpaper && layerAtProbe(crop,p)==p.targetWindow.number
+        var observations=[JSON]()
+        func check(_ stage:String)->(Bool,Bool) {
+            let start=uptime(),current=inventory(p).0,layer=probeSurface(crop,p)
+            let flags=["sameHumanInput":hardware()==p.hid,"sourceGeneration":exactGeneration(p.sourceWindow),
+                       "targetGeneration":exactGeneration(p.targetWindow),"sameTargetSpace":current==p.target,
+                       "sameSealedWallpaper":wallpaper(screen)==endpoint.wallpaper,"foremostExactTarget":layer.value==p.targetWindow.number]
+            let failures=flags.filter{!$0.value}.keys.sorted()
+            observations.append(["stage":stage,"from":start,"to":uptime(),"checks":flags,"failed":failures,
+                  "space":current==p.target ? "target":(current==p.topology.current ? "source":"unbound"),"surface":layer.category])
+            // Retrying a metadata query leaves all pixels and user input alone. Never re-admit a known foreign window, HID or Space.
+            let transient=failures==["foremostExactTarget"] && ["signedSystemWallpaper","signedSystemBackdrop","WindowManagerSurfaceMayContainUserPixels",
+                "unqualifiedSystemLayer","noSystemLayerList","noPositivePhysicalLayer"].contains(layer.category)
+            return(failures.isEmpty,transient)
         }
         do {
-            guard end.allowMovie,end.pressed>0,end.ended>end.pressed,safe(),cleanDesktops(p) else {throw Failure("target space, owner, source file or crop changed")}
+            result["endRequest"]=["callerConfirmed":end.allowMovie,"positivePress":end.pressed>0,"independentEndAfterPress":end.ended>end.pressed]
+            guard end.allowMovie,end.pressed>0,end.ended>end.pressed else {throw Failure("independent caller did not bind an issued interval")}
+            var cleanReads=0
+            let limit=uptime()+0.65
+            for index in 0..<8 {
+                let (scoped,transient)=check("terminal-admission-\(index+1)")
+                if !scoped && !transient {throw Failure("terminal target foreground, bound process, wallpaper or physical input changed")}
+                if scoped {
+                    let census=desktopCensus(p)
+                    observations[observations.count-1]["membership"]=census.1
+                    observations[observations.count-1]["censusQualified"]=census.0
+                    if [census.1["source"],census.1["target"]].contains(where:{part in
+                        guard let facts=part as? JSON,let n=facts["ordinaryCount"] as? Int,let exact=facts["exactFixtureCount"] as? Int else {return false}
+                        return n>exact
+                    }) {throw Failure("terminal census found a different ordinary window")}
+                    cleanReads=census.0 ? cleanReads+1:0
+                } else {cleanReads=0}
+                if cleanReads==2 {break}
+                guard uptime()<limit,index<7 else {throw Failure("two consecutive clean foreground and desktop censuses were not observed within 650 ms")}
+                try await Task.sleep(for:.milliseconds(35))
+            }
+            result["confirmedConsecutiveCensuses"]=cleanReads
             let current=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:false)
             guard let freshDisplay=current.displays.first(where:{$0.displayID==display.displayID}),current.displays.count==1 else {throw Failure("physical display changed")}
             let pair=try [p.sourceWindow,p.targetWindow].map { w -> SCWindow in
@@ -519,7 +638,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             }
             let validCrop=probeRect(pair,display:freshDisplay)==crop && rectangle(crop)==endpoint.crop
             result["freshFramesAgreeWithEnrolledCrop"]=validCrop;result["shareableTargetOnScreen"]=pair[1].isOnScreen
-            guard validCrop,pair[1].isOnScreen,safe() else {throw Failure("current target geometry or visibility disagreed with enrollment")}
+            guard validCrop,pair[1].isOnScreen,check("fresh-geometry").0 else {throw Failure("current target geometry or visibility disagreed with enrollment")}
             var scope:JSON=[:]
             let active=physicalFilter(current,freshDisplay,p,report:&scope),config=probeConfiguration(crop,freshDisplay,hz)
             result["freshFilterOwnership"]=scope;result["eligible"]=true
@@ -527,9 +646,9 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             let only=SCContentFilter(display:freshDisplay,including:[pair[1]]);only.includeMenuBar=false
             let from=uptime()
             let own=try await SCScreenshotManager.captureImage(contentFilter:only,configuration:config)
-            guard safe(),own.width==4,own.height==4,let reference=rgb(own) else {throw Failure("current isolated target calibration unavailable")}
+            guard check("after-isolated-target").0,own.width==4,own.height==4,let reference=rgb(own) else {throw Failure("current isolated target calibration unavailable")}
             let real=try await SCScreenshotManager.captureImage(contentFilter:active,configuration:config)
-            guard safe(),real.width==4,real.height==4,let displayed=rgb(real) else {throw Failure("current display calibration unavailable")}
+            guard check("after-display-target").0,real.width==4,real.height==4,let displayed=rgb(real) else {throw Failure("current display calibration unavailable")}
             let sampledAt=uptime()
             result["sampleRequested"]=from;result["sampleReturned"]=sampledAt
             result["fixtureVsEnrolledBand"]=colorBand(reference,endpoint.rgb);result["displayVsCurrentFixtureBand"]=colorBand(displayed,reference)
@@ -563,14 +682,15 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             }
             let deadline=uptime()+0.9
             repeat {
-                guard safe() else {throw Failure("target changed while binding the native display presentation")}
+                guard check("native-presentation-link").0 else {throw Failure("target changed while binding the native display presentation")}
                 if let stamp=linked() {
-                    result["linkedToNativeTarget"]=true;result["nativeTargetTime"]=stamp;return result
+                    result["linkedToNativeTarget"]=true;result["nativeTargetTime"]=stamp;result["observations"]=observations;return result
                 }
                 try await Task.sleep(for:.milliseconds(20))
             } while uptime()<deadline
             throw Failure("current display and fixture matched but the continuous native stream did not show the target color")
         } catch {
+            result["observations"]=observations
             result["reason"]=(error as? Failure)?.message ?? "guarded target endpoint query unavailable"
             return result
         }
@@ -678,10 +798,11 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             let independent = SCStream(filter: displayFilter, configuration: probeConfig, delegate: observer)
             do {
                 guard displayFilter.style == .display else { throw Failure("independent probe is not a display-bound stream") }
-                try independent.addStreamOutput(observer, type: .screen, sampleHandlerQueue: .main)
+                observer.surfaces.start()
+                try independent.addStreamOutput(observer, type: .screen, sampleHandlerQueue: observer.queue)
                 try await independent.startCapture()
                 probe = observer; observerStream = independent
-            } catch {admission["streamStartError"]="physical display stream could not start";try? await independent.stopCapture()}
+            } catch {admission["streamStartError"]="physical display stream could not start";try? await independent.stopCapture();await observer.finish()}
         }
         admission["physicalStreamArmed"]=probe != nil
         try json(admission,receipt)
@@ -731,7 +852,8 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             terminal=await verifyTarget(p,display:display,screen:screen,crop:crop,hz:hz,endpoint:endpoint,stream:observerStream,probe:probe,end:end)
         }
         try? await stream.stopCapture()
-        if let observerStream { try? await observerStream.stopCapture() }
+        if let observerStream {try? await observerStream.stopCapture()}
+        if let probe {await probe.finish()}
         output.queue.sync {}
         let (records, pictures, discarded, changed, failed) = output.completed()
         let post = inventory(p).0
@@ -753,7 +875,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                   "requestedHz": hz, "refreshLimitHz": screen.maximumFramesPerSecond, "displayModeHz": CGDisplayCopyDisplayMode(display.displayID)?.refreshRate ?? 0,
                   "width": width, "height": height, "filterStyle": filter.style.rawValue,
                   "windows": allowed.sorted(), "wallpaperIncluded": false, "audioEnabled": false,
-                  "physical": ["presentationReviewVersion":2,"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
+                  "physical": ["presentationReviewVersion":3,"machTimebase":probe?.timebase ?? [:],"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
                                "filter": "display-excluding-other-apps", "crop": crop.map(rectangle) as Any? ?? NSNull(),
                                "error": probe?.failed ?? false, "frames": probe?.rows ?? []] as JSON,
                   "changed": changed, "stoppedEarly": failed, "start": start, "stop": uptime(), "postSpace": post as Any? ?? NSNull(),

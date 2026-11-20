@@ -83,6 +83,69 @@ class VisualTests(unittest.TestCase):
         self.frames[7]["callback"]-=.020
         self.assertEqual(self.result()["status"],"UNKNOWN")
 
+    def version_three(self):
+        for r in self.frames:
+            t=r["displayTime"]
+            r["presentationMachTicks"]=round(t*1e9)
+            r["displayTime"]=r["presentationMachTicks"]/1e9
+            r["postPresentationSurfaces"]=[{"from":t+d,"to":t+d+.001,"space":r["space"],"visible":r["visible"],
+                                           "reason":"exactOpaqueFixture","sameDisplayAndInput":True} for d in (.002,.008)]
+        terminal=dict(eligible=True,sameStream=True,freshFramesAgreeWithEnrolledCrop=True,shareableTargetOnScreen=True,
+                      independentTargetAndDisplayAgree=True,linkedToNativeTarget=True,nativeTargetTime=self.frames[12]["displayTime"],
+                      sampleRequested=10.112,sampleReturned=10.115,confirmedConsecutiveCensuses=2)
+        self.data["physical"].update(presentationReviewVersion=3,terminalTarget=terminal,machTimebase={"numerator":1,"denominator":1})
+
+    def test_post_presentation_requires_two_real_consistent_reads_in_50ms(self):
+        self.version_three()
+        self.frames[7]["callback"]-=.012
+        self.frames[8]["callback"]+=.14  # The OS buffer arrives late, both eligible readings actually occurred on time.
+        self.assertEqual(self.result()["status"],"PASS")
+        for delta in ({"space":4},{"visible":"source"},{"reason":"unknown"},{"sameDisplayAndInput":False},{"to":10.1201}):
+            d=copy.deepcopy(self.data);d["physical"]["frames"][7]["postPresentationSurfaces"][1].update(delta)
+            proof=self.result(d)
+            self.assertEqual(proof["status"],"UNKNOWN")
+            self.assertEqual(proof["coverage"]["timingFailureCount"],1)
+        d=copy.deepcopy(self.data);r=d["physical"]["frames"][7]
+        r.update(spanningSurface=dict(r["postPresentationSurfaces"][0],space=4,**{"from":10.069,"to":10.071}))
+        self.assertEqual(self.result(d)["status"],"UNKNOWN")
+        self.data["physical"]["terminalTarget"]["confirmedConsecutiveCensuses"]=1
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_timed_display_blank_wins_over_unrelated_bad_frame_gap_and_end_census(self):
+        self.version_three()
+        r=self.frames[9];r["status"]=2;r["safe"]=False;r["blankDisplayBound"]=True;r.pop("visible")
+        for read in r["postPresentationSurfaces"]:read.update(visible=None,reason="noPositivePhysicalLayer")
+        self.frames[6]["safe"]=False
+        self.data["physical"]["censusAfter"]=False
+        self.data["stoppedEarly"]=True
+        proof=visual.score(self.data,self.request,10.013,10.106,self.pre,None)
+        self.assertEqual(proof["status"],"FAIL")
+        self.assertEqual(proof["subchecks"]["scopedNativeBlankEventsDuringPress"],1)
+        r["postPresentationSurfaces"][0]["sameDisplayAndInput"]=False
+        self.assertEqual(visual.score(self.data,self.request,10.013,10.106,self.pre,None)["status"],"UNKNOWN")
+
+    def test_integer_native_threshold_distinguishes_exactly_50ms_and_one_tick_over(self):
+        self.version_three()
+        del self.frames[4:8]  # The native gap from 10.03 to 10.08 is exactly 50,000,000 nanoseconds.
+        self.assertEqual(self.result()["status"],"PASS")
+        r=self.frames[4];r["presentationMachTicks"]+=1;r["displayTime"]=r["presentationMachTicks"]/1e9
+        proof=self.result()
+        self.assertEqual(proof["status"],"UNKNOWN")
+        self.assertAlmostEqual(proof["coverage"]["uncoveredIntervals"][0]["gapMS"],50.000001,places=9)
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_LANDING"),"requires presentation-pair/ten-01")
+    def test_old_uncovered_landing_cannot_be_repaired_from_later_frames(self):
+        attempt=Path(os.environ["NEARPANE_P0_ARCHIVED_LANDING"]).resolve()
+        with tempfile.TemporaryDirectory() as temp:
+            proof=visual.replay(attempt,Path(temp).resolve()/"review.json")["review"]
+            self.assertEqual(proof["status"],"UNKNOWN")
+            self.assertEqual(proof["coverage"]["timingFailureCount"],18)
+            self.assertEqual(proof["subchecks"]["scopedNativeBlankEventsDuringPress"],0)
+            self.assertTrue(proof["subchecks"]["streamingTargetMatched"])
+            self.assertFalse(proof["subchecks"]["independentTerminalTargetMatched"])
+            self.assertGreater(proof["coverage"]["maxGapMS"],50)
+            self.assertEqual(proof["displayProbe"]["targetCompleteColorCounts"]["allTargetSurfaceCompleteIncludingTransition"],6)
+
     def test_native_blank_survives_overlapping_static_reads(self):
         at=self.frames[7]["displayTime"]
         self.frames[7]["status"]=2

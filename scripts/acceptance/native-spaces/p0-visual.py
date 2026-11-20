@@ -230,6 +230,57 @@ def start(kit, attempt, request, guardian=None, *, window_witness=None):
         return result
 
 
+def stamp(row, key):
+    value=row.get(key)
+    return value if isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value) and value>0 else None
+
+
+def tick_matches_time(row, base):
+    ticks,numer,denom=row.get("presentationMachTicks"),base.get("numerator"),base.get("denominator")
+    t=stamp(row,"displayTime")
+    return bool(t and all(type(n) is int and n>0 for n in (ticks,numer,denom)) and
+                abs(ticks*numer/denom/1e9-t)<=math.ulp(t))
+
+
+def presentation_proof(genuine, index, source, target, hz, version):
+    row=genuine[index]
+    t,callback=stamp(row,"displayTime"),stamp(row,"callback")
+    bound_blank=(version>=3 and row.get("status")==2 and row.get("blankDisplayBound") is True)
+    if not t or not callback or row.get("space") not in (source,target) or (not bound_blank and
+            (row.get("safe") is not True or row.get("visible") not in ("source","target","appleWallpaper"))):
+        return False,row.get("blockedBy") or "unscopedNativePresentation",None
+    if version>=3:
+        reads=row.get("postPresentationSurfaces") or []
+        if type(row.get("presentationMachTicks")) is not int or row["presentationMachTicks"]<=0 or len(reads)!=2:
+            return False,"missingNativeTimeOrTwoPostPresentationReads",None
+        a,b=reads
+        times=[stamp(read,k) for read,k in [(a,"from"),(a,"to"),(b,"from"),(b,"to")]]
+        if any(v is None for v in times) or times!=sorted(times) or times[0]<t or times[-1]-t>.050 or t-callback>1/hz:
+            return False,"postPresentationReadsOutsideBound",None
+        def confirms(read):
+            if read.get("sameDisplayAndInput") is not True or read.get("space")!=row["space"]:return False
+            if bound_blank:return True
+            reason="verifiedSealedWallpaper" if row["visible"]=="appleWallpaper" else "exactOpaqueFixture"
+            return read.get("visible")==row["visible"] and read.get("reason")==reason
+        spanning=row.get("spanningSurface")
+        if not all(confirms(read) for read in reads) or (spanning is not None and
+                (not confirms(spanning) or not stamp(spanning,"from") or not stamp(spanning,"to") or not spanning["from"]<=t<=spanning["to"])):
+            return False,"contradictoryForegroundOrSpaceAtPresentation",None
+        return True,"twoRealPostPresentationSurfaceReads",(max(0,t-callback),times[-1]-t)
+    through=stamp(row,"metadataThrough") if "metadataThrough" in row else callback
+    if through is None or through<callback or through-t>.075 or t-callback>1/hz:
+        return False,"nativePresentationAndSourceChecksNotTimeBound",None
+    if through>=t:return True,"contemporaneousSourceRead",None
+    for later in genuine[index+1:]:
+        next_proof=stamp(later,"metadataThrough") if "metadataThrough" in later else stamp(later,"callback")
+        arrival=stamp(later,"callback")
+        if (next_proof is None or arrival is None or next_proof<arrival or next_proof-t>.050 or later.get("safe") is not True
+                or later.get("space")!=row["space"] or later.get("visible")!=row["visible"] or later.get("status") not in (0,1,4)):
+            break
+        if arrival>=t:return True,"followingUnchangedNativeSurface",(t-callback,next_proof-t)
+    return False,"earlyPresentationMissingFollowingSurfaceAndSpace",None
+
+
 def score(data, request, pressed, ended, pre, post):
     result = unknown("The allowlisted fixture stream does not establish the visible desktop")
     result["captureFilter"] = "ScreenCaptureKit physical display, including only two exact fixture windows"
@@ -245,6 +296,27 @@ def score(data, request, pressed, ended, pre, post):
               "streamingTargetMatched": False, "independentTerminalTargetMatched": None,
               "scopedNativeBlankEventsDuringPress": None}
     result["subchecks"] = checks
+    probe=data.get("physical") or {}
+    version=probe.get("presentationReviewVersion",1)
+    genuine=[r for r in probe.get("frames",[]) if r.get("origin","sck-display")=="sck-display"]
+    hz=data.get("displayModeHz",0) or data.get("refreshLimitHz",0)
+    source,target=request["topology"]["current"],request["target"]
+    valid_clock=isinstance(hz,(int,float)) and 24<=hz<=240
+    valid_issue=math.isfinite(pressed) and math.isfinite(ended) and 0<pressed<ended
+    # A positively scoped OS blank during a real press is a failure even if other frames or later terminal reads are missing.
+    # Unknown, unscoped or foreign blank declarations remain explicit evidence without establishing a black physical display.
+    if (valid_issue and pre and pre.get("current")==source and pre.get("uptime",math.inf)<=pressed and data.get("ready") and valid_clock
+            and probe.get("armed") and probe.get("sourceFrameReadyBeforePress") is True and probe.get("filter")=="display-excluding-other-apps"):
+        blanks=[(i,r) for i,r in enumerate(genuine) if r.get("status")==2 and stamp(r,"displayTime") and pressed<=r["displayTime"]<=ended]
+        confirmed=[r["displayTime"] for i,r in blanks if presentation_proof(genuine,i,source,target,hz,version)[0]
+                   and (version<3 or tick_matches_time(r,probe.get("machTimebase") or {}))]
+        checks["rawNativeBlankEventsDuringPress"]=len(blanks)
+        checks["scopedNativeBlankEventsDuringPress"]=len(confirmed)
+        if confirmed:
+            checks["continuousVisibleLight"]="FAIL"
+            result.update(status="FAIL",physicallyQualified=True,blankPresentationTimes=confirmed,
+                          reason="The scoped native display stream reported SCFrameStatus.blank during the issued press")
+            return result
     if not (math.isfinite(pressed) and math.isfinite(ended) and 0 < pressed < ended and pre and post
             and pre["current"] == request["topology"]["current"] and post["current"] == request["target"]
             and data.get("postSpace") == request["target"] and pre["windows"] == post["windows"]
@@ -272,16 +344,12 @@ def score(data, request, pressed, ended, pre, post):
     result["displayProbe"]["blockedReadbacks"]=dict(collections.Counter(r["blockedBy"] for r in genuine if r.get("blockedBy")))
     if len(genuine)+len(auxiliary)!=len(rows):
         result["reason"]="Unidentified physical sample origin";return result
-    def stamp(row,key):
-        value=row.get(key)
-        return value if isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value) and value>0 else None
     if not genuine or any(stamp(r,"displayTime") is None or stamp(r,"callback") is None for r in genuine):
         result["reason"]="Missing genuine WindowServer presentation or callback timestamp";return result
     if any(b["displayTime"]<a["displayTime"] for a,b in zip(genuine,genuine[1:])):
         result["reason"]="Native presentation timestamps regressed";return result
     before=[i for i,r in enumerate(genuine) if r["displayTime"]<=pressed and r.get("status") in (0,4) and r.get("safe") is True and
             r.get("matchesSource") is True and r.get("lit") is True and r.get("visible")=="source" and r.get("space")==pre["current"]]
-    version = probe.get("presentationReviewVersion", 1)
     terminal = probe.get("terminalTarget") or {}
     link_at = stamp(terminal,"nativeTargetTime")
     if version >= 2:
@@ -289,21 +357,33 @@ def score(data, request, pressed, ended, pre, post):
         requested, returned = stamp(terminal,"sampleRequested"), stamp(terminal,"sampleReturned")
         checks["independentTerminalTargetMatched"] = bool(terminal.get("eligible") is True and terminal.get("sameStream") is True
             and terminal.get("freshFramesAgreeWithEnrolledCrop") is True and terminal.get("shareableTargetOnScreen") is True
-            and terminal.get("independentTargetAndDisplayAgree") is True and requested and returned and ended <= requested <= returned <= post["uptime"])
+            and terminal.get("independentTargetAndDisplayAgree") is True and requested and returned and ended <= requested <= returned <= post["uptime"]
+            and (version<3 or terminal.get("confirmedConsecutiveCensuses")==2))
     boundary = max(ended, link_at) if version >= 2 and link_at else ended
     after=[i for i,r in enumerate(genuine) if r["displayTime"]>=boundary]
     if not before or not after:
         result["reason"]="Missing a genuine source presentation before press or native presentation after independent observation";return result
-    hz=data.get("displayModeHz",0) or data.get("refreshLimitHz",0)
-    if not isinstance(hz,(int,float)) or not 24<=hz<=240:
+    if not valid_clock:
         result["reason"]="Display refresh cadence unavailable";return result
     first,last=before[-1],after[0]
     window=genuine[first:last+1]
     lower,upper=window[0]["displayTime"],window[-1]["displayTime"]
     limit=.050
     gaps=[(a["displayTime"],b["displayTime"]) for a,b in zip(window,window[1:])]
-    large=[{"from":a,"to":b,"gapMS":(b-a)*1000} for a,b in gaps if b-a>limit]
-    result["coverage"]={"from":lower,"to":upper,"samples":len(window),"maxGapMS":max((b-a for a,b in gaps),default=0)*1000,
+    base=probe.get("machTimebase") or {}
+    numer,denom=base.get("numerator"),base.get("denominator")
+    if version>=3:
+        if not all(tick_matches_time(r,base) for r in window):
+            result["reason"]="Native Mach event ticks and clock timebase could not be bound";return result
+        exact=[(b["presentationMachTicks"]-a["presentationMachTicks"])*numer for a,b in zip(window,window[1:])]
+        if any(n<0 for n in exact):
+            result["reason"]="Native Mach presentation order regressed";return result
+        large=[{"from":a,"to":b,"gapMS":n/denom/1e6} for (a,b),n in zip(gaps,exact) if n>50_000_000*denom]
+        max_gap=max(exact,default=0)/denom/1e6
+    else:
+        large=[{"from":a,"to":b,"gapMS":(b-a)*1000} for a,b in gaps if b-a>limit]
+        max_gap=max((b-a for a,b in gaps),default=0)*1000
+    result["coverage"]={"from":lower,"to":upper,"samples":len(window),"maxGapMS":max_gap,
                         "permittedGapMS":limit*1000,"uncoveredIntervals":large,"statusCounts":dict(collections.Counter(str(r["status"]) for r in window))}
     supplements=[]
     for r in auxiliary:
@@ -314,63 +394,46 @@ def score(data, request, pressed, ended, pre, post):
             "whollyInsideAuditedSpan":bool(start and end and lower<=start<=end<=upper)})
     result["displayProbe"]["auxiliaryRequests"]=supplements
     result["displayProbe"]["currentCropReads"]=0
-    if any(r.get("safe") is not True or r.get("space") not in (pre["current"],post["current"]) or
-           r.get("visible") not in ("source","target","appleWallpaper") for r in window):
-        result["reason"]="A genuine presentation lacked its physical-layer or owned Space proof";return result
-    early=[]
-    for idx,r in enumerate(window,first):
-        t=r["displayTime"];callback=r["callback"]
-        through=stamp(r,"metadataThrough") if "metadataThrough" in r else callback
-        if through is None or through<callback or through-t>.075 or t-callback>1/hz:
-            result["reason"]="Native presentation and its actual source checks could not be time-bound";return result
-        if through>=t:continue
-        # The OS may deliver a frame before the displayTime it attaches. Preserve the *actual*
-        # presentation and require a subsequent live, unchanged layer/Space proof after that time.
-        # This supplies the missing ownership observation, never a missing picture or interval.
-        confirmed=None
-        for later in genuine[idx+1:]:
-            next_proof=stamp(later,"metadataThrough") if "metadataThrough" in later else later["callback"]
-            if (next_proof is None or next_proof<later["callback"] or next_proof-t>limit or later.get("safe") is not True or later.get("space")!=r["space"]
-                    or later.get("visible")!=r["visible"] or later.get("status") not in (0,1,4)):
-                break
-            if later["callback"]>=t:
-                confirmed=next_proof-t;break
-        if confirmed is None:
-            result["reason"]="Early presentation lacked a subsequent matching real surface and Space observation within 50 ms";return result
-        early.append((t-callback,confirmed))
-    result["coverage"].update(earlyEventsWithFollowingProof=len(early),maximumLeadMS=max((a for a,_ in early),default=0)*1000,
-                              maximumFollowingProofMS=max((b for _,b in early),default=0)*1000)
-    blanks = sum(r["status"]==2 and pressed<=r["displayTime"]<=ended for r in window)
-    checks["scopedNativeBlankEventsDuringPress"]=blanks
+    proofs=[presentation_proof(genuine,i,source,target,hz,version) for i in range(first,last+1)]
+    issues=[{"displayTime":r["displayTime"],"reason":proof[1]} for r,proof in zip(window,proofs) if not proof[0]]
+    early=[proof[2] for proof in proofs if proof[0] and proof[2] and proof[2][0]>0]
+    coverage=result["coverage"]
+    coverage.update(timingFailures=issues[:40],timingFailureCount=len(issues),timingFailureReasons=dict(collections.Counter(i["reason"] for i in issues)),
+                    earlyEventsWithFollowingProof=len(early),maximumLeadMS=max((a for a,_ in early),default=0)*1000,
+                    maximumFollowingProofMS=max((b for _,b in early),default=0)*1000)
     if len(gaps)>=2 and not large:checks["nativePresentationCoverage"]="PASS"
-    if blanks:
-        checks["continuousVisibleLight"]="FAIL"
-        result.update(status="FAIL",physicallyQualified=True,reason="The scoped native display stream reported SCFrameStatus.blank during the issued press")
-        return result
-    if len(gaps)<2 or large:
-        result["reason"]="A gap between genuine display presentations exceeded 50 ms";return result
-    lit=target=False
-    for r in window:
+    lit=target_marker=False
+    failures=[]
+    for r,proof in zip(window,proofs):
         if r["status"] in (0,4):
             lit=r.get("lit") is True
-            target=r.get("matchesTarget") is True and r["space"]==post["current"] and r.get("visible")=="target"
+            target_marker=proof[0] and r.get("matchesTarget") is True and r.get("space")==target and r.get("visible")=="target"
         elif r["status"]==1:
-            # ScreenCaptureKit defines idle as an unchanged display. Only an already observed lit frame can carry through it.
-            target=target and r.get("visible")=="target" and r["space"]==post["current"]
+            target_marker=target_marker and proof[0] and r.get("visible")=="target" and r.get("space")==target
         else:
-            result["reason"]="Native display reported blank, suspended, stopped or unknown status";return result
-        if not lit:
-            result["reason"]="A genuine complete frame lacked a lit physical marker";return result
-    checks["continuousVisibleLight"]="PASS"
-    checks["streamingTargetMatched"]=target
+            lit=target_marker=False
+            failures.append("nativeStatus"+str(r["status"]))
+        if not lit:failures.append("litNativeFrameUnavailable")
+    checks["streamingTargetMatched"]=target_marker
+    if not issues and not failures and checks["nativePresentationCoverage"]=="PASS":checks["continuousVisibleLight"]="PASS"
+    coverage["pixelFailures"]=dict(collections.Counter(failures))
     final_frames=[r for r in genuine if r["status"] in (0,4) and r.get("safe") is True and r.get("visible")=="target" and r.get("space")==post["current"]]
+    surface_frames=[r for r in genuine if r["status"] in (0,4) and r.get("safe") is True and r.get("visible")=="target"]
     result["displayProbe"]["targetCompleteColorCounts"]={
+        "allTargetSurfaceCompleteIncludingTransition":len(surface_frames),"targetSurfaceMatchingColor":sum(r.get("matchesTarget") is True for r in surface_frames),
         "allNativeTargetComplete":len(final_frames),"matchingTarget":sum(r.get("matchesTarget") is True for r in final_frames),
         "matchingSource":sum(r.get("matchesSource") is True for r in final_frames),
         "matchingNeither":sum(r.get("matchesTarget") is False and r.get("matchesSource") is False for r in final_frames),
         "sourceDeltaBands":dict(collections.Counter(r["sourceColorMaxDeltaBand"] for r in final_frames if "sourceColorMaxDeltaBand" in r)),
         "targetDeltaBands":dict(collections.Counter(r["targetColorMaxDeltaBand"] for r in final_frames if "targetColorMaxDeltaBand" in r))}
-    if not target:
+    # Keep all independent causes, including the minimum positive physical target evidence, in one receipt.
+    if issues or failures or large or len(gaps)<2:
+        reasons=[]
+        if issues:reasons.append("Physical presentation ownership/timing: "+", ".join(coverage["timingFailureReasons"]))
+        if failures:reasons.append("Unqualified native pixel/status: "+", ".join(coverage["pixelFailures"]))
+        if len(gaps)<2 or large:reasons.append("A gap between genuine display presentations exceeded 50 ms")
+        result["reason"]="; ".join(reasons);return result
+    if not target_marker:
         result["reason"]="The genuine display stream did not match the target fixture color on its final Space";return result
     if version>=2 and not (checks["independentTerminalTargetMatched"] and terminal.get("linkedToNativeTarget") is True and link_at
                            and link_at==upper and returned<=link_at<=post["uptime"]):
