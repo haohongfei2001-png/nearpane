@@ -3,16 +3,6 @@ import AppKit
 import ApplicationServices
 import CryptoKit
 
-private final class TestPattern: NSView {
-    override var isOpaque: Bool { true }
-    override func draw(_ dirtyRect: NSRect) {
-        NSColor(srgbRed:0.84,green:0.22,blue:0.12,alpha:1).setFill()
-        NSBezierPath(rect:bounds).fill()
-        NSColor(srgbRed:0.10,green:0.34,blue:0.88,alpha:1).setFill()
-        NSBezierPath(rect:NSRect(x:bounds.minX,y:bounds.minY,width:bounds.width/2,height:bounds.height)).fill()
-    }
-}
-
 @MainActor private func query(_ ctx: ToolContext, _ sql: String) throws -> [[String:Any]] {
     let file=ctx.generation.appendingPathComponent("Riftlet/queue.sqlite")
     let result=try ToolUI.run("/usr/bin/sqlite3",["-readonly","-json",file.path,sql])
@@ -36,16 +26,22 @@ private final class TestPattern: NSView {
     return nil
 }
 
-@MainActor private func coveredOnly(by owner: CGWindowID, region: CGRect, excluding: Set<CGWindowID> = []) -> Bool {
+@MainActor private func obstruction(to owner: CGWindowID, region: CGRect, host:pid_t, fixture:pid_t?, excluding: Set<CGWindowID> = []) -> [String:Any]? {
     let entries = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] ?? []
     for entry in entries {
         guard let id = entry[kCGWindowNumber as String] as? CGWindowID, !excluding.contains(id),
               (entry[kCGWindowAlpha as String] as? Double ?? 0) > 0,
               let value = entry[kCGWindowBounds as String] as? NSDictionary,
               let bounds = CGRect(dictionaryRepresentation:value), bounds.intersects(region) else { continue }
-        return id == owner && bounds.contains(region)
+        if id==owner && bounds.contains(region) { return nil }
+        let pid=entry[kCGWindowOwnerPID as String] as? pid_t
+        let system:Set<String>=["Window Server","WindowManager","Dock","Control Center","Notification Center","SystemUIServer"]
+        let name=entry[kCGWindowOwnerName as String] as? String ?? ""
+        let group = fixture != nil && pid==fixture ? "fixture" : pid==host ? "Nearpane" : system.contains(name) ? name : "other"
+        return ["ownerClass":group,"level":entry[kCGWindowLayer as String] as? Int ?? -1,
+                "overlap":NSStringFromRect(bounds.intersection(region)),"requested":NSStringFromRect(region)]
     }
-    return false
+    return ["ownerClass":"no visible frame","requested":NSStringFromRect(region)]
 }
 
 private func digest(_ bytes: Data) -> String {
@@ -82,25 +78,27 @@ private func matchesPattern(_ bitmap: NSBitmapImageRep) -> Bool {
 @MainActor private func capture(_ ctx: ToolContext) async throws -> [String:Any] {
     guard try query(ctx,"select id from assets").isEmpty else {throw ToolRefusal("Use an empty isolated screenshot library")}
     guard CGPreflightPostEventAccess(), CGPreflightScreenCaptureAccess() else {throw ToolRefusal("Observer event or screen access unavailable")}
-    let app=NSApplication.shared
-    app.setActivationPolicy(.regular)
-    let prior=NSWorkspace.shared.frontmostApplication
-    let w=NSWindow(contentRect:NSRect(x:0,y:0,width:440,height:180),styleMask:[.titled],backing:.buffered,defer:false)
-    w.isReleasedWhenClosed=false;w.title="Nearpane controlled capture"
-    w.contentView=TestPattern(frame:NSRect(x:0,y:0,width:440,height:180))
-    w.level = .floating; w.center();w.makeKeyAndOrderFront(nil);app.activate(ignoringOtherApps:true)
-    defer {
-        let front=NSWorkspace.shared.frontmostApplication?.processIdentifier
-        w.close()
-        if front == getpid(), let prior, !prior.isTerminated {prior.activate(options:[])}
+    let fixture=try ToolWindow("capture")
+    defer {fixture.close()}
+    var selected:CGRect?,obstructions:[[String:Any]]=[],own:CGWindowID=0
+    for pose in 0..<4 {
+        let state=try await fixture.observe(pose:pose)
+        guard let number=state["window"] as? CGWindowID,let regions=state["areas"] as? [String] else {throw ToolRefusal("No capture geometry from the signed fixture")}
+        own=number
+        await ToolUI.pause(130)
+        for value in regions {
+            let test=NSRectFromString(value)
+            guard test.size==CGSize(width:130,height:76) else {throw ToolRefusal("Unexpected fixture region dimensions")}
+            if let blocked=obstruction(to:own,region:test,host:ctx.host.processIdentifier,fixture:fixture.client?.processIdentifier) { obstructions.append(blocked) }
+            else {selected=test;break}
+        }
+        if selected != nil {break}
     }
-    await ToolUI.pause(300)
-    guard let screen=NSScreen.screens.first, let view=w.contentView else {throw ToolRefusal("Missing synthetic window")}
-    let own=CGWindowID(w.windowNumber)
-    let rect=w.convertToScreen(view.convert(NSRect(x:view.bounds.midX-65,y:view.bounds.midY-38,width:130,height:76),to:nil))
-    let area=CGRect(x:rect.minX,y:screen.frame.maxY-rect.maxY,width:rect.width,height:rect.height)
+    guard let area=selected else {
+        return ["phase":"capture","status":"BLOCKED","reason":"Every controlled crop intersects an unverified window",
+                "captureIssued":false,"obstructions":obstructions]
+    }
     let first=CGPoint(x:area.minX,y:area.minY),last=CGPoint(x:area.maxX,y:area.maxY)
-    guard coveredOnly(by:own,region:area) else {throw ToolRefusal("Another window intersects the capture fixture")}
     let old=Set(ToolUI.windows(ctx.host.processIdentifier).map(\.id))
     var overlay: Set<CGWindowID> = []
     func freshOverlays() -> Set<CGWindowID> {
@@ -126,7 +124,10 @@ private func matchesPattern(_ bitmap: NSBitmapImageRep) -> Bool {
         if !overlay.isEmpty {break}
         await ToolUI.pause(100)
     }
-    guard overlay.count==1, let selector=overlay.first, coveredOnly(by:selector,region:area), coveredOnly(by:own,region:area,excluding:overlay)
+    func clear(_ expected:CGWindowID,ignoring:Set<CGWindowID>=[]) -> Bool {
+        obstruction(to:expected,region:area,host:ctx.host.processIdentifier,fixture:fixture.client?.processIdentifier,excluding:ignoring)==nil
+    }
+    guard overlay.count==1, let selector=overlay.first, clear(selector), clear(own,ignoring:overlay)
     else {throw ToolRefusal("The production selector and the fixture did not own the full requested region")}
     try pointer(.leftMouseDown,first)
     for n in 1...8 {
@@ -134,7 +135,7 @@ private func matchesPattern(_ bitmap: NSBitmapImageRep) -> Bool {
         try pointer(.leftMouseDragged,CGPoint(x:first.x+(last.x-first.x)*t,y:first.y+(last.y-first.y)*t))
         await ToolUI.pause(15)
     }
-    guard coveredOnly(by:selector,region:area), coveredOnly(by:own,region:area,excluding:overlay) else {
+    guard clear(selector), clear(own,ignoring:overlay) else {
         for down in [true,false] { CGEvent(keyboardEventSource:nil,virtualKey:53,keyDown:down)?.postToPid(ctx.host.processIdentifier) }
         CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:last,mouseButton:.left)?.postToPid(ctx.host.processIdentifier)
         throw ToolRefusal("A window obscured the controlled region during the drag")

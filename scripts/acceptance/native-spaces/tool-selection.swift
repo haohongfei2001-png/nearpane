@@ -43,38 +43,26 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let languageState = language == .installed ? "installed" : language == .supported ? "supportedButNotInstalled" : "unavailable"
     let originalWords = try context.words(phrase)
     guard originalWords.isEmpty else { throw ToolRefusal("Use a fresh disposable generation for this phrase") }
-    let app = NSApplication.shared
-    app.setActivationPolicy(.regular)
-    let previous = NSWorkspace.shared.frontmostApplication
-    let window = NSWindow(contentRect:NSRect(x:0,y:0,width:460,height:135),styleMask:[.titled],backing:.buffered,defer:false)
-    window.isReleasedWhenClosed = false; window.title = "Nearpane selection fixture"
-    let field = NSTextView(frame:NSRect(x:28,y:30,width:395,height:70))
-    field.isRichText = false; field.isEditable = true; field.isSelectable = true
-    field.font = .systemFont(ofSize:23); field.string = phrase
-    window.contentView?.addSubview(field); window.center()
-    window.makeKeyAndOrderFront(nil); window.makeFirstResponder(field)
-    field.setSelectedRange(NSRange(location:0,length:(phrase as NSString).length))
-    app.activate(ignoringOtherApps:true)
-    defer {
-        let ownsForeground = NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid()
-        window.close()
-        if ownsForeground, let previous, !previous.isTerminated { previous.activate(options:[]) }
+    let fixture=try ToolWindow("selection")
+    defer { fixture.close() }
+    let state=try await fixture.observe()
+    guard let pid=state["pid"] as? Int32,let number=state["window"] as? CGWindowID,let rect=state["selection"] as? String else {
+        throw ToolRefusal("The signed fixture did not confirm its selection")
     }
-    for _ in 0..<30 {
-        if window.isKeyWindow && NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid() { break }
-        await ToolUI.pause(100)
+    let selection=NSRectFromString(rect)
+    let system=AXUIElementCreateSystemWide()
+    guard !selection.isEmpty,let raw=ToolUI.value(system,kAXFocusedUIElementAttribute),CFGetTypeID(raw)==AXUIElementGetTypeID() else {throw ToolRefusal("No independent focused field")}
+    let element=raw as! AXUIElement
+    var owner:pid_t=0
+    guard AXUIElementGetPid(element,&owner) == .success,owner==pid,ToolUI.value(element,kAXSelectedTextAttribute) as? String==phrase else {
+        throw ToolRefusal("The independently observed selection is not the fixture phrase")
     }
-    guard window.isKeyWindow, NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid(),
-          let primary = NSScreen.screens.first else { throw ToolRefusal("The test text field did not become key") }
-    let rect = field.firstRect(forCharacterRange: field.selectedRange(), actualRange:nil)
-    let selection = CGRect(x:rect.minX,y:primary.frame.maxY-rect.maxY,width:rect.width,height:rect.height)
-    guard !selection.isEmpty else { throw ToolRefusal("The fixture selection has no independent bounds") }
     let board = NSPasteboard.withUniqueName()
     defer { board.releaseGlobally() }
     board.setString(phrase,forType:.string)
     let priorPanels = Set(ToolUI.windows(context.host.processIdentifier).map(\.id))
     let sourcePNG = context.output.appendingPathComponent("selection.png")
-    try ToolUI.screenshot(CGWindowID(window.windowNumber),pid:getpid(),to:sourcePNG)
+    try ToolUI.screenshot(number,pid:pid,to:sourcePNG)
     let performed = NSPerformService("在 Nearpane 翻译选词",board)
     var report: [String:Any] = ["hostPID":context.host.processIdentifier,"generation":context.generation.lastPathComponent,
                                 "phase":"translation","source":phrase,"sourceLanguage":source,

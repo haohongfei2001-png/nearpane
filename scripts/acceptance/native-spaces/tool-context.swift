@@ -123,6 +123,52 @@ enum ToolUI {
 
 struct Index: Decodable { let active: String }
 
+@MainActor final class ToolWindow {
+    let directory:URL, app:URL, previous:NSRunningApplication?, kind:String
+    var client:NSRunningApplication?
+    var last:[String:Any]=[:]
+    init(_ kind:String) throws {
+        self.kind=kind
+        let kit=URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent()
+        app=kit.appendingPathComponent("Nearpane Tool Fixture.app")
+        guard Bundle(url:app)?.bundleIdentifier=="org.nearpane.acceptance.tool-window" else { throw ToolRefusal("Signed Tool Fixture.app is missing from the kit") }
+        _=try ToolUI.run("/usr/bin/codesign",["--verify","--strict",app.path])
+        previous=NSWorkspace.shared.frontmostApplication
+        directory=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:false,attributes:[.posixPermissions:0o700])
+        do { _=try ToolUI.run("/usr/bin/open",["-n",app.path,"--args",kind,directory.path]) }
+        catch {try? FileManager.default.removeItem(at:directory);throw error}
+    }
+    func observe(pose:Int=0) async throws -> [String:Any] {
+        try Data(String(pose).utf8).write(to:directory.appendingPathComponent("pose"),options:.atomic)
+        for _ in 0..<40 {
+            if let data=try? Data(contentsOf:directory.appendingPathComponent("state.json")),
+               let state=try? JSONSerialization.jsonObject(with:data) as? [String:Any],
+               state["session"] as? String==directory.lastPathComponent,state["kind"] as? String==kind,
+               let pid=state["pid"] as? Int32,let fixture=NSRunningApplication(processIdentifier:pid),
+               fixture.bundleIdentifier=="org.nearpane.acceptance.tool-window",fixture.bundleURL?.resolvingSymlinksInPath().path==app.resolvingSymlinksInPath().path {
+                client=fixture;last=state
+                if state["pose"] as? Int==pose,state["focused"] as? Bool==true,NSWorkspace.shared.frontmostApplication?.processIdentifier==pid {return state}
+            }
+            await ToolUI.pause(100)
+        }
+        throw ToolRefusal("Signed test window was not ready (registered=\(client != nil), key=\(last["key"] as? Bool ?? false), front=\(last["front"] as? Bool ?? false))")
+    }
+    func close() {
+        let ownFront=client != nil && NSWorkspace.shared.frontmostApplication?.processIdentifier==client?.processIdentifier
+        try? Data().write(to:directory.appendingPathComponent("close"))
+        for _ in 0..<28 {
+            if FileManager.default.fileExists(atPath:directory.appendingPathComponent("closed").path) &&
+                (client == nil || client?.isTerminated == true) { break }
+            Thread.sleep(forTimeInterval:0.06)
+        }
+        if FileManager.default.fileExists(atPath:directory.appendingPathComponent("closed").path) {
+            try? FileManager.default.removeItem(at:directory)
+            if ownFront, let previous, !previous.isTerminated {previous.activate(options:[])}
+        }
+    }
+}
+
 @MainActor
 struct ToolContext {
     let host: NSRunningApplication
