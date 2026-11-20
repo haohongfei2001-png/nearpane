@@ -13,7 +13,7 @@ func readFive(_ run: FiveRun) -> Object {
           let records = scope["records"] as? [Object], records.filter({ $0["id"] as? UInt64 == run.space &&
               $0["type"] as? Int == 0 && $0["uuid"] as? String == run.spaceUUID }).count == 1,
           let screen = displays().first, screen["uuid"] as? String == run.display,
-          let displayBounds = screen["bounds"] as? [Double], let displayFrame = fiveRect(displayBounds)
+          let displayBounds = fiveDisplayNumbers(screen["bounds"]), let displayFrame = fiveRect(displayBounds)
     else { return stop("expectedActiveOrdinaryDisplaySpaceOrStageOffUnavailable") }
     proof["hardware"] = [CGEventType.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map {
         CGEventSource.counterForEventType(.hidSystemState,eventType:$0)
@@ -37,7 +37,7 @@ func readFive(_ run: FiveRun) -> Object {
     for owner in run.owners {
         guard let member = members.first(where: { $0["number"] as? UInt32 == owner.number }),
               member["accepted"] as? Bool == true, member["publicCurrent"] as? Bool == true,
-              let box = member["bounds"] as? [Double], let frame = fiveRect(box), frame.width >= 96, frame.height >= 84,
+              let box = fiveDisplayNumbers(member["bounds"]), let frame = fiveRect(box), frame.width >= 96, frame.height >= 84,
               displayFrame.contains(frame) else { return stop("sourceOnPhysicalDisplayUnconfirmedSlot\(owner.slot)") }
         sourceFrames.append(box)
         sources.append([floor(frame.midX)-2, floor(frame.midY)-2, 4, 4])

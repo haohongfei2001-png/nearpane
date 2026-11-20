@@ -25,3 +25,8 @@ func fiveRect(_ numbers: [Double]) -> CGRect? {
     guard numbers.count == 4, numbers.allSatisfy(\.isFinite), numbers[2] > 0, numbers[3] > 0 else { return nil }
     return CGRect(x:numbers[0], y:numbers[1], width:numbers[2], height:numbers[3])
 }
+
+// The in-process NSScreen and CG census dictionaries carry native CGFloat arrays.
+func fiveDisplayNumbers(_ value: Any?) -> [Double]? {
+    (value as? [CGFloat])?.map { Double($0) }
+}
