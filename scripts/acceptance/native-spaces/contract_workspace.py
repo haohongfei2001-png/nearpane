@@ -92,6 +92,7 @@ class Workspace:
         if resume:
             checked(["/usr/bin/codesign", "--verify", "--strict", "/Applications/Nearpane.app"])
             self.record("cleanup-host-bound", original=self.original["host"], current=self.host)
+        self.host_birth = int(checked([str(self.kit/"system-workspace"),"birth",str(self.host["pid"])]).strip())
         self.hid = self.hardware()
         if resume:
             self.reconcile_removed(live)
@@ -144,7 +145,7 @@ class Workspace:
                 (fresh.get("frontmostPID"),fresh.get("focusedNumber")) and self.hardware() == self.hid,
                 "physical input, focus or Space changed before system dispatch")
         req = dict(command=name, display=self.display, records=s["records"], current=s["current"], original=self.cleanup_current,
-                   owned=self.ids(), target=target, other=other, hostPID=self.host["pid"], hid=self.hid)
+                   owned=self.ids(), target=target, other=other, hostPID=self.host["pid"], hostHash=self.host["codeHash"], hostBirth=self.host_birth, hid=self.hid)
         self.record("system-fixture-intent", operation=name, current=s["current"], target=target, other=other)
         if before_send: before_send()
         call = subprocess.run([str(self.kit/"system-workspace")], input=json.dumps(req), text=True, capture_output=True, timeout=20)

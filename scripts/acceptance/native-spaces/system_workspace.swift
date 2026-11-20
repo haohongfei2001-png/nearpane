@@ -1,6 +1,7 @@
 // System-side fixture preparation and S03 reference. Product actions live in separate drivers.
 import AppKit
 import ApplicationServices
+import Security
 
 struct Record: Codable, Equatable {
     let id: UInt64
@@ -14,6 +15,8 @@ struct WorkspaceRequest: Decodable {
     let owned: [UInt64]
     let target, other: UInt64?
     let hostPID: pid_t
+    let hostHash: String
+    let hostBirth: UInt64
     let hid: [UInt32]
 }
 func demand(_ predicate: Bool, _ reason: String) throws {
@@ -36,6 +39,22 @@ func live(_ r: WorkspaceRequest) throws -> (UInt64, [Record]) {
         return Record(id:n,type:t,uuid:uuid.uuidString)
     }
     return (current,records)
+}
+func operatorBirth(_ pid: pid_t) -> UInt64? {
+    var info=proc_bsdinfo()
+    let size=Int32(MemoryLayout<proc_bsdinfo>.size)
+    guard pid>1,proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),
+          info.pbi_uid==getuid(),info.pbi_start_tvsec>0,info.pbi_start_tvusec<1_000_000 else {return nil}
+    return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
+}
+func operatorIdentity(_ pid: pid_t) -> (String,String)? {
+    var code:SecCode?, selected:SecStaticCode?, info:CFDictionary?
+    guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid:NSNumber(value:pid)] as CFDictionary,[],&code)==errSecSuccess,
+          let code,SecCodeCopyStaticCode(code,[],&selected)==errSecSuccess, let selected,
+          SecCodeCopySigningInformation(selected,SecCSFlags(rawValue:kSecCSSigningInformation),&info)==errSecSuccess,
+          let fields=info as? [String:Any],let bytes=fields[kSecCodeInfoUnique as String] as? Data,
+          let identifier=fields[kSecCodeInfoIdentifier as String] as? String else {return nil}
+    return (identifier,bytes.map {String(format:"%02x",$0)}.joined())
 }
 @discardableResult
 func guardState(_ r: WorkspaceRequest, stage: String = "initial", expected: UInt64? = nil,
@@ -60,9 +79,14 @@ func guardState(_ r: WorkspaceRequest, stage: String = "initial", expected: UInt
     guard NSEvent.pressedMouseButtons == 0 else {throw fail("mouse buttons down: \(NSEvent.pressedMouseButtons)")}
     guard records == r.records else {throw fail("id/type/UUID order changed from \(r.records.map(\.id)) to \(records.map(\.id))")}
     guard Set([r.original]+r.owned).count==r.owned.count+1 else {throw fail("origin and leased identities collide")}
-    guard let app=NSRunningApplication(processIdentifier:r.hostPID), !app.isTerminated,
-          app.bundleURL?.standardizedFileURL.path=="/Applications/Nearpane.app",app.bundleIdentifier=="com.holdsnow.nearpane.alpha"
-    else {throw fail("installed Host process/path changed from PID \(r.hostPID)")}
+    guard operatorBirth(r.hostPID)==r.hostBirth else {throw fail("Host PID/uid/kernel birth changed: \(r.hostPID)")}
+    var bytes=[CChar](repeating:0,count:4096)
+    guard proc_pidpath(r.hostPID,&bytes,UInt32(bytes.count))>0 else {throw fail("Host process path unavailable: \(r.hostPID)")}
+    guard String(cString:bytes)=="/Applications/Nearpane.app/Contents/MacOS/NearpaneHost" else {
+        throw fail("Host process moved outside the signed installation: \(r.hostPID)")
+    }
+    guard let signature=operatorIdentity(r.hostPID) else {throw fail("active Host signature unavailable: \(r.hostPID)")}
+    guard signature.0=="com.holdsnow.nearpane.alpha",signature.1==r.hostHash else {throw fail("active Host signature differs from handshake")}
     if current != expect {
         // Opening the system overview at a fullscreen origin can display an existing
         // ordinary Space. Bind that observed transition only for inactive-desktop recovery.
@@ -267,6 +291,10 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
 }
 @main enum Main {
     static func main() {
+        if CommandLine.arguments.count==3,CommandLine.arguments[1]=="birth",let pid=Int32(CommandLine.arguments[2]) {
+            guard let birth=operatorBirth(pid) else {exit(2)}
+            print(birth);return
+        }
         if CommandLine.arguments.dropFirst().elementsEqual(["hid"]) {
             print(hardware().map(String.init).joined(separator:","))
             return
