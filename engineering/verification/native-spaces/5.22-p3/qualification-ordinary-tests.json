@@ -1,0 +1,16 @@
+{
+  "nearpaneSourceCommit": "1e5b1d7fde41d9147cf5ff08437406ef10e70913",
+  "ordinaryRiftletPin": "189782dd943f5215da43539b30db27e482a78b3c",
+  "ordinaryRiftletTreeSHA256": "b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a",
+  "command": "bash scripts/test.sh --filter 'CaptureAttachmentProviderTests|ProductDraftExecutorTests|TrayDomainTests'",
+  "suites": [
+    "CaptureAttachmentProviderTests",
+    "ProductDraftExecutorTests",
+    "TrayDomainTests"
+  ],
+  "swiftTestSummary": "Test run with 36 tests in 3 suites passed after 1.821 seconds",
+  "testsPassed": 36,
+  "elapsedSeconds": 1.821,
+  "result": "PASS",
+  "nativeHostLaunch": false
+}

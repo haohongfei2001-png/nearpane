@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "startedUTC": "2026-11-20T10:36:03.033086+00:00",
+  "macOSBuild": "26A428",
+  "productionPin": "189782dd943f5215da43539b30db27e482a78b3c",
+  "qualificationBase": "c764246410c2c0c225ac4bb8688c2ae5179f27e9",
+  "qualificationCommit": "53ff958c9e31ec28f81fa4c00d593ec33ab9716d",
+  "qualificationTree": "3e778871f894dc5b3e5be4a4e7b89903f8720916",
+  "patchSHA256": "79baac274e32b40c21f0d8cba92be9ddf8bb709cddcaf3f9040da835c390c9d2",
+  "ordinaryProductionEnabledForQualification": false,
+  "liveAuthenticatedAcceptance": "BLOCKED_NO_AUTHORIZED_ISOLATED_PROFILE",
+  "liveUploadCompleted": null,
+  "liveSendEvents": null,
+  "nativeAppleEvents": "NOT_RUN_HEADLESS_PIPE",
+  "safariQualification": "BLOCKED_STABLE_TAB_WITNESS_UNAVAILABLE",
+  "failures": {
+    "build": "swift exited 1"
+  },
+  "browsers": {},
+  "sourceReplay": "MATCH",
+  "scratchRemoved": true,
+  "finishedUTC": "2026-11-20T10:36:33.376370+00:00",
+  "result": "FAIL"
+}

@@ -2,7 +2,9 @@
 
 本阶段从 PR #15 的原生基线 `90808bd` 开发。Riftlet 继续使用 `Dependencies/domains.lock.json` 中的 `189782dd943f5215da43539b30db27e482a78b3c`，源码树 SHA-256 为 `b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a`。本次源码提交为 `bae75a7`，46 项 Swift 测试通过。阶段结果及逐意图记录见 [receipt.json](receipt.json)。开发中已定位并修复的失败见 [diagnostics.json](diagnostics.json)。
 
-## 结果
+后续修订 `1e5b1d7` 在专用编译中复用较新的同一 Riftlet 传输器，完成 Chrome、Edge 与四个服务的隔离写入资格验证。96 个无界面夹具记录了 16 个准确预览、8 次取消和 72 次投递前拒绝，发送、提交和 Enter 均为零。在线 12 格、原生 Apple Events、Safari 稳定标签身份和真实上传完成仍待实机验证。[资格范围与复现](QUALIFICATION.md) · [逐次读回](qualification.json)
+
+## 首轮固定依赖结果
 
 | 项目 | 结果 | 本次观测 |
 | --- | --- | --- |
