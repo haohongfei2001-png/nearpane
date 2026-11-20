@@ -63,6 +63,7 @@ class DocumentTests(unittest.TestCase):
                     raise reply
                 return reply
             if mode == "close":
+                self.assertEqual(kwargs.get("numbers"), [31,32])
                 if close_error:
                     raise doc.ScopeError(close_error)
                 return {"quitRequested": True}
@@ -244,7 +245,7 @@ class DocumentTests(unittest.TestCase):
         source = Path(__file__).resolve().parent
         executable = self.kit / "check-identity"
         subprocess.run(["xcrun", "swiftc", source.parents[2]/"Sources/NearpaneCore/AXWindowList.swift",
-                        source/"textedit_window_list.swift", source/"textedit_identity.swift", source/"test_textedit_identity.swift",
+                        source/"textedit_window_list.swift", source/"textedit_window_alias.swift", source/"textedit_identity.swift", source/"test_textedit_identity.swift",
                         "-o", executable], check=True, timeout=60)
         system = Path("/System/Applications/TextEdit.app/Contents/MacOS/TextEdit")
         names = subprocess.check_output(["xcrun", "lipo", "-archs", system], text=True).split()
@@ -332,6 +333,25 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual([x[0] for x in seen], ["press", "sample", "sample", "sample"])
         self.assertEqual([x[2][0]["status"] for x in seen[:3]], ["twoAXWindows", "emptyArray", "arrayAXError"])
         self.assertEqual(seen[-1][1:], ("INVALID", []))
+
+    def test_redacted_excess_count_evidence_keeps_both_stable_reads_and_all_stops(self):
+        row = dict(phase="recheck", start=20., end=22., rootAXError=0, status="verifiedExpandedPair", binding="bothEnrolledURLs",
+                   valueKind="notRead", countAXError=0, reportedCount=4, expandedState="duplicateReferences")
+        a = dict(owner="enrolled", number=101, ref=0, role="window", subrole="standard")
+        b = dict(a, number=202, ref=1)
+        snap = dict(start=20.1, end=20.2, state="duplicateReferences", countAXError=0, reported=4, copyAXError=0, copied=4,
+                    rows=[a,b,a,b], serverCount=2, serverNumbers=[202,101], enrolledNumbers=[101,202], fileMatches=[True,True])
+        row["expandedReads"] = [snap, dict(snap, start=21.1, end=21.2)]
+        self.assertEqual(doc.window_reads([row]), ("RECORDED",[row]))
+        for key,val in (("serverCount",3), ("fileMatches",[True,False]), ("title","private"), ("rows",[dict(a, role="anything")])):
+            mutated = dict(row, expandedReads=[snap, dict(row["expandedReads"][1], **{key:val})])
+            self.assertEqual(doc.window_reads([mutated]), ("INVALID",[]))
+        foreign = dict(start=20.1,end=20.2,state="foreignOrUnreadableOwner",countAXError=0,reported=4,copyAXError=0,copied=4,
+                       rows=[a,b,dict(owner="other",ref=2)])
+        refused = dict(row, status="additionalWindowsReported", binding="notChecked", expandedState=foreign["state"], expandedReads=[foreign])
+        self.assertEqual(doc.window_reads([refused]), ("RECORDED",[refused]))
+        foreign["rows"][2]["number"] = 909
+        self.assertEqual(doc.window_reads([refused]), ("INVALID",[]))
 
     def test_lost_replies_and_unusable_diagnostics_never_reissue_an_accepted_press(self):
         malformed = {"phase": "initial", "start": 1, "end": 2, "binding": [], "status": {"unexpected": 1}}

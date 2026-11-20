@@ -12,6 +12,7 @@ struct DocumentInstance: Codable {
     let consoleUID: uid_t?
     let architecture: TextEditArchitecture?
 }
+struct DocumentWindowPair: Codable, Equatable { let pid: pid_t, birth: UInt64, numbers: [UInt32] }
 struct DocumentLaunchIntent: Codable { let notBefore: UInt64 }
 struct DocumentLaunchCandidate: Codable { let pid: pid_t, birth: UInt64?, notBefore: UInt64, callbackTime: UInt64 }
 func launchClock() throws -> UInt64 {
@@ -200,6 +201,13 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object], controlRea
           enrolled.consoleUID.map({ $0==live.uid }) ?? true else {
         throw DocumentRefusal("kernel generation, console owner or signed system TextEdit executable changed or is unavailable")
     }
+    let pairURL = folder.appendingPathComponent("bound-windows.json")
+    let registered: DocumentWindowPair? = try manager.fileExists(atPath:pairURL.path) ? load(DocumentWindowPair.self,from:pairURL) : nil
+    if let registered {
+        guard registered.pid == enrolled.pid, registered.birth == enrolled.birth, registered.numbers.count == 2,
+              Set(registered.numbers).count == 2, !registered.numbers.contains(0),
+              request.numbers.map({ $0 == registered.numbers }) ?? true else { throw DocumentRefusal("durable window-pair enrollment changed") }
+    }
     let root=AXUIElementCreateApplication(enrolled.pid)
     _=AXUIElementSetMessagingTimeout(root,0.5)
     func owner(_ element: AXUIElement) -> pid_t? {
@@ -221,13 +229,65 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object], controlRea
             note["status"] = "wrongOrUnreadableRoot"
             throw DocumentRefusal("TextEdit AXWindows root ownership unavailable")
         }
+        let paths = wanted.compactMap { physicalDocumentPath($0.path) }
+        guard paths.count == 2, Set(paths).count == 2 else { throw DocumentRefusal("synthetic files disappeared") }
+        // Only resolve filesystem nodes already enrolled by the runner. Never stat a received foreign URL.
+        func fileSlot(_ raw: String) -> Int? {
+            guard let url = URL(string:raw), url.isFileURL, (url.host ?? "").isEmpty || url.host == "localhost",
+                  url.user == nil, url.password == nil, url.port == nil, url.query == nil, url.fragment == nil else { return nil }
+            return paths.firstIndex { path in url.path == path || (path.hasPrefix("/private/tmp/") && url.path == String(path.dropFirst("/private".count))) }
+        }
+        func serverSurfaces() -> [UInt32]? {
+            guard let list = CGWindowListCopyWindowInfo([.optionAll,.excludeDesktopElements],kCGNullWindowID), CFArrayGetCount(list) <= 4096 else { return nil }
+            var numbers = [UInt32]()
+            for row in list as NSArray {
+                // Use the owner field solely as a filter. Read the number only for the enrolled process.
+                guard let row = row as? NSDictionary, let pid = row.object(forKey:kCGWindowOwnerPID) as? pid_t else { return nil }
+                guard pid == enrolled.pid else { continue }
+                guard let n = row.object(forKey:kCGWindowNumber) as? UInt32 else { return nil }
+                numbers.append(n)
+                if numbers.count > TextEditWindowAliases.limit { break }
+            }
+            return numbers
+        }
+        func identify(_ w: AXUIElement) -> TextEditWindowAliases.Identity {
+            var pid: pid_t = 0
+            let code = AXUIElementGetPid(w,&pid)
+            guard code == .success, pid == enrolled.pid else {
+                return .init(owner:code == .success ? "other" : "unreadable",number:0,role:"unreadable",subrole:"unreadable")
+            }
+            let role = value(w,kAXRoleAttribute) as? String
+            let sub = value(w,kAXSubroleAttribute) as? String
+            let roles = [kAXWindowRole:"window", kAXSheetRole:"sheet"]
+            let subroles = [kAXStandardWindowSubrole:"standard", kAXDialogSubrole:"dialog", kAXFloatingWindowSubrole:"floating",
+                            kAXSystemDialogSubrole:"systemDialog", kAXUnknownSubrole:"unknown"]
+            return .init(owner:"enrolled",number:NPReadAXWindowNumber(w),role:role.map { roles[$0] ?? "other" } ?? "unreadable",
+                         subrole:sub.map { subroles[$0] ?? "other" } ?? "unreadable")
+        }
         let observed = TextEditWindowList.read(root)
         note.merge(observed.evidence) { _, new in new }
+        if observed.status == "additionalWindowsReported", let n = observed.evidence["reportedCount"] as? Int,
+           (3...TextEditWindowAliases.limit).contains(n) {
+            let (state,pair,checks) = TextEditWindowAliases.prove(expected:registered?.numbers, interruption:{
+                guard TextEditProcessIdentity.kernelBirth(enrolled.pid) == enrolled.birth else { return "generationChanged" }
+                return textInputCounters() == request.hid && NSEvent.pressedMouseButtons == 0 ? nil : "physicalInputChanged"
+            },read:{ TextEditWindowAliases.read(enrolled.pid) },same:{ CFEqual($0,$1) }, identify:identify, surfaces:serverSurfaces,
+               between:{ Thread.sleep(forTimeInterval:0.04) }, matchesFile:{ window,slot in
+                guard let numbers = registered?.numbers, numbers.count == 2, owner(window) == enrolled.pid,
+                      NPReadAXWindowNumber(window) == numbers[slot],
+                      let raw = value(window,kAXDocumentAttribute) as? String else { return nil }
+                return fileSlot(raw) == slot
+            })
+            note["expandedState"] = state
+            note["expandedReads"] = checks
+            guard let pair else { throw DocumentRefusal("TextEdit AXWindows \(phase) bounded excess-count read: \(state)") }
+            note["binding"] = "bothEnrolledURLs"
+            note["status"] = "verifiedExpandedPair"
+            return pair
+        }
         guard let windows = observed.windows else {
             throw DocumentRefusal("TextEdit AXWindows \(phase) read: \(observed.status)")
         }
-        let paths=wanted.compactMap {physicalDocumentPath($0.path)}
-        guard paths.count==2, Set(paths).count==2 else {throw DocumentRefusal("synthetic files disappeared")}
         var result=[String:AXUIElement]()
         for window in windows {
             guard owner(window)==enrolled.pid else {
@@ -241,6 +301,10 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object], controlRea
                 note["roleAXError"] = roleError.rawValue
                 throw DocumentRefusal("AX window role unavailable for the enrolled TextEdit process")
             }
+            if let expected = registered?.numbers ?? request.numbers, !expected.contains(NPReadAXWindowNumber(window)) {
+                note["binding"] = "unregisteredWindowNumber"
+                throw DocumentRefusal("AX window number differs from the previously enrolled pair")
+            }
             var document: CFTypeRef?
             let code = AXUIElementCopyAttributeValue(window, kAXDocumentAttribute as CFString, &document)
             guard code == .success, let document, CFGetTypeID(document) == CFStringGetTypeID(), let raw = document as? String else {
@@ -248,14 +312,17 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object], controlRea
                 note["documentAXError"] = code.rawValue
                 throw DocumentRefusal("could not verify the local AX document URL")
             }
-            guard let url=URL(string:raw), url.isFileURL, (url.host ?? "").isEmpty || url.host=="localhost",
-                  let path=physicalDocumentPath(url.path), paths.contains(path), result[path]==nil else {
+            guard let slot = fileSlot(raw), result[paths[slot]] == nil else {
                 note["binding"] = "foreignOrDuplicateURL"
                 throw DocumentRefusal("a window is not bound to the disposable document URLs")
             }
-            result[path]=window
+            result[paths[slot]]=window
         }
         let ordered = try paths.map { guard let w=result[$0] else {throw DocumentRefusal("test document missing")}; return w }
+        if let expected = registered?.numbers ?? request.numbers, ordered.map({ NPReadAXWindowNumber($0) }) != expected {
+            note["binding"] = "unregisteredWindowNumber"
+            throw DocumentRefusal("enrolled window numbers no longer identify their original files")
+        }
         note["binding"] = "bothEnrolledURLs"
         return ordered
     }
@@ -321,6 +388,15 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object], controlRea
         let final=try focus()
         guard initial.focused==final.focused,initial.main==final.main else {throw DocumentRefusal("system focus changed during readback")}
         try guardBoundary()
+        if registered == nil {
+            let binding = DocumentWindowPair(pid:enrolled.pid,birth:enrolled.birth,numbers:numbers)
+            do { try save(binding,to:pairURL) }
+            catch {
+                guard (try? load(DocumentWindowPair.self,from:pairURL)) == binding else {
+                    throw DocumentRefusal("could not retain the original two-window enrollment")
+                }
+            }
+        }
         return ["numbers":numbers,"focused":numbers[final.focused],"main":final.main.map { numbers[$0] } ?? 0,"front":true,
                 "focusWitness":"systemAX","pid":enrolled.pid,"hashes":hashes,
                 "markerCounts":strings.map { marker.isEmpty ? 0 : $0.components(separatedBy:marker).count-1 }]
@@ -328,7 +404,7 @@ func textDocuments(_ request: DocumentRequest, reads: inout [Object], controlRea
     guard let i=request.index, (0..<2).contains(i), let host else {
         throw DocumentRefusal("test document lost foreground ownership")
     }
-    guard request.numbers == numbers, request.target == numbers[i] else { throw DocumentRefusal("enrolled window pair or target window number changed") }
+    guard registered?.numbers == numbers, request.numbers == numbers, request.target == numbers[i] else { throw DocumentRefusal("enrolled window pair or target window number changed") }
     if request.mode == "ready" || request.mode == "press" {
         let id="current-desktop-window:\(enrolled.pid):\(numbers[i])"
         let (exact, info) = documentControl(host,id:id,display:request.display)

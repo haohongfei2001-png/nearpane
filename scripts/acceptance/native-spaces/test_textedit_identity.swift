@@ -33,6 +33,62 @@ private final class Fixture {
     }
 }
 
+private func verifyBoundedAliases() {
+    typealias Check = TextEditWindowAliases
+    typealias Read = Check.Read<Int>
+    let pair: [UInt32] = [101,202]
+    func batch(_ reported: Int, _ rows: [Int]) -> Read {
+        .init(countStatus:.success,reported:reported,copyStatus:.success,copied:rows.count,elements:rows)
+    }
+    func identity(_ ref: Int) -> Check.Identity {
+        .init(owner:ref == 8 ? "other" : "enrolled", number:[1:101,2:202,3:303,4:101,5:0][ref] ?? 0,
+              role:"window",subrole:"standard")
+    }
+    func probe(_ batches: [Read], expected: [UInt32]? = [101,202], server: [UInt32]? = [101,202],
+               bound: Bool = true, meta: (Int)->Check.Identity = identity) -> (String,[Int]?,Int,Int) {
+        var i = 0, fileChecks = 0
+        let (state, selected, evidence) = Check.prove(expected:expected,interruption:{ nil },read:{
+            precondition(i < batches.count, "unqualified reads must never be retried")
+            defer { i += 1 }; return batches[i]
+        },same:==,identify:meta,surfaces:{server},matchesFile:{ ref, slot in
+            precondition([1,2].contains(ref), "unregistered surfaces cannot be queried for their file URL")
+            fileChecks += 1
+            return bound && ref == slot+1
+        })
+        precondition(i == evidence.count)
+        return (state, selected, fileChecks, i)
+    }
+    let repeated = batch(4,[1,2,1,2])
+    let aliases = probe([repeated,repeated])
+    precondition(aliases == ("duplicateReferences",[1,2],4,2))
+    let stale = batch(4,[1,2]), two = batch(2,[1,2])
+    precondition(probe([stale,stale]) == ("countDrift",[1,2],4,2))
+    precondition(probe([two,two]) == ("exactPair",[1,2],4,2))
+    precondition(probe([batch(3,[1,2,3])]) == ("additionalAXSurface",nil,0,1))
+    precondition(probe([batch(4,[1,2,4,2])]) == ("distinctAXRefsShareCGID",nil,0,1))
+    precondition(probe([batch(3,[1,2,5])]) == ("unidentifiedSurface",nil,0,1))
+    precondition(probe([batch(3,[1,2,8])]) == ("foreignOrUnreadableOwner",nil,0,1))
+    precondition(probe([repeated],expected:nil) == ("noPreviouslyBoundPair",nil,0,1))
+    precondition(probe([repeated],server:[101,202,303]) == ("additionalServerSurface",nil,0,1))
+    precondition(probe([repeated],server:Array(1...9)) == ("serverCensusAboveBound",nil,0,1))
+    precondition(probe([repeated],server:nil) == ("serverCensusUnavailable",nil,0,1))
+    precondition(probe([repeated],server:[101]) == ("missingServerSurface",nil,0,1))
+    precondition(probe([repeated],bound:false) == ("fileBindingChanged",nil,2,1))
+    precondition(probe([repeated,batch(4,[2,1,2,1])]) == ("unstableReads",nil,4,2))
+    precondition(probe([repeated,stale]) == ("unstableReads",nil,4,2))
+    precondition(probe([batch(Check.limit+1,[])]) == ("countUnqualified",nil,0,1))
+    precondition(probe([.init(countStatus:.success,reported:4,copyStatus:.cannotComplete,copied:nil,elements:nil)]) == ("arrayUnqualified",nil,0,1))
+    precondition(probe([repeated],meta:{ element in
+        let original = identity(element)
+        return .init(owner:original.owner,number:original.number,role:"window",subrole:"dialog")
+    }) == ("nonstandardOrUnresolvedRole",nil,0,1))
+    var observations = 0
+    let unstableIdentity = Check.prove(expected:pair,interruption:{nil},read:{observations += 1; return two},
+        same:==,identify:{ ref in .init(owner:"enrolled",number:pair[observations == 1 ? ref-1 : 2-ref],role:"window",subrole:"standard") },
+        surfaces:{pair},matchesFile:{_,_ in true})
+    precondition(unstableIdentity.0 == "unstableReads" && unstableIdentity.1 == nil)
+}
+
 @main struct W01IdentityTests {
     static func main() throws {
         let slices = CommandLine.arguments.dropFirst()
@@ -73,6 +129,7 @@ private final class Fixture {
         precondition(TextEditSidebarButtonRead.enabled(status:.success,value:NSNumber(value:7)) == nil)
         precondition(TextEditSidebarButtonRead.enabled(status:.success,value:nil) == nil)
         precondition(TextEditSidebarButtonRead.enabled(status:.cannotComplete,value:kCFBooleanTrue) == nil)
+        verifyBoundedAliases()
         let fixture = Fixture()
         precondition(fixture.indices()?.focused == 0 && fixture.indices(editor: 4)?.main == 0)
         precondition(fixture.indices(editor: 5) == nil)

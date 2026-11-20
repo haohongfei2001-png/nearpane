@@ -19,25 +19,83 @@ class DocumentIdentityError(ScopeError):
         super().__init__(reason)
 
 
+def valid_expanded_reads(row):
+    if "expandedState" not in row and "expandedReads" not in row:
+        return row.get("status") != "verifiedExpandedPair"
+    allowed = {"generationChanged", "physicalInputChanged", "serverCensusAboveBound", "countUnqualified", "arrayUnqualified", "foreignOrUnreadableOwner", "unidentifiedSurface",
+               "additionalAXSurface", "oneAXRefMultipleCGIDs", "distinctAXRefsShareCGID", "nonstandardOrUnresolvedRole",
+               "noPreviouslyBoundPair", "missingEnrolledSurface", "serverCensusUnavailable", "additionalServerSurface",
+               "missingServerSurface", "fileBindingUnreadable", "fileBindingChanged", "unstableReads", "duplicateReferences", "countDrift", "exactPair"}
+    completed = {"duplicateReferences", "countDrift", "exactPair"}
+    reads = row.get("expandedReads")
+    if not isinstance(reads, list) or not 1 <= len(reads) <= 2 or not isinstance(row.get("expandedState"), str) or row["expandedState"] not in allowed:
+        return False
+    for sample in reads:
+        numeric = {"countAXError", "reported", "copyAXError", "copied", "serverCount", "serverCountAtLeast"}
+        if (not isinstance(sample, dict) or sample.keys() - (numeric | {"state", "start", "end", "rows", "fileMatches", "enrolledNumbers", "serverNumbers"}) or
+                not isinstance(sample.get("state"), str) or sample["state"] not in allowed or
+                any(type(sample[k]) is not int for k in numeric & sample.keys()) or
+                not all(type(sample.get(k)) in (int, float) and 0 < sample[k] < 2**53 for k in ("start", "end")) or
+                not row["start"] <= sample["start"] <= sample["end"] <= row["end"]):
+            return False
+        members = sample.get("rows", [])
+        if not isinstance(members, list) or len(members) > 8:
+            return False
+        for member in members:
+            if not isinstance(member, dict) or set(member) - {"ref", "owner", "number", "role", "subrole"}:
+                return False
+            if type(member.get("ref")) is not int or not 0 <= member["ref"] < 8 or member.get("owner") not in ("enrolled", "other", "unreadable"):
+                return False
+            if member["owner"] != "enrolled":
+                if set(member) != {"ref", "owner"}:
+                    return False
+            elif (type(member.get("number")) is not int or not 0 <= member["number"] <= 0xffffffff or
+                  member.get("role") not in ("window", "sheet", "other", "unreadable") or
+                  member.get("subrole") not in ("standard", "dialog", "floating", "systemDialog", "unknown", "other", "unreadable")):
+                return False
+        enrolled = sample.get("enrolledNumbers", [])
+        server = sample.get("serverNumbers", [])
+        if (not isinstance(enrolled, list) or len(enrolled) not in (0, 2) or
+                not isinstance(server, list) or len(server) > 9 or
+                any(type(n) is not int or not 0 <= n <= 0xffffffff for n in enrolled + server) or
+                len(set(enrolled)) != len(enrolled) or 0 in enrolled or
+                ("serverNumbers" in sample and sample.get("serverCount",sample.get("serverCountAtLeast")) != len(server))):
+            return False
+        files = sample.get("fileMatches")
+        if files is not None and (not isinstance(files, list) or len(files) != 2 or any(type(f) is not bool for f in files)):
+            return False
+        if sample["state"] in completed and (files != [True, True] or sample.get("serverCount") != 2 or
+                                             len(enrolled) != 2 or set(enrolled) != set(server) or {m.get("number") for m in members} != set(enrolled) or
+                                             len({m["ref"] for m in members}) != 2 or sample.get("copied") != len(members)):
+            return False
+    if reads[-1]["state"] != row["expandedState"]:
+        return False
+    if row["expandedState"] in completed:
+        return (row.get("status") == "verifiedExpandedPair" and row.get("binding") == "bothEnrolledURLs" and len(reads) == 2 and
+                reads[0]["state"] == reads[1]["state"] and reads[0].get("rows") == reads[1].get("rows") and
+                reads[0].get("enrolledNumbers") == reads[1].get("enrolledNumbers") and reads[0]["end"] <= reads[1]["start"])
+    return row.get("status") == "additionalWindowsReported" and row.get("binding") == "notChecked"
+
+
 def window_reads(value):
     """Export only bounded AX metadata from the signed helper, including a failed final recheck."""
     statuses = {"wrongOrUnreadableRoot", "additionalWindowsReported", "windowCountRefused", "arrayAXError", "missingArrayValue",
-                "nonArrayValue", "countChanged", "emptyArray", "oneWindow", "additionalWindowsReturned", "invalidArrayMembers", "twoAXWindows"}
+                "nonArrayValue", "countChanged", "emptyArray", "oneWindow", "additionalWindowsReturned", "invalidArrayMembers", "twoAXWindows", "verifiedExpandedPair"}
     bindings = {"notChecked", "wrongOrUnreadableWindowOwner", "roleAXError", "wrongWindowRole", "documentAXError", "documentValueNotString",
-                "foreignOrDuplicateURL", "bothEnrolledURLs"}
+                "foreignOrDuplicateURL", "bothEnrolledURLs", "unregisteredWindowNumber"}
     numeric = {"rootAXError", "countAXError", "copyAXError", "reportedCount", "copiedCount", "roleAXError", "documentAXError"}
     if value is None:
         return "NOT_REPORTED", []
     if not isinstance(value, list) or not 1 <= len(value) <= 2:
         return "INVALID", []
     for row in value:
-        if (not isinstance(row, dict) or row.keys() - (numeric | {"phase", "start", "end", "binding", "status", "valueKind"}) or
+        if (not isinstance(row, dict) or row.keys() - (numeric | {"phase", "start", "end", "binding", "status", "valueKind", "expandedState", "expandedReads"}) or
                 row.get("phase") not in ("initial", "recheck") or
                 not isinstance(row.get("status"), str) or row["status"] not in statuses or
                 not isinstance(row.get("binding"), str) or row["binding"] not in bindings or
                 row.get("valueKind") not in (None, "notRead", "error", "noValue", "array", "otherCFType") or
                 not all(type(row.get(k)) in (float, int) and 0 < row[k] < 2**53 for k in ("start", "end")) or
-                not 0 < row["start"] <= row["end"] or any(type(row[k]) is not int for k in numeric & row.keys())):
+                not 0 < row["start"] <= row["end"] or any(type(row[k]) is not int for k in numeric & row.keys()) or not valid_expanded_reads(row)):
             return "INVALID", []
     return "RECORDED", value
 
@@ -281,10 +339,16 @@ def run(workspace, receipt, desktop):
         for row in readings:
             name = row["status"]
             read_summary["outcomes"][name] = read_summary["outcomes"].get(name, 0) + 1
+            if "expandedState" in row:
+                extra = read_summary.setdefault("expandedOutcomes", {})
+                extra[row["expandedState"]] = extra.get(row["expandedState"], 0) + 1
         receipt.log("W01-AX-window-read", operationStage="cleanup" if mode == "close" else stage, mode=mode,
                     trial=trial, coverage=coverage, reads=readings)
 
+    bound_numbers = None
     def action(mode, **extra):
+        if mode in ("sample", "close") and bound_numbers is not None:
+            extra["numbers"] = bound_numbers
         return document_action(workspace, folder, desktop, mode, record_reads=record_reads, **extra)
 
     def wait(predicate, marker=None, seconds=5):
@@ -315,6 +379,9 @@ def run(workspace, receipt, desktop):
         initially = wait(lambda d: d["front"] and d["focused"] in d["numbers"]
                          and d["main"] == d["focused"] and d["hashes"] == [empty, empty])
         numbers = initially["numbers"]
+        require(isinstance(numbers, list) and len(numbers) == 2 and all(type(n) is int and 0 < n <= 0xffffffff for n in numbers)
+                and numbers[0] != numbers[1], "initial system document numbers did not identify two distinct windows")
+        bound_numbers = list(numbers)
         first = 1-numbers.index(initially["focused"])
         for turn in range(10):
             index = (first+turn) % 2
