@@ -28,9 +28,10 @@ assert len(part)==2
 destination.write_text(part[0]+'\n'+(src/'paired-preview-census.swift').read_text()+'\n'+(src/'lifecycle-menu.swift').read_text()+'\n'+(src/'split-fixture-identity.swift').read_text()+'\n'+(src/'split-view-read.swift').read_text())
 PY
 stage=$(mktemp -d "$kit/.split-reader.XXXXXXXX")
-trap 'rm -f "$stage/split-view-read"; rmdir "$stage"' EXIT
-xcrun swiftc -D NATIVE_CONTRACT -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/contract_members.h" \
-  "$kit/split-view-read.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$stage/split-view-read"
+trap 'rm -f "$stage/split-view-read" "$stage/main.swift"; rmdir "$stage"' EXIT
+cp "$kit/split-view-read.swift" "$stage/main.swift"
+xcrun swiftc -D NATIVE_CONTRACT -D SECONDARY_FOCUS_OBSERVER -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/contract_members.h" \
+  "$stage/main.swift" scripts/acceptance/observe-secondary-space-controls.swift "$src/split-picker-geometry.swift" "$src/split-picker.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$stage/split-view-read"
 codesign --verify --strict "$stage/split-view-read"
 mv "$stage/split-view-read" "$kit/split-view-read"
 codesign --verify --strict "$app"

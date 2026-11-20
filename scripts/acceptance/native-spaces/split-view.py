@@ -201,10 +201,14 @@ def run(kit, output, target):
                 if picker.get('alreadyTogether'):
                     result['pair']={'issued':False,'systemCompletedPairWithoutFurtherInput':True}
                 else:
+                    if not picker.get('ready'):
+                        result['pair']={k:picker[k] for k in ('reason','pickerReason','route','labelMatches','pickerEvidence') if k in picker}
+                        result['pair']['issued']=False
+                        save()
                     require(picker.get('ready'),picker.get('reason','uniqueOwnedSystemPickerUnavailable'))
                     result['pair']={'issued':None};save()
                     pair=sample('pair')
-                    result['pair']={k:pair[k] for k in ('issued','axError','mouseEvents','reason','labelMatches','route') if k in pair};save()
+                    result['pair']={k:pair[k] for k in ('issued','axError','mouseEvents','reason','labelMatches','route','pickerEvidence','recheckEvidence') if k in pair};save()
                     require(pair.get('issued') is True and pair.get('axError',0)==0,pair.get('reason','secondDocumentDeliveryUnconfirmed'))
                 result.update(status='UNKNOWN',systemPair='UNKNOWN',installedLayout='UNKNOWN')
                 deadline=time.monotonic()+12; last=None; verified=0

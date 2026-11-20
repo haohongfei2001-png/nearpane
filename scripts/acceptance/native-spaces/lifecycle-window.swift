@@ -49,6 +49,9 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
         #endif
         w.backgroundColor = index == 0 ? .systemTeal : .systemIndigo
         let label = NSTextField(wrappingLabelWithString: w.title)
+        #if SPLIT_VIEW_FIXTURE
+        label.setAccessibilityIdentifier("nearpane-split-marker-" + folder.lastPathComponent + (index == 0 ? "-a" : "-b"))
+        #endif
         label.font = .systemFont(ofSize: 28, weight: .medium)
         label.textColor = .white
         label.frame = NSRect(x: 30, y: 75, width: 480, height: 110)

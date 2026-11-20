@@ -23,6 +23,14 @@ class SplitObservationTests(unittest.TestCase):
             hostGroupCount=1,hostMemberCounts=[1,1],hostGroupFrame=[50,200,120,90],
             hostPaneFrames=[[91.04,200,78.96,72],[50,200,39.6,72]])
 
+    @unittest.skipUnless(sys.platform=='darwin','requires the macOS SDK')
+    def test_native_picker_v5_measured_frames_and_rejected_occlusion_without_gui(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            binary=Path(tmp)/'split-picker-geometry'
+            subprocess.run(['xcrun','swiftc',path.with_name('split-picker-geometry.swift'),
+                            path.with_name('test_split_picker_v6.swift'),'-o',binary],check=True,timeout=35)
+            subprocess.run([binary],check=True,timeout=3)
+
     def test_actual_unequal_geometry_and_window_order(self):
         self.assertTrue(module.system_pair(self.view,4))
         self.assertTrue(module.host_layout(self.view))

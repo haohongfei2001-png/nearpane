@@ -39,86 +39,6 @@ func supportedPress(_ el: AXUIElement) -> Bool {
     var names: CFArray?
     return AXUIElementCopyActionNames(el,&names) == .success && (names as? [String])?.contains(kAXPressAction)==true
 }
-func systemAgent(_ app: NSRunningApplication) -> Bool {
-    guard let bundle=app.bundleIdentifier, ["com.apple.dock","com.apple.WindowManager"].contains(bundle),
-          app.bundleURL?.standardizedFileURL.path.hasPrefix("/System/Library/")==true else {return false}
-    var code: SecCode?, requirement: SecRequirement?
-    return SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:app.processIdentifier] as CFDictionary,[],&code) == errSecSuccess && code.map { c in
-        SecRequirementCreateWithString(("anchor apple and identifier " + "\""+bundle+"\"") as CFString,[],&requirement) == errSecSuccess
-            && SecCodeCheckValidity(c,[],requirement)==errSecSuccess
-    } == true
-}
-func picker(_ label: String, _ screen: CGRect, fixture: pid_t, number: UInt32, secondFrame: CGRect?)
-    -> (press: AXUIElement?, click: CGPoint?, labelled: Int, witness: String, missionControl: Bool) {
-    var press = Set<AXUIElement>(), points = [CGPoint](), labels = Set<AXUIElement>()
-    var systemOverview = false
-    let system = AXUIElementCreateSystemWide()
-    func hit(_ p: CGPoint) -> AXUIElement? {
-        var n: AXUIElement?
-        return AXUIElementCopyElementAtPosition(system,Float(p.x),Float(p.y),&n) == .success ? n:nil
-    }
-    for bundle in ["com.apple.dock","com.apple.WindowManager"] {
-        for app in NSRunningApplication.runningApplications(withBundleIdentifier:bundle) where systemAgent(app) {
-            let pid=app.processIdentifier, root=AXUIElementCreateApplication(pid)
-            _ = AXUIElementSetMessagingTimeout(root, 0.12)
-            var todo=(value(root,kAXWindowsAttribute) as? [AXUIElement] ?? []) + [root], visited=Set<AXUIElement>()
-            // Mission Control can omit its active picker from AXChildren while the display transitions.
-            // A hit only contributes signed system ancestors. No desktop picture or user title is read.
-            for x in [0.28,0.58,0.78,0.90] {
-                for y in [0.26,0.54,0.76] {
-                    var e=hit(CGPoint(x:screen.minX+screen.width*x,y:screen.minY+screen.height*y))
-                    for _ in 0..<10 {
-                        guard let n=e else {break}
-                        var owner: pid_t=0
-                        guard AXUIElementGetPid(n,&owner) == .success,owner==pid else {break}
-                        todo.append(n);e=keyPoint(n)
-                    }
-                }
-            }
-            let deadline=ProcessInfo.processInfo.systemUptime+0.65
-            while let n=todo.popLast(), visited.count<1800, ProcessInfo.processInfo.systemUptime<deadline {
-                guard visited.insert(n).inserted else {continue}
-                let role=value(n,kAXRoleAttribute) as? String ?? ""
-                guard !["AXTextArea","AXTextField","AXSecureTextField","AXWebArea"].contains(role) else {continue}
-                let ident=value(n,kAXIdentifierAttribute) as? String
-                if ident=="mc" || ident=="mc.display" { systemOverview=true }
-                // Only the throwaway fixture's unique title can authorize a system-picker entry.
-                if [kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].contains(where: {
-                    (value(n,$0) as? String)?.contains(label)==true
-                }) {
-                    labels.insert(n)
-                    if supportedPress(n) {press.insert(n)}
-                    if let hitFrame=splitFrame(n), screen.contains(hitFrame), hitFrame.width>2,hitFrame.height>2 {
-                        let center=CGPoint(x:hitFrame.midX,y:hitFrame.midY)
-                        var hit: AXUIElement?
-                        if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),Float(center.x),Float(center.y),&hit) == .success,
-                           let hit, hasAncestor(hit,n,owner:pid), !points.contains(center) { points.append(center) }
-                    }
-                }
-                todo.append(contentsOf:value(n,kAXChildrenAttribute) as? [AXUIElement] ?? [])
-            }
-        }
-    }
-    if press.count==1 { return (press.first,nil,labels.count,"systemAXPress",systemOverview) }
-    if press.isEmpty && points.count==1 { return (nil,points[0],labels.count,"exactSystemAXHit",systemOverview) }
-    // When the picker exposes the owned document itself at the physical point, the live AX
-    // window must match the exact signed owner, number and nonce. An ordinary desktop never qualifies.
-    if systemOverview, labels.isEmpty, let f=secondFrame,screen.contains(f) {
-        for fraction in [0.5,0.32,0.68] {
-            let p=CGPoint(x:f.minX+f.width*fraction,y:f.midY)
-            var e=hit(p)
-            for _ in 0..<14 {
-                guard let n=e else {break}
-                var owner: pid_t=0
-                guard AXUIElementGetPid(n,&owner) == .success,owner==fixture else {break}
-                if value(n,kAXRoleAttribute) as? String==kAXWindowRole,NPReadAXWindowNumber(n)==number,
-                   value(n,kAXTitleAttribute) as? String==label {return (nil,p,0,"verifiedSecondDocumentInSystemPicker",true)}
-                e=keyPoint(n)
-            }
-        }
-    }
-    return (nil,nil,labels.count,"none",systemOverview)
-}
 func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     var result: Object = ["uptime":ProcessInfo.processInfo.systemUptime, "verb":verb,"issued":false]
     func stop(_ reason:String)->Object { result["reason"]=reason;return result }
@@ -281,27 +201,51 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     if verb=="picker", current==extra,kind==4,members==[[current],[current]],r.numbers.allSatisfy(forward.contains) {
         result["alreadyTogether"]=true;return result
     }
+    let owners: [OverviewProcess]
+    do {owners=try OverviewAgent.allCases.compactMap {try OverviewProcess.current($0)}}
+    catch {return stop("kernelPickerOwnerGenerationOrSignatureUnavailable")}
     guard let extra, (current==r.lease || current==extra), members==[[extra],[r.lease]], exactly([r.numbers[1]]),
           foreign==0,unknown==0,
           (NPReadCatalogSpaceWindowNumbers(extra) as? [UInt32])?.contains(r.numbers[0])==true,
           (NPReadCatalogSpaceWindowNumbers(r.lease) as? [UInt32])?.contains(r.numbers[1])==true,
-          front?.processIdentifier==r.fixturePID || front.map(systemAgent)==true,
+          front?.processIdentifier==r.fixturePID || owners.contains(where:{$0.pid==front?.processIdentifier}),
           trustedState else {return stop("secondWindowPickerAdmissionUnavailable")}
     let title="Nearpane Split "+r.session.uuidString.lowercased()+" B"
-    func readPicker() -> (press: AXUIElement?, click: CGPoint?, labelled: Int, witness: String, missionControl: Bool) {
-        picker(title,screenFrame,fixture:r.fixturePID,number:r.numbers[1],secondFrame:frames.count==2 ? frames[1]:nil)
+    let a=ax[0].count==1 ? ax[0].first:nil,b=ax[1].count==1 ? ax[1].first:nil
+    func readPicker(markerOnly:Bool=false) -> SplitPickerMatch {
+        readSplitPicker(title:title,session:r.session,screen:screenFrame,fixture:r.fixturePID,numbers:r.numbers,
+            source:a,target:b,presentNativeHalf:kind==0 && current==r.lease && ordinary==[true,true] && drawn==[true,true],
+            owners:owners,markerOnly:markerOnly)
+    }
+    func stillOwnPicker() -> Bool {
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier==front?.processIdentifier,
+              NPReadWindowSpaces(r.numbers[0]) as? [UInt64]==[extra], NPReadWindowSpaces(r.numbers[1]) as? [UInt64]==[r.lease],
+              let left=NPReadCatalogSpaceWindowNumbers(extra) as? [UInt32],let right=NPReadCatalogSpaceWindowNumbers(r.lease) as? [UInt32],
+              left.contains(r.numbers[0]), !left.contains(r.numbers[1]), right.contains(r.numbers[1]), !right.contains(r.numbers[0])
+        else {return false}
+        return beforeInput()
     }
     let match=readPicker()
     result["labelMatches"]=match.labelled
-    result["route"]=match.witness;result["systemOverviewExposed"]=match.missionControl
-    guard verb=="pair" else {result["ready"]=match.press != nil || match.click != nil;return result}
-    guard beforeInput(), NSWorkspace.shared.frontmostApplication?.processIdentifier==front?.processIdentifier,
-          NPReadWindowSpaces(r.numbers[0]) as? [UInt64]==[extra],NPReadWindowSpaces(r.numbers[1]) as? [UInt64]==[r.lease] else {return stop("pickerChangedBeforeInput")}
-    if let target=match.press {
-        result["issued"]=true;result["axError"]=AXUIElementPerformAction(target,kAXPressAction as CFString).rawValue
+    result["route"]=match.route;result["systemOverviewExposed"]=match.overview;result["pickerEvidence"]=match.evidence
+    result["pickerReason"]=match.reason
+    let ready=match.press != nil || match.click != nil
+    if !ready {return stop(match.reason)}
+    guard verb=="pair" else {result["ready"]=true;return result}
+    guard stillOwnPicker() else {return stop("pickerChangedBeforeInput")}
+    let confirmed=readPicker(markerOnly:match.byMarker)
+    result["recheckEvidence"]=confirmed.evidence
+    guard confirmed.route==match.route, confirmed.authority==match.authority, confirmed.byMarker==match.byMarker,
+          confirmed.authority.map({ (try? $0.verify()) != nil }) ?? true,
+          splitInput()==hardware,NSEvent.pressedMouseButtons==0,
+          NSWorkspace.shared.frontmostApplication?.processIdentifier==front?.processIdentifier,
+          birthMicroseconds(r.fixturePID)==r.fixtureBirth,
+          NPReadWindowSpaces(r.numbers[0]) as? [UInt64]==[extra],NPReadWindowSpaces(r.numbers[1]) as? [UInt64]==[r.lease]
+    else {return stop("pickerIdentityChangedDuringImmediateRecheck")}
+    if let target=match.press, let verified=confirmed.press,CFEqual(verified,target) {
+        result["issued"]=true;result["axError"]=AXUIElementPerformAction(verified,kAXPressAction as CFString).rawValue
     } else if let point=match.click {
-        let confirmed=readPicker()
-        guard confirmed.press==nil,confirmed.witness==match.witness,confirmed.click==point,beforeInput(), CGPreflightPostEventAccess(),
+        guard confirmed.press==nil,confirmed.click==point, CGPreflightPostEventAccess(),
               let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:point,mouseButton:.left),
               let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:point,mouseButton:.left) else {return stop("pickerHitFailedImmediateRevalidation")}
         let pointer=CGEvent(source:nil)?.location
