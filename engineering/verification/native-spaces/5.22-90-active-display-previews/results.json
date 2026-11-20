@@ -113,7 +113,9 @@
     "uninterruptedAccuratePictureEveryFrame": {
       "status": "FAIL",
       "evidence": "physical-10/neutral-interruption.json"
-    }
+    },
+    "qualifiedPatchMovie": "physical-09/media/two-sampled-patches.mp4",
+    "fullCardMovie": "BLOCKED"
   },
   "permissions": {
     "installed": "PASS",
