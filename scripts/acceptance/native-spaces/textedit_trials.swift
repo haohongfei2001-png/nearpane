@@ -8,8 +8,16 @@ struct DocumentRequest: Decodable {
     let index: Int?, marker: String?, hid: [UInt32]
 }
 struct DocumentInstance: Codable {
-    let pid: Int32, birth: UInt64, launch: TimeInterval, hash: String
+    let pid: Int32, birth: UInt64, launch: TimeInterval?, hash: String
     let consoleUID: uid_t?
+    let architecture: TextEditArchitecture?
+}
+struct DocumentLaunchIntent: Codable { let notBefore: UInt64 }
+struct DocumentLaunchCandidate: Codable { let pid: pid_t, birth: UInt64?, notBefore: UInt64, callbackTime: UInt64 }
+func launchClock() throws -> UInt64 {
+    var clock=timeval()
+    guard gettimeofday(&clock,nil)==0,clock.tv_sec>0 else {throw TextEditIdentityRefusal("launchClock","kernel wall clock unavailable")}
+    return UInt64(clock.tv_sec)*1_000_000+UInt64(clock.tv_usec)
 }
 func textInputCounters() -> [UInt32] {
     [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel].map {
@@ -33,6 +41,8 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     let appURL = TextEditProcessIdentity.application
     let wanted = ["A.txt", "B.txt"].map { folder.appendingPathComponent($0) }
     let receiptURL = folder.appendingPathComponent("instance.json")
+    let intentURL = folder.appendingPathComponent("launch-intent.json")
+    let candidateURL = folder.appendingPathComponent("launch-callback.json")
     guard UUID(uuidString:folder.lastPathComponent) != nil, let rootPath=physicalDocumentPath("/private/tmp"),
           physicalDocumentPath(kit.deletingLastPathComponent().path)==rootPath,kit.lastPathComponent.hasPrefix("nearpane-d01."),
           physicalDocumentPath(folder.path)==rootPath+"/"+kit.lastPathComponent+"/"+folder.lastPathComponent,
@@ -48,16 +58,36 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
               textInputCounters()==request.hid, NSEvent.pressedMouseButtons==0
         else { throw DocumentRefusal("test Space, user input or installed Host identity changed") }
     }
-    func instance(_ application: NSRunningApplication) throws -> DocumentInstance {
-        guard application.bundleURL?.standardizedFileURL.path == appURL.path,
-              application.bundleIdentifier=="com.apple.TextEdit", !application.isTerminated,
-              let launch=application.launchDate?.timeIntervalSince1970, let live=TextEditProcessIdentity.read(application.processIdentifier)
-        else { throw DocumentRefusal("could not verify Apple TextEdit at its system path") }
-        return DocumentInstance(pid:live.pid, birth:live.birth, launch:launch, hash:live.hash, consoleUID:live.uid)
+    func save<T: Encodable>(_ record: T, to url: URL) throws {
+        try JSONEncoder().encode(record).write(to:url,options:.withoutOverwriting)
+        try manager.setAttributes([.posixPermissions: 0o600],ofItemAtPath:url.path)
+    }
+    func load<T: Decodable>(_ type: T.Type, from url: URL) throws -> T {
+        guard ownedDocumentNode(url.path,directory:false) else {throw DocumentRefusal("private TextEdit enrollment record unavailable")}
+        return try JSONDecoder().decode(type,from:Data(contentsOf:url))
+    }
+    func enroll(_ candidate: DocumentLaunchCandidate, application: NSRunningApplication?, fromCallback: Bool = false) throws -> DocumentInstance {
+        let intent = try load(DocumentLaunchIntent.self,from:intentURL)
+        let live = try TextEditProcessIdentity.read(candidate.pid)
+        guard candidate.notBefore==intent.notBefore,live.birth>=intent.notBefore,live.birth<=candidate.callbackTime,
+              candidate.birth.map({ $0==live.birth }) ?? (fromCallback && application != nil) else {
+            throw TextEditIdentityRefusal("launchGeneration","callback did not identify the same newly born process")
+        }
+        if let app=application {
+            guard app.processIdentifier==live.pid,!app.isTerminated,
+                  app.bundleURL.map({ $0.standardizedFileURL.path==appURL.path }) ?? true,
+                  app.bundleIdentifier.map({ $0=="com.apple.TextEdit" }) ?? true else {
+                throw TextEditIdentityRefusal("launchServicesIdentity","published metadata conflicts with the kernel identity")
+            }
+        }
+        let record=DocumentInstance(pid:live.pid,birth:live.birth,launch:application?.launchDate?.timeIntervalSince1970,
+                                    hash:live.hash,consoleUID:live.uid,architecture:live.architecture)
+        try save(record,to:receiptURL)
+        return record
     }
     if request.mode == "open" {
         try guardInput()
-        guard !manager.fileExists(atPath:receiptURL.path), NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.TextEdit").isEmpty,
+        guard [receiptURL,intentURL,candidateURL].allSatisfy({ !manager.fileExists(atPath:$0.path) }), NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.TextEdit").isEmpty,
               wanted.allSatisfy({ (try? Data(contentsOf:$0)) == Data() })
         else { throw DocumentRefusal("TextEdit is already in use or test inputs are not fresh") }
         let home=folder.appendingPathComponent("home",isDirectory:true)
@@ -70,25 +100,34 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         config.environment=["HOME":home.path,"CFFIXED_USER_HOME":home.path]
         config.arguments=["-ApplePersistenceIgnoreState","YES","-NSQuitAlwaysKeepsWindows","NO","-AppleWindowTabbingMode","manual"]
         var reply: Result<DocumentInstance,Error>?
+        let notBefore=try launchClock()
+        try save(DocumentLaunchIntent(notBefore:notBefore),to:intentURL)
         NSWorkspace.shared.open(wanted,withApplicationAt:appURL,configuration:config) { app,error in
             do {
-                if let error { throw error }
-                guard let app else { throw DocumentRefusal("Launch Services did not identify the new application") }
-                let record=try instance(app)
-                try JSONEncoder().encode(record).write(to:receiptURL,options:.withoutOverwriting)
-                try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: receiptURL.path)
+                guard let app,app.processIdentifier>1 else {throw TextEditIdentityRefusal("launchCallback","no receiver PID in the open reply")}
+                let candidate=DocumentLaunchCandidate(pid:app.processIdentifier,birth:try? TextEditProcessIdentity.consoleBirth(app.processIdentifier),
+                                                     notBefore:notBefore,callbackTime:try launchClock())
+                try save(candidate,to:candidateURL)
+                let record=try enroll(candidate,application:app,fromCallback:true)
+                if error != nil {throw TextEditIdentityRefusal("openReply","Launch Services reported an open error after identifying the new process")}
                 reply = .success(record)
             } catch { reply = .failure(error) }
         }
         let stop=Date().addingTimeInterval(8)
         while reply==nil, Date()<stop { RunLoop.current.run(until:Date().addingTimeInterval(0.03)) }
-        guard let record=try reply?.get() else { throw DocumentRefusal("TextEdit launch receipt is unknown") }
-        return ["pid":record.pid,"birth":record.birth,"launch":record.launch,"hash":record.hash,
-                "consoleUID":getuid(),"identityWitness":"console kernel generation and Apple-signed system executable CDHash"]
+        guard let record=try reply?.get() else {throw TextEditIdentityRefusal("launchCallback","no callback before deadline")}
+        var result=try JSONSerialization.jsonObject(with:JSONEncoder().encode(record)) as? Object ?? [:]
+        result["launch"]=record.launch as Any? ?? NSNull()
+        result["identityWitness"]="console kernel generation and Apple-signed matching Mach-O slice"
+        return result
     }
-    guard ownedDocumentNode(receiptURL.path,directory:false) else {throw DocumentRefusal("owned TextEdit enrollment is unavailable")}
-    let enrolled=try JSONDecoder().decode(DocumentInstance.self,from:Data(contentsOf:receiptURL))
-    guard let live=TextEditProcessIdentity.read(enrolled.pid),live.birth==enrolled.birth,live.hash==enrolled.hash,
+    let enrolled: DocumentInstance
+    if request.mode=="close",!manager.fileExists(atPath:receiptURL.path) {
+        let candidate=try load(DocumentLaunchCandidate.self,from:candidateURL)
+        enrolled=try enroll(candidate,application:NSRunningApplication(processIdentifier:candidate.pid))
+    } else { enrolled=try load(DocumentInstance.self,from:receiptURL) }
+    let live=try TextEditProcessIdentity.read(enrolled.pid)
+    guard live.birth==enrolled.birth,live.hash==enrolled.hash,enrolled.architecture.map({ $0==live.architecture }) ?? true,
           enrolled.consoleUID.map({ $0==live.uid }) ?? true else {
         throw DocumentRefusal("kernel generation, console owner or signed system TextEdit executable changed or is unavailable")
     }
@@ -122,7 +161,9 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     let windows=try boundWindows()
     if request.mode=="close" {
         // A new user document in our process revokes permission to terminate it.
-        guard let app=NSRunningApplication(processIdentifier:enrolled.pid),try instance(app).launch==enrolled.launch,
+        guard let app=NSRunningApplication(processIdentifier:enrolled.pid),app.processIdentifier==live.pid,!app.isTerminated,
+              app.bundleURL.map({ $0.standardizedFileURL.path==appURL.path }) ?? true,
+              app.bundleIdentifier.map({ $0=="com.apple.TextEdit" }) ?? true,
               textInputCounters()==request.hid,TextEditProcessIdentity.kernelBirth(enrolled.pid)==enrolled.birth,
               app.terminate() else {throw DocumentRefusal("could not quit the owned TextEdit instance")}
         return ["quitRequested":true,"pid":enrolled.pid]
@@ -224,7 +265,9 @@ do {
 } catch {
     // Only our explicit guards prove that this invocation stopped before AXPress.
     let refusal = error as? DocumentRefusal
-    let reply: Object = ["issued": refusal == nil ? NSNull() as Any : false,
-                         "reason": refusal?.reason ?? "system document helper did not produce a confirmed reply"]
+    let identity = error as? TextEditIdentityRefusal
+    let reply: Object = ["issued": refusal == nil && identity == nil ? NSNull() as Any : false,
+                         "stage":identity?.stage as Any? ?? NSNull(),
+                         "reason": identity?.reason ?? refusal?.reason ?? "system document helper did not produce a confirmed reply"]
     FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject:reply)+Data([10]));exit(2)
 }

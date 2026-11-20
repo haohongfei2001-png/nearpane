@@ -1,7 +1,10 @@
 """Deterministic W01 action and cleanup receipts. No process, window or input actions."""
 import hashlib
 import json
+import os
 from pathlib import Path
+import re
+import struct
 import subprocess
 import sys
 import tempfile
@@ -163,7 +166,57 @@ class DocumentTests(unittest.TestCase):
         executable = self.kit / "check-identity"
         subprocess.run(["xcrun", "swiftc", source/"textedit_identity.swift", source/"test_textedit_identity.swift",
                         "-o", executable], check=True, timeout=60)
-        subprocess.run([executable], check=True, timeout=5)
+        system = Path("/System/Applications/TextEdit.app/Contents/MacOS/TextEdit")
+        names = subprocess.check_output(["xcrun", "lipo", "-archs", system], text=True).split()
+        with system.open("rb") as target:
+            header = target.read(4096)
+        magic, count = struct.unpack_from(">II", header)
+        if magic in (0xCAFEBABE, 0xCAFEBABF):
+            self.assertEqual(count, len(names))
+            stride = 20 if magic == 0xCAFEBABE else 32
+            slices = [struct.unpack_from(">ii", header, 8+i*stride) for i in range(count)]
+        else:
+            self.assertEqual(len(names), 1)
+            self.assertIn(magic, (0xCFFAEDFE, 0xCEFAEDFE, 0xFEEDFACE, 0xFEEDFACF))
+            slices = [struct.unpack_from("<ii" if magic in (0xCFFAEDFE, 0xCEFAEDFE) else ">ii", header, 4)]
+        cases = []
+        for (cpu, subtype), name in zip(slices, names):
+            code = subprocess.run(["codesign", "-d", "--verbose=4", "--arch", name, system],
+                                  capture_output=True, text=True, check=True)
+            digest = re.search(r"^CDHash=([0-9a-f]+)$", code.stderr, re.M).group(1)
+            cases.append(f"{cpu}:{subtype}:{digest}")
+        subprocess.run([executable, *cases], check=True, timeout=5)
+
+    def test_partial_launch_can_close_only_the_same_reverified_signed_slice_without_launch_date(self):
+        folder = self.kit / "launch"
+        folder.mkdir()
+        def write(name, data):
+            path = folder / name
+            path.write_text(json.dumps(data))
+            path.chmod(0o600)
+        intent = {"notBefore": 120}
+        write("launch-intent.json", intent)
+        action = Mock()
+        self.assertEqual(doc.cleanup_document(self.kit, folder, None, action)["status"], "UNKNOWN")
+        action.assert_not_called()
+        write("launch-callback.json", {**intent, "pid": 27, "birth": 130, "callbackTime": 140})
+        signed = {"pid": 27, "birth": 130, "hash": "a"*40, "consoleUID": os.getuid(),
+                  "architecture": {"cpu": 16777228, "subtype": -2147483646}}
+        def close(mode):
+            self.assertEqual(mode, "close")
+            write("instance.json", signed)
+            return {"quitRequested": True}
+        action.side_effect = close
+        with patch.object(doc, "kernel_state", return_value={"state": "ABSENT"}):
+            result = doc.cleanup_document(self.kit, folder, None, action)
+            self.assertTrue(result["recoveredSignedEnrollment"])
+            self.assertEqual(result["status"], "PASS")
+            self.assertEqual(doc.cleanup_document(self.kit, folder, {**signed, "launch": None}, Mock())["status"], "PASS")
+        action.assert_called_once_with("close")
+        (folder/"instance.json").unlink()
+        refused = Mock(side_effect=doc.ScopeError("TextEdit signedDiskSlice unavailable"))
+        self.assertEqual(doc.cleanup_document(self.kit, folder, None, refused)["status"], "UNKNOWN")
+        refused.assert_called_once_with("close")
 
     def test_unknown_or_missing_durable_identity_never_issues_close(self):
         folder = self.kit/"fixture"
@@ -183,6 +236,11 @@ class DocumentTests(unittest.TestCase):
         with patch.object(doc.subprocess, "run", return_value=record):
             reply = doc.document_action(self.workspace, self.kit, 47, "press", index=0)
         self.assertEqual((reply["issued"], reply["exitCode"], reply["reason"]), (False, 2, "guard refused"))
+        specific = subprocess.CompletedProcess([], 2, stdout='{"issued":false,"stage":"matchingCDHash","reason":"different signed slice"}')
+        with patch.object(doc.subprocess, "run", return_value=specific):
+            with self.assertRaises(doc.DocumentIdentityError) as refused:
+                doc.document_action(self.workspace, self.kit, 47, "open")
+            self.assertEqual(refused.exception.stage, "matchingCDHash")
         for payload in ({"exitCode": -9, "issued": False}, {"exitCode": 2, "issued": None}):
             state = doc.press_once(Mock(return_value=payload), 0, "target")
             self.assertEqual(state["pressDisposition"], "UNKNOWN")

@@ -34,9 +34,16 @@ private final class Fixture {
 }
 
 @main struct W01IdentityTests {
-    static func main() {
-        precondition(TextEditProcessIdentity.systemCodeHash()?.isEmpty == false, "system TextEdit signature or CDHash missing")
-        precondition(TextEditProcessIdentity.read(getpid()) == nil, "test process must never satisfy TextEdit enrollment")
+    static func main() throws {
+        let slices = CommandLine.arguments.dropFirst()
+        precondition(!slices.isEmpty)
+        for slice in slices {
+            let parts = slice.split(separator: ":")
+            let arch = TextEditArchitecture(cpu: Int32(parts[0])!, subtype: Int32(parts[1])!)
+            let hash = try TextEditProcessIdentity.systemCodeHash(for: arch).map { String(format: "%02x", $0) }.joined()
+            precondition(hash == parts[2], "verified disk slice must agree with codesign for that architecture")
+        }
+        precondition((try? TextEditProcessIdentity.read(getpid())) == nil, "test process must never satisfy TextEdit enrollment")
         let fixture = Fixture()
         precondition(fixture.indices()?.focused == 0 && fixture.indices(editor: 4)?.main == 0)
         precondition(fixture.indices(editor: 5) == nil)

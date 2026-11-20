@@ -1,6 +1,8 @@
 """W01 on two owned files in a fresh, signed system TextEdit process."""
 import hashlib
 import json
+import os
+import re
 import subprocess
 import time
 import uuid
@@ -9,6 +11,12 @@ from space_scope import ScopeError, private_file, require
 
 
 ERRORS = (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError)
+
+
+class DocumentIdentityError(ScopeError):
+    def __init__(self, stage, reason):
+        self.stage = stage
+        super().__init__(reason)
 
 
 def document_action(workspace, folder, desktop, mode, **extra):
@@ -25,7 +33,10 @@ def document_action(workspace, folder, desktop, mode, **extra):
         # A guard refusal on exit 2 is evidence. Losing the reply is a different outcome.
         return {**data, "exitCode": cmd.returncode}
     if cmd.returncode:
-        raise ScopeError(data.get("reason", f"system TextEdit {mode} witness unavailable (exit {cmd.returncode})"))
+        reason = data.get("reason", f"system TextEdit {mode} witness unavailable (exit {cmd.returncode})")
+        if isinstance(data.get("stage"), str):
+            raise DocumentIdentityError(data["stage"], reason)
+        raise ScopeError(reason)
     return data
 
 
@@ -36,8 +47,11 @@ def press_once(action, index, control):
         return dict(pressDisposition="UNKNOWN", axIssued=None, inputAcknowledged=None, reason=str(exc))
     code = reply.get("exitCode")
     if reply.get("issued") is False and code == 2:
-        return dict(pressDisposition="REFUSED", axIssued=False, inputAcknowledged=None, exitCode=code,
-                    reason=reply.get("reason", "TextEdit witness refused before AXPress"))
+        detail = dict(pressDisposition="REFUSED", axIssued=False, inputAcknowledged=None, exitCode=code,
+                      reason=reply.get("reason", "TextEdit witness refused before AXPress"))
+        if isinstance(reply.get("stage"), str):
+            detail["identityRefusalStage"] = reply["stage"]
+        return detail
     if reply.get("issued") is not True:
         return dict(pressDisposition="UNKNOWN", axIssued=None, inputAcknowledged=None, exitCode=code,
                     reason=reply.get("reason", "TextEdit witness did not confirm whether AXPress was issued"))
@@ -73,18 +87,42 @@ def kernel_state(kit, pid, birth, timeout):
 
 def cleanup_document(kit, folder, launched, action, seconds=4):
     instance = folder/"instance.json"
-    if not instance.exists() and not launched:
+    callback = folder/"launch-callback.json"
+    intent = folder/"launch-intent.json"
+    if not instance.exists() and not launched and not callback.exists() and not intent.exists():
         return {"status": "NOT_RUN", "terminated": None, "reason": "no enrolled generation to close"}
     cleanup = {"status": "UNKNOWN", "terminated": None, "observations": []}
+
+    def verify_record(record):
+        if "architecture" in record:
+            arch = record["architecture"]
+            require(isinstance(arch, dict) and type(arch.get("cpu")) is int and arch["cpu"] > 0 and
+                    type(arch.get("subtype")) is int and type(record.get("consoleUID")) is int and record["consoleUID"] == os.getuid() and
+                    isinstance(record.get("hash"), str) and re.fullmatch(r"[0-9a-f]{40}(?:[0-9a-f]{24})?", record["hash"]),
+                    "incomplete signed Mach-O slice enrollment")
+        else:
+            require(type(record.get("launch")) in (float, int) and record["launch"] > 0 and
+                    isinstance(record.get("hash"), str) and bool(record["hash"]), "incomplete signed TextEdit enrollment")
+        require(not launched or all(launched.get(k) == record.get(k) for k in ("pid", "birth", "launch", "hash", "architecture")),
+                "durable enrollment and launch receipt disagree")
+
+    pending = not instance.exists()
+    if pending and not callback.exists():
+        cleanup["reason"] = "open was submitted without a confirmed callback generation"
+        return cleanup
     try:
-        record = json.loads(private_file(instance))
-        pid, birth = record["pid"], record["birth"]
+        record = json.loads(private_file(callback if pending else instance))
+        pid, birth = record.get("pid"), record.get("birth")
         require(type(pid) is int and pid > 1 and type(birth) is int and birth > 0,
                 "no kernel generation on the durable enrollment")
-        require(type(record.get("launch")) in (float, int) and record["launch"] > 0 and
-                isinstance(record.get("hash"), str) and bool(record["hash"]), "incomplete signed TextEdit enrollment")
-        require(not launched or all(launched.get(k) == record[k] for k in ("pid", "birth", "launch", "hash")),
-                "durable enrollment and launch receipt disagree")
+        if pending:
+            floor = json.loads(private_file(intent))["notBefore"]
+            ceiling = record.get("callbackTime")
+            require(type(floor) is int and type(ceiling) is int and 0 < floor <= birth <= ceiling and
+                    record.get("notBefore") == floor and not launched,
+                    "unconfirmed callback does not match a fresh launch intent")
+        else:
+            verify_record(record)
     except ERRORS as exc:
         cleanup["reason"] = str(exc)
         return cleanup
@@ -93,6 +131,18 @@ def cleanup_document(kit, folder, launched, action, seconds=4):
         cleanup["closeReply"] = action("close")
     except ERRORS as exc:
         cleanup["closeError"] = str(exc)
+        if isinstance(exc, DocumentIdentityError):
+            cleanup["closeIdentityRefusalStage"] = exc.stage
+    if pending:
+        try:
+            confirmed = json.loads(private_file(instance))
+            require(confirmed["pid"] == pid and confirmed["birth"] == birth and "architecture" in confirmed,
+                    "callback generation did not acquire a signed enrollment")
+            verify_record(confirmed)
+            cleanup["recoveredSignedEnrollment"] = True
+        except ERRORS as exc:
+            cleanup["reason"] = f"could not confirm callback generation for cleanup: {exc}"
+            return cleanup
     # A close refusal or lost reply is never retried. Only read the same kernel generation.
     started = time.monotonic()
     deadline = started + seconds
@@ -210,6 +260,8 @@ def run(workspace, receipt, desktop):
         status.update(status="PASS" if status["passes"] == 10 else "FAIL",
                       reason=f'{status["passes"]}/10 installed sidebar selections confirmed exact TextEdit key/main and target-only input.')
     except ERRORS as exc:
+        if isinstance(exc, DocumentIdentityError):
+            status["identityRefusalStage"] = exc.stage
         if attempt is not None:
             attempt.update(reason=str(exc), stage=stage)
         status.update(status=attempt["status"] if attempt is not None else "BLOCKED", reason=str(exc))

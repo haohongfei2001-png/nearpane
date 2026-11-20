@@ -3,23 +3,57 @@ import Darwin
 import Foundation
 import Security
 
+struct TextEditIdentityRefusal: Error {
+    let stage: String
+    let detail: String
+    init(_ stage: String, _ detail: String) { self.stage = stage; self.detail = detail }
+    var reason: String { "TextEdit \(stage): \(detail)" }
+}
+
+struct TextEditArchitecture: Codable, Equatable {
+    let cpu: Int32, subtype: Int32
+    static func read(_ pid: pid_t) throws -> Self {
+        var info = proc_archinfo()
+        let size = Int32(MemoryLayout.size(ofValue: info))
+        guard proc_pidinfo(pid, PROC_PIDARCHINFO, 0, &info, size) == size, info.p_cputype > 0 else {
+            throw TextEditIdentityRefusal("kernelArchitecture", "running Mach-O slice unavailable")
+        }
+        return Self(cpu: info.p_cputype, subtype: info.p_cpusubtype)
+    }
+}
+
 struct TextEditProcessIdentity {
     static let application = URL(fileURLWithPath: "/System/Applications/TextEdit.app", isDirectory: true)
     static let executable = application.appendingPathComponent("Contents/MacOS/TextEdit").resolvingSymlinksInPath()
     let pid: pid_t, uid: uid_t, birth: UInt64
-    let hash: String
+    let hash: String, architecture: TextEditArchitecture
 
-    static func kernelBirth(_ pid: pid_t) -> UInt64? {
+    static func consoleBirth(_ pid: pid_t) throws -> UInt64 {
         var console = stat(), info = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue: info))
-        var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
-        guard pid > 1, stat("/dev/console", &console) == 0, console.st_uid == getuid(), geteuid() == getuid(),
-              proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size, info.pbi_pid == UInt32(pid),
-              info.pbi_ruid == console.st_uid, info.pbi_uid == console.st_uid, info.pbi_status != UInt32(SZOMB),
-              info.pbi_start_tvsec > 0, info.pbi_start_tvusec < 1_000_000,
-              proc_pidpath(pid, &path, UInt32(path.count)) > 0, String(cString: path) == executable.path else { return nil }
+        guard stat("/dev/console", &console) == 0, console.st_uid == getuid(), geteuid() == getuid() else {
+            throw TextEditIdentityRefusal("consoleUID", "observer does not match the physical console user")
+        }
+        guard pid > 1, proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size, info.pbi_pid == UInt32(pid),
+              info.pbi_status != UInt32(SZOMB), info.pbi_start_tvsec > 0, info.pbi_start_tvusec < 1_000_000 else {
+            throw TextEditIdentityRefusal("kernelBirth", "live PID and birth are unavailable")
+        }
+        guard info.pbi_ruid == console.st_uid, info.pbi_uid == console.st_uid else {
+            throw TextEditIdentityRefusal("processUID", "process does not belong to the console user")
+        }
         return info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec
     }
+
+    static func requireKernelBirth(_ pid: pid_t) throws -> UInt64 {
+        let birth = try consoleBirth(pid)
+        var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+        guard proc_pidpath(pid, &path, UInt32(path.count)) > 0, String(cString: path) == executable.path else {
+            throw TextEditIdentityRefusal("kernelExecutable", "process is not the system TextEdit executable")
+        }
+        return birth
+    }
+
+    static func kernelBirth(_ pid: pid_t) -> UInt64? { try? requireKernelBirth(pid) }
 
     private static let appleTextEdit: SecRequirement? = {
         var requirement: SecRequirement?
@@ -35,21 +69,32 @@ struct TextEditProcessIdentity {
         return hash
     }
 
-    static func systemCodeHash() -> Data? {
+    static func systemCodeHash(for arch: TextEditArchitecture) throws -> Data {
         var disk: SecStaticCode?
-        guard let appleTextEdit, SecStaticCodeCreateWithPath(executable as CFURL, [], &disk) == errSecSuccess, let disk,
-              SecStaticCodeCheckValidity(disk, [], appleTextEdit) == errSecSuccess else { return nil }
-        return codeHash(disk)
+        let attributes = [kSecCodeAttributeArchitecture as String: NSNumber(value: arch.cpu),
+                          kSecCodeAttributeSubarchitecture as String: NSNumber(value: arch.subtype)] as CFDictionary
+        guard let appleTextEdit, SecStaticCodeCreateWithPathAndAttributes(executable as CFURL, [], attributes, &disk) == errSecSuccess,
+              let disk, SecStaticCodeCheckValidity(disk, [], appleTextEdit) == errSecSuccess, let hash = codeHash(disk) else {
+            throw TextEditIdentityRefusal("signedDiskSlice", "Apple signature or CDHash unavailable for the running architecture")
+        }
+        return hash
     }
 
-    static func read(_ pid: pid_t) -> Self? {
+    static func read(_ pid: pid_t) throws -> Self {
+        let birth = try requireKernelBirth(pid), arch = try TextEditArchitecture.read(pid)
+        let diskHash = try systemCodeHash(for: arch)
         var guest: SecCode?, liveCode: SecStaticCode?
-        guard let birth = kernelBirth(pid), let appleTextEdit, let diskHash = systemCodeHash(),
+        guard let appleTextEdit,
               SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid as String: pid] as CFDictionary, [], &guest) == errSecSuccess,
               let guest, SecCodeCheckValidity(guest, [], appleTextEdit) == errSecSuccess,
-              SecCodeCopyStaticCode(guest, [], &liveCode) == errSecSuccess, let liveCode, codeHash(liveCode) == diskHash,
-              kernelBirth(pid) == birth else { return nil }
-        return Self(pid: pid, uid: getuid(), birth: birth, hash: diskHash.map { String(format: "%02x", $0) }.joined())
+              SecCodeCopyStaticCode(guest, [], &liveCode) == errSecSuccess, let liveCode, let liveHash = codeHash(liveCode) else {
+            throw TextEditIdentityRefusal("signedProcess", "running Apple signature or CDHash unavailable")
+        }
+        guard liveHash == diskHash else { throw TextEditIdentityRefusal("matchingCDHash", "running and same-slice disk CDHashes differ") }
+        guard try requireKernelBirth(pid) == birth, try TextEditArchitecture.read(pid) == arch else {
+            throw TextEditIdentityRefusal("stableGeneration", "process or architecture changed during verification")
+        }
+        return Self(pid: pid, uid: getuid(), birth: birth, hash: diskHash.map { String(format: "%02x", $0) }.joined(), architecture: arch)
     }
 }
 
