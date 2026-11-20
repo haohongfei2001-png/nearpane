@@ -154,17 +154,20 @@ func mouseReorder(_ tiles: Tiles, from: Int, to: Int, _ r: WorkspaceRequest) thr
     }
     usleep(250_000)
 }
-func empty(_ n: UInt64, host: pid_t) -> Bool {
-    let report = NPContractMemberReport([NSNumber(value:n)] as CFArray, host) as? [String:[String:Any]]
-    guard let row=report?[String(n)], row["unresolved"] as? Int == 0, row["otherMembers"] as? Int == 0,
-          let members=row["ordinary"] as? [[String:Any]] else {return false}
-    return members.isEmpty
+func requireEmpty(_ n: UInt64, host: pid_t) throws {
+    let report = NPContractMemberReport([NSNumber(value:n)] as CFArray, host) as? [String:Any]
+    guard let row=report?[String(n)] as? [String:Any], row["unresolved"] as? Int == 0,
+          row["otherMembers"] as? Int == 0, let members=row["ordinary"] as? [[String:Any]], members.isEmpty else {
+        let data = try JSONSerialization.data(withJSONObject:report ?? [:],options:.sortedKeys)
+        throw Refusal("WindowServer could not establish an empty desktop: "+String(decoding:data,as:UTF8.self))
+    }
 }
 func perform(_ r: WorkspaceRequest, issued: inout Bool) throws {
     try guardState(r)
     guard let uuid=UUID(uuidString:r.display), !r.records.isEmpty, r.records.contains(where: { $0.id == r.original && [0, 4].contains($0.type)}) else {throw Refusal("original active Space disappeared")}
     if r.command=="remove" {
-        guard let target=r.target, r.owned.contains(target), target != r.current, empty(target,host:r.hostPID) else {throw Refusal("only a positively empty, inactive created desktop may be removed")}
+        guard let target=r.target, r.owned.contains(target), target != r.current else {throw Refusal("only a positively empty, inactive created desktop may be removed")}
+        try requireEmpty(target,host:r.hostPID)
     }
     let prior = try overviewVisible()
     try demand(!prior, "Mission Control was already open")
@@ -208,7 +211,7 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool) throws {
     guard AXUIElementCopyActionNames(el,&choices) == .success, (choices as? [String])?.contains(action)==true,
           attr(el,kAXEnabledAttribute) as? Bool == true else {throw Refusal("system desktop action unavailable")}
     try guardState(r)
-    if r.command=="remove" {try demand(empty(r.target!,host:r.hostPID),"window membership changed before removal")}
+    if r.command=="remove" {try requireEmpty(r.target!,host:r.hostPID)}
     issued=true
     let err=AXUIElementPerformAction(el,action as CFString)
     try demand(err == .success,"system control did not acknowledge input: \(err.rawValue)")

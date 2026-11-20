@@ -46,6 +46,7 @@ def stats(s, display):
 class Workspace:
     def __init__(self, kit, output, record, resume=False):
         self.kit, self.output, self.record = kit, output, record
+        self.recovering = resume
         self.boot = checked(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"]).strip()
         self.ledgers = []
         self.closed = []
@@ -198,12 +199,34 @@ class Workspace:
             write_owned(receipt.with_name("removed.json"), dict(target=n,confirmed=True,recovered=True))
             self.record("system-fixture-removal-reconciled", target=n)
 
+    def bind_quiet_cleanup(self):
+        """Wait for a quiet pre-dispatch interval and preserve the user's actual foreground."""
+        deadline = time.monotonic() + 20
+        original_ids = {r["id"] for r in row(self.original)["records"]}
+        while time.monotonic() < deadline:
+            counters = self.hardware()
+            first = self.read()
+            time.sleep(.35)
+            second = self.read()
+            if self.hardware() != counters or row(first) != row(second):
+                continue
+            current = row(second)["current"]
+            if current in original_ids:
+                self.cleanup_current, self.cleanup_focus = current, second
+            self.check(second)
+            self.hid = counters
+            return
+        raise ScopeError("No quiet interval available to recycle the inactive desktop")
+
     def cleanup(self):
         failures = []
         try:
             self.reconcile_removed(self.read())
             if self.ids():
-                self.select(self.cleanup_current)
+                if self.recovering:
+                    self.bind_quiet_cleanup()
+                if row(self.read())["current"] != self.cleanup_current:
+                    self.select(self.cleanup_current)
             for receipt in reversed(self.ledgers):
                 if receipt.with_name("removed.json").exists():
                     continue
