@@ -67,7 +67,9 @@ public struct NativeSidebarWindowProbe: Codable, Sendable {
     public let location: NativeSidebarWindowLocation
     public let current: Bool
     public let original: UUID?
-    public init(_ location: NativeSidebarWindowLocation, current: Bool, original: UUID?) {
+    public let audit: Bool?
+    public init(_ location: NativeSidebarWindowLocation, current: Bool, original: UUID?, audit: Bool? = nil) {
+        self.audit = audit
         self.location = location
         self.current = current
         self.original = original
@@ -144,12 +146,15 @@ public struct NativeSpaceReply: Codable, Sendable {
     public let switchTrace: NativeSwitchTrace?
     public let originalWindow: UUID?
     public let observedWindows: [UUID?]?
+    public let observationReasons: [String?]?
+    public let observationWorkerPID: Int32?
 
     public init(id: UUID, state: State, detail: String, canSwitch: Bool, canMove: Bool,
                 currentBefore: [String: String]? = nil, currentAfter: [String: String]? = nil,
                 membershipBefore: [String]? = nil, membershipAfter: [String]? = nil,
                 issuedAtUptime: TimeInterval? = nil, confirmedAtUptime: TimeInterval? = nil, submittedSteps: Int = 0,
-                switchTrace: NativeSwitchTrace? = nil, originalWindow: UUID? = nil, observedWindows: [UUID?]? = nil) {
+                switchTrace: NativeSwitchTrace? = nil, originalWindow: UUID? = nil, observedWindows: [UUID?]? = nil,
+                observationReasons: [String?]? = nil, observationWorkerPID: Int32? = nil) {
         self.id = id
         self.state = state
         self.detail = detail
@@ -165,5 +170,7 @@ public struct NativeSpaceReply: Codable, Sendable {
         self.switchTrace = switchTrace
         self.originalWindow = originalWindow
         self.observedWindows = observedWindows
+        self.observationReasons = observationReasons
+        self.observationWorkerPID = observationWorkerPID
     }
 }

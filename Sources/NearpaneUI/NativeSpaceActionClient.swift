@@ -49,11 +49,21 @@ final class NativeSelectionPermit: @unchecked Sendable {
     static let shared = NativeSpaceActionClient()
     private let channel = SpaceActionChannel()
 
-    func observe(_ probes: [NativeSidebarWindowProbe]) async -> [UUID?] {
+    func observe(_ probes: [NativeSidebarWindowProbe], audit: NativeSidebarWindowAudit.Sample? = nil) async -> [UUID?] {
         guard !probes.isEmpty, probes.count <= 16 else { return [] }
         let command = NativeSpaceCommand(id: UUID(), action: .observeWindows, display: "", source: "", target: "",
                                          observations: probes)
         let reply = await run(command)
+        if let audit {
+            for (i, probe) in probes.enumerated() where probe.audit == true {
+                var info: [String: Any] = ["state": reply.state.rawValue, "requestMatched": reply.id == command.id,
+                                          "current": probe.current, "hadOriginal": probe.original != nil]
+                info["workerPID"] = reply.observationWorkerPID
+                if let reasons = reply.observationReasons, reasons.indices.contains(i) { info["reason"] = reasons[i] }
+                if reply.state != .ready { info["reason"] = reply.detail }
+                audit.event("signed-helper-reply", info, window: probe.location.window)
+            }
+        }
         guard reply.id == command.id, reply.state == .ready, let tokens = reply.observedWindows,
               tokens.count == probes.count else { return [] }
         return tokens

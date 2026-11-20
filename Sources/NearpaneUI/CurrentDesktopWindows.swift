@@ -16,7 +16,9 @@ import OSLog
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
     @ObservationIgnored private var sidebarWindows = NativeSidebarWindowHistory()
-    private let readSidebarWindows: NativeSidebarWindowHistory.Read
+    private let readSidebarWindows: NativeSidebarWindowHistory.Read?
+    @ObservationIgnored private let windowAudit = NativeSidebarWindowAudit()
+    @ObservationIgnored private var pendingAudit: NativeSidebarWindowAudit.Sample?
     let groups = ExplicitWindowGroups()
 
     func tracks(_ token: UUID, at location: NativeSidebarWindowLocation) -> Bool {
@@ -46,14 +48,21 @@ import OSLog
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
          fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint,
-         readSidebarWindows: @escaping NativeSidebarWindowHistory.Read = { await NativeSpaceActionClient.shared.observe($0) }) {
+         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil) {
         self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
     }
 
     func changed() { events?.yield(()) }
 
-    func invalidate(preservingOriginalWindows: Bool = false) {
+    func cardAppeared(_ member: NativeSidebarMember) {
+        guard let key = member.location?.window else { return }
+        pendingAudit?.event("background-card-appeared", window: key)
+    }
+
+    func invalidate(preservingOriginalWindows: Bool = false, reason: String = "invalidate") {
+        windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("invalidate",
+            ["reason": reason, "keepsOriginals": preservingOriginalWindows, "panelRequested": panelRequested])
         if !preservingOriginalWindows { sidebarWindows = .init() }
         epoch = UUID()
         pending?.1.cancel()
@@ -66,6 +75,7 @@ import OSLog
     }
 
     func observe(_ enable: Bool) {
+        windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("panel-observation", ["enabled": enable])
         panelRequested = enable
         if !enable { sidebarWindows = .init() }
         updateObservation()
@@ -121,6 +131,7 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                if let next, pendingAudit?.revision == next.revision { pendingAudit?.snapshot(next, stage: "publish") }
                 retry?.cancel()
                 retry = nil
                 if next != nil {
@@ -173,25 +184,31 @@ import OSLog
             return expected == epoch ? result : nil
         }
         revision &+= 1
+        let audit = windowAudit?.sample(feed: session, epoch: epoch, revision: revision)
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
-            fixtureWindows: nil, anchors: [], experimentalSpaces: false)
+            fixtureWindows: nil, anchors: [], experimentalSpaces: false, sidebarAuditWindows: audit?.targets)
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
             let readback = try? await read(request)
-            guard let self, !Task.isCancelled, expected == self.epoch else { return nil }
+            guard let self, !Task.isCancelled, expected == self.epoch else { audit?.event("reader-cancelled"); return nil }
             guard var result = readback, self.sessionAvailable(),
                   result.sessionID == request.session, result.revision == request.revision, result.isStructurallyValid,
                   result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
+                audit?.event("reader-rejected", ["reply": readback != nil, "sessionAvailable": self.sessionAvailable(),
+                    "structurallyValid": readback?.isStructurallyValid == true])
                 self.lifetimes.removeAll()
                 if !self.sessionAvailable() { self.sidebarWindows = .init() }
                 return nil
             }
+            audit?.snapshot(result, stage: "reader")
+            self.pendingAudit = audit
             if self.panelRequested {
                 var history = self.sidebarWindows
-                await history.update(&result, read: self.readSidebarWindows)
+                let sampleWindows = self.readSidebarWindows ?? { await NativeSpaceActionClient.shared.observe($0, audit: audit) }
+                await history.update(&result, audit: audit, read: sampleWindows)
                 guard !Task.isCancelled, expected == self.epoch, self.sessionAvailable(), self.panelRequested,
                       result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return nil }
                 self.sidebarWindows = history
-            }
+            } else { audit?.event("panel-observation-disabled") }
             var next = [DesktopWindowKey: UUID]()
             for window in result.windows {
                 guard let meta = window.metadata, let birth = meta.launchMicroseconds, birth > 0 else { continue }

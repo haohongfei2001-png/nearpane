@@ -179,13 +179,36 @@ extension Reader {
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }
-        return .observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
+        var result = DesktopSnapshot.observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
             topology: topology.fingerprint, consistent: true, separateSpaces: topology.separateSpaces,
             displays: topology.displays, scopes: inventory?.scopes ?? [], windows: windows,
             evidence: .init(population: .workWindows, accessibility: trusted ? (targets.allSatisfy { roles[$0.pid]?.everyNumberKnown == true && roles[$0.pid]?.allRolesRead == true } ? .available : .partial) : .denied,
                 spaces: inventory == nil ? .disabled : .observed, rows: [], windowLimitReached: false,
                 beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))
+        if let targets = request.sidebarAuditWindows {
+            result.native?.sidebarWindowAudit = targets.prefix(2).map { key in
+                var flags = ["catalogueAvailable": canRead, "readerAXTrusted": trusted, "backgroundInventory": backgroundInventory != nil,
+                             "firstAccepted": first.windows.contains { $0.windowID == key.number && $0.process.pid == key.pid &&
+                                 $0.process.launchEpochMicroseconds == key.birth },
+                             "secondAccepted": second.windows.contains { $0.windowID == key.number && $0.process.pid == key.pid &&
+                                 $0.process.launchEpochMicroseconds == key.birth },
+                             "currentRoleRequested": currentNumbers.contains(key.number), "backgroundRoleRequested": otherNumbers.contains(key.number),
+                             "scopedMetadataEmitted": windows.contains { $0.metadata?.number == key.number && $0.metadata?.pid == key.pid &&
+                                 $0.metadata?.launchMicroseconds == key.birth }]
+                for (k,v) in first.audit[key.number] ?? [:] { flags["first." + k] = v }
+                for (k,v) in second.audit[key.number] ?? [:] { flags["second." + k] = v }
+                let prior = firstBoundary?.membership[key.number], latest = lastBoundary?.membership[key.number]
+                flags["membershipStable"] = prior != nil && prior == latest
+                if case let .known(ids) = latest { flags["membershipExclusive"] = ids.count == 1 }
+                let owner = currentNumbers.contains(key.number) ? roles[key.pid] : otherRoles[key.pid]
+                flags["ownerAXListRead"] = owner != nil
+                flags["ownerAllNumbersRead"] = owner?.everyNumberKnown
+                flags["listedAXWindow"] = owner?.windows[key.number] != nil
+                return .init(key, flags: flags)
+            }
+        }
+        return result
     }
 }
 

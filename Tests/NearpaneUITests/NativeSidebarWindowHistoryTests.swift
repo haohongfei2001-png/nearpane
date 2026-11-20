@@ -6,7 +6,7 @@ import Testing
 @MainActor struct NativeSidebarWindowHistoryTests {
     let display = UUID(), a = UUID(), b = UUID(), session = UUID()
     func snapshot(active: Bool, role: Bool?, membership: [String] = ["4975"], birth: UInt64 = 30,
-                  denied: Bool = false, include: Bool = true, uuid: UUID? = nil,
+                  denied: Bool = false, include: Bool = true, complete: Bool = true, uuid: UUID? = nil,
                   topology: String = "physical", fullscreen: Bool = false, minimized: Bool = false) -> DesktopSnapshot {
         let frame = SurfaceRect(x: 80, y: 100, width: 200, height: 120), now = Date(), time = ProcessInfo.processInfo.systemUptime
         let m = ObservedWindowMetadata(number: 11, pid: 17, launchMicroseconds: birth, element: nil, globalFrame: frame,
@@ -25,7 +25,7 @@ import Testing
                                                  .init(id: "4976", isCurrent: !active, ordinaryUUID: b)])],
                          windows: include ? [w] : [], evidence: .init(population: .workWindows, accessibility: denied ? .denied : .available,
                                              spaces: .observed, rows: [], windowLimitReached: false, beganUptime: time, endedUptime: time,
-                                             catalogComplete: true))
+                                             catalogComplete: complete))
     }
     func sections(_ snapshot: DesktopSnapshot) throws -> [[String]] {
         let catalog = try #require(NativeSpaceCatalog(snapshot, displayID: display.uuidString, now: .now,
@@ -87,6 +87,27 @@ import Testing
             await history.update(&background) { _ in Issue.record("old window was resurrected"); return [original] }
             #expect(try sections(background).isEmpty)
         }
+    }
+
+    @Test func incompleteTransitionAndUnexaminedBudgetNeverPublishUntilTheSameWorkerRenewsItsAXObject() async throws {
+        var history = NativeSidebarWindowHistory()
+        let token = UUID()
+        var active = snapshot(active: true, role: true)
+        await history.update(&active) { _ in [token] }
+        var gap = snapshot(active: false, role: nil, include: false, complete: false)
+        await history.update(&gap) { _ in Issue.record("No absent window may be requested"); return [] }
+        #expect(try sections(gap).isEmpty)
+        var background = snapshot(active: false, role: nil)
+        await history.update(&background) { probes in
+            #expect(probes.first?.original == token)
+            return [nil] // shared time slice elapsed without confirming this target
+        }
+        #expect(try sections(background).isEmpty)
+        await history.update(&background) { probes in
+            #expect(probes.first?.original == token)
+            return [token]
+        }
+        #expect(try sections(background) == [["controlled"]])
     }
 
     @Test func retainedGestureAcceptsOnlyTheWitnessFromItsOwnSignedConnection() async {

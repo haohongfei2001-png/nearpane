@@ -835,7 +835,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func applyDesktopSessionState() {
-        if sessionUnavailable { modules?.stopWindowContentPreview() }
+        if sessionUnavailable { modules?.stopWindowContentPreview(reason: "session-unavailable") }
         #if canImport(SaytileKit)
         if sessionUnavailable { modules?.voice.stopArchivePlayback() }
         #endif
@@ -856,7 +856,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case NSWorkspace.sessionDidResignActiveNotification: desktopAvailabilityChanged(.resigned)
         case NSWorkspace.sessionDidBecomeActiveNotification: desktopAvailabilityChanged(.becameActive, settling: true)
         case NSWorkspace.activeSpaceDidChangeNotification:
-            modules?.stopWindowContentPreview(spaceChanged: true)
+            modules?.stopWindowContentPreview(spaceChanged: true, reason: "active-space")
             host?.invalidateDesktop()
         default:
             modules?.desktopWindowsChanged()
@@ -882,7 +882,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func screensChanged() {
-        modules?.stopWindowContentPreview()
+        modules?.stopWindowContentPreview(reason: "screen-parameters")
         let before = desktopAvailability
         readDesktopAvailability(.sample)
         if before != desktopAvailability {

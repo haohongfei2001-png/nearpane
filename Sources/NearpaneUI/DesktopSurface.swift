@@ -216,6 +216,7 @@ struct DesktopSurface: View {
                                           borderWidth: settings.points(.borderWidth, in: width), labelSize: labelSize)
                     }
                     .buttonStyle(.plain).disabled(!canNavigate || !navigation.canSwitch)
+                    .onAppear { feed.cardAppeared(member) }
                     .accessibilityLabel(label).accessibilityHint("切换到这扇窗口")
                     .accessibilityIdentifier("native-space-window:\(id):\(member.source.space):\(member.key.pid):\(member.key.number)")
                     .modifier(NativeWindowDragSource(member: navigation.canMove ? member : nil, drag: drag, feed: feed))

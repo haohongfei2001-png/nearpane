@@ -117,14 +117,23 @@ public struct DesktopReadRequest: Codable, Sendable {
     public let fixtureWindows: [UInt32]?
     public let anchors: [ActiveSpaceAnchor]
     public let experimentalSpaces: Bool
+    public let sidebarAuditWindows: [NativeSpaceWindow]?
     public init(session: UUID, revision: UInt64, parentPID: Int32, fixtureWindows: [UInt32]?,
-                anchors: [ActiveSpaceAnchor], experimentalSpaces: Bool) {
+                anchors: [ActiveSpaceAnchor], experimentalSpaces: Bool, sidebarAuditWindows: [NativeSpaceWindow]? = nil) {
+        self.sidebarAuditWindows = sidebarAuditWindows
         version = 1; self.session = session; self.revision = revision; self.parentPID = parentPID
         self.fixtureWindows = fixtureWindows; self.anchors = anchors; self.experimentalSpaces = experimentalSpaces
     }
 }
 
+public struct SidebarWindowReaderProof: Equatable, Codable, Sendable {
+    public let window: NativeSpaceWindow
+    public var flags: [String: Bool]
+    public init(_ window: NativeSpaceWindow, flags: [String: Bool]) { self.window = window; self.flags = flags }
+}
+
 public struct DesktopReadEvidence: Equatable, Codable, Sendable {
+    public var sidebarWindowAudit: [SidebarWindowReaderProof]? = nil
     public let population: DesktopReadPopulation
     public let accessibility: AXReadStatus
     public var spaces: SpaceReadStatus
