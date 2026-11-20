@@ -268,6 +268,29 @@ func requireEmpty(_ n: UInt64, host: pid_t, beforeOverview: Set<UInt32>? = nil) 
     let data = try JSONSerialization.data(withJSONObject:report ?? [:],options:.sortedKeys)
     throw Refusal("WindowServer could not establish an empty desktop: "+String(decoding:data,as:UTF8.self))
 }
+// Keep the activated system control alive while its asynchronous action settles.
+// A successful AX return alone is retained separately from this WindowServer witness.
+func witnessSystemAction(_ r: WorkspaceRequest) -> Bool {
+    let deadline=ProcessInfo.processInfo.systemUptime+3.5
+    var stable=0
+    let originalIDs=Set(r.records.map(\.id))
+    repeat {
+        guard hardware()==r.hid, let (current,records)=try? live(r) else {return false}
+        let matches:Bool
+        switch r.command {
+        case "add":
+            let added=records.filter {!originalIDs.contains($0.id)}
+            matches=added.count==1 && added[0].type==0 && records.filter {originalIDs.contains($0.id)}==r.records
+        case "select":matches=current==r.target && records==r.records
+        case "remove":matches=current != r.target && records==r.records.filter {$0.id != r.target}
+        default:return false
+        }
+        stable=matches ? stable+1 : 0
+        if stable>=2 {return true}
+        usleep(80_000)
+    } while ProcessInfo.processInfo.systemUptime<deadline
+    return false
+}
 func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any]) throws {
     try guardState(r)
     guard let uuid=UUID(uuidString:r.display), !r.records.isEmpty, r.records.contains(where: {$0.id == r.original && [0, 4].contains($0.type)}) else {throw Refusal("original active Space disappeared")}
@@ -298,7 +321,7 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         usleep(80_000)
     } while ProcessInfo.processInfo.systemUptime < deadline
     guard let tiles else {throw Refusal(detail)}
-    let overviewCurrent=try guardState(r,stage:"overview-admission",admitFullscreenOverview:true)
+    var overviewCurrent=try guardState(r,stage:"overview-admission",admitFullscreenOverview:true)
     if overviewCurrent != r.current { proof["overviewChangedCurrent"]=["from":r.current,"to":overviewCurrent] }
     let second=try Tiles(r,uuid)
     try demand(second.bar.owner.processIdentifier==tiles.bar.owner.processIdentifier &&
@@ -324,18 +347,43 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
     var choices: CFArray?
     guard AXUIElementCopyActionNames(el,&choices) == .success, (choices as? [String])?.contains(action)==true,
           attr(el,kAXEnabledAttribute) as? Bool == true else {throw Refusal("system desktop action unavailable")}
-    try guardState(r,stage:"before-system-action",expected:overviewCurrent)
+    overviewCurrent=try guardState(r,stage:"before-system-action",expected:overviewCurrent,
+                                   admitFullscreenOverview:overviewCurrent==r.current)
+    if overviewCurrent != r.current {proof["overviewChangedCurrent"]=["from":r.current,"to":overviewCurrent]}
+    if r.command=="select", let target=r.target, let index=r.records.firstIndex(where:{$0.id==target}) {
+        // AXPress on a Mission Control tile can acknowledge without leaving the
+        // overview. Use one mouse click whose exact signed accessibility hit still
+        // names the enrolled tile. Target selection is independently read afterwards.
+        guard CGPreflightPostEventAccess() else {throw Refusal("event access unavailable for system tile selection")}
+        let point=try second.point(index,fraction:0.5)
+        overviewCurrent=try guardState(r,stage:"before-system-tile-click",expected:overviewCurrent,
+                                       admitFullscreenOverview:overviewCurrent==r.current)
+        guard hit(point,second.elements[index],second.bar.owner.processIdentifier) else {throw Refusal("system tile hit changed")}
+        let pointer=CGEvent(source:nil)?.location
+        issued=true
+        guard let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:point,mouseButton:.left),
+              let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:point,mouseButton:.left) else {
+            issued=false;throw Refusal("system tile click events unavailable")
+        }
+        down.setIntegerValueField(.mouseEventClickState,value:1)
+        up.setIntegerValueField(.mouseEventClickState,value:1)
+        down.post(tap:.cgSessionEventTap);usleep(70_000);up.post(tap:.cgSessionEventTap)
+        usleep(60_000)
+        if let pointer,hardware()==r.hid {CGWarpMouseCursorPosition(pointer)}
+        proof["systemSelection"]="hit-tested desktop tile click"
+        proof["windowServerConfirmedBeforeClose"]=witnessSystemAction(r)
+        return
+    }
     if r.command=="remove", let target=r.target, let beforeOverview {
         if let surface = try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {
             proof["overviewComposite"] = surface
         }
-        try guardState(r,stage:"after-empty-read",expected:overviewCurrent)
+        try guardState(r,stage:"after-empty-read",expected:overviewCurrent,admitFullscreenOverview:overviewCurrent==r.current)
     }
     issued=true
     let err=AXUIElementPerformAction(el,action as CFString)
     try demand(err == .success,"system control did not acknowledge input: \(err.rawValue)")
-    // A tile selection closes overview on its own. Wait before testing whether our launcher must dismiss it.
-    usleep(r.command=="select" ? 500_000 : 250_000)
+    proof["windowServerConfirmedBeforeClose"]=witnessSystemAction(r)
 }
 @main enum Main {
     static func main() {

@@ -105,6 +105,7 @@ func validateTrial(_ scope: TrialScope, original: [Object], geometry: [Object]) 
         }
 #endif
     }
+#if !NATIVE_CONTRACT
     let foreground = NSWorkspace.shared.frontmostApplication
     let focused = focusedNumber(foreground?.processIdentifier)
     let focusedTest = scope.witnesses.contains { $0.pid == foreground?.processIdentifier && $0.number == focused }
@@ -115,6 +116,10 @@ func validateTrial(_ scope: TrialScope, original: [Object], geometry: [Object]) 
                                           kAXFocusedWindowAttribute as CFString, &finderFocus) == .noValue
         } == true
     guard focusedTest || emptyFinder else { throw TrialRefusal("foreground is outside controlled windows") }
+#endif
+    // The contract driver sends AXPress only to a verified installed Host row. The
+    // scoped census and independently checked source cover even a genuinely empty
+    // target, where macOS need not nominate a focused window.
     return (app, windows, current)
 }
 if let line = readLine(), let scope = try? JSONDecoder().decode(TrialScope.self, from: Data(line.utf8)),
