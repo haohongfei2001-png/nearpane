@@ -1,0 +1,56 @@
+{
+  "architecture": "arm64",
+  "archiveSHA256": "70b2b02b47e8a59ce72b9e5ca35db80e940cb667a38f409af3c9d0c8041536f9",
+  "build": "90",
+  "candidateSource": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "cleanMac26": "NOT_RUN",
+  "cleanMac27": "NOT_RUN",
+  "credentialsAuthenticated": "NOT_RUN",
+  "currentPrivateArchiveRecovery": "PASS",
+  "finalIntegratedCandidateBuild": "NOT_RUN",
+  "immutableArchiveReadback": {
+    "sha256": "70b2b02b47e8a59ce72b9e5ca35db80e940cb667a38f409af3c9d0c8041536f9",
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "status": "PREPARED_VERIFIED"
+  },
+  "installedUpgradeDowngrade": "NOT_RUN",
+  "localGatekeeper": "FAIL_UNNOTARIZED",
+  "macOSPolicy": {
+    "spctl": {
+      "exit": 3,
+      "source": "Unnotarized Developer ID"
+    },
+    "staplerValidate": {
+      "exit": 65,
+      "reason": "no stapled ticket"
+    },
+    "syspolicyCheck": {
+      "exit": 70,
+      "fatal": "Notary Ticket Missing"
+    }
+  },
+  "measuredUTC": "2026-11-20T19:39:55.414505+00:00",
+  "offlineTests": {
+    "candidate_signing": 8,
+    "private_notary": 8
+  },
+  "operatingSystem": "27.0",
+  "projectNotaryKeychainProfileSelectedInThisRun": false,
+  "publicRelease": false,
+  "signing": {
+    "allDeveloperIDHardenedAndTimestamped": true,
+    "allSliceCDHashesRecorded": true,
+    "executables": 13,
+    "helperResourcePins": 10,
+    "signingTeam": "ZB9D4T66QB",
+    "slices": 18,
+    "status": "PASS"
+  },
+  "sparkleEdDSAPublicKeyConfigured": false,
+  "sparkleSignedFeedUpdate": "BLOCKED_MISSING_PACKAGE_KEY",
+  "submission": "NOT_RUN",
+  "ticketStapling": "NOT_RUN",
+  "toolBase": "8ecc11a25e6b31db5a20a822317d91c1c5753a02",
+  "userKeychainContentsRead": false,
+  "version": "5.22"
+}
