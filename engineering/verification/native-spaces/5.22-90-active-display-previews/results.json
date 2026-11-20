@@ -1,0 +1,170 @@
+{
+  "source": "32b9f92c96ac387e7cd5bc110f398b3911c2045b",
+  "version": "5.22",
+  "build": 90,
+  "OS": "macOS 27.0 (26A428)",
+  "architecture": "arm64",
+  "physicalDisplays": 1,
+  "draftPR": 15,
+  "aggregate": "PARTIAL",
+  "candidate": "physical-08/candidate.json",
+  "rollBack": "f50d6ac",
+  "preview": {
+    "currentInstalledTwoDocuments": "PASS",
+    "presentationRecords": 4327,
+    "matchedChanges": 12,
+    "simultaneousEpochs": 7,
+    "wrongWindowPatches": 0,
+    "blankPatches": 0,
+    "clockIntervalsMs": {
+      "firstConfirmedPresentationDifference": {
+        "max": 46.48,
+        "p50": 36.9,
+        "p95": 46.48,
+        "p99": 46.48
+      },
+      "intervalWidth": {
+        "max": 34.48,
+        "p50": 34.22,
+        "p95": 34.48,
+        "p99": 34.48
+      },
+      "lower": {
+        "max": 29.8,
+        "p50": 20.22,
+        "p95": 29.8,
+        "p99": 29.8
+      },
+      "n": 12,
+      "upper": {
+        "max": 63.8,
+        "p50": 54.45,
+        "p95": 63.8,
+        "p99": 63.8
+      }
+    },
+    "acceptedFrames": [
+      1434,
+      1427,
+      1429
+    ],
+    "originalPresentationSHA256": "e5336d7c00a623dcee25031d6cd487d1498c99dc707a489dc8c15a3665947820",
+    "appleNativeReference": "NOT_MEASURED",
+    "trackpadSwipeAnimation": "NOT_RUN",
+    "displayScope": {
+      "physicalDisplays": 1,
+      "source": "f50d6ac",
+      "verifiedOrdinaryCardCounts": [
+        2,
+        0,
+        2
+      ],
+      "independentPhysicalDisplays": "BLOCKED"
+    }
+  },
+  "permissions": {
+    "installed": "PASS",
+    "readback": "physical-08/permissions.json",
+    "registeredApps": 1,
+    "TCCReset": false
+  },
+  "stageManager": {
+    "currentInstalledOnlyToolsWhenEnabled": "PASS",
+    "evidence": "physical-08/installed-stage-manager.json",
+    "OFFToOnRestored": "PASS",
+    "priorToolPicture": "physical-03/compact-tools.png",
+    "hidden60s": {
+      "source": "f50d6ac",
+      "status": "PASS",
+      "evidence": "physical-05/hidden-minute.json"
+    }
+  },
+  "P0": {
+    "status": "BLOCKED",
+    "adapterProductionEnabled": false,
+    "actualFiftyActions": 0,
+    "buildQualified": false,
+    "historicalAdjacentLandings": 2,
+    "historicalTenLandings": 10,
+    "historicalTenVisualContract": "NOT_PASSED",
+    "reason": "Late focus and Space drift; independent causal attribution unavailable.",
+    "observerEvidence": "../5.22-p0/persistent-drift-observer/README.md"
+  },
+  "P1": {
+    "status": "BLOCKED",
+    "route": "Bridged Window Management",
+    "preparationCommit": "5217dbf4847ef7737cf23d4e6ff3d15b8ea475e6",
+    "installedMoves": 0
+  },
+  "P2": {
+    "status": "UNKNOWN",
+    "qualifiedTwoWindowIdentity": "PASS",
+    "installedTypingMarkerCount": 0
+  },
+  "P3": {
+    "status": "BLOCKED",
+    "isolatedChromeAndEdgeCases": 96,
+    "isolatedSends": 0,
+    "authenticatedRealCasesPassed": 0,
+    "realBackend": "No isolated authenticated provider account accepted the real draft."
+  },
+  "P4": {
+    "status": "BLOCKED",
+    "realTranslationLanguageAssets": "supported but not installed for test runner",
+    "wordbookFilePersistence": "see installed isolated prior recording",
+    "hardwareColdUtterances": 0,
+    "requiredUtterances": 60
+  },
+  "P5": {
+    "status": "PARTIAL",
+    "systemFullscreenRoundtrip": {
+      "status": "PASS",
+      "candidate": "f50d6ac",
+      "evidence": [
+        "physical-07/native-round-trip.json",
+        "physical-07/normal-exit.json"
+      ]
+    },
+    "twoMemberNativeSplitView": "BLOCKED",
+    "twoPhysicalDisplays": "BLOCKED",
+    "sleepAndUnlock": "NOT_RUN",
+    "warmedProductFiveByTwenty": "NOT_RUN"
+  },
+  "P6": {
+    "status": "BLOCKED",
+    "installedDeveloperID": "PASS",
+    "timestampedSeparateDistributionBinaryCount": 13,
+    "staging": "physical-08/distribution-staging/result.json",
+    "notarization": "NOT_RUN",
+    "stapling": "NOT_RUN",
+    "cleanInstall26And27": "NOT_RUN",
+    "sparklePublic": "NOT_RUN",
+    "publicRelease": false
+  },
+  "offline": {
+    "swift": {
+      "testCount": 556,
+      "suiteCount": 85,
+      "status": "PASS",
+      "runner": "scripts/test.sh"
+    },
+    "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
+    "nativePython": {
+      "ran": 154,
+      "skipped": 6,
+      "failed": 0
+    },
+    "signingPythonPassed": 8,
+    "p0NarrowRegressionPassed": 27,
+    "CI": {
+      "candidateRun": 44776942003,
+      "status": "success"
+    }
+  },
+  "cleanup": {
+    "profileRestored": true,
+    "stageManagerRestored": true,
+    "exactPreviousFocusedWindow": "UNKNOWN",
+    "desktopRecovery": "physical-05/recovery.json"
+  }
+}

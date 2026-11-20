@@ -1,6 +1,15 @@
 # 5.22（90）当前桌面与逐窗预览
 
-签名候选 `f50d6ac` 已安装在 `/Applications/Nearpane.app`。实机为 macOS 27.0（26A428）、arm64、一块 1470 × 956 pt 显示器。以下记录来自同一候选，早期失败另附。R4 视觉稿与版本号均沿用 PR #15。
+当前正式安装候选为 `32b9f92`，版本 5.22（90）。在 macOS 27.0（26A428）、arm64、一块 1470 × 956 pt 显示器上，正式侧栏的两张窗口卡共确认 12/12 次内容更新。原始展示时钟、各窗口的误差区间以及早期失败均可复核。R4 视觉设计沿用 PR #15。
+
+| 实机动态预览 | `32b9f92` 的独立读回 |
+| --- | --- |
+| 两窗同步 | 系统的两个独立文档源与正式 Host 窗口同时采样，共 4,327 条呈现记录。每窗各 6 次变色全部确认，7 个状态均在同一张正式侧栏画面上连续两帧匹配。错窗、空白均为 0。[机器收据](physical-08/result.json) · [独立重算](physical-08/replay.json) |
+| 延迟 | 首次确认呈现差的 P50 为 36.9 ms、P95 与 P99 为 46.48 ms；考虑源与侧栏之间的采样区间，延迟上界的 P50 为 54.45 ms，P95 为 63.8 ms。本轮无 Apple 原生对照。[逐帧数据](physical-08/presentation-frames.jsonl.gz) |
+| 动态实拍 | 两个动画各保留同一正式侧栏呈现里的一个 8×8 原生像素块，播放间隔取自系统展示时钟。[窗口 A](physical-08/media/sampled-card-1.apng) · [窗口 B](physical-08/media/sampled-card-2.apng) · [媒体收据](physical-08/media/receipt.json) |
+
+## 此前安装候选 `f50d6ac` 的实机交互
+
 
 | 已实测项目 | 实机结果 |
 | --- | --- |
@@ -14,6 +23,8 @@
 
 原生卡片按物理显示器、当前 Space、窗口号和进程代际筛选。每个可采集窗口使用独立的 ScreenCaptureKit 流，同屏最多同时保有八条。原生 Split View 从两个真实成员和系统几何读取布局。下列实测记录据此判定内容和延迟。
 
+两张测试桌面尚待系统回收。原桌面为 6，第五次试验创建了 5094、5095。系统全屏窗口均已正常退出，日常资料及台前调度开关已恢复，调度中心仍未返回可操作的桌面列表。当前为 5095；原有普通桌面 4、6 均保留。精确原焦点未知。[桌面恢复收据](physical-05/recovery.json) · [P0–P6 机器清单](results.json)
+
 ## 试验及回退
 
 - 首个修订包收起了重复窗口区，也把工具意外折叠。重新安装当前候选后，正式 AX 和屏幕上的窗口尺寸均确认工具已恢复。[首次回归](first-install-hidden-tools.json) · [当前安装](installed-stage-manager.json)
@@ -25,8 +36,12 @@
 
 - 第五次的 32 批采样只确认 12 次变色中的 5 次，中位取样间隔 482.7 ms。两路受控源均可读，图中稳定未知色保留原判。首次真实按下了测试窗的系统左侧分屏菜单，系统选择器的第二步未完成。第六次在同一已登记空桌面取得清晰双卡原图，常驻计时器在正式 Host 的另一扇窗口覆盖源采样点时停止。[第五次](physical-05/paired-preview.json) · [分屏菜单回执](physical-05/split-view.json) · [第六次](physical-06/paired-preview.json)
 
-当前已安装的内部候选 ZIP SHA-256 为 `ca53b88ba1b174a8f0a443990403bb4122dd55ab7796824184e9011c9b3b9bd6`。若需回退，在同一 Draft 附件中保留了上一签名包 `b55ed96`，SHA-256 为 `c671f70f48a4422fe86101b34bd505b6e3de9e13a524589d2c72e7fe28090052`。[候选和资产编号](candidate.json)
+- 第六次补测留下 4,308 条原始呈现记录，严格分类为 7/12。两窗 28 个颜色相位与 sRGB 转为 Display P3 后的数值相符，84 个色通道最大误差 2/255；常驻采集器也丢弃了部分早于预计展示到达的合格回调。正式 APP 改为请求带明确定义的 sRGB。读回器单独用两个时钟核对早到的回调。[原始未通过记录](physical-06b/result.json) · [ColorSync/VideoToolbox 复核](physical-06b/color-and-clock-diagnosis.json)
+- 第七次在系统单独的 type 4 Space `5101` 确认真实全屏。受控 A 通过 AppKit 正常退出，全屏 Space 消失，两扇窗口的系统归属、AX 标志和夹具读回均回到普通桌面。独立核验后正常关闭夹具，两窗号和原进程都消失。双窗原生 Split View 的第二步仍未确认。[全屏](physical-07/native-round-trip.json) · [已验证的正常关闭](physical-07/normal-exit.json)
+- 当前候选的一次计时批次 12/12 通过。外层收尾在台前调度关闭期间试图用只接受开启状态的分类器核对隐藏系统窗口，记录为 BLOCKED。两扇测试窗和测试进程均正常退出，原偏好及日常资料独立读回恢复。[外层收据](physical-08/lease.json) · [日常资料](physical-08/profile.json)
 
-另外从同一归档制成的独立分发暂存件已经通过 13/13 个 Mach-O 的 Developer ID、加固运行时及安全时间戳检查。它与日常安装及上面的实测 ZIP 分开保存。Apple 公证、票据装订、干净设备安装及 Sparkle 线上更新仍未通过。本轮仅核对有无已配置的非交互公证凭据，未读取密钥。[暂存包结果](distribution-staging/result.json) · [13 个签名](distribution-staging/package.json)
+当前安装 ZIP 的 SHA-256 为 `be2d4cbca0091e5613e8d5e71148e1e8630e3cb16d4977d880f664bbbb9a1a28`。上一签名安装包 `f50d6ac` 的 SHA-256 为 `ca53b88ba1b174a8f0a443990403bb4122dd55ab7796824184e9011c9b3b9bd6`。两个完整包均保存在既有 Draft 附件中。本次更新后，正式 Host 的辅助功能、录屏和事件投递授权均读回允许，248 个文件系统条目与 ZIP 完全一致。[候选及回退](physical-08/candidate.json) · [权限](physical-08/permissions.json) · [安装与归档](physical-08/archive-installed.json)
+
+另外从同一归档制成的独立分发暂存件已经通过 13/13 个 Mach-O 的 Developer ID、加固运行时及安全时间戳检查。它与日常安装及上面的实测 ZIP 分开保存。Apple 公证、票据装订、干净设备安装及 Sparkle 线上更新仍未通过。本轮仅核对有无已配置的非交互公证凭据，未读取密钥。[暂存包结果](physical-08/distribution-staging/result.json) · [13 个签名](physical-08/distribution-staging/package.json)
 
 P0 的 26A428 动作适配器仍关闭。归档回放发现落地后 2.377519 秒换到另一个前台进程，当时仍在目标桌面，随后才读到 Space 改变，原因未知。新增跨动作只读观察器，下一轮单次、连续 10 次以及 50 次正式合同均需各自的新证据。P1 在独立分支确认了实际系统类、两个精确方法签名与模拟调用，真实迁窗为零。[P0 跨动作观察](../5.22-p0/persistent-drift-observer/README.md) · [P1 独立准备](https://github.com/haohongfei2001-png/nearpane/blob/5217dbf4847ef7737cf23d4e6ff3d15b8ea475e6/engineering/verification/native-spaces/5.22-p1-bridge/RESULTS.md)
