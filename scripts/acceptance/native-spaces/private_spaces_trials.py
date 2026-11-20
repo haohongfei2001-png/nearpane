@@ -48,7 +48,7 @@ def extend_focus_chain(record, canonical, original_slot, out, gate, persist):
 def focus_command(here, record, out, chain, context):
     lease = record["focusLease"]
     context["NP_P2_DOCUMENT_KIT"] = lease["documentKit"]
-    return [sys.executable, here/"preview-on-lease.py", record["kit"], lease["workspace"], out/"p2",
+    return [sys.executable, here/"preview-on-lease.py", lease.get("stageKit",record["kit"]), lease["workspace"], out/"p2",
             "--expected-space", str(lease["expectedSpace"]), "--original-checkout", lease["originalCheckout"],
             "--previous-archive", lease["originArchive"], "--install-receipt", chain, "--scenario", "controlled-window"]
 
