@@ -25,7 +25,7 @@ python3 -m unittest discover -s scripts/acceptance/native-spaces -p test_paired_
 - 两个源窗口分别只采中央 4×4 pt。一个单独的 ScreenCaptureKit 画面覆盖两张 Host 卡片中央之间、仅包含这两张受控卡片的窄条。只对其中两个 4×4 pt 区域分类。两条卡片记录共享同一帧、取样时段和可用的系统展示时间，默认只保存观测数值。
 - 两次连续观测确认一次特定颜色的变化。`latencyMs` 为观测区间的上下界。它使用最后一次旧色和第一次新色的时间为变化定位，系统提供更早的画面展示时间时放宽下界。按成功读到的变化计算 nearest-rank P50、P95、P99 和最大值，逐窗附样本数。每窗最多六个延迟样本，P95/P99 可能与最大值相同。
 - `simultaneous` 列出每个阶段的同帧匹配次数。`MATCH`、`BLANK`、`STALE`、`WRONG_WINDOW`、`UNKNOWN` 分别保留。空白指有实际像素的受控色标范围呈中性或透明；采集服务无法给出有效图像时记为未知。颜色已更新但此前有连续空白的阶段另留 `consecutiveBlankSamples`。
-- `PASS` 要求两个窗口的六次变化均有独立源与卡片匹配，每阶段至少连续两次确认两张卡片同帧匹配，且夹具清理成功。原生台前调度缩略图需要在独立、同等条件下另外测量，当前收据始终将该对照记为 `NOT_MEASURED`。
+- `PASS` 要求两个窗口的六次变化均有独立源与卡片匹配，每阶段至少连续两次确认两张卡片同帧匹配，且夹具清理成功。原生台前调度缩略图需要在独立、同等条件下另外测量，本机三条已登记的像素通道分别属于两扇测试窗和 Nearpane 面板。Apple 对照为 `NOT_MEASURED`。[Apple 原生对照资格与离线复核](../verification/native-spaces/5.22-90-active-display-previews/apple-reference/README.md)
 
 ## 可分享的原始裁剪
 
