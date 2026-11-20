@@ -1,0 +1,1924 @@
+{
+  "allowlistedFrameCounts": {
+    "complete": 235
+  },
+  "captureFilter": "ScreenCaptureKit physical display, including only two exact fixture windows",
+  "coverage": {
+    "earlyEventsWithFollowingProof": 186,
+    "from": 251307.11666395835,
+    "maxGapMS": 16.666875,
+    "maximumFollowingProofMS": 24.6845833316911,
+    "maximumLeadMS": 14.7595833404921,
+    "permittedGapMS": 50.0,
+    "pixelFailures": {},
+    "samples": 186,
+    "statusCounts": {
+      "0": 180,
+      "1": 6
+    },
+    "timingFailureCount": 0,
+    "timingFailureReasons": {},
+    "timingFailures": [],
+    "to": 251310.19999933333,
+    "uncoveredIntervals": []
+  },
+  "displayProbe": {
+    "admission": {
+      "crop": [
+        723,
+        482,
+        24,
+        24
+      ],
+      "displayFilterMode": true,
+      "endpointCalibration": {
+        "commonCrop": true,
+        "displayAndSpaceIDs": true,
+        "distinctMarkerColors": true,
+        "sourceEnrolled": true,
+        "sourceWallpaperMatches": true,
+        "targetEnrolled": true
+      },
+      "failed": [],
+      "filterOwnership": {
+        "excludedOtherApplicationCount": 36,
+        "filterModeDisplay": true,
+        "source": {
+          "cataloguedAppCount": 1,
+          "excluded": false,
+          "includedApplicationEcho": false,
+          "includedWindowEcho": false
+        },
+        "target": {
+          "cataloguedAppCount": 1,
+          "excluded": false,
+          "includedApplicationEcho": false,
+          "includedWindowEcho": false
+        }
+      },
+      "foremostSurface": "sourceFixture",
+      "initial": {
+        "fixtureGenerationsAndInput": true,
+        "guardianGeneration": true,
+        "nativeInventory": true,
+        "screenPermission": true,
+        "sourceCurrent": true
+      },
+      "matchingEnrolledWindows": [
+        1,
+        1
+      ],
+      "matchingPhysicalDisplays": 1,
+      "membership": {
+        "source": {
+          "additionalUninspectedCount": 0,
+          "available": true,
+          "confirmedForeignOrdinary": false,
+          "exactFixtureCount": 1,
+          "extraOrdinary": [],
+          "ordinaryCount": 1,
+          "otherMembers": 0,
+          "qualified": true,
+          "systemMenus": 1,
+          "unclassifiedMembers": 0,
+          "verifiedHostPanels": 1,
+          "verifiedNegativeSystemBackdrops": 0,
+          "verifiedSharedOverlays": 0
+        },
+        "target": {
+          "additionalUninspectedCount": 0,
+          "available": true,
+          "confirmedForeignOrdinary": false,
+          "exactFixtureCount": 1,
+          "extraOrdinary": [],
+          "ordinaryCount": 1,
+          "otherMembers": 0,
+          "qualified": true,
+          "systemMenus": 1,
+          "unclassifiedMembers": 0,
+          "verifiedHostPanels": 1,
+          "verifiedNegativeSystemBackdrops": 0,
+          "verifiedSharedOverlays": 0
+        }
+      },
+      "nonce": "F0719ED7-5D72-4112-AAD0-FF56B2946C14",
+      "physicalStreamArmed": true,
+      "sourceFrameReadyBeforePress": true,
+      "sourceSpace": 5016,
+      "strictCleanPreflightReads": 2,
+      "strictPreflightCensuses": [
+        {
+          "source": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          },
+          "target": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          }
+        },
+        {
+          "source": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          },
+          "target": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          }
+        }
+      ],
+      "targetSpace": 5015,
+      "wallpaper": {
+        "fileURL": true,
+        "qualified": true,
+        "readOnlyVolume": true,
+        "recognizedImage": true,
+        "regularFile": true,
+        "rootOwned": true,
+        "sameSystemVolume": true,
+        "source": "systemWallpapers"
+      }
+    },
+    "armed": true,
+    "auxiliaryRequestCount": 0,
+    "auxiliaryRequests": [],
+    "blockedReadbacks": {
+      "pixelsWithheldForUnexpectedTerminalMember": 57
+    },
+    "censusAfter": true,
+    "cropPoints": [
+      723,
+      482,
+      24,
+      24
+    ],
+    "currentCropReads": 0,
+    "postActionTargetCorroboration": {
+      "heldPixelsAfterObservedAction": [
+        {
+          "from": 251310.22753558334,
+          "to": null
+        }
+      ],
+      "qualified": false,
+      "reason": "Independent target color, timing or two strictly clean censuses were unavailable"
+    },
+    "privatePixelOutput": false,
+    "sourceFrameReadyBeforePress": true,
+    "targetCompleteColorCounts": {
+      "allNativeTargetComplete": 172,
+      "allTargetSurfaceCompleteIncludingTransition": 172,
+      "matchingNeither": 0,
+      "matchingSource": 1,
+      "matchingTarget": 171,
+      "sourceDeltaBands": {
+        "11–20": 1,
+        "129–255": 171
+      },
+      "targetDeltaBands": {
+        "0–10": 85,
+        "11–20": 86,
+        "129–255": 1
+      },
+      "targetSurfaceMatchingColor": 171
+    },
+    "terminalTarget": {
+      "eligible": false,
+      "endRequest": {
+        "callerConfirmed": true,
+        "independentEndAfterPress": true,
+        "positivePress": true
+      },
+      "independentTargetAndDisplayAgree": false,
+      "linkedToNativeTarget": false,
+      "observations": [
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.22193379168,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.22326429168,
+          "membershipThrough": 251310.24343495833,
+          "space": "target",
+          "stage": "terminal-admission-1",
+          "surface": "targetFixture",
+          "to": 251310.22326341667
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.28101379168,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.28256058335,
+          "membershipThrough": 251310.29388833334,
+          "space": "target",
+          "stage": "terminal-admission-2",
+          "surface": "targetFixture",
+          "to": 251310.28255975002
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.3310237917,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.332139125,
+          "membershipThrough": 251310.34138408335,
+          "space": "target",
+          "stage": "terminal-admission-3",
+          "surface": "targetFixture",
+          "to": 251310.33213795835
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.37668800002,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.37778370836,
+          "membershipThrough": 251310.382602375,
+          "space": "target",
+          "stage": "terminal-admission-4",
+          "surface": "targetFixture",
+          "to": 251310.37778295836
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.41815879167,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.4217237917,
+          "membershipThrough": 251310.42599062502,
+          "space": "target",
+          "stage": "terminal-admission-5",
+          "surface": "targetFixture",
+          "to": 251310.42172279168
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.46180925,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.46293458334,
+          "membershipThrough": 251310.47189683336,
+          "space": "target",
+          "stage": "terminal-admission-6",
+          "surface": "targetFixture",
+          "to": 251310.462933625
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.51186308335,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.5129482917,
+          "membershipThrough": 251310.5208170417,
+          "space": "target",
+          "stage": "terminal-admission-7",
+          "surface": "targetFixture",
+          "to": 251310.51294733334
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.55651941668,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.55759295836,
+          "membershipThrough": 251310.56192941667,
+          "space": "target",
+          "stage": "terminal-admission-8",
+          "surface": "targetFixture",
+          "to": 251310.55759220835
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.60176050002,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.60481850003,
+          "membershipThrough": 251310.60932512503,
+          "space": "target",
+          "stage": "terminal-admission-9",
+          "surface": "targetFixture",
+          "to": 251310.60481733334
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.64440908335,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.64536050003,
+          "membershipThrough": 251310.6503575417,
+          "space": "target",
+          "stage": "terminal-admission-10",
+          "surface": "targetFixture",
+          "to": 251310.64535979167
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.68584425002,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.68856679168,
+          "membershipThrough": 251310.6930665,
+          "space": "target",
+          "stage": "terminal-admission-11",
+          "surface": "targetFixture",
+          "to": 251310.68856566667
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.72826729168,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.729525125,
+          "membershipThrough": 251310.7402674167,
+          "space": "target",
+          "stage": "terminal-admission-12",
+          "surface": "targetFixture",
+          "to": 251310.72952420835
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.77695354167,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.77843025,
+          "membershipThrough": 251310.78750170834,
+          "space": "target",
+          "stage": "terminal-admission-13",
+          "surface": "targetFixture",
+          "to": 251310.77842920835
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.82519108334,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.82644641667,
+          "membershipThrough": 251310.83096795835,
+          "space": "target",
+          "stage": "terminal-admission-14",
+          "surface": "targetFixture",
+          "to": 251310.82644533334
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.86621820834,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.87066400002,
+          "membershipThrough": 251310.87542875,
+          "space": "target",
+          "stage": "terminal-admission-15",
+          "surface": "targetFixture",
+          "to": 251310.87066266668
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.91170687502,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.91279266667,
+          "membershipThrough": 251310.92099325,
+          "space": "target",
+          "stage": "terminal-admission-16",
+          "surface": "targetFixture",
+          "to": 251310.91279183334
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251310.95642054168,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251310.95769508334,
+          "membershipThrough": 251310.9621774167,
+          "space": "target",
+          "stage": "terminal-admission-17",
+          "surface": "targetFixture",
+          "to": 251310.957694
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251311.00142229168,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251311.00546266668,
+          "membershipThrough": 251311.01015566668,
+          "space": "target",
+          "stage": "terminal-admission-18",
+          "surface": "targetFixture",
+          "to": 251311.00546162503
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251311.046975,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251311.0481536667,
+          "membershipThrough": 251311.05710433336,
+          "space": "target",
+          "stage": "terminal-admission-19",
+          "surface": "targetFixture",
+          "to": 251311.04815279169
+        },
+        {
+          "censusQualified": false,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251311.09219904168,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795177901357813,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 64330,
+                  "ownerBirth": 1795177901357813,
+                  "ownerPID": 64330,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "9986a7557309f567bc9dd064",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50369
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": false,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251311.093127375,
+          "membershipThrough": 251311.09744962503,
+          "space": "target",
+          "stage": "terminal-admission-20",
+          "surface": "targetFixture",
+          "to": 251311.09312633335
+        }
+      ],
+      "reason": "two consecutive strictly clean desktop censuses were not observed within 1500 ms",
+      "sameStream": true,
+      "withheldPixelIntervals": [
+        {
+          "from": 251310.22753558334,
+          "to": null
+        }
+      ]
+    },
+    "totalNativeEvents": 252
+  },
+  "ended": 251310.18951041668,
+  "filteredDarkFrames": 0,
+  "filteredEmptyFrames": 0,
+  "frameLog": "frames.json",
+  "movieSource": "real fixture pixels; excluded transparent areas matted gray",
+  "nonce": "F0719ED7-5D72-4112-AAD0-FF56B2946C14",
+  "physicallyQualified": false,
+  "pressed": 251307.14926937502,
+  "ready": false,
+  "reason": "two consecutive strictly clean desktop censuses were not observed within 1500 ms",
+  "scope": "Observed absence of a user-visible whole-display blackout during this interval; changes below measured sampling resolution are outside the evidence.",
+  "screenshotTaken": false,
+  "silentMovie": {
+    "file": "verified-pair.mp4",
+    "sha256": "af8060ebae02b573fcc932c7358c4786ca196a9e2989dde63f4387be7c2725f4"
+  },
+  "source": 5016,
+  "sources": [
+    "https://developer.apple.com/documentation/screencapturekit/sccontentfilter/init(display:including:)",
+    "https://developer.apple.com/documentation/screencapturekit/scstreamframeinfo/displaytime"
+  ],
+  "status": "UNKNOWN",
+  "subchecks": {
+    "continuousVisibleLight": "PASS",
+    "independentTerminalTargetMatched": false,
+    "nativePresentationCoverage": "PASS",
+    "rawNativeBlankEventsDuringPress": 0,
+    "scopedNativeBlankEventsDuringPress": 0,
+    "streamingTargetMatched": true
+  },
+  "target": 5015,
+  "wallpaperIncludedInMovie": false
+}

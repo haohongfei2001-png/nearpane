@@ -15,8 +15,8 @@
   "P0": {
     "status": "BLOCKED",
     "roundTrip": "PASS",
-    "productionAXPress": 21,
-    "productionGestureSequences": 21,
+    "productionAXPress": 24,
+    "productionGestureSequences": 24,
     "ten": "BLOCKED",
     "fifty": "NOT_RUN",
     "evidence": "11-adjacent-round-trip/results.json",
@@ -27,8 +27,8 @@
     "repeatRoundTrip": "PASS",
     "mostRecentTenGate": "UNKNOWN",
     "mostRecentTenAttempted": 1,
-    "mostRecentTenCoverage": "196 actual time-bound display presentations (maximum 16.667 ms). No native blank and the stream matched the target. The independent terminal census encountered an unidentified layer-zero window and stopped before a second capture.",
-    "mostRecentEvidence": "14-moving-documents/results.json",
+    "mostRecentTenCoverage": "Native display timing, light and target color passed. Twenty exact process/AX/geometry observations identified a separate owned nonstandard non-main surface outside the measured crop. Independent terminal cross-capture was withheld.",
+    "mostRecentEvidence": "15-fixture-auxiliary/results.json",
     "candidateRuns": [
       {
         "evidence": "11-adjacent-round-trip/results.json",
@@ -173,10 +173,52 @@
             "visualUnknown": 0
           }
         }
+      },
+      {
+        "evidence": "15-fixture-auxiliary/results.json",
+        "cleanup": "PASS",
+        "stages": {
+          "roundTrip": {
+            "status": "PASS",
+            "requested": 2,
+            "attempts": 2,
+            "productionAXPress": 2,
+            "gestureSequences": 2,
+            "independentlyLanded": 2,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 2
+          },
+          "ten": {
+            "status": "UNKNOWN",
+            "requested": 10,
+            "attempts": 1,
+            "productionAXPress": 1,
+            "gestureSequences": 1,
+            "independentlyLanded": 1,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 1
+          },
+          "fifty": {
+            "status": "NOT_RUN",
+            "requested": 50,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          }
+        }
       }
     ],
-    "independentlyLanded": 21,
-    "bestSingleRunConfirmedTen": 10
+    "independentlyLanded": 24,
+    "bestSingleRunConfirmedTen": 10,
+    "compatibility": {
+      "27.0 (26A428)": "installed on one real arm64 display; see individual gates",
+      "26.7.2 hosted": "protocol/UI compilation and tests only",
+      "other 26.6+ installations": "NOT_RUN",
+      "26.0-26.5 enhanced gesture": "unsupported"
+    }
   },
   "P1": {
     "installedMoves": 0,
