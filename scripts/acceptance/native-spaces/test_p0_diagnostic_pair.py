@@ -89,6 +89,34 @@ class BorrowedPairTests(unittest.TestCase):
                 reply=subprocess.run([exe,"leased-artifact-check"],input=json.dumps(data),capture_output=True,text=True,timeout=3)
                 return json.loads(reply.stdout)
             self.assertEqual(run(),dict(classifiedOther=[True,True,True,False,False,False,False,False,False],receiptCount=2,pixels=0,issued=False))
+            def window(n,p):
+                return dict(number=n,pid=p)
+            stage,doc=window(45,12),window(49,15)
+            data.update(stageSurfaces=[dict(space=21,ownerBirth=9,bounds=[0,0,2,2],**stage)],fixtureVerified=True,
+                        documents=[dict(space=21,window=dict(**doc,birth=1,executable="fixture",identifier="fixture",hash="test"))])
+            data["ordinary"]=[doc,stage]
+            self.assertEqual(run()["stageWindowIDs"],[45])
+            foreign=window(88,77)
+            for added,why,rejected in [
+                    ([stage],"duplicateEnrolledStageWindowID",stage),
+                    ([doc],"duplicateOrdinaryWindowID",doc),
+                    ([foreign,foreign],"duplicateOrdinaryWindowID",foreign),
+                    ([window(51,15)],"unregisteredWindowOfEnrolledFixture",window(51,15)),
+                    ([window(53,12)],"unregisteredWindowWithEnrolledStagePID",window(53,12)),
+                    ([foreign],"unregisteredOrdinaryOwner",foreign)]:
+                data["ordinary"]=[doc,stage,*added]
+                actual=run()
+                self.assertEqual(actual,dict(issued=False,ready=False,error=f"ordinary census: {why} on endpoint 21",
+                                             category=why,endpoint=21,windowNumber=rejected["number"],ownerPID=rejected["pid"],pixels=0))
+            data["ordinary"]=[doc,stage,window(51,15)];data["fixtureVerified"]=False
+            self.assertEqual(run()["category"],"enrolledFixturePIDIdentityUnconfirmed")
+            for rows,why in (([doc,window(45,16)],"enrolledStageWindowOwnerMismatch"),
+                             ([window(49,81),stage],"enrolledDocumentOwnerMismatch"),
+                             ([stage],"enrolledDocumentMissing"),([doc,stage,{"pid":77}],"malformedOrdinaryMember")):
+                data["ordinary"]=rows
+                self.assertEqual(run()["category"],why)
+            data["target"]=20;data["fixtureVerified"]=True;data["ordinary"]=[doc]
+            self.assertEqual((run()["category"],run()["endpoint"]),("enrolledDocumentOnWrongEndpoint",20))
             original=leases[0]["digest"];leases[0]["digest"]="00"*32
             self.assertIn("digest",run()["error"])
             leases[0]["digest"]=original;Path(leases[0]["receipt"]).with_name("removed.json").touch()

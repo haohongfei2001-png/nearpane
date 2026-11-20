@@ -8,6 +8,57 @@ private struct BookedPair:Decodable {
     let leases:[BookedSpace],documents:[BookedDocument],stageSurfaces:[BookedStageSurface]
 }
 
+private struct OrdinaryRefusal:Error {
+    let category:String,endpoint:UInt64,number:UInt32?,pid:pid_t?
+    var receipt:Map {
+        var row:Map=["issued":false,"ready":false,"error":"ordinary census: \(category) on endpoint \(endpoint)",
+                     "category":category,"endpoint":endpoint,"pixels":0]
+        if let number {row["windowNumber"]=number}
+        if let pid {row["ownerPID"]=pid}
+        return row
+    }
+}
+
+private func fixtureCodeMatches(_ w:Window)->Bool {
+    let signed=signature(w.pid)
+    return ["net.example.spaces-document","net.example.spaces-route-witness"].contains(w.identifier) &&
+           w.executable.hasPrefix("/private/tmp/nearpane-d01.") && path(w.pid)==w.executable && birth(w.pid)==w.birth &&
+           signed?.0==w.identifier && signed?.1==w.hash
+}
+
+private func ordinaryMembers(_ rows:[Map],on sid:UInt64,pair:BookedPair,verifyFixture:(Window)->Bool) throws -> Set<UInt32> {
+    let doc=pair.documents.first{$0.space==sid}?.window,stage=pair.stageSurfaces.filter{$0.space==sid}
+    func refuse(_ category:String,_ n:UInt32?,_ p:pid_t?)->OrdinaryRefusal {
+        OrdinaryRefusal(category:category,endpoint:sid,number:n,pid:p)
+    }
+    var seen=[UInt32:pid_t](),present=Set<UInt32>()
+    for row in rows {
+        let n=row["number"] as? UInt32,p=row["pid"] as? pid_t
+        guard let n,n>0,let p,p>1 else {throw refuse("malformedOrdinaryMember",n,p)}
+        if let prior=seen.updateValue(p,forKey:n) {
+            let duplicateStage=prior==p && stage.contains{$0.number==n && $0.pid==p}
+            throw refuse(duplicateStage ? "duplicateEnrolledStageWindowID":"duplicateOrdinaryWindowID",n,p)
+        }
+    }
+    for (n,p) in seen.sorted(by:{$0.key<$1.key}) {
+        if let w=doc,w.number==n && w.pid==p {continue}
+        if let w=doc,w.number==n {throw refuse("enrolledDocumentOwnerMismatch",n,p)}
+        if let s=stage.first(where:{$0.number==n}) {
+            guard s.pid==p else {throw refuse("enrolledStageWindowOwnerMismatch",n,p)}
+            present.insert(n)
+        } else if let w=pair.documents.first(where:{$0.window.pid==p})?.window {
+            guard verifyFixture(w) else {throw refuse("enrolledFixturePIDIdentityUnconfirmed",n,p)}
+            throw refuse(w.number==n ? "enrolledDocumentOnWrongEndpoint":"unregisteredWindowOfEnrolledFixture",n,p)
+        } else if pair.stageSurfaces.contains(where:{$0.pid==p}) {
+            throw refuse("unregisteredWindowWithEnrolledStagePID",n,p)
+        } else {
+            throw refuse("unregisteredOrdinaryOwner",n,p)
+        }
+    }
+    if let w=doc,seen[w.number] != w.pid {throw refuse("enrolledDocumentMissing",w.number,w.pid)}
+    return present
+}
+
 private func permittedOther(_ member:Map,_ sid:UInt64,_ host:pid_t)->Bool {
     guard member["forward"] as? [UInt64]==[sid],member["reverse"] as? [UInt64]==[sid],
           let pid=member["pid"] as? pid_t,pid>1,let code=member["code"] as? Map,let layer=member["layer"] as? Int else {return false}
@@ -87,21 +138,15 @@ private func bookedCensus(_ r:BookedPair) throws -> Map {
         let sid=lease.space,doc=r.documents.first{$0.space==sid}?.window
         guard let row=scope[String(sid)] as? Map,row["unresolved"] as? Int==0,let ordinary=row["ordinary"] as? [Map],
               let other=row["otherDetails"] as? [Map],other.count==row["otherMembers"] as? Int else {throw Refusal("unknown window membership on booked endpoint")}
+        let present=try ordinaryMembers(ordinary,on:sid,pair:r,verifyFixture:fixtureCodeMatches)
         if let w=doc {
             _=try ownGeneration(w)
-            let signed=signature(w.pid)
-            try need(["net.example.spaces-document","net.example.spaces-route-witness"].contains(w.identifier) &&
-                     w.executable.hasPrefix("/private/tmp/nearpane-d01.") && path(w.pid)==w.executable && birth(w.pid)==w.birth &&
-                     signed?.0==w.identifier && signed?.1==w.hash && exactWindowOwner(w.number)?.0==w.pid &&
-                     NPReadWindowSpaces(w.number) as? [UInt64]==[sid] && (NPReadCatalogSpaceWindowNumbers(sid) as? [UInt32])?.contains(w.number)==true &&
-                     ordinary.filter({$0["number"] as? UInt32==w.number && $0["pid"] as? pid_t==w.pid}).count==1,"owned fixture generation or exact membership changed")
+            try need(fixtureCodeMatches(w) && exactWindowOwner(w.number)?.0==w.pid &&
+                     NPReadWindowSpaces(w.number) as? [UInt64]==[sid] && (NPReadCatalogSpaceWindowNumbers(sid) as? [UInt32])?.contains(w.number)==true,
+                     "owned fixture generation or exact membership changed")
         }
-        var present=Set<UInt32>()
         let surfaces=r.stageSurfaces.filter{$0.space==sid}
-        for member in ordinary {
-            if let d=doc,member["number"] as? UInt32==d.number && member["pid"] as? pid_t==d.pid {continue}
-            guard let s=surfaces.first(where:{$0.number==member["number"] as? UInt32 && $0.pid==member["pid"] as? pid_t}),
-                  present.insert(s.number).inserted else {throw Refusal("unregistered ordinary window on booked endpoint")}
+        for s in surfaces where present.contains(s.number) {
             try approvedStageSurface(s,screen:CGDisplayBounds(CGMainDisplayID()),visible:on,published:publicIDs)
         }
         for s in surfaces where !present.contains(s.number) {
@@ -116,6 +161,11 @@ private func bookedCensus(_ r:BookedPair) throws -> Map {
 }
 
 func bookedOperation(_ verb:String) throws {
+    do {try runBookedOperation(verb)}
+    catch let error as OrdinaryRefusal {emit(error.receipt);exit(2)}
+}
+
+private func runBookedOperation(_ verb:String) throws {
     let input=FileHandle.standardInput.readData(ofLength:32769)
     try need(input.count<=32768,"oversized lease request")
     let pair=try JSONDecoder().decode(BookedPair.self,from:input)
@@ -124,7 +174,12 @@ func bookedOperation(_ verb:String) throws {
         guard let request=try JSONSerialization.jsonObject(with:input) as? Map,let rows=request["otherDetails"] as? [Map] else {
             throw Refusal("offline artifact rows absent")
         }
-        emit(["receiptCount":pair.leases.count,"classifiedOther":rows.map{permittedOther($0,pair.target,pair.hostPID)},"issued":false,"pixels":0])
+        var result:Map=["receiptCount":pair.leases.count,"classifiedOther":rows.map{permittedOther($0,pair.target,pair.hostPID)},"issued":false,"pixels":0]
+        if let ordinary=request["ordinary"] as? [Map] {
+            let verified=request["fixtureVerified"] as? Bool==true
+            result["stageWindowIDs"]=try ordinaryMembers(ordinary,on:pair.target,pair:pair,verifyFixture:{_ in verified}).sorted()
+        }
+        emit(result)
         return
     }
     let first=try bookedCensus(pair)
