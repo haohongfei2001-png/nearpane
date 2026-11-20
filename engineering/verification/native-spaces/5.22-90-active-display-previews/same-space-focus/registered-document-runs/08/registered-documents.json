@@ -1,0 +1,382 @@
+{
+  "attempts": [
+    {
+      "id": "4d7f0e0d-de30-4e42-9bcf-dbb3306502d6",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53671,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53673,
+      "trial": 1
+    },
+    {
+      "id": "16af5b93-2642-4074-8925-c9ad84472d68",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53673,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53671,
+      "trial": 2
+    },
+    {
+      "id": "44602bfb-8b83-42a8-89bd-51cfa213ea9b",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53671,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53673,
+      "trial": 3
+    },
+    {
+      "id": "2516a224-377e-40d0-acf8-c74745fe9a63",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53673,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53671,
+      "trial": 4
+    },
+    {
+      "id": "ca5f9dc7-3d16-4f7b-8732-7b6c47810668",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53671,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53673,
+      "trial": 5
+    },
+    {
+      "id": "073d0e95-c917-40d4-a392-a2ba0c925a35",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53673,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53671,
+      "trial": 6
+    },
+    {
+      "id": "b80da8a0-7b41-410c-a72b-e12a859f1a4e",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53671,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53673,
+      "trial": 7
+    },
+    {
+      "id": "27ae146b-ab6a-444f-8fe5-c35e89f0cee8",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53673,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53671,
+      "trial": 8
+    },
+    {
+      "id": "e41e9c7a-9547-469b-b08d-d17906958f78",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53671,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53673,
+      "trial": 9
+    },
+    {
+      "id": "1f759e42-ad2b-4d6a-abf6-726f1a21c901",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53673,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53671,
+      "trial": 10
+    }
+  ],
+  "cleanup": {
+    "launcherExit": 0,
+    "ownedSessionRemoved": true,
+    "readback": {
+      "frontIsFixture": false,
+      "generationGone": true,
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "status": "EXITED",
+      "windowsGone": true
+    },
+    "signal": "close",
+    "status": "PASS"
+  },
+  "firstDocumentCapture": {
+    "after": {
+      "birth": 1795207429807369,
+      "clock": 280825.25083441666,
+      "fileSHA256": [
+        "265e178e08b7c650f70ca5a782d1ec54f1b64cbc323f3e3e37cde2fc4f08b45a",
+        "c48b0a8e5292d4544b65bf9d0e98f89362ecbdd246c9078a0e7a52a2fa2dd91f"
+      ],
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795207416100648,
+      "pid": 89081,
+      "window": 53673
+    },
+    "before": {
+      "birth": 1795207429807369,
+      "clock": 280824.9386695,
+      "fileSHA256": [
+        "265e178e08b7c650f70ca5a782d1ec54f1b64cbc323f3e3e37cde2fc4f08b45a",
+        "c48b0a8e5292d4544b65bf9d0e98f89362ecbdd246c9078a0e7a52a2fa2dd91f"
+      ],
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795207416100648,
+      "pid": 89081,
+      "window": 53673
+    },
+    "file": "first-registered-document.png",
+    "height": 386,
+    "scope": "sole enrolled document window",
+    "sha256": "b7c008e4b71580d312ca6c6fddeb63d7355523dcd9a143a9265b8c820bcc223d",
+    "status": "CAPTURED",
+    "target": 53673,
+    "width": 640
+  },
+  "fixturePreparation": {
+    "checkedAt": 280821.0120852084,
+    "emptyLeaseReads": [
+      {
+        "extraOwners": [
+          "com.holdsnow.nearpane.alpha",
+          "com.apple.dock",
+          "com.apple.WindowServer"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 280820.240288125
+      },
+      {
+        "extraOwners": [
+          "com.holdsnow.nearpane.alpha",
+          "com.apple.dock",
+          "com.apple.WindowServer"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 280820.6342797917
+      }
+    ],
+    "focused": 53671,
+    "id": "0f5fad17-60a1-41f5-b2c0-543863c4c2e4",
+    "issued": true,
+    "launcherPID": 89079,
+    "method": "singleForegroundLaunchServicesOpen",
+    "originalForegroundBirth": 1795207416100648,
+    "productAction": false,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+    "status": "VERIFIED"
+  },
+  "fixtureSigning": {
+    "CDHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+    "Identifier": "net.example.spaces-document",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "focusRestoreRequested": false,
+  "launch": "foreground Launch Services open -n -W -a",
+  "observerSigning": {
+    "CDHash": "4675e7b6cb4062bebeff60f0ad5f00681c98f0cc",
+    "Identifier": "net.example.nearpane.p2-observer",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "operationStatus": "PASS",
+  "passes": 10,
+  "reason": "tenExactAlternatingWindowsAndInputs",
+  "registration": {
+    "birth": 1795207429807369,
+    "bundle": "net.example.spaces-document",
+    "bundleURL": "/private/tmp/nearpane-d01.p2-stage-readback.wgBUMbcb/Field Notes.app",
+    "cdHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+    "executable": "/private/tmp/nearpane-d01.p2-stage-readback.wgBUMbcb/Field Notes.app/Contents/MacOS/FieldNotes",
+    "kernelExecutableConfirmed": true,
+    "launch": 1795207429.804066,
+    "pid": 89081,
+    "regular": true,
+    "team": "ZB9D4T66QB"
+  },
+  "scope": {
+    "allowedFront": 88549,
+    "allowedFrontBirth": 1795207416100648,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "hostBirth": 1795207416100648,
+    "hostHash": "80f7cf70d681c4767df8c630d8bd17880ec153cd",
+    "hostPID": 88549,
+    "leaseHardwareCounters": [
+      5759,
+      70,
+      0,
+      3049,
+      136752
+    ],
+    "space": 5095,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+  },
+  "status": "PASS",
+  "superseded": false
+}

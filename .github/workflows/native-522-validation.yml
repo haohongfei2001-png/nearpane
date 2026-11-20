@@ -11,8 +11,18 @@ on:
       - 'Sources/NearpaneUI/**'
       - 'Tests/NearpaneSpaceActionTests/**'
       - 'Tests/NearpaneUITests/NativeSidebarWindowHistoryTests.swift'
+      - 'Tests/NearpaneUITests/NativeSidebarNavigationTests.swift'
       - 'Tests/NearpaneCoreTests/AXWindowListTests.swift'
       - 'scripts/acceptance/native-spaces/**'
+      - 'Resources/NearpaneHost.entitlements'
+      - 'scripts/build-candidate.sh'
+      - 'scripts/candidate_signing.py'
+      - 'scripts/check-alpha-distribution.py'
+      - 'scripts/test-candidate-signing.py'
+      - 'scripts/private_notary.py'
+      - 'scripts/test-private-notary.py'
+      - 'scripts/qualify-private-macos-asset.py'
+      - 'engineering/verification/native-spaces/5.22-p6/integrated-*/draft-asset.json'
 permissions:
   contents: read
 concurrency:
@@ -36,6 +46,8 @@ jobs:
       - name: Verify acceptance arithmetic and routing fixtures
         run: |
           python3 -m unittest discover -s scripts/acceptance/native-spaces -p 'test_*.py'
+          python3 scripts/test-candidate-signing.py
+          python3 scripts/test-private-notary.py
           if test -f scripts/acceptance/native-spaces/p0-tests.py; then
             python3 scripts/acceptance/native-spaces/p0-tests.py
           fi
@@ -50,6 +62,16 @@ jobs:
         run: swift build --target NearpaneUI
       - name: Verify retained windows in the complete production UI module
         run: |
-          swift test --disable-xctest --enable-swift-testing --filter 'NativeSidebarWindowHistoryTests|AXWindowListTests' 2>&1 | tee "$RUNNER_TEMP/retained-tests.log"
+          swift test --disable-xctest --enable-swift-testing --filter 'NativeSidebarWindowHistoryTests|NativeSidebarNavigationTests|AXWindowListTests' 2>&1 | tee "$RUNNER_TEMP/retained-tests.log"
           grep -F 'Suite NativeSidebarWindowHistoryTests passed' "$RUNNER_TEMP/retained-tests.log"
+          grep -F 'Suite NativeSidebarNavigationTests passed' "$RUNNER_TEMP/retained-tests.log"
           grep -F 'Suite AXWindowListTests passed' "$RUNNER_TEMP/retained-tests.log"
+      - name: Assess the enrolled private archive on this clean hosted Mac
+        if: contains(github.event.head_commit.message, '[private-macos-26 ')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          frozen=$(git log -1 --format=%s | sed -nE 's/.*\[private-macos-26 ([a-f0-9]{7,40})\].*/\1/p')
+          test -n "$frozen"
+          python3 -B scripts/qualify-private-macos-asset.py "$frozen" | tee "$RUNNER_TEMP/nearpane-private-policy.json"
+          cat "$RUNNER_TEMP/nearpane-private-policy.json" >> "$GITHUB_STEP_SUMMARY"

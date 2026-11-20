@@ -333,6 +333,10 @@ class Mac:
             if name == "P0-diagnostic":
                 require(record.get("scope") == "DIAGNOSTIC_ONLY" and record.get("officialGateEligible") is False,
                         "Single-run diagnostic did not preserve its evidence scope")
+                outcome = record.get("diagnosticOutcome", "UNKNOWN")
+                require(outcome in {"PASS","FAIL","UNKNOWN","BLOCKED","NOT_RUN"}, "Unrecognized diagnostic outcome")
+                return dict(status=outcome, scope="DIAGNOSTIC_ONLY", officialGateEligible=False,
+                            exit=code, receipt=result.relative_to(out).as_posix(), sha256=sha(result))
             return dict(status=record["status"], exit=code, receipt=result.relative_to(out).as_posix(), sha256=sha(result))
         return dict(status="UNKNOWN", exit=code, reason="missingTrialReceipt")
 
