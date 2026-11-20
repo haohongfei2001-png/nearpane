@@ -81,10 +81,17 @@ func validateTrial(_ scope: TrialScope, original: [Object], geometry: [Object]) 
               b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec == w.birth else {
             throw TrialRefusal("fixture PID or process birth changed: \(w.pid)")
         }
-        guard let fx=NSRunningApplication(processIdentifier:w.pid),fx.bundleIdentifier==w.bundleID,
-              ["net.example.spaces-document","net.example.spaces-route-witness"].contains(w.bundleID),
-              fx.bundleURL?.resolvingSymlinksInPath().path==w.bundlePath else {
-            throw TrialRefusal("fixture bundle ID or signed path changed: \(w.pid)")
+        let identities=["net.example.spaces-document":"Field Notes.app","net.example.spaces-route-witness":"Route Notes.app"]
+        guard identities[w.bundleID]==URL(fileURLWithPath:w.bundlePath).lastPathComponent else {
+            throw TrialRefusal("unenrolled fixture bundle identity: \(w.pid)")
+        }
+        var bytes=[CChar](repeating:0,count:4096)
+        guard proc_pidpath(w.pid,&bytes,UInt32(bytes.count))>0 else {throw TrialRefusal("fixture kernel path unavailable: \(w.pid)")}
+        let executable=URL(fileURLWithPath:String(cString:bytes)).resolvingSymlinksInPath().standardizedFileURL
+        let expected=URL(fileURLWithPath:w.bundlePath).appendingPathComponent("Contents/MacOS/FieldNotes").resolvingSymlinksInPath().standardizedFileURL
+        guard executable==expected else {throw TrialRefusal("fixture kernel executable differs from enrolled file: \(w.pid)")}
+        guard Bundle(url:URL(fileURLWithPath:w.bundlePath))?.bundleIdentifier==w.bundleID else {
+            throw TrialRefusal("fixture's signed bundle identifier differs: \(w.pid)")
         }
         guard runningCodeHash(w.pid)==w.codeHash else {throw TrialRefusal("fixture CDHash changed: \(w.pid)")}
         guard (NPReadWindowSpaces(w.number) as? [UInt64]) == [w.space] else {
