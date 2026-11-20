@@ -25,6 +25,7 @@
 | [安装版保留窗口测试](09-installed-background-card/results.json) | `da46651` 的两扇受控窗口均已在各自的普通桌面显示，正式侧栏分别连续两次给出可按的正确当前卡。独立读回确认独占归属和原窗口身份。首次 B→A 在 5 秒内仅出现一张当前卡，后台目标卡为 0，正式按压和 helper 投递均为 0。原桌面顺序已恢复、无遗留临时桌面，瞬时前台及焦点恢复为 UNKNOWN。[正式按钮读回](09-installed-background-card/roundTrip-01/card-before.json) · [安装身份](09-installed-background-card/installed.json) |
 | [正式 Host 逐层读回](10-retained-AX-error/diagnosis.json) | `1ddec43` 在有界的专用测试目录写入了两扇夹具的诊断。A 在前台已绑定原 AX 对象；切到 B 后 Reader 仍交付 A 和独占归属，签名动作助手首次读取后台应用窗口列表返回 `AXError.illegalArgument (-25201)`，后续丢失原对象。正式按压为 0。两租约均已回收，日常前台原为已被替换的 Nearpane 进程，原窗口引用恢复为 UNKNOWN。[Host 原始事件](10-retained-AX-error/host-window-audit/installed.jsonl) · [日常配置和焦点](10-retained-AX-error/profile-session.json) |
 | [首次正式相邻往返](11-adjacent-round-trip/results.json) | `96a3e3d` 保留了后台原窗口。正式侧栏 B→A、A→B 均有一次真实三阶段投递及独立稳定落点。随后 10/10 交替落点也已确认，每次继续观察 2 秒。10 次的物理防黑屏前置校准拒绝当前系统壁纸目录，只有夹具视频，视觉结果为 UNKNOWN，50 次未运行。两个临时桌面均已回收，原顺序和日常配置已恢复。日常 Nearpane 前台原 PID 已退出，精确焦点恢复为 UNKNOWN。[12 条逐动作收据](11-adjacent-round-trip/per-action.jsonl) · [重新核算的时延和 579 条独立采样](11-adjacent-round-trip/readback.json) · [全部原始读回](11-adjacent-round-trip/original-receipts.tar.gz) · [观察范围与影片哈希](11-adjacent-round-trip/ten-01-visual.json) |
+| [物理显示器校准](12-physical-probe/results.json) | 同一签名候选的两端桌面、系统壁纸、窗口受控区域和两种颜色均独立校准。往返再次 2/2，10 次阶段第 1 次落点确认后，黑屏检查无法解释辅助截图的时间区间，自动停止。原收据为 UNKNOWN，50 次未运行。本次两个租约、原桌面和日常精确焦点均已恢复。[实际采样和时间](12-physical-probe/ten-01-visual.json) · [日常前台恢复](12-physical-probe/profile-session.json) |
 
 以上建场成功次数和历史版本的尝试均不计入本候选的往返、10 次或 50 次门槛。
 

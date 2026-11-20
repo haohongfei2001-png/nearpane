@@ -1,0 +1,124 @@
+{
+  "allowlistedFrameCounts": {
+    "complete": 129,
+    "idle": 44
+  },
+  "captureFilter": "ScreenCaptureKit physical display, including only two exact fixture windows",
+  "coverage": {
+    "from": 248429.58427570833,
+    "maxGapMS": 107.04895830713212,
+    "permittedGapMS": 50.0,
+    "samples": 179,
+    "to": 248432.95094658335
+  },
+  "displayProbe": {
+    "admission": {
+      "crop": [
+        723,
+        482,
+        24,
+        24
+      ],
+      "displayFilterMode": true,
+      "endpointCalibration": {
+        "commonCrop": true,
+        "displayAndSpaceIDs": true,
+        "distinctMarkerColors": true,
+        "sourceEnrolled": true,
+        "sourceWallpaperMatches": true,
+        "targetEnrolled": true
+      },
+      "failed": [],
+      "foremostSurface": "sourceFixture",
+      "initial": {
+        "fixtureGenerationsAndInput": true,
+        "guardianGeneration": true,
+        "nativeInventory": true,
+        "screenPermission": true,
+        "sourceCurrent": true
+      },
+      "matchingEnrolledWindows": [
+        1,
+        1
+      ],
+      "matchingPhysicalDisplays": 1,
+      "membership": {
+        "source": {
+          "available": true,
+          "exactFixtureCount": 1,
+          "ordinaryCount": 1,
+          "otherMembers": 0,
+          "qualified": true,
+          "systemMenus": 1,
+          "unclassifiedMembers": 0,
+          "verifiedHostPanels": 1,
+          "verifiedNegativeSystemBackdrops": 0,
+          "verifiedSharedOverlays": 0
+        },
+        "target": {
+          "available": true,
+          "exactFixtureCount": 1,
+          "ordinaryCount": 1,
+          "otherMembers": 0,
+          "qualified": true,
+          "systemMenus": 1,
+          "unclassifiedMembers": 0,
+          "verifiedHostPanels": 1,
+          "verifiedNegativeSystemBackdrops": 0,
+          "verifiedSharedOverlays": 0
+        }
+      },
+      "nonce": "B5E169D2-B274-4DB3-B306-330E65C5CB95",
+      "physicalStreamArmed": true,
+      "sourceFrameReadyBeforePress": true,
+      "sourceSpace": 5006,
+      "targetSpace": 5005,
+      "wallpaper": {
+        "fileURL": true,
+        "qualified": true,
+        "readOnlyVolume": true,
+        "recognizedImage": true,
+        "regularFile": true,
+        "rootOwned": true,
+        "sameSystemVolume": true,
+        "source": "systemWallpapers"
+      }
+    },
+    "armed": true,
+    "blockedReadbacks": {},
+    "censusAfter": true,
+    "cropPoints": [
+      723,
+      482,
+      24,
+      24
+    ],
+    "currentCropReads": 12,
+    "privatePixelOutput": false,
+    "sourceFrameReadyBeforePress": true
+  },
+  "ended": 248432.9281646667,
+  "filteredDarkFrames": 0,
+  "filteredEmptyFrames": 0,
+  "frameLog": "frames.json",
+  "movieSource": "real fixture pixels; excluded transparent areas matted gray",
+  "nonce": "B5E169D2-B274-4DB3-B306-330E65C5CB95",
+  "physicallyQualified": false,
+  "pressed": 248429.65812083334,
+  "ready": false,
+  "reason": "Foreground layer, wallpaper, process identity or frame-time binding unavailable during transition",
+  "scope": "Observed absence of a user-visible whole-display blackout during this interval; changes below measured sampling resolution are outside the evidence.",
+  "screenshotTaken": false,
+  "silentMovie": {
+    "file": "verified-pair.mp4",
+    "sha256": "de7eaf0284f5024a85d411f88dd4fd0ec35de4314688b90452718d293b3f4fb5"
+  },
+  "source": 5006,
+  "sources": [
+    "https://developer.apple.com/documentation/screencapturekit/sccontentfilter/init(display:including:)",
+    "https://developer.apple.com/documentation/screencapturekit/scstreamframeinfo/displaytime"
+  ],
+  "status": "UNKNOWN",
+  "target": 5005,
+  "wallpaperIncludedInMovie": false
+}
