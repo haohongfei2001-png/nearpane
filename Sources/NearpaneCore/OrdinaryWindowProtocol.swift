@@ -11,6 +11,21 @@ public struct OrdinaryDesktopIdentity: Codable, Equatable, Sendable {
     }
 }
 
+/// The two retained windows and the final side-by-side slots chosen in one explicit drop.
+public struct OrdinaryWindowPairPlacement: Codable, Equatable, Sendable {
+    public let desktop: OrdinaryDesktopIdentity
+    public let left, right: ManagedWindowID
+    public let leftFrame, rightFrame: SurfaceRect
+    public init(desktop: OrdinaryDesktopIdentity, left: ManagedWindowID, right: ManagedWindowID,
+                leftFrame: SurfaceRect, rightFrame: SurfaceRect) {
+        self.desktop = desktop
+        self.left = left
+        self.right = right
+        self.leftFrame = leftFrame
+        self.rightFrame = rightFrame
+    }
+}
+
 /// Anonymous pipes connect the signed Host to one short-lived worker scoped to one process incarnation.
 public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
@@ -31,12 +46,15 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
     public let creationGrant: UUID?
     public let boundaryRevision: UUID?
     public let desktop: OrdinaryDesktopIdentity?
+    public let pairPlacement: OrdinaryWindowPairPlacement?
 
     public init(_ action: Action, pid: Int32, launch: UInt64, bundle: String,
                 id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil,
                 boundaryRevision: UUID? = nil, creationGrant: UUID? = nil, focusDisplay: String? = nil,
-                focusDeadline: TimeInterval? = nil, focusSpace: String? = nil, desktop: OrdinaryDesktopIdentity? = nil) {
+                focusDeadline: TimeInterval? = nil, focusSpace: String? = nil, desktop: OrdinaryDesktopIdentity? = nil,
+                pairPlacement: OrdinaryWindowPairPlacement? = nil) {
         self.desktop = desktop
+        self.pairPlacement = pairPlacement
         self.focusSpace = focusSpace
         self.focusDisplay = focusDisplay; self.focusDeadline = focusDeadline
         self.nonce = UUID()
