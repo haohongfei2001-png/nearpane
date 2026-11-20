@@ -13,7 +13,7 @@ import sys
 import time
 import uuid
 
-from contract_workspace import Workspace, write_owned
+from contract_workspace import Workspace, row, write_owned
 from installed_profile import APP, PROFILE, installed_pid, owns_profile, validate_home
 from preview_support import surface_checkpoint
 from space_scope import ScopeError, private_file, require
@@ -91,6 +91,24 @@ def validate_script(path, name):
     st = path.stat()
     require(stat.S_ISREG(st.st_mode) and st.st_uid == os.getuid() and not st.st_mode & 0o022, "optionalEntryOwnerOrPermissions")
     return path
+
+
+def stage_media(command,kit,folder,ws,target):
+    if not command:return {"status":"NOT_RUN","reason":"noStageMediaCommand"}
+    result={"status":"BLOCKED","folder":folder.name}
+    try:
+        script=validate_script(command,"compact-panel.py")
+        empty(ws,target)
+        require(states(kit)[-1]["state"] is True,"compactPanelOnlyDuringConfirmedOriginalStageOn")
+        subprocess.run(["/usr/bin/codesign","--verify","--strict",kit/"compact-tool-capture"],check=True,timeout=5)
+        code=child(script,[kit,folder,"--current-empty"],timeout=28)
+        headers=[f for f in (folder/"receipt.json",folder/"result.json") if f.is_file()]
+        require(bool(headers),"compactToolCaptureDidNotLeaveAReceipt")
+        proof=readable_result(headers[0])
+        result.update(status=proof["status"],exit=code,receipt=folder.name+"/"+headers[0].name)
+        if proof.get("reason"):result["reason"]=str(proof["reason"])[:200]
+    except (OSError,ValueError,KeyError,RuntimeError,subprocess.SubprocessError) as exc:result["reason"]=str(exc)[:200]
+    return result
 
 
 class PreviewWorkspace(Workspace):
@@ -246,6 +264,24 @@ class StageTransaction:
             require(call.returncode==0,"ownedSettingsNormalQuitUnconfirmed: "+name)
 
     def restore(self, initial):
+        events=self.events("stage-off")
+        owned=[e for e in events if e.get("event")=="owned-settings"]
+        presses=[e for e in events if e.get("event")=="press-intent" and e.get("id")=="stage-manager-on" and e.get("target") is False]
+        qualified=(initial is True and len(owned)==len(presses)==1 and not any(e.get("event")=="owned-settings-closed" for e in events)
+                   and any(e.get("event")=="press-reply" and e.get("ax")==0 for e in events)
+                   and any(e.get("event")=="switch-read" and e.get("ui") is False and e.get("login") is False and
+                           e.get("window")==presses[0]["window"] for e in events))
+        if qualified and states(self.kit,preflight=True)[-1]["existingSettingsInstance"]:
+            owner=owned[0];request=json.loads(private_file(self.output/"stage-off-intent.json"))["request"]
+            request.update(expectedState=False,targetState=True,hid=self.ws.hardware())
+            with (self.output/"stage-restore-registered.jsonl").open("xb") as out:
+                call=subprocess.run([self.kit/"preview-stage-control","restore-registered"],
+                                    input=json.dumps(dict(request=request,window=presses[0]["window"],**{k:owner[k] for k in ("pid","birth","cdHash")})).encode(),
+                                    stdout=out,env=login_env(),timeout=26)
+            require(call.returncode==0,"originalRegisteredSettingsRestoreUnconfirmed")
+            actual=states(self.kit,preflight=True)
+            require(actual[-1]["state"] is True and not actual[-1]["existingSettingsInstance"],"registeredRestoreOrExitNotConfirmed")
+            return dict(status="PASS",actual=actual,changedByRun=True,registeredRecovery=True,journal="stage-restore-registered.jsonl")
         self.cleanup_settings("stage-off")
         now = states(self.kit)
         had_press = any(e.get("event") == "press-intent" for e in self.events("stage-off"))
@@ -256,6 +292,73 @@ class StageTransaction:
         finally:self.cleanup_settings("stage-restore")
         result.update(changedByRun=True,restorationPress=True)
         return result
+
+
+class PreferenceStage:
+    """Explicit acceptance-only loan of one existing boolean in the actual login domain."""
+    domain="com.apple.WindowManager"
+    key="GloballyEnabled"
+    def __init__(self,kit,output,ws,n):
+        self.kit,self.output,self.ws,self.n=kit,output,ws,n
+
+    def runtime(self,value):
+        samples=[];positive=[];end=time.monotonic()+7
+        while time.monotonic()<end:
+            state=states(self.kit)
+            m=json.loads(subprocess.check_output([self.kit/"metrics",str(self.ws.host["pid"])],text=True,timeout=4))
+            o=self.ws.read()
+            top=row(o)
+            sample={"actualLogin":state,"runtime":m,"hostUnchanged":o.get("host")==self.ws.host,"current":top["current"]}
+            samples.append(sample)
+            criteria=(state[-1]["state"] is value and sample["hostUnchanged"] and m.get("stageManagerOwnsDispatch")==int(value))
+            if value:
+                criteria=criteria and all(m.get(k)==0 for k in ("activeStreams","capturesInFlight","gallerySessions","visibleDisplays"))
+            else:criteria=criteria and m.get("visibleDisplays")==1 and m.get("gallerySessions") in (0,1) and type(m.get("deliveredFrames")) is int
+            if criteria:positive.append(m)
+            else:positive=[]
+            if len(positive)>=2 and (not value or all(positive[-1].get(k)==positive[-2].get(k) for k in ("deliveredFrames","captureRequests"))):
+                return {"status":"PASS","reads":samples}
+            time.sleep(.16)
+        return {"status":"BLOCKED","reads":samples,"reason":"independentLoginAndActualSignedHostDidNotConverge"}
+
+    def toggle(self,name,old,new):
+        current=states(self.kit)
+        require(current[-1]["state"] is old and type(old) is bool and new is not old,"singlePreferenceCompareBeforeWriteFailed")
+        kind=subprocess.check_output(["/usr/bin/defaults","read-type",self.domain,self.key],text=True,env=login_env(),timeout=4).strip()
+        require(kind.lower().endswith("boolean"),"existingLoginPreferenceIsNotBoolean")
+        path=self.output/(name+"-preference-intent.json")
+        write_owned(path,dict(operation=str(uuid.uuid4()),uid=os.getuid(),display=self.ws.display,space=self.n,
+                              host=self.ws.host,domain=self.domain,key=self.key,previous=old,target=new,baseline=current,
+                              setupOnly=True,countsAsAppleUIAcceptance=False))
+        command=["/usr/bin/defaults","write",self.domain,self.key,"-bool","true" if new else "false"]
+        call=subprocess.run(command,env=login_env(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=4)
+        write_owned(self.output/(name+"-preference-delivery.json"),dict(exit=call.returncode,setupOnly=True))
+        require(call.returncode==0,"oneScopedPreferenceWriteNotAcknowledged")
+        proof=self.runtime(new)
+        write_owned(self.output/(name+"-runtime.json"),proof)
+        require(proof["status"]=="PASS",proof.get("reason","unknownRuntimeReadback"))
+        return {"status":"PASS","method":"isolated acceptance, temporary existing login boolean","setupOnly":True,
+                "countsAsAppleUIAcceptance":False,"runtimeReceipt":name+"-runtime.json"}
+
+    def switch(self,name,old,new):
+        require(name=="stage-off" and old is True and new is False,"invalidTemporarySetupRequested")
+        empty(self.ws,self.n);runtime=self.runtime(old)
+        require(runtime["status"]=="PASS","originalLoginAndRuntimeBeforeTemporarySetupUnconfirmed")
+        return self.toggle(name,old,new)
+
+    def restore(self,initial):
+        before=states(self.kit)
+        if before[-1]["state"] is initial:
+            actual=self.runtime(initial)
+            return {"status":actual["status"],"method":"already at original setting","actual":actual,
+                    "setupOnly":True,"restorationPress":False}
+        intent=json.loads(private_file(self.output/"stage-off-preference-intent.json"))
+        require(initial is True and intent["previous"] is True and intent["target"] is False and intent["uid"]==os.getuid()
+                and intent["domain"]==self.domain and intent["key"]==self.key and intent["host"]==self.ws.host and intent["space"]==self.n,
+                "noMatchingSingleSettingLoanForReturn")
+        # Restoration addresses only the one held login key, even when a child failed
+        # and its window delays desktop removal. It sends no input to the foreground.
+        return self.toggle("stage-restore",False,True)
 
 
 def run(args):
@@ -285,7 +388,8 @@ def run(args):
         initial_reads=states(kit,preflight=True)
         result["stageBaseline"]=initial_reads;initial=initial_reads[-1]["state"];save()
         require(all(r.get("ax") and r.get("screen") for r in initial_reads),"observerAXOrScreenPermissionMissing")
-        require(not initial or all(r.get("existingSettingsInstance") is False for r in initial_reads),"existingSettingsInstanceProtected")
+        require(args.stage_method=="temporary-preference" or not initial or all(r.get("existingSettingsInstance") is False for r in initial_reads),
+                "existingSettingsInstanceProtected")
         if args.preflight_only:
             result["status"]="READY";return 0
         test=os.environ.get("NEARPANE_TEST_HOME")
@@ -297,8 +401,11 @@ def run(args):
         require(ws.host["pid"]==pid,"workspaceHostDoesNotMatchIsolatedInstalledHost")
         target=ws.create();result["leasedSpace"]=target;save()
         ws.select(target);result["initialEmptyScope"]=empty(ws,target)
-        stage=StageTransaction(kit,output,ws,target)
+        stage=(PreferenceStage if args.stage_method=="temporary-preference" else StageTransaction)(kit,output,ws,target)
+        result["stageMethod"]=args.stage_method
         result["originalStageSurface"]=surface_checkpoint(kit,ws.host,target,initial,0)
+        if initial and args.stage_media_command:
+            result["stageOnMedia"]=stage_media(args.stage_media_command,kit,output/"stage-on-media",ws,target);save()
         if initial:
             result["stageSetup"]=stage.switch("stage-off",True,False)
         else:
@@ -306,6 +413,9 @@ def run(args):
             result["stageSetup"]={"status":"PASS","initiallyOff":True,"actual":fresh,"press":False}
         save()
         result["offZeroBefore"]=surface_checkpoint(kit,ws.host,target,False,0)
+        quiet=ws.hardware()
+        empty(ws,target);time.sleep(.35)
+        require(ws.hardware()==quiet and ws.check(ws.read())["current"]==target,"newPhysicalInputBeforeOpeningOwnedDocuments")
         preview=output/"preview"
         callback=(lambda binding:system_switch(ws,target,binding,output/"system-switch")) if args.system_switch else None
         code=importlib.import_module("paired-preview").run(kit,preview,expected_space=target,witness=True,budget=args.hidden_budget,cross_space=callback)
@@ -342,11 +452,15 @@ def run(args):
         result["reason"]=str(exc)[:260] or "interrupted"
         if (output/"stage-off-intent.json").exists() and result["stageSetup"]["status"]=="NOT_RUN":
             result["stageSetup"]={"status":"BLOCKED","reason":result["reason"],"journal":"stage-off.jsonl"}
+        if (output/"stage-off-preference-intent.json").exists() and result["stageSetup"]["status"]=="NOT_RUN":
+            result["stageSetup"]={"status":"BLOCKED","reason":result["reason"],"journal":"stage-off-preference-intent.json"}
     finally:
         if stage is not None:
             try:
                 result["stageRestore"]=stage.restore(initial)
                 result["restoredSurface"]=surface_checkpoint(kit,ws.host,stage.n,initial,0)
+                if initial and args.stage_media_command and result.get("stageOnMedia",{}).get("status")=="BLOCKED":
+                    result["stageOnMediaAfterRestore"]=stage_media(args.stage_media_command,kit,output/"stage-on-media-restored",ws,stage.n)
             except errors as e:result["stageRestore"]={"status":"BLOCKED","reason":str(e)[:260] or "interrupted"}
         if ws is not None:
             try:
@@ -383,6 +497,9 @@ if __name__=="__main__":
     p.add_argument("--preflight-only",action="store_true",help="read the signed kit and real login only")
     p.add_argument("--split-command",type=Path,help="optional reviewed split-view.py; receives this same lease")
     p.add_argument("--media-command",type=Path,help="optional reviewed live-preview-media.py; reads the recorded pixels")
+    p.add_argument("--stage-media-command",type=Path,help="optional reviewed compact-panel.py; capture the original ON tools on this empty lease")
+    p.add_argument("--stage-method",choices=("settings-ui","temporary-preference"),default="settings-ui",
+                   help="explicit temporary-preference mode loans just the proved existing logged-in Stage Manager boolean and verifies production runtime independently")
     p.add_argument("--hidden-budget",action="store_true",help="measure the existing one-minute budget once while the same positive preview is open")
     p.add_argument("--system-switch",action="store_true",help="while both enrolled A windows exist, select an additional system-created empty B and return to A")
     args=p.parse_args()

@@ -12,6 +12,25 @@ w=importlib.import_module("preview-workspace")
 
 
 class PreviewWorkspaceTests(unittest.TestCase):
+    def test_preference_setup_is_one_existing_known_boolean_and_runtime_is_independent(self):
+        with tempfile.TemporaryDirectory() as d:
+            ws=Mock();ws.display="D";ws.host={"pid":7,"codeHash":"signed"}
+            stage=w.PreferenceStage(Path("/kit"),Path(d),ws,3)
+            with patch.object(w,"states",return_value=[{"state":True}]*2),patch.object(w.subprocess,"check_output",return_value="Type is boolean"),patch.object(w.subprocess,"run",return_value=Mock(returncode=0)) as write,patch.object(stage,"runtime",return_value={"status":"BLOCKED","reason":"notReflectedByHost"}):
+                with self.assertRaisesRegex(ValueError,"notReflectedByHost"):stage.toggle("stage-off",True,False)
+                self.assertEqual(write.call_args.args[0],["/usr/bin/defaults","write","com.apple.WindowManager","GloballyEnabled","-bool","false"])
+                self.assertFalse(json.loads((Path(d)/"stage-off-preference-intent.json").read_bytes())["countsAsAppleUIAcceptance"])
+
+    def test_preference_comparison_and_prior_authorized_loan_are_required(self):
+        with tempfile.TemporaryDirectory() as d:
+            ws=Mock();ws.host={"pid":8,"codeHash":"signed"}
+            stage=w.PreferenceStage(Path("/kit"),Path(d).resolve(),ws,3)
+            with patch.object(w,"states",return_value=[{"state":False}]*2),patch.object(w.subprocess,"run") as write:
+                with self.assertRaisesRegex(ValueError,"CompareBeforeWrite"):stage.toggle("stage-off",True,False)
+                with self.assertRaises(ValueError):stage.restore(True)
+                write.assert_not_called()
+            self.assertEqual(w.stage_media(None,None,None,None,None)["status"],"NOT_RUN")
+
     def test_restore_requires_this_runs_exact_press_intent(self):
         transaction=w.StageTransaction(Path("/x"),Path("/x"),None,12)
         with patch.object(transaction,"events",return_value=[]),patch.object(w,"states",return_value=[{"state":False}]*2),patch.object(transaction,"switch") as press:
