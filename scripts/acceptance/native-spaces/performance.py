@@ -12,8 +12,28 @@ from space_scope import ScopeError, require, validate_live
 from space_trials import Driver
 
 
-def p95(values):
-    return sorted(values)[math.ceil(len(values) * .95) - 1] if values else None
+def arrival_distribution(trials, *, product):
+    """Never publish partial/good-only or warm-up-biased percentiles as contract results."""
+    expected_batches = list(range(1, 6)) if product else [None]
+    selected = [trial for trial in trials if not product or trial.get("batch") != 0]
+    output = {"expected": 20 * len(expected_batches), "observed": len(selected),
+              "p50ms": None, "p95ms": None, "p99ms": None}
+    if product and sum(row.get("batch") == 0 and row.get("status") == "PASS" for row in trials) != 20:
+        return output
+    if len(selected) != output["expected"] or any(
+            sum(row.get("batch") == batch for row in selected) != 20 for batch in expected_batches):
+        return output
+    values = []
+    for trial in selected:
+        start, end = trial.get("t0"), trial.get("tArrival")
+        if (trial.get("status") != "PASS" or not all(type(value) in (int, float) and math.isfinite(value)
+                                                    for value in (start, end)) or end < start):
+            return output
+        values.append((end - start) * 1000)
+    values.sort()
+    for percentile in (50, 95, 99):
+        output[f"p{percentile}ms"] = values[math.ceil(len(values) * percentile / 100) - 1]
+    return output
 
 
 def children(root):
@@ -38,10 +58,13 @@ def snapshot(pid, reader, metrics):
             time.sleep(.12)
             continue
         require(measured.returncode == 0, "Kernel physical footprint read failed")
-        rows = [dict(zip(("pid", "parent", "birthSec", "birthUsec", "physFootprint"), map(int, line.split())))
-                for line in measured.stdout.splitlines()]
+        keys = ("pid", "parent", "birthSec", "birthUsec", "physFootprint", "cpuUserNs", "cpuSystemNs")
+        readings = [line.split() for line in measured.stdout.splitlines()]
+        require(all(len(values) == len(keys) for values in readings), "Incomplete kernel counters")
+        rows = [dict(zip(keys, map(int, values))) for values in readings]
         require([row['pid'] for row in rows] == processes, "Incomplete physical footprint read")
         return {"processes":rows, "physicalBytes":sum(row['physFootprint'] for row in rows),
+                "cpuTimeNs":sum(row["cpuUserNs"] + row["cpuSystemNs"] for row in rows),
                 "transientReads":changes, "metrics":json.loads(checked([str(metrics), str(pid)]))}
     raise ScopeError("No complete, stable kernel process tree in six observations")
 
@@ -51,7 +74,8 @@ def run(*, workspace, scope, observer, driver, output):
     output.mkdir(parents=True, exist_ok=False)
     out = {"status": "NOT_RUN", "native": [], "product": [], "memorySamples": [], "method":
            "OS Mission Control selection and production sidebar; independent sampled arrival includes observer overhead",
-           "feedbackP95ms": None, "comparableAnimationP95ms": None}
+           "feedbackP95ms": None, "comparableAnimationP95ms": None,
+           "frameDrops": {"status":"NOT_RUN", "value":None}, "wakeRecoveryMs":None}
     ids = [s["id"] for s in scope["spaces"]]
     host = scope["host"]
     def now():
@@ -118,6 +142,12 @@ def run(*, workspace, scope, observer, driver, output):
                 else:
                     require(tree == [(r["pid"],r["birthSec"],r["birthUsec"]) for r in reading["processes"]],
                             "Process tree identity differs from the warmed baseline")
+                    previous = out["memorySamples"][-2]
+                    elapsed = reading["monotonic"] - previous["monotonic"]
+                    # rusage uses native Mach ticks, converted by the kernel reader.
+                    duration = (reading["cpuTimeNs"] - previous["cpuTimeNs"]) / 1e9
+                    require(elapsed > 0 and duration >= 0, "Invalid CPU interval")
+                    reading["averageProcessTreeCPUPercent"] = 100 * duration / elapsed
                     require(reading["physicalBytes"] <= first + max(64*1024**2, first*.1), "Physical footprint exceeds contract")
                 m = reading["metrics"]
                 require(m["cacheEntries"] <= 128 and m["chargedPixelBytes"] <= 256*1024**2, "Pixel cache exceeds contract")
@@ -132,7 +162,9 @@ def run(*, workspace, scope, observer, driver, output):
             if origin is not None and current()[0] != origin: workspace.select(origin)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             out["returnIssue"] = str(error)
-        for key in ("native","product"):
-            out[key+"ObservedArrivalP95ms"] = p95([(t["tArrival"]-t["t0"])*1000 for t in out[key] if t["tArrival"] is not None])
+        for key in ("native", "product"):
+            distribution = arrival_distribution(out[key], product=key == "product")
+            out[key + "ObservedArrival"] = distribution
+            out[key + "ObservedArrivalP95ms"] = distribution["p95ms"]
         save(); stream.close()
     return out
