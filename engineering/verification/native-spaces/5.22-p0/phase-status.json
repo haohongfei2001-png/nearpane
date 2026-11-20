@@ -15,8 +15,8 @@
   "P0": {
     "status": "BLOCKED",
     "roundTrip": "PASS",
-    "productionAXPress": 12,
-    "productionGestureSequences": 12,
+    "productionAXPress": 21,
+    "productionGestureSequences": 21,
     "ten": "BLOCKED",
     "fifty": "NOT_RUN",
     "evidence": "11-adjacent-round-trip/results.json",
@@ -25,11 +25,158 @@
     "tenBlackout": "UNKNOWN",
     "latestSignedSource": "96a3e3d1e74ea490dee798385cbef207a6013609",
     "repeatRoundTrip": "PASS",
-    "additionalConfirmedNavigation": 3,
     "mostRecentTenGate": "UNKNOWN",
     "mostRecentTenAttempted": 1,
-    "mostRecentTenCoverage": "confirmed landing; native stream matched target in 5 of 6 complete target frames. End-to-end time and terminal checks UNKNOWN",
-    "mostRecentEvidence": "13-presentation-timing/results.json"
+    "mostRecentTenCoverage": "196 actual time-bound display presentations (maximum 16.667 ms). No native blank and the stream matched the target. The independent terminal census encountered an unidentified layer-zero window and stopped before a second capture.",
+    "mostRecentEvidence": "14-moving-documents/results.json",
+    "candidateRuns": [
+      {
+        "evidence": "11-adjacent-round-trip/results.json",
+        "cleanup": "UNKNOWN",
+        "stages": {
+          "roundTrip": {
+            "status": "PASS",
+            "requested": 2,
+            "attempts": 2,
+            "productionAXPress": 2,
+            "gestureSequences": 2,
+            "independentlyLanded": 2,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 2
+          },
+          "ten": {
+            "status": "BLOCKED",
+            "requested": 10,
+            "attempts": 10,
+            "productionAXPress": 10,
+            "gestureSequences": 10,
+            "independentlyLanded": 10,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 10
+          },
+          "fifty": {
+            "status": "NOT_RUN",
+            "requested": 50,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          }
+        }
+      },
+      {
+        "evidence": "12-physical-probe/results.json",
+        "cleanup": "PASS",
+        "stages": {
+          "roundTrip": {
+            "status": "PASS",
+            "requested": 2,
+            "attempts": 2,
+            "productionAXPress": 2,
+            "gestureSequences": 2,
+            "independentlyLanded": 2,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 2
+          },
+          "ten": {
+            "status": "UNKNOWN",
+            "requested": 10,
+            "attempts": 1,
+            "productionAXPress": 1,
+            "gestureSequences": 1,
+            "independentlyLanded": 1,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 1
+          },
+          "fifty": {
+            "status": "NOT_RUN",
+            "requested": 50,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          }
+        }
+      },
+      {
+        "evidence": "13-presentation-timing/results.json",
+        "cleanup": "PASS",
+        "stages": {
+          "roundTrip": {
+            "status": "PASS",
+            "requested": 2,
+            "attempts": 2,
+            "productionAXPress": 2,
+            "gestureSequences": 2,
+            "independentlyLanded": 2,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 2
+          },
+          "ten": {
+            "status": "UNKNOWN",
+            "requested": 10,
+            "attempts": 1,
+            "productionAXPress": 1,
+            "gestureSequences": 1,
+            "independentlyLanded": 1,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 1
+          },
+          "fifty": {
+            "status": "NOT_RUN",
+            "requested": 50,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          }
+        }
+      },
+      {
+        "evidence": "14-moving-documents/results.json",
+        "cleanup": "PASS",
+        "stages": {
+          "roundTrip": {
+            "status": "PASS",
+            "requested": 2,
+            "attempts": 2,
+            "productionAXPress": 2,
+            "gestureSequences": 2,
+            "independentlyLanded": 2,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 2
+          },
+          "ten": {
+            "status": "UNKNOWN",
+            "requested": 10,
+            "attempts": 1,
+            "productionAXPress": 1,
+            "gestureSequences": 1,
+            "independentlyLanded": 1,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 1
+          },
+          "fifty": {
+            "status": "NOT_RUN",
+            "requested": 50,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          }
+        }
+      }
+    ],
+    "independentlyLanded": 21,
+    "bestSingleRunConfirmedTen": 10
   },
   "P1": {
     "installedMoves": 0,
