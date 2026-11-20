@@ -41,6 +41,7 @@ struct Space: Codable, Equatable { let id: UInt64; let type: Int; let uuid: UUID
 struct Topology: Codable, Equatable { let display: UUID; let records: [Space]; let current: UInt64 }
 struct Window: Codable { let pid: pid_t; let birth: UInt64; let number: UInt32; let executable, identifier, hash: String }
 struct Pair: Codable { let topology: Topology; let sourceWindow, targetWindow: Window; let target: UInt64; let hostPID: pid_t; let hostBirth: UInt64; let hostHash: String; let hid: [UInt32] }
+struct Arrow: Codable { let before: Topology; let topology: Topology; let sourceWindow: Window; let target: UInt64; let hid: [UInt32] }
 func object<T: Encodable>(_ item:T) throws -> Any { try JSONSerialization.jsonObject(with:JSONEncoder().encode(item)) }
 func hardware() -> [UInt32] {
     [CGEventType.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel,.leftMouseDragged,.rightMouseDragged,.otherMouseDragged].map {
@@ -96,6 +97,27 @@ func bound(_ w: Window, _ space: UInt64) throws -> Map {
     try need(proof["standard"] as? Bool == true && proof["reverse"] as? [UInt64] == [space] && proof["forward"] as? Bool == true,"owned window lacks unique standard AX identity or forward/reverse Space evidence")
     return proof
 }
+func visibleCard(_ card: AXUIElement, host: pid_t) -> Bool {
+    guard let pos = prop(card,kAXPositionAttribute), CFGetTypeID(pos) == AXValueGetTypeID(),
+          let dim = prop(card,kAXSizeAttribute), CFGetTypeID(dim) == AXValueGetTypeID() else { return false }
+    var point = CGPoint.zero, size = CGSize.zero
+    guard AXValueGetValue(pos as! AXValue,.cgPoint,&point), AXValueGetValue(dim as! AXValue,.cgSize,&size),
+          size.width > 2, size.height > 2 else { return false }
+    let system = AXUIElementCreateSystemWide(), display = CGDisplayBounds(CGMainDisplayID())
+    for fraction in [0.5,0.2,0.8] {
+        let sample = CGPoint(x:point.x+size.width*0.5,y:point.y+size.height*fraction)
+        var hit: AXUIElement?
+        guard display.contains(sample), AXUIElementCopyElementAtPosition(system,Float(sample.x),Float(sample.y),&hit) == .success else { continue }
+        var node = hit
+        for _ in 0..<16 {
+            guard let element = node, owner(element) == host else { break }
+            if CFEqual(element,card) { return true }
+            guard let parent = prop(element,kAXParentAttribute), CFGetTypeID(parent) == AXUIElementGetTypeID() else { break }
+            node = (parent as! AXUIElement)
+        }
+    }
+    return false
+}
 func panelTarget(_ pid: pid_t, _ id:String) throws -> AXUIElement {
     let root = AXUIElementCreateApplication(pid); _ = AXUIElementSetMessagingTimeout(root,0.4)
     var todo = array(root,kAXWindowsAttribute) + [root]
@@ -123,6 +145,7 @@ func panelTarget(_ pid: pid_t, _ id:String) throws -> AXUIElement {
     guard matches.count == 1 else {throw Refusal("official background card count \(matches.count)")}
     let card = matches[0]; var actions: CFArray?
     try need(prop(card,kAXRoleAttribute) as? String == kAXButtonRole && prop(card,kAXEnabledAttribute) as? Bool == true && AXUIElementCopyActionNames(card,&actions) == .success && (actions as? [String])?.contains(kAXPressAction) == true,"official background card disabled or lacks AXPress")
+    try need(visibleCard(card,host:pid),"official background card is clipped, covered or absent from the visible sidebar")
     return card
 }
 func guardPair(_ p:Pair) throws {
@@ -134,6 +157,48 @@ func guardPair(_ p:Pair) throws {
     guard let a = ids.firstIndex(of:p.topology.current), let b = ids.firstIndex(of:p.target), abs(a-b) == 1 else {throw Refusal("source and target are not exactly adjacent")}
     _ = try bound(p.sourceWindow,p.topology.current); _ = try bound(p.targetWindow,p.target)
     try need(NSWorkspace.shared.frontmostApplication?.processIdentifier == p.sourceWindow.pid && axFocus(p.sourceWindow.pid) == p.sourceWindow.number,"owned source window is not precisely foreground and focused")
+}
+func holdOriginal() throws {
+    let original = try topology(), input = hardware()
+    guard AXIsProcessTrusted(), let app = NSWorkspace.shared.frontmostApplication else {throw Refusal("no original foreground application")}
+    let pid=app.processIdentifier, root=AXUIElementCreateApplication(pid)
+    _=AXUIElementSetMessagingTimeout(root,0.35)
+    guard let born=birth(pid), let signed=signature(pid), let raw=prop(root,kAXFocusedWindowAttribute),
+          CFGetTypeID(raw)==AXUIElementGetTypeID() else {throw Refusal("no exact original AX window to retain")}
+    let window=raw as! AXUIElement, number=NPReadAXWindowNumber(raw)
+    guard number>0,owner(window)==pid,(NPReadWindowSpaces(number) as? [UInt64])?.contains(original.current)==true else {throw Refusal("original focus has no positive current-Space membership")}
+    emit(["held":true,"pid":pid,"number":number,"birth":born,"topology":try object(original),"hid":input])
+    guard readLine()=="restore" else {return}
+    func verify() throws {
+        let live=signature(pid)
+        try need(try topology()==original && hardware()==input && birth(pid)==born && live?.0==signed.0 && live?.1==signed.1 &&
+                 owner(window)==pid && NPReadAXWindowNumber(window)==number && (NPReadWindowSpaces(number) as? [UInt64])?.contains(original.current)==true &&
+                 array(root,kAXWindowsAttribute).contains { CFEqual($0,window) },"original focus reference, topology or user input changed; preserved newer state")
+    }
+    try verify()
+    if NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":false]);return}
+    var changed=false
+    if NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {try verify();changed=app.activate(options:[.activateIgnoringOtherApps])}
+    if axFocus(pid) != number {
+        try verify()
+        let raised=AXUIElementPerformAction(window,kAXRaiseAction as CFString)
+        changed=changed || raised == .success
+        if axFocus(pid) != number {
+            try verify()
+            var settable=DarwinBoolean(false)
+            if AXUIElementIsAttributeSettable(root,kAXFocusedWindowAttribute as CFString,&settable) == .success && settable.boolValue {
+                let status=AXUIElementSetAttributeValue(root,kAXFocusedWindowAttribute as CFString,window)
+                changed=changed || status == .success
+            }
+        }
+    }
+    let deadline=Date(timeIntervalSinceNow:1.25)
+    repeat {
+        try verify()
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":changed]);return}
+        RunLoop.current.run(until:Date(timeIntervalSinceNow:0.05))
+    } while Date()<deadline
+    emit(["restored":false,"issued":changed,"reason":"the retained original reference did not regain focus"])
 }
 let arguments = Array(CommandLine.arguments.dropFirst())
 var issued = false
@@ -147,12 +212,37 @@ func main() throws {
             RunLoop.current.run(until:Date(timeIntervalSinceNow:0.06))
         }
     case "state": emit(try snapshot(true))
+    case "hold-original": try holdOriginal()
     case "process":
         guard arguments.count == 2, let pid = pid_t(arguments[1]), let exe = path(pid), let start = birth(pid), let sign = signature(pid) else {throw Refusal("process unavailable")}
         emit(["pid":pid,"executable":exe,"birth":start,"identifier":sign.0,"hash":sign.1])
     case "windows":
         let owned = try JSONDecoder().decode([Window].self,from:FileHandle.standardInput.readDataToEndOfFile()); _ = try topology()
         emit(["windows":try owned.map(windowProof)])
+    case "system-arrow-enabled":
+        emit(["left":NPP0SystemArrowEnabled(123)==1,"right":NPP0SystemArrowEnabled(124)==1])
+    case "setup-arrow":
+        let r = try JSONDecoder().decode(Arrow.self,from:FileHandle.standardInput.readDataToEndOfFile())
+        let live = try topology(), original = r.before.records, ids=live.records.map(\.id)
+        guard live == r.topology, r.before.display == live.display, r.before.current == live.current,
+              live.records.filter({ $0.id != r.target }) == original, !original.contains(where: { $0.id == r.target }),
+              let to=ids.firstIndex(of:r.target), let from=ids.firstIndex(of:live.current), abs(from-to)==1,
+              live.records[to].type==0,live.records[from].type==0,!original.contains(where:{ $0.uuid==live.records[to].uuid }) else {
+            throw Refusal("setup shortcut may land only on the single new adjacent ordinary Space")
+        }
+        let key: CGKeyCode = to>from ? 124 : 123
+        try need(NPP0SystemArrowEnabled(Int32(key))==1 && CGPreflightPostEventAccess(),"Apple adjacent Space shortcut disabled, remapped or event posting unavailable")
+        _ = try bound(r.sourceWindow,live.current)
+        guard let source=CGEventSource(stateID:.privateState),
+              let down=CGEvent(keyboardEventSource:source,virtualKey:key,keyDown:true),
+              let up=CGEvent(keyboardEventSource:source,virtualKey:key,keyDown:false) else {throw Refusal("system shortcut event construction failed")}
+        let flags: CGEventFlags = [.maskControl,.maskSecondaryFn,.maskNumericPad]
+        down.flags=flags;up.flags=flags
+        try need(hardware()==r.hid && (try topology())==live &&
+                 NSWorkspace.shared.frontmostApplication?.processIdentifier==r.sourceWindow.pid && axFocus(r.sourceWindow.pid)==r.sourceWindow.number,
+                 "owned source, input or topology changed before native setup shortcut")
+        issued=true;down.post(tap:.cgSessionEventTap);up.post(tap:.cgSessionEventTap)
+        emit(["issued":true,"setupOnly":true,"keyCode":Int(key),"source":live.current,"target":r.target,"uptime":ProcessInfo.processInfo.systemUptime])
     case "absence":
         let ids = arguments.dropFirst().compactMap(UInt32.init)
         try need(ids.count == arguments.count-1 && !ids.isEmpty,"invalid absent-window probe"); emit(["absence":ids.map { NPReadWindowNumberPresence($0) == 0 }])
@@ -162,8 +252,8 @@ func main() throws {
         let id = "native-space-window:\(p.topology.display.uuidString):\(p.target):\(p.targetWindow.pid):\(p.targetWindow.number)"
         let card = try panelTarget(p.hostPID,id)
         try guardPair(p)
-        try need(prop(card,kAXIdentifierAttribute) as? String == id && prop(card,kAXEnabledAttribute) as? Bool == true && owner(card) == p.hostPID,"target card changed before action")
-        var out:Map = ["control":id,"ready":true,"issued":false,"uptime":ProcessInfo.processInfo.systemUptime]
+        try need(prop(card,kAXIdentifierAttribute) as? String == id && prop(card,kAXEnabledAttribute) as? Bool == true && owner(card) == p.hostPID && visibleCard(card,host:p.hostPID),"target card changed before action")
+        var out:Map = ["control":id,"ready":true,"visibleHitVerified":true,"issued":false,"uptime":ProcessInfo.processInfo.systemUptime]
         if verb == "press" {
             issued = true; out["issued"] = true; out["axError"] = AXUIElementPerformAction(card,kAXPressAction as CFString).rawValue; out["returnedUptime"] = ProcessInfo.processInfo.systemUptime
         }
