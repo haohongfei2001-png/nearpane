@@ -1,0 +1,58 @@
+{
+  "candidate": "f50d6ac5394be994e657abd77e7fdca79a77b4bc",
+  "swiftTests": [
+    {
+      "scope": "stage-tests.log",
+      "tests": 15,
+      "suites": 1,
+      "status": "PASSED",
+      "issues": []
+    },
+    {
+      "scope": "integration-tests.log",
+      "tests": 554,
+      "suites": 85,
+      "status": "FAILED",
+      "issues": [
+        "✘ Test nativeRosterStartsAfterToolsAndTheFifthWindowContinuesDown() recorded an issue at DesktopRosterPresentationTests.swift:168:17: Expectation failed: left.count == fullyVisible && right.count == fullyVisible"
+      ]
+    },
+    {
+      "scope": "roster-retest.log",
+      "tests": 2,
+      "suites": 1,
+      "status": "PASSED",
+      "issues": []
+    },
+    {
+      "scope": "final-native-tests.log",
+      "tests": 554,
+      "suites": 85,
+      "status": "PASSED",
+      "issues": []
+    },
+    {
+      "scope": "compact-tool-tests.log",
+      "tests": 16,
+      "suites": 1,
+      "status": "FAILED",
+      "issues": [
+        "✘ Test compactLiveVoiceAndTrayKeepTheirControlsWhenTheSwitcherYields() recorded an issue at WorkspacePanelTests.swift:15:9: Expectation failed: layout.frame.height < rect.height / 3"
+      ]
+    },
+    {
+      "scope": "compact-tool-tests2.log",
+      "tests": 16,
+      "suites": 1,
+      "status": "PASSED",
+      "issues": []
+    },
+    {
+      "scope": "compact-native-tests.log",
+      "tests": 555,
+      "suites": 85,
+      "status": "PASSED",
+      "issues": []
+    }
+  ]
+}

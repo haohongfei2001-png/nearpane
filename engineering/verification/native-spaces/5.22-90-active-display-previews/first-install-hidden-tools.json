@@ -1,0 +1,110 @@
+{
+  "status": "FAIL",
+  "checks": {
+    "before": {
+      "stageActive": true,
+      "hostAcknowledged": true,
+      "toolsPresent": false,
+      "windowRegionWithdrawn": true,
+      "compactPhysicalPanel": true,
+      "noGallery": true
+    },
+    "after": {
+      "stageActive": true,
+      "hostAcknowledged": true,
+      "toolsPresent": false,
+      "windowRegionWithdrawn": true,
+      "compactPhysicalPanel": true,
+      "noGallery": true
+    }
+  },
+  "steadyCapture": true,
+  "source": "5720c849522aa7fa661c25da88fc8d204482c9fe",
+  "version": "5.22",
+  "build": "90",
+  "app": "/Applications/Nearpane.app",
+  "before": {
+    "observed": {
+      "nativeCards": 0,
+      "observerAX": true,
+      "splitMembers": 0,
+      "stageManager": true,
+      "surfaceSizes": [
+        {
+          "height": 150,
+          "width": 240
+        },
+        {
+          "height": 604,
+          "width": 752
+        }
+      ],
+      "toolAndRegionCounts": {
+        "desktop-reserved-region": 0,
+        "tray-camera-entry": 0,
+        "tray-file-drop": 0,
+        "voice-capture-toggle": 0
+      },
+      "visibleScreenHeights": [
+        923
+      ]
+    },
+    "host": {
+      "deliveredFrames": 0,
+      "cacheEntries": 0,
+      "gallerySessions": 0,
+      "stageManagerOwnsDispatch": 1,
+      "visibilityRevision": 258669501678125,
+      "capturesInFlight": 0,
+      "activeStreams": 0,
+      "captureRequests": 0,
+      "windowManagementBusy": 1,
+      "visibleDisplays": 0,
+      "chargedPixelBytes": 0,
+      "surfaceHidden": 0,
+      "pid": 31241
+    }
+  },
+  "after": {
+    "observed": {
+      "nativeCards": 0,
+      "observerAX": true,
+      "splitMembers": 0,
+      "stageManager": true,
+      "surfaceSizes": [
+        {
+          "height": 150,
+          "width": 240
+        },
+        {
+          "height": 604,
+          "width": 752
+        }
+      ],
+      "toolAndRegionCounts": {
+        "desktop-reserved-region": 0,
+        "tray-camera-entry": 0,
+        "tray-file-drop": 0,
+        "voice-capture-toggle": 0
+      },
+      "visibleScreenHeights": [
+        923
+      ]
+    },
+    "host": {
+      "deliveredFrames": 0,
+      "stageManagerOwnsDispatch": 1,
+      "windowManagementBusy": 1,
+      "visibilityRevision": 258669501678125,
+      "visibleDisplays": 0,
+      "cacheEntries": 0,
+      "captureRequests": 0,
+      "gallerySessions": 0,
+      "activeStreams": 0,
+      "capturesInFlight": 0,
+      "surfaceHidden": 0,
+      "chargedPixelBytes": 0,
+      "pid": 31241
+    }
+  }
+}

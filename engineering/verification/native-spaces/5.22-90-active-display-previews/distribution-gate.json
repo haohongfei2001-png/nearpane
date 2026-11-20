@@ -1,0 +1,184 @@
+{
+  "appIcons": {
+    ".": {
+      "representations": 10,
+      "revision": "2026-11-15-v2",
+      "sha256": "8c503980af7fd106c752b58d8b0bd21e885e1dfc654e0b3e3cee84880e636786",
+      "sourceSHA256": "0c45f018683689efe118a51812e949718fa8a2c3c3258fdfea1628ad778981b8"
+    },
+    "Contents/Helpers/NearpaneFixtureWindows.app": {
+      "representations": 10,
+      "revision": "2026-11-15-v2",
+      "sha256": "8c503980af7fd106c752b58d8b0bd21e885e1dfc654e0b3e3cee84880e636786",
+      "sourceSHA256": "0c45f018683689efe118a51812e949718fa8a2c3c3258fdfea1628ad778981b8"
+    },
+    "Contents/Helpers/NearpaneFrameController.app": {
+      "representations": 10,
+      "revision": "2026-11-15-v2",
+      "sha256": "8c503980af7fd106c752b58d8b0bd21e885e1dfc654e0b3e3cee84880e636786",
+      "sourceSHA256": "0c45f018683689efe118a51812e949718fa8a2c3c3258fdfea1628ad778981b8"
+    }
+  },
+  "binaries": {
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate": {
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"org.sparkle-project.Sparkle.Autoupdate\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "12.0",
+      "sha256": "987e9d07e3ced06a843b8f346d4a5e1f210c9a5b4df9eb6cc725a44fd08edcd1",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle": {
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"org.sparkle-project.Sparkle\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "12.0",
+      "sha256": "7da65d80cccad124f8bf55006677f021adb0df2aa2136c4644ab032e5662f639",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater": {
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"org.sparkle-project.Sparkle.Updater\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "12.0",
+      "sha256": "d04aaed42d4753a8d31905fc04cd687ae66567e6c78b8700e571fc71e9479698",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader": {
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"org.sparkle-project.DownloaderService\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "12.0",
+      "sha256": "52993278683c1a2645b858a930b4b24abe1c0a936051088f05d03bca0617bc13",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer": {
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"org.sparkle-project.InstallerLauncher\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "12.0",
+      "sha256": "ff42a68bd39d11784fcb70428b4fab96100d568328973f82cd1682f21bbd6a35",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Helpers/NearpaneAutomation": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"com.holdsnow.nearpane.automation\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "26.0",
+      "sha256": "1b8d708948f9e9e32634a1268b392710f540eedbacbbe9526a6288e513a06b29",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Helpers/NearpaneDesktopReader": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier NearpaneDesktopReader and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "26.0",
+      "sha256": "913e4442079cb08656712c90a19f01b977442685d04ab776f9d7877f39c3537a",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier NearpaneDesktopReader and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "26.0",
+      "sha256": "913e4442079cb08656712c90a19f01b977442685d04ab776f9d7877f39c3537a",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"org.nearpane.lab.NearpaneFixtureWindows\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "14.0",
+      "sha256": "d18bfe845118fe212ce2f427936be6e3bd8be2add072d1a81f35cc1aa0643b44",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"org.nearpane.lab.NearpaneFrameController\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "14.0",
+      "sha256": "f0078f7929809e9a4549a8ed9dd82b20b6c5932e81167bf1a71fe6f56816c8c8",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Helpers/NearpaneOrdinaryWindowController": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier NearpaneOrdinaryWindowController and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "26.0",
+      "sha256": "091ad650b9d83355b56efbd796ffd0c4dc17e2292f4367fcf80b68170dd054f6",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "Helpers/NearpaneSpaceAction": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier NearpaneSpaceAction and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "26.0",
+      "sha256": "10f371b193a3cee56475d1eb120bb47f4b00af04d1db16f7015b4ce13fc8b55b",
+      "signingTeam": "ZB9D4T66QB"
+    },
+    "MacOS/NearpaneHost": {
+      "architectures": [
+        "arm64"
+      ],
+      "designatedRequirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "distributionSignatureFields": false,
+      "minimumOS": "26.0",
+      "sha256": "25d084db8044073f71b403d797a4a6e0ae1c9b192dd99b62b002e178cdd5d992",
+      "signingTeam": "ZB9D4T66QB"
+    }
+  },
+  "bundle": "com.holdsnow.nearpane.alpha",
+  "cleanMacInstall": "NOT_TESTED",
+  "minimumOS": "26.0",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_TESTED",
+  "permissionIdentity": {
+    "subjects": 8,
+    "team": "ZB9D4T66QB"
+  },
+  "publicRelease": "NOT_ADMITTED",
+  "version": "5.22"
+}
