@@ -288,6 +288,26 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
         rec.log("cleanup", **rec.summary["cleanup"])
 
 
+def recover_sidebar(before, current, same_host, show, sample, wait=3):
+    if not same_host:
+        return {"restored": False, "reason": "installed Host changed"}
+    if current.get("surfaceHidden") == before["surfaceHidden"] and current["visibleDisplays"] == before["visibleDisplays"]:
+        return {"restored": True, "reason": "already in original presentation"}
+    # A system menu can change the frontmost PID. Only another sidebar decision
+    # supersedes the hide we issued. Never toggle an unverified or later state.
+    if current.get("visibilityRevision") != before["visibilityRevision"] + 1 or current.get("surfaceHidden") != 1:
+        return {"restored": False, "reason": "newer or unconfirmed visibility decision"}
+    outcome = show()
+    deadline = time.monotonic() + wait
+    while True:
+        current = sample()
+        if current.get("surfaceHidden") == 0 and current["visibleDisplays"] == before["visibleDisplays"]:
+            return {"restored": True, "reason": "production sidebar visible again", "menuResult": outcome}
+        if time.monotonic() >= deadline:
+            return {"restored": False, "reason": "show not confirmed", "menuResult": outcome}
+        time.sleep(.1)
+
+
 def hidden_budget(observer, initial, frozen, rec):
     host = initial.get("host", {})
     if not frozen["signatureValid"] or not frozen["loadedMatchesInstalled"] or not host:
@@ -299,16 +319,18 @@ def hidden_budget(observer, initial, frozen, rec):
     if before["visibleDisplays"] > 1 or before["gallerySessions"]:
         return "Multiple preview surfaces open; user-owned presentation preserved."
     was_visible = before["visibleDisplays"] == 1
-    changed = False
+    if was_visible and ("visibilityRevision" not in before or before.get("surfaceHidden") != 0):
+        return "Cannot identify and restore this Host's visibility decision."
+    requested_hide = False
     def toggle(direction):
         result = json.loads(checked([str(observer), "surface", str(pid), host["codeHash"], direction]))
         rec.log("status-menu-toggle", direction=direction, result=result)
         return result
     try:
         if was_visible:
+            requested_hide = True
             sent = toggle("hide")
-            changed = sent["issued"]
-            if not changed or sent.get("axError") != 0:
+            if not sent["issued"] or sent.get("axError") != 0:
                 return "Hide not confirmed via product menu."
         start = time.monotonic()
         points = []
@@ -324,13 +346,12 @@ def hidden_budget(observer, initial, frozen, rec):
                                        "priorScreenPermission": (frozen.get("installedHostCurrentPermissions") or {}).get("screen")}
         return "Hidden interval completed; remaining N01 visual, native timing and memory batches require separate samples."
     finally:
-        if changed:
+        if requested_hide:
             live = json.loads(checked([str(observer)]))
-            if (live.get("host") == host and not counters()["visibleDisplays"] and
-                    live.get("frontmostPID") == initial.get("frontmostPID")):
-                toggle("show")
-                time.sleep(.6)
-            rec.summary["sidebarVisibilityRestored"] = counters()["visibleDisplays"] == before["visibleDisplays"]
+            same = live.get("host") == host
+            result = recover_sidebar(before, counters() if same else {}, same, lambda: toggle("show"), counters)
+            rec.log("restore-sidebar", **result)
+            rec.summary["sidebarVisibilityRestored"] = result["restored"]
 
 
 def main():

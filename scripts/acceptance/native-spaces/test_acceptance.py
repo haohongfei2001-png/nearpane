@@ -2,13 +2,25 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from acceptance import Receipt, catalog_match, host_current_permissions
+from acceptance import Receipt, catalog_match, host_current_permissions, recover_sidebar
 from roster import evaluate, pixel_verdict, fits_window
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_restore_uses_the_visibility_decision_and_confirms_the_product_menu_result(self):
+        before = dict(surfaceHidden=0, visibleDisplays=1, visibilityRevision=70)
+        hidden = dict(surfaceHidden=1, visibleDisplays=0, visibilityRevision=71)
+        show = Mock(return_value={"issued": True, "axError": -25204})
+        self.assertTrue(recover_sidebar(before, hidden, True, show, lambda: before, wait=0)["restored"])
+        show.assert_called_once()
+        show.reset_mock()
+        for same, revision in ((False, 71), (True, 73)):
+            self.assertFalse(recover_sidebar(before, dict(hidden, visibilityRevision=revision), same,
+                                             show, lambda: before, wait=0)["restored"])
+        show.assert_not_called()
+
     @staticmethod
     def fixture_roster():
         sizes = [[540, 213], [240, 383]]

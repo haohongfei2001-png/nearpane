@@ -378,7 +378,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 object: nonce.uuidString, userInfo: ["pid": NSNumber(value: getpid()), "checked": "permissions"], deliverImmediately: true)
             return
         }
-        guard let metrics = modules?.windowPreviewMetrics else { return }
+        guard var metrics = modules?.windowPreviewMetrics, let host else { return }
+        metrics["surfaceHidden"] = NSNumber(value: host.configuration.surfaceHidden)
+        metrics["visibilityRevision"] = NSNumber(value: host.surfaceVisibilityRevision)
         DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
             object: nonce.uuidString, userInfo: metrics.merging(["pid": NSNumber(value: getpid())]) { a, _ in a },
             deliverImmediately: true)

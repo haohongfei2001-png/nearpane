@@ -26,7 +26,7 @@ app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
 version=5.22
-build_number=91
+build_number=90
 name="Nearpane.app"
 signing_identity="${NEARPANE_LOCAL_SIGNING_IDENTITY:-installed-product}"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-/Applications}"
