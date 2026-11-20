@@ -303,13 +303,15 @@ class Mac:
     def trial(self, name, rec, context, leases):
         out = Path(rec["output"])
         source = rec["candidate"]["source"]
-        if name == "P2":
+        chain = None
+        if name in ("P0-diagnostic","P2") and "focusLease" in rec:
             original = self.canonical.parent/(".nearpane-installed-trials." + str(os.getuid()))/rec["transaction"]/"bundle.slot"
             chain = spaces_trials.extend_focus_chain(rec, self.canonical, original, out, gate, persist)
+        if name == "P2":
             cmd = spaces_trials.focus_command(HERE, rec, out, chain, context)
             result = out/"p2/result.json"
         elif name == "P0-diagnostic":
-            cmd = spaces_trials.diagnostic_command(HERE, rec, out)
+            cmd = spaces_trials.diagnostic_command(HERE, rec, out, chain)
             result = out/"p0/results.json"
         elif name == "P3":
             result = out/"p3.json"
@@ -627,6 +629,12 @@ class Transaction:
             inputs["issuerKey"] = str(args.issuer_key.resolve(strict=True))
             if args.drift_kit:
                 inputs["driftKit"] = str(args.drift_kit.resolve(strict=True))
+            if args.focus_lease:
+                lease = spaces_trials.focus_lease(args.focus_lease.resolve(strict=True))
+                stage_kit = Path(lease["stageKit"])
+                require(stage_kit == stage_kit.resolve(strict=True) and (stage_kit/"preview-stage-control").is_file(),
+                        "The enrolled desktop lacks its Stage Manager verification kit")
+                inputs["focusLease"] = lease
         elif only == "p2":
             require(args.focus_lease and (args.kit/"system-workspace").is_file(), "Missing focus kit or enrolled Space lease")
             inputs["focusLease"] = spaces_trials.focus_lease(args.focus_lease.resolve(strict=True))

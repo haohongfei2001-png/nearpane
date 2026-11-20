@@ -1,6 +1,7 @@
 """Private preparation, original archive binding and local-only recovery."""
 import json
 from pathlib import Path
+import plistlib
 import stat
 import tempfile
 import unittest
@@ -59,6 +60,14 @@ class PrivateNotaryTests(unittest.TestCase):
         for invalid in (legacy.replace(n.gate.PRODUCT_SIGNING_TEAM, "FOREIGNTEAM"), legacy.replace("c"*40, "bad")):
             with patch.object(n.gate, "cmd", return_value=invalid), self.assertRaisesRegex(ValueError, "invalid product"):
                 n.code_slice(self.root, "arm64", previous_archive=True)
+
+    def test_one_shot_diagnostic_is_ineligible_for_a_distribution_archive(self):
+        directory = self.root / "Contents"
+        directory.mkdir()
+        (directory / "Info.plist").write_bytes(plistlib.dumps({"NearpaneP0DiagnosticPublicKey": "fixture"}))
+        with patch.object(n.gate, "inspect") as inspect, self.assertRaisesRegex(ValueError, "one-shot diagnostic"):
+            n.fingerprint(self.root, "a"*40)
+        inspect.assert_not_called()
 
     def test_source_digest_checked_before_unpack_and_resumption_retains_input(self):
         src=self.root/self.name

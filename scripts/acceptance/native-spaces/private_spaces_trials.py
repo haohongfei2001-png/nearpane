@@ -53,8 +53,13 @@ def focus_command(here, record, out, chain, context):
             "--previous-archive", lease["originArchive"], "--install-receipt", chain, "--scenario", "controlled-window"]
 
 
-def diagnostic_command(here, record, out):
+def diagnostic_command(here, record, out, chain=None):
     cmd = [sys.executable, here/"p0-host-diagnostic.py", record["kit"], out/"p0", "--issuer-key", record["issuerKey"]]
     if record.get("driftKit"):
         cmd.extend(["--drift-kit", record["driftKit"]])
+    if chain is not None:
+        lease = record["focusLease"]
+        cmd.extend(["--stage-kit", lease["stageKit"], "--stage-workspace", lease["workspace"],
+                    "--stage-space", str(lease["expectedSpace"]), "--stage-original-checkout", lease["originalCheckout"],
+                    "--stage-previous-archive", lease["originArchive"], "--stage-install-receipt", chain])
     return cmd

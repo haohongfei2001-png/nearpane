@@ -131,6 +131,7 @@ def helper_pins(app, info):
 def fingerprint(app, revision, *, previous_archive=False):
     require(re.fullmatch(r"[a-f0-9]{40}", revision), "expected a full frozen source revision")
     info = plistlib.loads((app/"Contents/Info.plist").read_bytes())
+    require("NearpaneP0DiagnosticPublicKey" not in info, "one-shot diagnostic builds cannot enter the distribution archive")
     require((info.get("CFBundleShortVersionString"), info.get("CFBundleVersion"), info.get("NearpaneSourceState"),
              info.get("NearpaneSourceRevision")) == ("5.22", "90", "clean", revision), "version, build or frozen source differs")
     package = gate.inspect(app)

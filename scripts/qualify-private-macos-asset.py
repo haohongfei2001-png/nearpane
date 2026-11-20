@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Read and assess one exact private PR candidate on a fresh hosted Mac."""
 import json
+import http.client
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+from urllib.parse import urlsplit
 
 from private_notary import fingerprint, require, sha, unpack
 
@@ -17,22 +20,43 @@ def api(route):
     return json.loads(subprocess.check_output(["gh", "api", REPO + route], timeout=25))
 
 
+def download_signed_asset(link, ref, archive):
+    target = urlsplit(link)
+    require(target.scheme == "https" and target.netloc in {"release-assets.githubusercontent.com","objects.githubusercontent.com"}
+            and target.path.startswith("/") and target.query and not target.fragment, "Unrecognized GitHub asset delivery")
+    connection = http.client.HTTPSConnection(target.netloc, timeout=60)
+    try:
+        connection.request("GET", target.path + "?" + target.query)
+        response = connection.getresponse()
+        require(response.status == 200 and int(response.getheader("Content-Length", "0")) == ref["bytes"],
+                "GitHub delivery did not return the exact enrolled content length")
+        with archive.open("xb") as f:
+            while block := response.read(1024 * 1024):
+                f.write(block)
+    finally:
+        connection.close()
+
+
 def assess(tag):
     require(re.fullmatch(r"[0-9a-f]{7,40}", tag), "Expected a frozen candidate revision")
     ref = json.loads((BASE / ("integrated-" + tag) / "draft-asset.json").read_bytes())
     require(ref["source"].startswith(tag) and ref["draftReleaseID"] == 452393835 and not ref["publicRelease"],
             "Unenrolled release or source")
-    release = api("/releases/" + str(ref["draftReleaseID"]))
-    require(release["draft"], "Private release is no longer a draft")
-    matching = [a for a in release["assets"] if a["id"] == ref["assetID"]]
-    require(len(matching) == 1 and matching[0]["digest"] == "sha256:" + ref["sha256"]
-            and matching[0]["size"] == ref["bytes"], "Enrolled asset metadata changed")
     with tempfile.TemporaryDirectory(prefix="nearpane-hosted-intake.") as tmp:
         root = Path(tmp).resolve()
         archive = root / "candidate.zip"
-        with archive.open("xb") as f:
-            subprocess.run(["gh", "api", "-H", "Accept: application/octet-stream",
-                            REPO + "/releases/assets/" + str(ref["assetID"])], stdout=f, check=True, timeout=180)
+        link = os.environ.pop("NEARPANE_PRIVATE_ASSET_URL", "")
+        if link:
+            download_signed_asset(link, ref, archive)
+        else:
+            release = api("/releases/" + str(ref["draftReleaseID"]))
+            require(release["draft"], "Private release is no longer a draft")
+            matching = [a for a in release["assets"] if a["id"] == ref["assetID"]]
+            require(len(matching) == 1 and matching[0]["digest"] == "sha256:" + ref["sha256"]
+                    and matching[0]["size"] == ref["bytes"], "Enrolled asset metadata changed")
+            with archive.open("xb") as f:
+                subprocess.run(["gh", "api", "-H", "Accept: application/octet-stream",
+                                REPO + "/releases/assets/" + str(ref["assetID"])], stdout=f, check=True, timeout=180)
         require(archive.stat().st_size == ref["bytes"] and sha(archive) == ref["sha256"], "Downloaded bundle differs")
         app = unpack(archive, root)
         candidate = fingerprint(app, ref["source"])
