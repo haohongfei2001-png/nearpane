@@ -69,7 +69,7 @@ def passive_system_observation(observer, lease, duration, output):
     return result
 
 
-def prepare_scope(observer, receipts, fixture_files, output):
+def prepare_scope(observer, receipts, fixture_files, output, *, scoped_members=False):
     """Build a private lease from existing system creation receipts. No system input."""
     require(len(receipts) in (2, 3), "two or three independent creation receipts required")
     observation = json.loads(checked([str(observer)], timeout=6))
@@ -90,9 +90,9 @@ def prepare_scope(observer, receipts, fixture_files, output):
                 and path.parent.parent.name.startswith(("nearpane-wp5.", "nearpane-d01.", "nearpane-space-trials.")),
                 "not a disposable Field Notes fixture")
         state = json.loads(private_file(path))
-        app = path.parent.parent / "Field Notes.app"
+        app = path.parent.parent / ("Route Notes.app" if state.get("bundle") == "net.example.spaces-route-witness" else "Field Notes.app")
         signature = identity(app)
-        require(signature["Identifier"] == "net.example.spaces-document", "fixture bundle signing mismatch")
+        require(signature["Identifier"] in ("net.example.spaces-document","net.example.spaces-route-witness"), "fixture bundle signing mismatch")
         for number in state["numbers"]:
             witnesses.append(dict(number=number, pid=state["pid"], birth=state["birth"], space=int(raw_space),
                                   bundleID=signature["Identifier"], bundlePath=str(app),
@@ -102,7 +102,7 @@ def prepare_scope(observer, receipts, fixture_files, output):
     fd = os.open(pending, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(fd, "w") as f:
         json.dump(dict(schema=1, session=str(uuid.uuid4()), host=observation["host"], display=creation["intent"]["display"],
-                       spaces=spaces, witnesses=witnesses, boot=boot, expiresUptime=min(expiries)), f)
+                       spaces=spaces, witnesses=witnesses, boot=boot, expiresUptime=min(expiries), scopedMembership=scoped_members), f)
         f.flush()
         os.fsync(f.fileno())
     load_scope(pending.resolve(), observation, boot, observation["uptime"])
@@ -172,7 +172,7 @@ def scenarios(ids):
     return switches, rapid
 
 
-def run(observer, driver, lease, output):
+def run(observer, driver, lease, output, *, run_rapid=True):
     output.mkdir(parents=True, exist_ok=False)
     stream = (output / "actions.jsonl").open("x")
     result = {"S02": "NOT_RUN", "S03": "NOT_RUN", "R01": "NOT_RUN", "sent": 0, "prepared": 0, "unknown": 0}
@@ -250,6 +250,8 @@ def run(observer, driver, lease, output):
             sample(target, f"S02-{i+1}")
             current = target
         result["S02"] = "PASS"
+        if not run_rapid:
+            return result
         # System-initiated switching and external reordering require their own witness;
         # independent readbacks of sidebar actions alone cannot satisfy S03.
         result["S03Readback"] = "Compared the actual WindowServer inventory and all current/highlight pairs for each S02 action."

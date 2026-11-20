@@ -68,6 +68,7 @@ func occupancy(_ rows: [Object], excluding host: pid_t?) -> Object {
 struct Sidebar {
     var visited = Set<AXUIElement>()
     var controls = [String: [AXUIElement]]()
+    var membershipLabels = [(AXUIElement,String)]()
     var legacyCards = 0
     var areas = 0
     var rosterScrollAreas = 0
@@ -93,6 +94,10 @@ struct Sidebar {
             controls[id, default: []].append(element)
         }
         if inWorkspace, role == "AXStaticText", identifier == nil {
+            if let text = value(element,kAXValueAttribute) as? String ?? value(element,kAXTitleAttribute) as? String,
+               text == "窗口归属尚未读全" || text == "未发现普通窗口" {
+                membershipLabels.append((element,text == "未发现普通窗口" ? "empty" : "unread"))
+            }
             let allowed = ["这扇窗口已变化，请重新选择。", "窗口已离开这个桌面。", "这扇窗口的系统身份已变化。",
                            "精确选择这扇窗口需要允许 Nearpane 使用辅助功能。", "macOS 未允许这个应用置前。",
                            "系统未确认这扇窗口已置前。", "尚未确认目标桌面。", "所选窗口已离开这个桌面。"]
@@ -139,7 +144,18 @@ struct Sidebar {
                 _ = AXUIElementCopyActionNames(node, &names)
                 let text = [kAXTitleAttribute, kAXDescriptionAttribute].compactMap { value(node, $0) as? String }
                 let currentLabel = text.contains { $0 == "当前桌面" || $0.range(of: #"^(桌面 [1-9][0-9]*|全屏)，当前桌面$"#, options: .regularExpression) != nil }
-                rowReports.append(["identifier": id, "currentLabel": currentLabel, "matches": nodes.count,
+                func bounds(_ e: AXUIElement) -> CGRect? {
+                    guard let p=value(e,kAXPositionAttribute), let z=value(e,kAXSizeAttribute),
+                          CFGetTypeID(p)==AXValueGetTypeID(),CFGetTypeID(z)==AXValueGetTypeID() else {return nil}
+                    var origin=CGPoint.zero,size=CGSize.zero
+                    guard AXValueGetValue(p as! AXValue,.cgPoint,&origin),AXValueGetValue(z as! AXValue,.cgSize,&size) else {return nil}
+                    return CGRect(origin:origin,size:size)
+                }
+                let membership = membershipLabels.compactMap { element,label -> String? in
+                    guard let r=bounds(node),let p=bounds(element),r.contains(CGPoint(x:p.midX,y:p.midY)) else {return nil}
+                    return label
+                }
+                rowReports.append(["identifier": id, "membershipLabels":membership, "currentLabel": currentLabel, "matches": nodes.count,
                                    "enabled": value(node, kAXEnabledAttribute) as? Bool ?? false,
                                    "press": (names as? [String])?.contains(kAXPressAction) == true,
                                    "selected": (value(node, kAXSelectedAttribute) as? Bool) as Any? ?? NSNull()])
@@ -206,6 +222,15 @@ if let host {
                       "codeHash": runningCodeHash(host.processIdentifier) as Any? ?? NSNull()]
     report["sidebar"] = Sidebar(host, rows: rows).report
 }
+#if NATIVE_CONTRACT
+// Only the run's positively created desktop IDs are supplied to this optional query.
+if let ids = ProcessInfo.processInfo.environment["NEARPANE_CONTRACT_SPACE_IDS"], let host {
+    let values=ids.split(separator:",").compactMap { UInt64($0).map(NSNumber.init(value:)) }
+    if (1...3).contains(values.count), let census=NPContractMemberReport(values as CFArray,host.processIdentifier) {
+        report["scopedMembers"]=census
+    }
+}
+#endif
 // Pre-capture geometry for a title-only, explicitly included product window. Never
 // capture an entire sidebar into memory to crop out the voice or screenshot modules.
 func titleCrop(_ args: [String]) -> Object {
@@ -274,7 +299,8 @@ func fixturePictureCrop(card: AXUIElement, bounds: CGRect, text: String, host: p
 }
 
 func fixtureResult(_ args: [String]) -> Object {
-    guard args.count == 11, let host, let givenHost = Int32(args[2]), host.processIdentifier == givenHost,
+    let cross = args.count == 12 && args[1] == "press-cross"
+    guard args.count == 11 || cross, let host, let givenHost = Int32(args[2]), host.processIdentifier == givenHost,
           runningCodeHash(host.processIdentifier) == args[3], let fixturePID = Int32(args[4]),
           let birth = UInt64(args[10]), birth == birthMicroseconds(fixturePID),
           let number = UInt32(args[5]), let fx = NSRunningApplication(processIdentifier: fixturePID),
@@ -292,13 +318,17 @@ func fixtureResult(_ args: [String]) -> Object {
         guard index.areas == 1 else { return ["issued": false] }
         return ["issued": true, "matches": index.controls[key]?.count ?? 0]
     }
-    guard let memberships = NPReadWindowSpaces(number) as? [UInt64],
-          args[1] == "roster-shared-card" ? memberships.contains(sid) : memberships == [sid] else {
+    let destination = cross ? UInt64(args[11]) : sid
+    let lease = Set((ProcessInfo.processInfo.environment["NEARPANE_CONTRACT_SPACE_IDS"] ?? "").split(separator:",").compactMap { UInt64($0) })
+    guard let destination, !cross || lease.contains(sid) && lease.contains(destination),
+          let memberships = NPReadWindowSpaces(number) as? [UInt64],
+          args[1] == "roster-shared-card" ? memberships.contains(sid) : memberships == [destination] else {
         return ["issued": false, "reason": "changed source, application, window or signing identity"]
     }
     let owned = rows.filter { $0[kCGWindowNumber as String] as? UInt32 == number && $0[kCGWindowOwnerPID as String] as? pid_t == fixturePID }
     guard owned.count == 1 else { return ["issued": false, "reason": "no unique owner CG record"] }
-    let target = "current-desktop-window:" + args[4] + ":" + args[5]
+    let target = destination == sid ? "current-desktop-window:" + args[4] + ":" + args[5]
+        : "native-space-window:" + args[8] + ":" + String(destination) + ":" + args[4] + ":" + args[5]
     if args[1] == "roster-card" || args[1] == "roster-shared-card" {
         let index = Sidebar(host, rows: rows)
         let cg = owned[0]
@@ -361,7 +391,7 @@ func fixtureResult(_ args: [String]) -> Object {
         return ["issued":false, "fixturePID":fixturePID, "birth":birth, "appKitNumber":number, "axWindows":axRows,
                 "cgLayerZero":owned, "observerAX":AXIsProcessTrusted()]
     }
-    if args[1] == "press" {
+    if args[1] == "press" || cross {
         let index = Sidebar(host, rows: rows)
         guard let exact = index.controls[target], exact.count == 1,
               value(exact[0], kAXEnabledAttribute) as? Bool == true else {

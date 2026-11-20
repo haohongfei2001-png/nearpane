@@ -16,7 +16,7 @@ if policy != .regular { _ = app.setActivationPolicy(.regular) }
 let startup: [String: Any] = ["bundle": Bundle.main.bundleIdentifier ?? "", "displayCount": NSScreen.screens.count,
                               "policy": app.activationPolicy().rawValue]
 try JSONSerialization.data(withJSONObject: startup).write(to: run.appendingPathComponent("startup.json"), options: .atomic)
-guard Bundle.main.bundleIdentifier == "net.example.spaces-document",
+guard ["net.example.spaces-document", "net.example.spaces-route-witness"].contains(Bundle.main.bundleIdentifier ?? ""),
       app.activationPolicy() == .regular, NSScreen.screens.count == 1, let screen = NSScreen.screens.first else { exit(3) }
 var windows = [NSWindow]()
 var editors = [NSTextView]()
@@ -28,8 +28,7 @@ final class SharedFixtureWindow: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
-DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-    for i in 0..<expected {
+@MainActor func addDocument(_ i: Int) {
         let frame = screen.visibleFrame
         let roster = presentation == "roster" || presentation == "public-visible"
         let size: CGSize = roster ? (i == 0 ? CGSize(width: 540, height: 180) : CGSize(width: 240, height: 350)) : CGSize(width: 320, height: 160)
@@ -56,17 +55,31 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
         w.initialFirstResponder = editor
         _ = w.makeFirstResponder(editor)
         windows.append(w); editors.append(editor)
-        w.orderFrontRegardless()
-    }
+        if presentation == "contract" || presentation == "contract-split" {
+            w.makeKeyAndOrderFront(nil)
+            app.activate(ignoringOtherApps:true)
+        } else { w.orderFrontRegardless() }
+}
+DispatchQueue.main.asyncAfter(deadline:.now()+0.3) {
+    for i in 0..<(presentation == "contract-split" ? 1 : expected) { addDocument(i) }
 }
 let start = ProcessInfo.processInfo.systemUptime
 let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     if FileManager.default.fileExists(atPath: run.appendingPathComponent("close").path) ||
-       ProcessInfo.processInfo.systemUptime - start > 150 {
+       ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : 150) {
         for w in windows { w.orderOut(nil); w.close() }
         app.terminate(nil); return
     }
-    guard windows.count == expected else { return }
+    if presentation == "contract-split", windows.count==1, expected==2,
+       FileManager.default.fileExists(atPath:run.appendingPathComponent("open-second").path) { MainActor.assumeIsolated { addDocument(1) } }
+    guard !windows.isEmpty else { return }
+    if presentation?.hasPrefix("contract") == true {
+        let activation = run.appendingPathComponent("activate-first")
+        if (try? FileManager.default.removeItem(at:activation)) != nil {
+            app.activate(ignoringOtherApps:true)
+            windows[0].makeKeyAndOrderFront(nil)
+        }
+    }
     if presentation == "roster", windows.count == 2 {
         if !withdrew, FileManager.default.fileExists(atPath: run.appendingPathComponent("withdraw-first").path) {
             withdrew = true
@@ -79,7 +92,7 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     }
     let payload: [String: Any] = [
         "session": session, "pid": getpid(), "birth": birth, "numbers": windows.map { $0.windowNumber },
-        "presentation": presentation ?? "ordinary",
+        "presentation": presentation ?? "ordinary", "bundle": Bundle.main.bundleIdentifier ?? "",
         "visible": windows.map(\.isVisible), "minimized": windows.map(\.isMiniaturized),
         "sizes": windows.map { [$0.frame.width, $0.frame.height] },
         "key": app.keyWindow?.windowNumber ?? 0, "main": app.mainWindow?.windowNumber ?? 0,

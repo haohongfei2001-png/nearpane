@@ -74,6 +74,15 @@ func validate(_ r: Request) throws {
     guard let list = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String:Any]] else {
         throw Refusal("Missing current window census")
     }
+#if NATIVE_CONTRACT
+    guard let census=NPContractMemberReport([NSNumber(value:r.source),NSNumber(value:r.dest)] as CFArray,r.hostPID) as? [String:[String:Any]],
+          [r.source,r.dest].allSatisfy({ n in
+              guard let entry=census[String(n)],entry["unresolved"] as? Int == 0,entry["otherMembers"] as? Int == 0,
+                    let members=entry["ordinary"] as? [[String:NSNumber]] else {return false}
+              return members.allSatisfy { $0["pid"]?.int32Value==r.target.pid && ($0["number"].map { allowed.contains($0.uint32Value) } ?? false) }
+          })
+    else {throw Refusal("Unproven fixture-only per-Space membership")}
+#else
     for item in list where item[kCGWindowLayer as String] as? Int == 0 && item[kCGWindowOwnerPID as String] as? Int32 != r.hostPID {
         guard let number = item[kCGWindowNumber as String] as? UInt32,
               let membership = NPReadWindowSpaces(number) as? [UInt64], !membership.isEmpty else {
@@ -84,6 +93,7 @@ func validate(_ r: Request) throws {
                         "Unexpected window entered a test Space")
         }
     }
+#endif
     try require(r.source != r.dest && space(r.source, r.sourceUUID) && space(r.dest, r.destUUID), "Enrolled Space identity changed")
     guard let owner = NSRunningApplication(processIdentifier: r.hostPID),
           owner.bundleIdentifier == "com.holdsnow.nearpane.alpha", owner.bundleURL?.standardizedFileURL.path == "/Applications/Nearpane.app",
@@ -176,7 +186,7 @@ func run(_ r: Request) throws -> [String:Any] {
                 "Unexpected fixture Space membership")
     try require(f?.0 == r.frontPID && f?.1 == r.focused, "Original focus is no longer current")
     let bound = try windows(r)
-    let src = "native-space-window:\(r.display):\(r.source):\(r.target.pid):\(r.target.number)"
+    let src = r.source == r.current ? "current-desktop-window:\(r.target.pid):\(r.target.number)" : "native-space-window:\(r.display):\(r.source):\(r.target.pid):\(r.target.number)"
     let dst = "native-space-row:\(r.display):\(r.dest)"
     let root = AXUIElementCreateApplication(r.hostPID)
     let a = try point(control(root,id:src),src,r.hostPID,title:false)

@@ -53,10 +53,15 @@ def main():
     try:
         require(args.scope is not None and args.scope.is_file(), "No positive, unexpired test-Space creation manifest.")
         before = independent()
-        frozen = manifest(before)
+        frozen = manifest(before, kit/"metrics")
         (output / "manifest.json").write_text(encode(frozen))
         require(frozen["signatureValid"] and frozen["loadedMatchesInstalled"] and frozen["source"],
                 "Installed candidate and loaded Host must match the signed manifest.")
+        caps = frozen.get("nativeCapabilitiesLog") or []
+        active = caps[-1] if caps else None
+        result["installedMoveCapability"] = active
+        require(active and active["ready"] and active["canMove"],
+                "Installed Host move capability is unavailable (canMove is false or unknown); zero drag inputs dispatched.")
         boot = checked(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"]).strip()
         scope = load_scope(args.scope, before, boot, before["uptime"])
         host = before["host"]
@@ -66,10 +71,10 @@ def main():
         ids = {s["id"]: s["uuid"] for s in scope["spaces"]}
         a = current
         b = next(s["id"] for s in scope["spaces"] if s["id"] != a)
-        permissions = frozen.get("installedHostStartupPermissions") or {}
+        permissions = frozen.get("installedHostCurrentPermissions") or frozen.get("installedHostStartupPermissions") or {}
         require(permissions.get("accessibility") is True and before.get("observerAX"), "Installed Host or independent observer lacks AX.")
         initial_focus = (before.get("frontmostPID"), before.get("focusedNumber"))
-        require(all(type(v) is int and v > 0 for v in initial_focus), "Original focused window is not independently identifiable.")
+        require(isinstance(initial_focus[0], int), "Original foreground process is not independently identifiable.")
         sign = identity(app / "Contents/MacOS/FieldNotes")["CDHash"]
         require(sign, "Test app signature is unavailable.")
         record("preflight", origin=a, target=b, source=frozen["source"], display=scope["display"])
@@ -80,7 +85,8 @@ def main():
         folder = kit / session
         folder.mkdir(mode=0o700)
         proc = subprocess.Popen([str(app / "Contents/MacOS/FieldNotes"), str(folder), "2"],
-                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                env={**os.environ, "NP_FIXTURE_PRESENTATION":"contract"})
         result["fixtureStarted"] = True
         result["cleanup"] = {"required": True}
         state = wait_state(folder / "windows.json", lambda s: s.get("session") == session and s.get("pid") == proc.pid

@@ -298,6 +298,63 @@ static void emit(NSDictionary *report) {
     fwrite(json.bytes, 1, json.length, stdout); putchar('\n');
 }
 
+#ifdef NEARPANE_CONTRACT_MEMBERS
+// Metadata-only, per-Space forward inventory. Unassigned windows elsewhere do not
+// establish occupancy here. Unknown members on the requested desktop remain blocking.
+CFDictionaryRef NPContractMemberReport(CFArrayRef spaceIDs, int hostPID) {
+    @autoreleasepool { @try {
+        need(NPReadOnlySpacesOpen() == 1 && spaceIDs && CFArrayGetCount(spaceIDs) > 0 &&
+             CFArrayGetCount(spaceIDs) <= 3, @"unavailable per-Space query");
+        NSArray *inventory = CFBridgingRelease(NPReadInventory());
+        need(inventory.count == 1, @"one physical display required");
+        NSMutableSet *ordinary = [NSMutableSet new], *allRecords = [NSMutableSet new];
+        for (NSDictionary *r in inventory[0][@"Spaces"]) {
+            NSNumber *sid=integer(r[@"id64"]); need(sid != nil,@"invalid record");
+            [allRecords addObject:sid];
+            if ([r[@"type"] isEqual:@0]) [ordinary addObject:sid];
+        }
+        NSArray *selected=(__bridge NSArray *)spaceIDs;
+        need([[NSSet setWithArray:selected] isSubsetOfSet:ordinary],@"not a live ordinary test desktop");
+        NSSet *all=windowNumbers(kCGWindowListOptionAll), *nonDesktop=windowNumbers(kCGWindowListOptionAll|kCGWindowListExcludeDesktopElements);
+        NSMutableDictionary *reads=[NSMutableDictionary new], *report=[NSMutableDictionary new];
+        NSUInteger baselineMembers=0;
+        for (NSNumber *sid in allRecords) {
+            NSSet *members = windowsInSpace(sid.stringValue,7);
+            reads[sid] = members;
+            baselineMembers += members.count;
+        }
+        need(baselineMembers > 0, @"no independent live reference for the per-Space member query");
+        for (NSNumber *sid in selected) {
+            NSSet *forward=reads[sid], *visible=windowsInSpace(sid.stringValue,2);
+            need([visible isSubsetOfSet:forward],@"visible membership exceeds all-members query");
+            NSUInteger desktop=0, shared=0, other=0, unknown=0;
+            NSMutableArray *members=[NSMutableArray new];
+            for (NSNumber *number in forward) {
+                if ([all containsObject:number] && ![nonDesktop containsObject:number]) { desktop++; continue; }
+                const void *id=(const void *)(uintptr_t)number.unsignedIntValue;
+                CFArrayRef one=CFArrayCreate(NULL,&id,1,NULL);
+                NSArray *rows=CFBridgingRelease(CGWindowListCreateDescriptionFromArray(one)); CFRelease(one);
+                if (rows.count != 1 || ![rows[0][(__bridge NSString *)kCGWindowNumber] isEqual:number]) { unknown++;continue; }
+                NSNumber *layer=integer(rows[0][(__bridge NSString *)kCGWindowLayer]);
+                NSNumber *pid=integer(rows[0][(__bridge NSString *)kCGWindowOwnerPID]);
+                NSArray *reverse=CFBridgingRelease(NPReadWindowSpaces(number.unsignedIntValue));
+                if (!pid || !layer || ![reverse containsObject:sid]) { unknown++;continue; }
+                if (layer.intValue == 0 && pid.intValue != hostPID) {
+                    [members addObject:@{@"number":number,@"pid":pid}];continue;
+                }
+                BOOL global=[allRecords isSubsetOfSet:[NSSet setWithArray:reverse]];
+                for (NSNumber *space in allRecords) global &= [reads[space] containsObject:number];
+                if (global) shared++; else other++;
+            }
+            need([forward isEqual:windowsInSpace(sid.stringValue,7)],@"target membership changed during verification");
+            report[sid.stringValue]=@{@"ordinary":members,@"desktopElements":@(desktop),@"verifiedSharedOverlays":@(shared),
+                                      @"otherMembers":@(other),@"unresolved":@(unknown)};
+        }
+        need([inventory isEqual:CFBridgingRelease(NPReadInventory())],@"topology changed while resolving occupancy");
+        return CFBridgingRetain(report);
+    } @catch (NSException *exception) { return NULL; } }
+}
+#else
 int main(int argc, const char **argv) { @autoreleasepool {
     @try {
         BOOL candidate = argc > 1 && strcmp(argv[1], "--candidate-current") == 0;
@@ -376,3 +433,5 @@ int main(int argc, const char **argv) { @autoreleasepool {
         return 2;
     }
 }}
+
+#endif

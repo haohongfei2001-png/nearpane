@@ -1,6 +1,21 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/../../.."
+if [[ ${1:-} == core-contract || ${1:-} == cleanup-contract ]]; then
+    umask 077
+    mode="$1"
+    shift
+    kit="$(mktemp -d /private/tmp/nearpane-d01.XXXXXXXX)"
+    trap 'rm -rf -- "$kit"' EXIT
+    src=scripts/acceptance/native-spaces
+    "$src/build-contract.sh" "$kit"
+    if [[ "$mode" == cleanup-contract ]]; then
+        python3 "$src/contract_workspace.py" --kit "$kit" --cleanup "$@"
+    else
+        python3 "$src/core_contract.py" --kit "$kit" "$@"
+    fi
+    exit $?
+fi
 scratch="$(mktemp -d "/private/tmp/nearpane-wp5.XXXXXXXX")"
 trap 'rm -rf -- "$scratch"' EXIT
 xcrun clang -c Sources/CReadOnlySpaces/ReadOnlySpaces.c -I Sources/CReadOnlySpaces/include -o "$scratch/reader.o"
