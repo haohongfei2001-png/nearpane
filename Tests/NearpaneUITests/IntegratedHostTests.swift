@@ -321,20 +321,27 @@ struct IntegratedHostTests {
                 let pixels = CGRect(x: 0, y: 0, width: source.width, height: source.height)
                 flat.setFillColor(CGColor(gray: darkExport ? 0.13 : 0.95, alpha: 1)); flat.fill(pixels)
                 flat.draw(source, in: pixels)
-                // No other content is expected near the center of the bottom 5/8.
-                // The empty-state label starts immediately below the tools, inside the workspace card.
-                let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
-                var ink = 0
-                let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0, expanded: false, voiceCompact: true, trayRows: 2)
-                let top = layout.windowArea.y + 4
-                let scale = Double(source.height) / rect.height
-                for y in Int(top * scale)..<Int((top + 19) * scale) {
-                    for x in (source.width / 8)..<(source.width * 7 / 8) {
-                        let pixel = bytes.advanced(by: y * flat.bytesPerRow + x * 4)
-                        if max(pixel[0], max(pixel[1], pixel[2])) < 200 { ink += 1 }
+                if state == "collapsed" {
+                    // This host has no window observations. A label or placeholder below the tools
+                    // would introduce strokes against the otherwise uniform empty roster.
+                    let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
+                    let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0,
+                                                        expanded: false, voiceCompact: true, trayRows: 2)
+                    let scale = Double(source.height) / rect.height
+                    let top = layout.windowArea.y + 4
+                    var contrastingPixels = 0
+                    for y in Int(top * scale)..<Int((top + 19) * scale) {
+                        let row = bytes.advanced(by: y * flat.bytesPerRow)
+                        let backdrop = row.advanced(by: source.width / 8 * 4)
+                        for x in (source.width / 8)..<(source.width * 7 / 8) {
+                            let pixel = row.advanced(by: x * 4)
+                            if (0..<3).contains(where: { abs(Int(pixel[$0]) - Int(backdrop[$0])) > 24 }) {
+                                contrastingPixels += 1
+                            }
+                        }
                     }
+                    #expect(contrastingPixels == 0)
                 }
-                #expect(ink > 60)
                 guard export else { continue }
                 let bitmap = NSBitmapImageRep(cgImage: try #require(flat.makeImage()))
                 let data = try #require(bitmap.representation(using: .png, properties: [:]))

@@ -1,5 +1,13 @@
 # Installed sidebar witness
 
+当前 5.22（90）的窗口区只显示真实窗口和显式组合。在已签名安装版上运行下列检查，会使用临时资料和两扇专用文档，退出后恢复日常配置。截图只取已核对过的窗口区；有其他应用卡片时保留阻塞收据。历史空间行试验沿用各自的安装源码和合同。
+
+```sh
+python3 scripts/acceptance/native-spaces/installed_profile.py build/verification/window-content-profile -- \
+  scripts/acceptance/native-spaces/run.sh window-content build/verification/window-content --owned-stage
+```
+
+
 ## 正式侧栏合同
 
 从仓库根目录运行下列命令。每项使用新证据目录。在正常 Launch Services 入口启动正式安装版，`installed_profile.py` 验证独占测试资料锁并在结束后恢复日常配置。核心合同经系统 Mission Control 创建普通 A/B/C，保存创建与移除的 UUID 收据。正式 Space 行、Apple TextEdit 或受控文档、独立 WindowServer 及键盘输入分别记录在 actions.jsonl。
@@ -45,10 +53,10 @@ python3 -m unittest discover -s scripts/acceptance/native-spaces
 
 Preflight loads the installed code identity, independently samples WindowServer and the accessibility tree twice, and reads the installed Host's own permission and capability log. Observer permissions are recorded separately. No action helper is invoked by the witness.
 
-The candidate batch freezes a read-only preflight, then runs four scenarios serially. Each name also works as an individual command.
+The candidate batch runs preflight, single-window, controlled-window, hidden-budget and window-content serially. Window-content uses its own isolated profile when the batch is started from the daily profile.
 
 - `single-window` and `controlled-window` start a disposable regular document fixture with one or two windows. The only selection action is AXPress on the installed sidebar control for the live fixture identity. Exact key/main, AX focus, process birth, membership and synthetic editor content are independent evidence. A marker is addressed only to the test PID after focus confirmation. Both document digests must match the expected edit. The run stops on the first discrepancy and the fixture closes its own windows.
-- `title-image` binds the current row's accessibility frame to an on-screen Nearpane window. A ScreenCaptureKit display filter includes only that window. The source rectangle samples a 60 × 17 pt title inside the region above the miniatures, with geometry checked again after capture. The image is a still of the row title only.
+- The historical `title-image` command for candidates with standalone Space rows binds the current row's accessibility frame to an on-screen Nearpane window. A ScreenCaptureKit display filter includes only that window. The source rectangle samples a 60 × 17 pt title inside the region above the miniatures, with geometry checked again after capture. The image is a still of the row title only.
 - `hidden-budget` uses the installed app's own status menu. After two seconds hidden, it records counters every ten seconds for a further minute and restores the sidebar it hid. A zero count with the Host's screen permission denied has limited coverage.
 
 `fixture-inventory` runs one additional read-only diagnostic. It creates one ordinary document fixture and compares only that process’s AppKit number, AX roles/numbers and layer-zero CG metadata. It never presses a sidebar control or sends keyboard input.

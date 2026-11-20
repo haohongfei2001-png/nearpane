@@ -30,7 +30,7 @@ final class SharedFixtureWindow: NSPanel {
 }
 @MainActor func addDocument(_ i: Int) {
         let frame = screen.visibleFrame
-        let roster = presentation == "roster" || presentation == "public-visible"
+        let roster = presentation == "roster" || presentation == "roster-cycle" || presentation == "public-visible"
         let size: CGSize = roster ? (i == 0 ? CGSize(width: 540, height: 180) : CGSize(width: 240, height: 350)) : CGSize(width: 320, height: 160)
         let rect = NSRect(x: frame.midX - 180 + Double(30*i), y: frame.midY - 90 + Double(25*i), width: size.width, height: size.height)
         let style: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
@@ -55,7 +55,7 @@ final class SharedFixtureWindow: NSPanel {
         w.initialFirstResponder = editor
         _ = w.makeFirstResponder(editor)
         windows.append(w); editors.append(editor)
-        if presentation == "contract" || presentation == "contract-split" {
+        if presentation == "contract" || presentation == "contract-split" || presentation == "roster-cycle" {
             w.makeKeyAndOrderFront(nil)
             app.activate(ignoringOtherApps:true)
         } else { w.orderFrontRegardless() }
@@ -72,7 +72,17 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     }
     if presentation == "contract-split", windows.count==1, expected==2,
        FileManager.default.fileExists(atPath:run.appendingPathComponent("open-second").path) { MainActor.assumeIsolated { addDocument(1) } }
-    guard !windows.isEmpty else { return }
+    if presentation == "roster-cycle" {
+        if !windows.isEmpty, (try? FileManager.default.removeItem(at: run.appendingPathComponent("close-documents"))) != nil {
+            for window in windows { window.close() }
+            windows.removeAll()
+            editors.removeAll()
+        }
+        if windows.isEmpty, (try? FileManager.default.removeItem(at: run.appendingPathComponent("open-documents"))) != nil {
+            MainActor.assumeIsolated { for index in 0..<expected { addDocument(index) } }
+        }
+    }
+    guard !windows.isEmpty || presentation == "roster-cycle" else { return }
     if presentation == "contract", windows.count == 2, windows.filter({ !$0.isVisible }).count == 1 {
         let recreate = run.appendingPathComponent("recreate-closed")
         if (try? FileManager.default.removeItem(at:recreate)) != nil {

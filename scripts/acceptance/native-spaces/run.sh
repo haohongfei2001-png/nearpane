@@ -38,15 +38,20 @@ if [[ ${1:-} == guide ]]; then
     python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print(r); sys.exit(0 if r["status"]=="PASS" else 2)' "$2/guide.json"
     exit $?
 fi
-if [[ ${1:-} == title-image || ${1:-} == candidate || ${1:-} == roster || ${1:-} == current-sidebar ]]; then
+if [[ ${1:-} == window-content || ${1:-} == title-image || ${1:-} == candidate || ${1:-} == roster || ${1:-} == current-sidebar ]]; then
     xcrun swiftc -parse-as-library -module-cache-path "$scratch/module-cache" scripts/acceptance/native-spaces/capture.swift -o "$scratch/capture"
 fi
-if [[ ${1:-} == roster || ${1:-} == controlled-window || ${1:-} == single-window || ${1:-} == fixture-inventory || ${1:-} == candidate || ${1:-} == current-sidebar ]]; then
+if [[ ${1:-} == window-content || ${1:-} == roster || ${1:-} == controlled-window || ${1:-} == single-window || ${1:-} == fixture-inventory || ${1:-} == candidate || ${1:-} == current-sidebar ]]; then
     mkdir -p "$scratch/Field Notes.app/Contents/MacOS"
     cp scripts/acceptance/native-spaces/fixture.plist "$scratch/Field Notes.app/Contents/Info.plist"
     xcrun swiftc -module-cache-path "$scratch/module-cache" scripts/acceptance/native-spaces/window.swift \
         -o "$scratch/Field Notes.app/Contents/MacOS/FieldNotes"
     codesign --force --sign - "$scratch/Field Notes.app"
+fi
+if [[ ${1:-} == window-content ]]; then
+    shift
+    python3 scripts/acceptance/native-spaces/window-content.py "$scratch" "$@"
+    exit $?
 fi
 if [[ ${1:-} == current-sidebar ]]; then
     [[ $# == 2 ]]
@@ -77,9 +82,15 @@ if [[ ${1:-} == candidate ]]; then
     [[ $# == 2 ]]
     mkdir "$2"
     failures=0
-    for mode in preflight single-window controlled-window title-image hidden-budget; do
+    for mode in preflight single-window controlled-window hidden-budget; do
         python3 scripts/acceptance/native-spaces/acceptance.py --observer "$scratch/observe" "$mode" "$2/$mode" || failures=1
     done
+    content_test=(python3 scripts/acceptance/native-spaces/window-content.py "$scratch" "$2/window-content" --owned-stage)
+    if [[ -n "${NEARPANE_TEST_HOME:-}" ]]; then
+        "${content_test[@]}" || failures=1
+    else
+        python3 scripts/acceptance/native-spaces/installed_profile.py "$2/window-content-profile" -- "${content_test[@]}" || failures=1
+    fi
     exit "$failures"
 fi
 python3 scripts/acceptance/native-spaces/acceptance.py --observer "$scratch/observe" "$@"

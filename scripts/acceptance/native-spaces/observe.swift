@@ -70,6 +70,8 @@ struct Sidebar {
     var controls = [String: [AXUIElement]]()
     var membershipLabels = [(AXUIElement,String)]()
     var legacyCards = 0
+    var regions = [AXUIElement]()
+    var placeholderLabels = Set<String>()
     var areas = 0
     var rosterScrollAreas = 0
     var unconfirmedNotice = false
@@ -80,11 +82,11 @@ struct Sidebar {
         let identifier = value(element, kAXIdentifierAttribute) as? String
         let inWorkspace = workspace || identifier == "desktop-reserved-region"
         if let id = identifier {
-            if id.hasPrefix("native-space-row:") || id.hasPrefix("native-space-window:") || id.hasPrefix("current-desktop-window:") {
+            if id.hasPrefix("native-space-row:") || id.hasPrefix("native-space-window:") || id.hasPrefix("current-desktop-window:") || id.hasPrefix("native-window-group:") {
                 controls[id, default: []].append(element)
             }
             if id == "current-desktop-window" { legacyCards += 1 }
-            if id == "desktop-reserved-region" { areas += 1 }
+            if id == "desktop-reserved-region" { areas += 1; regions.append(element) }
             if id == "window-roster-unconfirmed" { unconfirmedNotice = true }
         }
         let role = value(element, kAXRoleAttribute) as? String ?? ""
@@ -92,6 +94,16 @@ struct Sidebar {
         if let id = identifier, id.hasPrefix("window-access-") {
             permissionControls.insert(id)
             controls[id, default: []].append(element)
+        }
+        if inWorkspace, role == "AXStaticText" || role == "AXButton" || role == "AXGroup" {
+            let placeholders = ["当前桌面没有可显示的窗口", "窗口归属尚未读全", "未发现普通窗口", "正在核对窗口",
+                                "正在更新本屏窗口", "正在读取本屏窗口", "窗口预览已停用", "全屏"]
+            for attribute in [kAXValueAttribute, kAXTitleAttribute, kAXDescriptionAttribute] {
+                if let label = value(element, attribute) as? String,
+                   placeholders.contains(label) || label.range(of: #"^桌面\s*[0-9]+$"#, options: .regularExpression) != nil {
+                    placeholderLabels.insert(label)
+                }
+            }
         }
         if inWorkspace, role == "AXStaticText", identifier == nil {
             if let text = value(element,kAXValueAttribute) as? String ?? value(element,kAXTitleAttribute) as? String,
@@ -592,8 +604,82 @@ func compareCurrentRoster() -> Object {
             "provenVisibleStandard": proven.count, "missingProvenVisible": missing, "knownWrongCards": wrong,
             "duplicateControls": duplicate, "unconfirmedNotice": index.unconfirmedNotice, "unconfirmedCards": uncertain, "privateTitlesRead": false, "pixelsRequested": 0]
 }
+// Return a crop only when every control in the product roster belongs to this
+// disposable document set. Other apps' identities, labels and pixels stay outside the receipt.
+func rosterContent(_ args: [String]) -> Object {
+    guard args.count >= 4, let documentPID = Int32(args[3]), let host,
+          AXIsProcessTrusted(), runningCodeHash(host.processIdentifier) == args[2],
+          let scopes = spaces, scopes.count == 1, let scope = scopes.first,
+          let display = scope["scope"] as? String, let current = scope["current"] as? UInt64,
+          let records = scope["records"] as? [Object],
+          records.contains(where: { $0["id"] as? UInt64 == current && $0["type"] as? Int == 0 }) else {
+        return ["ready": false, "reason": "requires the signed Host on one observed ordinary desktop"]
+    }
+    let numbers = args.dropFirst(4).compactMap(UInt32.init)
+    let expected = Set(numbers.map { "current-desktop-window:\(documentPID):\($0)" })
+    let index = Sidebar(host, rows: rows)
+    let cards = index.controls.filter { $0.key.hasPrefix("current-desktop-window:") || $0.key.hasPrefix("native-space-window:") }
+    let bareRows = index.controls.keys.filter { $0.hasPrefix("native-space-row:") }.count
+    let groups = index.controls.keys.filter { $0.hasPrefix("native-window-group:") }.count
+    var result: Object = ["ready": false, "desktopCount": records.count, "spaceRows": bareRows, "windowCards": cards.count,
+        "explicitGroups": groups, "expectedCards": numbers.count, "placeholderLabels": index.placeholderLabels.sorted(),
+        "expectedIDsMatch": Set(cards.keys) == expected, "matchedFixtureCards": expected.intersection(cards.keys).count,
+        "otherWindowCards": Set(cards.keys).subtracting(expected).count, "rosterRegions": index.areas, "pid": host.processIdentifier,
+        "signature": args[2], "display": display]
+    guard expected.count == args.count - 4, documentPID == 0 ? numbers.isEmpty : !numbers.isEmpty,
+          documentPID == 0 || NSRunningApplication(processIdentifier: documentPID)?.bundleIdentifier == "net.example.spaces-document",
+          cards.values.allSatisfy({ $0.count == 1 }), Set(cards.keys) == expected, index.legacyCards == 0,
+          bareRows == 0, groups == 0, index.placeholderLabels.isEmpty,
+          index.regions.count == 1, let region = index.regions.first else { return result }
+    for n in numbers {
+        guard rows.contains(where: { $0[kCGWindowOwnerPID as String] as? Int32 == documentPID &&
+            $0[kCGWindowNumber as String] as? UInt32 == n && $0[kCGWindowLayer as String] as? Int == 0 }),
+            (NPReadWindowSpaces(n) as? [UInt64])?.contains(current) == true else { return result }
+    }
+    guard let pos = value(region, kAXPositionAttribute), let sz = value(region, kAXSizeAttribute),
+          CFGetTypeID(pos) == AXValueGetTypeID(), CFGetTypeID(sz) == AXValueGetTypeID() else { return result }
+    var loc = CGPoint.zero, size = CGSize.zero
+    guard AXValueGetValue(pos as! AXValue, .cgPoint, &loc), AXValueGetValue(sz as! AXValue, .cgSize, &size),
+          size.width > 30, size.height > 25 else { return result }
+    let crop = CGRect(origin: loc, size: size).insetBy(dx: 1, dy: 1).integral
+    let pair = rows.compactMap { row -> UInt32? in
+        guard row[kCGWindowOwnerPID as String] as? Int32 == host.processIdentifier,
+              row[kCGWindowIsOnscreen as String] as? Bool == true,
+              row[kCGWindowLayer as String] as? Int == Int(CGWindowLevelForKey(.floatingWindow)),
+              let bounds = row[kCGWindowBounds as String] as? NSDictionary,
+              let frame = CGRect(dictionaryRepresentation: bounds), frame.contains(crop),
+              frame.height > frame.width * 1.4 else { return nil }
+        return row[kCGWindowNumber as String] as? UInt32
+    }
+    guard pair.count == 1, let number = pair.first else { return result }
+    var area = crop
+    if args[1] == "roster-panel" {
+        guard let owned = ProcessInfo.processInfo.environment["NEARPANE_TEST_HOME"] else { return result }
+        let home = URL(fileURLWithPath: owned).standardizedFileURL
+        let container = home.deletingLastPathComponent()
+        guard home.lastPathComponent == "home", container.lastPathComponent.hasPrefix("nearpane-native-acceptance."),
+              container.deletingLastPathComponent().lastPathComponent == "Caches" else { return result }
+        let lock = home.appendingPathComponent("Library/Application Support/Nearpane Alpha Profiles/writer.lock")
+        let owner = Process(), pipe = Pipe()
+        owner.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+        owner.arguments = ["-a", "-p", String(host.processIdentifier), "-t", lock.path]
+        owner.standardOutput = pipe
+        guard (try? owner.run()) != nil else { return result }
+        let bytes = pipe.fileHandleForReading.readDataToEndOfFile(); owner.waitUntilExit()
+        guard owner.terminationStatus == 0, Int32(String(decoding: bytes, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)) == host.processIdentifier,
+              let row = rows.first(where: { $0[kCGWindowNumber as String] as? UInt32 == number }),
+              let raw = row[kCGWindowBounds as String] as? NSDictionary, let panel = CGRect(dictionaryRepresentation: raw) else { return result }
+        area = panel
+        result["isolatedProfile"] = true
+    }
+    result["ready"] = true; result["number"] = number
+    result["crop"] = [area.minX, area.minY, area.width, area.height]
+    return result
+}
 if CommandLine.arguments.count > 1 {
-    if CommandLine.arguments[1] == "compare-roster" {
+    if ["roster-content", "roster-panel"].contains(CommandLine.arguments[1]) {
+        report = rosterContent(CommandLine.arguments)
+    } else if CommandLine.arguments[1] == "compare-roster" {
         report = compareCurrentRoster()
     } else if CommandLine.arguments[1] == "crop" {
         report = titleCrop(CommandLine.arguments)
