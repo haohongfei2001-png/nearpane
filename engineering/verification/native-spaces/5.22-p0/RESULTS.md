@@ -48,6 +48,8 @@
 
 使用同一安装包按顺序读侧栏和截图后，三状态完整通过。空态、两扇文档、关闭后分别由两个独立进程确认 0、2、0 张卡，三次均无空间行、占位文字或重复卡。夹具退出，系统窗口编号已消失，日常配置已恢复。此轮关窗后保留了窗口区域截图。[空态侧栏](12-physical-probe/roster-serialized/empty-before-sidebar.png) · [两扇窗口](12-physical-probe/roster-serialized/two-documents-sidebar.png) · [关闭后](12-physical-probe/roster-serialized/empty-after.png) · [六次独立系统读回](12-physical-probe/roster-serialized/results.json)
 
+同一正式安装版通过隐藏预算复测。生产菜单隐藏侧栏后，7 个采样点覆盖一分钟，抓屏请求增量为 0，活动流、在途抓屏、缓存字节均为 0。验收结束后生产菜单自动显示，系统读回侧栏可见，日常配置与原焦点恢复。[逐次计数与菜单动作](installed-hidden-budget/actions.jsonl) · [独立复算](installed-hidden-budget/independent-readback.json)
+
 ## 签名候选与回退
 
 当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json) · [签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)

@@ -333,7 +333,11 @@
     "twoDisplays": "BLOCKED",
     "fullscreenReturnSplitViewSleepLockAndHotplug": "NOT_RUN",
     "warmedProductBatches": 0,
-    "prerequisiteForIntegration": "P4"
+    "prerequisiteForIntegration": "P4",
+    "hiddenBudget": {
+      "status": "PASS",
+      "evidence": "installed-hidden-budget/independent-readback.json"
+    }
   },
   "P6": {
     "status": "BLOCKED",
