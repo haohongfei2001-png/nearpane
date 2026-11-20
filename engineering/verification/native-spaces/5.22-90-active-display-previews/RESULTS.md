@@ -1,6 +1,28 @@
 # 5.22（90）当前桌面与逐窗预览
 
-当前正式安装候选为 `32b9f92`，版本 5.22（90）。在 macOS 27.0（26A428）、arm64、一块 1470 × 956 pt 显示器上，正式侧栏的两张窗口卡在三批独立实测中共确认 36/36 次内容更新。原始展示时钟、各窗口的误差区间以及早期失败均可复核。R4 视觉设计沿用 PR #15。
+## 正式安装候选 `d2d0bb6`
+
+Nearpane 5.22（90）在 macOS 27.0（26A428）、一块 1470 × 956 pt 显示器上进行了三轮同屏实测。两扇真实测试窗各自变色 18 次，正式侧栏确认 **36/36** 次更新。12,972 条源与侧栏呈现记录中，有 4,280 帧侧栏画面同时采到了两个色标，错窗、空白、未识别颜色和灰色中断均为零。单次变色首次得到确认的呈现差合计 P50 为 32.50 ms、P95 为 46.41 ms、最大值为 51.31 ms。考虑采样区间后的 P95 上界为 63.33 ms。Apple 原生同条件样本为零。[各窗逐帧结果](results.json) · [Apple 对照资格](physical-13/apple-reference.json)
+
+| 正式 Host 启动方式 | 已确认变化 | P50 | P95 | 逐窗证据 |
+| --- | ---: | ---: | ---: | --- |
+| 隔离资料，启用双窗诊断 | 12/12 | 26.20 ms | 51.31 ms | [原始时钟重算](physical-12/replay.json) · [卡片连续性](physical-12/continuity.json) |
+| 隔离资料，常规启动并录制整卡 | 12/12 | 34.03 ms | 38.72 ms | [原始时钟重算](physical-13/replay.json) · [卡片连续性](physical-13/continuity.json) |
+| 隔离资料，常规启动 | 12/12 | 29.45 ms | 46.41 ms | [原始时钟重算](physical-14/replay.json) · [卡片连续性](physical-14/continuity.json) |
+
+**灰帧原因。** 前一诊断版的采集流仍在交付，B 窗绘制时一次所有者查询失败，侧栏随即画出轮廓。修复后，活采集流仅在进程代际、可执行文件、签名、普通应用身份、共享资格及窗口归属均成立时继续显示。新安装包的正式 Host 记录到 3 次 AppKit 应用查找缺失，均完成了独立身份复核。对应整轮两张卡都未出现灰帧。早期 212.35 ms 样本没有同类跟踪，原始失败保留。[旧版关联收据](physical-11/diagnosis.json) · [修复后的三次读回](physical-12/owner-readback.json)
+
+**实机媒体。** 两张完整卡片的截图和 2.78 秒 MP4 均取自同一个正式侧栏，只含已登记的测试文档。视频有 33 帧、无音轨。独立解码后，66 次卡片色标读回中有 8 次因 H.264 色差超出原始色标阈值，不能用这个有损文件证明原始色值。逐帧延迟使用原始无损采样。[双卡原图](physical-13/media/paired-overview.png) · [实机录像](physical-13/media/paired-cards.mp4) · [完整解码读回](physical-13/media/decoded-cards.json)
+
+**侧栏归属。** 当前安装包在台前调度开启时保留三项工具，实测 0 张窗口卡、0 条采集流。台前调度关闭后，三轮都确认初始桌面为零卡，打开两扇普通窗口后为两卡，窗口退出后归零。上一签名候选在两个真实桌面之间验证了有窗 A → 空 B → 原 A，对应 2 → 0 → 2。物理三指滑动中逐帧表现、两块显示器、双窗原生 Split View 尚待验收。系统调度中心展开动画与台前调度的结果分别记录。[台前调度开启](physical-12/installed-stage-manager.json) · [本轮日常设置恢复](physical-13/lease.json) · [两个桌面间的实际读回](physical-05/paired-preview.json)
+
+**精确焦点。** 对两份全新 TextEdit 文件执行了 1 次正式侧栏按压，收到系统回执。随后的输入前核验未能确认目标，提交键盘标记 0 次。之后独立验证两扇窗口均属于原测试文件，正常退出该测试进程，两次内核读回均确认进程已退出。两张更早的测试桌面 5094、5095 仍待回收，当前为 5095，原桌面 4、6 保留。[选窗记录](same-space-focus/W01-system-documents.json) · [夹具退出](same-space-focus/recovery-kernel.json) · [桌面清单](physical-12/desktop-readback.json)
+
+**安装、回退与验证。** 当前签名 ZIP 的 SHA-256 为 `a630316f845b90525bd158e64f4eac633a473b0ab47773453e43b3433bd841a4`。上一签名候选为 `32b9f92`。两包均在原 Draft 附件中。安装和归档的 248 项逐一一致，系统登记一份 Nearpane，三项已有授权在正常启动的 Host 内读回为允许。560 项 Swift 测试和候选原生 CI 均通过。发行暂存副本的 13 个二进制均有 Developer ID 安全时间戳，公证及干净设备验收待测。PR #15 保持 Draft。[候选和回退](physical-12/candidate.json) · [安装核验](physical-12/archive-installed.json) · [权限](physical-12/permissions.json) · [签名](physical-12/distribution-staging/result.json) · [原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44786730117)
+
+## 上一签名候选 `32b9f92`
+
+该候选为 5.22（90）。在 macOS 27.0（26A428）、arm64、一块 1470 × 956 pt 显示器上，正式侧栏的两张窗口卡在三批独立实测中共确认 36/36 次内容更新。原始展示时钟、各窗口的误差区间以及早期失败均可复核。R4 视觉设计沿用 PR #15。
 
 | 实机动态预览 | `32b9f92` 的独立读回 |
 | --- | --- |
@@ -12,7 +34,7 @@
 
 第二批的两张原生采样动画可同步播放。MP4 只有实际侧栏中两个各 8 × 8 像素的采样区域，按整数倍放大。系统解码读回 29 帧、4.83 秒、无音轨，最大时间误差 5.3 微秒。H.264 有色彩损失，色值以无损 APNG 与帧收据为准。两次完整双卡 MP4 采集均在身份或像素复核处停止，未发布未经核实的整卡视频。[实测局部录像](physical-09/media/two-sampled-patches.mp4) · [解码收据](physical-09/media/two-sampled-patches.json)
 
-第三批确认 12/12 次变色，P50 33.99 ms，P95 与最大值均为 212.35 ms；P95 区间上界 229.18 ms。B 窗第一次变色时，正式卡片中央从源变化后约 46 至 196 ms 连续呈现灰色。受控源仍在变色，另一张卡正常。三批共 36 次最终正确更新。逐帧连续显示和稳定低延迟仍未通过。同期两扇源窗都不透明，灰帧 alpha 为 159–160；正式卡片的离屏渲染中，启用状态下即使输入透明图像，也实测得到不透明底色，具体是采集、缓存还是视图状态变化尚未确定。[离屏对照](physical-10/offline-card-opacity.json)此轮整卡 PNG 和 MP4 的抓取资格未成立，原始采样保留。[灰帧逐项收据](physical-10/neutral-interruption.json) · [源时钟](physical-10/replay.json) · [外层收尾](physical-10/lease.json)
+第三批确认 12/12 次变色，P50 33.99 ms，P95 与最大值均为 212.35 ms；P95 区间上界 229.18 ms。B 窗第一次变色时，正式卡片中央从源变化后约 46 至 196 ms 连续呈现灰色。受控源仍在变色，另一张卡正常。三批共 36 次最终正确更新。逐帧连续显示和稳定低延迟仍未通过。同期两扇源窗都不透明，灰帧 alpha 为 159–160；正式卡片的离屏渲染中，启用状态下即使输入透明图像，也实测得到不透明底色，这次 212 ms 中断的具体原因尚未确定。[离屏对照](physical-10/offline-card-opacity.json) 此轮整卡 PNG 和 MP4 的抓取资格未成立，原始采样保留。[灰帧逐项收据](physical-10/neutral-interruption.json) · [源时钟](physical-10/replay.json) · [外层收尾](physical-10/lease.json)
 
 对三批原始帧另行核对了半透明灰。只有当相邻两次侧栏呈现均为单一中性色、两端都由同一窗同一相位的不透明源帧夹住时，才计入确认区间。第一批也有两段，最长 33.33 ms；第二批未检出符合条件的区间；第三批两张卡均有确认区间。图像更新次数和连续性独立计分，后续实测发现确认灰段时整体验收将失败。[第一批](physical-08/continuity.json) · [第二批](physical-09/continuity.json) · [第三批](physical-10/continuity.json)
 
@@ -48,9 +70,9 @@
 
 - 第六次补测留下 4,308 条原始呈现记录，严格分类为 7/12。两窗 28 个颜色相位与 sRGB 转为 Display P3 后的数值相符，84 个色通道最大误差 2/255；常驻采集器也丢弃了部分早于预计展示到达的合格回调。正式 APP 改为请求带明确定义的 sRGB。读回器单独用两个时钟核对早到的回调。[原始未通过记录](physical-06b/result.json) · [ColorSync/VideoToolbox 复核](physical-06b/color-and-clock-diagnosis.json)
 - 第七次在系统单独的 type 4 Space `5101` 确认真实全屏。受控 A 通过 AppKit 正常退出，全屏 Space 消失，两扇窗口的系统归属、AX 标志和夹具读回均回到普通桌面。独立核验后正常关闭夹具，两窗号和原进程都消失。双窗原生 Split View 的第二步仍未确认。[全屏](physical-07/native-round-trip.json) · [已验证的正常关闭](physical-07/normal-exit.json)
-- 当前候选的一次计时批次 12/12 通过。外层收尾在台前调度关闭期间试图用只接受开启状态的分类器核对隐藏系统窗口，记录为 BLOCKED。两扇测试窗和测试进程均正常退出，原偏好及日常资料独立读回恢复。[外层收据](physical-08/lease.json) · [日常资料](physical-08/profile.json)
+- 候选 `32b9f92` 的一次计时批次 12/12 通过。外层收尾在台前调度关闭期间试图用只接受开启状态的分类器核对隐藏系统窗口，记录为 BLOCKED。两扇测试窗和测试进程均正常退出，原偏好及日常资料独立读回恢复。[外层收据](physical-08/lease.json) · [日常资料](physical-08/profile.json)
 
-当前安装 ZIP 的 SHA-256 为 `be2d4cbca0091e5613e8d5e71148e1e8630e3cb16d4977d880f664bbbb9a1a28`。上一签名安装包 `f50d6ac` 的 SHA-256 为 `ca53b88ba1b174a8f0a443990403bb4122dd55ab7796824184e9011c9b3b9bd6`。两个完整包均保存在既有 Draft 附件中。本次更新后，正式 Host 的辅助功能、录屏和事件投递授权均读回允许，248 个文件系统条目与 ZIP 完全一致。[候选及回退](physical-08/candidate.json) · [权限](physical-08/permissions.json) · [安装与归档](physical-08/archive-installed.json)
+上述 `32b9f92` 安装 ZIP 的 SHA-256 为 `be2d4cbca0091e5613e8d5e71148e1e8630e3cb16d4977d880f664bbbb9a1a28`。上一签名安装包 `f50d6ac` 的 SHA-256 为 `ca53b88ba1b174a8f0a443990403bb4122dd55ab7796824184e9011c9b3b9bd6`。两个完整包均保存在既有 Draft 附件中。本次更新后，正式 Host 的辅助功能、录屏和事件投递授权均读回允许，248 个文件系统条目与 ZIP 完全一致。[候选及回退](physical-08/candidate.json) · [权限](physical-08/permissions.json) · [安装与归档](physical-08/archive-installed.json)
 
 另外从同一归档制成的独立分发暂存件已经通过 13/13 个 Mach-O 的 Developer ID、加固运行时及安全时间戳检查。它与日常安装及上面的实测 ZIP 分开保存。Apple 公证、票据装订、干净设备安装及 Sparkle 线上更新仍未通过。本轮仅核对有无已配置的非交互公证凭据，未读取密钥。[暂存包结果](physical-08/distribution-staging/result.json) · [13 个签名](physical-08/distribution-staging/package.json)
 

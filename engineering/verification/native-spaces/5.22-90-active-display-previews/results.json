@@ -1,5 +1,5 @@
 {
-  "source": "32b9f92c96ac387e7cd5bc110f398b3911c2045b",
+  "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
   "version": "5.22",
   "build": 90,
   "OS": "macOS 27.0 (26A428)",
@@ -7,49 +7,99 @@
   "physicalDisplays": 1,
   "draftPR": 15,
   "aggregate": "PARTIAL",
-  "candidate": "physical-08/candidate.json",
-  "rollBack": "f50d6ac",
+  "candidate": "physical-12/candidate.json",
+  "rollBack": "32b9f92",
   "preview": {
     "currentInstalledTwoDocuments": "PASS",
-    "presentationRecords": 4327,
-    "matchedChanges": 12,
-    "simultaneousEpochs": 7,
-    "wrongWindowPatches": 0,
-    "blankPatches": 0,
-    "clockIntervalsMs": {
-      "firstConfirmedPresentationDifference": {
-        "max": 46.48,
-        "p50": 36.9,
-        "p95": 46.48,
-        "p99": 46.48
+    "tests": [
+      {
+        "evidence": "physical-12/result.json",
+        "action": "isolated Formal Host with opt-in transitions",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4305,
+        "eligiblePanelFrames": 1421,
+        "p50ms": 26.2,
+        "p95ms": 51.31,
+        "p95UpperMs": 69.13,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-12/continuity.json"
       },
-      "intervalWidth": {
-        "max": 34.48,
-        "p50": 34.22,
-        "p95": 34.48,
-        "p99": 34.48
+      {
+        "evidence": "physical-13/result.json",
+        "action": "ordinary signed Host with isolated user data",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4336,
+        "eligiblePanelFrames": 1429,
+        "p50ms": 34.03,
+        "p95ms": 38.72,
+        "p95UpperMs": 56.25,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-13/continuity.json"
       },
-      "lower": {
-        "max": 29.8,
-        "p50": 20.22,
-        "p95": 29.8,
-        "p99": 29.8
-      },
-      "n": 12,
-      "upper": {
-        "max": 63.8,
-        "p50": 54.45,
-        "p95": 63.8,
-        "p99": 63.8
+      {
+        "evidence": "physical-14/result.json",
+        "action": "ordinary signed Host with isolated user data",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4331,
+        "eligiblePanelFrames": 1430,
+        "p50ms": 29.45,
+        "p95ms": 46.41,
+        "p95UpperMs": 63.33,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-14/continuity.json"
       }
-    },
-    "acceptedFrames": [
-      1434,
-      1427,
-      1429
     ],
-    "originalPresentationSHA256": "e5336d7c00a623dcee25031d6cd487d1498c99dc707a489dc8c15a3665947820",
+    "totalConfirmedChanges": 36,
+    "totalPresentationsRecorded": 12972,
+    "eligiblePanelFrames": 4280,
+    "pooledConfirmedPresentationDifferenceMs": {
+      "method": "nearest-rank across the current installed candidate trials",
+      "count": 36,
+      "p50": 32.503,
+      "p95": 46.411,
+      "p99": 51.311,
+      "max": 51.311,
+      "p95UpperMs": 63.327
+    },
+    "uninterruptedAccuratePictureEveryFrame": {
+      "status": "PASS_WITHIN_SAMPLED_FIXTURES",
+      "scope": "Qualified 8x8 center pixels for two isolated windows on one actual physical display. Unobserved frames and unsupported windows have no outcome."
+    },
+    "previousCandidate": "physical-08/candidate-summary.json",
+    "ownerFailureCorrelated": "physical-11/diagnosis.json",
+    "liveOwnerFallback": "physical-12/owner-readback.json",
     "appleNativeReference": "NOT_MEASURED",
+    "appleNativeEvidence": "physical-13/apple-reference.json",
     "trackpadSwipeAnimation": "NOT_RUN",
     "displayScope": {
       "physicalDisplays": 1,
@@ -61,71 +111,29 @@
       ],
       "independentPhysicalDisplays": "BLOCKED"
     },
-    "tests": [
-      {
-        "evidence": "physical-08/result.json",
-        "status": "PASS",
-        "matchedChanges": 12,
-        "presentationRecords": 4327,
-        "p50ms": 36.9,
-        "p95ms": 46.48,
-        "p95UpperMs": 63.8,
-        "simultaneousStates": 7,
-        "continuousNeutralCheck": "FAIL",
-        "neutralEvidence": "physical-08/continuity.json"
-      },
-      {
-        "evidence": "physical-09/result.json",
-        "status": "PASS",
-        "matchedChanges": 12,
-        "presentationRecords": 4295,
-        "p50ms": 33.18,
-        "p95ms": 44.1,
-        "p95UpperMs": 61.36,
-        "simultaneousStates": 7,
-        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
-        "neutralEvidence": "physical-09/continuity.json"
-      },
-      {
-        "evidence": "physical-10/result.json",
-        "status": "PASS",
-        "matchedChanges": 12,
-        "presentationRecords": 4287,
-        "p50ms": 33.99,
-        "p95ms": 212.35,
-        "p95UpperMs": 229.18,
-        "simultaneousStates": 7,
-        "continuousNeutralCheck": "FAIL",
-        "neutralEvidence": "physical-10/continuity.json"
-      }
-    ],
-    "totalConfirmedChanges": 36,
-    "pooledConfirmedPresentationDifferenceMs": {
-      "method": "nearest-rank across independent signed-Host trials",
-      "count": 36,
-      "p50": 34.175,
-      "p95": 46.477,
-      "p99": 212.352,
-      "p95UpperMs": 63.802
-    },
-    "readableCurrentCandidatePhoto": "physical-09/media/paired-overview.png",
-    "mostRecentCompleteLeaseTrial": "physical-10/lease.json",
-    "uninterruptedAccuratePictureEveryFrame": {
-      "status": "FAIL",
-      "evidence": "physical-10/neutral-interruption.json"
-    },
-    "qualifiedPatchMovie": "physical-09/media/two-sampled-patches.mp4",
-    "fullCardMovie": "BLOCKED"
+    "readableCurrentCandidatePhoto": "physical-13/media/paired-overview.png",
+    "qualifiedFilm": "physical-13/media/paired-cards.mp4",
+    "filmDecoderVerification": "physical-13/media/decoded-cards.json",
+    "fullCardMovie": {
+      "status": "CAPTURED",
+      "lossyRGBMarker": "FAIL",
+      "duration": 2.7776833333333335,
+      "frames": 33,
+      "markerMismatchCount": 8,
+      "markerSamples": 66,
+      "audioTracks": 0
+    }
   },
   "permissions": {
     "installed": "PASS",
-    "readback": "physical-08/permissions.json",
+    "readback": "physical-12/permissions.json",
     "registeredApps": 1,
-    "TCCReset": false
+    "TCCReset": false,
+    "registrationEvidence": "physical-12/launch-services.json"
   },
   "stageManager": {
     "currentInstalledOnlyToolsWhenEnabled": "PASS",
-    "evidence": "physical-08/installed-stage-manager.json",
+    "evidence": "physical-12/installed-stage-manager.json",
     "OFFToOnRestored": "PASS",
     "priorToolPicture": "physical-03/compact-tools.png",
     "hidden60s": {
@@ -155,7 +163,12 @@
   "P2": {
     "status": "UNKNOWN",
     "qualifiedTwoWindowIdentity": "PASS",
-    "installedTypingMarkerCount": 0
+    "installedTypingMarkerCount": 0,
+    "mostRecentFormalAXPresses": 1,
+    "mostRecentPressAccepted": true,
+    "focusReadback": "UNKNOWN",
+    "evidence": "same-space-focus/W01-system-documents.json",
+    "fixtureTerminationIndependent": "same-space-focus/recovery-kernel.json"
   },
   "P3": {
     "status": "BLOCKED",
@@ -191,30 +204,31 @@
     "status": "BLOCKED",
     "installedDeveloperID": "PASS",
     "timestampedSeparateDistributionBinaryCount": 13,
-    "staging": "physical-08/distribution-staging/result.json",
+    "staging": "physical-12/distribution-staging/result.json",
     "notarization": "NOT_RUN",
     "stapling": "NOT_RUN",
     "cleanInstall26And27": "NOT_RUN",
     "sparklePublic": "NOT_RUN",
-    "publicRelease": false
+    "publicRelease": false,
+    "archiveMatch": "physical-12/archive-installed.json"
   },
   "offline": {
     "swift": {
-      "testCount": 556,
-      "suiteCount": 85,
+      "testCount": 560,
+      "suiteCount": 86,
       "status": "PASS",
       "runner": "scripts/test.sh"
     },
     "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
     "nativePython": {
-      "ran": 161,
+      "ran": 166,
       "skipped": 6,
       "failed": 0
     },
     "signingPythonPassed": 8,
     "p0NarrowRegressionPassed": 27,
     "CI": {
-      "candidateRun": 44776942003,
+      "candidateRun": 44786730117,
       "status": "success"
     }
   },
@@ -222,6 +236,8 @@
     "profileRestored": true,
     "stageManagerRestored": true,
     "exactPreviousFocusedWindow": "UNKNOWN",
-    "desktopRecovery": "physical-05/recovery.json"
+    "desktopRecovery": "physical-05/recovery.json",
+    "dailyTextEditFixtureClosed": true,
+    "currentOwnership": "physical-12/desktop-readback.json"
   }
 }
