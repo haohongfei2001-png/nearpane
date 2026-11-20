@@ -16,9 +16,9 @@ import NearpaneCore
             #expect(old.innerTint == (dark ? 0.10 : 0.20))
             #expect(old.innerMaterial == 1)
             let factory = SurfaceGlassLevels(adaptive, dark: dark, reduceTransparency: false)
-            #expect(factory.outerMaterial < 1 && factory.innerMaterial < factory.outerMaterial)
+            #expect(factory.outerMaterial < 1 && factory.innerMaterial > factory.outerMaterial)
             #expect(factory.innerMaterial > 0.70 && factory.outerTint > 0.35)
-            #expect(factory.innerTint < factory.outerTint)
+            #expect(factory.innerTint > factory.outerTint)
             // Entering manual adjustment keeps every unedited optical value continuous.
             let explicit = adaptive.resolvedTransparency(dark: dark)
             let same = SurfaceGlassLevels(explicit, dark: dark, reduceTransparency: false)
@@ -52,8 +52,8 @@ import NearpaneCore
             #expect(abs(try alpha(atX: 80, y: 40) - 0.5) < 0.015)
             // These points straddle the voice/tray boundary at y=90. Sampling the
             // reflected position instead would hit the middle of the desktop card.
-            #expect(try alpha(atX: 80, y: 90) == 0)
-            #expect(abs(try alpha(atX: 80, y: 310) - 0.5) < 0.015)
+            #expect(try alpha(atX: 80, y: 161) == 0)
+            #expect(abs(try alpha(atX: 80, y: 205) - 0.5) < 0.015)
         }
         #expect(label.superview === material && !label.isHidden && label.alphaValue == 1 && material.alphaValue == 1)
         let reduced = SurfaceGlassLevels(settings.glass, dark: true, reduceTransparency: true)
@@ -113,8 +113,8 @@ import NearpaneCore
             let layout = LayoutComposer.compose(width: 200, height: 800, pinnedCount: 0, expanded: false, settings: settings)
             for section in [layout.voice, layout.screenshots, layout.desktop] {
                 let inset = SurfaceCardGeometry.frame(in: section, width: 200, settings: settings)
-                #expect(inset.minX - section.x == 12 && inset.minY - section.y == 12)
-                #expect(section.x + section.width - inset.maxX == 12 && section.y + section.height - inset.maxY == 12)
+                #expect(inset.minX - section.x == 12 && inset.minY == section.y)
+                #expect(section.x + section.width - inset.maxX == 12 && section.y + section.height == inset.maxY)
             }
             #expect(try DesktopWorkArea(display: "fixture", screen: frame, usable: frame, primary: true,
                                      settings: settings, fallbackEdge: .right) == original)

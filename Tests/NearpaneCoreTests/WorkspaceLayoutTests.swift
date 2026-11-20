@@ -118,7 +118,7 @@ struct WorkspaceLayoutTests {
             #expect(try work() == baseline)
             #expect(try planner.update(area: work(), layout: layout) == nil)
         }
-        #expect(baseline.frame(nativeFullscreen: false).width == 700)
+        #expect(baseline.frame(nativeFullscreen: false).width == 600)
         #expect(baseline.frame(nativeFullscreen: true).width == 800)
         settings.measures[.reservedWidth] = Measure(150)
         #expect(try work().ordinary.x == -650)

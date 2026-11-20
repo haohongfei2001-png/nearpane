@@ -297,7 +297,7 @@ struct IntegratedHostTests {
             && ProcessInfo.processInfo.environment["NEARPANE_RENDER_DARK"] == "1"
         content.appearance = NSAppearance(named: darkExport ? .darkAqua : .aqua)
         content.layoutSubtreeIfNeeded()
-        #expect(window.frame.width == 240 && window.frame.height == 960 && !window.isVisible)
+        #expect(window.frame.width == 307 && window.frame.height == 960 && !window.isVisible)
         let hosting = try #require(content.subviews.first { $0 is NSHostingView<EdgeSurfaceView> })
         for state in ["collapsed", "expanded"] {
             if state == "expanded" { domains.tray.toggleMenu() }
@@ -325,8 +325,8 @@ struct IntegratedHostTests {
                 // The empty-state label starts immediately below the tools, inside the workspace card.
                 let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
                 var ink = 0
-                let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0, expanded: false)
-                let top = layout.windowArea.y + PanelSizeMetrics.cardInset(width: rect.width) + 4
+                let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0, expanded: false, voiceCompact: true, trayRows: 2)
+                let top = layout.windowArea.y + 4
                 let scale = Double(source.height) / rect.height
                 for y in Int(top * scale)..<Int((top + 19) * scale) {
                     for x in (source.width / 8)..<(source.width * 7 / 8) {

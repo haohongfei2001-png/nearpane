@@ -17,7 +17,7 @@ extension PanelGlassSettings {
         var result = self
         if usesRecommendedTransparency {
             result.overallTransparency = dark ? 5 : 6
-            result.outerTransparency = dark ? 43 : 61
+            result.outerTransparency = dark ? 62 : 61
             result.innerTransparency = dark ? 9 : 18
         } else {
             result.overallTransparency = overallTransparency ?? 0

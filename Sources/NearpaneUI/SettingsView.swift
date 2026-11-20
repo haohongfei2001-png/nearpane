@@ -434,6 +434,7 @@ public struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             HStack {
                                 Toggle(manifest.name, isOn: Binding(get: { pref.enabled }, set: { host.handle(.setEnabled(pref.id, $0)) }))
+                                    .accessibilityIdentifier("module-enabled-" + pref.id)
                                 Spacer()
                                 if manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(pref.id) {
                                     Toggle("固定", isOn: Binding(get: { pref.pinned }, set: { host.handle(.setPinned(pref.id, $0)) }))
@@ -456,7 +457,7 @@ public struct SettingsView: View {
                         Divider()
                     }
                 }
-                Text(domains?.candidate == true ? "固定时钟后，点击主驻留屏的时间可选择额外时区。" : "语音、托盘和空间的顺序固定。箭头仅调整可选模块。")
+                Text(domains?.candidate == true ? "固定时钟后，点击主驻留屏的时间可选择额外时区。" : "使用箭头调整工具顺序。窗口和桌面显示在工具下方。")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(8)
         }

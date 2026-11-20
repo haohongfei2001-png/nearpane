@@ -198,12 +198,12 @@ struct NativeSidebarMember: Equatable {
                 // on the destination before granting a subsequent layout transaction.
                 let until = ContinuousClock.now.advanced(by: .seconds(2))
                 repeat {
-                    if let fresh = await feed.readNow(), let live = dest.resolve(fresh),
+                    if let fresh = await feed.readNow(), dest.resolve(fresh) != nil,
                        feed.lifetime(of: member.key) == lifetime,
-                       live.rows.first(where: { $0.id == dest.space })?.windows.contains(where: {
-                           $0.metadata?.pid == member.key.pid && $0.metadata?.launchMicroseconds == member.key.birth &&
-                           $0.metadata?.number == member.key.number && $0.membership == .known(recordIDs: [dest.space])
-                       }) == true { return }
+                       fresh.windows.contains(where: {
+                           $0.displayID == dest.display && $0.metadata?.pid == member.key.pid &&
+                           $0.metadata?.launchMicroseconds == member.key.birth && $0.metadata?.number == member.key.number && $0.membership == .known(recordIDs: [dest.space])
+                       }) { return }
                     try await Task.sleep(for: .milliseconds(70))
                 } while ContinuousClock.now < until
                 throw UnconfirmedSpaceMove("系统已报告迁移，但独立读数尚未确认窗口的新归属。")

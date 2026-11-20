@@ -176,14 +176,17 @@ struct DesktopSurface: View {
            let target = DesktopWindowTarget(window, in: snapshot), selectedPicture(for: target) != nil {
             captured[proof.number] = CGSize(width: proof.bounds.width, height: proof.bounds.height)
         }
-        let thumbnailLayout = DesktopWindowThumbnailLayout(windows: windows, display: screen, availableWidth: width, capturedSizes: captured)
+        let thumbnailLayout = DesktopWindowThumbnailLayout(display: screen, capturedSizes: captured)
         let labelSize = settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10
         let spacing = settings.points(.spaceRowGap, in: display?.referenceHeight ?? 600)
-        let groups = Dictionary(grouping: windows, by: { $0.metadata?.pid })
+        let siblingsByApp = Dictionary(grouping: windows, by: { $0.metadata?.pid })
+        let feed = previews?.currentDesktop
+        let members = source.map { dest in windows.compactMap { NativeSidebarMember($0, source: dest) } } ?? []
+        let visibleGroups = source.flatMap { feed?.groups.visible(space: $0.uuid, members: Set(members.map(\.key))) } ?? [:]
         return VStack(alignment: .leading, spacing: spacing) {
             ForEach(Array(windows.enumerated()), id: \.element.id) { index, window in
                 let badge = appBadges[window.id]
-                let siblings = groups[window.metadata?.pid] ?? []
+                let siblings = siblingsByApp[window.metadata?.pid] ?? []
                 let ordinal = siblings.firstIndex(of: window).map { $0 + 1 } ?? 1
                 let name = badge?.name ?? "窗口"
                 let label = siblings.count > 1 ? "\(name) · \(ordinal)" : name
@@ -206,33 +209,58 @@ struct DesktopSurface: View {
                     else if previous != nil { "上次画面，最长保留一分钟" }
                     else if target == nil || target.map({ gallery?.lacksPicture($0) == true }) == true { "暂无窗口画面" }
                     else { nil }
-                Button {
-                    if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) }
-                } label: {
-                    DesktopWindowCard(label: caption, icon: badge?.icon, image: picture, pictureSize: pictureSize,
-                                      borderWidth: settings.points(.borderWidth, in: width),
-                                      labelSize: labelSize,
-                                      currentImage: {
-                        guard let target, display?.interactionVisible == true, display?.id == target.display,
-                              !host.configuration.surfaceHidden, host.isRunning, host.configuration.showsWindowThumbnails,
-                              WindowContentPreview.sessionAvailable(), target.present(in: overview),
-                              previews?.currentDesktop == nil || (lifetime != nil && lifetime == previews?.currentDesktop?.lifetime(of: target.key)) else { return nil }
-                        if previous != nil { return gallery?.previousImage(for: target, permitted: true) }
-                        return gallery?.image(for: target, permitted: true) ?? selectedPicture(for: target)
-                    })
-                }
-                .buttonStyle(.plain).disabled(target == nil)
-                .modifier(NativeWindowDragSource(member: navigation.canMove ? member : nil, drag: drag, feed: previews?.currentDesktop))
-                .accessibilityLabel(label).accessibilityHint("将这扇窗口切换到前台")
-                .accessibilityIdentifier("current-desktop-window:\(window.metadata?.pid ?? 0):\(window.metadata?.number ?? 0)")
-                .accessibilityValue(cardDescription(window, within: screen, size: pictureSize, index: index,
-                    source: automatic != nil ? "窗口画面" : selected != nil ? "所选快照" : previous != nil ? "上次画面" : "窗口轮廓"))
-                .help([target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label, reason].compactMap { $0 }.joined(separator: " · "))
-                .onAppear { if let target { gallery?.setCard(target.key, on: id, visible: true) } }
-                .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
-                .onChange(of: target?.key) { previous, next in
-                    if let previous { gallery?.setCard(previous, on: id, visible: false) }
-                    if let next { gallery?.setCard(next, on: id, visible: true) }
+                if let member, let group = visibleGroups[member.key], let feed {
+                    if members.first(where: { group.members[$0.key] != nil })?.key == member.key,
+                       let catalog = source?.resolve(snapshot) {
+                        let grouped = windows.filter { w in NativeSidebarMember(w, source: member.source).map { group.members[$0.key] != nil } == true }
+                        NativeSpaceNavigator(catalog: catalog, drag: drag, feed: feed, badges: appBadges, gallery: gallery,
+                            permitted: permitted, canSwitch: canNavigate && navigation.canSwitch,
+                            canMove: canNavigate && navigation.canMove, workArea: workArea(for: screen),
+                            select: { d, m in navigation.select(d, member: m, feed: feed, allowed: { canNavigate }) },
+                            move: { move($0, to: $1, lifetime: $2, feed: feed) },
+                            group: .init(id: group.id, windows: grouped, dissolve: { feed.groups.dissolve(group.id) }))
+                            .onAppear { for key in group.members.keys { gallery?.setCard(key, on: id, visible: true) } }
+                            .onDisappear { for key in group.members.keys { gallery?.setCard(key, on: id, visible: false) } }
+                            .id(group.members)
+                    }
+                } else {
+                    Button {
+                        if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) }
+                    } label: {
+                        DesktopWindowCard(label: caption, icon: badge?.icon, image: picture, pictureSize: pictureSize,
+                                          borderWidth: settings.points(.borderWidth, in: width),
+                                          labelSize: labelSize,
+                                          currentImage: {
+                            guard let target, display?.interactionVisible == true, display?.id == target.display,
+                                  !host.configuration.surfaceHidden, host.isRunning, host.configuration.showsWindowThumbnails,
+                                  WindowContentPreview.sessionAvailable(), target.present(in: overview),
+                                  previews?.currentDesktop == nil || (lifetime != nil && lifetime == previews?.currentDesktop?.lifetime(of: target.key)) else { return nil }
+                            if previous != nil { return gallery?.previousImage(for: target, permitted: true) }
+                            return gallery?.image(for: target, permitted: true) ?? selectedPicture(for: target)
+                        })
+                    }
+                    .buttonStyle(.plain).disabled(target == nil)
+                    .modifier(NativeWindowDragSource(member: navigation.canMove ? member : nil, drag: drag, feed: previews?.currentDesktop))
+                    .accessibilityLabel(label).accessibilityHint("将这扇窗口切换到前台")
+                    .accessibilityIdentifier("current-desktop-window:\(window.metadata?.pid ?? 0):\(window.metadata?.number ?? 0)")
+                    .accessibilityValue(cardDescription(window, within: screen, size: pictureSize, index: index,
+                        source: automatic != nil ? "窗口画面" : selected != nil ? "所选快照" : previous != nil ? "上次画面" : "窗口轮廓"))
+                    .help([target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label, reason].compactMap { $0 }.joined(separator: " · "))
+                    .contextMenu {
+                        if let member, let feed, member.source.kind == .ordinary {
+                            ForEach(Array(windows.enumerated()), id: \.element.id) { i, other in
+                                if let second = NativeSidebarMember(other, source: member.source), second.key != member.key {
+                                    Button("与 \(appBadges[other.id]?.name ?? "窗口") · \(i + 1) 组合") { feed.join(member, second) }
+                                }
+                            }
+                        }
+                    }
+                    .onAppear { if let target { gallery?.setCard(target.key, on: id, visible: true) } }
+                    .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
+                    .onChange(of: target?.key) { previous, next in
+                        if let previous { gallery?.setCard(previous, on: id, visible: false) }
+                        if let next { gallery?.setCard(next, on: id, visible: true) }
+                    }
                 }
             }
         }

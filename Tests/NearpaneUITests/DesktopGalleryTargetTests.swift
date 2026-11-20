@@ -118,7 +118,7 @@ import Testing
         #expect(reads == 4)
     }
 
-    @Test func allCardsShareOneScaleAndKeepTheWholeWindowEvenAcrossTheScreenEdge() throws {
+    @Test func independentCardsFitTheirVerifiedWindowWithinTheSameBox() throws {
         let wide = window(frame: .init(x: -120, width: 1000, height: 200))
         let tall = window(number: 23, frame: .init(width: 200, height: 800))
         let small = window(number: 24, frame: .init(width: 100, height: 50))
@@ -126,22 +126,20 @@ import Testing
         other = .init(id: "other", displayID: "second", bounds: other.bounds, membership: .unknown,
                       confidence: .unknown, metadata: other.metadata)
         let windows = [wide, tall, small, other]
-        let layout = DesktopWindowThumbnailLayout(windows: windows, display: sample(windows).displays.first, availableWidth: 200)
-        #expect(layout.size(for: wide) == CGSize(width: 200, height: 40))
-        #expect(layout.size(for: tall) == CGSize(width: 40, height: 160))
-        #expect(layout.size(for: small) == CGSize(width: 20, height: 10))
-        #expect(layout.size(for: other) == nil)
-        let onlySmall = DesktopWindowThumbnailLayout(windows: [small], display: sample([small]).displays.first, availableWidth: 180)
-        #expect(onlySmall.size(for: small) == CGSize(width: 20, height: 10))
-        let independentSurface = DesktopWindowThumbnailLayout(windows: [small], display: sample([small]).displays.first,
-            availableWidth: 180, capturedSizes: [24: CGSize(width: 600, height: 500)])
-        #expect(independentSurface.size(for: small) == CGSize(width: 120, height: 100))
+        let layout = DesktopWindowThumbnailLayout(display: sample(windows).displays.first)
+        #expect(layout.fittedSize(for: wide, width: 200, heightLimit: 100) == CGSize(width: 200, height: 40))
+        #expect(layout.fittedSize(for: tall, width: 200, heightLimit: 100) == CGSize(width: 25, height: 100))
+        #expect(layout.fittedSize(for: small, width: 200, heightLimit: 100) == CGSize(width: 200, height: 100))
+        #expect(layout.fittedSize(for: other, width: 200, heightLimit: 100) == nil)
+        let captured = DesktopWindowThumbnailLayout(display: sample([small]).displays.first,
+            capturedSizes: [24: CGSize(width: 600, height: 500)])
+        #expect(captured.fittedSize(for: small, width: 180, heightLimit: 90) == CGSize(width: 108, height: 90))
     }
 
     @Test func stagePresentationDoesNotSupplyDimensionsOrRetainPixelsAfterResize() throws {
         let stage = window(frame: .init(x: -64, y: 602, width: 49, height: 76), ax: .init(x: -681, y: 64, width: 562, height: 422))
-        let layout = DesktopWindowThumbnailLayout(windows: [stage], display: sample([stage]).displays.first, availableWidth: 200)
-        #expect(layout.size(for: stage) == nil)
+        let layout = DesktopWindowThumbnailLayout(display: sample([stage]).displays.first)
+        #expect(layout.fittedSize(for: stage, width: 200, heightLimit: 100) == nil)
         let snapshot = catalog([(22, 41, true, "97")])
         let target = try #require(DesktopWindowTarget(snapshot.windows[0], in: snapshot))
         func sameSpaceTarget(_ frame: SurfaceRect) throws -> DesktopWindowTarget {
@@ -177,12 +175,12 @@ import Testing
         let unknown = staged(logical: nil)
         let wide = staged(logical: .init(width: 540, height: 213))
         let display = sample([wide]).displays.first
-        #expect(DesktopWindowThumbnailLayout(windows: [unknown], display: display, availableWidth: 180).size(for: unknown) == nil)
-        let size = try #require(DesktopWindowThumbnailLayout(windows: [wide], display: display, availableWidth: 180).size(for: wide))
-        #expect(abs(size.width - 108) < 0.001 && abs(size.height - 42.6) < 0.001)
-        let withStageImage = DesktopWindowThumbnailLayout(windows: [wide], display: display, availableWidth: 180,
+        #expect(DesktopWindowThumbnailLayout(display: display).fittedSize(for: unknown, width: 180, heightLimit: 90) == nil)
+        let size = try #require(DesktopWindowThumbnailLayout(display: display).fittedSize(for: wide, width: 180, heightLimit: 90))
+        #expect(abs(size.width - 180) < 0.001 && abs(size.height - 71) < 0.001)
+        let withStageImage = DesktopWindowThumbnailLayout(display: display,
             capturedSizes: [22: CGSize(width: 152, height: 141)])
-        #expect(withStageImage.size(for: wide) == size)
+        #expect(withStageImage.fittedSize(for: wide, width: 180, heightLimit: 90) == size)
         var s = sample([wide])
         s.scopes = [.init(id: "scope", displayID: "display", records: [.init(id: "A", isCurrent: true, ordinaryUUID: UUID())])]
         let target = try #require(DesktopWindowTarget(wide, in: s))

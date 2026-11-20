@@ -13,7 +13,7 @@ struct WorkspaceProjectionTests {
             NativeSpacesProvider().projection(
                 s, preferredDisplay: "wide", settings: [:], edge: .right, date: f.date, uptime: 42))
         let id = try #require(s.workspaceID(display: "portrait", record: "9"))
-        #expect(projected.rows.count == 1 && projected.rows[id]?.area.width == 700)
+        #expect(projected.rows.count == 1 && projected.rows[id]?.area.width == 600)
         #expect(projected.rows[id]?.layout == nil && projected.grants.isEmpty)
         let viewport = SurfaceRect(x: 10, y: 5, width: 80, height: 126)
         let wholeRow = SurfaceRect(width: 140, height: 140)

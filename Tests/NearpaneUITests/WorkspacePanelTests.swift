@@ -131,7 +131,7 @@ import Testing
         presented.removeAll()
         panels.update(screens: [b,a])
         #expect(presented.first === main && panels.secondaryIDs == ["b"])
-        #expect(main.window === primaryWindow && main.requestedFrame?.width == 200)
+        #expect(main.window === primaryWindow && main.requestedFrame?.width == 256)
         #expect(host.configuration == saved && host.registry.states == states)
         host.setSurfaceHidden(true)
         presented.removeAll()
@@ -306,7 +306,7 @@ import Testing
         let second = called.first { $0 !== main }
         #expect(second?.requestedFrame?.width == 213.5)
         #expect(second?.window?.frame == second?.requestedFrame || second?.window?.frame == second?.requestedFrame?.integral)
-        #expect(main.window?.frame.width == 200 && main.window?.collectionBehavior.contains(.fullScreenNone) == true)
+        #expect(main.window?.frame.width == 256 && main.window?.collectionBehavior.contains(.fullScreenNone) == true)
         panels.dismiss("b")
         panels.update(screens: screens)
         #expect(panels.secondaryIDs.isEmpty && host.registry.states == original)
@@ -432,7 +432,7 @@ import Testing
         let compact = try #require(panel.requestedFrame)
         panel.toggleTemporaryExpansion()
         let opened = try #require(panel.requestedFrame)
-        #expect(panel.temporarilyExpanded && opened.width == 100 && opened.height == 1280)
+        #expect(panel.temporarilyExpanded && opened.width == 200 && opened.height == 1280)
         let basis = Double(opened.height) - PanelSizeMetrics.minimumSide
         let voice = settings.contentHeights(basis, content: .full, voice: true, tray: true).voice
         #expect(settings.readableFontSize(.textSize, in: voice) == DisplayMetric.textSize.factory.value)

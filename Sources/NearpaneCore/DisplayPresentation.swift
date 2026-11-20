@@ -327,6 +327,7 @@ extension DisplaySettings {
         let compactSpan = 2 * minimum + 2 * PanelSizeMetrics.glassInset
         guard width.isFinite, height.isFinite, min(width, height) >= minimum,
               max(width, height) >= compactSpan else { return .icon }
+        if content == .full, (voice || tray), width < 176, !temporarilyExpanded { return .compact }
         let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
             settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
         let cardPadding = 2 * glass.inset(width: width)

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 import RiftletCore
 import NearpaneCore
 
@@ -24,8 +25,10 @@ public struct TraySurface: View {
             let rowGap = settings.points(.rowGap, in: outer.size.height)
             let slots = module.slots
             let rows = module.rowCount
-            let cell = CGSize(width: max(1, (outer.size.width - 2 * pad - gap) / 2),
-                              height: max(1, (outer.size.height - 2 * pad - CGFloat(rows - 1) * rowGap) / CGFloat(rows)))
+            let room = CGSize(width: max(1, outer.size.width - 2 * pad - gap),
+                              height: max(1, outer.size.height - 2 * pad - CGFloat(rows - 1) * rowGap))
+            let cell = CGSize(width: max(1, min(room.width / 2, settings.measures[.cellWidth]?.points(in: room.width) ?? room.width)),
+                              height: max(1, min(room.height / CGFloat(rows), settings.measures[.cellHeight]?.points(in: room.height) ?? room.height)))
             LazyVGrid(columns: [GridItem(.fixed(cell.width), spacing: gap), GridItem(.fixed(cell.width))], spacing: rowGap) {
                 ForEach(slots, id: \.self) { slot in
                     Group {
@@ -43,6 +46,7 @@ public struct TraySurface: View {
                                         }.accessibilityLabel(action.label).help(action.label)
                                     }
                                 }.buttonStyle(.borderless)
+                                .frame(maxHeight: settings.measures[.trayMenuHeight]?.points(in: room.height) ?? cell.height)
                                 .accessibilityAction(named: "收起截图方式") { module.collapseMenu() }
                             } else {
                                 Button {
@@ -58,7 +62,7 @@ public struct TraySurface: View {
                         case .folder:
                             Image(systemName: "folder").font(.system(size: 21))
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .accessibilityLabel("文件拖放区")
+                                .accessibilityLabel("文件拖放区").accessibilityIdentifier("tray-file-drop")
                         case .file(let id):
                             if let file = module.files.first(where: { $0.id == id }) {
                                 Image(nsImage: NSWorkspace.shared.icon(forFile: file.url.path))
@@ -66,6 +70,7 @@ public struct TraySurface: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .onDrag { NSItemProvider(object: file.url as NSURL) }
                                     .help(file.url.lastPathComponent).accessibilityLabel(file.url.lastPathComponent)
+                                    .accessibilityIdentifier("tray-saved-file-" + id.uuidString)
                             }
                         }
                     }
@@ -76,10 +81,19 @@ public struct TraySurface: View {
             .padding(pad)
             .frame(width: outer.size.width, height: outer.size.height, alignment: .top)
             .contentShape(Rectangle())
-            .dropDestination(for: URL.self) { urls, _ in
-                let files = urls.filter(\.isFileURL)
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                let files = providers.filter { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }
                 guard !files.isEmpty else { return false }
-                Task { await module.importFiles(files) }
+                Task {
+                    for provider in files {
+                        let url: URL? = await withCheckedContinuation { resume in
+                            provider.loadDataRepresentation(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+                                resume.resume(returning: data.flatMap { URL(dataRepresentation: $0, relativeTo: nil) })
+                            }
+                        }
+                        if let url, url.isFileURL { await module.importFiles([url]) }
+                    }
+                }
                 return true
             }
             .onExitCommand { module.collapseMenu() }

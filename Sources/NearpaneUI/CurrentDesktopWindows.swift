@@ -15,6 +15,18 @@ import OSLog
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
+    let groups = ExplicitWindowGroups()
+
+    func join(_ a: NativeSidebarMember, _ b: NativeSidebarMember) {
+        guard a.source == b.source, a.source.kind == .ordinary, let snapshot,
+              let live = a.source.resolve(snapshot), live.current.id == a.source.space,
+              a.resolve(snapshot)?.membership == .known(recordIDs: [a.source.space]),
+              b.resolve(snapshot)?.membership == .known(recordIDs: [a.source.space]),
+              snapshot.windows.contains(where: { DesktopWindowTarget($0, in: snapshot)?.key == a.key }),
+              snapshot.windows.contains(where: { DesktopWindowTarget($0, in: snapshot)?.key == b.key }) else { return }
+        groups.join(a.key, b.key, space: a.source.uuid, lifetimes: lifetimes)
+    }
+
     func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
     @ObservationIgnored private var epoch = UUID()
     @ObservationIgnored private var pending: (UUID, Task<DesktopSnapshot?, Never>)?
@@ -169,6 +181,17 @@ import OSLog
             for key in next.keys.sorted(by: { $0.number < $1.number }) where self.firstObserved[key] == nil {
                 self.nextOrdinal += 1
                 self.firstObserved[key] = self.nextOrdinal
+            }
+            if !self.groups.records.isEmpty {
+                let spaces = Dictionary(grouping: result.scopes.flatMap(\.records), by: \.id)
+                var known = [DesktopWindowKey: Set<UUID>]()
+                for window in result.windows {
+                    guard let m = window.metadata, let birth = m.launchMicroseconds,
+                          case .known(let ids) = window.membership else { continue }
+                    let uuids = ids.compactMap { spaces[$0].flatMap { $0.count == 1 ? $0[0].nativeUUID : nil } }
+                    if uuids.count == ids.count { known[.init(pid: m.pid, birth: birth, number: m.number)] = Set(uuids) }
+                }
+                self.groups.reconcile(lifetimes: next) { key, space in known[key].map { $0 != [space] } ?? false }
             }
             self.lifetimes = next
             return result

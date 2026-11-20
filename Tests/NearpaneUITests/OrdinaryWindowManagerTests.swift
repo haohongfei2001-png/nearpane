@@ -461,8 +461,8 @@ import Testing
         anchor.nextCreation = eligible
         await manager.checkNewWindows()
         #expect(manager.activeIDs == [anchor.id, eligible.id] && eligible.writes == 1)
-        #expect(anchor.frame == SurfaceRect(width: 438, height: 800))
-        #expect(eligible.frame == SurfaceRect(x: 438, width: 437, height: 800))
+        #expect(anchor.frame == SurfaceRect(width: 380, height: 800))
+        #expect(eligible.frame == SurfaceRect(x: 380, width: 380, height: 800))
         await manager.checkNewWindows()
         #expect(eligible.writes == 1)
         try manager.pause()
@@ -643,7 +643,7 @@ import Testing
         while a.writes == 1 && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(10))
         }
-        #expect(!manager.blocked && a.writes == 2 && a.frame == safe)
+        #expect(!manager.blocked && a.writes == 2 && a.frame == safe, "state \(manager.message); writes \(a.writes); frame \(a.frame); expected \(safe)")
         #expect(b.writes == 1 && b.frame == sibling)
         try await manager.stop()
         #expect(a.boundaryAlert == nil && b.boundaryAlert == nil)

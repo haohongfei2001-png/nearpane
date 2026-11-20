@@ -51,13 +51,13 @@ extension Reader {
     }
 
     nonisolated static func roleTargets(_ list: List, active: Set<UInt32>, currentIDs: Set<String>?,
-                                        memberships: [UInt32: WindowMembership]) -> [OverviewWindowRole.Target] {
+                                        memberships: [UInt32: WindowMembership], background: Bool = false) -> [OverviewWindowRole.Target] {
         var order: [Int32] = [], numbers: [Int32: Set<UInt32>] = [:]
         for w in list.windows {
-            guard list.unhiddenOwners.contains(w.process.pid), w.process.hasLifecycleEvidence else { continue }
+            guard (background || list.unhiddenOwners.contains(w.process.pid)), w.process.hasLifecycleEvidence else { continue }
             if let currentIDs {
                 guard case let .known(ids) = memberships[w.windowID], !currentIDs.isDisjoint(with: ids),
-                      w.isOnscreen == true || active.contains(w.windowID) || list.orderedAcrossSpaces.contains(w.windowID) else { continue }
+                      background || w.isOnscreen == true || active.contains(w.windowID) || list.orderedAcrossSpaces.contains(w.windowID) else { continue }
             } else {
                 guard w.isOnscreen == true, active.contains(w.windowID) else { continue }
             }
@@ -88,7 +88,7 @@ extension Reader {
                                        memberships: firstBoundary?.membership ?? [:])
         let otherIDs = Set(firstBoundary?.inventory?.scopes.flatMap(\.records).map(\.id) ?? []).subtracting(currentIDs ?? [])
         let others = Self.roleTargets(first, active: activeBefore, currentIDs: otherIDs,
-                                      memberships: firstBoundary?.membership ?? [:])
+                                      memberships: firstBoundary?.membership ?? [:], background: true)
         let currentNumbers = Set(targets.flatMap(\.numbers))
         let otherNumbers = Set(others.flatMap(\.numbers)).subtracting(currentNumbers)
         let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8) : [:]

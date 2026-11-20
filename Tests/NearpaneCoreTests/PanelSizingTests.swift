@@ -7,12 +7,12 @@ struct PanelSizingTests {
     private let usable = SurfaceRect(x: -800, y: 0, width: 800, height: 1280)
     private var portrait: ScreenGeometry { ScreenGeometry(id: "portrait", frame: usable, visibleFrame: usable) }
 
-    @Test func factoryKeepsPanelAndModuleProportions() throws {
+    @Test func factoryUsesReferenceWidthAndNaturalToolHeights() throws {
         let settings = DisplaySettings()
         let frame = try #require(settings.panel(on: portrait, fallbackEdge: .right))
-        #expect(frame == SurfaceRect(x: -100, y: 0, width: 100, height: 1280))
+        #expect(frame == SurfaceRect(x: -200, y: 0, width: 200, height: 1280))
         let sections = settings.contentHeights(frame.height, content: .full, voice: true, tray: true)
-        #expect(sections.voice == 288 && sections.tray == 192 && sections.spaces == 800)
+        #expect(sections.voice == 144 && sections.tray == 76 && sections.spaces == 1040)
         #expect(settings.sizeForm(width: frame.width, height: frame.height, content: .full, voice: true, tray: true) == .full)
     }
 
@@ -46,9 +46,10 @@ struct PanelSizingTests {
         #expect(form(minimum, minimum) == .icon)
         #expect(form(minimum, 1280) == .compact)
         #expect(form(780, minimum) == .compact)
-        #expect(form(100, 1280) == .full)
+        #expect(form(175.9, 1280) == .compact)
+        #expect(form(176, 1280) == .full)
         settings.measures[.voiceButtonWidth] = .init(125)
-        #expect(form(100, 1280) == .compact)
+        #expect(form(140, 1280) == .compact)
         #expect(form(240, 1280) == .full)
         #expect(settings.measures[.voiceButtonWidth] == .init(125))
         settings.measures = [.waveformSize: .init(155)]
@@ -76,17 +77,17 @@ struct PanelSizingTests {
         }
         // 16 pt text padding + 32 pt voice + 26 pt copy + two 8 pt gaps,
         // inside the card's two 4%-width insets. The factory 100 pt panel fits.
-        #expect(form(97.5) == .compact)
-        #expect(form(98) == .full)
-        #expect(form(100) == .full)
+        #expect(form(121.5) == .compact)
+        #expect(form(122) == .full)
+        #expect(form(176) == .full)
         settings.measures[.voiceButtonHeight] = .init(40)
-        #expect(form(113) == .compact)
-        #expect(form(113.5) == .full)
+        #expect(form(135.5) == .compact)
+        #expect(form(136) == .full)
         // A larger copy glyph must still fit; none of these checks change the
         // requested type size or stored control dimensions to squeeze it in.
         settings.measures[.copySize] = .init(48)
-        #expect(form(121.5) == .compact)
-        #expect(form(122) == .full)
+        #expect(form(143.5) == .compact)
+        #expect(form(144) == .full)
         #expect(settings.measures[.voiceButtonHeight] == .init(40))
         #expect(settings.measures[.copySize] == .init(48))
     }
@@ -94,7 +95,7 @@ struct PanelSizingTests {
     @Test func voiceCardInsetsCannotConsumeTheLastReadableLine() {
         var settings = DisplaySettings()
         func form(_ height: Double = 1280) -> PanelSizeForm {
-            settings.sizeForm(width:100,height:height,content:.voiceOnly,voice:true,tray:false,
+            settings.sizeForm(width:200,height:height,content:.voiceOnly,voice:true,tray:false,
                               referenceHeight:1280)
         }
         // 63 pt previously passed the control/line check, but leaves only 55 pt
@@ -114,8 +115,9 @@ struct PanelSizingTests {
     @Test func relativeTextFoldsBeforeItBecomesUnreadableAndKeepsItsSavedScale() {
         var settings = DisplaySettings()
         settings.measures[.textSize] = .init(5, .percent)
+        settings.measures[.voiceHeight] = .init(24, .percent)
         func form(_ height: Double, expanded: Bool = false) -> PanelSizeForm {
-            settings.sizeForm(width: 100, height: height, content: .full, voice: true, tray: true,
+            settings.sizeForm(width: 200, height: height, content: .full, voice: true, tray: true,
                               temporarilyExpanded: expanded)
         }
         #expect(form(1280) == .full)
@@ -171,7 +173,7 @@ struct PanelSizingTests {
             let panel = try #require(settings.panel(on: portrait, fallbackEdge: .right))
             let work = try DesktopWorkArea(display: portrait.id, screen: usable, usable: usable, primary: false,
                                            settings: settings, fallbackEdge: .right).ordinary
-            #expect(work.width == 675 && work.geometry.intersection(panel.geometry) == nil)
+            #expect(work.width == 575 && work.geometry.intersection(panel.geometry) == nil)
             #expect(edge == .left ? work.x == panel.geometry.maxX : work.geometry.maxX == panel.x)
         }
         settings.measures[.reservedWidth] = .init(124.75)

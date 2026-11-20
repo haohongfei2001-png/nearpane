@@ -43,9 +43,9 @@ struct VoiceTests {
         func size(_ width: Double) -> CGSize {
             VoiceSurface.captureButtonSize(in: .init(width: width, height: 100), settings: settings)
         }
-        #expect(size(180) == SaytileVoiceUI.VoicePanelFootprint.controlSize)
-        #expect(size(90) == CGSize(width: 32, height: 26))
-        #expect(size(101.5) == CGSize(width: 43.5, height: 26))
+        #expect(size(180) == CGSize(width: 48, height: 27))
+        #expect(size(90) == CGSize(width: 48, height: 27))
+        #expect(size(101.5) == CGSize(width: 48, height: 27))
         settings.measures[.voiceButtonWidth] = .init(39)
         settings.measures[.voiceButtonHeight] = .init(31)
         #expect(size(180) == CGSize(width: 39, height: 31))
