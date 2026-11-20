@@ -10,14 +10,22 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const build = path.join(root, 'build');
-const run = fs.mkdtempSync(path.join(build, 'local-browser-'));
 const [compose, source] = process.argv.slice(2);
 const fixture = JSON.parse(fs.readFileSync(0,'utf8') || '{}');
-if (fixture.capabilityBrowser) assert.ok(['chrome','edge'].includes(fixture.capabilityBrowser));
-else assert.equal(fs.realpathSync(compose).startsWith(build + '/'), true);
-const chrome = fixture.capabilityBrowser==='edge' ? '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' :
+assert.ok(!(fixture.qualificationBrowser && fixture.capabilityBrowser), 'Select one browser fixture');
+let fixtureRoot = build;
+if (fixture.qualificationBrowser) {
+  fixtureRoot = fs.realpathSync(fixture.qualificationScratch);
+  assert.equal(path.dirname(fixtureRoot), fs.realpathSync(build));
+  assert.ok(path.basename(fixtureRoot).startsWith('p3-qualified-'));
+}
+const run = fs.mkdtempSync(path.join(fixtureRoot, 'local-browser-'));
+const requestedBrowser = fixture.qualificationBrowser ?? fixture.capabilityBrowser;
+if (requestedBrowser) assert.ok(['chrome', 'edge'].includes(requestedBrowser));
+if (!fixture.capabilityBrowser) assert.equal(fs.realpathSync(compose).startsWith(build + '/'), true);
+const chrome = requestedBrowser === 'edge' ? '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' :
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const intercepted = fixture.productDriver || fixture.capabilityBrowser;
+const intercepted = fixture.productDriver || requestedBrowser;
 
 const png = Buffer.from(fixture.png ||
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNQ91/l1DGH4cwql/K0UAAk9wVzjPxe1gAAAABJRU5ErkJggg==','base64');
@@ -58,7 +66,8 @@ child.stdio[4].setEncoding('utf8').on('data', part => {
   }
 });
 closed.then(() => { for (const waiter of pending.values()) waiter.reject(Error('Fixture browser exited')); });
-const timeout = setTimeout(() => child.kill('SIGKILL'), fixture.productDriver ? 180000 : 45000);
+const driverRun = fixture.productDriver || fixture.qualificationBrowser;
+const timeout = setTimeout(() => child.kill('SIGKILL'), driverRun ? 180000 : 45000);
 let verified = false;
 const draft = fs.readFileSync(path.join(root,'scripts/acceptance/draft-observation.js'),'utf8');
 try {
@@ -84,7 +93,7 @@ try {
       void call('Fetch.fulfillRequest',{requestId:params.requestId,responseCode:200,
         responseHeaders:[{name:'Content-Type',value:'text/html; charset=utf-8'},
           {name:'Content-Security-Policy',value:"default-src 'none'; form-action 'none'; base-uri 'none'" +
-            (fixture.productDriver ? "; img-src blob:" : "")}],
+            (driverRun ? "; img-src blob:" : "")}],
         body:Buffer.from(expected.html).toString('base64')},targetSession);
     } else { denied++; void call('Fetch.failRequest',{requestId:params.requestId,errorReason:'BlockedByClient'},targetSession); }
   });
@@ -100,7 +109,12 @@ try {
       assert.equal(await evalPage('location.href',targetSession),next);
     };
     let evidence;
-    if (fixture.capabilityBrowser) {
+    if (fixture.qualificationBrowser) {
+      const { runQualifiedCases } = await import('./draft-qualification/cases.mjs');
+      evidence = await runQualifiedCases({
+        exe: compose, run, browser: fixture.qualificationBrowser, chromePID: child.pid, navigate, evalPage, sha,
+      });
+    } else if (fixture.capabilityBrowser) {
       const {runCapabilityCases} = await import('./draft-capability-cases.mjs');
       evidence=await runCapabilityCases({guard:fs.readFileSync(path.join(root,'Resources/AcceptanceTargetGuard.js'),'utf8'),navigate,evalPage});
       evidence.browser = fixture.capabilityBrowser;

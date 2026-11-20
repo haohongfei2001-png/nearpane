@@ -1,0 +1,275 @@
+diff --git a/Sources/RiftletAdapters/ChromeAppleEventsExecutor.swift b/Sources/RiftletAdapters/ChromeAppleEventsExecutor.swift
+index 265d023e84473fa54ce2057b246ff718d029d901..8c94e45b822e2a08a01a63d3ad820f3e614a3a82 100644
+--- a/Sources/RiftletAdapters/ChromeAppleEventsExecutor.swift
++++ b/Sources/RiftletAdapters/ChromeAppleEventsExecutor.swift
+@@ -33 +33,2 @@ public final class ChromeAppleEventsExecutor: WebClickTargetPinning {
+-        let route = try bridge.clickRoute(deadline: clickDeadline)
++        if let qualification=program.qualification, qualification.browser.rawValue != identity.applicationID {throw WebAdapterError.invalidTarget}
++        let route = try bridge.clickRoute(deadline: clickDeadline, qualification:program.qualification)
+@@ -65 +66 @@ public final class ChromeAppleEventsExecutor: WebClickTargetPinning {
+-                  target.adapterID == "chatgpt-web", target.surface == .webChat,
++                  target.adapterID == (program.qualification?.adapterID ?? "chatgpt-web"), target.surface == .webChat,
+@@ -154,0 +156 @@ public final class ChromeAppleEventsExecutor: WebClickTargetPinning {
++              program.qualification.map({target.applicationID==$0.browser.rawValue && target.adapterID==$0.adapterID}) ?? true,
+@@ -217,2 +219,2 @@ public final class ChromeAppleEventsExecutor: WebClickTargetPinning {
+-                            let current = try ChromeClickRoute.chatGPT(window: route.window, tab: route.tab,
+-                                url: bridge.url(window: route.window, tab: route.tab))
++                            let current = try ChromeClickRoute.page(window: route.window, tab: route.tab,
++                                url: bridge.url(window: route.window, tab: route.tab), qualification: program.qualification)
+@@ -226,2 +228,2 @@ public final class ChromeAppleEventsExecutor: WebClickTargetPinning {
+-                            let current = try ChromeClickRoute.chatGPT(window: window, tab: tab,
+-                                url: bridge.url(window: window, tab: tab))
++                            let current = try ChromeClickRoute.page(window: window, tab: tab,
++                                url: bridge.url(window: window, tab: tab),qualification:program.qualification)
+@@ -590 +592 @@ private struct ChromePIDEvents {
+-    func clickRoute(deadline: ChromeClickDeadline) throws -> ChromeClickRoute {
++    func clickRoute(deadline: ChromeClickDeadline, qualification:DraftQualificationRoute?=nil) throws -> ChromeClickRoute {
+@@ -609 +611 @@ private struct ChromePIDEvents {
+-        let route = try ChromeClickRoute.chatGPT(window: identity.window, tab: identity.tab, url: address)
++        let route = try ChromeClickRoute.page(window: identity.window, tab: identity.tab, url: address,qualification:qualification)
+diff --git a/Sources/RiftletAdapters/ChromeClickDocumentWitness.swift b/Sources/RiftletAdapters/ChromeClickDocumentWitness.swift
+index a62566f89e43e225632b8a2d94c23e324542206b..d80ff705ce6016568f97ba177d9dbaaf9fa96227 100644
+--- a/Sources/RiftletAdapters/ChromeClickDocumentWitness.swift
++++ b/Sources/RiftletAdapters/ChromeClickDocumentWitness.swift
+@@ -10 +10 @@ struct ChromeClickDocumentWitness {
+-        guard program.sourceID == ChatGPTWebPageProgram.sourceID, let pinSource = program.pinSource else {
++        guard program.sourceID == (program.qualification?.adapterID ?? ChatGPTWebPageProgram.sourceID), let pinSource = program.pinSource else {
+diff --git a/Sources/RiftletAdapters/ChromeCommandRouting.swift b/Sources/RiftletAdapters/ChromeCommandRouting.swift
+index 46da2f8da3be185da33ebcb6351da640de8b37ff..89ec0d5e8bdaba893956165933b6fd9aeaebe075 100644
+--- a/Sources/RiftletAdapters/ChromeCommandRouting.swift
++++ b/Sources/RiftletAdapters/ChromeCommandRouting.swift
+@@ -29,0 +30,5 @@ struct ChromeClickRoute: Equatable, Sendable {
++    static func page(window:String,tab:String,url:String,qualification:DraftQualificationRoute?) throws -> Self {
++        guard let qualification else {return try chatGPT(window:window,tab:tab,url:url)}
++        guard qualification.permits(url:url) else {throw WebAdapterError.pageRejected(.pageRouteUnsupported)}
++        return try Self(window:window,tab:tab,url:url)
++    }
+diff --git a/Sources/RiftletAdapters/DraftQualificationRoute.swift b/Sources/RiftletAdapters/DraftQualificationRoute.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..2566ee92214bc0b634042865fee3d0358dcc84d2
+--- /dev/null
++++ b/Sources/RiftletAdapters/DraftQualificationRoute.swift
+@@ -0,0 +1,59 @@
++import Foundation
++import RiftletCore
++
++/// Offline qualification of a synthetic file. These routes have no production receipt admission.
++public enum QualificationDraftService: String, CaseIterable, Sendable {
++    case chatGPT = "chatgpt.com"
++    case claude = "claude.ai"
++    case gemini = "gemini.google.com"
++    case deepSeek = "chat.deepseek.com"
++    public var freshPath: String {
++        switch self {
++        case .chatGPT, .deepSeek: return "/"
++        case .claude: return "/new"
++        case .gemini: return "/app"
++        }
++    }
++}
++
++public struct DraftQualificationRoute: Equatable, Sendable {
++    public let browser: AttachmentBrowser
++    public let service: QualificationDraftService
++    public init(browser: AttachmentBrowser, service: QualificationDraftService) {
++        self.browser = browser
++        self.service = service
++    }
++    public var adapterID: String { "qualification-v1." + browser.rawValue + "." + service.rawValue }
++    public var profile: ObservationProfile {
++        .init(
++            adapterID: adapterID, surface: .webChat, profileID: adapterID + ".unadmitted", completionSignal: .attached,
++            uploadStartProfileID: adapterID + ".unadmitted-start")
++    }
++    public func permits(url: String) -> Bool {
++        guard let parts = URLComponents(string: url), parts.scheme == "https", parts.host == service.rawValue,
++            parts.user == nil, parts.password == nil, parts.port == nil, parts.query == nil, parts.fragment == nil
++        else { return false }
++        let path = parts.percentEncodedPath
++        return (path.isEmpty ? "/" : path) == service.freshPath
++    }
++    /// Both functions are taken from the same audited resource. A generated literal is closed over at
++    /// compile time; a browser event, page global or URL cannot enable these profiles.
++    public func program() throws -> WebPageProgram {
++        let base = try ChatGPTWebPageProgram.load()
++        guard let pin = base.pinSource else { throw WebAdapterError.programUnavailable }
++        let spec = try JSONSerialization.data(
++            withJSONObject: [
++                "browser": browser.rawValue, "host": service.rawValue, "freshPath": service.freshPath,
++                "adapterID": adapterID,
++            ], options: [.sortedKeys])
++        func bind(_ source: String) throws -> String {
++            let mark = "const draftQualification = null; // RIFTLET_DRAFT_QUALIFICATION"
++            guard source.components(separatedBy: mark).count == 2 else { throw WebAdapterError.programUnavailable }
++            return source.replacingOccurrences(
++                of: mark, with: "const draftQualification = " + String(decoding: spec, as: UTF8.self) + ";")
++        }
++        return WebPageProgram(
++            sourceID: adapterID, functionSource: try bind(base.functionSource), maximumChunkBytes: base.maximumChunkBytes,
++            inputDiscoveryTimeout: base.inputDiscoveryTimeout, pinSource: try bind(pin), qualification: self)
++    }
++}
+diff --git a/Sources/RiftletAdapters/Resources/chatgpt-web-20261027.js b/Sources/RiftletAdapters/Resources/chatgpt-web-20261027.js
+index 42456535c6038376269bf6e131e26435ecee1a8e..3e74b23a1f415c7c2fdd26822723ef69f0ccaf48 100644
+--- a/Sources/RiftletAdapters/Resources/chatgpt-web-20261027.js
++++ b/Sources/RiftletAdapters/Resources/chatgpt-web-20261027.js
+@@ -9,0 +10,25 @@ function riftletWebAcceptance(command, native) {
++  const draftQualification = null; // RIFTLET_DRAFT_QUALIFICATION
++  const candidateSurfaces = {
++    'chatgpt.com': {
++      editor: '#prompt-textarea', composer: 'form,[data-testid="composer"],[data-composer-placement]',
++      account: '[data-testid="profile-button"],[data-testid="accounts-profile-button"]',
++      login: '[data-testid="login-button"],a[href^="/auth/login"]', turn: '[data-message-author-role]'
++    },
++    'claude.ai': {
++      editor: '[data-testid="chat-input"],div.ProseMirror[contenteditable="true"]',
++      composer: 'form,[data-testid="chat-input-container"],fieldset',
++      account: '[data-testid="user-menu-button"],[data-testid="account-menu-button"]',
++      login: 'a[href^="/login"],form[action*="/login"]', turn: '[data-testid="user-message"],[data-testid="assistant-message"]'
++    },
++    'gemini.google.com': {
++      editor: 'rich-textarea [contenteditable="true"]', composer: 'form,input-area-v2,input-container',
++      account: 'a[href^="https://accounts.google.com/SignOutOptions"]',
++      login: 'a[href^="https://accounts.google.com/ServiceLogin"]', turn: 'user-query,model-response'
++    },
++    'chat.deepseek.com': {
++      editor: 'main textarea,[role="main"] textarea,#chat-input', composer: 'form,[data-testid="chat-input-container"]',
++      account: '[data-testid="user-menu"],[data-testid="account-menu"]',
++      login: 'a[href^="/sign_in"],form[action*="/sign_in"]', turn: '[data-message-id],[data-testid="chat-message"]'
++    }
++  };
++  const candidate = draftQualification && candidateSurfaces[draftQualification.host];
+@@ -13,3 +38,7 @@ function riftletWebAcceptance(command, native) {
+-    // Restrict the product to ChatGPT, without a whitelist of conversation or
+-    // Project paths. A different service's editor is not an attachment target.
+-    if (url.username || url.password || !['https://chatgpt.com', 'https://chat.openai.com'].includes(url.origin)) fail('PAGE_ROUTE_UNSUPPORTED');
++    if (url.username || url.password) fail('PAGE_ROUTE_UNSUPPORTED');
++    if (draftQualification) {
++      if (!candidate || url.origin !== 'https://' + draftQualification.host ||
++          url.pathname !== draftQualification.freshPath || url.search || url.hash) fail('PAGE_ROUTE_UNSUPPORTED');
++    } else if (!['https://chatgpt.com', 'https://chat.openai.com'].includes(url.origin)) {
++      fail('PAGE_ROUTE_UNSUPPORTED');
++    }
+@@ -56 +85 @@ function riftletWebAcceptance(command, native) {
+-  const composerSurface = '[data-composer-placement],[data-chatgpt-composer],[data-testid="composer"]';
++  const composerSurface = candidate ? candidate.composer : '[data-composer-placement],[data-chatgpt-composer],[data-testid="composer"]';
+@@ -80,0 +110,14 @@ function riftletWebAcceptance(command, native) {
++    if (candidate) {
++      const shown = selector => [...document.querySelectorAll(selector)].filter(visible);
++      const editors = shown(candidate.editor).filter(node => (node.isContentEditable || node.tagName === 'TEXTAREA') &&
++        !node.disabled && !node.readOnly && !blocked(node) && !node.closest('article,nav,aside,[inert],[role="dialog"]'));
++      if (shown(candidate.account).length !== 1 || shown(candidate.login).length || shown(candidate.turn).length ||
++          shown('dialog[open],[aria-modal="true"],[role="dialog"]').length || editors.length !== 1) fail('AMBIGUOUS_COMPOSER');
++      const editor = editors[0], form = editor.closest(composerSurface);
++      if (!form || (editor.isContentEditable ? editor.textContent.trim().length : editor.textLength)) fail('EDITOR_UNAVAILABLE');
++      // This candidate needs an actual input owned by the selected composer.
++      const inputs = [...form.querySelectorAll('input[type="file"]')].filter(input => usableInput(input) &&
++        input.closest(composerSurface) === form && !input.hasAttribute('form'));
++      if (inputs.length !== 1) fail('AMBIGUOUS_COMPOSER');
++      return {editor, form, input: inputs[0]};
++    }
+@@ -261 +304 @@ function riftletWebAcceptance(command, native) {
+-  const KEY = '__riftletIndependentFileInput20261104';
++  const KEY = draftQualification ? '__riftletDraftQualification:' + draftQualification.adapterID : '__riftletIndependentFileInput20261104';
+@@ -352,0 +396,5 @@ function riftletWebAcceptance(command, native) {
++      if (draftQualification && writing) {
++        const original = composer();
++        if (!binding.target.clickBindingID || original.editor !== binding.editor || original.form !== binding.form ||
++            original.input !== binding.input || native.applicationID !== draftQualification.browser) return false;
++      }
+@@ -1584 +1632,2 @@ function riftletWebAcceptance(command, native) {
+-    if (!['com.google.Chrome', 'com.microsoft.edgemac'].includes(native.applicationID) || !native.sessionID
++    if ((draftQualification && (native.applicationID !== draftQualification.browser || !uuid(command.clickWitnessID))) ||
++        !['com.google.Chrome', 'com.microsoft.edgemac'].includes(native.applicationID) || !native.sessionID
+@@ -1598 +1647 @@ function riftletWebAcceptance(command, native) {
+-      const target = {adapterID: 'chatgpt-web', surface: 'webChat', ...native, clickBindingID: pin,
++      const target = {adapterID: draftQualification?.adapterID ?? 'chatgpt-web', surface: 'webChat', ...native, clickBindingID: pin,
+@@ -1631 +1680 @@ function riftletWebAcceptance(command, native) {
+-        target: {adapterID: 'chatgpt-web', surface: 'webChat', ...native,
++        target: {adapterID: draftQualification?.adapterID ?? 'chatgpt-web', surface: 'webChat', ...native,
+diff --git a/Sources/RiftletAdapters/WebAttachmentAdapter.swift b/Sources/RiftletAdapters/WebAttachmentAdapter.swift
+index 5301db275959cb27162fff81c9aa229f5f34c948..9fefafc6b3d39965dbe2d2ecb7ff1793fa666194 100644
+--- a/Sources/RiftletAdapters/WebAttachmentAdapter.swift
++++ b/Sources/RiftletAdapters/WebAttachmentAdapter.swift
+@@ -19,0 +20 @@ public struct WebPageProgram: Sendable {
++    public let qualification: DraftQualificationRoute?
+@@ -28 +29,2 @@ public struct WebPageProgram: Sendable {
+-                inputDiscoveryTimeout: TimeInterval = 0, pinSource: String? = nil) {
++                inputDiscoveryTimeout: TimeInterval = 0, pinSource: String? = nil, qualification: DraftQualificationRoute? = nil) {
++        self.qualification = qualification
+@@ -213 +215 @@ public actor WebAttachmentAdapter: IndependentFileInputAdapter {
+-        guard mode != .disabled, let program,
++        guard mode != .disabled, let program, program.qualification == nil || mode == .syntheticDevelopment,
+@@ -527,0 +530,6 @@ public actor WebAttachmentAdapter: IndependentFileInputAdapter {
++        if let route = program.qualification {
++            guard mode == .syntheticDevelopment, program.sourceID == route.adapterID,
++                  normalizer.profile.adapterID == route.adapterID, normalizer.profile.profileID == route.profile.profileID else {
++                throw WebAdapterError.programUnavailable
++            }
++        }
+@@ -662,0 +671,8 @@ public actor WebAttachmentAdapter: IndependentFileInputAdapter {
++        let permittedBrowser: Bool
++        if let route = program?.qualification {
++            permittedBrowser = mode == .syntheticDevelopment && target.attachmentBrowser == route.browser
++                && target.adapterID == route.adapterID && target.clickBindingID != nil
++        } else {
++            permittedBrowser = target.attachmentBrowser == .chrome
++                || (mode == .ordinaryProduct && target.surface == .webChat && target.attachmentBrowser == .edge)
++        }
+@@ -665 +681 @@ public actor WebAttachmentAdapter: IndependentFileInputAdapter {
+-              target.attachmentBrowser == .chrome || (mode == .ordinaryProduct && target.surface == .webChat && target.attachmentBrowser == .edge),
++              permittedBrowser,
+diff --git a/Tests/RiftletAdaptersTests/DraftQualificationRouteTests.swift b/Tests/RiftletAdaptersTests/DraftQualificationRouteTests.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..78892310a929afdd4ec02dcaf36d10261a0304bb
+--- /dev/null
++++ b/Tests/RiftletAdaptersTests/DraftQualificationRouteTests.swift
+@@ -0,0 +1,48 @@
++import Foundation
++import RiftletCore
++
++@testable import RiftletAdapters
++
++private enum RouteTestError: Error { case mismatch }
++private func requireRoute(_ value: Bool) throws { guard value else { throw RouteTestError.mismatch } }
++private func accepted(_ url: String, _ route: DraftQualificationRoute?) -> Bool {
++    (try? ChromeClickRoute.page(window: "3", tab: "7", url: url, qualification: route)) != nil
++}
++private func verifyQualificationRoutes() throws {
++    for browser in AttachmentBrowser.allCases {
++        for service in QualificationDraftService.allCases {
++            let route = DraftQualificationRoute(browser: browser, service: service)
++            let fresh = "https://" + service.rawValue + service.freshPath
++            let selected = try ChromeClickRoute.page(window: "3", tab: "7", url: fresh, qualification: route)
++            try requireRoute(selected.window == "3" && selected.tab == "7")
++            for wrong in [
++                fresh + "?q=1", fresh + "#page", fresh + "other",
++                fresh.replacingOccurrences(of: "https://", with: "http://"),
++                fresh.replacingOccurrences(of: "https://", with: "https://id@"),
++                "https://" + service.rawValue + ".invalid" + service.freshPath,
++            ] {
++                try requireRoute(!accepted(wrong, route))
++            }
++            let program = try route.program()
++            try requireRoute(program.qualification == route && program.sourceID == route.adapterID)
++            try requireRoute(route.profile.profileID != OrdinaryProductScreenshotScope.admittedSystemProfile.profileID)
++            _ = try ChromeClickDocumentWitness().bindScript(address: fresh, program: program)
++        }
++    }
++    try requireRoute(!accepted("https://claude.ai/new", nil))
++    try requireRoute(AttachmentBrowser(rawValue: "com.apple.Safari") == nil)
++    let regular = try ChatGPTWebPageProgram.load()
++    try requireRoute(regular.qualification == nil && regular.functionSource.contains("const draftQualification = null;"))
++}
++
++#if canImport(XCTest)
++    import XCTest
++    final class DraftQualificationRouteTests: XCTestCase {
++        func testFixedNativeReceiverAndOrdinaryEligibility() throws { try verifyQualificationRoutes() }
++    }
++#elseif canImport(Testing)
++    import Testing
++    @Suite struct DraftQualificationRouteTests {
++        @Test func fixedNativeReceiverAndOrdinaryEligibility() throws { try verifyQualificationRoutes() }
++    }
++#endif

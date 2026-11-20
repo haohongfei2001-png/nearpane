@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "repository": "haohongfei2001-png/Riftlet",
+  "ordinaryProductionPin": "189782dd943f5215da43539b30db27e482a78b3c",
+  "qualificationBase": "c764246410c2c0c225ac4bb8688c2ae5179f27e9",
+  "qualificationCommit": "5c6ca7fabc37fb50805603f6dc7df1ed39671d1e",
+  "qualificationTree": "df7f8a0bd2e4fa13aa9224d6c918b291f9766578",
+  "patchSHA256": "7e4563ccceb32cbc31cb11941430a88459dd130e783f345d7b478d14e846143e",
+  "productionEnabled": false,
+  "writeOrigin": "synthetic",
+  "files": {
+    "Sources/RiftletAdapters/ChromeAppleEventsExecutor.swift": {
+      "from": "5217536bdce815a48966b5b51a38fef6792a18cfd4574df96124f189091372b7",
+      "to": "51876120cf04cb9a09752b25adc21125fcd004c1a8f74a07c6c7a5c1591d0ba4"
+    },
+    "Sources/RiftletAdapters/ChromeClickDocumentWitness.swift": {
+      "from": "e020b83710c2f5aaaed713b7ba42e8556176fa54f9f89261b9be12547e23e413",
+      "to": "b9a9593d08636169cef87a165c7054ff5fcd7bcee93bcf3087416e6d8e9f2e22"
+    },
+    "Sources/RiftletAdapters/ChromeCommandRouting.swift": {
+      "from": "96bc9597f5989bf11d1e62d2b58a6379f47210901e4ae91e0829c8ac1aa8464d",
+      "to": "44e6ee5e8062182d6fe61632f8313be1be5bd9013c84c5641b08deed2bce9c56"
+    },
+    "Sources/RiftletAdapters/DraftQualificationRoute.swift": {
+      "from": null,
+      "to": "6eee022925a8c758259a4bc50fd65c40754c034eee60d7b893fa9dedb33655fd"
+    },
+    "Sources/RiftletAdapters/Resources/chatgpt-web-20261027.js": {
+      "from": "50b0d16d10f38c688ce33189df55ad3da6588b4c7006b710777f30340dc55ed7",
+      "to": "c3effd7abfcc45f2520d57cb9825ac3f43afc65f8c7874f7826a144bc85f3f8d"
+    },
+    "Sources/RiftletAdapters/WebAttachmentAdapter.swift": {
+      "from": "bd81e722dd1210b2e3101d5bacf0e2e551e295baec118717a20b83e4e733d553",
+      "to": "4bda155213fa6420b89552e20e10e1f46056dc084b8b2bf89d9967a99789c53a"
+    },
+    "Tests/RiftletAdaptersTests/DraftQualificationRouteTests.swift": {
+      "from": null,
+      "to": "60a7ece75f2a1231e8a785ef36806d8f888edcc4ce156159335ba792db323179"
+    }
+  }
+}

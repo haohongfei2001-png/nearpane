@@ -1,5 +1,4 @@
 import AppKit
-import NearpaneCore
 import Security
 
 /// Routes only the adapter present in the pinned release. Other known origins cannot inherit its writer.
@@ -64,7 +63,7 @@ enum DraftCapabilityFailure: Error {
         switch self {
         case .indexedTab: "此版本无法稳定绑定 Safari 的标签页，截图已保留。"
         case .loginRequired: "当前草稿页面显示需要登录，截图已保留。"
-        case .noWriter(let route, _): "此版本尚未接入 " + route.browser.name + " 的 " + route.service.rawValue + " 草稿附加。"
+        case .noWriter(let route, _): "当前版本尚未启用 " + route.browser.name + " 的 " + route.service.rawValue + " 草稿附加。"
         case .readUnavailable(let browser): "未取得 " + browser.name + " 当前草稿的只读能力，截图已保留。"
         }
     }
