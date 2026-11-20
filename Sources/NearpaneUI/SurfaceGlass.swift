@@ -16,9 +16,9 @@ extension PanelGlassSettings {
     func resolvedTransparency(dark: Bool) -> Self {
         var result = self
         if usesRecommendedTransparency {
-            result.overallTransparency = dark ? 5 : 6
-            result.outerTransparency = dark ? 62 : 61
-            result.innerTransparency = dark ? 9 : 18
+            result.overallTransparency = dark ? 22 : 32
+            result.outerTransparency = dark ? 68 : 65
+            result.innerTransparency = dark ? 7 : 8
         } else {
             result.overallTransparency = overallTransparency ?? 0
             result.outerTransparency = outerTransparency ?? (dark ? 60 : 48)

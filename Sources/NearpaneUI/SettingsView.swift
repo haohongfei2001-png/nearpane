@@ -442,9 +442,9 @@ public struct SettingsView: View {
                                 }
                                 if manifest.kind == .builtin || BuiltinCatalog.sidebarTools.contains(pref.id) {
                                         Button { host.handle(.move(pref.id, -1)) } label: { Image(systemName: "arrow.up") }
-                                            .accessibilityLabel("Move \(manifest.name) up")
+                                            .accessibilityLabel("Move \(manifest.name) up").accessibilityIdentifier("module-up-" + pref.id)
                                         Button { host.handle(.move(pref.id, 1)) } label: { Image(systemName: "arrow.down") }
-                                            .accessibilityLabel("Move \(manifest.name) down")
+                                            .accessibilityLabel("Move \(manifest.name) down").accessibilityIdentifier("module-down-" + pref.id)
                                 }
                             }
                             HStack {

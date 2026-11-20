@@ -57,7 +57,7 @@ public struct TraySurface: View {
                                 } label: {
                                     Image(systemName: "camera").font(.system(size: 21))
                                         .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
-                                }.buttonStyle(.plain).accessibilityLabel("展开截图方式")
+                                }.buttonStyle(.plain).accessibilityLabel("展开截图方式").accessibilityIdentifier("tray-camera-entry")
                             }
                         case .folder:
                             Image(systemName: "folder").font(.system(size: 21))
@@ -96,6 +96,7 @@ public struct TraySurface: View {
                 }
                 return true
             }
+            .accessibilityElement(children: .contain).accessibilityLabel("截图与文件托盘").accessibilityIdentifier("tray-content")
             .onExitCommand { module.collapseMenu() }
             .overlay(alignment: .bottomLeading) {
                 if let message = module.issue ?? module.attachmentFeedback {

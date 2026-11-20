@@ -17,7 +17,7 @@ import NearpaneCore
             #expect(old.innerMaterial == 1)
             let factory = SurfaceGlassLevels(adaptive, dark: dark, reduceTransparency: false)
             #expect(factory.outerMaterial < 1 && factory.innerMaterial > factory.outerMaterial)
-            #expect(factory.innerMaterial > 0.70 && factory.outerTint > 0.35)
+            #expect(factory.innerMaterial > 0.65 && factory.outerTint > 0.22)
             #expect(factory.innerTint > factory.outerTint)
             // Entering manual adjustment keeps every unedited optical value continuous.
             let explicit = adaptive.resolvedTransparency(dark: dark)
