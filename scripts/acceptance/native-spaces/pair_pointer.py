@@ -18,6 +18,7 @@ from installed_profile import PROFILE, owns_profile
 from p2_documents import RegisteredRun, Superseded, TrialStop, capture_dimensions, check_hid, coherent, digest, require
 from space_scope import private_file
 from pair_pointer_timing import HostFocusTiming, correlate
+from pair_drag_film import PairDragFilm
 
 
 def rect(value):
@@ -264,6 +265,15 @@ class PairPointerRun(RegisteredRun):
         before = self.geometry(a, hashes)
         require(geometry_agrees(before, baseline, anchor, [a,b]), "pairChangedBeforeGesture")
         entry["before"] = before
+        film = PairDragFilm.start(self,entry,before,hashes) if kind=="right" else None
+        try:
+            self.send_and_observe_drag(kind,entry,hashes,anchor,expected,baseline,before)
+        finally:
+            if film is not None:
+                entry["film"] = film.finish(entry)
+
+    def send_and_observe_drag(self, kind, entry, hashes, anchor, expected, baseline, before):
+        a,b=self.binding["numbers"]
         entry["phaseStart"] = time.monotonic()
         proof = self.packet(kind, a, hashes)
         entry.update(issued=proof.get("issued"), events=proof.get("events", []))

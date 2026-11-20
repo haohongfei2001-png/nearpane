@@ -74,6 +74,20 @@ class PostDropTests(unittest.TestCase):
         self.assertEqual(len(self.seen),1)
         self.run.packet.assert_not_called()
 
+    def test_right_drag_camera_brackets_only_the_single_original_dispatch(self):
+        self.run.out={"drags":{"right":{}}}; self.run.rec=Mock(attempts=[])
+        self.run.geometry=Mock(return_value=self.anchor)
+        order=[]
+        film=Mock()
+        film.finish.side_effect=lambda entry: (order.append(("finish",entry["status"])) or {"status":"CAPTURED"})
+        def send(kind,entry,*_):order.append(("dispatch",kind));entry["status"]="PASS"
+        self.run.send_and_observe_drag=Mock(side_effect=send)
+        def start(*_):order.append(("start","right"));return film
+        with patch.object(p.PairDragFilm,"start",side_effect=start):
+            self.run.drag("right",["a","b"],self.anchor,self.expected,self.anchor["cg"])
+        self.assertEqual(order,[("start","right"),("dispatch","right"),("finish","PASS")])
+        self.assertEqual(self.run.out["drags"]["right"]["film"]["status"],"CAPTURED")
+
     def test_other_display_and_mismatching_observer_data_never_confirm_a_layout(self):
         self.assertFalse(p.post_bound({**self.sample(True)["geometry"],"displayUUID":"other"},self.anchor,[317,409]))
         g=copy.deepcopy(self.sample(True)["geometry"])
