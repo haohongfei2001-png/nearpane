@@ -1,6 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/../../.."
+if [[ ${1:-} == p0-adjacent ]]; then
+    [[ $# == 3 && "$2" == /private/tmp/nearpane-d01.* && -d "$2" && -O "$2" && ! -L "$2" &&
+       -x "$2/p0-card" && -x "$2/p0-mission" ]] || {
+        echo "Usage: run.sh p0-adjacent <prepared p0-build.sh kit> <new receipt directory>" >&2
+        exit 2
+    }
+    umask 077
+    mkdir -p "$(dirname "$3")"
+    mkdir -m 700 "$3"
+    src=scripts/acceptance/native-spaces
+    exec python3 "$src/installed_profile.py" "$3/profile" -- python3 "$src/p0-cards.py" "$2" "$3/actions" --route ordinary
+fi
 if [[ ${1:-} == core-contract || ${1:-} == cleanup-contract || ${1:-} == same-space-documents ]]; then
     umask 077
     mode="$1"
