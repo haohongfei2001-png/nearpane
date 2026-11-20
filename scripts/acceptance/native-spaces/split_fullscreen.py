@@ -125,14 +125,32 @@ def enter(folder,fixture,read_state,lease,report,save):
     report.update(entry='PASS',fullscreenSpace=actual['space'],entryWindow=fixture()['numbers'][0]);save()
 
 
+def fixture_only_aux(census):
+    if census.get('admitted') is True:return True
+    count=census.get('extraClasses',{}).get('fixtureAuxiliary/unverifiedOrdinary')
+    details=[x for x in census.get('extraEvidence',[]) if x.get('category')=='unverifiedOrdinary']
+    return (type(count) is int and 0<count==len(details)==census.get('unknown') and
+            census.get('unresolved')==0 and census.get('expectedProven') is True and census.get('otherLayersAdmitted') is True and
+            all(x.get('owner')=='fixtureAuxiliary' and x.get('singleSpace') is True and x.get('onscreen') is False and
+                x.get('drawn') is False and x.get('inPublicCurrent') is False and x.get('inPublicAll') is False and
+                x.get('fixtureAXStandard') is False and x.get('fixtureAXWindowRole') is False for x in details))
+
+
+def returned(state,own,lease):
+    if ordinary(state,own,lease):return True
+    if state.get('axFullscreen')!=[False,False] or state.get('kernelCodeIdentitiesVerified') is not True:return False
+    if not fixture_only_aux(state.get('leaseWindowCensus',{})):return False
+    return ordinary({**state,'onlyTwoInLease':True},own,lease)
+
+
 def unwind(folder,fixture,read_state,lease,report,save):
     report.update(status='UNKNOWN',requests=[]);save()
     issued=set()
     deadline=time.monotonic()+15;last_reason='ownerOrFullscreenSpaceUnconfirmed'
     while time.monotonic()<deadline:
         state=read_state();own=fixture()
-        if ordinary(state,own,lease):
-            final=dwell(read_state,fixture,lambda s,f:ordinary(s,f,lease),max(.4,deadline-time.monotonic()))
+        if returned(state,own,lease):
+            final=dwell(read_state,fixture,lambda s,f:returned(s,f,lease),max(.4,deadline-time.monotonic()))
             report.update(status='PASS',returnedSpace=final['space'],bothOrdinary=True,windowManagement=final['windowManagement'])
             save();return
         # Always try the former left document first. B can need its own exit if

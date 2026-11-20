@@ -71,6 +71,18 @@ class Tests(unittest.TestCase):
         self.assertFalse(fs.ordinary({**ordinary(),'memberships':[[FULL],[LEASE]]},flags,LEASE))
         self.assertFalse(fs.stable_shell({'windowManagement':{**SHELL,'animating':True}}))
 
+    def test_hidden_fixture_auxiliary_only_counts_on_exit_with_two_real_ordinary_documents(self):
+        aux=dict(owner='fixtureAuxiliary',category='unverifiedOrdinary',singleSpace=True,onscreen=False,
+                 drawn=False,inPublicCurrent=False,inPublicAll=False,fixtureAXStandard=False,fixtureAXWindowRole=False)
+        c=dict(admitted=False,expectedProven=True,unresolved=0,unknown=1,otherLayersAdmitted=True,
+               extraClasses={'fixtureAuxiliary/unverifiedOrdinary':1},extraEvidence=[aux])
+        v={**ordinary(),'onlyTwoInLease':False,'axFullscreen':[False,False],'kernelCodeIdentitiesVerified':True,'leaseWindowCensus':c}
+        f={'fullscreen':[False,False]}
+        self.assertFalse(fs.ordinary(v,f,LEASE));self.assertTrue(fs.returned(v,f,LEASE))
+        for change in [dict(owner='otherOwner'),dict(onscreen=True),dict(drawn=True),dict(inPublicAll=True),dict(fixtureAXWindowRole=True)]:
+            self.assertFalse(fs.returned({**v,'leaseWindowCensus':{**c,'extraEvidence':[{**aux,**change}]}},f,LEASE))
+        self.assertFalse(fs.returned({**v,'axFullscreen':[True,False]},f,LEASE))
+
     def test_half_picker_unwinds_once_and_waits_for_ordinary_rereads(self):
         state=tiled(False,current=LEASE); flags=[True,False]; actions=[]; report={}
         def own():return dict(numbers=[31,32],fullscreen=flags.copy())
