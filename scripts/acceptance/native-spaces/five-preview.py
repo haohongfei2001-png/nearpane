@@ -132,11 +132,16 @@ def run_case(kit, out, expected_space, expected_source, expected_display=None, e
                        "--args", str(folder), "1"]
             item["launcher"] = subprocess.Popen(request, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             launched.append(item)
+            startup = wait_state(folder / "startup.json", lambda s: s.get("session") == folder.name and s.get("bundle") == ident
+                                 and s.get("policy") == 0 and s.get("displayCount") == 1 and s.get("pid", 0) > 1
+                                 and s.get("birth", 0) > 0, time.monotonic() + 5)
+            require(startup, "fixturePrivateStartupUnavailableSlot"+str(slot))
+            item.update(pid=startup["pid"], birth=startup["birth"])
             state = wait_state(folder / "windows.json", lambda s: s.get("session") == folder.name and s.get("bundle") == ident
                                and s.get("slot") == slot and s.get("phase") == 0 and s.get("presentation") == "five-preview"
                                and s.get("visible") == [True] and s.get("minimized") == [False] and len(s.get("numbers", [])) == 1,
                                time.monotonic() + 6)
-            require(state and state["pid"] > 1 and state["birth"] > 0 and state["numbers"][0] > 0, "fixtureWindowDidNotEnrollSlot"+str(slot))
+            require(state and state["pid"] == item["pid"] and state["birth"] == item["birth"] and state["numbers"][0] > 0, "fixtureWindowDidNotEnrollSlot"+str(slot))
             owner = dict(slot=slot, pid=state["pid"], birth=state["birth"], number=state["numbers"][0], hash=code_hash)
             item.update(owner)
             run["owners"].append(owner)

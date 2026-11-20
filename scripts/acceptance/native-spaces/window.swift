@@ -13,25 +13,26 @@ let session = run.lastPathComponent
 guard UUID(uuidString: session) != nil else { exit(2) }
 let policy = app.activationPolicy()
 if policy != .regular { _ = app.setActivationPolicy(.regular) }
+let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
+#if FIVE_PREVIEW
+guard presentation == "five-preview", expected == 1,
+      let fiveSlot = (0..<5).first(where: { Bundle.main.bundleIdentifier == FivePreviewWindow.identifier($0) }),
+      let privateParent = PreviewFixtureDirectory(run),
+      ["HOME", "CFFIXED_USER_HOME"].allSatisfy({ ProcessInfo.processInfo.environment[$0] == privateParent.appendingPathComponent("home").path })
+else { exit(4) }
+var fivePhase = 0
+#else
+guard ["net.example.spaces-document", "net.example.spaces-route-witness"].contains(Bundle.main.bundleIdentifier ?? "") else { exit(3) }
+#endif
 let startup: [String: Any] = ["bundle": Bundle.main.bundleIdentifier ?? "", "displayCount": NSScreen.screens.count,
-                              "policy": app.activationPolicy().rawValue]
+                              "policy": app.activationPolicy().rawValue, "session": session, "pid": getpid(), "birth": birth]
 try JSONSerialization.data(withJSONObject: startup).write(to: run.appendingPathComponent("startup.json"), options: .atomic)
-guard ["net.example.spaces-document", "net.example.spaces-route-witness"].contains(Bundle.main.bundleIdentifier ?? ""),
-      app.activationPolicy() == .regular, NSScreen.screens.count == 1, let screen = NSScreen.screens.first else { exit(3) }
+guard app.activationPolicy() == .regular, NSScreen.screens.count == 1, let screen = NSScreen.screens.first else { exit(3) }
 var windows = [NSWindow]()
 var editors = [NSTextView]()
 var lastState = Data()
 var withdrew = false, minimized = false
 NSWindow.allowsAutomaticWindowTabbing = false
-let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
-#if FIVE_PREVIEW
-let fiveSlot = (0..<5).first { Bundle.main.bundleIdentifier == FivePreviewWindow.identifier($0) }
-guard presentation == "five-preview", expected == 1, fiveSlot != nil,
-      let privateParent = PreviewFixtureDirectory(run), NSScreen.screens.count == 1,
-      ["HOME", "CFFIXED_USER_HOME"].allSatisfy({ ProcessInfo.processInfo.environment[$0] == privateParent.appendingPathComponent("home").path })
-else { exit(4) }
-var fivePhase = 0
-#endif
 #if PAIRED_PREVIEW
 let paired = presentation == "paired-preview" && expected == 2 && Bundle.main.bundleIdentifier == "net.example.spaces-document"
 if paired {
@@ -69,7 +70,7 @@ final class SharedFixtureWindow: NSPanel {
         if paired { rect = NSRect(x: frame.midX + (i == 0 ? -282 : 12), y: frame.midY - 90, width: 270, height: 180) }
         #endif
         #if FIVE_PREVIEW
-        rect = FivePreviewWindow.frame(slot: fiveSlot!, in: frame)
+        rect = FivePreviewWindow.frame(slot: fiveSlot, in: frame)
         #endif
         let style: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
         let w: NSWindow
@@ -87,9 +88,9 @@ final class SharedFixtureWindow: NSPanel {
         w.tabbingMode = .disallowed
         let editor = NSTextView(frame: w.contentView!.bounds)
         #if FIVE_PREVIEW
-        w.title = "Field Notes " + String(fiveSlot! + 1)
+        w.title = "Field Notes " + String(fiveSlot + 1)
         w.colorSpace = .sRGB
-        editor.backgroundColor = FivePreviewWindow.color(slot: fiveSlot!, phase: 0)
+        editor.backgroundColor = FivePreviewWindow.color(slot: fiveSlot, phase: 0)
         #endif
         if roster { editor.backgroundColor = i == 0 ? NSColor.systemGreen : NSColor.systemPurple }
         editor.autoresizingMask = [.width,.height]
@@ -150,9 +151,9 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     if fivePhase == 0, let window = windows.first, let editor = editors.first,
        let data = try? Data(contentsOf: run.appendingPathComponent("advance.json")),
        let mark = try? JSONDecoder().decode(FivePreviewMarker.self, from: data),
-       mark.matches(session: session, pid: getpid(), birth: birth, number: window.windowNumber, slot: fiveSlot!) {
+       mark.matches(session: session, pid: getpid(), birth: birth, number: window.windowNumber, slot: fiveSlot) {
         fivePhase = 1
-        editor.backgroundColor = FivePreviewWindow.color(slot: fiveSlot!, phase: 1)
+        editor.backgroundColor = FivePreviewWindow.color(slot: fiveSlot, phase: 1)
         editor.needsDisplay = true
     }
     #endif
@@ -212,7 +213,7 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         "sha256": editors.map { SHA256.hash(data: Data($0.string.utf8)).map { String(format: "%02x", $0) }.joined() }
     ]
     #if FIVE_PREVIEW
-    payload["slot"] = fiveSlot!
+    payload["slot"] = fiveSlot
     payload["phase"] = fivePhase
     #endif
     if let data = try? JSONSerialization.data(withJSONObject: payload, options: .sortedKeys), data != lastState {
