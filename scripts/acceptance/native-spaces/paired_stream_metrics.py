@@ -207,7 +207,13 @@ if __name__=="__main__":
     args=cli.parse_args()
     saved=json.loads((args.output/"result.json").read_bytes())
     info=saved["presentation"]
-    raw=(args.output/"presentation-frames.jsonl").read_bytes()
+    frames_path=args.output/"presentation-frames.jsonl"
+    if frames_path.is_file():
+        raw=frames_path.read_bytes()
+    else:
+        import gzip
+        with gzip.open(frames_path.with_suffix(".jsonl.gz"),"rb") as frames_file:
+            raw=frames_file.read()
     if hashlib.sha256(raw).hexdigest()!=info["sha256"]:raise SystemExit("frame receipt SHA256 mismatch")
     series,clock=qualified([json.loads(line) for line in raw.splitlines()],info["session"])
     derived=metrics(series or [[],[],[]],clock,info["session"])
