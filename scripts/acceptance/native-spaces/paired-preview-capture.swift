@@ -1,5 +1,6 @@
 import AppKit
 import CoreMedia
+import CryptoKit
 import ScreenCaptureKit
 
 private struct Request: Decodable, Equatable {
@@ -9,7 +10,16 @@ private struct Request: Decodable, Equatable {
 }
 private struct Refusal: Error { let reason:String; init(_ reason:String) {self.reason=reason} }
 private struct Crop { let number: UInt32, pid: pid_t, rect: CGRect, patches:[CGRect], filter: SCContentFilter, config: SCStreamConfiguration }
-private struct Observation: Encodable { let start: Double, end: Double, color:String, displayTime:Double?, frameStatus:Int? }
+private struct Observation: Encodable {
+    let start:Double,end:Double,color:String,displayTime:Double?,frameStatus:Int?
+    var patch:Data? = nil
+    private enum CodingKeys:String,CodingKey {case start,end,color,displayTime,frameStatus}
+}
+private struct PendingWitness {let batch:Int,epoch:Int,uptime:Double,data:Data}
+private struct Witness:Encodable {
+    let file:String,sha256:String,epoch:Int,batch:Int,hostPID:pid_t,fixturePID:pid_t,numbers:[UInt32],panel:UInt32
+    let uptime:Double,bindingBefore:Double,bindingAfter:Double,cardKinds:[String]
+}
 private func now() -> Double { ProcessInfo.processInfo.systemUptime }
 private func emit<T:Encodable>(_ value:T) throws { FileHandle.standardOutput.write(try JSONEncoder().encode(value)+Data([10])) }
 private func birth(_ pid:pid_t) -> UInt64? {
@@ -40,7 +50,7 @@ private func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> Bool {
     }
     return true
 }
-private func observe(_ crop:Crop) async -> [Observation] {
+private func observe(_ crop:Crop,witness:Bool) async -> [Observation] {
     let t=now();var displayed:Double?, status:Int?
     func sample(_ color:String)->Observation{Observation(start:t,end:now(),color:color,displayTime:displayed,frameStatus:status)}
     func uniform(_ color:String)->[Observation]{let value=sample(color);return crop.patches.map{_ in value}}
@@ -61,11 +71,20 @@ private func observe(_ crop:Crop) async -> [Observation] {
         let finished=now()
         return crop.patches.map { patch in
             let x0=Int((patch.minX-crop.rect.minX)*2),y0=Int((patch.minY-crop.rect.minY)*2)
-            var counts=[String:Int]()
+            var counts=[String:Int](),rgba=Data(),solidOpaque=true,first:UInt32?
             for y in y0..<(y0+8) {for x in x0..<(x0+8) {let k=y*CVPixelBufferGetBytesPerRow(pixels)+4*x
-                counts[PairedPreviewPalette.classify(Int(bytes[k+2]),Int(bytes[k+1]),Int(bytes[k]),Int(bytes[k+3])),default:0]+=1}}
+                let red=bytes[k+2],green=bytes[k+1],blue=bytes[k],alpha=bytes[k+3]
+                counts[PairedPreviewPalette.classify(Int(red),Int(green),Int(blue),Int(alpha)),default:0]+=1
+                if witness {
+                    let pixel=UInt32(red)<<24 | UInt32(green)<<16 | UInt32(blue)<<8 | UInt32(alpha)
+                    if alpha != 255 || (first != nil && pixel != first) {solidOpaque=false}
+                    if first==nil {first=pixel}
+                    rgba.append(contentsOf:[red,green,blue,alpha])
+                }
+            }}
             let dominant=counts.first(where:{$0.value>=52})?.key ?? "unknown"
-            return Observation(start:t,end:finished,color:dominant,displayTime:displayed,frameStatus:status)
+            return Observation(start:t,end:finished,color:dominant,displayTime:displayed,frameStatus:status,
+                               patch:witness && solidOpaque && counts[dominant]==64 && dominant.contains("/") ? rgba:nil)
         }
     } catch {return uniform("unknown")}
 }
@@ -83,7 +102,7 @@ private func observe(_ crop:Crop) async -> [Observation] {
               temp.deletingLastPathComponent().path=="/private/tmp",folder.resolvingSymlinksInPath()==folder,
               lstat(folder.path,&info)==0,info.st_uid==getuid(),info.st_mode & 0o077==0 else{throw Refusal("unownedTriggerDirectory")}
         let kit=URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent()
-        func confirmCards() throws {
+        func confirmCards() throws -> [String] {
             let child=Process(),pipe=Pipe()
             child.executableURL=kit.appendingPathComponent("paired-scope")
             child.arguments=[String(r.hostPID),r.hostHash,String(r.fixturePID),String(r.fixtureBirth),r.fixtureHash,
@@ -91,9 +110,12 @@ private func observe(_ crop:Crop) async -> [Observation] {
                              String(r.numbers[0]),String(r.numbers[1]),String(r.space)]
             child.standardOutput=pipe;try child.run();let data=pipe.fileHandleForReading.readDataToEndOfFile();child.waitUntilExit()
             guard child.terminationStatus==0,(try? JSONDecoder().decode(Request.self,from:data))==r,
-                  (try? JSONSerialization.jsonObject(with:data) as? [String:Any])?["ready"] as? Bool==true else{throw Refusal("independentCardBindingChanged")}
+                  let proof=try? JSONSerialization.jsonObject(with:data) as? [String:Any],proof["ready"] as? Bool==true,
+                  let kinds=proof["kinds"] as? [String],kinds.count==2 else{throw Refusal("independentCardBindingChanged")}
+            return kinds
         }
-        try confirmCards()
+        var lastKinds=try confirmCards()
+        var lastBinding=now()
         let available=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
         guard let display=available.displays.first(where:{ d in CGDisplayCreateUUIDFromDisplayID(d.displayID).map{CFUUIDCreateString(nil,$0.takeRetainedValue()) as String}==r.display }) else{throw Refusal("displayUnavailable")}
         var crops=[Crop]()
@@ -113,14 +135,35 @@ private func observe(_ crop:Crop) async -> [Observation] {
             config.showsCursor=false;config.capturesAudio=false;config.captureMicrophone=false;config.includeChildWindows=false
             crops.append(Crop(number:id,pid:pid,rect:rect,patches:patches,filter:filter,config:config))
         }
-        let input=hardware(),began=now(),regions=crops;var triggered=false, batches=0, lastBinding=began
+        let input=hardware(),began=now(),regions=crops
+        let witness=ProcessInfo.processInfo.environment["NEARPANE_PAIRED_EVIDENCE"]=="1",liveKinds=["窗口画面","窗口画面"]
+        var triggered=false,batches=0,pending=[PendingWitness]()
+        func validateAndSave() throws {
+            let kinds=try confirmCards(),after=now()
+            if witness && kinds==liveKinds && lastKinds==liveKinds && after-lastBinding<=3.0 {
+                for item in pending {
+                    let name=String(format:"preview-%05d.rgba",item.batch)
+                    try item.data.write(to:folder.appendingPathComponent(name),options:.withoutOverwriting)
+                    let hash=SHA256.hash(data:item.data).map{String(format:"%02x",$0)}.joined()
+                    let proof=Witness(file:name,sha256:hash,epoch:item.epoch,batch:item.batch,hostPID:r.hostPID,fixturePID:r.fixturePID,
+                                      numbers:r.numbers,panel:r.panel,uptime:item.uptime,bindingBefore:lastBinding,bindingAfter:after,cardKinds:kinds)
+                    try emit(["witness":proof])
+                }
+            }
+            pending.removeAll(keepingCapacity:true);lastBinding=after;lastKinds=kinds
+        }
         while now()-began<16.5 && batches<180 {
-            if now()-lastBinding>=1.0 {try confirmCards();lastBinding=now()}
+            if now()-lastBinding>=1.0 {try validateAndSave()}
             guard scope(r,regions,input) else{throw Refusal("foregroundMembershipGeometryOrInputChanged")}
-            async let s0=observe(regions[0]);async let s1=observe(regions[1]);async let panel=observe(regions[2])
+            async let s0=observe(regions[0],witness:witness);async let s1=observe(regions[1],witness:witness);async let panel=observe(regions[2],witness:witness)
             let batch=await [s0,s1,panel].flatMap{$0}
             guard scope(r,regions,input) else{throw Refusal("scopeChangedDuringSamples")}
             try emit(["batch":batch]);batches+=1
+            if witness,lastKinds==liveKinds,batch.count==4,let epoch=PairedPreviewPalette.epochs.indices.first(where:{ e in
+                batch.map(\.color)==["0/\(e)","1/\(e)","0/\(e)","1/\(e)"]
+            }),batch.allSatisfy({$0.patch?.count==256}) {
+                pending.append(PendingWitness(batch:batches,epoch:epoch,uptime:batch[2].end,data:batch.compactMap{$0.patch}.reduce(into:Data()){$0.append($1)}))
+            }
             if !triggered && now()-began>=1.5 {
                 try Data().write(to:folder.appendingPathComponent("preview-start"),options:.withoutOverwriting);triggered=true
                 try emit(["pulseStarted":now()])
@@ -128,7 +171,7 @@ private func observe(_ crop:Crop) async -> [Observation] {
             try await Task.sleep(for:.milliseconds(65))
         }
         guard triggered else{throw Refusal("initialSamplesIncomplete")}
-        try confirmCards()
+        try validateAndSave()
         try emit(["completedBatches":batches])
     }
 }

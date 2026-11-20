@@ -14,15 +14,16 @@ import uuid
 from acceptance import encode, identity, wait_state
 from installed_profile import APP, PROFILE, installed_pid, owns_profile
 from paired_preview_metrics import summarize
+from preview_support import copy_witnesses, overview, with_current_streams, surface_checkpoint
 
 
 def read(args, timeout=6):
     return json.loads(subprocess.check_output([str(a) for a in args], text=True, timeout=timeout))
 
 
-def collect(command, proof, folder):
+def collect(command, proof, folder, retain=False):
     proc = subprocess.Popen([command, folder], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                            text=True, start_new_session=True)
+                            text=True, start_new_session=True,env={**os.environ,"NEARPANE_PAIRED_EVIDENCE":"1" if retain else "0"})
     try:
         raw, _ = proc.communicate(input=json.dumps(proof), timeout=32)
         timed_out = False
@@ -38,7 +39,8 @@ def collect(command, proof, folder):
     return records,proc.returncode,timed_out
 
 
-def run(kit, output, preflight_only=False, expected_space=None):
+def run(kit, output, preflight_only=False, expected_space=None, witness=False, budget=False, cross_space=None):
+    os.umask(0o077)
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     result={'status':'BLOCKED','scope':'two synthetic ordinary documents, same active Space, actual installed Host sidebar',
             'preflightOnly':preflight_only,'fixtureLaunched':False,'captureAttempted':False,'cleanup':{'status':'NOT_RUN'},
@@ -59,6 +61,7 @@ def run(kit, output, preflight_only=False, expected_space=None):
         cmd=[kit/'paired-scope',host,host_hash]
         before=read(cmd);result['preflight']=before;save()
         if not before.get('ready'):raise ValueError(before.get('reason','incompletePreflight'))
+        if (witness or budget or cross_space) and before.get('stageManager') is not False:raise ValueError('stageOffForThisAcceptanceUnverified')
         if expected_space is not None and before['space']!=expected_space:raise ValueError('unexpectedActiveDesktop')
         if preflight_only:
             result.update(status='READY',reason='physical run not requested');return 0
@@ -90,7 +93,7 @@ def run(kit, output, preflight_only=False, expected_space=None):
                 invariant=('hostPID','hostBirth','hostHash','display','space','panel')
                 if any(proof[k]!=before[k] for k in invariant) or not owns_profile(host,profile):raise ValueError('hostOrDesktopChanged')
                 result['binding']=proof;result['captureAttempted']=True;save()
-                events,exit_code,timed_out=collect(kit/'paired-capture',proof,folder)
+                events,exit_code,timed_out=collect(kit/'paired-capture',proof,folder,witness)
                 batches=[e['batch'] for e in events if 'batch' in e];result['samples']=batches
                 result['sampler']={'exit':exit_code,'timedOut':timed_out,'events':[e for e in events if 'batch' not in e]}
                 result['metrics']=summarize(batches);save()
@@ -100,6 +103,23 @@ def run(kit, output, preflight_only=False, expected_space=None):
                 if exit_code or not any(e.get('completedBatches')==len(batches) for e in events):
                     reasons=[e['refusal'] for e in events if 'refusal' in e];raise ValueError(reasons[-1] if reasons else 'samplerDidNotComplete')
                 result['status']=result['metrics']['status']
+                if witness or budget:
+                    result['twoCardSurface']=surface_checkpoint(kit,{'pid':host,'codeHash':host_hash},before['space'],False,2)
+                if witness:
+                    try:
+                        result['witnessFiles']=copy_witnesses(folder,output,events,batches,after)
+                        result['overview']=overview(kit,folder,output,after)
+                    except (ValueError,KeyError,OSError,subprocess.SubprocessError) as error:
+                        result['overview']={'status':'BLOCKED','reason':str(error)[:200]}
+                if cross_space:
+                    result['systemDesktopSwitch']=cross_space(after);save()
+                    if result['systemDesktopSwitch'].get('returnedA') is not True:raise ValueError('controlledSourceDesktopNotRestored')
+                if budget:
+                    if any(e['twoConsecutive'] for e in result['metrics']['simultaneous']) and read(query).get('ready'):
+                        result['hiddenBudget']=with_current_streams(kit,{'pid':host,'codeHash':host_hash},lambda:owns_profile(host,profile),
+                                                                   lambda:read(query),output/'hidden')
+                    else:result['hiddenBudget']={'status':'NOT_RUN','reason':'noPositiveSimultaneousPhysicalFrames'}
+                save()
             finally:
                 (folder/'close').touch();forced=False
                 try:proc.wait(4)
@@ -129,4 +149,6 @@ if __name__=='__main__':
     parser.add_argument('kit',type=Path);parser.add_argument('output',type=Path)
     parser.add_argument('--preflight-only',action='store_true',help='read installed sidebar visibility and current sterile ordinary Space without launching any fixture')
     parser.add_argument('--expected-space',type=int,help='require this exact already-active ordinary Space')
-    args=parser.parse_args();raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.preflight_only,args.expected_space))
+    parser.add_argument('--witness',action='store_true',help='retain only fully verified synthetic color patches and eligible preview media')
+    parser.add_argument('--hidden-budget',action='store_true',help='reuse the one-minute installed status-menu contract while these same two windows exist')
+    args=parser.parse_args();raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.preflight_only,args.expected_space,args.witness,args.hidden_budget))
