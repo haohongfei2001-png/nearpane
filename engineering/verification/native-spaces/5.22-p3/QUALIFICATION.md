@@ -44,3 +44,18 @@ bash scripts/test.sh --filter 'CaptureAttachmentProviderTests|ProductDraftExecut
 ```
 
 首次本地重放的 Git 全树相符，但 Command Line Tools 缺少 XCTest，未执行浏览器动作。Swift 测试已同时支持完整 Xcode 的 XCTest 和 Command Line Tools 的 Swift Testing。本机保留首次失败和修复后的结果。[首次失败收据](qualification-first-failure.json)
+
+## 已签名浏览器的冷重启
+
+`9f9f646` 增加了 Chrome 和 Edge 各一次真实进程重启。每次使用两个全新的无界面浏览器资料。前驱打开本地截获的 ChatGPT 空白草稿，固定目标，将合成 PNG 和一次 `dispatchIntent` 持久化，随后由夹具向该进程发出 SIGTERM。后继在前驱进程组退出并回收资料后才启动。它以全新的驱动实例重新打开原队列及媒体。窗口号和标签号均刻意复用 1，各进程的代码签名、Launch Services 身份、内核出生时间和网页文档见证分别读回。两个进程的当前目标都必须通过真正的 Riftlet 页面校验，后继的同一校验必须拒绝原目标。
+
+后继将原操作交给 `WebAttachmentAdapter.append` 和全新的 `ChromeAppleEventsExecutor`。原生桥在构建 Apple Event 之前对 `begin` 和 `discard` 返回 `originalRouteUnavailable`。队列恢复将该操作保留为 `unknown`，原意图、操作、调用、资产和尝试号可逐项对照。重复声明遭拒，原图仍可见，重启前后文件的 SHA-256 一致。两套独立页面观察者各自记录前后两次计数，包括本文件及其他文件控件的赋值、input、change、发送按钮、表单 submit 和 Enter。收据同时记录程序退出、私有资料移除和临时队列清理。[冷重启和既有 96 格回归汇总](cold-restart.json)
+
+此前的独立原型只留下 Chrome 后继的读数。新夹具第一次执行时，前驱退出后残留的所属锁令两组清理失败。第二次 Chrome 通过，Edge 原进程退出后查询进程组返回 `EPERM`，后继没有运行。这两次原始结果连同各自源码摘要单独保留。[早期 Chrome 原型](receipt.json) · [两次清理失败](cold-restart-diagnostics.json)
+
+以上证据覆盖真实浏览器进程、受控网页和冷启动原生拒绝路径。正式 Nearpane 前台 Apple Events、生产站点登录与远端投递均待独立实机验证。只运行这两例可使用以下命令，结果保存在一个新文件中。
+
+```sh
+python3 scripts/acceptance/draft-qualification/verify.py --cold-restart-only \
+  --upstream ../Riftlet --output build/verification/qualified-draft-restarts.json
+```

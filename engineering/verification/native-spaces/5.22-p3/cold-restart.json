@@ -1,0 +1,435 @@
+{
+  "schema": 1,
+  "suite": "matrix-and-cold-restart",
+  "startedUTC": "2026-11-20T13:09:34.407864+00:00",
+  "macOSBuild": "26A428",
+  "nearpaneSourceCommit": "9f9f646790d74f702d7996ec0e16e0669ce7ea9f",
+  "sourceSHA256": {
+    "Sources/NearpaneTray/DraftAttachmentQualification.swift": "944983b53bd33f342217d1f8b02e0c6dc3ecb36768b73248748123e355d0efde",
+    "Sources/NearpaneTray/DraftCapability.swift": "b89f85068c335c0f3c85f5ff392275fe7061bbe82e116ecda0b797982d6971ca",
+    "scripts/acceptance/local-browser.mjs": "65a4eb24290e16c2610299a39925bcd5def8374733429ea7a93c49e8722a3a58",
+    "scripts/acceptance/draft-qualification/Driver.swift": "08d7c5b0bc8c6f49ae2d2f81cc6468d6cf2357b7740217f4c3a7ed2a1f1d4744",
+    "scripts/acceptance/draft-qualification/ColdRestart.swift": "40ddb9fc5fddbe24787f1cb4c796b8ee1e60741fc43fe8ecd40fe17e092643c8",
+    "scripts/acceptance/draft-qualification/Package.swift": "1b2e1f64a1605227963f309009afd8b8aee3eb2be9f4008c7bde8d4d942ca2c0",
+    "scripts/acceptance/draft-qualification/cases.mjs": "88b1c5e52a070d0b5f121ac081aebf9f20091b4c3dd9d1d919ff57cf3b033105",
+    "scripts/acceptance/draft-qualification/verify.py": "487335961127009dcec102012fe1e72541d164fc427d85a9e844b46d3114a926"
+  },
+  "productionPin": "189782dd943f5215da43539b30db27e482a78b3c",
+  "productionTreeSHA256": "b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a",
+  "qualificationBase": "c764246410c2c0c225ac4bb8688c2ae5179f27e9",
+  "qualificationCommit": "5c6ca7fabc37fb50805603f6dc7df1ed39671d1e",
+  "qualificationTree": "df7f8a0bd2e4fa13aa9224d6c918b291f9766578",
+  "patchSHA256": "7e4563ccceb32cbc31cb11941430a88459dd130e783f345d7b478d14e846143e",
+  "ordinaryProductionEnabledForQualification": false,
+  "liveAuthenticatedAcceptance": "BLOCKED_NO_AUTHORIZED_ISOLATED_PROFILE",
+  "liveUploadCompleted": null,
+  "liveSendEvents": null,
+  "nativeAppleEvents": "NOT_RUN_HEADLESS_PIPE",
+  "safariQualification": "BLOCKED_STABLE_TAB_WITNESS_UNAVAILABLE",
+  "failures": {},
+  "browsers": {
+    "chrome": {
+      "scope": "Synthetic media. The real Riftlet Swift adapter and page program share an isolated headless pipe with fixture window and tab IDs.",
+      "browser": "chrome",
+      "liveAuth": null,
+      "liveAttemptCount": 0,
+      "chrome": "Chrome/157.0.8103.79",
+      "fixtureDocumentResponses": 48,
+      "otherRequestsDenied": 0,
+      "privateProfileRemoved": true,
+      "matrixRows": 48,
+      "matrixOutcomes": {
+        "PASS_FIXTURE": 48
+      },
+      "passingByHost": {
+        "chatgpt.com": 12,
+        "claude.ai": 12,
+        "gemini.google.com": 12,
+        "chat.deepseek.com": 12
+      },
+      "observedEvents": {
+        "setter": 12,
+        "input": 12,
+        "change": 12,
+        "foreignSetter": 0,
+        "send": 0,
+        "submit": 0,
+        "enter": 0,
+        "uploadCanceled": 4
+      }
+    },
+    "edge": {
+      "scope": "Synthetic media. The real Riftlet Swift adapter and page program share an isolated headless pipe with fixture window and tab IDs.",
+      "browser": "edge",
+      "liveAuth": null,
+      "liveAttemptCount": 0,
+      "chrome": "Edg/157.0.4341.60",
+      "fixtureDocumentResponses": 48,
+      "otherRequestsDenied": 0,
+      "privateProfileRemoved": true,
+      "matrixRows": 48,
+      "matrixOutcomes": {
+        "PASS_FIXTURE": 48
+      },
+      "passingByHost": {
+        "chatgpt.com": 12,
+        "claude.ai": 12,
+        "gemini.google.com": 12,
+        "chat.deepseek.com": 12
+      },
+      "observedEvents": {
+        "setter": 12,
+        "input": 12,
+        "change": 12,
+        "foreignSetter": 0,
+        "send": 0,
+        "submit": 0,
+        "enter": 0,
+        "uploadCanceled": 4
+      }
+    }
+  },
+  "coldRestarts": {
+    "chrome": {
+      "intentID": "fe49d57c-7ee3-474f-b814-9802b35d39d8",
+      "status": "PASS_FIXTURE",
+      "original": {
+        "stage": "original",
+        "intentID": "fe49d57c-7ee3-474f-b814-9802b35d39d8",
+        "browser": "chrome",
+        "browserID": "com.google.Chrome",
+        "status": "PASS_FIXTURE",
+        "before": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "driver": {
+          "pid": 86049,
+          "documentID": "234571aa-9edb-4c5c-97c1-2cf60a22a181",
+          "assetID": "46C7B021-1A6F-4940-8196-0BED83895415",
+          "phase": "dispatchIntent",
+          "kernelBirthMicroseconds": 804528,
+          "windowID": "1",
+          "identitySource": "LaunchServicesAndKernel",
+          "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+          "currentLeaseValidatedByPage": true,
+          "attempt": 1,
+          "kernelBirthSeconds": 1795180214,
+          "tabID": "1",
+          "operationID": "DC9B10A1-A703-48ED-A915-A3BA7E0A3EBE",
+          "invocationID": "A0440FE2-7986-4A0B-8CE3-BC2DEE818177",
+          "signedPIDVerified": true,
+          "stage": "original",
+          "observedUptime": 253606.53847925,
+          "processSession": "chrome-kernel-v1:86049:1795180214:804528",
+          "done": true,
+          "draftGeneration": "9b9414a0-7e2a-41e7-84ad-2450183129a5",
+          "intentID": "FE49D57C-7EE3-474F-B814-9802B35D39D8"
+        },
+        "pageCommands": {
+          "pinTarget": 1,
+          "captureTarget": 1,
+          "validate": 1
+        },
+        "after": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "chrome": "Chrome/157.0.8103.79",
+        "fixtureDocumentResponses": 1,
+        "otherRequestsDenied": 0,
+        "isolatedProcessGroupGone": true,
+        "retainedSingletonWasReapedOwner": true,
+        "reaped": true,
+        "exitCode": 0,
+        "signal": null,
+        "requestedTermination": "SIGTERM",
+        "privateProfileRemoved": true
+      },
+      "successor": {
+        "stage": "successor",
+        "intentID": "fe49d57c-7ee3-474f-b814-9802b35d39d8",
+        "browser": "chrome",
+        "browserID": "com.google.Chrome",
+        "status": "PASS_FIXTURE",
+        "before": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "driver": {
+          "oldSessionMatchesSuccessor": false,
+          "documentID": "c974a791-51c9-41c7-a922-34e3e973360b",
+          "oldLeaseValidInSuccessorPage": false,
+          "identitySource": "LaunchServicesAndKernel",
+          "sourceSHA256Before": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+          "tabID": "1",
+          "windowID": "1",
+          "originalProcessGone": true,
+          "oldSessionMatchesSuccessorReadOnly": false,
+          "assetVisibility": "visible",
+          "sameLogicalWindowAndTab": true,
+          "nativeBridgeRefusals": [
+            [
+              "begin",
+              "originalRouteUnavailable"
+            ],
+            [
+              "discard",
+              "originalRouteUnavailable"
+            ]
+          ],
+          "sourceSHA256After": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+          "kernelBirthMicroseconds": 257952,
+          "dispatchRearmRefused": true,
+          "kernelBirthSeconds": 1795180215,
+          "processSession": "chrome-kernel-v1:86068:1795180215:257952",
+          "signedPIDVerified": true,
+          "observedUptime": 253606.99131166667,
+          "phase": "unknown",
+          "assetID": "46C7B021-1A6F-4940-8196-0BED83895415",
+          "intentID": "FE49D57C-7EE3-474F-B814-9802B35D39D8",
+          "invocationID": "A0440FE2-7986-4A0B-8CE3-BC2DEE818177",
+          "stage": "successor",
+          "currentLeaseValidatedByPage": true,
+          "operationID": "DC9B10A1-A703-48ED-A915-A3BA7E0A3EBE",
+          "draftGeneration": "a9009478-b174-4fee-b75b-06931947c019",
+          "attempt": 1,
+          "pid": 86068,
+          "done": true
+        },
+        "pageCommands": {
+          "pinTarget": 1,
+          "captureTarget": 1,
+          "validate": 2
+        },
+        "after": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "chrome": "Chrome/157.0.8103.79",
+        "fixtureDocumentResponses": 1,
+        "otherRequestsDenied": 0,
+        "isolatedProcessGroupGone": true,
+        "reaped": true,
+        "exitCode": 0,
+        "signal": null,
+        "requestedTermination": "Browser.close",
+        "privateProfileRemoved": true
+      }
+    },
+    "edge": {
+      "intentID": "fa3721dd-1f3f-4e11-9c61-656431f674fd",
+      "status": "PASS_FIXTURE",
+      "original": {
+        "stage": "original",
+        "intentID": "fa3721dd-1f3f-4e11-9c61-656431f674fd",
+        "browser": "edge",
+        "browserID": "com.microsoft.edgemac",
+        "status": "PASS_FIXTURE",
+        "before": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "driver": {
+          "currentLeaseValidatedByPage": true,
+          "operationID": "E8325BF6-F68B-407D-8963-AFD7C8CAE481",
+          "pid": 86202,
+          "identitySource": "LaunchServicesAndKernel",
+          "observedUptime": 253614.527616875,
+          "processSession": "edge-kernel-v1:86202:1795180222:610090",
+          "tabID": "1",
+          "phase": "dispatchIntent",
+          "windowID": "1",
+          "sourceSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+          "done": true,
+          "intentID": "FA3721DD-1F3F-4E11-9C61-656431F674FD",
+          "stage": "original",
+          "signedPIDVerified": true,
+          "kernelBirthMicroseconds": 610090,
+          "kernelBirthSeconds": 1795180222,
+          "assetID": "D062165A-49BD-4074-BEB7-36E7E9B888B4",
+          "attempt": 1,
+          "invocationID": "FAAC3647-F8F0-494A-B5F2-1BDC9305929F",
+          "draftGeneration": "fd1825f7-19bb-4687-8f3f-0d2e493764e0",
+          "documentID": "2a816ad8-8d9a-4160-a044-df2afa4e1caa"
+        },
+        "pageCommands": {
+          "pinTarget": 1,
+          "captureTarget": 1,
+          "validate": 1
+        },
+        "after": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "chrome": "Edg/157.0.4341.60",
+        "fixtureDocumentResponses": 1,
+        "otherRequestsDenied": 0,
+        "isolatedProcessGroupGone": true,
+        "retainedSingletonWasReapedOwner": true,
+        "reaped": true,
+        "exitCode": 0,
+        "signal": null,
+        "requestedTermination": "SIGTERM",
+        "privateProfileRemoved": true
+      },
+      "successor": {
+        "stage": "successor",
+        "intentID": "fa3721dd-1f3f-4e11-9c61-656431f674fd",
+        "browser": "edge",
+        "browserID": "com.microsoft.edgemac",
+        "status": "PASS_FIXTURE",
+        "before": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "driver": {
+          "sourceSHA256Before": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+          "sourceSHA256After": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+          "oldSessionMatchesSuccessorReadOnly": false,
+          "documentID": "3e05da4a-42a0-45fb-8e06-c56ea5b8ef91",
+          "invocationID": "FAAC3647-F8F0-494A-B5F2-1BDC9305929F",
+          "signedPIDVerified": true,
+          "oldLeaseValidInSuccessorPage": false,
+          "originalProcessGone": true,
+          "sameLogicalWindowAndTab": true,
+          "done": true,
+          "oldSessionMatchesSuccessor": false,
+          "pid": 86230,
+          "kernelBirthMicroseconds": 260477,
+          "kernelBirthSeconds": 1795180223,
+          "phase": "unknown",
+          "assetID": "D062165A-49BD-4074-BEB7-36E7E9B888B4",
+          "nativeBridgeRefusals": [
+            [
+              "begin",
+              "originalRouteUnavailable"
+            ],
+            [
+              "discard",
+              "originalRouteUnavailable"
+            ]
+          ],
+          "intentID": "FA3721DD-1F3F-4E11-9C61-656431F674FD",
+          "observedUptime": 253615.10059087502,
+          "draftGeneration": "d6f0913d-ab09-44ed-b979-3011d5655b4a",
+          "stage": "successor",
+          "dispatchRearmRefused": true,
+          "identitySource": "LaunchServicesAndKernel",
+          "operationID": "E8325BF6-F68B-407D-8963-AFD7C8CAE481",
+          "windowID": "1",
+          "processSession": "edge-kernel-v1:86230:1795180223:260477",
+          "tabID": "1",
+          "currentLeaseValidatedByPage": true,
+          "assetVisibility": "visible",
+          "attempt": 1
+        },
+        "pageCommands": {
+          "pinTarget": 1,
+          "captureTarget": 1,
+          "validate": 2
+        },
+        "after": {
+          "counts": {
+            "setter": 0,
+            "input": 0,
+            "change": 0,
+            "foreignSetter": 0,
+            "send": 0,
+            "submit": 0,
+            "enter": 0,
+            "uploadCanceled": 0
+          },
+          "preview": null
+        },
+        "chrome": "Edg/157.0.4341.60",
+        "fixtureDocumentResponses": 1,
+        "otherRequestsDenied": 0,
+        "isolatedProcessGroupGone": true,
+        "reaped": true,
+        "exitCode": 0,
+        "signal": null,
+        "requestedTermination": "Browser.close",
+        "privateProfileRemoved": true
+      }
+    }
+  },
+  "sourceReplay": "MATCH",
+  "upstreamNativeRouteTest": "PASS",
+  "scratchRemoved": true,
+  "outcomes": {
+    "PASS_FIXTURE": 96
+  },
+  "coldRestartOutcomes": {
+    "PASS_FIXTURE": 2
+  },
+  "finishedUTC": "2026-11-20T13:10:24.173101+00:00",
+  "result": "PASS_SYNTHETIC_ONLY",
+  "projection": {
+    "scope": "Retains every cold-restart stage and aggregate metadata from the combined run; each 48-row normal matrix is represented by counts per host and DOM totals.",
+    "rawReceiptSHA256": "c4b80cae83ab449fb0fd5df3d96fab66fc95e8bd25d53501aa6874af3de0487e"
+  }
+}
