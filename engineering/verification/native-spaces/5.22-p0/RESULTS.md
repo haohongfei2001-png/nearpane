@@ -21,6 +21,8 @@
 | [核对原生桌面按钮](05-tile-identity/results.json) | 连续添加和回收两个桌面成功；系统按钮的 AX 归属与旧检测假设不符。 |
 | [两扇真实普通窗口](06-background-AX/results.json) | 系统原生控件选中两个临时桌面，各窗口在所属桌面均有精确标准 AX 身份。切走后，第一扇窗口仍有双向唯一 Space 归属，但系统 AXWindows 清单将其省略。此轮两租约均已释放，正式侧栏投递为 0。[两窗口读回](06-background-AX/fixture-second-document.json) · [系统收尾](06-background-AX/lease-cleanup.json) |
 | [清点空桌面期间有新用户输入](07-new-input/results.json) | 取消建场，退出两个自有应用。随后按 ID/UUID 独立回收两租约，保留新选中的全屏空间；精确焦点恢复为 UNKNOWN。[回收收据](07-new-input/lease-cleanup.json) |
+| [独立空间清单复读](08-native-list/results.json) | 稳定空清点通过，识别到 WindowManager 的真实 AX 按钮，第二次读取清单时不能确认系统显示组，选择未投递。两租约已回收。[系统按钮分项读回](08-native-list/setup-press-4995.json) |
+| [安装版保留窗口测试](09-installed-background-card/results.json) | `da46651` 的两扇受控窗口均已在各自的普通桌面显示，正式侧栏分别连续两次给出可按的正确当前卡。独立读回确认独占归属和原窗口身份。首次 B→A 在 5 秒内仅出现一张当前卡，后台目标卡为 0，正式按压和 helper 投递均为 0。原桌面顺序已恢复、无遗留临时桌面，瞬时前台及焦点恢复为 UNKNOWN。[正式按钮读回](09-installed-background-card/roundTrip-01/card-before.json) · [安装身份](09-installed-background-card/installed.json) |
 
 以上建场成功次数和历史版本的尝试均不计入本候选的往返、10 次或 50 次门槛。
 
@@ -31,6 +33,10 @@
 - 同一 macOS 26.7.2 runner 随后也完成了生产 NearpaneUI 在 foundation-only 配置下的编译。保留原主题设置行为，避免了旧 Swift 编译器的 IR 生成错误。[编译及协议收据](https://github.com/haohongfei2001-png/nearpane/actions/runs/44721534963)
 - P4 本地翻译/单词本与 Saytile 独立分支保留持久化和最终稿测试；P5 独立分支保留预热 5×20 的统计与真实进程用量采样。正式安装版的原位翻译、完整首句矩阵、多屏、Split View、睡眠恢复和性能门槛仍待实测。[P4 源码与收据](https://github.com/haohongfei2001-png/nearpane/tree/baa28fe4b40205e1014b4f702ba1bdd80c6fce46/engineering/verification/native-spaces/5.22-p4) · [P5 数据和门槛](https://github.com/haohongfei2001-png/nearpane/blob/30595b287e66c7fb79ab0bb5999509745f0eaaaa/engineering/verification/native-spaces/5.22-p5/harness.json)
 
+- P3 的 Riftlet 专用分支在 Chrome、Edge 和四个域的 96 个隔离场景中验证了附件与零发送，16 个可见附件、8 个取消、72 个投递前拒绝。正式 Host、已登录服务的上传完成及 Safari 标签身份尚未通过。[源码、逐案证据及回退](https://github.com/haohongfei2001-png/nearpane/blob/35940ff2917aa51ec6ad2bf19050230af7c5611a/engineering/verification/native-spaces/5.22-p3/QUALIFICATION.md)
+
 ## 签名候选与回退
+
+签名候选 `da46651` 包含前台精确 AX 引用、后台进程与独占归属复核、单次导航及落地焦点约束。本机全量 531 项 Swift 测试通过，原位安装保留三项权限。窗口卡再次经实机验证为 0→2→0，本轮录屏 13 帧、15.22 秒、无音轨。ZIP 的 SHA-256 为 `9d5e04786cd9ebc17f8d31d11a3bd38a113b46d82c7b179dc30ab2e6df50f72a`。[安装及签名](retained-window-candidate/installation.json) · [实时权限](retained-window-candidate/live.json) · [窗口实拍](retained-window-candidate/window-roster/two-documents-sidebar.png) · [真实窗口区录屏](retained-window-candidate/window-roster/installed-sidebar.mp4) · [下载记录](retained-window-candidate/candidate.json)
 
 `Nearpane-5.22-90-f9e981c-macOS-arm64.zip` 已原位安装。正式 Host 与七个权限助手的指定要求逐项双向相容，辅助功能、事件投递和录屏均由安装版进程实时读回。授权延续依赖这组签名身份和系统授权状态。分发检查仍缺 Hardened Runtime、可信时间戳、公证、staple 和干净 macOS 26/27 首装。旧 `365fdc4` ZIP 作为回退保留在同一内部草稿。[候选与回退 ZIP](https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f) · [包哈希](candidate.json) · [签名连续性](installation.json) · [正式权限](live.json) · [包内逐件检查](package-gate.json)
