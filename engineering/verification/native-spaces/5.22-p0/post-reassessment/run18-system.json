@@ -1,0 +1,98 @@
+{
+  "historicalOperation": "72AC12CE-9BF7-4B04-929B-5E3FC686D794",
+  "archiveSHA256": "41e3582be11cb74a3e040922137bda00768892161183dcf6d047158f7cc726b7",
+  "archiveObjects": 76,
+  "bootBoundSurvivingReceiver": {
+    "pid": 63480,
+    "birth": 1795151346365238,
+    "identifier": "com.openai.codex",
+    "hash": "36afb83091af1311de580eb45c3cf801add44193"
+  },
+  "clockAnchorCount": 3,
+  "clockAnchorSpreadMs": 3.664,
+  "clockNote": "Approximate wall mapping from Host journal persistence. The two operating-system causes are matched by identifiers.",
+  "firstIndependentExternalSecondsAfterPress": 2.377519,
+  "targetAtFirstExternalRead": 5020,
+  "lastTargetSecondsAfterPress": 3.179823,
+  "lateIndependentFocus": {
+    "number": 42445,
+    "pid": 63480
+  },
+  "externalPID": 63480,
+  "secondPressIssued": false,
+  "rootMechanisms": {
+    "status": "CONFIRMED",
+    "matchingChains": 1,
+    "events": [
+      {
+        "kind": "currentSpace",
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "space": 5020,
+        "pid": 647,
+        "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+        "time": 1795179774.480974,
+        "mach": 9428640800065,
+        "messageSHA256": "2bfa7e1b0ee412ce9c1a56c529db19418086976bcef4bcd6c2c24483c0d8125f"
+      },
+      {
+        "kind": "activationSent",
+        "returnID": -1220,
+        "systemOSAScript": true,
+        "pid": 77775,
+        "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+        "time": 1795179776.645975,
+        "mach": 9428692760080,
+        "messageSHA256": "dd285b3f33dd880c4f83e12e425e10785b4f733ec3d4885504dc975f6d1ef1b3"
+      },
+      {
+        "kind": "activationReceived",
+        "returnID": -1220,
+        "systemOSAScript": false,
+        "pid": 63480,
+        "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+        "time": 1795179776.646486,
+        "mach": 9428692772351,
+        "messageSHA256": "5aefb50b058f581108bb9ff42388e2365c1c0568843e542586fdf3eec2e54f28"
+      },
+      {
+        "kind": "setFront",
+        "targetPID": 63480,
+        "targetASN": 297347969,
+        "previousPID": 77006,
+        "pid": 392,
+        "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+        "time": 1795179776.647361,
+        "mach": 9428692793342,
+        "messageSHA256": "b266f6a5976383a29bbcbdc3b2f0241a558de297e1e29926e7892f5df8ad60c6"
+      },
+      {
+        "kind": "dockFollowOrderedWindow",
+        "space": 6,
+        "window": 42445,
+        "asnHigh": 0,
+        "asnLow": 297347969,
+        "pid": 697,
+        "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+        "time": 1795179778.197021,
+        "mach": 9428729985202,
+        "messageSHA256": "b892c1c1cd0918cc04e42c4449816445e1bec134b1a9fb8e7e058139d0fc3485"
+      },
+      {
+        "kind": "currentSpace",
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "space": 6,
+        "pid": 647,
+        "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+        "time": 1795179778.465993,
+        "mach": 9428736440525,
+        "messageSHA256": "36fcbca0e77187fda5f2e8fe02796836515570b2ff42e945892d89cce8e5f381"
+      }
+    ],
+    "foregroundTrigger": "Apple Event misc/actv addressed to the subsequently frontmost process",
+    "spaceTrigger": "Dock explicitly followed that process's ordered off-Space window"
+  },
+  "upstreamAutomationOwner": "UNKNOWN",
+  "physicalHumanInput": "No change in the eight archived HID counters; other input is unobserved.",
+  "fixtureContribution": "No second fixture AXPress. Parent of the automation sender was not established.",
+  "qualification": "Historical attribution only. No new operation, stable round trip, ten or fifty-action gate is established."
+}
