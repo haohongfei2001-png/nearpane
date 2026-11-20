@@ -91,7 +91,7 @@ def ask(reader, mode, args=None, body=None):
     return json.loads(answer.stdout)
 
 
-def witness(kit, p, at):
+def witness(kit, p, at, window_witness=None):
     _, reader = kit_paths(kit)
     topology = p["topology"]
     ids = [s["id"] for s in topology["records"]]
@@ -106,7 +106,10 @@ def witness(kit, p, at):
     for w in windows:
         app, file = known[w["identifier"]]
         require(w["executable"] == str(kit/app/"Contents/MacOS"/file), "fixture executable is outside this kit")
-    lived = ask(reader, "windows", body=windows)["windows"]
+    # The keeper pins the actual foreground AX objects across Spaces. Standalone
+    # invocation has no such reference and must use the one-shot conservative read.
+    answer = window_witness(windows) if window_witness is not None else ask(reader, "windows", body=windows)
+    lived = answer["windows"]
     require(len(lived) == 2, "exact pair was not verified")
     records = []
     for w, proof, sid in zip(windows, lived, [topology["current"], p["target"]]):
@@ -134,11 +137,11 @@ def binding(kit, p, folder, guardian, endpoints=None):
     return b
 
 
-def enroll(kit, attempt, request):
+def enroll(kit, attempt, request, *, window_witness=None):
     try:
         kit, _ = kit_paths(kit)
         attempt = private(attempt, directory=True)
-        pre = witness(kit, request, request["topology"]["current"])
+        pre = witness(kit, request, request["topology"]["current"], window_witness)
         root = attempt.parent / ".p0-visual-endpoints"
         root.mkdir(mode=0o700, exist_ok=True)
         private(root, directory=True)
@@ -149,7 +152,7 @@ def enroll(kit, attempt, request):
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=9)
             if result.returncode:
                 raise ValueError((read(folder/"error.json") if (folder/"error.json").exists() else {}).get("error", "endpoint calibration unavailable"))
-            witness(kit, request, pre["current"])
+            witness(kit, request, pre["current"], window_witness)
             observed = read(folder/"endpoint.json")
             require(observed["space"] == pre["current"] and observed["display"].upper() == pre["display"].upper(), "unexpected enrollment identity")
             name = f'{pair_id(request)}-{pre["current"]}.json'
@@ -163,7 +166,7 @@ def unknown(reason):
     return dict(status="UNKNOWN", ready=False, reason=reason, scope=POLICY, screenshotTaken=False, sources=SOURCES)
 
 
-def start(kit, attempt, request, guardian=None):
+def start(kit, attempt, request, guardian=None, *, window_witness=None):
     folder = None
     try:
         kit, _ = kit_paths(kit)
@@ -171,7 +174,7 @@ def start(kit, attempt, request, guardian=None):
         path = attempt/"visual"
         path.mkdir(mode=0o700)
         folder = path
-        pre = witness(kit, request, request["topology"]["current"])
+        pre = witness(kit, request, request["topology"]["current"], window_witness)
         write(folder/"before.json", pre)
         endpoints = {}
         for sid in [pre["current"], request["target"]]:
@@ -279,7 +282,7 @@ def score(data, request, pressed, ended, pre, post):
     return result
 
 
-def finish(kit, attempt, pressed, ended):
+def finish(kit, attempt, pressed, ended, *, window_witness=None):
     folder = None
     try:
         kit, _ = kit_paths(kit)
@@ -292,7 +295,7 @@ def finish(kit, attempt, pressed, ended):
         post = None
         if 0 < pressed < ended and math.isfinite(ended):
             try:
-                post = witness(kit, p, p["target"])
+                post = witness(kit, p, p["target"], window_witness)
             except ERRORS:
                 pass
         write(folder/"end.json", dict(nonce=b["nonce"], pressed=pressed, ended=ended, allowMovie=bool(post)))
@@ -303,7 +306,7 @@ def finish(kit, attempt, pressed, ended):
         require(observed["nonce"] == b["nonce"], "recorder generation changed")
         pre = read(folder/"before.json")
         if post:
-            post = witness(kit, p, p["target"])
+            post = witness(kit, p, p["target"], window_witness)
             write(folder/"after.json", post)
         result = score(observed, p, float(pressed), float(ended), pre, post)
         movie = folder/"verified-pair.mp4"

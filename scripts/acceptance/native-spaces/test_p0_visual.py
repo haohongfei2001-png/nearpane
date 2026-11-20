@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("p0visual", Path(__file__).with_name("p0-visual.py"))
 visual = importlib.util.module_from_spec(spec)
@@ -25,6 +26,27 @@ class VisualTests(unittest.TestCase):
                          physical=dict(armed=True, censusAfter=True, filter="display-excluding-other-apps", frames=self.frames))
     def result(self, data=None, press=10.013, end=10.106):
         return visual.score(self.data if data is None else data, self.request, press, end, self.pre, self.post)
+    def test_keeper_checks_both_windows_and_witness_still_checks_input_and_topology(self):
+        kit = Path("/private/tmp/fake-kit")
+        source = dict(pid=7, birth=11, number=17, identifier="net.example.spaces-route-witness",
+                      executable=str(kit/"Route Notes.app/Contents/MacOS/FieldNotes"), hash="a")
+        target = dict(pid=9, birth=12, number=19, identifier="net.example.spaces-document",
+                      executable=str(kit/"Field Notes.app/Contents/MacOS/FieldNotes"), hash="b")
+        topology = dict(current=4, display="FFFFFFFF-9999-4444-8888-000000000001", records=[{"id":4},{"id":5}])
+        p = dict(topology=topology, sourceWindow=source, targetWindow=target, target=5, hid=10)
+        state = dict(topology=topology, hid=10, uptime=123)
+        def keeper(windows):
+            self.assertEqual(windows, [source, target])
+            return {"windows": [dict(w, forward=True, standard=True, reverse=[n]) for w, n in zip(windows, [4,5])]}
+        with patch.object(visual, "kit_paths", return_value=(kit, kit/"reader")), patch.object(visual, "ask", return_value=state) as read:
+            self.assertEqual(visual.witness(kit, p, 4, keeper)["current"], 4)
+            read.assert_called_once_with(kit/"reader", "state")
+            state["hid"] = 11
+            with self.assertRaises(ValueError):
+                visual.witness(kit, p, 4, keeper)
+            with self.assertRaises(ValueError):
+                visual.witness(kit, p, 4, lambda _: {"windows":[]})
+
     def test_contiguous_visible_display_marker_and_exact_landing(self):
         proof = self.result()
         self.assertEqual(proof["status"], "PASS")
