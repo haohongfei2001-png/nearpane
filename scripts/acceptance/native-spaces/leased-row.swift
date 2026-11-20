@@ -14,7 +14,7 @@ if args.count==10, let pid=Int32(args[1]), let app=host, app.processIdentifier==
     let anchorParts=args[9].split(separator:",")
     let syntheticSource = anchorParts.count==3 && anchorParts[0]=="anchor" && Int32(anchorParts[1])==front?.processIdentifier && front?.bundleIdentifier=="net.example.spaces-document" && (front?.processIdentifier).flatMap { focusedNumber($0) }==UInt32(anchorParts[2])
     let expected="native-space-row:\(args[3]):\(target)"
-    if leased.count==3,leased.contains(target), leased.contains(from) || args[9]=="setup" || syntheticSource, let nodes=Sidebar(app,rows:rows).controls[expected],nodes.count==1,
+    if leased.count==3,leased.contains(target), leased.contains(from) || syntheticSource, let nodes=Sidebar(app,rows:rows).controls[expected],nodes.count==1,
        value(nodes[0],kAXRoleAttribute) as? String==kAXButtonRole,value(nodes[0],kAXEnabledAttribute) as? Bool==true {
         let result=AXUIElementPerformAction(nodes[0],kAXPressAction as CFString)
         print("{\"issued\":true,\"axError\":\(result.rawValue)}")

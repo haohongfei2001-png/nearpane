@@ -12,6 +12,20 @@ from installed_profile import PROFILE, installed_pid, owns_profile
 from space_scope import private_file, require
 
 
+def counts(trials):
+    return {
+        'intents': len(trials),
+        'issued': sum(trial.get('issued') is True for trial in trials),
+        'passed': sum(trial['status'] == 'PASS' for trial in trials),
+        'failed': sum(trial['status'] == 'FAIL' for trial in trials),
+        'unknown': sum(trial['status'] == 'UNKNOWN' for trial in trials),
+    }
+
+
+def completed(totals):
+    return totals['intents'] == totals['issued'] == totals['passed'] == 50
+
+
 def run(args):
     out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False)
     host=installed_pid();require(owns_profile(host,Path(os.environ['NEARPANE_TEST_HOME'])/PROFILE),'isolated production profile required')
@@ -63,8 +77,12 @@ def run(args):
                 trial=press(i,source,target,mode);require(not trial.get('foreignArrival'),'independent reader observed a third Space')
         except (ValueError, OSError, subprocess.SubprocessError,RuntimeError) as e:data['reason']=str(e)
         finally:
-            actual=[t for t in trials if t['index']>0 and t.get('issued')];data.update(issued=len(actual),passed=sum(t['status']=='PASS' for t in actual),failed=sum(t['status']=='FAIL' for t in actual),unknown=sum(t['status']=='UNKNOWN' for t in actual));save()
-    return 0 if data['issued']==50 else 2
+            scored = counts([trial for trial in trials if trial['index'] > 0])
+            data.update(scored)
+            data['setup'] = counts([trial for trial in trials if trial['index'] == 0])
+            data['allIssuedIncludingSetup'] = counts(trials)['issued']
+            save()
+    return 0 if completed(scored) else 2
 
 
 if __name__=='__main__':
