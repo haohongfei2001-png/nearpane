@@ -44,6 +44,8 @@ def press_once(action, index, control):
     error = reply.get("axError")
     detail = dict(pressDisposition="ISSUED", axIssued=True, axError=error, control=reply.get("control"),
                   inputAcknowledged=None, exitCode=code)
+    if reply.get("focusWitness") == "systemAX":
+        detail["focusWitness"] = "systemAX"
     if code != 0 or reply.get("control") != control or type(error) is not int:
         detail["reason"] = "AXPress was issued but the exact target or acknowledgement was not confirmed"
     elif error:
@@ -192,7 +194,8 @@ def run(workspace, receipt, desktop):
                 raise
             stage = "marker"
             marker = "NP"+uuid.uuid4().hex[:10]
-            require(action("marker", index=index, marker=marker).get("issued") is True, "marker was not admitted in the exact target editor")
+            marker_reply = action("marker", index=index, marker=marker)
+            require(marker_reply.get("issued") is True, "marker was not admitted in the exact target editor")
             counts = [0, 0]
             counts[index] = 1
             stage = "input-readback"
@@ -201,7 +204,8 @@ def run(workspace, receipt, desktop):
                           and d["hashes"][1-index] == before["hashes"][1-index], marker)
             status["passes"] += 1
             attempt.update(status="PASS", siblingUnchanged=True)
-            receipt.log("W01-system-document-readback", trial=turn+1, focused=n, markerCounts=counts, hashes=landed["hashes"])
+            receipt.log("W01-system-document-readback", trial=turn+1, focused=n, markerCounts=counts, hashes=landed["hashes"],
+                        markerFocusWitness=marker_reply.get("focusWitness"), readbackFocusWitness=landed.get("focusWitness"))
         stage = "complete"
         status.update(status="PASS" if status["passes"] == 10 else "FAIL",
                       reason=f'{status["passes"]}/10 installed sidebar selections confirmed exact TextEdit key/main and target-only input.')

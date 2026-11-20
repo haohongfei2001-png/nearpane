@@ -9,6 +9,7 @@ struct DocumentRequest: Decodable {
 }
 struct DocumentInstance: Codable {
     let pid: Int32, birth: UInt64, launch: TimeInterval, hash: String
+    let consoleUID: uid_t?
 }
 func textInputCounters() -> [UInt32] {
     [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel].map {
@@ -29,7 +30,7 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     let folder = URL(fileURLWithPath:request.folder, isDirectory:true)
     let kit = folder.deletingLastPathComponent()
     let manager = FileManager.default
-    let appURL = URL(fileURLWithPath:"/System/Applications/TextEdit.app", isDirectory:true)
+    let appURL = TextEditProcessIdentity.application
     let wanted = ["A.txt", "B.txt"].map { folder.appendingPathComponent($0) }
     let receiptURL = folder.appendingPathComponent("instance.json")
     guard UUID(uuidString:folder.lastPathComponent) != nil, let rootPath=physicalDocumentPath("/private/tmp"),
@@ -50,10 +51,9 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     func instance(_ application: NSRunningApplication) throws -> DocumentInstance {
         guard application.bundleURL?.standardizedFileURL.path == appURL.path,
               application.bundleIdentifier=="com.apple.TextEdit", !application.isTerminated,
-              let launch=application.launchDate?.timeIntervalSince1970, let hash=runningCodeHash(application.processIdentifier),
-              let birth=birthMicroseconds(application.processIdentifier)
+              let launch=application.launchDate?.timeIntervalSince1970, let live=TextEditProcessIdentity.read(application.processIdentifier)
         else { throw DocumentRefusal("could not verify Apple TextEdit at its system path") }
-        return DocumentInstance(pid:application.processIdentifier, birth:birth, launch:launch, hash:hash)
+        return DocumentInstance(pid:live.pid, birth:live.birth, launch:launch, hash:live.hash, consoleUID:live.uid)
     }
     if request.mode == "open" {
         try guardInput()
@@ -83,17 +83,27 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         let stop=Date().addingTimeInterval(8)
         while reply==nil, Date()<stop { RunLoop.current.run(until:Date().addingTimeInterval(0.03)) }
         guard let record=try reply?.get() else { throw DocumentRefusal("TextEdit launch receipt is unknown") }
-        return ["pid":record.pid,"birth":record.birth,"launch":record.launch,"hash":record.hash]
+        return ["pid":record.pid,"birth":record.birth,"launch":record.launch,"hash":record.hash,
+                "consoleUID":getuid(),"identityWitness":"console kernel generation and Apple-signed system executable CDHash"]
     }
+    guard ownedDocumentNode(receiptURL.path,directory:false) else {throw DocumentRefusal("owned TextEdit enrollment is unavailable")}
     let enrolled=try JSONDecoder().decode(DocumentInstance.self,from:Data(contentsOf:receiptURL))
-    guard let app=NSRunningApplication(processIdentifier:enrolled.pid) else {
-        throw DocumentRefusal("enrolled TextEdit is not registered with Launch Services")
+    guard let live=TextEditProcessIdentity.read(enrolled.pid),live.birth==enrolled.birth,live.hash==enrolled.hash,
+          enrolled.consoleUID.map({ $0==live.uid }) ?? true else {
+        throw DocumentRefusal("kernel generation, console owner or signed system TextEdit executable changed or is unavailable")
     }
-    let live=try instance(app)
-    guard live.birth == enrolled.birth && live.launch==enrolled.launch && live.hash==enrolled.hash else { throw DocumentRefusal("TextEdit process generation changed") }
     let root=AXUIElementCreateApplication(enrolled.pid)
     _=AXUIElementSetMessagingTimeout(root,0.5)
+    func owner(_ element: AXUIElement) -> pid_t? {
+        var pid: pid_t = 0
+        return AXUIElementGetPid(element,&pid) == .success ? pid : nil
+    }
+    func element(_ source: AXUIElement, _ key: String) -> AXUIElement? {
+        guard let raw=value(source,key),CFGetTypeID(raw)==AXUIElementGetTypeID() else {return nil}
+        return (raw as! AXUIElement)
+    }
     func boundWindows() throws -> [AXUIElement] {
+        guard wanted.allSatisfy({ ownedDocumentNode($0.path,directory:false) }) else {throw DocumentRefusal("synthetic file ownership changed")}
         guard let windows=value(root,kAXWindowsAttribute) as? [AXUIElement], windows.count==2 else {
             throw DocumentRefusal("TextEdit has not exposed exactly the two enrolled document windows")
         }
@@ -101,20 +111,22 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         guard paths.count==2,Set(paths).count==2 else {throw DocumentRefusal("synthetic files disappeared")}
         var result=[String:AXUIElement]()
         for window in windows {
-            guard let raw=value(window,kAXDocumentAttribute) as? String, let url=URL(string:raw),url.isFileURL,
+            guard owner(window)==enrolled.pid,let raw=value(window,kAXDocumentAttribute) as? String, let url=URL(string:raw),url.isFileURL,
+                  (url.host ?? "").isEmpty || url.host=="localhost",
                   let path=physicalDocumentPath(url.path), paths.contains(path), result[path]==nil else {throw DocumentRefusal("a window is not bound to the disposable document URLs")}
             result[path]=window
         }
         return try paths.map { guard let w=result[$0] else {throw DocumentRefusal("test document missing")}; return w }
     }
+    if request.mode != "close" {try guardInput()}
     let windows=try boundWindows()
     if request.mode=="close" {
         // A new user document in our process revokes permission to terminate it.
-        guard textInputCounters()==request.hid, birthMicroseconds(enrolled.pid)==enrolled.birth,
+        guard let app=NSRunningApplication(processIdentifier:enrolled.pid),try instance(app).launch==enrolled.launch,
+              textInputCounters()==request.hid,TextEditProcessIdentity.kernelBirth(enrolled.pid)==enrolled.birth,
               app.terminate() else {throw DocumentRefusal("could not quit the owned TextEdit instance")}
         return ["quitRequested":true,"pid":enrolled.pid]
     }
-    try guardInput()
     let numbers=windows.map { NPReadAXWindowNumber($0) }
     guard Set(numbers).count==2, !numbers.contains(0),
           numbers.allSatisfy({ NPReadWindowSpaces($0) as? [UInt64] == [request.space] }) else { throw DocumentRefusal("document number or system membership unavailable") }
@@ -122,6 +134,7 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         var queue=[window], found=[AXUIElement](), seen=0
         while let e=queue.popLast(),seen<120 {
             seen += 1
+            guard owner(e)==enrolled.pid else {throw DocumentRefusal("editor hierarchy changed owner")}
             if value(e,kAXRoleAttribute) as? String == kAXTextAreaRole { found.append(e);continue }
             queue += value(e,kAXChildrenAttribute) as? [AXUIElement] ?? []
         }
@@ -129,8 +142,29 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         return found[0]
     }
     let editors=try windows.map(editor)
-    let focused=focusedNumber(enrolled.pid) ?? 0
-    let main: UInt32 = value(root,kAXMainWindowAttribute).map { NPReadAXWindowNumber($0) } ?? 0
+    let system=AXUIElementCreateSystemWide()
+    _=AXUIElementSetMessagingTimeout(system,0.5)
+    let focusReader=TextEditFocusReader(read:element,owner:owner,same:{ CFEqual($0,$1) })
+    func focus(editor: AXUIElement? = nil) throws -> (focused: Int, main: Int?) {
+        guard let result=focusReader.indices(system:system,root:root,pid:enrolled.pid,windows:windows,editor:editor) else {
+            throw DocumentRefusal("system Accessibility could not confirm the enrolled focused application, window or editor")
+        }
+        return result
+    }
+    func verifyWindows() throws {
+        let current=try boundWindows()
+        guard zip(current,windows).allSatisfy({ CFEqual($0,$1) }),current.map({ NPReadAXWindowNumber($0) })==numbers,
+              numbers.allSatisfy({ NPReadWindowSpaces($0) as? [UInt64] == [request.space] }) else {
+            throw DocumentRefusal("enrolled document windows or Space changed")
+        }
+    }
+    func guardBoundary() throws {
+        guard TextEditProcessIdentity.kernelBirth(enrolled.pid)==enrolled.birth,
+              textInputCounters()==request.hid,NSEvent.pressedMouseButtons==0 else {
+            throw DocumentRefusal("console owner, process generation or physical input changed during the focus proof")
+        }
+    }
+    let initial=try focus()
     if request.mode=="sample" {
         let strings=try editors.map { e -> String in
             guard let str=value(e,kAXValueAttribute) as? String,str.utf8.count<=4096 else {throw DocumentRefusal("bounded test editor unavailable")}
@@ -138,10 +172,16 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         }
         let hashes=strings.map { SHA256.hash(data:Data($0.utf8)).map { String(format:"%02x",$0) }.joined() }
         let marker=request.marker ?? ""
-        return ["numbers":numbers,"focused":focused,"main":main,"front":app.isActive,"pid":enrolled.pid,"hashes":hashes,
+        try guardInput()
+        try verifyWindows()
+        let final=try focus()
+        guard initial.focused==final.focused,initial.main==final.main else {throw DocumentRefusal("system focus changed during readback")}
+        try guardBoundary()
+        return ["numbers":numbers,"focused":numbers[final.focused],"main":final.main.map { numbers[$0] } ?? 0,"front":true,
+                "focusWitness":"systemAX","pid":enrolled.pid,"hashes":hashes,
                 "markerCounts":strings.map { marker.isEmpty ? 0 : $0.components(separatedBy:marker).count-1 }]
     }
-    guard let i=request.index, (0..<2).contains(i), app.isActive, numbers.contains(focused), let host else {
+    guard let i=request.index, (0..<2).contains(i), let host else {
         throw DocumentRefusal("test document lost foreground ownership")
     }
     if request.mode=="press" {
@@ -151,19 +191,30 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
             throw DocumentRefusal("installed sidebar has no unique enabled document control")
         }
         try guardInput()
+        try verifyWindows()
+        guard owner(exact[0])==host.processIdentifier,value(exact[0],kAXIdentifierAttribute) as? String==id,
+              value(exact[0],kAXEnabledAttribute) as? Bool==true,try focus().focused==initial.focused else {
+            throw DocumentRefusal("sidebar control or focused document changed before press")
+        }
+        try guardBoundary()
         let error=AXUIElementPerformAction(exact[0],kAXPressAction as CFString)
-        return ["issued":true,"axError":error.rawValue,"control":id]
+        return ["issued":true,"axError":error.rawValue,"control":id,"focusWitness":"systemAX"]
     }
     guard request.mode=="marker", let marker=request.marker,marker.utf8.count==12,marker.hasPrefix("NP"),marker.dropFirst(2).allSatisfy(\.isHexDigit),
-          focused==numbers[i],main==numbers[i],let focus=value(root,kAXFocusedUIElementAttribute),CFEqual(focus,editors[i]),
+          initial.focused==i,initial.main==i,
           CGPreflightPostEventAccess(),let source=CGEventSource(stateID:.privateState),
           let down=CGEvent(keyboardEventSource:source,virtualKey:0,keyDown:true),let up=CGEvent(keyboardEventSource:source,virtualKey:0,keyDown:false)
     else { throw DocumentRefusal("target is not the key, main, focused synthetic editor") }
     let units=Array(marker.utf16)
     for event in [down,up] { event.flags=[];event.keyboardSetUnicodeString(stringLength:units.count,unicodeString:units) }
     try guardInput()
+    try verifyWindows()
+    guard CFEqual(try editor(windows[i]),editors[i]),try focus(editor:editors[i]).focused==i else {
+        throw DocumentRefusal("target editor lost system keyboard focus before marker")
+    }
+    try guardBoundary()
     down.postToPid(enrolled.pid);up.postToPid(enrolled.pid)
-    return ["issued":true,"number":numbers[i]]
+    return ["issued":true,"number":numbers[i],"focusWitness":"systemAX"]
 }
 
 do {

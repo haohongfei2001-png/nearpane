@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -155,6 +156,14 @@ class DocumentTests(unittest.TestCase):
         for value in ([], {"pid": 99, "absent": True}, {"pid": 27, "birth": True}, {"pid": 27},
                       {"pid": 27, "absent": True, "birth": 57}):
             self.assertEqual(sample(value), "UNKNOWN")
+
+    @unittest.skipUnless(sys.platform == "darwin", "requires macOS system code signing")
+    def test_textedit_signature_and_scoped_focus_without_gui(self):
+        source = Path(__file__).resolve().parent
+        executable = self.kit / "check-identity"
+        subprocess.run(["xcrun", "swiftc", source/"textedit_identity.swift", source/"test_textedit_identity.swift",
+                        "-o", executable], check=True, timeout=60)
+        subprocess.run([executable], check=True, timeout=5)
 
     def test_unknown_or_missing_durable_identity_never_issues_close(self):
         folder = self.kit/"fixture"
