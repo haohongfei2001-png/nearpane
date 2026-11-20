@@ -1,5 +1,7 @@
 import json
 import tempfile
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -35,6 +37,15 @@ class StreamTiming(unittest.TestCase):
         f,s=scenario(unknown=True);streams,c=qualified(f,s);r=metrics(streams,c,s)
         self.assertEqual(r["windows"][0]["events"][2]["outcome"],"UNKNOWN")
         self.assertEqual(r["windows"][0]["events"][2]["observedRGBA"]["card"],[190,70,35,255])
+
+    def test_archived_json_roundtrip_replays_the_exact_report(self):
+        f,s=scenario()
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            stats,_,_,info=integrate([{"streamFrame":x} for x in f]+[{"streamSession":s}],root,root,{})
+            (root/"result.json").write_text(json.dumps({"metrics":stats,"presentation":info}))
+            run=subprocess.run([sys.executable,Path(__file__).with_name("paired_stream_metrics.py"),root],capture_output=True,text=True,check=True)
+            self.assertEqual(json.loads(run.stdout)["status"],"REPLAY_MATCH")
 
     def test_invalid_bracket_retains_numeric_status_without_pixels_and_partial_run_stays_unfinished(self):
         frames,s=scenario();s["guards"][3]["valid"]=False;s["stopped"]=[False]*3;s["reason"]="input"
