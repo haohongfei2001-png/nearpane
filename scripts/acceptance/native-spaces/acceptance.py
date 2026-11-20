@@ -10,6 +10,7 @@ import platform
 import plistlib
 import re
 import subprocess
+import sys
 import time
 import uuid
 
@@ -355,7 +356,15 @@ def hidden_budget(observer, initial, frozen, rec):
 
 
 def main():
+    contracts = {"S01", "S02", "S03", "W01", "W02", "D01", "R01"}
+    args = sys.argv[1:]
+    entry = Path(__file__).with_name("run.sh")
+    if args and args[0] in {"core-contract", "cleanup-contract"}:
+        raise SystemExit(subprocess.call([entry, *args]))
+    if len(args) == 2 and args[0].upper() in contracts:
+        raise SystemExit(subprocess.call([entry, "core-contract", args[1], "--scenarios", args[0].upper()]))
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.epilog = "Use core-contract OUTPUT [--scenarios S01,S02,S03,W01,W02,D01,R01] [--performance]; cleanup-contract OUTPUT recovers a saved run."
     ap.add_argument("--observer", required=True, type=Path)
     ap.add_argument("mode", choices=("preflight", "controlled-window", "single-window", "fixture-inventory", "hidden-budget", "title-image"))
     ap.add_argument("output", type=Path, help="fresh evidence directory")

@@ -1,0 +1,129 @@
+"""WindowServer arrival and physical footprint measurements on the contract's three leased desktops."""
+import json
+import math
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import time
+
+from acceptance import catalog_match, checked, encode
+from space_scope import ScopeError, require, validate_live
+from space_trials import Driver
+
+
+def p95(values):
+    return sorted(values)[math.ceil(len(values) * .95) - 1] if values else None
+
+
+def children(root):
+    edges = [tuple(map(int, line.split())) for line in checked(["/bin/ps", "-axo", "pid=,ppid="]).splitlines()]
+    found = {root}
+    for _ in range(len(edges)):
+        descendants = {pid for pid, parent in edges if parent in found}
+        if descendants <= found:
+            break
+        found.update(descendants)
+    return sorted(found)
+
+
+def snapshot(pid, reader, metrics):
+    processes = children(pid)
+    raw = checked([str(reader), *map(str, processes)])
+    rows = [dict(zip(("pid", "parent", "birthSec", "birthUsec", "physFootprint"), map(int, line.split())))
+            for line in raw.splitlines()]
+    require(children(pid) == processes, "Process tree changed during physical footprint read")
+    return {"processes": rows, "physicalBytes": sum(r["physFootprint"] for r in rows),
+            "metrics": json.loads(checked([str(metrics), str(pid)]))}
+
+
+def run(*, workspace, scope, observer, driver, output):
+    output = Path(output)
+    output.mkdir(parents=True, exist_ok=False)
+    out = {"status": "NOT_RUN", "native": [], "product": [], "memorySamples": [], "method":
+           "OS Mission Control selection and production sidebar; independent sampled arrival includes observer overhead",
+           "feedbackP95ms": None, "comparableAnimationP95ms": None}
+    ids = [s["id"] for s in scope["spaces"]]
+    host = scope["host"]
+    def now():
+        return time.monotonic()
+    def save():
+        (output / "results.json").write_text(encode(out))
+    stream = (output / "actions.jsonl").open("x")
+    def log(event, **fields):
+        stream.write(json.dumps(dict(event=event, monotonic=now(), **fields))+"\n")
+        stream.flush(); os.fsync(stream.fileno())
+    def current():
+        obs = workspace.read()
+        return validate_live(scope, obs, host, require_highlight=False), obs
+    channel = None
+    origin = None
+    try:
+        origin, baseline = current()
+        require(origin in ids and len(ids) == 3, "Performance fixture requires three proven ordinary desktops")
+        position = ids.index(origin)
+        order = [ids[(position+i%2+1)%3] for i in range(20)]
+        for target in order:
+            trial = {"target": target, "t0": now(), "tArrival": None, "status": "UNKNOWN"}
+            out["native"].append(trial); log("native-intent", **trial)
+            workspace.select(target)
+            actual, sample = current()
+            trial.update(tArrival=now(), actual=actual, status="PASS" if actual == target else "FAIL")
+            log("native-readback", **trial); save()
+            require(actual == target, "Native selection reached a different desktop")
+        workspace.select(origin)
+        channel = Driver(driver, scope, log)
+        source = origin
+        with tempfile.TemporaryDirectory(prefix="np-footprint-") as tmp:
+            reader = Path(tmp) / "footprint"
+            subprocess.run(["xcrun","clang",str(Path(__file__).with_name("footprint.c")),"-o",reader], check=True)
+            for batch in range(6):
+                for target in order:
+                    trial = {"batch":batch, "source":source, "target":target, "t0":now(),
+                             "tIssued":None, "tFeedback":None, "tArrival":None, "tHighlight":None, "status":"UNKNOWN"}
+                    out["product"].append(trial); log("product-intent", **trial)
+                    trial["dispatch"] = channel.command([target], [source])
+                    require(len(trial["dispatch"]) == 1, "Missing production sidebar action receipt")
+                    deadline = now() + 4
+                    while now() < deadline:
+                        actual, sample = current()
+                        if actual == target:
+                            trial["tArrival"] = trial["tArrival"] or now()
+                            if catalog_match(sample)["highlightMatchesSystem"]:
+                                trial.update(tHighlight=now(), status="PASS")
+                                break
+                        elif actual != source:
+                            trial.update(actual=actual, status="FAIL")
+                            break
+                        time.sleep(.035)
+                    log("product-readback", **trial); save()
+                    require(trial["status"] == "PASS", "Production selection did not settle on its target")
+                    source = target
+                time.sleep(30)
+                reading = snapshot(host["pid"], reader, Path(observer).parent/"metrics")
+                reading.update(batch=batch, monotonic=now())
+                out["memorySamples"].append(reading); save()
+                if batch == 0:
+                    tree = [(r["pid"],r["birthSec"],r["birthUsec"]) for r in reading["processes"]]
+                    first = reading["physicalBytes"]
+                else:
+                    require(tree == [(r["pid"],r["birthSec"],r["birthUsec"]) for r in reading["processes"]],
+                            "Process tree identity differs from the warmed baseline")
+                    require(reading["physicalBytes"] <= first + max(64*1024**2, first*.1), "Physical footprint exceeds contract")
+                m = reading["metrics"]
+                require(m["cacheEntries"] <= 128 and m["chargedPixelBytes"] <= 256*1024**2, "Pixel cache exceeds contract")
+        out["status"] = "PARTIAL"
+        out["reason"] = "Memory series completed. Comparable default animation and product feedback timing were not established."
+        out["memoryProtocol"] = "PASS"
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        out.update(status="BLOCKED" if not out["product"] else "INCOMPLETE", reason=str(error))
+    finally:
+        if channel: channel.close()
+        try:
+            if origin is not None and current()[0] != origin: workspace.select(origin)
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            out["returnIssue"] = str(error)
+        for key in ("native","product"):
+            out[key+"ObservedArrivalP95ms"] = p95([(t["tArrival"]-t["t0"])*1000 for t in out[key] if t["tArrival"] is not None])
+        save(); stream.close()
+    return out
