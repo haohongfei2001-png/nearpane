@@ -71,5 +71,51 @@
   ],
   "originalSystemNavigation": "BLOCKED: each of two distinct arrow event encodings left 24 samples on 5095; system overview list remained unavailable.",
   "cause": "UNKNOWN. The observed sequence localizes the change to the half-tiled picker teardown. Persisting assertion, secure input, display animation and a disabled arrow binding were not observed.",
-  "recovery": "NOT_RUN by offline developer. A separate AppKit fullscreen roundtrip and the subsequent operator-verified return to 6 have independent outcomes."
+  "recovery": "Subsequent real run entered system fullscreen 5101, issued the owned normal exit once, and returned the two AX ordinary documents to 5095. A separate normal-close receipt confirmed both window IDs absent and the fixture generation gone. Returning to original Space 6 and removing the two inactive leases remain separate device results.",
+  "stableSystemPresentation": {
+    "carbonUIMode": 0,
+    "presentationOptions": 0,
+    "processSwitchingDisabled": false,
+    "mainDisplayCaptured": false
+  },
+  "systemControlDiscovery": {
+    "identifierKeys": [
+      "mc",
+      "mc.display",
+      "mc.spaces.list"
+    ],
+    "localizedWindowTitlesUsed": false,
+    "preSplitSelectionsAcknowledged": 4,
+    "sameDockAndWindowManagerGenerations": true,
+    "lastSuccessfulDockRoots": 1,
+    "lastSuccessfulWindowManagerContainers": 1,
+    "lastSuccessfulWindowManagerDisplayHits": 3,
+    "laterReturnToSixAttemptsWithEmptyInitialList": 4,
+    "readsPerAttempt": 24,
+    "observedDockRoots": 0,
+    "observedWindowManagerContainers": 0,
+    "observedWindowManagerDisplayHits": 0,
+    "applicationInputsIssuedAfterMissingList": 0
+  },
+  "afterConfirmedNormalFixtureClose": {
+    "StageSurfaceWindowIDs": [
+      117,
+      19015
+    ],
+    "windowOwner": "Apple-signed WindowManager",
+    "windowBounds": [
+      1352,
+      446,
+      103,
+      97
+    ],
+    "onPhysicalDisplay": false,
+    "inPublicCurrentWindowList": false,
+    "listedAsWindowManagerDocument": false,
+    "membership": [
+      5095
+    ],
+    "front": "Apple-signed Finder with a focused object; no document text or image inspected",
+    "diagnosticInputEvents": 0
+  }
 }
