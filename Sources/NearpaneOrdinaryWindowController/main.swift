@@ -45,6 +45,9 @@ final class Worker {
         var reply = OrdinaryWindowReply(r.nonce)
         do {
             try require(getppid() == parent, "调用方已退出。")
+            if let placement = r.pairPlacement {
+                try require(r.action == .write && (r.desktop == nil || r.desktop == placement.desktop), "双窗授权只能用于本次指定桌面的写入。")
+            }
             if let previewWindow {
                 try require(r.action.allowedForStillPreview && r.destination == nil &&
                             (r.action == .list || r.id?.number == previewWindow), "此通道仅核对已选预览窗口。")
@@ -136,7 +139,12 @@ final class Worker {
                     }
                 case .write:
                     guard let expected = r.expected, let to = r.destination else { throw Refusal("缺少明确的窗口目标。") }
-                    (reply.pair,reply.steps) = try m.write(from:expected,to:to)
+                    let retainedPeer = r.pairPlacement.flatMap { windowsByID[$0.left == id ? $0.right : $0.left] }
+                    if let retainedPeer { try require(retainedPeer.canListAgain, "已登记的同伴窗口不再有效。") }
+                    var completed = [OrdinaryWindowStep]()
+                    defer { reply.steps = completed }
+                    reply.pair = try m.write(from: expected, to: to, placement: r.pairPlacement,
+                                             retainedPeer: retainedPeer?.element) { completed.append($0) }
                 case .watchCreated:
                     try checkOwner(owner, pid: r.pid, launch: r.launch, bundle: r.bundle)
                     guard let token = r.creationGrant, m.hasObserver, m.canListAgain else { throw Refusal("原窗口授权已失效。") }

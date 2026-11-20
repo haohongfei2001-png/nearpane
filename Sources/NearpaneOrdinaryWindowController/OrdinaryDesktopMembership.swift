@@ -18,6 +18,24 @@ enum OrdinaryDesktopMembership {
         return uuid == nil || uuid == id
     }
 
+    static func pairMatches(_ a: UInt32, _ b: UInt32, on desktop: OrdinaryDesktopIdentity, inventory: [[String: Any]],
+                            forwardA: [UInt64], forwardB: [UInt64], reverse: [UInt32]) -> Bool {
+        guard a != 0, b != 0, a != b, let record = UInt64(desktop.record),
+              reverse.filter({ $0 == a }).count == 1, reverse.filter({ $0 == b }).count == 1 else { return false }
+        return matches(display: desktop.display, record: record, uuid: desktop.uuid, exclusive: true, inventory: inventory, members: forwardA)
+            && forwardB == [record]
+    }
+
+    static func containsPair(_ a: UInt32, _ b: UInt32, on desktop: OrdinaryDesktopIdentity) -> Bool {
+        guard let record = UInt64(desktop.record), NPReadOnlySpacesOpen() == 1,
+              let inventory = NPReadInventory() as? [[String: Any]],
+              let first = NPReadWindowSpaces(a) as? [UInt64], let second = NPReadWindowSpaces(b) as? [UInt64],
+              let reverse = NPReadCatalogSpaceWindowNumbers(record) as? [UInt32],
+              let current = NPReadInventory() as? [[String: Any]] else { return false }
+        return pairMatches(a, b, on: desktop, inventory: inventory, forwardA: first, forwardB: second, reverse: reverse)
+            && matches(display: desktop.display, record: record, uuid: desktop.uuid, exclusive: true, inventory: current, members: second)
+    }
+
     static func contains(_ number: UInt32, display: String, record: String, uuid: UUID? = nil) -> Bool {
         guard let space = UInt64(record), NPReadOnlySpacesOpen() == 1,
               let inventory = NPReadInventory() as? [[String: Any]],

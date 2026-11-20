@@ -119,7 +119,7 @@ func boundaryDisplayID(_ frame: SurfaceRect, witness: BoundaryDisplayWitness) th
     return witness.id
 }
 
-private func ordinaryRole(_ element: AXUIElement) throws {
+func ordinaryRole(_ element: AXUIElement) throws {
     guard attribute(element,kAXRoleAttribute) as? String == kAXWindowRole,
           attribute(element,kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
           attribute(element,kAXModalAttribute) as? Bool == false,

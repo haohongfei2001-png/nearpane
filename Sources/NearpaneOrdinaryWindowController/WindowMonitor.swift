@@ -40,6 +40,8 @@ final class WindowMonitor {
     var hasObserver: Bool { observer != nil }
     private let incarnation = UUID()
     private var baseline: AdmissionSample?
+    private var witnessedSizes = OrdinaryWitnessedSizes()
+    private var lastPublishedMinimum: SurfaceRect?
     private var expectedFrame: SurfaceRect?, waitingFor: String?, notificationCount = 0
     private var displayWitness: BoundaryDisplayWitness?
     private var changes = BoundaryChangeTracker()
@@ -121,8 +123,9 @@ final class WindowMonitor {
             try require(sample.display == baseline.display, "窗口所属显示器已变化。")
         }
         try checkDesktop(sample.display)
-        if sample.minimum == nil, let size = baseline?.axFrame ?? sample.axFrame {
-            sample.minimum = .init(width:size.width,height:size.height)
+        if let published = sample.minimum { lastPublishedMinimum = published }
+        else if let frame = sample.axFrame {
+            sample.minimum = witnessedSizes.minimum(at: frame)
             sample.usesWitnessedSize = true
         }
         return sample
@@ -147,6 +150,7 @@ final class WindowMonitor {
             guard let display = p.second.display else { throw Refusal("无法核对原显示器。") }
             displayWitness = try boundaryDisplayWitness(display)
             baseline = p.second
+            witnessedSizes.original = p.second.axFrame
             expectedFrame = p.second.cgFrame
         }
         return p
@@ -237,41 +241,86 @@ final class WindowMonitor {
         }
     }
 
-    func write(from: SurfaceRect, to: SurfaceRect) throws -> (AdmissionPair,[OrdinaryWindowStep]) {
+    func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement?, retainedPeer: AXUIElement?,
+               confirmedStep: (OrdinaryWindowStep) -> Void) throws -> AdmissionPair {
         let before = try verify(from)
         try checkDesktop(before.second.display)
-        guard let bounds = before.second.minimum, let display = before.second.display,
-              to.geometry.isValid, to.width >= bounds.width, to.height >= bounds.height,
+        guard let floor = before.second.minimum, let display = before.second.display, to.geometry.isValid,
               try displayID(to) == display else { throw Refusal("目标超出可证实的窗口尺寸或显示区域。") }
-        if from == to { return (before,[]) }
-        let focus = try FrontFocus()
-        let narrow = SurfaceRect(x:from.x,y:from.y,width:min(from.width,to.width),height:min(from.height,to.height))
-        let positioned = SurfaceRect(x:to.x,y:to.y,width:narrow.width,height:narrow.height)
-        // An intermediate resize must not leave the enrolled display (e.g. a large
-        // window whose only visible portion is its far right edge). Refuse before AX.
-        if acknowledgedMotion, let witness = displayWitness {
-            for step in [narrow, positioned, to] { _ = try boundaryDisplayID(step, witness: witness) }
+
+        let fence: PairPlacementFence?
+        let route: [SurfaceRect]
+        if let placement {
+            try require((desktop == nil || desktop == placement.desktop) && display == placement.desktop.display,
+                        "本次双窗操作与原窗口或显示器授权不符。")
+            let scope = try PairPlacementFence(placement, member: id, destination: to, retainedPeer: retainedPeer)
+            try scope.check(memberFrame: from, memberElement: element)
+            try checkExplicitMinimum(to)
+            fence = scope
+            route = PairPlacementGeometry.steps(from: from, to: to)
+        } else {
+            let usingWitness = before.first.usesWitnessedSize == true && before.second.usesWitnessedSize == true
+            let fits = usingWitness ? witnessedSizes.allowsOrdinary(to, currentFloor: floor) : to.width >= floor.width && to.height >= floor.height
+            try require(fits, "目标超出可证实的窗口尺寸。")
+            if usingWitness, witnessedSizes.latestPair != nil, let known = lastPublishedMinimum {
+                try require(to.width >= known.width && to.height >= known.height, "目标小于应用已公布的最小尺寸。")
+            }
+            fence = nil
+            if usingWitness && witnessedSizes.latestPair != nil {
+                // Returning from a narrower, taller size must not try a narrow-and-short
+                // combination that neither of the two actual size witnesses established.
+                route = PairPlacementGeometry.steps(from: from, to: to)
+            } else {
+                let narrow = SurfaceRect(x:from.x,y:from.y,width:min(from.width,to.width),height:min(from.height,to.height))
+                let positioned = SurfaceRect(x:to.x,y:to.y,width:narrow.width,height:narrow.height)
+                route = [narrow, positioned, to]
+            }
         }
-        var prior = from, receipts = [OrdinaryWindowStep]()
+        if from == to { return fence == nil ? before : recordPairSize(before, frame: to) }
+        let focus = try FrontFocus()
+        if acknowledgedMotion, let witness = displayWitness {
+            for step in route { _ = try boundaryDisplayID(step, witness: witness) }
+        }
+        var prior = from
         do {
-            for next in [narrow, positioned, to] where next != prior {
+            for next in route where next != prior {
                 try focus.check()
-                receipts.append(try step(from:prior,to:next,focus:focus))
+                confirmedStep(try step(from: prior, to: next, focus: focus, fence: fence, final: to))
                 prior = next
             }
             let confirmed = try pair(expected:to)
             try checkDesktop(confirmed.second.display)
+            try fence?.check(memberFrame: to, memberElement: element)
             try focus.check()
             expectedFrame = to
             acknowledgedMotion = false
-            return (confirmed,receipts)
+            return fence == nil ? confirmed : recordPairSize(confirmed, frame: to)
         } catch {
             failure = (error as? Refusal)?.message ?? "未能确认窗口操作，已暂停。"
             throw error
         }
     }
 
-    private func step(from: SurfaceRect, to: SurfaceRect, focus: FrontFocus) throws -> OrdinaryWindowStep {
+    // Both AX/CG samples and any submitted primitives confirmed this exact size.
+    private func recordPairSize(_ pair: AdmissionPair, frame: SurfaceRect) -> AdmissionPair {
+        witnessedSizes.confirmed(frame)
+        func measured(_ sample: AdmissionSample) -> AdmissionSample {
+            var result = sample
+            if sample.usesWitnessedSize == true { result.minimum = witnessedSizes.minimum(at: frame) }
+            return result
+        }
+        return .init(first: measured(pair.first), second: measured(pair.second))
+    }
+
+    private func checkExplicitMinimum(_ target: SurfaceRect) throws {
+        let current = OrdinaryMinimumEvidence.read(element)
+        if case .published(let size) = current { lastPublishedMinimum = .init(width: size.width, height: size.height) }
+        try require(current.permits(target, lastPublished: lastPublishedMinimum),
+                    "无法排除真实最小尺寸限制，本次双窗目标未获准。")
+    }
+
+    private func step(from: SurfaceRect, to: SurfaceRect, focus: FrontFocus, fence: PairPlacementFence?,
+                      final: SurfaceRect) throws -> OrdinaryWindowStep {
         drainWindowEvents(0.006)
         let pre = try read()
         let targetDisplay = try acknowledgedMotion ? displayWitness.map { try boundaryDisplayID(to, witness: $0) } : displayID(to)
@@ -281,28 +330,47 @@ final class WindowMonitor {
         let key = moving ? kAXPositionAttribute : kAXSizeAttribute
         var p = CGPoint(x:to.x,y:to.y), size = CGSize(width:to.width,height:to.height)
         guard let value = moving ? AXValueCreate(.cgPoint,&p) : AXValueCreate(.cgSize,&size) else { throw Refusal("无法构造 AX 几何。") }
+        try checkDesktop(pre.display)
+        if let fence {
+            try checkExplicitMinimum(final)
+            try fence.check(memberFrame: from, memberElement: element)
+        }
         try check()
         try focus.check()
-        // AppKit posts the completed move/resize notification at the end of a drag.
-        // A held button means an in-progress user gesture may still have no notification.
-        for button in [CGMouseButton.left, .right, .center] {
-            try require(!CGEventSource.buttonState(.combinedSessionState, button: button),
-                        "鼠标操作尚未结束，暂不调整窗口。")
-        }
-        try checkDesktop(pre.display)
+        // A held button can precede the target's completed drag notification.
+        try require(!buttonDown, "鼠标操作尚未结束，暂不调整窗口。")
+        try fence?.checkCurrentSpace()
         waitingFor = event; notificationCount = 0
         defer { waitingFor = nil }
         let rc = AXUIElementSetAttributeValue(element,key as CFString,value)
+        if fence != nil && rc != .success {
+            let outcome: String
+            switch rc {
+            case .illegalArgument, .attributeUnsupported, .apiDisabled, .invalidUIElement, .notImplemented:
+                outcome = "AX 拒绝了操作"
+            default:
+                outcome = "AX 未确认操作结果"
+            }
+            throw Refusal(outcome + "（" + key + "，" + String(rc.rawValue) + "）。已保留恢复记录。")
+        }
         try require(rc == .success, "AX 几何操作被拒绝（" + String(rc.rawValue) + "）。")
         let end = ProcessInfo.processInfo.systemUptime + 0.8
         repeat {
             drainWindowEvents(0.025)
             try check()
             if let s = try? read(), let ax = s.axFrame, let cg = s.cgFrame {
-                try require(cg == from || cg == to, "写入期间出现其他窗口几何。")
-                if ax == to && cg == to && notificationCount == 1 {
+                switch OrdinaryGeometryReadback.assess(from: from, to: to, ax: ax, cg: cg, notifications: notificationCount) {
+                case .pending: break
+                case .unexpected:
+                    if fence != nil {
+                        throw Refusal("AX 已接受 " + key + "，实际 AX/CG 几何为 " +
+                                      "(\(cg.x), \(cg.y), \(cg.width), \(cg.height))，与目标不符。已停止并保留恢复记录。")
+                    }
+                    throw Refusal("写入期间出现其他窗口几何。")
+                case .confirmed:
+                    try fence?.check(memberFrame: to, memberElement: element)
                     try focus.check()
-                    return OrdinaryWindowStep(from:from,to:to,ax:ax,cg:cg,notification:event,uptime:s.uptime)
+                    return OrdinaryWindowStep(from: from, to: to, ax: ax, cg: cg, notification: event, uptime: s.uptime)
                 }
             }
         } while ProcessInfo.processInfo.systemUptime < end
