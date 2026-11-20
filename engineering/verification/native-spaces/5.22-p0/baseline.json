@@ -75,6 +75,17 @@
       "swiftSuites": 4,
       "pythonGeneralAndVisual": 41,
       "pythonP0": 13
+    },
+    {
+      "run": 44721534963,
+      "status": "PASS",
+      "os": "26.7.2",
+      "scope": "production native helper, journal, independent protocol suite, compile foundation-only production UI",
+      "swift": 13,
+      "swiftSuites": 4,
+      "pythonGeneralAndVisual": 41,
+      "pythonP0": 13,
+      "nearPaneUICompilerCrashResolved": true
     }
   ]
 }
