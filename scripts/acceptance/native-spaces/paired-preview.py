@@ -97,6 +97,9 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
     except ERRORS as error:
         result["reason"]=str(error)[:220]
         result.setdefault("sampler",{})["status"]="BLOCKED"
+        if "metrics" not in result:
+            result["metrics"]=summarize([]);result["metrics"]["status"]="NOT_MEASURED"
+            result["metrics"]["sampling"]["samePanelFrame"]=None
     save()
     host_id={"pid":host,"codeHash":host_hash}
     if witness or budget:
