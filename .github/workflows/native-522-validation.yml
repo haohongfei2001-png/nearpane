@@ -6,6 +6,8 @@ on:
       - '.github/workflows/native-522-validation.yml'
       - 'Sources/CNativeSpaceActions/**'
       - 'Sources/NearpaneSpaceAction/**'
+      - 'Sources/NearpaneCore/**'
+      - 'Sources/NearpaneUI/**'
       - 'Tests/NearpaneSpaceActionTests/**'
       - 'scripts/acceptance/native-spaces/**'
 permissions:
