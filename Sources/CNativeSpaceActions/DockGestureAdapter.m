@@ -3,7 +3,6 @@
 #import <Foundation/Foundation.h>
 #import <ApplicationServices/ApplicationServices.h>
 #import <mach/mach_time.h>
-#import <sys/sysctl.h>
 
 // The protocol descriptions and MIT license are pinned in Resources/Upstream/NativeSpaceActions.
 NPDockProtocol NPDockProtocolForVersion(int major, int minor) {
@@ -13,16 +12,9 @@ NPDockProtocol NPDockProtocolForVersion(int major, int minor) {
 }
 
 NPDockProtocol NPDockInstalledProtocol(void) {
-#if defined(__arm64__)
-    char build[64] = {0};
-    size_t length = sizeof(build);
-    if (sysctlbyname("kern.osversion", build, &length, NULL, 0) || strcmp(build, "26A428"))
-        return NPDockUnsupported;
-    NSOperatingSystemVersion os = NSProcessInfo.processInfo.operatingSystemVersion;
-    return NPDockProtocolForVersion((int)os.majorVersion, (int)os.minorVersion);
-#else
+    // The only previously enabled build, 26A428, left the confirmed target
+    // before the next input (installed run 18). No build is qualified for dispatch.
     return NPDockUnsupported;
-#endif
 }
 
 CGEventRef NPDockCopySwipeEvent(NPDockProtocol protocol, bool right, bool natural,

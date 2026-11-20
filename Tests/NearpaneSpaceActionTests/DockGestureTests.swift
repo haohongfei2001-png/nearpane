@@ -13,6 +13,10 @@ struct DockGestureTests {
         #expect(NPDockProtocolForVersion(28, 0) == NPDockUnsupported)
     }
 
+    @Test func installedDispatchStaysOffUntilAnExactBuildQualifies() {
+        #expect(NPDockInstalledProtocol() == NPDockUnsupported)
+    }
+
     @Test(arguments: [true, false], [true, false])
     func modernWireFieldsAndPayload(right: Bool, natural: Bool) throws {
         for phase: Int32 in [1, 2, 4] {

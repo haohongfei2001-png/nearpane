@@ -20,7 +20,8 @@ func isBundledChild() -> Bool {
 @MainActor
 func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindowWitnesses,
          authorize: (NativeSpaceReply) throws -> NativeSpaceStepPermission) -> NativeSpaceReply {
-    let canSwitch = available && NPDockInstalledProtocol() != NPDockUnsupported && CGPreflightPostEventAccess()
+    let switchProtocol = NPDockInstalledProtocol()
+    let canSwitch = available && switchProtocol != NPDockUnsupported && CGPreflightPostEventAccess()
     let canMove = available && AXIsProcessTrusted() && NPMoveAvailable()
     var before: ActionInventory?, after: ActionInventory?
     var oldMembership: [String]?, newMembership: [String]?
@@ -82,7 +83,12 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
             issued = NPRequestMove(window.number, target)
             if issued { issuedAt = submitted; steps = 1 }
         } else {
-            guard canSwitch else { throw ActionFailure("缺少向系统请求桌面切换的权限。") }
+            if from != to {
+                guard switchProtocol != NPDockUnsupported else {
+                    throw ActionFailure("此 macOS 构建的桌面切换尚未通过验收，请使用系统的调度中心。")
+                }
+                guard canSwitch else { throw ActionFailure("缺少向系统请求桌面切换的权限。") }
+            }
             if let token = request.originalWindow {
                 selectedWindow = try SelectedWindowWitness { try witnesses.selected(request, token: token) }
             } else {
