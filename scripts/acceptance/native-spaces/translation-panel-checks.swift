@@ -50,6 +50,32 @@ import CoreGraphics
         }
         verify(TranslationPanelVerdict(isBound:true,panelCurrent:true,sourceFocused:true,anchorMatches:true,
                                       hostSameGeneration:true,imageCaptured:true,contentMatches:true).passed)
+        for (attempted,returned,retained,expected) in [
+            (false,false,false,"withheldBeforeCapture"),(false,false,true,"withheldBeforeCapture"),
+            (true,false,false,"ownedWindowCaptureUnavailable"),(true,true,false,"withheldAfterCapture"),
+            (true,true,true,"capturedInMemory")] {
+            verify(TranslationProof.captureState(attempted:attempted,returned:returned,retained:retained)==expected)
+        }
+        let fixed=TranslationProof.digest(TranslationProof.normalized(answer))
+        verify(TranslationProof.stockNotice(in:[id:[fixed]])?.request==id)
+        verify(TranslationProof.stockNotice(in:[id:[fixed,TranslationProof.digest("")]])?.contentHash==fixed)
+        verify(TranslationProof.stockNotice(in:[id:[fixed,TranslationProof.digest("other")]])==nil)
+        verify(TranslationProof.stockNotice(in:[id:[fixed],UUID():[fixed]])==nil)
+        verify(TranslationProof.stockNotice(in:[:])==nil)
+        if CommandLine.arguments.count==2 {
+            let url=URL(fileURLWithPath:CommandLine.arguments[1])
+            let record=try! JSONSerialization.jsonObject(with:Data(contentsOf:url)) as! [String:Any]
+            let samples=record["panelSamples"] as! [[String:Any]]
+            verify(record["status"] as? String=="UNKNOWN" && samples.count==6)
+            for sample in samples {
+                let start=sample["sourceBefore"] as! [String:Bool],end=sample["sourceAfter"] as! [String:Bool]
+                verify(start["originalFixture"]==true && end["originalFixture"]==true && start["workspaceFront"]==false && end["workspaceFront"]==false)
+                let checks=sample["checks"] as! [String:Bool]
+                verify(checks["isBound"]==true && checks["panelCurrent"]==true && checks["sourceFocused"]==false)
+                let originalAttempted=sample["sameHostGeneration"] as? Bool==true && (sample["stackBefore"] as? [String:String])?["status"]=="clear" && start.values.allSatisfy{$0}
+                verify(!originalAttempted && TranslationProof.captureState(attempted:originalAttempted,returned:false,retained:false)=="withheldBeforeCapture")
+            }
+        }
         print("\(checks) single-sample identity, chronology, contents, source and occlusion checks passed")
     }
 }

@@ -8,29 +8,42 @@ private func selectionAXWindow(_ element: AXUIElement, _ number: UnsafeMutablePo
 
 struct TranslationSourceWitness {
     let checks:[String:Bool]
+    let foreground:String, axForeground:String
+    let leftForHost:Bool
     var confirmed:Bool { !checks.isEmpty && checks.values.allSatisfy { $0 } }
 }
 
 @MainActor func translationSource(_ fixture:ToolWindow, _ pid:pid_t, _ number:CGWindowID,
-                                  _ field:AXUIElement, _ phrase:String) -> TranslationSourceWitness {
+                                  _ field:AXUIElement, _ phrase:String, host:pid_t) -> TranslationSourceWitness {
     let state = fixture.selectionState() ?? [:]
     let system = AXUIElementCreateSystemWide()
     AXUIElementSetMessagingTimeout(system,0.18)
-    var actual:pid_t=0, axOwner=false, exactElement=false, phraseSelected=false
+    let front=NSWorkspace.shared.frontmostApplication?.processIdentifier
+    func ownerClass(_ observed:pid_t?) -> String {
+        guard let observed,observed>0 else{return "unavailable"}
+        if observed==pid {return "fixture"}
+        if observed==host {return "installedHost"}
+        return observed==getpid() ? "observer":"other"
+    }
+    var actual:pid_t=0, axPID:pid_t?, axOwner=false, exactElement=false, phraseSelected=false
     if let raw=ToolUI.value(system,kAXFocusedUIElementAttribute), CFGetTypeID(raw)==AXUIElementGetTypeID() {
         let element=raw as! AXUIElement
-        axOwner = AXUIElementGetPid(element,&actual) == .success && actual==pid
+        if AXUIElementGetPid(element,&actual) == .success {axPID=actual}
+        axOwner = axPID==pid
         if axOwner {
             AXUIElementSetMessagingTimeout(element,0.18)
             exactElement = CFEqual(element,field)
             phraseSelected = ToolUI.value(element,kAXSelectedTextAttribute) as? String == phrase
         }
     }
-    return .init(checks:["originalFixture":fixture.client?.processIdentifier==pid && fixture.client?.isTerminated==false,
-                         "workspaceFront":NSWorkspace.shared.frontmostApplication?.processIdentifier==pid,
+    let original=fixture.client?.processIdentifier==pid && fixture.client?.isTerminated==false
+    let leftForHost=original && front==host && state["window"] as? CGWindowID==number &&
+        state["front"] as? Bool==false && state["key"] as? Bool==false && state["focused"] as? Bool==false
+    return .init(checks:["originalFixture":original,"workspaceFront":front==pid,
                          "stateWindow":state["window"] as? CGWindowID==number,"stateFront":state["front"] as? Bool==true,
                          "stateKey":state["key"] as? Bool==true,"stateSelected":state["focused"] as? Bool==true,
-                         "axOwner":axOwner,"sameAXInput":exactElement,"axExactSelection":phraseSelected])
+                         "axOwner":axOwner,"sameAXInput":exactElement,"axExactSelection":phraseSelected],
+                 foreground:ownerClass(front),axForeground:ownerClass(axPID),leftForHost:leftForHost)
 }
 
 struct TranslationStackWitness {
@@ -117,12 +130,15 @@ struct TranslationPanelSample {
     let beforeStack:TranslationStackWitness, afterStack:TranslationStackWitness
     let beforeFocus:TranslationSourceWitness, afterFocus:TranslationSourceWitness
     let selection:Bool, pointer:Bool, sameHost:Bool, image:CGImage?, labels:[UUID:Set<String>]
-    let captureState:String
+    let captureState:String, captureAttempted:Bool, captureScope:String
     var metadata:[String:Any] {
         ["window":number,"frame":NSStringFromRect(rect),"begin":begin,"end":end,"stackBefore":beforeStack.fields,
          "stackAfter":afterStack.fields,"sourceBefore":beforeFocus.checks,"sourceAfter":afterFocus.checks,
          "atSelection":selection,"atOriginalPointer":pointer,"sameHostGeneration":sameHost,
-         "capture":captureState,"requestMarkers":labels.count,"axReadFinished":axEnd.map { $0 as Any } ?? NSNull()]
+         "capture":captureState,"captureAttempted":captureAttempted,"captureScope":captureScope,
+         "foregroundBefore":beforeFocus.foreground,"foregroundAfter":afterFocus.foreground,
+         "axForegroundBefore":beforeFocus.axForeground,"axForegroundAfter":afterFocus.axForeground,
+         "requestMarkers":labels.count,"axReadFinished":axEnd.map { $0 as Any } ?? NSNull()]
     }
     func textInImage(_ expected:String)->(matches:Bool,visibleText:Bool) {
         guard let image,!expected.isEmpty else {return (false,false)}
@@ -145,25 +161,36 @@ struct TranslationPanelSample {
         return abs(now.x-pointer.x)<=1 && abs(now.y-pointer.y)<=1 && rect.insetBy(dx:-12,dy:-12).contains(now)
     }
     let initialPointer=atPointer()
-    var image:CGImage?,labels=[UUID:Set<String>](),status="withheldBeforeCapture"
-    if original && first.clear && firstFocus.confirmed {
-        do {
-            image=try await ToolUI.ownedImage(number,pid:host)
-            status="capturedInMemory"
-        } catch {status="ownedWindowCaptureUnavailable"}
+    var image:CGImage?,labels=[UUID:Set<String>]()
+    var publicNotice:TranslationProof.StockNotice?
+    if original && first.clear && firstFocus.leftForHost {
+        publicNotice=TranslationProof.stockNotice(in:exactPanelLabels(host,number,rect))
     }
+    let scope=firstFocus.confirmed ? "sourceDocument" : publicNotice != nil ? "hostStockNotice":"none"
+    let attempted=original && first.clear && scope != "none"
+    if attempted {image=try? await ToolUI.ownedImage(number,pid:host)}
+    let imageReturned=image != nil
     let last=stack(host,fixture,number,rect), lastFocus=focus(), stable=original && sameHost()
     let pointerStable=initialPointer && atPointer(), imageEnd=ProcessInfo.processInfo.systemUptime
     var axEnd:Double?
-    if !last.clear || !lastFocus.confirmed || !stable {image=nil;status="withheldAfterCapture"}
-    if image != nil {
+    let afterFocusOK=firstFocus.confirmed ? lastFocus.confirmed : lastFocus.leftForHost
+    var retained=last.clear && afterFocusOK && stable
+    if image != nil && retained {
         let scoped=exactPanelLabels(host,number,rect)
-        // AX may be slower than the panel. Its optional readback cannot invalidate an already bracketed image.
-        if !scoped.isEmpty && stack(host,fixture,number,rect).clear && focus().confirmed && sameHost() {
-            labels=scoped;axEnd=ProcessInfo.processInfo.systemUptime
+        let read=focus()
+        let axStable=stack(host,fixture,number,rect).clear && sameHost() &&
+            (firstFocus.confirmed ? read.confirmed:read.leftForHost)
+        if !scoped.isEmpty && axStable {labels=scoped;axEnd=ProcessInfo.processInfo.systemUptime}
+        if let publicNotice {
+            // Content-only diagnostics require the same scoped, stock-text AX marker on both sides.
+            // They never authorize saving a PNG or a passing source-focus verdict.
+            retained=axStable && TranslationProof.stockNotice(in:scoped)==publicNotice
         }
     }
+    if !retained {image=nil;labels=[:]}
+    let status=TranslationProof.captureState(attempted:attempted,returned:imageReturned,retained:retained)
     return .init(number:number,rect:rect,begin:begin,end:imageEnd,axEnd:axEnd,
                  beforeStack:first,afterStack:last,beforeFocus:firstFocus,afterFocus:lastFocus,selection:selection,
-                 pointer:pointerStable,sameHost:stable,image:image,labels:labels,captureState:status)
+                 pointer:pointerStable,sameHost:stable,image:image,labels:labels,captureState:status,
+                 captureAttempted:attempted,captureScope:scope)
 }

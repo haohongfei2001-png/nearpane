@@ -107,7 +107,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     try await ToolUI.screenshot(number,pid:pid,to:sourcePNG)
     let pointer = CGEvent(source: nil)?.location
     let started = ProcessInfo.processInfo.systemUptime
-    func focus()->TranslationSourceWitness { translationSource(fixture,pid,number,element,phrase) }
+    func focus()->TranslationSourceWitness { translationSource(fixture,pid,number,element,phrase,host:context.host.processIdentifier) }
     func sameHost()->Bool { !context.host.isTerminated && kernelBirth(context.host.processIdentifier)==hostBirth }
     let beforeService=focus()
     guard beforeService.confirmed else {throw ToolRefusal("Fixture input, exact external AX selection or foreground changed before dispatch")}
@@ -153,7 +153,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let attempted=fixtureEnd?["serviceAttempted"] as? Bool
     let performed=fixtureEnd?["serviceDispatched"] as? Bool
     var report:[String:Any]=["hostPID":context.host.processIdentifier,"hostBirth":hostBirth,"generation":context.generation.lastPathComponent,
-        "phase":"translation","observationContract":"live-panel-before-log-v2","source":phrase,"sourceLanguage":source,"assetStatus":languageState,
+        "phase":"translation","observationContract":"live-panel-before-log-v3","source":phrase,"sourceLanguage":source,"assetStatus":languageState,
         "serviceDispatched":performed==true,"fixtureDispatchConfirmed":attempted==true && performed != nil,
         "serviceRegistration":route,"selection":NSStringFromRect(selection),"clientSelection":NSStringFromRect(clientSelection),
         "axBoundsAvailable":!axBounds.isEmpty,"rowsBefore":originalWords.count,"sourceBeforeDispatch":beforeService.checks,
@@ -189,7 +189,8 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
         "请先在 macOS 翻译设置中下载所需语言。" : ordered.contains("modelUnsupported") ? "当前系统不支持这组语言的本地翻译。" : ""
     let terminal=words.count==1 ? "wordCommitted" : ordered.contains("modelMissing") ? "modelMissing" : "modelUnsupported"
     let content=TranslationProof.digest(TranslationProof.normalized(expected))
-    var details=[[String:Any]](), winner:TranslationPanelSample?
+    var details=[[String:Any]](), winner:TranslationPanelSample?, signedHostTookFocus=false, unclearPostReturnSource=false, contentSeen=false
+    let serviceReturn=(fixtureEnd?["serviceTimes"] as? [String:Double])?["after"]
     for sample in samples {
         let declared=request.flatMap { TranslationProof.presentation(evidence,source:phrase,answer:expected,terminal:terminal,
             id:$0,pid:context.host.processIdentifier,window:sample.number,begin:sample.begin,end:sample.end) }
@@ -207,6 +208,13 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
             hostSameGeneration:sample.sameHost,imageCaptured:sample.image != nil,contentMatches:optical.matches || (axExact && optical.visibleText))
         var item=sample.metadata
         item["checks"]=verdict.fields;item["exactRequestAXText"]=axExact;item["exactOCR"]=optical.matches;item["textSeenInImage"]=optical.visibleText
+        let phaseBound=declared != nil && verdict.panelCurrent && verdict.hostSameGeneration && verdict.anchorMatches
+        item["boundPanelContentObserved"]=phaseBound && verdict.imageCaptured && verdict.contentMatches
+        if item["boundPanelContentObserved"] as? Bool==true {contentSeen=true}
+        if phaseBound,let serviceReturn,sample.begin>=serviceReturn {
+            if sample.beforeFocus.leftForHost && sample.afterFocus.leftForHost {signedHostTookFocus=true}
+            if !sample.beforeFocus.confirmed || !sample.afterFocus.confirmed {unclearPostReturnSource=true}
+        }
         item["declaredAnchor"]=declared ?? "unbound";item["qualified"]=verdict.passed
         details.append(item)
         if winner==nil && verdict.passed {winner=sample}
@@ -218,13 +226,23 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
         let matches=details.filter{($0["checks"] as? [String:Bool])?[key]==true}.count
         result[key]=matches==0 ? "NO_SAMPLE" : matches==details.count ? "ALL_SAMPLES":"SOME_SAMPLES"
     }
+    let crossed=fixtureEnd?["selectionAcrossService"] as? [String:Bool]
+    let focusLost=signedHostTookFocus && crossed?["before"]==true && performed==true
+    let retained=crossed?["before"]==true && crossed?["after"]==true && !unclearPostReturnSource && serviceReturn != nil
+    report["sourceFocusRetention"]=focusLost ? "FAIL" : retained && winner != nil ? "PASS":"UNKNOWN"
+    report["panelVisualContent"]=contentSeen ? "PASS":"UNKNOWN"
+    report["captureAPICalls"]=samples.filter(\.captureAttempted).count
     report["visibleNonactivatingBubble"]="UNKNOWN"
     if ordered.contains("modelMissing") {report["translationCapability"]="BLOCKED_MODEL_MISSING"}
     guard performed == true, attempted == true else {
         report["status"]=attempted==true && performed==false ? "FAIL":"UNKNOWN"
         report["reason"]="Fixture did not positively confirm its single service dispatch";return report
     }
-    guard let chosen=winner,let image=chosen.image,let request,
+    if focusLost {
+        report["status"]="FAIL";report["reason"]="The fixture lost its key document and the signed installed Host held foreground across a request-bound panel sample"
+        return report
+    }
+    guard retained,let chosen=winner,let image=chosen.image,let request,
           let png=NSBitmapImageRep(cgImage:image).representation(using:.png,properties:[:])
     else {report["status"]="UNKNOWN";report["reason"]="No single live sample met every panel check; see panelSamples";return report}
     try png.write(to:context.output.appendingPathComponent("bubble.png"),options:.withoutOverwriting)

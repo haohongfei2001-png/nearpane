@@ -59,3 +59,21 @@ struct TranslationPanelVerdict {
          "hostSameGeneration":hostSameGeneration,"imageCaptured":imageCaptured,"contentMatches":contentMatches]
     }
 }
+
+extension TranslationProof {
+    static func captureState(attempted:Bool,returned:Bool,retained:Bool)->String {
+        guard attempted else{return "withheldBeforeCapture"}
+        guard returned else{return "ownedWindowCaptureUnavailable"}
+        return retained ? "capturedInMemory":"withheldAfterCapture"
+    }
+    // Only fixed public notices may be sampled when the signed Host has taken foreground.
+    struct StockNotice:Equatable {let request:UUID,contentHash:String}
+    static func stockNotice(in labels:[UUID:Set<String>])->StockNotice? {
+        let known=Set(["请先在 macOS 翻译设置中下载所需语言。","当前系统不支持这组语言的本地翻译。",
+                       "当前系统不支持本地翻译。"].map{digest(normalized($0))})
+        guard labels.count==1,let (id,values)=labels.first else{return nil}
+        let content=values.subtracting([digest("")])
+        guard content.count==1,let hash=content.first,known.contains(hash) else{return nil}
+        return StockNotice(request:id,contentHash:hash)
+    }
+}
