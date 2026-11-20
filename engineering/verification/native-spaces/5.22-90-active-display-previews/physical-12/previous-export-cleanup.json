@@ -1,0 +1,14 @@
+[
+  {
+    "staging": "3be13f6-diagnostic",
+    "removed": true,
+    "verifiedArchive": "bfc3e898abc820549d56220a7fef691f497d9f5584cfaf30e595a4f0aa566e2c",
+    "deregistrationExit": 0
+  },
+  {
+    "staging": "32b9f92-macOS",
+    "removed": true,
+    "verifiedArchive": "be2d4cbca0091e5613e8d5e71148e1e8630e3cb16d4977d880f664bbbb9a1a28",
+    "deregistrationExit": 1
+  }
+]

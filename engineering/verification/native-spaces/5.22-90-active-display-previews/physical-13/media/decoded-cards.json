@@ -1,0 +1,841 @@
+{
+  "audioTracks": 0,
+  "cardPatchMismatches": 8,
+  "dimensions": [
+    416,
+    510
+  ],
+  "durationSeconds": 2.7776833333333335,
+  "frames": [
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.08326666666666667
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.1671
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.25106666666666666
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.3347
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.42145
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.5049666666666667
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.5909333333333333
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.6759
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.7597166666666667
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.8423
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 0.9266333333333333
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 1.00995
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 1.0944
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          213,
+          87,
+          30,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 1.1775
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          130,
+          28,
+          144,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 1.2621
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          224,
+          97,
+          40,
+          255
+        ],
+        [
+          120,
+          18,
+          133,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/6",
+        "1/6"
+      ],
+      "expectedEpochs": [
+        6,
+        6
+      ],
+      "presentationSeconds": 1.34535
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 1.4302333333333332
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 1.5180333333333333
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 1.6002
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          64,
+          207,
+          70,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 1.6852166666666666
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 1.7681666666666667
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 1.8551666666666666
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          64,
+          207,
+          70,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 1.9392
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.0216666666666665
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          64,
+          207,
+          70,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.106733333333333
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.1893833333333332
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.272266666666667
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.35585
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          64,
+          207,
+          70,
+          255
+        ],
+        [
+          205,
+          27,
+          159,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "1/2"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.441516666666667
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.5268333333333333
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          53,
+          196,
+          59,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.6113666666666666
+    },
+    {
+      "decodedRGBA7x7Median": [
+        [
+          64,
+          207,
+          70,
+          255
+        ],
+        [
+          194,
+          16,
+          149,
+          255
+        ]
+      ],
+      "decodedSamples": [
+        "0/2",
+        "unknown"
+      ],
+      "expectedEpochs": [
+        2,
+        2
+      ],
+      "presentationSeconds": 2.6942333333333335
+    }
+  ],
+  "framesDecoded": 33,
+  "maxChannelDiffFromPlannedPalette": 31,
+  "maxTimeErrorMicroseconds": 15.583333333291094,
+  "method": "AVAssetReader decoded both card centers at the source-registered ROI on every encoded frame.",
+  "status": "FAIL"
+}

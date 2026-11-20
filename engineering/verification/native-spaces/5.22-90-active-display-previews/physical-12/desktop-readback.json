@@ -1,0 +1,45 @@
+{
+  "current": 5095,
+  "ordinaryIDs": [
+    4,
+    6,
+    5094,
+    5095
+  ],
+  "recordTypes": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "stageManager": true,
+  "registeredInstalledProcess": 1,
+  "protectedSpaceIDs": [
+    4,
+    6
+  ],
+  "enrolledSpaces": [
+    5094,
+    5095
+  ],
+  "userAppsClosed": 0,
+  "windowManagerRestartIssued": false,
+  "scopeOccupancy": {
+    "5094": {
+      "unresolved": 0,
+      "ordinary": 0,
+      "otherOwners": [
+        "com.apple.WindowServer"
+      ]
+    },
+    "5095": {
+      "unresolved": 0,
+      "ordinary": 2,
+      "otherOwners": [
+        "com.apple.WindowServer",
+        "com.apple.dock",
+        "com.holdsnow.nearpane.alpha"
+      ]
+    }
+  }
+}

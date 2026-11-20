@@ -1,0 +1,30 @@
+{
+  "status": "OBSERVED",
+  "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "hostCDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+  "traceInitiallyOffInDailyProduct": true,
+  "trialUsedOptIn": true,
+  "ownerLookupRecoveryEvents": [
+    {
+      "document": "B",
+      "number": 52921,
+      "time": 270472.23667400004,
+      "reason": "applicationLookupRecovered"
+    },
+    {
+      "document": "A",
+      "number": 52920,
+      "time": 270479.23571566667,
+      "reason": "applicationLookupRecovered"
+    },
+    {
+      "document": "B",
+      "number": 52921,
+      "time": 270492.85347870836,
+      "reason": "applicationLookupRecovered"
+    }
+  ],
+  "totalRecovered": 3,
+  "neutralIntervals": "NO_CONFIRMED_INTERVAL",
+  "ambiguousPixels": 0
+}
