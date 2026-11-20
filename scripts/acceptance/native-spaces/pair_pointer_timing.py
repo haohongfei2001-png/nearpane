@@ -4,6 +4,7 @@ import math
 import re
 import subprocess
 import threading
+import time
 import uuid
 
 
@@ -26,6 +27,21 @@ def parse(line, pid):
         if not math.isfinite(clock) or clock <= 0:
             return None
         return {"operation":str(uuid.UUID(op)), "phase":phase, "route":route, "action":action, "uptime":clock}
+    except (AttributeError,TypeError,ValueError):
+        return None
+
+
+PAIR_PHASES = {"cardDown","cardDrop","pairScopeRefused","pairAdmissionRefused","pairResolving","pairPlacing","pairVerified","pairBindingIncomplete","pairListed","pairScopeChangedAfterBinding","cardClick"}
+
+
+def pair_phase(line, pid):
+    try:
+        raw = json.loads(line)
+        if (raw.get("processID") != pid or raw.get("category") != "SidebarPointer" or
+                raw.get("subsystem") != "com.holdsnow.nearpane.alpha"):
+            return None
+        name = raw.get("eventMessage","").removeprefix("phase=")
+        return name if name in PAIR_PHASES else None
     except (AttributeError,TypeError,ValueError):
         return None
 
@@ -55,13 +71,14 @@ class HostFocusTiming:
         self.log = None
         self.thread = None
         self.records = []
+        self.phases = []
         self.truncated = False
 
     def start(self):
         # This new isolated Host owns the checked profile. Only content-free entries
         # from its exact PID, public category, and strict schema are ever retained.
         predicate = (f'processID == {int(self.pid)} AND subsystem == "com.holdsnow.nearpane.alpha" '
-                     'AND category == "WindowFocusLatency"')
+                     'AND (category == "WindowFocusLatency" OR category == "SidebarPointer")')
         try:
             self.log = subprocess.Popen(["/usr/bin/log","stream","--style","ndjson","--level","info","--predicate",predicate],
                                         stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,stdin=subprocess.DEVNULL)
@@ -76,6 +93,9 @@ class HostFocusTiming:
             for line in stream:
                 if len(line) > 32768:
                     continue
+                phase = pair_phase(line,self.pid)
+                if phase and len(self.phases) < 192:
+                    self.phases.append({"phase":phase,"readAt":time.monotonic()})
                 row = parse(line,self.pid)
                 if row:
                     if len(self.records) < 256:

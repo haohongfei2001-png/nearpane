@@ -25,7 +25,7 @@ if [[ "$flavor" != marker ]]; then
     observer_sources=("$work/observer/main.swift" "$src/p2-document-scope.swift" "$src/p2-stage-surface.swift" scripts/acceptance/observe-secondary-space-controls.swift "$src/p2-document-post.swift" "$src/p2-keypad.swift" "$src/p2-document-physical.swift" Sources/NearpaneCore/AXWindowList.swift)
     if [[ "$flavor" == --pair-pointer ]]; then
         flags+=(-D P2_PAIR_POINTER)
-        observer_sources+=("$src/pair-pointer.swift" "$src/pair-pointer-receiver.swift" "$src/pair-pointer-motion.swift" "$src/pair-pointer-cursor.swift"
+        observer_sources+=("$src/pair-pointer.swift" "$src/pair-pointer-receiver.swift" "$src/pair-pointer-motion.swift" "$src/pair-pointer-cursor.swift" "$src/pair-pointer-post.swift" "$src/pair-pointer-readiness.swift"
                            "$src/pair-pointer-visual.swift" "$src/pair-pointer-palette.swift" "$src/screen-presentation-clock.swift")
         fixture_sources+=("$src/pair-pointer-palette.swift")
     fi

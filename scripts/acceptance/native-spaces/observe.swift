@@ -114,13 +114,16 @@ struct Sidebar {
                text == "窗口归属尚未读全" || text == "未发现普通窗口" {
                 membershipLabels.append((element,text == "未发现普通窗口" ? "empty" : "unread"))
             }
-            let allowed = ["这扇窗口已变化，请重新选择。", "窗口已离开这个桌面。", "这扇窗口的系统身份已变化。",
+            var allowed = ["这扇窗口已变化，请重新选择。", "窗口已离开这个桌面。", "这扇窗口的系统身份已变化。",
                            "精确选择这扇窗口需要允许 Nearpane 使用辅助功能。", "macOS 未允许这个应用置前。",
                            "系统未确认这扇窗口已置前。", "尚未确认目标桌面。", "所选窗口已离开这个桌面。",
                            "所选窗口的应用已退出。", "无法唯一确认这扇窗口的辅助功能身份。", "原选窗操作已取消。",
                            "无法确认焦点仍在所选桌面。", "窗口助手未取得辅助功能权限，无法唯一选择这扇窗口。",
                            "系统没有确认原窗口仍然可选。", "窗口或桌面已变化，请重新选择。", "桌面或窗口已变化，请重新选择。",
                            "所选窗口或来源桌面已变化。", "窗口已置前，键盘焦点尚未确认。"]
+            #if P2_PAIR_POINTER
+            allowed += Array(pairRefusals.keys)
+            #endif
             for key in [kAXTitleAttribute, kAXValueAttribute] {
                 if let text = value(element, key) as? String, allowed.contains(text) { knownIssues.insert(text) }
             }

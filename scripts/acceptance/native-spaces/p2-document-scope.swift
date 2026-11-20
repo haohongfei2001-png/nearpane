@@ -6,7 +6,7 @@ import Security
 struct P2Request: Decodable {
     let mode:String, hostPID:Int32, hostHash:String, display:String, space:UInt64
     let hostBirth:UInt64?, hid:[UInt32]?, app:String?, folder:String?, session:String?, pid:Int32?, birth:UInt64?, hash:String?
-    let pointerKind:String?
+    let pointerKind:String?, pointerPanel:UInt32?, pointerDisplayUUID:String?
     let numbers:[UInt32]?, target:UInt32?, digests:[String]?, allowedFront:Int32?, allowedFrontBirth:UInt64?, spaceUUID:String?
 }
 private func p2Path(_ path:String)->String? {
@@ -29,8 +29,10 @@ private func p2Digest(_ text:String)->String { SHA256.hash(data:Data(text.utf8))
 func p2DocumentReport(_ request:P2Request) -> Object {
     let hardware=p2Physical()
     var result:Object=["status":"BLOCKED","hid":hardware,"clock":ProcessInfo.processInfo.systemUptime]
+    if request.mode == "pair-pointer" {result["issued"]=false}
     if let pid=request.pid {
         let front=NSWorkspace.shared.frontmostApplication?.processIdentifier
+        result["frontKind"] = front == pid ? "fixture" : front == request.hostPID ? "installedHost" : front == nil ? "unavailable" : "other"
         result["frontIsFixture"]=front==pid
         result["frontMatchesOriginal"]=request.allowedFront.map{$0==front} ?? false
     }
@@ -48,6 +50,13 @@ func p2DocumentReport(_ request:P2Request) -> Object {
                 "windowsGone":list != nil && !owned,"frontIsFixture":NSWorkspace.shared.frontmostApplication?.processIdentifier==pid,"hid":hardware]
     }
     if changed(){return superseded()}
+    #if P2_PAIR_POINTER
+    if request.mode == "pair-pointer" && request.pointerKind == "post-read" {
+        let state = pairLeaseState(request)
+        result["leaseState"] = state
+        guard state == "BOUND" else {return stop("postReadLease"+state)}
+    }
+    #endif
     guard let host, host.processIdentifier==request.hostPID, runningCodeHash(request.hostPID)==request.hostHash,
           let hBirth=birthMicroseconds(request.hostPID), request.hostBirth.map({$0==hBirth}) ?? true,
           let scope=inventory(requireComplete:true)?.first(where:{$0["scope"] as? String==request.display}),
@@ -84,17 +93,52 @@ func p2DocumentReport(_ request:P2Request) -> Object {
     guard proc_pidpath(pid,&kernelPath,UInt32(kernelPath.count))>0,
           p2Path(String(cString:kernelPath))==physical+"/Contents/MacOS/FieldNotes" else{return stop("kernelExecutableIdentityChanged")}
     result["registrationStage"]="kernelExecutable"
-    guard let live=NSRunningApplication(processIdentifier:pid), !live.isTerminated,live.activationPolicy == .regular,
-          live.bundleIdentifier==bundle else{return stop("LSRegularAppIdentityUnavailable")}
-    result["registrationStage"]="regular"
-    guard let url=live.bundleURL,p2Path(url.path)==physical,
-          let executable=live.executableURL,p2Path(executable.path)==physical+"/Contents/MacOS/FieldNotes",
-          NSRunningApplication.runningApplications(withBundleIdentifier:bundle).filter({$0.processIdentifier==pid && $0.bundleURL.flatMap({p2Path($0.path)})==physical}).count==1
-          else{return stop("LSBundleOrRegisteredExecutableUnavailable")}
-    result["registrationStage"]="registeredBundleAndExecutable"
+    func originalRegistration() -> (NSRunningApplication?,String) {
+        guard let app=NSRunningApplication(processIdentifier:pid), !app.isTerminated,app.activationPolicy == .regular,
+              app.bundleIdentifier==bundle else{return (nil,"LSRegularAppIdentityUnavailable")}
+        result["registrationStage"]="regular"
+        guard let url=app.bundleURL,p2Path(url.path)==physical,
+              let executable=app.executableURL,p2Path(executable.path)==physical+"/Contents/MacOS/FieldNotes",
+              NSRunningApplication.runningApplications(withBundleIdentifier:bundle).filter({$0.processIdentifier==pid && $0.bundleURL.flatMap({p2Path($0.path)})==physical}).count==1
+        else{return (nil,"LSBundleOrRegisteredExecutableUnavailable")}
+        return (app,"ready")
+    }
+    let live:NSRunningApplication?
+    #if P2_PAIR_POINTER
+    if request.mode == "pair-pointer" && request.pointerKind == "click" {
+        let ready = pairRegistered(pid:pid,bundle:bundle,app:physical,guardScope:{
+            if changed() {return "userSuperseded"}
+            var path = [CChar](repeating:0,count:4096)
+            guard birthMicroseconds(pid)==born, runningCodeHash(pid)==code, p2Signed(pid,id:bundle,team:team),
+                  proc_pidpath(pid,&path,UInt32(path.count))>0, p2Path(String(cString:path))==physical+"/Contents/MacOS/FieldNotes",
+                  pairLeaseState(request)=="BOUND", numbers.allSatisfy({NPReadWindowSpaces($0) as? [UInt64]==[request.space]}),
+                  let fp=p2AX(AXUIElementCreateSystemWide(),kAXFocusedApplicationAttribute), p2Owner(fp,pid)
+            else {return "registeredGenerationForegroundOrLeaseChangedDuringLSReadiness"}
+            if let front=NSWorkspace.shared.frontmostApplication?.processIdentifier,front != pid {return "foregroundChangedDuringLSReadiness"}
+            return nil
+        })
+        result["lsReadiness"] = ready.receipt
+        guard let app=ready.app else {return stop(ready.reason)}
+        live=app
+    } else if request.mode == "pair-pointer" && request.pointerKind == "post-read" {
+        let ls=pairLSCandidate(pid:pid,bundle:bundle,app:physical)
+        result["lsState"]=ls.1
+        guard ls.0 != nil || ls.2 else {return stop(ls.1)}
+        live=ls.0
+    } else {
+        let ls=originalRegistration()
+        guard let app=ls.0 else{return stop(ls.1)}
+        live=app
+    }
+    #else
+    let ls=originalRegistration()
+    guard let app=ls.0 else{return stop(ls.1)}
+    live=app
+    #endif
+    result["registrationStage"]=live == nil ? "kernelOnlyReadback" : "registeredBundleAndExecutable"
     guard birthMicroseconds(pid)==born, runningCodeHash(pid)==code, p2Signed(pid,id:bundle,team:team) else{return stop("liveGenerationOrDeveloperIDMismatch")}
     result["registration"]=["pid":pid,"birth":born,"cdHash":code,"team":team,"bundle":bundle,"bundleURL":physical,
-                            "executable":physical+"/Contents/MacOS/FieldNotes","kernelExecutableConfirmed":true,"regular":true,"launch":live.launchDate?.timeIntervalSince1970 as Any? ?? NSNull()] as Object
+                            "executable":physical+"/Contents/MacOS/FieldNotes","kernelExecutableConfirmed":true,"regular":live != nil,"launch":live?.launchDate?.timeIntervalSince1970 as Any? ?? NSNull()] as Object
     let root=AXUIElementCreateApplication(pid),system=AXUIElementCreateSystemWide()
     _=AXUIElementSetMessagingTimeout(root,0.35);_=AXUIElementSetMessagingTimeout(system,0.35)
     guard AXIsProcessTrusted() else{return stop("observerAXUnavailable")}
@@ -165,8 +209,17 @@ func p2DocumentReport(_ request:P2Request) -> Object {
         guard request.hid == hardware, request.digests == hashes, let target = request.target,
               numbers.contains(target), let uuid = request.spaceUUID, let kind = request.pointerKind,
               p2Signed(request.hostPID, id:bundleID, team:team), !changed() else { return stop("pairPointerAdmissionChanged") }
-        return pairPointer(kind: kind, target: target, host: host, request: request, uuid: uuid,
-                           numbers: numbers, windows: ordered, focus: focus)
+        if kind == "post-read" {
+            var post = pairPostRead(request,host:host,pid:pid,numbers:numbers,windows:ordered)
+            post["lsState"]=result["lsState"]; post["fileDigestsMatch"]=hashes==request.digests
+            post["frontKind"]=result["frontKind"]; post["hidAfter"]=p2Physical()
+            if changed() {return superseded()}
+            return post
+        }
+        var action = pairPointer(kind: kind, target: target, host: host, request: request, uuid: uuid,
+                                 numbers: numbers, windows: ordered, focus: focus)
+        if let ready=result["lsReadiness"] {action["lsReadiness"]=ready}
+        return action
     }
     #endif
     if request.mode=="read" {

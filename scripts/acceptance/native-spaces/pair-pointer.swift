@@ -5,7 +5,7 @@ import ApplicationServices
 // This observer neither calls AXPress nor has APIs for setting document frames.
 private let pairClock = { ProcessInfo.processInfo.systemUptime }
 
-private func pairAXRect(_ item: AXUIElement) -> CGRect? {
+func pairAXRect(_ item: AXUIElement) -> CGRect? {
     guard let pos = value(item, kAXPositionAttribute), let size = value(item, kAXSizeAttribute),
           CFGetTypeID(pos) == AXValueGetTypeID(), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
     var p = CGPoint.zero, s = CGSize.zero
@@ -24,7 +24,7 @@ private func pairOwner(_ node: AXUIElement, _ pid: pid_t) -> Bool {
     return AXUIElementGetPid(node, &owner) == .success && owner == pid
 }
 
-private func pairRows() -> [Object]? {
+func pairRows() -> [Object]? {
     CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [Object]
 }
 
@@ -33,7 +33,7 @@ private func pairBounds(_ row: Object) -> CGRect? {
     return CGRect(dictionaryRepresentation: raw)
 }
 
-private func pairBounds(_ rows: [Object], _ number: UInt32, _ pid: pid_t) -> CGRect? {
+func pairBounds(_ rows: [Object], _ number: UInt32, _ pid: pid_t) -> CGRect? {
     let matches = rows.filter {
         $0[kCGWindowNumber as String] as? UInt32 == number && $0[kCGWindowOwnerPID as String] as? pid_t == pid &&
         $0[kCGWindowIsOnscreen as String] as? Bool == true
@@ -72,6 +72,7 @@ private struct PairCard {
 }
 
 private struct PairSurface {
+    let publishedReasons: [String]
     let cards: [PairCard], panel: CGRect, visible: CGRect, panelID: UInt32, pid: pid_t, displayUUID: String
 
     init?(host: NSRunningApplication, pid: pid_t, numbers: [UInt32], rows: [Object]) {
@@ -91,6 +92,7 @@ private struct PairSurface {
         let visible = CGRect(x: display.minX + usable.minX - screen.frame.minX, y: display.minY + screen.frame.maxY - usable.maxY,
                              width: usable.width, height: usable.height)
         guard visible.contains(panel.insetBy(dx: 1, dy: 1)) else { return nil }
+        self.publishedReasons = index.knownIssues.compactMap { pairRefusals[$0] }.sorted()
         self.cards = cards; self.panel = panel; self.panelID = cards[0].panel
         self.displayUUID = CFUUIDCreateString(nil, uuid) as String
         self.visible = visible; self.pid = host.processIdentifier
@@ -146,7 +148,7 @@ private struct PairSurface {
     }
 }
 
-private func pairNear(_ a: CGRect, _ b: CGRect) -> Bool {
+func pairNear(_ a: CGRect, _ b: CGRect) -> Bool {
     zip(windowReceiptRect(a), windowReceiptRect(b)).allSatisfy { abs($0 - $1) <= 1 }
 }
 
@@ -233,7 +235,7 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
     result["geometry"] = ["clock":pairClock(), "ax":ax.map(windowReceiptRect), "cg":cg.map(windowReceiptRect),
                            "panel":windowReceiptRect(surface.panel), "visible":windowReceiptRect(surface.visible),
                            "cards":surface.cards.map { windowReceiptRect($0.rect) }, "panelID":surface.panelID, "displayUUID":surface.displayUUID,
-                           "members":numbers] as Object
+                           "members":numbers,"publishedManagementReasons":surface.publishedReasons] as Object
     if kind == "read" { result["status"] = "READ"; return result }
 
     let source = surface.cards[slot], destination = kind == "self" || kind == "click" ? source : surface.cards[1-slot]

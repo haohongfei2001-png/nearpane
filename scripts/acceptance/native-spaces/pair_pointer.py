@@ -89,6 +89,17 @@ def geometry_agrees(proof, expected, anchor, numbers):
                for stream in ("ax", "cg"))
 
 
+def post_bound(sample, anchor, numbers):
+    return (sample.get("members") == numbers and sample.get("leaseState") == "BOUND" and
+            sample.get("displayUUID") == anchor["displayUUID"] and
+            sample.get("verifiedOriginalPanelID") == anchor["panelID"] and
+            close(rect(sample["visible"]),rect(anchor["visible"])))
+
+
+def post_frames(sample, expected):
+    return all(len(sample.get(k,[]))==2 and all(close(rect(a),rect(b)) for a,b in zip(sample[k],expected)) for k in ("ax","cg"))
+
+
 def host_route(reply):
     """Only our tagged events are visible at the process-scoped passive receiver."""
     route = reply.get("hostRouting") or {}
@@ -148,6 +159,7 @@ def summary(values):
 class PairPointerRun(RegisteredRun):
     def __init__(self, *args):
         super().__init__(*args)
+        self.phase_monitor = None
         self.focus_only = False
         self.drag_only = False
         self.out["layoutCapture"] = {"status":"NOT_RUN","reason":"twoVerifiedOrdinaryWindowFramesUnavailable"}
@@ -212,6 +224,8 @@ class PairPointerRun(RegisteredRun):
                 attempt["pointerObservationRange"] = [events[0]["beforePost"],end]
         attempt["pointerStatus"] = proof.get("status")
         attempt["pointerReason"] = proof.get("reason")
+        if "lsReadiness" in proof:
+            attempt["lsReadiness"]=proof["lsReadiness"]
         route = host_route(proof)
         attempt["hostRouting"] = route
         if proof.get("issued") is True and proof.get("status") != "FOCUSED":
@@ -250,6 +264,7 @@ class PairPointerRun(RegisteredRun):
         before = self.geometry(a, hashes)
         require(geometry_agrees(before, baseline, anchor, [a,b]), "pairChangedBeforeGesture")
         entry["before"] = before
+        entry["phaseStart"] = time.monotonic()
         proof = self.packet(kind, a, hashes)
         entry.update(issued=proof.get("issued"), events=proof.get("events", []))
         require(proof.get("status") == "DISPATCHED" and proof.get("issued") is True,
@@ -267,31 +282,86 @@ class PairPointerRun(RegisteredRun):
             require(all(s["cg"] == before["cg"] for s in snapshots), "windowMovedDuringSelfDrop", "FAIL")
             entry["duringSelfDrag"] = snapshots
         entry["status"] = "UNKNOWN"
-        start = time.monotonic()
-        recent = []
-        mismatch = []
-        while time.monotonic()-start < 3.5:
-            sample = self.geometry(a, hashes)
-            if kind == "self":
-                same = sample["cg"] == before["cg"] and sample["ax"] == before["ax"]
-                require(same, "windowMovedAfterSelfDrop", "FAIL")
-            if geometry_agrees(sample, expected, anchor, [a,b]):
-                recent = (recent+[sample])[-2:]
-                mismatch.clear()
-                if (len(recent) == 2 and recent[1]["clock"] > recent[0]["clock"] and
-                        (kind != "self" or time.monotonic()-start >= .8)):
-                    entry.update(status="PASS", after=recent, reason="twoIndependentCGAndAXBounds")
-                    return
+        self.wait_for_drop(kind, entry, hashes, anchor, expected, before)
+
+    def post_sample(self, target, hashes, anchor, timeout):
+        request = {"pointerKind":"post-read","target":target,"digests":hashes,
+                   "pointerPanel":anchor["panelID"],"pointerDisplayUUID":anchor["displayUUID"]}
+        try:
+            proof=self.call("pair-pointer", request,timeout=timeout)
+        except (subprocess.SubprocessError,OSError,ValueError) as error:
+            proof={"status":"UNKNOWN","reason":type(error).__name__}
+        self.rec.log("pair-pointer-derived-post-read",kind="post-read",proof=proof)
+        check_hid(proof,self.baseline)
+        if (proof.get("leaseState") == "CHANGED" or proof.get("reason") in {
+             "kernelExecutableIdentityChanged","liveGenerationOrDeveloperIDMismatch","registeredProcessTerminated",
+             "differentRegisteredBundle","differentRegisteredExecutable","registeredPolicyNotRegular","postReadDisplayChanged"}):
+            raise TrialStop(proof.get("reason") or "postReadLeaseChanged","UNKNOWN")
+        return proof
+
+    def wait_for_drop(self, kind, entry, hashes, anchor, expected, before):
+        numbers=self.binding["numbers"]
+        old_reasons=set(before.get("publishedManagementReasons",[]))
+        release=entry["events"][-1]["afterPost"]
+        primary=release+3.5
+        final=primary
+        recent,mismatch=[],[]
+        rows=[]
+        entry["postReads"]=rows
+        entry["primaryDeadline"]=primary
+        while True:
+            now=time.monotonic()
+            phases=([p for p in self.phase_monitor.phases if p["readAt"]>=entry["phaseStart"]] if self.phase_monitor else [])
+            entry["hostPhases"]=phases
+            if now >= primary and "primaryOutcome" not in entry:
+                entry["primaryOutcome"]="expectedBoundsUnconfirmedWithin3.5s"
+                active=bool(phases) and phases[-1]["phase"] in ("pairResolving","pairListed","pairPlacing")
+                routed=entry.get("hostRouting",{}).get("status") in ("HOST_PANEL","HOST_PID")
+                last_reasons=set(rows[-1].get("sidebar",{}).get("publishedManagementReasons",[])) - old_reasons if rows else set()
+                terminal=bool(phases) and phases[-1]["phase"] in ("pairScopeRefused","pairAdmissionRefused","pairBindingIncomplete","pairScopeChangedAfterBinding","pairVerified")
+                if kind!="self" and (active or routed) and not last_reasons and not terminal:
+                    # One existing helper request may wait up to eight seconds.
+                    # Keep the owned targets alive only for a bounded, read-only tail.
+                    final=release+8
+                    entry["readOnlyTail"]={"deadline":final,"reason":"existingEightSecondWindowWorkerRPC","inputActions":0}
+            if "readOnlyTail" in entry and phases and phases[-1]["phase"]=="pairPlacing":
+                final=max(final,min(primary+8,phases[-1]["readAt"]+8))
+                entry["readOnlyTail"]["deadline"]=final
+            if now >= final:
+                break
+            if final-now < .15:
+                time.sleep(final-now)
+                continue
+            proof=self.post_sample(numbers[0],hashes,anchor,min(1.2,final-now))
+            rows.append({k:v for k,v in proof.items() if k in ("clock","status","reason","frontKind","leaseState","lsState","registrationStage",
+                        "systemWindows","sidebar","geometry","fileDigestsMatch")})
+            sample=proof.get("geometry")
+            if proof.get("status")!="READ" or not sample or not post_bound(sample,anchor,numbers):
+                recent.clear(); mismatch.clear()
             else:
-                recent.clear()
-                mismatch = (mismatch+[sample])[-2:]
-            time.sleep(.08)
-        entry["after"] = mismatch or recent
-        stable_other = (len(mismatch) == 2 and mismatch[0]["clock"] < mismatch[1]["clock"] and
-                        geometry_agrees(mismatch[0], mismatch[1]["cg"], anchor, [a,b]) and
-                        geometry_agrees(mismatch[1], mismatch[1]["cg"], anchor, [a,b]))
-        raise TrialStop("independentlyObservedDifferentWindowLayout" if stable_other else "layoutStabilityUnconfirmed",
-                        "FAIL" if stable_other else "UNKNOWN")
+                if kind=="self" and (sample["cg"]!=before["cg"] or sample["ax"]!=before["ax"]):
+                    raise TrialStop("windowMovedAfterSelfDrop","FAIL")
+                if post_frames(sample,expected):
+                    recent=(recent+[sample])[-2:]
+                    mismatch.clear()
+                    if len(recent)==2 and recent[0]["clock"]<recent[1]["clock"] and (kind!="self" or time.monotonic()-release>=.8):
+                        entry.update(status="PASS",after=recent,reason="twoIndependentCGAndAXBounds",withinPrimary=recent[-1]["clock"]<=primary)
+                        return
+                else:
+                    mismatch=(mismatch+[sample])[-2:]
+                    recent.clear()
+                reasons=set(proof.get("sidebar",{}).get("publishedManagementReasons",[])) - old_reasons
+                if reasons and len(mismatch)==2 and set(rows[-2].get("sidebar",{}).get("publishedManagementReasons",[]))-old_reasons==reasons:
+                    entry["publishedRefusal"]=sorted(reasons)
+                    break
+            time.sleep(min(.08,max(0,final-time.monotonic())))
+        entry["after"]=mismatch or recent
+        stable=(len(mismatch)==2 and mismatch[0]["clock"]<mismatch[1]["clock"] and
+                all(post_frames(m,mismatch[-1]["cg"]) for m in mismatch))
+        expired_pending=bool(entry.get("hostPhases")) and entry["hostPhases"][-1]["phase"] in ("pairResolving","pairListed","pairPlacing")
+        if stable and (not expired_pending or entry.get("publishedRefusal")):
+            raise TrialStop("independentlyObservedDifferentWindowLayout","FAIL")
+        raise TrialStop("workerCompletionUnconfirmed" if expired_pending else "layoutStabilityUnconfirmed","UNKNOWN")
 
     def capture_pair(self, hashes, anchor, expected):
         """Each PNG comes solely from one enrolled CGID after the timing samples."""
@@ -333,8 +403,9 @@ class PairPointerRun(RegisteredRun):
         home = os.environ.get("NEARPANE_TEST_HOME")
         monitor = HostFocusTiming(self.binding["hostPID"])
         try:
-            if not self.drag_only and home and owns_profile(self.binding["hostPID"],Path(home)/PROFILE):
+            if home and owns_profile(self.binding["hostPID"],Path(home)/PROFILE):
                 monitor.start()
+                self.phase_monitor=monitor
             self.pointer_trials(reader)
         finally:
             state = monitor.close()
