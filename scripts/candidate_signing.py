@@ -7,6 +7,7 @@ from pathlib import Path
 import plistlib
 import re
 import subprocess
+import tempfile
 
 ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("alpha_gate", ROOT / "check-alpha-distribution.py")
@@ -120,11 +121,21 @@ def sign_staged(candidate, fingerprint, *, distribution=False):
         # Internal builds retain their original flags. Distribution requires a secure Apple timestamp and runtime on every nested executable.
         metadata = gate.cmd("/usr/bin/codesign", "-dvvv", str(component))
         runtime = ["--options", "runtime"] if distribution or re.search(r"flags=0x[\da-f]+\([^)]*\bruntime\b", metadata) else []
-        gate.cmd("/usr/bin/codesign", "--force", "--sign", fingerprint, "--timestamp" if distribution else "--timestamp=none",
-                 "--preserve-metadata=entitlements", *runtime, "--identifier", identifier, str(component))
+        command = ["/usr/bin/codesign", "--force", "--sign", fingerprint, "--timestamp" if distribution else "--timestamp=none"]
+        if component == app:
+            required = plistlib.loads((ROOT.parent / "Resources/NearpaneHost.entitlements").read_bytes())
+            merged = {**gate.entitlements(component), **required}
+            with tempfile.NamedTemporaryFile(suffix=".entitlements") as profile:
+                profile.write(plistlib.dumps(merged))
+                profile.flush()
+                gate.cmd(*command, "--entitlements", profile.name, *runtime, "--identifier", identifier, str(component))
+        else:
+            gate.cmd(*command, "--preserve-metadata=entitlements", *runtime, "--identifier", identifier, str(component))
 
     seal_components(app, seal)
     after = gate.inspect(app)
+    if not all(after["hostResourceEntitlements"].values()):
+        raise ValueError("Signed Host lacks Chrome automation or microphone resource access")
     if set(original["binaries"]) != set(after["binaries"]):
         raise ValueError("Nested binary inventory changed during local signing")
     if distribution and after["missingDistributionSignatures"]:

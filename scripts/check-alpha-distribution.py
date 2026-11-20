@@ -24,6 +24,17 @@ def cmd(*args):
     return subprocess.run(args, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
 
 
+def entitlements(component):
+    data = subprocess.run(["/usr/bin/codesign", "-d", "--entitlements", "-", "--xml", str(component)],
+                          check=True, capture_output=True).stdout
+    if not data:
+        return {}
+    result = plistlib.loads(data)
+    if not isinstance(result, dict):
+        raise ValueError("Signed entitlements must be a property-list dictionary")
+    return result
+
+
 def version(value):
     return tuple((list(map(int, value.split("."))) + [0, 0, 0])[:3])
 
@@ -165,7 +176,10 @@ def inspect(app):
         for name in ("source.json", "build.json", "PYTHON-LICENSE.txt", "PYTHON-THIRD-PARTY-NOTICES.rst"):
             if not (contents / "Resources/Automation" / name).is_file():
                 raise ValueError("Missing runtime provenance: " + name)
+    signed_host = entitlements(app)
+    required = ("com.apple.security.automation.apple-events", "com.apple.security.device.audio-input")
     return dict(bundle=info["CFBundleIdentifier"], version=info["CFBundleShortVersionString"],
+                hostResourceEntitlements={key: signed_host.get(key) is True for key in required},
                 minimumOS=deployment, binaries=inventory, appIcons=icons, missingDistributionSignatures=issues,
                 notarization="NOT_TESTED", cleanMacInstall="NOT_TESTED", publicRelease="NOT_ADMITTED")
 

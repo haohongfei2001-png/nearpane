@@ -77,7 +77,7 @@ install -m 644 docs/ALPHA-HELP.md "$candidate/Contents/Resources/AlphaHelp.md"
 python3 -B scripts/build-helper-runtime.py "$candidate"
 check_candidate_source
 /usr/bin/plutil -replace NearpaneSourceState -string "$source_state" "$candidate/Contents/Info.plist"
-codesign --force --sign - --identifier com.holdsnow.nearpane.alpha "$candidate"
+codesign --force --sign - --entitlements Resources/NearpaneHost.entitlements --identifier com.holdsnow.nearpane.alpha "$candidate"
 python3 -I -B scripts/candidate_signing.py "$candidate" "${signing_arguments[@]}"
 codesign --verify --strict --deep "$candidate"
 "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
