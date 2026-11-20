@@ -26,18 +26,21 @@ func runningCodeHash(_ pid: pid_t) -> String? {
     return bytes.map { String(format: "%02x", $0) }.joined()
 }
 
-func inventory() -> [Object]? {
+func inventory(requireComplete: Bool = false) -> [Object]? {
     guard NPReadOnlySpacesOpen() == 1, let scopes = NPReadInventory() as? [Object] else { return nil }
-    return scopes.compactMap { scope in
+    let normalized = scopes.compactMap { scope -> Object? in
         guard let name = scope["Display Identifier"] as? String,
               let current = (scope["Current Space"] as? Object)?["id64"] as? UInt64,
               let records = scope["Spaces"] as? [Object] else { return nil }
-        return ["scope": name, "current": current, "records": records.compactMap { rec -> Object? in
+        let normalizedRecords = records.compactMap { rec -> Object? in
             guard let id = rec["id64"] as? UInt64, let type = rec["type"] as? Int else { return nil }
             let uuid = (rec["uuid"] as? String).flatMap(UUID.init(uuidString:))
             return ["id": id, "type": type, "uuid": uuid?.uuidString as Any? ?? NSNull()]
-        }]
+        }
+        if requireComplete && (records.isEmpty || normalizedRecords.count != records.count) { return nil }
+        return ["scope": name, "current": current, "records": normalizedRecords]
     }
+    return requireComplete && normalized.count != scopes.count ? nil : normalized
 }
 
 func displays() -> [Object] {
@@ -207,7 +210,8 @@ let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundle
     .filter { !$0.isTerminated && $0.bundleURL?.standardizedFileURL == installed.standardizedFileURL }
 let host = apps.count == 1 ? apps.first : nil
 let list = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [Object]
-let spaces = inventory()
+let observerCommand = CommandLine.arguments.dropFirst().first ?? ""
+let spaces = inventory(requireComplete: ["compare-roster", "roster-content", "roster-panel"].contains(observerCommand))
 let rows = list ?? []
 let front = NSWorkspace.shared.frontmostApplication
 func focusedNumber(_ pid: pid_t?) -> UInt32? {
@@ -219,7 +223,10 @@ func focusedNumber(_ pid: pid_t?) -> UInt32? {
     return number == 0 ? nil : number
 }
 let stage = CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString) as? Bool
-var report: Object = ["timestamp": Date().timeIntervalSince1970, "uptime": ProcessInfo.processInfo.systemUptime,
+// A scoped census reads its own AX roster and memberships. Avoid traversing the
+// whole workspace a second time between its CG snapshot and its independent AX read.
+let comparingRoster = observerCommand == "compare-roster"
+var report: Object = comparingRoster ? [:] : ["timestamp": Date().timeIntervalSince1970, "uptime": ProcessInfo.processInfo.systemUptime,
                       "observerAX": AXIsProcessTrusted(), "observerScreenRead": CGPreflightScreenCaptureAccess(),
                       "separateSpaces": NSScreen.screensHaveSeparateSpaces, "displays": displays(),
                       "stageManager": stage as Any? ?? NSNull(),
@@ -228,8 +235,8 @@ var report: Object = ["timestamp": Date().timeIntervalSince1970, "uptime": Proce
                       "frontmostPID": front?.processIdentifier as Any? ?? NSNull(),
                       "focusedNumber": focusedNumber(front?.processIdentifier) as Any? ?? NSNull(),
                       "installedHostCount": apps.count, "privateTitlesRead": false, "pixelsRequested": 0]
-if let spaces, !spaces.isEmpty, list != nil { report["otherLayerZeroMemberships"] = occupancy(rows, excluding: host?.processIdentifier) }
-if let host {
+if !comparingRoster, let spaces, !spaces.isEmpty, list != nil { report["otherLayerZeroMemberships"] = occupancy(rows, excluding: host?.processIdentifier) }
+if !comparingRoster, let host {
     report["host"] = ["pid": host.processIdentifier, "launch": host.launchDate?.timeIntervalSince1970 as Any? ?? NSNull(),
                       "codeHash": runningCodeHash(host.processIdentifier) as Any? ?? NSNull()]
     report["sidebar"] = Sidebar(host, rows: rows).report
@@ -529,38 +536,84 @@ func guideResult() -> Object {
 }
 // Independent check of membership and window kind. Read only CG/AX metadata;
 // never request titles, window contents or a permission prompt. Record counts only.
-func compareCurrentRoster() -> Object {
+func compareCurrentRoster(_ args: [String]) -> Object {
+    let currentPublic = NSWindow.windowNumbers(options: .allApplications)
+    let orderedPublic = NSWindow.windowNumbers(options: [.allSpaces, .allApplications])
+    // null is an unavailable read. Zero means the query returned an actual empty array.
+    let sources: Object = ["cgRows": list?.count as Any? ?? NSNull(), "spaceScopes": spaces?.count as Any? ?? NSNull(),
+                           "publicCurrent": currentPublic?.count as Any? ?? NSNull(),
+                           "publicOrdered": orderedPublic?.count as Any? ?? NSNull()]
+    var result: Object = ["status": "INCONCLUSIVE", "sourceCounts": sources, "observerPID": getpid(),
+                          "observerBirth": birthMicroseconds(getpid()) as Any? ?? NSNull(),
+                          "observedUptime": ProcessInfo.processInfo.systemUptime, "privateTitlesRead": false, "pixelsRequested": 0]
+    func stop(_ reason: String) -> Object { result["reason"] = reason; return result }
     guard let host, AXIsProcessTrusted(), let scope = spaces?.first, spaces?.count == 1,
           let current = scope["current"] as? UInt64, let display = scope["scope"] as? String,
           let screen = displays().first, displays().count == 1, screen["uuid"] as? String == display,
           let records = scope["records"] as? [Object],
           records.contains(where: { $0["id"] as? UInt64 == current && $0["type"] as? Int == 0 }),
-          let list else { return ["status": "BLOCKED", "reason": "single ordinary desktop, observer AX or installed Host unavailable"] }
+          let hostBirth = birthMicroseconds(host.processIdentifier), let signature = runningCodeHash(host.processIdentifier) else {
+        result["status"] = "BLOCKED"; return stop("single ordinary desktop, observer AX or installed Host unavailable")
+    }
+    result["pid"] = host.processIdentifier; result["hostBirth"] = hostBirth
+    result["signature"] = signature; result["display"] = display; result["space"] = current
+    guard let list, !list.isEmpty else { return stop("WindowServer census unavailable or empty with a visible Host required") }
+    let scoped = args.count > 2
+    var fixturePID: pid_t = 0, fixtureBirth: UInt64 = 0, expected = Set<String>()
+    func fixtureIsCurrent() -> Bool {
+        fixturePID == 0 || (birthMicroseconds(fixturePID) == fixtureBirth &&
+            NSRunningApplication(processIdentifier: fixturePID)?.bundleIdentifier == "net.example.spaces-document")
+    }
+    if scoped {
+        guard args.count >= 5, let panel = UInt32(args[2]), panel > 0,
+              let pid = Int32(args[3]), pid >= 0, let birth = UInt64(args[4]),
+              (pid == 0 ? birth == 0 && args.count == 5 : birth > 0) else { return stop("invalid scoped census") }
+        fixturePID = pid; fixtureBirth = birth
+        let numbers = args.dropFirst(5).compactMap(UInt32.init)
+        guard numbers.count == args.count - 5, Set(numbers).count == numbers.count, !numbers.contains(0) else { return stop("invalid fixture windows") }
+        expected = Set(numbers.map { "current-desktop-window:\(pid):\($0)" })
+        result["fixturePID"] = pid; result["fixtureBirth"] = birth; result["panelNumber"] = panel
+        guard fixtureIsCurrent() else { result["generationChanged"] = true; return stop("fixture generation changed") }
+        guard list.contains(where: { $0[kCGWindowNumber as String] as? UInt32 == panel &&
+            $0[kCGWindowOwnerPID as String] as? pid_t == host.processIdentifier &&
+            $0[kCGWindowIsOnscreen as String] as? Bool == true &&
+            $0[kCGWindowLayer as String] as? Int == Int(CGWindowLevelForKey(.floatingWindow)) }) else {
+            return stop("global WindowServer census does not contain the witnessed visible Host panel")
+        }
+    }
     let index = Sidebar(host, rows: list)
-    guard index.areas == 1 else { return ["status": "BLOCKED", "reason": "no unique installed roster"] }
+    guard index.areas == 1 else { return stop("no unique installed roster") }
     let cards = index.controls.filter { $0.key.hasPrefix("current-desktop-window:") }
     var owners = [pid_t: [AXUIElement]](), classifications = [String: String]()
-    let publicNumbers = Set((NSWindow.windowNumbers(options: .allApplications) ?? []).map(\.uint32Value))
-    let allNumbers = Set((NSWindow.windowNumbers(options: [.allSpaces, .allApplications]) ?? []).map(\.uint32Value))
+    let publicNumbers = Set((currentPublic ?? []).map(\.uint32Value))
+    let allNumbers = Set((orderedPublic ?? []).map(\.uint32Value))
+    var unavailableOwners = Set<pid_t>(), seenCardRows = Set<String>()
     var unconfirmedEvidence = [String: Int](), excluded = [String: Int](), proven = Set<String>()
+    var uncertainVisible = 0
     for row in list {
-        guard let pid = row[kCGWindowOwnerPID as String] as? pid_t, let number = row[kCGWindowNumber as String] as? UInt32,
-              let app = NSRunningApplication(processIdentifier: pid), app.activationPolicy == .regular,
-              let bundle = app.bundleIdentifier, !bundle.hasPrefix("com.holdsnow.nearpane"), !bundle.hasPrefix("org.nearpane.") else { continue }
+        guard let pid = row[kCGWindowOwnerPID as String] as? pid_t, let number = row[kCGWindowNumber as String] as? UInt32 else { continue }
         let key = "current-desktop-window:\(pid):\(number)"
+        if cards[key] != nil { seenCardRows.insert(key) }
+        guard let app = NSRunningApplication(processIdentifier: pid), app.activationPolicy == .regular,
+              let bundle = app.bundleIdentifier, !bundle.hasPrefix("com.holdsnow.nearpane"), !bundle.hasPrefix("org.nearpane.") else {
+            if cards[key] != nil { unconfirmedEvidence["cardOwnerUnavailableOrIneligible", default: 0] += 1 }
+            continue
+        }
         let why: String
         if row[kCGWindowLayer as String] as? Int != 0 { why = "otherLayer" }
         else if app.isHidden { why = "hiddenApp" }
         else if let memberships = NPReadWindowSpaces(number) as? [UInt64], !memberships.isEmpty {
             if !memberships.contains(current) { why = "otherSpace" }
             else {
-                if owners[pid] == nil {
+                if owners[pid] == nil && !unavailableOwners.contains(pid) {
                     let owner = AXUIElementCreateApplication(pid)
                     _ = AXUIElementSetMessagingTimeout(owner, 0.20)
-                    owners[pid] = value(owner, kAXWindowsAttribute) as? [AXUIElement] ?? []
+                    if let windows = value(owner, kAXWindowsAttribute) as? [AXUIElement] { owners[pid] = windows }
+                    else { unavailableOwners.insert(pid) }
                 }
                 let matches = (owners[pid] ?? []).filter { NPReadAXWindowNumber($0) == number }
-                if matches.isEmpty, !publicNumbers.contains(number), !allNumbers.contains(number),
+                if matches.isEmpty, owners[pid] != nil, currentPublic != nil, orderedPublic != nil,
+                   !publicNumbers.contains(number), !allNumbers.contains(number),
                    row[kCGWindowIsOnscreen as String] as? Bool != true { why = "noPresentation" }
                 else if matches.count != 1 { why = "unconfirmed" }
                 else if let role = value(matches[0], kAXSubroleAttribute) as? String,
@@ -574,11 +627,12 @@ func compareCurrentRoster() -> Object {
                 } else { why = "unconfirmed" }
             }
         } else { why = "unconfirmed" }
+        if why == "unconfirmed", row[kCGWindowIsOnscreen as String] as? Bool == true { uncertainVisible += 1 }
         if why == "unconfirmed", cards[key] != nil {
-            let state = [publicNumbers.contains(number) ? "publicCurrent" : "notPublicCurrent",
-                         allNumbers.contains(number) ? "publicOrdered" : "notPublicOrdered",
+            let state = [currentPublic == nil ? "publicCurrentUnavailable" : (publicNumbers.contains(number) ? "publicCurrent" : "notPublicCurrent"),
+                         orderedPublic == nil ? "publicOrderedUnavailable" : (allNumbers.contains(number) ? "publicOrdered" : "notPublicOrdered"),
                          row[kCGWindowIsOnscreen as String] as? Bool == true ? "cgOn" : "cgOff",
-                         owners[pid]?.isEmpty == false ? "ownerAXWindows" : "noOwnerAXWindows"].joined(separator: "/")
+                         unavailableOwners.contains(pid) ? "ownerAXUnavailable" : (owners[pid]?.isEmpty == false ? "ownerAXWindows" : "noOwnerAXWindows")].joined(separator: "/")
             unconfirmedEvidence[state, default: 0] += 1
         }
         classifications[key] = why
@@ -587,11 +641,18 @@ func compareCurrentRoster() -> Object {
             excluded[why, default: 0] += 1
         }
     }
-    let currentInventory = inventory()
+    let absentRows = Set(cards.keys).subtracting(seenCardRows).count
+    if absentRows > 0 { unconfirmedEvidence["cardMissingFromWindowServer"] = absentRows }
+    result["ownerAXUnavailableCount"] = unavailableOwners.count
+    result["unconfirmedVisibleRows"] = uncertainVisible
+    guard !host.isTerminated, birthMicroseconds(host.processIdentifier) == hostBirth, fixtureIsCurrent() else {
+        result["generationChanged"] = true; return stop("Host or fixture generation changed during the census")
+    }
+    let currentInventory = inventory(requireComplete: true)
     guard let after = currentInventory?.first, currentInventory?.count == 1, after["current"] as? UInt64 == current,
           after["scope"] as? String == display,
           Set(Sidebar(host, rows: list).controls.filter { $0.key.hasPrefix("current-desktop-window:") }.keys) == Set(cards.keys) else {
-        return ["status": "INCONCLUSIVE", "reason": "roster or desktop changed during the observation"]
+        return stop("roster or desktop changed during the observation")
     }
     var drawn = [String: Int]()
     for key in cards.keys { drawn[classifications[key] ?? "unconfirmed", default: 0] += 1 }
@@ -600,15 +661,21 @@ func compareCurrentRoster() -> Object {
     let uncertain = drawn["unconfirmed", default: 0]
     let duplicate = cards.values.filter { $0.count != 1 }.count
     let status = (wrong > 0 || missing > 0 || duplicate > 0) ? "FAIL" : (uncertain > 0 || proven.isEmpty ? "INCONCLUSIVE" : "PASS")
-    return ["status": status, "cards": cards.count, "classifiedCards": drawn, "unconfirmedEvidence": unconfirmedEvidence, "systemExcluded": excluded,
-            "provenVisibleStandard": proven.count, "missingProvenVisible": missing, "knownWrongCards": wrong,
-            "duplicateControls": duplicate, "unconfirmedNotice": index.unconfirmedNotice, "unconfirmedCards": uncertain, "privateTitlesRead": false, "pixelsRequested": 0]
+    result.merge(["status": status, "cards": cards.count, "classifiedCards": drawn, "unconfirmedEvidence": unconfirmedEvidence, "systemExcluded": excluded,
+                  "provenVisibleStandard": proven.count, "missingProvenVisible": missing, "knownWrongCards": wrong,
+                  "duplicateControls": duplicate, "unconfirmedNotice": index.unconfirmedNotice, "unconfirmedCards": uncertain]) { _, new in new }
+    if scoped {
+        result["expectedVisibleSetMatches"] = proven == expected
+        result["expectedCardSetMatches"] = Set(cards.keys) == expected
+        result["coverageComplete"] = currentPublic != nil && orderedPublic != nil && uncertainVisible == 0
+    }
+    return result
 }
 // Return a crop only when every control in the product roster belongs to this
 // disposable document set. Other apps' identities, labels and pixels stay outside the receipt.
 func rosterContent(_ args: [String]) -> Object {
     guard args.count >= 4, let documentPID = Int32(args[3]), let host,
-          AXIsProcessTrusted(), runningCodeHash(host.processIdentifier) == args[2],
+          AXIsProcessTrusted(), runningCodeHash(host.processIdentifier) == args[2], let hostBirth = birthMicroseconds(host.processIdentifier),
           let scopes = spaces, scopes.count == 1, let scope = scopes.first,
           let display = scope["scope"] as? String, let current = scope["current"] as? UInt64,
           let records = scope["records"] as? [Object],
@@ -625,7 +692,11 @@ func rosterContent(_ args: [String]) -> Object {
         "explicitGroups": groups, "expectedCards": numbers.count, "placeholderLabels": index.placeholderLabels.sorted(),
         "expectedIDsMatch": Set(cards.keys) == expected, "matchedFixtureCards": expected.intersection(cards.keys).count,
         "otherWindowCards": Set(cards.keys).subtracting(expected).count, "rosterRegions": index.areas, "pid": host.processIdentifier,
-        "signature": args[2], "display": display]
+        "signature": args[2], "hostBirth": hostBirth, "display": display, "space": current]
+    if documentPID > 0 {
+        guard let birth = birthMicroseconds(documentPID) else { return result }
+        result["documentBirth"] = birth
+    }
     guard expected.count == args.count - 4, documentPID == 0 ? numbers.isEmpty : !numbers.isEmpty,
           documentPID == 0 || NSRunningApplication(processIdentifier: documentPID)?.bundleIdentifier == "net.example.spaces-document",
           cards.values.allSatisfy({ $0.count == 1 }), Set(cards.keys) == expected, index.legacyCards == 0,
@@ -680,7 +751,7 @@ if CommandLine.arguments.count > 1 {
     if ["roster-content", "roster-panel"].contains(CommandLine.arguments[1]) {
         report = rosterContent(CommandLine.arguments)
     } else if CommandLine.arguments[1] == "compare-roster" {
-        report = compareCurrentRoster()
+        report = compareCurrentRoster(CommandLine.arguments)
     } else if CommandLine.arguments[1] == "crop" {
         report = titleCrop(CommandLine.arguments)
     } else if CommandLine.arguments[1] == "absence" {

@@ -20,6 +20,42 @@ def read(command, *, timeout=8):
     return json.loads(output)
 
 
+def sample_census(observe, binding, count, *, budget=10, limit=8, interval=.25):
+    """Retain every fresh observer result. An unknown sample breaks the matching pair."""
+    deadline = time.monotonic() + budget
+    samples, previous_witness = [], None
+    for _ in range(limit):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        try:
+            census = observe(min(8, remaining))
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            census = {"status": "INCONCLUSIVE", "reason": type(error).__name__}
+        samples.append(census)
+        if census.get("generationChanged") or any(key in census and census[key] != value for key, value in binding.items()):
+            return samples, False, "generation changed"
+        if census.get("status") == "FAIL":
+            return samples, False, "independently observed roster discrepancy"
+        # The generic no-fixture comparison is INCONCLUSIVE for zero windows.
+        # An enrolled empty stage separately proves complete coverage and both exact empty sets.
+        agrees = (all(census.get(key) == value for key, value in binding.items()) and
+                  census.get("status") == ("PASS" if count else "INCONCLUSIVE") and
+                  all(census.get(key) is True for key in ("coverageComplete", "expectedVisibleSetMatches", "expectedCardSetMatches")) and
+                  census.get("cards") == count and census.get("provenVisibleStandard") == count and
+                  all(census.get(key) == 0 for key in ("missingProvenVisible", "knownWrongCards", "duplicateControls", "unconfirmedCards")))
+        witness = (census.get("observerPID"), census.get("observerBirth"), census.get("observedUptime"))
+        if agrees and all(isinstance(number, (int, float)) and number > 0 for number in witness):
+            if previous_witness and witness[:2] != previous_witness[:2] and witness[2] > previous_witness[2]:
+                return samples, True, "two consecutive independent reads"
+            previous_witness = witness
+        else:
+            previous_witness = None
+        if len(samples) < limit:
+            time.sleep(min(interval, max(0, deadline - time.monotonic())))
+    return samples, False, "no consecutive independent confirmation within budget"
+
+
 def run(kit, output, owned_stage, film=False):
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     observer = kit / "observe"
@@ -35,25 +71,45 @@ def run(kit, output, owned_stage, film=False):
     result_path = output / "results.json"
 
     recording = None
-    def checkpoint(label, pid=0, numbers=()):
-        args = ["roster-content", digest, str(pid), *map(str, numbers)]
+    def checkpoint(label, owner_pid=0, owner_birth=0, numbers=()):
+        args = ["roster-content", digest, str(owner_pid if numbers else 0), *map(str, numbers)]
         deadline = time.monotonic() + 12
         previous = None
+        proof_errors = []
         while True:
-            proof = read([observer, *args])
+            try:
+                proof = read([observer, *args], timeout=min(8, max(.01, deadline - time.monotonic())))
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                proof = {"ready": False, "reason": type(error).__name__}
+                proof_errors.append(proof["reason"])
             if proof.get("ready") and proof == previous:
                 break
             if time.monotonic() >= deadline:
                 break
             previous = proof
             time.sleep(0.3)
-        census = read([observer, "compare-roster"])
-        record = {"proof": proof, "independentRoster": census}
-        if proof.get("ready") and proof == previous:
+        record = {"proof": proof, "proofReadErrors": proof_errors, "status": "BLOCKED", "censusSamples": []}
+        result["checkpoints"][label] = record
+        confirmed = False
+        stable = (proof.get("ready") and proof == previous and proof.get("pid") == host and
+                  proof.get("signature") == digest and (proof.get("hostBirth") or 0) > 0 and
+                  (not numbers or proof.get("documentBirth") == owner_birth) and
+                  proof.get("display") and (proof.get("space") or 0) > 0)
+        if stable:
+            generation = {key: proof[key] for key in ("pid", "hostBirth", "signature", "display", "space")}
+            stable = generation == result.setdefault("observationGeneration", generation) and owns_profile(host, home / PROFILE)
+        if stable:
+            binding = dict(generation, panelNumber=proof["number"], fixturePID=owner_pid, fixtureBirth=owner_birth)
+            command = [observer, "compare-roster", proof["number"], owner_pid, owner_birth, *numbers]
+            samples, confirmed, reason = sample_census(lambda timeout: read(command, timeout=timeout), binding, len(numbers))
+            record.update(censusSamples=samples, independentRoster=samples[-1] if samples else None, censusDecision=reason)
+            result_path.write_text(encode(result))
+            stable = reason != "generation changed"
+        if stable:
             screenshot = output / (label + ".png")
             with recording.camera if recording else nullcontext():
                 captured = read([capture, observer, *args, screenshot], timeout=12)
-                record["captured"] = captured.get("ready") is True and screenshot.is_file()
+                record["captured"] = captured == proof and screenshot.is_file()
                 if record["captured"]:
                     record["image"] = screenshot.name
                     panel = output / (label + "-sidebar.png")
@@ -62,12 +118,10 @@ def run(kit, output, owned_stage, film=False):
                         record["sidebarImage"] = panel.name
                         record["wallpaperIncluded"] = panel_proof.get("wallpaperIncluded", False)
                         record["isolatedProfile"] = panel_proof.get("isolatedProfile", False)
-        proven = census.get("provenVisibleStandard")
-        record["status"] = "PASS" if (record.get("captured") and proven == len(numbers) and
-                                      census.get("missingProvenVisible") == 0 and census.get("knownWrongCards") == 0) else "BLOCKED"
+        if record.get("captured") and confirmed:
+            record["status"] = "PASS"
         if proof.get("spaceRows", 0) or proof.get("placeholderLabels"):
             record["status"] = "FAIL"
-        result["checkpoints"][label] = record
         result_path.write_text(encode(result))
         if recording:
             recording.witness(numbers)
@@ -85,13 +139,16 @@ def run(kit, output, owned_stage, film=False):
                                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         numbers = []
         try:
+            owner_birth = 0
             def documents(count):
                 return wait_state(folder / "windows.json",
                                   lambda s: s.get("session") == folder.name and s.get("pid") == proc.pid and
+                                  (s.get("birth") or 0) > 0 and (not owner_birth or s["birth"] == owner_birth) and
                                   len(set(s.get("numbers", []))) == count and s.get("visible") == [True] * count,
                                   time.monotonic() + 8)
 
             state = documents(2)
+            owner_birth = state.get("birth", 0)
             if state and owned_stage:
                 warmup = state["numbers"]
                 (folder / "close-documents").touch()
@@ -100,19 +157,19 @@ def run(kit, output, owned_stage, film=False):
                 result["warmupNumbersGoneImmediately"] = read([observer, "absence", *warmup]).get("allGone")
                 if film:
                     recording = RosterRecording(kit, folder, proc.pid, digest, output)
-                checkpoint("empty-before")
+                checkpoint("empty-before", proc.pid, owner_birth)
                 (folder / "open-documents").touch()
                 state = documents(2)
             if state:
                 numbers = state["numbers"]
                 result["fixture"] = {k: state[k] for k in ("bundle", "pid", "birth", "numbers", "visible")}
-                checkpoint("two-documents", proc.pid, numbers)
+                checkpoint("two-documents", proc.pid, owner_birth, numbers)
                 if owned_stage:
                     (folder / "close-documents").touch()
                     if not documents(0):
                         raise RuntimeError("Document owner still reports enrolled windows")
                     result["closedNumbersGoneImmediately"] = read([observer, "absence", *numbers]).get("allGone")
-                    checkpoint("empty-after")
+                    checkpoint("empty-after", proc.pid, owner_birth)
         except (RuntimeError, OSError, subprocess.SubprocessError) as error:
             result["issue"] = str(error)
         finally:
