@@ -596,7 +596,8 @@ focus_tools=importlib.import_module('p0-focus')
 
 def run(args):
     out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False);tool=args.kit/'p0-card'
-    result={'status':'BLOCKED','stages':{n:{'status':'NOT_RUN','navigationStatus':'NOT_RUN','blankScreen':'UNKNOWN','requested':c,'samples':[]} for n,c in GATES},'blankScreen':'UNKNOWN','privateContentCaptured':False}
+    result={'status':'BLOCKED','stages':{n:{'status':'NOT_RUN','navigationStatus':'NOT_RUN','blankScreen':'UNKNOWN','requested':c,'samples':[]} for n,c in GATES},'blankScreen':'UNKNOWN','privateContentCaptured':False,
+            'dynamicFixtureMarkerRequested':os.environ.get('NP_P0_DYNAMIC_MARKER')=='1'}
     report=lambda:store(out/'results.json',result)
     def log(event,**data):
         with (out/'actions.jsonl').open('a') as f:
@@ -615,7 +616,16 @@ def run(args):
                 f=doc['folder']/'windows.json'
                 if not f.is_file():continue
                 observed=json.loads(f.read_bytes())
-                own.append({k:observed[k] for k in ('pid','numbers','fullscreen','zoomed','key','main','visible','minimized') if k in observed})
+                owner = {k:observed[k] for k in ('pid','numbers','fullscreen','zoomed','key','main','visible','minimized') if k in observed}
+                generation = doc['folder'] / 'p0-generations.json'
+                if generation.is_file() and doc['windows']:
+                    witness = json.loads(generation.read_bytes())
+                    marker = witness.get('markerDisplayLink', {})
+                    if (witness.get('session') == doc['folder'].name and witness.get('pid') == doc['proc'].pid
+                            and witness.get('birth') == doc['windows'][0]['birth'] and type(marker.get('active')) is bool
+                            and type(marker.get('callbacks')) is int and marker['callbacks'] >= 0):
+                        owner['markerDisplayLink'] = {'active':marker['active'], 'callbacks':marker['callbacks']}
+                own.append(owner)
             w=[w for doc in documents.processes for w in doc['windows']]
             view=dict(system=state(),owners=own,witnesses=[keeper.call('windows',[win]) if keeper else cmd(tool,'windows',body=[win]) for win in w])
             store(out/f'fixture-{name}.json',view)
