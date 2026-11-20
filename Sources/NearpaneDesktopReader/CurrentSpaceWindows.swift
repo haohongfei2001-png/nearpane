@@ -75,12 +75,14 @@ extension Reader {
         let start = clock.systemUptime, from = Date(), topology = try Topology()
         let canRead = NPProbeReadOnlyCatalog() == 1 && (topology.displays.count == 1 || topology.separateSpaces)
         let stageBefore = StageManagerPreference.read()
-        let first = try windowList(overview: true)
+        let trusted = AXIsProcessTrusted()
+        let backgroundInventory = canRead && trusted ? NPReadInventory().flatMap { SpaceInventory($0 as [AnyObject], displays:topology.displays) } : nil
+        let first = try windowList(overview: true, backgroundInventory:backgroundInventory)
         let activeBefore = activeNumbers()
         let ids = first.windows.map(\.windowID)
         let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
-        let trusted = AXIsProcessTrusted()
+        if let backgroundInventory, backgroundInventory != firstBoundary?.inventory { throw DesktopActionError.unsupported }
         let currentIDs = firstBoundary?.inventory.map { inventory in
             Set(inventory.scopes.flatMap(\.records).filter { $0.isCurrent && $0.ordinaryUUID != nil }.map(\.id))
         }
@@ -97,7 +99,7 @@ extension Reader {
         let otherRoles = trusted ? OverviewWindowRole.read(targets: others, revision: request.revision,
                                                            deadline: min(start + 1, clock.systemUptime + 0.2)) : [:]
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
-        let second = try windowList(overview: true)
+        let second = try windowList(overview: true, backgroundInventory:backgroundInventory)
         let active = activeBefore.intersection(activeNumbers())
         let lastBoundary = firstBoundary?.inventory == nil ? nil : SpaceBoundary.read(displays: topology.displays, windowIDs: ids)
         guard topology == (try Topology()), WindowServerSession.available, !first.limited, !second.limited else {
@@ -113,7 +115,10 @@ extension Reader {
         let stageManager = stageBefore == stageAfter ? stageAfter : nil
         var windows = [WindowObservation]()
         // Absence only proves emptiness when every eligible CG surface was accounted for.
-        var complete = Set(first.windows.map(\.windowID)) == Set(second.windows.map(\.windowID))
+        let hasBackground = inventory?.scopes.flatMap(\.records).contains { !$0.isCurrent && $0.ordinaryUUID != nil } == true
+        var complete = (!hasBackground || (first.backgroundCollectionComplete && second.backgroundCollectionComplete &&
+                                           backgroundInventory == inventory)) &&
+                       Set(first.windows.map(\.windowID)) == Set(second.windows.map(\.windowID))
         let admitted = inventory?.scopes.flatMap(\.records).filter { $0.ordinaryUUID != nil || $0.fullscreenUUID != nil } ?? []
         let supported = Set(admitted.map(\.id))
         for entry in second.windows {

@@ -33,11 +33,12 @@ struct Reader {
     struct List: Equatable {
         var windows: [CGWindowMetadata] = []
         var limited = false
+        var backgroundCollectionComplete = false
         var orderedAcrossSpaces = Set<UInt32>()
         var unhiddenOwners = Set<Int32>()
     }
 
-    func windowList(overview: Bool = false) throws -> List {
+    func windowList(overview: Bool = false, backgroundInventory: SpaceInventory? = nil) throws -> List {
         let fixture = request.fixtureWindows.map(Set.init), anchors = Set(request.anchors.map(\.number))
         let requested = fixture.map { $0.union(anchors) }
         let descriptions: CFArray?
@@ -61,6 +62,12 @@ struct Reader {
                    exact.count == 1, exact[0][kCGWindowNumber as String] as? UInt32 == id {
                     list.append(exact[0])
                 }
+            }
+            if let backgroundInventory {
+                let publicRows=Set(list.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value })
+                let background=Self.backgroundRows(in:backgroundInventory,known:publicRows)
+                list.append(contentsOf:background.rows)
+                result.backgroundCollectionComplete=background.complete
             }
         }
         var seen = Set<UInt32>(), allowed = [Int32: Bool](), processes = [Int32: ProcessIdentity]()

@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import Testing
 import NearpaneCore
 import WindowGeometryCore
@@ -93,6 +94,27 @@ struct SpaceInventoryTests {
             ["id64": 7, "type": 0, "uuid": "unavailable"]
         ]), displays: displays))
         #expect(inventory.scopes[0].records.map(\.ordinaryUUID) == [uuid, nil, nil])
+    }
+
+    @Test func absentAppKitNumberNeedsBothSpaceDirectionsAndExactSurfaceOwner() throws {
+        let raw = [5, 8, 9].map { ["id64": $0, "type": 0, "uuid": UUID().uuidString] as [String:Any] }
+        let inventory = try #require(SpaceInventory(scope(raw), displays: displays))
+        func run(forward: [UInt64:[NSNumber]], reverse: [Any]? = [8], describedNumber: UInt32 = 42, pid: Int32 = 12)
+            -> (rows: [[String:Any]], complete: Bool) {
+            Reader.backgroundRows(in: inventory, known: [11], members: { forward[$0] }, reverse: { _ in reverse },
+                                  metadata: { _ in [kCGWindowNumber as String:describedNumber,kCGWindowOwnerPID as String:pid] })
+        }
+        let members: [UInt64:[NSNumber]] = [8:[11,42],9:[]]
+        let good = run(forward:members)
+        #expect(good.complete && good.rows.count == 1)
+        #expect(good.rows[0][kCGWindowOwnerPID as String] as? Int32 == 12)
+        for result in [run(forward:members,reverse:[9]),run(forward:members,reverse:[8,9]),
+                       run(forward:members,reverse:nil),run(forward:members,describedNumber:77),run(forward:members,pid:0)] {
+            #expect(result.rows.isEmpty && !result.complete)
+        }
+        let partial = run(forward: [8:[42]])
+        #expect(!partial.complete && partial.rows.count == 1)
+        #expect(run(forward:[8:[],9:[]]).complete)
     }
 
     @Test func membershipKeepsMultipleIDsAndEmptyOrInvalidIsUnknown() throws {
