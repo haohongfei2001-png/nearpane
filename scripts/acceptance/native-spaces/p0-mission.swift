@@ -46,7 +46,7 @@ import Foundation
                     "hitPoint":hitPoint.map {[$0.x,$0.y]} as Any? ?? NSNull()]
         }
     }
-    static func select(_ r: WorkspaceRequest, issued: inout Bool, report: inout [String:Any]) throws {
+    static func select(_ r: WorkspaceRequest, requestedClick:Bool, issued: inout Bool, report: inout [String:Any]) throws {
         guard r.command=="select",let display=UUID(uuidString:r.display),let target=r.target,
               r.owned.contains(target),target != r.current,
               let index=r.records.firstIndex(where:{$0.id==target && $0.type==0}),
@@ -96,20 +96,39 @@ import Foundation
         try demand(sameTarget,"no stable target proxy, unique geometry, or independent same-point system hit")
         if let transient=try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {report["overviewComposite"]=transient}
         try guardState(r,stage:"immediately-before-system-input")
-        if press {
+        if press && !requestedClick {
             report["action"]="AXPress";issued=true;let result=AXUIElementPerformAction(b.proxy,kAXPressAction as CFString)
             report["axError"]=result.rawValue;report["acknowledged"]=result == .success
         } else {
             // Only when no AXPress has been dispatched: native physical click on the actual thumbnail body.
-            let (point,role,rect)=try expandedBody(right,index:index)
-            let again=try Tiles(r,display),verified=try expandedBody(again,index:index)
-            try demand(again.bar.owner.processIdentifier==b.owner && point==verified.0 && role==verified.1 && rect==verified.2 && CGPreflightPostEventAccess(),"no unique stable native thumbnail body")
+            try demand(CGPreflightPostEventAccess(),"no event access for one system-owned thumbnail click")
+            if (try? expandedBody(right,index:index))==nil {
+                let hover=try right.point(index,fraction:0.5)
+                try demand(hit(hover,b.proxy,b.owner),"verified native hover point lost")
+                originalPointer=CGEvent(source:nil)?.location;clicked=hover
+                guard CGWarpMouseCursorPosition(hover) == .success else {throw Refusal("could not hover native thumbnail")}
+                try sendMouse(.mouseMoved,hover)
+                report["setupHover"]=[hover.x,hover.y]
+            }
+            var seen:(CGPoint,String,CGRect)?,stable=false,detail="thumbnail body did not settle"
+            let until=ProcessInfo.processInfo.systemUptime+2.3
+            repeat {
+                do {
+                    try guardState(r,stage:"native-hover")
+                    let updated=try Tiles(r,display),candidate=try expandedBody(updated,index:index)
+                    try demand(updated.bar.owner.processIdentifier==b.owner,"thumbnail owner changed")
+                    if let seen,seen.0==candidate.0 && seen.1==candidate.1 && seen.2==candidate.2 {stable=true;break}
+                    seen=candidate
+                } catch let e as Refusal {detail=e.reason;seen=nil}
+                usleep(90_000)
+            } while ProcessInfo.processInfo.systemUptime<until
+            guard stable,let (point,role,rect)=seen else {throw Refusal(detail)}
             try guardState(r,stage:"before-verified-native-tile-click")
             guard let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:point,mouseButton:.left),
                   let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:point,mouseButton:.left) else {throw Refusal("system tile click unavailable")}
             down.setIntegerValueField(.mouseEventClickState,value:1);up.setIntegerValueField(.mouseEventClickState,value:1)
-            report["action"]="native thumbnail click";report["verifiedBody"]=["role":role,"point":[point.x,point.y]]
-            originalPointer=CGEvent(source:nil)?.location;clicked=point
+            report["action"]="native thumbnail click";report["verifiedBody"]=["role":role,"point":[point.x,point.y],"frame":[rect.minX,rect.minY,rect.width,rect.height]]
+            if originalPointer==nil {originalPointer=CGEvent(source:nil)?.location};clicked=point
             issued=true;down.post(tap:.cgSessionEventTap);usleep(65_000);up.post(tap:.cgSessionEventTap);report["clickPosted"]=true
         }
         var readings=[[String:Any]]();var streak=0;var last:UInt64?;let end=ProcessInfo.processInfo.systemUptime+4
@@ -125,7 +144,12 @@ import Foundation
     }
     static func main() {
         var out:[String:Any]=["setupOnly":true],issued=false
-        do {let r=try JSONDecoder().decode(WorkspaceRequest.self,from:FileHandle.standardInput.readDataToEndOfFile());try select(r,issued:&issued,report:&out)}
+        do {
+            let args=Array(CommandLine.arguments.dropFirst())
+            try demand(args.isEmpty || args==["native-click"],"invalid setup input method")
+            let r=try JSONDecoder().decode(WorkspaceRequest.self,from:FileHandle.standardInput.readDataToEndOfFile())
+            try select(r,requestedClick:!args.isEmpty,issued:&issued,report:&out)
+        }
         catch {out["error"]=(error as? Refusal)?.reason ?? String(describing:error)}
         out["issued"]=issued
         print(String(decoding:try! JSONSerialization.data(withJSONObject:out,options:.sortedKeys),as:UTF8.self))

@@ -84,7 +84,7 @@ def confirm_lease_pair(original, one, both):
     require(compatible(both,a,b),'the two newly inserted ordinary Spaces are not consecutive')
     return a,b
 
-def direct_setup(kit,ws,output,initial,top,source,target,log):
+def direct_setup(kit,ws,output,initial,top,source,target,log,method):
     state=lambda:cmd(kit/'p0-card','state')
     before=state()
     require(before.get('hid')==initial['hid'] and before['topology']==dict(top,current=source),'input or Space changed before direct native setup')
@@ -96,8 +96,8 @@ def direct_setup(kit,ws,output,initial,top,source,target,log):
                  target=target,hostPID=ws.host['pid'],hostHash=ws.host['codeHash'],hostBirth=ws.host_birth,hid=ws.hardware())
     require(state().get('hid')==initial['hid'],'physical input changed before opening Mission Control')
     if source!=target:
-        log('direct-mission-control-intent',source=source,target=target,setupOnly=True)
-        proof=cmd(kit/'p0-mission',body=request,timeout=17);store(output/f'setup-press-{target}.json',proof);log('direct-mission-control-reply',source=source,target=target,proof=proof)
+        log('direct-mission-control-intent',source=source,target=target,setupOnly=True,method=method)
+        proof=cmd(kit/'p0-mission',*(['native-click'] if method=='click' else []),body=request,timeout=20);store(output/f'setup-press-{target}.json',proof);log('direct-mission-control-reply',source=source,target=target,proof=proof)
         transport=(proof.get('action')=='AXPress' and proof.get('acknowledged') is True) or (proof.get('action')=='native thumbnail click' and proof.get('clickPosted') is True)
         require(proof.get('issued') and transport and not proof.get('error') and proof.get('overviewDismissed'),
                 proof.get('error','native AXPress or owned Mission Control dismissal not confirmed'))
@@ -441,14 +441,14 @@ def run(args):
                 b=ws.create();both=state();top=both['topology']
                 require(confirm_lease_pair(origin,one['topology'],top)==(a,b) and top['current'] in (staging,a,b),'new lease pair differs from the registered Spaces')
                 checkpoint('second-lease')
-                direct_setup(args.kit,ws,out,initial,top,top['current'],a,log)
+                direct_setup(args.kit,ws,out,initial,top,top['current'],a,log,args.setup_input)
                 first=documents.launch('Field Notes')['windows'][0]
                 def placed(window,space):
                     return until(state,lambda s:s.get('hid')==initial['hid'] and s.get('topology')==dict(top,current=space)
                                  and s.get('frontPID')==window['pid'] and s.get('focusedNumber')==window['number'] and anchored([window],[space]),
                                  'owned ordinary document was not independently placed and focused on its leased Space')
                 placed(first,a);checkpoint('first-document')
-                direct_setup(args.kit,ws,out,initial,top,a,b,log)
+                direct_setup(args.kit,ws,out,initial,top,a,b,log,args.setup_input)
                 second=documents.launch('Route Notes')['windows'][0]
                 placed(second,b);checkpoint('second-document')
                 require(anchored([first,second],[a,b]),'the two ordinary documents did not remain on their separate leased Spaces')
@@ -547,6 +547,8 @@ def run(args):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('kit',type=lambda s:Path(s).resolve());parser.add_argument('output',type=Path)
-    parser.add_argument('--route',choices=['auto','ordinary','fullscreen'],default='auto');args=parser.parse_args();os.umask(0o077)
+    parser.add_argument('--route',choices=['auto','ordinary','fullscreen'],default='auto')
+    parser.add_argument('--setup-input',choices=['ax','click'],default='ax',help='choose one native setup input before the run; never replay an issued input')
+    args=parser.parse_args();os.umask(0o077)
     def terminate(signum,frame):raise RuntimeError('received termination signal '+str(signum))
     signal.signal(signal.SIGTERM,terminate);raise SystemExit(run(args))
