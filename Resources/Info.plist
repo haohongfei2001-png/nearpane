@@ -19,6 +19,7 @@
         <key>NSMessage</key><string>translateNearpaneSelection</string>
         <key>NSPortName</key><string>Nearpane</string>
         <key>NSSendTypes</key><array><string>public.utf8-plain-text</string></array>
+        <key>NSRequiredContext</key><dict/>
     </dict></array>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>

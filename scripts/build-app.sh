@@ -8,6 +8,12 @@ if [ "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]; then
 fi
 configuration="${1:-debug}"
 case "$configuration" in debug|release) ;; *) echo "Usage: $0 [debug|release]" >&2; exit 2 ;; esac
+candidate_dir=""
+if (( $# > 1 )); then
+  [[ $# == 3 && "$configuration" == release && "$2" == --candidate-base && -d "$3" && ! -L "$3" && ! -e "$3/Nearpane.app" ]] ||
+    { echo "Usage: $0 release --candidate-base EMPTY_DIRECTORY" >&2; exit 2; }
+  candidate_dir="$(cd "$3" && pwd -P)"
+fi
 scratch="$build_root/app-native"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then scratch="$build_root/foundation-app-native"; fi
 swift build --build-system native -c "$configuration" --disable-sandbox \
@@ -16,18 +22,23 @@ binary_dir="$(swift build --build-system native -c "$configuration" --show-bin-p
   --scratch-path "$scratch" --cache-path "$build_root/cache" --config-path "$build_root/config" --security-path "$build_root/security")"
 destination="$product_root/$configuration"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then destination="$product_root/foundation/$configuration"; fi
+if [[ -n "$candidate_dir" ]]; then destination="$candidate_dir"; fi
 bundle="$destination/Nearpane.app"
 mkdir -p "$destination"
 # The compiler supplies the local executable signature. Distribution bundle signing
 # is a P6 concern; File Provider metadata on this worktree prevents a durable bundle seal.
 /usr/bin/codesign --verify --strict "$binary_dir/NearpaneHost"
 # A fresh stage avoids carrying old resources/signatures into a development bundle.
-staging_dir="$(mktemp -d "$PWD/$destination/.Nearpane-stage.XXXXXX")"
+staging_dir="$(mktemp -d "$(cd "$destination" && pwd -P)/.Nearpane-stage.XXXXXX")"
 trap 'rm -rf "$staging_dir"' EXIT
 stage="$staging_dir/Nearpane.app"
 mkdir -p "$stage/Contents/MacOS" "$stage/Contents/Resources"
 cp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 cp Resources/Info.plist "$stage/Contents/Info.plist"
+if [[ -n "$candidate_dir" ]]; then
+  # The packaging intermediate is a different bundle identifier. Only the signed candidate advertises this Service.
+  /usr/bin/plutil -remove NSServices "$stage/Contents/Info.plist"
+fi
 python3 scripts/prepare-app-icon.py --embed "$stage"
 # The optional private getter symbols live only in this disposable, separately verified executable.
 reader="$binary_dir/NearpaneDesktopReader"

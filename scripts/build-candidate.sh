@@ -20,9 +20,16 @@ check_candidate_source() {
     fi
 }
 check_candidate_source
-scripts/build-app.sh release
 source scripts/build-paths.sh
-app="$product_root/release/Nearpane.app"
+base="$(mktemp -d /private/tmp/nearpane-candidate-base.XXXXXXXX)"
+stage=""
+clean_stages() {
+    rm -rf -- "$base"
+    if [[ -n "$stage" && ! -e "$stage/keep-for-recovery" ]]; then rm -rf -- "$stage"; fi
+}
+trap clean_stages EXIT
+scripts/build-app.sh release --candidate-base "$base"
+app="$base/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
 version=5.22
@@ -42,11 +49,13 @@ fi
 [[ ! -L "${delivery%/}" ]] || { echo "Installation directory is a symlink: $delivery" >&2; exit 1; }
 mkdir -p "$delivery"
 stage="$(mktemp -d "$delivery/.nearpane-stage.XXXXXXXX")"
-trap 'if [[ ! -e "$stage/keep-for-recovery" ]]; then rm -rf "$stage"; fi' EXIT
 candidate="$stage/$name"
 ditto --norsrc --noextattr "$app" "$candidate"
 /usr/bin/plutil -replace CFBundleIdentifier -string com.holdsnow.nearpane.alpha "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace CFBundleName -string 'Nearpane Alpha' "$candidate/Contents/Info.plist"
+services="$(/usr/bin/plutil -extract NSServices json -o - Resources/Info.plist)"
+/usr/bin/plutil -insert NSServices -json "$services" "$candidate/Contents/Info.plist"
+/usr/bin/plutil -replace NSServices.0.NSPortName -string "$(/usr/bin/plutil -extract CFBundleName raw "$candidate/Contents/Info.plist")" "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace CFBundleShortVersionString -string "$version" "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace CFBundleVersion -string "$build_number" "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace NearpaneSourceRevision -string "$source_revision" "$candidate/Contents/Info.plist"

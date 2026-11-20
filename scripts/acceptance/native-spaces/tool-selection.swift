@@ -9,6 +9,22 @@ import Vision
 struct Word: Codable, Equatable { let id: UUID; let source, translation, language: String }
 struct Notebook: Decodable { let words: [Word] }
 
+@MainActor private func serviceRoute() throws -> [String:Any] {
+    let app = "/Applications/Nearpane.app"
+    let dump = try ToolUI.run("/System/Library/CoreServices/pbs",["-dump_pboard"])
+    let registrations = dump.components(separatedBy:"\n        {").filter { $0.contains("NSMessage = translateNearpaneSelection;") }
+    let installed = registrations.filter {
+        $0.contains("NSBundleIdentifier = \"com.holdsnow.nearpane.alpha\";") && $0.contains("NSBundlePath = \""+app+"\";")
+    }
+    let bundle = Bundle(url:URL(fileURLWithPath:app))
+    let declaration = (bundle?.object(forInfoDictionaryKey:"NSServices") as? [[String:Any]])?.first { $0["NSMessage"] as? String == "translateNearpaneSelection" }
+    let unique = registrations.count == 1 && installed.count == 1
+    return ["phase":"serviceRegistration","status":unique ? "READY" : "BLOCKED","registeredProviders":registrations.count,
+            "installedProviders":installed.count,"hasMenuContext":declaration?["NSRequiredContext"] is [String:Any],
+            "portMatchesBundleName":declaration?["NSPortName"] as? String == bundle?.object(forInfoDictionaryKey:"CFBundleName") as? String,
+            "reason":unique ? "Unique installed provider" : "The service directory did not identify a unique installed provider"]
+}
+
 @MainActor extension ToolContext {
     func words(_ phrase: String) throws -> [Word] {
         let path = generation.appendingPathComponent("Nearpane/sidebar-notebook.json")
@@ -19,6 +35,8 @@ struct Notebook: Decodable { let words: [Word] }
 
 @MainActor
 func translate(_ context: ToolContext) async throws -> [String:Any] {
+    let route = try serviceRoute()
+    guard route["status"] as? String == "READY" else { return route }
     let phrase = "The blue bicycle"
     let source = NLLanguageRecognizer.dominantLanguage(for:phrase)?.rawValue ?? "en"
     let language = await LanguageAvailability().status(from: .init(identifier:source), to: .init(identifier:"zh-Hans"))
@@ -59,7 +77,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     try ToolUI.screenshot(CGWindowID(window.windowNumber),pid:getpid(),to:sourcePNG)
     let performed = NSPerformService("在 Nearpane 翻译选词",board)
     var report: [String:Any] = ["hostPID":context.host.processIdentifier,"phase":"translation","source":phrase,"sourceLanguage":source,
-                                "assetStatus":languageState,"serviceDispatched":performed,"selection":NSStringFromRect(selection)]
+                                "assetStatus":languageState,"serviceDispatched":performed,"serviceRegistration":route,"selection":NSStringFromRect(selection)]
     guard performed else { report["status"]="FAIL"; report["reason"]="macOS could not deliver the declared Service"; return report }
     var sample: (CGWindowID,CGRect)?
     var words: [Word] = []
@@ -145,14 +163,17 @@ func readback(_ context: ToolContext, prior: URL) async throws -> [String:Any] {
         } catch { print("Use a fresh output directory."); exit(2) }
         let result: [String:Any]
         do {
-            let ctx = try ToolContext(output:args[1])
-            if args[0]=="translate" && args.count==2 { result=try await translate(ctx) }
-            else if args[0]=="wordbook" && args.count==3 { result=try await readback(ctx,prior:URL(fileURLWithPath:args[2])) }
-            else { throw ToolRefusal("Unknown tool trial") }
+            if args[0]=="service-route" && args.count==2 { result=try serviceRoute() }
+            else {
+                let ctx = try ToolContext(output:args[1])
+                if args[0]=="translate" && args.count==2 { result=try await translate(ctx) }
+                else if args[0]=="wordbook" && args.count==3 { result=try await readback(ctx,prior:URL(fileURLWithPath:args[2])) }
+                else { throw ToolRefusal("Unknown tool trial") }
+            }
         } catch { result=["phase":args[0],"status":"BLOCKED","reason":error.localizedDescription] }
         do { try JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]).write(to:receipt,options:.withoutOverwriting) }
         catch { exit(2) }
         print(result["status"] as? String ?? "UNKNOWN")
-        exit(result["status"] as? String == "PASS" ? 0 : 3)
+        exit(["PASS","READY"].contains(result["status"] as? String ?? "") ? 0 : 3)
     }
 }
