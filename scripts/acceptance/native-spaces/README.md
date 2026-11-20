@@ -65,6 +65,8 @@ Each scenario produces an immutable manifest, an action journal and per-scenario
 
 An existing empty test desktop can also host the two-document W01 contract. Use the same isolated Host, creation journal and signed-install receipts as the paired-preview run, and pass `--scenario same-space-documents` to `preview-on-lease.py`. The runner checks the exact desktop and a clear sidebar, launches a fresh Apple TextEdit with two temporary documents, and records each accepted click separately from the subsequent keyboard evidence. It restores the initial Stage Manager preference before checking desktop occupancy.
 
+On the same enrolled desktop, `--scenario hidden-budget` exercises the installed status menu for one minute, checks both live streams before hiding, and verifies that both original cards resume delivering frames after automatic restoration.
+
 `retained-selections.py KIT LEDGER_ROOT OUTPUT A.json B.json C.json` 可在同一测试会话的三个现存租用桌面上单独诊断正式行按钮。它检查每个创建回执的哈希、启动会话、显示器、Space ID 与 UUID，并从正式 Host 取行及回读 WindowServer。可进入的起点为租用桌面或当前确由自建文档持有的焦点。此诊断单独计数，完整 S02 由 `core-contract` 验证。
 
 ## 离线复核 P0 原始收据
