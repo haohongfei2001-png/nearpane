@@ -45,6 +45,13 @@ final class Worker {
         var reply = OrdinaryWindowReply(r.nonce)
         do {
             try require(getppid() == parent, "调用方已退出。")
+            if let scope = r.focusScope {
+                try require((r.action == .inspectFocusScope || r.action == .focusCurrent) && r.id != nil && r.expected != nil &&
+                    r.destination == nil && r.desktop == nil && r.pairPlacement == nil &&
+                    r.focusDisplay == scope.desktop.display && r.focusSpace == scope.desktop.record &&
+                    OrdinaryFocusScope(display: scope.desktop.display, topology: scope.topology, order: scope.order) == scope,
+                    "定向读回与本次选窗不一致。")
+            }
             if let placement = r.pairPlacement {
                 try require(r.action == .write && (r.desktop == nil || r.desktop == placement.desktop), "双窗授权只能用于本次指定桌面的写入。")
             }
@@ -98,12 +105,19 @@ final class Worker {
                 guard let app, app == (r.pid,r.launch,r.bundle), let id = r.id,
                       let m = windowsByID[id] else { throw Refusal("窗口未在本次选择中登记。") }
                 switch r.action {
+                case .inspectFocusScope:
+                    guard let scope = r.focusScope, let frame = r.expected else { throw Refusal("缺少定向选窗读回凭据。") }
+                    try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)
+                    reply.focusScopeEvidence = CurrentFocusScope.inspect(scope, number: id.number) {
+                        CurrentFocusScope.original(id, element: m.element, frame: frame, display: scope.desktop.display)
+                    }
+                    try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)
                 case .focusCurrent:
                     guard let expected = r.expected, let display = r.focusDisplay, let deadline = r.focusDeadline,
                           r.destination == nil else { throw Refusal("缺少当前桌面的选窗凭据。") }
                     var nextStep = 0
                     try focusCurrentWindow(id: id, element: m.element, owner: owner, bundle: r.bundle,
-                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace,
+                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace, scope: r.focusScope,
                                            timing: r.focusTimingID.map(WindowFocusTiming.init(id:))) {
                         var challenge = OrdinaryWindowReply(r.nonce)
                         challenge.focusStep = nextStep

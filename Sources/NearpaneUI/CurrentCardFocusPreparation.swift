@@ -94,6 +94,7 @@ extension WindowFocusTiming {
     enum Preparation: String {
         case controllerCold, controllerStandby, controllerPreferred, controllerReady
         case publicBindingUnavailable, hostBindingFinished, workerBindingFinished, rosterReadFinished, rosterConfirmed
+        case targetScopeConfirmed, targetScopeFallback, targetScopeChanged
     }
     func prepared(_ phase: Preparation) {
         Self.preparationLog.info("operation=\(id.uuidString, privacy: .public) phase=\(phase.rawValue, privacy: .public) route=sidebar action=none uptime=\(ProcessInfo.processInfo.systemUptime, format: .fixed(precision: 6), privacy: .public)")

@@ -16,6 +16,10 @@ struct DesktopWindowTarget: Equatable {
     let topology, display: String
     let current: String?
     let overviewSpace: String?
+    private let focusSpaceOrder: [SpaceRecord]?
+    var currentFocusScope: OrdinaryFocusScope? {
+        focusSpaceOrder.flatMap { OrdinaryFocusScope(display: display, topology: topology, order: $0) }
+    }
     let publiclyVisible: Bool
     let membership: WindowMembership
     let frame: SurfaceRect
@@ -70,6 +74,16 @@ struct DesktopWindowTarget: Equatable {
         membership = window.membership; frame = m.globalFrame
         desktopUUID = fullscreenPicture ? active.first?.fullscreenUUID : active.first?.ordinaryUUID
         stageEnabled = snapshot.native?.stageManagerEnabled == true
+        if !fullscreenPicture, publiclyVisible, m.overviewIsPresented == true, m.overviewOrdinaryRole == true, m.minimized == false,
+           snapshot.native?.population == .workWindows, snapshot.native?.spaces == .observed, snapshot.native?.accessibility != .denied,
+           snapshot.native?.stageManagerEnabled == false, snapshot.native?.windowLimitReached == false,
+           snapshot.topologyConsistent, snapshot.displays.count == 1, snapshot.scopes.count == 1,
+           let scope = snapshot.scopes.first, scope.displayID == display, let record = current, m.overviewSpaceID == record,
+           membership == .known(recordIDs: [record]) {
+            focusSpaceOrder = scope.records
+        } else {
+            focusSpaceOrder = nil
+        }
         catalogSize = m.catalogLogicalFrame.map { CGSize(width: $0.width, height: $0.height) }
     }
 

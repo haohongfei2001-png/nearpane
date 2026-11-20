@@ -12,6 +12,11 @@ extension DesktopWindowTarget {
         guard let space = overviewSpace else { return present(in: snapshot, now: now, uptime: uptime) }
         guard let snapshot, snapshot.sessionID == session, snapshot.topologyFingerprint == topology,
               case .known(let originalSpaces) = membership else { return false }
+        if let expected = currentFocusScope {
+            guard snapshot.displays.count == 1, snapshot.scopes.count == 1, let scope = snapshot.scopes.first, scope.displayID == display,
+                  snapshot.native?.stageManagerEnabled == false,
+                  OrdinaryFocusScope(display: display, topology: snapshot.topologyFingerprint, order: scope.records) == expected else { return false }
+        }
         let matches = snapshot.currentDesktopWindows(on: display, now: now, uptime: uptime)
             .filter { $0.metadata?.number == key.number }
         guard matches.count == 1, let window = matches.first, let other = DesktopWindowTarget(window, in: snapshot),
@@ -165,6 +170,31 @@ extension DesktopWindowTarget {
         try await verifyCurrentSpace(verify, current: current)
     }
 
+    /// A failed identity/topology witness is terminal. An incomplete read may request
+    /// the independent full roster only while no AX write has been attempted.
+    static func resolveFocusScope(_ scope: OrdinaryFocusScope?, current: () -> Bool,
+                                  inspect: (OrdinaryFocusScope) async throws -> OrdinaryFocusScopeEvidence,
+                                  fullRoster: () async throws -> Void, timing: WindowFocusTiming? = nil) async throws -> OrdinaryFocusScope? {
+        guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+        if let scope {
+            let result = try await inspect(scope)
+            guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+            switch result {
+            case .confirmed:
+                timing?.prepared(.targetScopeConfirmed)
+                return scope
+            case .changed:
+                timing?.prepared(.targetScopeChanged)
+                throw OrdinaryWindowFailure("这扇窗口或桌面已变化，请重新选择。")
+            case .fullRosterRequired:
+                timing?.prepared(.targetScopeFallback)
+            }
+        }
+        try await fullRoster()
+        guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+        return nil
+    }
+
     @discardableResult
     static func select(_ target: DesktopWindowTarget, deadline: Double,
                        verifySpace: (() async -> Bool)? = nil, stillCurrent: @escaping @MainActor @Sendable () -> Bool,
@@ -191,7 +221,8 @@ extension DesktopWindowTarget {
         }
         guard target.overviewSpace == nil || verifySpace != nil else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
         let sidebar = bound == nil && permit == nil
-        let scopeRead = sidebar ? verifySpace.map { verify in
+        let targetScope = sidebar && verifySpace != nil ? target.currentFocusScope : nil
+        let scopeRead = sidebar && targetScope == nil ? verifySpace.map { verify in
             CurrentCardScopeRead {
                 let result = await verify()
                 timing?.prepared(.rosterReadFinished)
@@ -201,7 +232,7 @@ extension DesktopWindowTarget {
         defer { scopeRead?.cancel() }
         let focusOwner = AdmissionApplication(pid:target.key.pid, launch:target.key.birth, bundle:bundle, name:"")
         let ready = sidebar && OrdinaryWindowDirectory.prepareSidebarFocus()
-        let workerFirst = ready && recentWorkerFocus?.prefers(focusOwner, session:target.session) == true
+        let workerFirst = targetScope != nil || (ready && recentWorkerFocus?.prefers(focusOwner, session:target.session) == true)
         if sidebar { timing?.prepared(workerFirst ? .controllerPreferred : (ready ? .controllerStandby : .controllerCold)) }
         func verifyOpeningScope(after binding: ContinuousClock.Instant) async throws {
             if let scopeRead { try await scopeRead.confirm(boundAt:binding, current:current) }
@@ -232,19 +263,23 @@ extension DesktopWindowTarget {
             do { retained = try await bind(target.key, bundle:bundle, sidebar:sidebar, timing:timing) }
             catch {
                 // The worker has only listed windows. Fallback here cannot replay an AX action.
-                if workerFirst, current(), try await usePublicHostBinding() { return .accessibility }
-                if case AdmissionReadFailure.permission = error { retained = nil }
+                let missingAccess = (error as? AdmissionReadFailure) == .permission
+                if workerFirst, (targetScope == nil || missingAccess), current(), try await usePublicHostBinding() { return .accessibility }
+                if missingAccess { retained = nil }
                 else { throw error }
             }
         }
         if let handle = retained {
             let boundAt = ContinuousClock.now
             timing?.prepared(.workerBindingFinished)
-            try await verifyOpeningScope(after:boundAt)
             guard current(), handle.id.pid == target.key.pid, handle.id.launch == target.key.birth,
                   handle.id.number == target.key.number else { throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。") }
+            let admitted = try await resolveFocusScope(targetScope, current: current, inspect: { scope in
+                try await handle.inspectFocusScope(scope, frame: target.frame)
+            }, fullRoster: { try await verifyOpeningScope(after:boundAt) }, timing: timing)
             try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline,
-                                          space: target.overviewSpace, permit: permit ?? NativeSelectionPermit(current: stillCurrent), timing: timing)
+                                          space: admitted?.desktop.record ?? target.overviewSpace,
+                                          permit: permit ?? NativeSelectionPermit(current: stillCurrent), timing: timing, scope: admitted)
             guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
             timing?.completed(.worker)
             if sidebar {

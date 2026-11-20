@@ -309,12 +309,20 @@ private actor OrdinaryWindowChannel {
         return !closed && choices.compactMap { $0 }.filter { $0.number == id.number } == [id]
     }
 
+    func inspectFocusScope(_ scope: OrdinaryFocusScope, frame: SurfaceRect) async throws -> OrdinaryFocusScopeEvidence {
+        guard !closed else { throw OrdinaryWindowFailure("窗口已关闭。") }
+        let answer = try await channel.call(.init(.inspectFocusScope, pid: id.pid, launch: id.launch, bundle: bundle,
+            id: id, expected: frame, focusDisplay: scope.desktop.display, focusSpace: scope.desktop.record, focusScope: scope))
+        guard !closed, let evidence = answer.focusScopeEvidence else { throw OrdinaryWindowFailure("无法核对原选窗范围。") }
+        return evidence
+    }
+
     func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval, space: String?, permit: NativeSelectionPermit,
-                      timing: WindowFocusTiming? = nil) async throws {
+                      timing: WindowFocusTiming? = nil, scope: OrdinaryFocusScope? = nil) async throws {
         guard !closed else { throw OrdinaryWindowFailure("窗口已关闭。") }
         _ = try await channel.call(.init(.focusCurrent, pid: id.pid, launch: id.launch, bundle: bundle, id: id,
                                          expected: frame, focusDisplay: display, focusDeadline: deadline, focusSpace: space,
-                                         focusTimingID: timing?.id), permit: permit)
+                                         focusTimingID: timing?.id, focusScope: scope), permit: permit)
     }
 
     func verify(expected: SurfaceRect) async throws -> AdmissionPair { try await sample(.verify, from: expected) }

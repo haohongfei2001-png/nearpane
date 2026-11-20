@@ -13,8 +13,7 @@ final class NativeSelectionPermit: @unchecked Sendable {
     // Do not collect keys, events or window content. A new physical press supersedes an
     // older programmatic selection even when the user clicked outside Nearpane.
     static func inputCounters() -> [UInt32] {
-        let kinds: [CGEventType] = [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel]
-        return kinds.map { CGEventSource.counterForEventType(.hidSystemState, eventType: $0) }
+        WindowSelectionInput.counters()
     }
 
     private let current: @MainActor @Sendable () -> Bool

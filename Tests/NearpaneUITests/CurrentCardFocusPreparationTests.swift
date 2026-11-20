@@ -65,9 +65,15 @@ struct CurrentCardFocusPreparationTests {
 
     @Test func scopeThatFinishesBeforeBindingCannotAuthorizeActionAlone() async throws {
         var count = 0
+        let beforeRead = ContinuousClock.now
         let scope = CurrentCardScopeRead { count += 1; return count == 1 }
+        // Join the actual read before establishing the binding boundary. A busy
+        // executor can delay the first task indefinitely without changing this order.
+        try await scope.confirm(boundAt: beforeRead, current: { true })
+        #expect(count == 1)
+        let afterRead = ContinuousClock.now.advanced(by: .nanoseconds(1))
         await #expect(throws: OrdinaryWindowFailure.self) {
-            try await scope.confirm(boundAt:ContinuousClock.now.advanced(by:.seconds(1)),current:{true})
+            try await scope.confirm(boundAt: afterRead, current: { true })
         }
         #expect(count == 2)
     }
