@@ -2,7 +2,6 @@
 import importlib.util
 from pathlib import Path
 import tempfile
-import json
 import unittest
 from unittest import mock
 
@@ -61,6 +60,24 @@ class GateTests(unittest.TestCase):
         self.assertEqual(runner.confirm_lease_pair(self.top,inserted,dict(self.top,records=[*self.rows,first,second])),(81,82))
         with self.assertRaises(ValueError):
             runner.confirm_lease_pair(self.top,inserted,dict(self.top,records=[self.rows[0],second,self.rows[1],first]))
+    def test_vacancy_requires_three_consecutive_clean_cross_checked_readbacks(self):
+        admitted=dict(topology=self.top,frontPID=89,hid=[8])
+        empty={'5':dict(ordinary=[],otherMembers=0,unresolved=0)}
+        occupied={'5':dict(ordinary=[dict(pid=2,number=27,ownerClass='unclassified')],otherMembers=0,unresolved=0)}
+        events=[]
+        for index,census in enumerate([empty,empty,occupied,empty,empty,empty]):
+            sample=dict(admitted,uptime=10+index*.3);events.append((sample,sample,census))
+        it=iter(events);receipts=[]
+        with mock.patch.object(runner.time,'sleep'):
+            runner.stable_empty_census(lambda:next(it),lambda rows:receipts.append(list(rows)),admitted,admitted,self.top,5)
+        self.assertEqual(len(receipts[-1]),6);self.assertEqual(receipts[-1][2]['ordinaryCount'],1)
+    def test_no_vacancy_retry_after_physical_input_even_if_last_report_is_empty(self):
+        admitted=dict(topology=self.top,frontPID=89,hid=[8],uptime=10)
+        recorded=[]
+        with self.assertRaisesRegex(ValueError,'physical HID'):
+            runner.stable_empty_census(lambda:(admitted,dict(admitted,hid=[9]),{'5':dict(ordinary=[],otherMembers=0,unresolved=0)}),
+                lambda rows:recorded.extend(rows),admitted,admitted,self.top,5)
+        self.assertEqual(recorded[0]['observations'][-1]['hidDelta'],[1])
     def test_enrollment_requires_two_real_current_controls_without_an_intervening_absence(self):
         identifier='current-desktop-window:89:77'
         hit=dict(present=True,matches=1,id=identifier,space=4)

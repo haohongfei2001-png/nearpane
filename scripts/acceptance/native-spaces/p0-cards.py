@@ -84,14 +84,96 @@ def confirm_lease_pair(original, one, both):
     require(compatible(both,a,b),'the two newly inserted ordinary Spaces are not consecutive')
     return a,b
 
+def census_facts(report,target):
+    membership=report.get(str(target),{})
+    ordinary=membership.get('ordinary')
+    facts={key:membership.get(key) for key in ('desktopElements','verifiedSharedOverlays','verifiedHostPanels','systemMenuSurfaces','otherMembers','unresolved')}
+    facts['ordinaryCount']=len(ordinary) if isinstance(ordinary,list) else None
+    facts['ordinaryMembers']=[{key:w[key] for key in ('pid','number','ownerClass') if key in w} for w in (ordinary or []) if isinstance(w,dict)]
+    classes={}
+    for member in membership.get('otherDetails',[]):
+        code=member.get('code') or {}
+        label='installed Host' if member.get('installedHost') else ('Apple '+str(code.get('identifier')) if code.get('apple') is True else 'other')
+        key=(label,member.get('layer'));classes[key]=classes.get(key,0)+1
+    facts['otherOwnerClasses']=[dict(category=key[0],layer=key[1],count=count) for key,count in classes.items()]
+    facts['unavailable']=membership.get('unavailable') or report.get('unavailable')
+    facts['sessionChanged']=report.get('sessionChanged',False)
+    facts['empty']=isinstance(ordinary,list) and not ordinary and facts['otherMembers']==0 and facts['unresolved']==0 and not facts['unavailable']
+    return facts
+
+
+def stable_empty_census(read,save,before,initial,top,target,timeout=6):
+    admitted=dict(top,current=before['topology']['current']);start=None;streak=0;samples=[]
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        first,second,census=read()
+        evidence=census_facts(census,target)
+        evidence['observations']=[]
+        for state in (first,second):
+            t=state.get('topology',{});current=t.get('current');row=next((x for x in t.get('records',[]) if x['id']==current),{})
+            hid=state.get('hid');initial_hid=initial['hid']
+            observation=dict(uptime=state.get('uptime'),frontPID=state.get('frontPID'),current=current,currentType=row.get('type'),
+                             currentUUID=row.get('uuid'),currentChanged=current!=admitted['current'],fullscreen=row.get('type')==4,
+                             inputChanged=hid!=initial_hid,frontChanged=state.get('frontPID')!=before.get('frontPID'),
+                             orderOrDisplayChanged=t.get('display')!=admitted['display'] or t.get('records')!=admitted['records'])
+            if isinstance(hid,list) and len(hid)==len(initial_hid):
+                observation['hidDelta']=[v-base for v,base in zip(hid,initial_hid)]
+            evidence['observations'].append(observation)
+        samples.append(evidence);save(samples)
+        if evidence['sessionChanged']:raise ValueError('signed Host, console or leased desktop identity changed during native target census')
+        if any(s['inputChanged'] for s in evidence['observations']):raise ValueError('physical HID changed before native target census completed')
+        if any(s['orderOrDisplayChanged'] or s['currentChanged'] for s in evidence['observations']):raise ValueError('source Space, UUID order or display changed during native target census')
+        if any(s['frontChanged'] for s in evidence['observations']):raise ValueError('foreground owner changed during native target census')
+        timestamp=second.get('uptime')
+        if evidence['empty'] and isinstance(timestamp,(int,float)):
+            if streak==0:start=timestamp
+            streak+=1
+            if streak>=3 and timestamp-start>=.45:return
+        else:start=None;streak=0
+        time.sleep(.15)
+    raise ValueError('native target census did not continuously verify vacancy across three readbacks of the same leased ordinary Space')
+
+
 def direct_setup(kit,ws,output,initial,top,source,target,log,method):
     state=lambda:cmd(kit/'p0-card','state')
     before=state()
-    require(before.get('hid')==initial['hid'] and before['topology']==dict(top,current=source),'input or Space changed before direct native setup')
+    store(output/f'setup-census-admission-{target}.json',dict(source=source,target=target,observed=before,
+          admittedHID=initial['hid'],hidEvents=['leftDown','rightDown','otherDown','keyDown','scroll','leftDrag','rightDrag','otherDrag']))
+    require(before.get('hid')==initial['hid'],'physical HID changed before direct native setup')
+    require(before.get('topology')==dict(top,current=source),'foreground Space, physical display or complete UUID order changed before direct native setup')
     current=ws.read();system=ws.check(current)
     require(system['records']==top['records'] and system['current']==source and target in ws.ids(),'signed creation ledger or native UUID order differs')
-    members=current.get('scopedMembers',{}).get(str(target),{})
-    require(members.get('ordinary')==[] and members.get('unresolved')==0 and members.get('otherMembers')==0,'native target census did not confirm an empty, exclusively leased ordinary Space')
+    census_path=output/f'setup-census-{target}.json'
+    @functools.lru_cache(maxsize=24)
+    def apple_code(executable,code_hash):
+        return subprocess.run(['/usr/bin/codesign','--verify','--strict','-R=anchor apple',executable],capture_output=True,timeout=2).returncode==0
+    def owner_class(pid):
+        if pid==ws.host['pid']:return 'installed Host'
+        try:
+            live=cmd(kit/'p0-card','process',pid,timeout=2)
+            executable=live.get('executable','')
+            if (executable.startswith('/System/Library/') or executable.startswith('/System/Applications/')) and apple_code(executable,live['hash']):
+                return 'Apple '+live['identifier']
+            if executable.startswith(str(kit)+'/') and live.get('identifier') in ('net.example.spaces-document','net.example.spaces-route-witness','org.nearpane.acceptance.LifecycleWindow'):
+                return 'owned acceptance fixture'
+        except (OSError,ValueError,KeyError,subprocess.SubprocessError):pass
+        return 'unclassified'
+    def read_census():
+        first=state()
+        if (first.get('hid')!=initial['hid'] or first.get('topology')!=dict(top,current=source) or first.get('frontPID')!=before.get('frontPID')):
+            return first,first,{}
+        observation=ws.read();membership=observation.get('scopedMembers') or {}
+        try:
+            if ws.check(observation)!=system:membership={'unavailable':'inventory disagreed with the independently admitted UUID roster','sessionChanged':True}
+        except ValueError as error:membership={'unavailable':str(error),'sessionChanged':True}
+        ordinary=membership.get(str(target),{}).get('ordinary') or []
+        owners={w['pid'] for w in ordinary if 'pid' in w}
+        if len(owners)<=4:
+            classes={p:owner_class(p) for p in owners}
+            for w in ordinary:w['ownerClass']=classes.get(w.get('pid'),'unclassified')
+        return first,state(),membership
+    stable_empty_census(read_census,lambda samples:store(census_path,samples),before,initial,top,target)
+    log('consecutive-empty-census',target=target,source=source,evidence=census_path.name)
     request=dict(command='select',display=ws.display,records=system['records'],current=source,original=ws.home,owned=ws.ids(),
                  target=target,hostPID=ws.host['pid'],hostHash=ws.host['codeHash'],hostBirth=ws.host_birth,hid=ws.hardware())
     require(state().get('hid')==initial['hid'],'physical input changed before opening Mission Control')
