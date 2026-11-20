@@ -1,0 +1,3 @@
+{"event": "fixture-created", "monotonic": 256238.050578083, "fixturePID": 4545, "cdhash": "2d24c9433ecc65288794eda82f1f12cbf36ffcd7", "session": "c641305c-7ac0-41c1-b694-3f53d9769954"}
+{"event": "fixture-bound", "monotonic": 256238.814929875, "numbers": [51251, 51252], "pid": 4545, "generation": 1795182846706120}
+{"event": "cleanup", "monotonic": 256239.844541958, "ownedProcessExited": true, "frontmostRestored": false, "originalFocusedWindowRestored": false, "windowNumbersGone": true, "scopesRestored": true}

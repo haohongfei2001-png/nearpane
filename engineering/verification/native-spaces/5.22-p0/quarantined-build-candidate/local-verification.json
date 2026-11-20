@@ -29,5 +29,20 @@
   "installBeforeAfterSameExactFocus": true,
   "installBeforeAfterSameTopology": true,
   "ordinarySystemControls": "available",
-  "previousExperimentActionReplayed": false
+  "previousExperimentActionReplayed": false,
+  "offlineAcceptanceAfterHarnessFixes": {
+    "status": "PASS",
+    "discoveryTests": 87,
+    "p0GateTests": 27,
+    "skipped": 0,
+    "includesArchivedPhysicalEvents": true,
+    "scope": "Tests of the acceptance tools; physical product outcome recorded separately."
+  },
+  "hostedSameNativeTree": {
+    "id": 44742149243,
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44742149243",
+    "status": "PASS",
+    "head": "56edb04b0da45d82537378451ea29fe25f632409",
+    "cleanMacInstall": false
+  }
 }

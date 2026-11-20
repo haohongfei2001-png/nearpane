@@ -332,7 +332,8 @@
     "evidenceCandidate": "96a3e3d1e74ea490dee798385cbef207a6013609",
     "installedFallbackSource": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
     "currentInstalledSwitching": false,
-    "currentReleaseQualifiedBuilds": []
+    "currentReleaseQualifiedBuilds": [],
+    "latestVerificationTool": "../../../../scripts/acceptance/native-spaces/verify-p0-receipts.py"
   },
   "P1": {
     "installedMoves": 0,
@@ -357,6 +358,13 @@
       "status": "UNKNOWN",
       "reason": "enrolled TextEdit is not registered with Launch Services",
       "evidence": "quarantined-build-candidate/window-and-focus/w01-W01-system-documents.json"
+    },
+    "lastRetest": {
+      "status": "BLOCKED",
+      "confirmedAXPress": 0,
+      "confirmedInputMarkers": 0,
+      "operatorInputObserved": true,
+      "evidence": "quarantined-build-candidate/final-input-admission/admission-readback.json"
     }
   },
   "P3": {
