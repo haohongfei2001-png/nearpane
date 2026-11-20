@@ -14,9 +14,10 @@ private typealias JSON = [String: Any]
 private struct Failure: Error { let message: String; init(_ message: String) { self.message = message } }
 private struct Space: Codable, Equatable { let id: UInt64, type: Int, uuid: UUID }
 private struct Topology: Codable { let display: UUID, records: [Space], current: UInt64 }
-private struct Window: Codable { let pid: pid_t, birth: UInt64, number: UInt32, executable: String, identifier: String }
-private struct Pair: Codable { let topology: Topology, sourceWindow: Window, targetWindow: Window, target: UInt64, hostPID: pid_t, hid: [UInt32] }
-private struct Binding: Codable { let nonce: UUID, guardian: pid_t, guardianBirth: UInt64, request: Pair; let endpoints: [String: Endpoint]? }
+private struct Window: Codable { let pid: pid_t, birth: UInt64, number: UInt32, executable: String, identifier: String, hash:String }
+private struct Pair: Codable { let topology: Topology, sourceWindow: Window, targetWindow: Window, target: UInt64, hostPID: pid_t, hostBirth:UInt64,hostHash:String,hid: [UInt32] }
+private struct ObserverIdentity:Codable {let pid:pid_t,birth:UInt64,executable:String,identifier:String,hash:String}
+private struct Binding: Codable {let reader:ObserverIdentity?; let nonce: UUID, guardian: pid_t, guardianBirth: UInt64, request: Pair; let endpoints: [String: Endpoint]? }
 private struct Endpoint: Codable {
     let space: UInt64, display: UUID, wallpaper: String, crop: [Double], rgb: [Int]
 }
@@ -234,15 +235,115 @@ private func censusBackdrop(_ detail:JSON,space:UInt64)->Bool {
           CGRect(dictionaryRepresentation:box as CFDictionary)==CGDisplayBounds(CGMainDisplayID()) else {return false}
     return true
 }
-private func desktopCensus(_ p:Pair)->(Bool,JSON) {
+private struct CensusContext {
+    let nonce:UUID,reader:ObserverIdentity?,crop:CGRect
+}
+private func observerSigning(_ pid:pid_t)->(String,Bool)? {
+    var code:SecCode?,reference:SecStaticCode?,info:CFDictionary?,req:SecRequirement?
+    guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:pid] as CFDictionary,[],&code)==errSecSuccess,let code,
+          SecCodeCheckValidity(code,[],nil)==errSecSuccess,SecCodeCopyStaticCode(code,[],&reference)==errSecSuccess,let reference,
+          SecCodeCopySigningInformation(reference,SecCSFlags(rawValue:kSecCSSigningInformation),&info)==errSecSuccess,
+          let fields=info as? JSON,let digest=fields[kSecCodeInfoUnique as String] as? Data else {return nil}
+    let apple=SecRequirementCreateWithString("anchor apple" as CFString,[],&req)==errSecSuccess && req.map{SecCodeCheckValidity(code,[],$0)==errSecSuccess}==true
+    return(digest.map{String(format:"%02x",$0)}.joined(),apple)
+}
+private func censusBirth(_ pid:pid_t)->UInt64? {
+    var info=proc_bsdinfo()
+    let n=Int32(MemoryLayout.size(ofValue:info))
+    guard pid>1,proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,n)==n,info.pbi_pid==UInt32(pid),info.pbi_start_tvsec>0 else {return nil}
+    return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
+}
+private func canonicalPath(_ path:String)->String? {
+    guard let resolved=realpath(path,nil) else {return nil};defer{free(resolved)}
+    return String(cString:resolved)
+}
+private func observerPath(_ pid:pid_t)->String? {
+    var name=[CChar](repeating:0,count:4096)
+    return proc_pidpath(pid,&name,UInt32(name.count))>0 ? String(cString:name):nil
+}
+private func windowAXTraits(_ pid:pid_t,_ number:UInt32)->JSON {
+    let app=AXUIElementCreateApplication(pid);_=AXUIElementSetMessagingTimeout(app,0.065)
+    var raw:CFTypeRef?
+    guard AXUIElementCopyAttributeValue(app,kAXWindowsAttribute as CFString,&raw) == .success,let list=raw as? [AXUIElement],list.count<=96 else {return ["query":"unavailable"]}
+    let matches=list.filter{NPReadAXWindowNumber($0)==number}
+    guard matches.count==1,let window=matches.first else {return ["query":matches.isEmpty ? "numberAbsent":"ambiguous"]}
+    var owner:pid_t=0
+    guard AXUIElementGetPid(window,&owner) == .success,owner==pid else {return ["query":"ownerUnconfirmed"]}
+    _=AXUIElementSetMessagingTimeout(window,0.065)
+    func attribute(_ key:String)->CFTypeRef? {
+        var value:CFTypeRef?;return AXUIElementCopyAttributeValue(window,key as CFString,&value) == .success ? value:nil
+    }
+    let role=attribute(kAXRoleAttribute) as? String,sub=attribute(kAXSubroleAttribute) as? String
+    return ["query":"exactNumberAndPID","roleIsWindow":role.map{$0==kAXWindowRole} as Any? ?? NSNull(),
+            "standard":sub.map{$0==kAXStandardWindowSubrole && role==kAXWindowRole} as Any? ?? NSNull(),
+            "main":attribute(kAXMainAttribute) as? Bool as Any? ?? NSNull(),"minimized":attribute(kAXMinimizedAttribute) as? Bool as Any? ?? NSNull()]
+}
+private func ordinaryDetail(_ row:JSON,space:UInt64,pair:Pair,ctx:CensusContext)->JSON {
+    var out:JSON=["classification":"unknown","confirmedForeignOrdinary":false,"sourceReportForwardAndReverse":true]
+    guard let pid=row["pid"] as? pid_t,let number=row["number"] as? UInt32 else {return out}
+    out["ownerPID"]=pid;out["windowNumber"]=number
+    let token=SHA256.hash(data:Data("\(ctx.nonce)/\(space)/\(pid)/\(number)".utf8))
+    out["rowToken"]=token.prefix(12).map{String(format:"%02x",$0)}.joined()
+    let forward=NPReadCatalogSpaceWindowNumbers(space) as? [UInt32],reverse=NPReadWindowSpaces(number) as? [UInt64]
+    out["forwardAtDetail"]=forward.map{$0.contains(number)} as Any? ?? NSNull()
+    out["reverseAtDetail"]=reverse.map{$0.contains(space)} as Any? ?? NSNull()
+    out["reverseExclusive"]=reverse.map{$0==[space]} as Any? ?? NSNull()
+    var raw=UnsafeRawPointer(bitPattern:UInt(number))
+    guard let ids=CFArrayCreate(nil,&raw,1,nil),let descriptions=CGWindowListCreateDescriptionFromArray(ids) as? [JSON],
+          descriptions.count==1,let d=descriptions.first,d[kCGWindowNumber as String] as? UInt32==number,
+          d[kCGWindowOwnerPID as String] as? pid_t==pid else {out["classification"]="CGRowDisappearedOrOwnerChanged";return out}
+    out["layer"]=d[kCGWindowLayer as String] as? Int as Any? ?? NSNull()
+    out["onScreen"]=d[kCGWindowIsOnscreen as String] as? Bool as Any? ?? NSNull()
+    out["alpha"]=d[kCGWindowAlpha as String] as? Double as Any? ?? NSNull()
+    if let bounds=d[kCGWindowBounds as String] as? JSON,let rect=CGRect(dictionaryRepresentation:bounds as CFDictionary) {
+        out["cropRelation"]=rect.contains(ctx.crop) ? "contains":(rect.intersects(ctx.crop) ? "intersects":"outside")
+    }
+    guard let path=observerPath(pid),let processBirth=censusBirth(pid) else {out["classification"]="ownerExitedOrUnavailable";return out}
+    out["ownerBirth"]=processBirth
+    var kit=URL(fileURLWithPath:pair.sourceWindow.executable)
+    for _ in 0..<4 {kit.deleteLastPathComponent()}
+    var directoryInfo=stat()
+    let privateRoot=kit.path.hasPrefix("/private/tmp/nearpane-d01.") && kit.deletingLastPathComponent().path=="/private/tmp" &&
+        lstat(kit.path,&directoryInfo)==0 && directoryInfo.st_uid==getuid() && directoryInfo.st_mode&S_IFMT==S_IFDIR && directoryInfo.st_mode&0o077==0
+    let signed=observerSigning(pid),examined=URL(fileURLWithPath:path)
+    let fromKit=privateRoot && (path.hasPrefix(kit.path+"/")) && canonicalPath(path)==path
+    var registration:String?
+    if fromKit,let signed {
+        if let w=[pair.sourceWindow,pair.targetWindow].first(where:{$0.pid==pid && $0.birth==processBirth && $0.executable==path && $0.hash==signed.0}) {
+            registration=number==w.number ? "otherEnrolledEndpointWindow":"otherWindowOfEnrolledFixtureProcess"
+        } else if let r=ctx.reader,r.pid==pid,r.birth==processBirth,r.hash==signed.0,r.executable==path && path==kit.appendingPathComponent("p0-card").path {
+            registration="registeredKeeper"
+        } else if pid==getpid(),examined.deletingLastPathComponent().path==kit.path,examined.lastPathComponent.hasPrefix("p0-visual-") {
+            registration="thisPhysicalObserver"
+        }
+    } else if pid==pair.hostPID,processBirth==pair.hostBirth,signed?.0==pair.hostHash,path=="/Applications/Nearpane.app/Contents/MacOS/NearpaneHost" {
+        registration="registeredInstalledHost"
+    }
+    let ax=windowAXTraits(pid,number);out["ax"]=ax
+    let apple=signed?.1==true
+    var imageInfo=stat(),systemInfo=stat(),volume=statfs()
+    let sealedApple=apple && path.hasPrefix("/System/") && lstat(path,&imageInfo)==0 && stat("/System/Library",&systemInfo)==0 &&
+        statfs(path,&volume)==0 && imageInfo.st_uid==0 && imageInfo.st_dev==systemInfo.st_dev && volume.f_flags&UInt32(MNT_RDONLY) != 0
+    out["appleAnchored"]=apple;out["sealedAppleSystemExecutable"]=sealedApple;out["privateKitExecutable"]=fromKit
+    if sealedApple,let known=TrustedOwner.identify(pid) {out["knownAppleSystemOwner"]=known.rawValue}
+    guard censusBirth(pid)==processBirth,observerPath(pid)==path,forward?.contains(number)==true,reverse?.contains(space)==true,
+          d[kCGWindowLayer as String] as? Int==0 else {out["classification"]="ownerOrMembershipChangedDuringDetail";return out}
+    if let registration {out["classification"]=registration;out["ownedPID"]=pid;out["ownedBirth"]=processBirth;out["ownedCDHash"]=signed?.0;out["ownedExecutable"]=path}
+    else if fromKit {out["classification"]="privateKitExecutableWithoutRegisteredProcess"}
+    else if ax["standard"] as? Bool==true || (!sealedApple && !path.hasPrefix("/System/")) {
+        out["classification"]="unregisteredOrdinaryProcess";out["confirmedForeignOrdinary"]=true
+    } else {out["classification"]=sealedApple ? "signedAppleSystemSurfaceUnclassified":"unregisteredSystemProcessUnclassified"}
+    return out
+}
+private func desktopCensus(_ p:Pair,context:CensusContext?=nil,unexpected:(()->Void)?=nil)->(Bool,JSON) {
     let ids=[p.topology.current,p.target]
-    guard let census=NPContractMemberReport(ids as CFArray,p.hostPID) as? JSON else {return(false,["available":false])}
+    guard let census=NPContractMemberReport(ids as CFArray,p.hostPID) as? JSON else {unexpected?();return(false,["available":false])}
     var output:JSON=[:],clean=true
     for (index,window) in [p.sourceWindow,p.targetWindow].enumerated() {
         let sid=ids[index],key=index==0 ? "source":"target"
         guard let row=census[String(sid)] as? JSON,let windows=row["ordinary"] as? [JSON],let other=row["otherMembers"] as? Int,
               let unknown=row["unresolved"] as? Int,let details=row["otherDetails"] as? [JSON] else {
-            output[key]=["available":false];clean=false;continue
+            unexpected?();output[key]=["available":false];clean=false;continue
         }
         let exact=windows.filter{$0["pid"] as? pid_t==window.pid && $0["number"] as? UInt32==window.number}
         let accepted=details.filter{censusBackdrop($0,space:sid)}.count
@@ -250,6 +351,14 @@ private func desktopCensus(_ p:Pair)->(Bool,JSON) {
         output[key]=["available":true,"ordinaryCount":windows.count,"exactFixtureCount":exact.count,"unclassifiedMembers":unknown,
                      "otherMembers":other,"verifiedNegativeSystemBackdrops":accepted,"verifiedSharedOverlays":row["verifiedSharedOverlays"] ?? NSNull(),
                      "verifiedHostPanels":row["verifiedHostPanels"] ?? NSNull(),"systemMenus":row["systemMenuSurfaces"] ?? NSNull(),"qualified":safe]
+        if !safe {unexpected?()}
+        if let context,let saved=output[key] as? JSON {
+            let extra=windows.filter{$0["pid"] as? pid_t != window.pid || $0["number"] as? UInt32 != window.number}
+            let inspected=extra.prefix(16).map{ordinaryDetail($0,space:sid,pair:p,ctx:context)}
+            var updated=saved;updated["extraOrdinary"]=inspected;updated["additionalUninspectedCount"]=max(0,extra.count-inspected.count)
+            updated["confirmedForeignOrdinary"]=inspected.contains{$0["confirmedForeignOrdinary"] as? Bool==true}
+            output[key]=updated
+        }
         clean=clean && safe
     }
     return (clean,output)
@@ -331,18 +440,31 @@ private final class PresentationSurfaces: @unchecked Sendable {
     }
 }
 
+// The ending is metadata-only while an unexpected member is unresolved. A later clean census cannot authorize
+// a capture presented during the withheld interval; the frame remains explicitly unmeasured.
+private final class TerminalPixelGuard: @unchecked Sendable {
+    private let lock=NSLock()
+    private var blocked:Double?,periods=[(Double,Double)]()
+    func hold() {lock.withLock{if blocked==nil {blocked=uptime()}}}
+    func resume() {lock.withLock{if let start=blocked {periods.append((start,uptime()));blocked=nil}}}
+    func permits(_ time:Double)->Bool {lock.withLock{blocked==nil && !periods.contains{$0.0<=time && time<=$0.1}}}
+    var receipt:[JSON] {lock.withLock{
+        var result=periods.map{["from":$0.0,"to":$0.1] as JSON}
+        if let blocked {result.append(["from":blocked,"to":NSNull()])};return result
+    }}
+}
 // This single physical SCStream persists no image. Its callback records the WindowServer presentation and
 // hands the OS-owned buffer to a bounded observer. Pixel interpretation occurs only after scoped metadata.
 private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
-    let pair:Pair, endpoints:[String:Endpoint], surfaces:PresentationSurfaces
+    let pair:Pair, endpoints:[String:Endpoint], surfaces:PresentationSurfaces, pixelGuard:TerminalPixelGuard
     let queue=DispatchQueue(label:"nearpane.acceptance.physical-presentations",qos:.userInteractive)
     private var records=[JSON?](),unresolved=[Int:JSON](),error=false
     private var scale=mach_timebase_info_data_t()
     var rows:[JSON] {queue.sync{Array(records.prefix(while:{$0 != nil}).compactMap{$0})}}
     var failed:Bool {queue.sync{error}}
     var timebase:JSON {["numerator":scale.numer,"denominator":scale.denom]}
-    init(_ p:Pair,_ crop:CGRect,_ screen:NSScreen,_ endpoints:[String:Endpoint]) {
-        pair=p;self.endpoints=endpoints;surfaces=PresentationSurfaces(p,crop,screen,endpoints)
+    init(_ p:Pair,_ crop:CGRect,_ screen:NSScreen,_ endpoints:[String:Endpoint],_ permission:TerminalPixelGuard) {
+        pair=p;self.endpoints=endpoints;pixelGuard=permission;surfaces=PresentationSurfaces(p,crop,screen,endpoints)
         super.init();mach_timebase_info(&scale)
     }
     func stream(_ stream:SCStream,didStopWithError error:Error) {queue.async{self.error=true}}
@@ -390,6 +512,7 @@ private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @u
             }
             row["space"]=space;row["visible"]=visible;row["safe"]=true
             guard let pixel else {return}
+            guard pixelGuard.permits(t) else {row["blockedBy"]="pixelsWithheldForUnexpectedTerminalMember";row["safe"]=false;return}
             guard CVPixelBufferGetWidth(pixel)==4,CVPixelBufferGetHeight(pixel)==4,CVPixelBufferGetPixelFormatType(pixel)==kCVPixelFormatType_32BGRA,
                   let raw=directColor(pixel) else {row["blockedBy"]="nonopaqueOrUnreadableNativeCrop";row["safe"]=false;return}
             var image:CGImage?
@@ -422,15 +545,15 @@ private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @u
 private struct Picture { let time: Double, bytes: Data }
 private final class Frames: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
     let queue = DispatchQueue(label: "nearpane.acceptance.visual")
-    let request: Pair, width: Int, height: Int
+    let request: Pair, width: Int, height: Int, pixelGuard:TerminalPixelGuard
     private let lock = NSLock()
     private(set) var records = [JSON](), pictures = [Picture]()
     private var totalBytes = 0
     private(set) var droppedMovie = false, identityChanged = false, stoppedEarly = false
     private var scale = mach_timebase_info_data_t()
 
-    init(_ request: Pair, width: Int, height: Int) {
-        self.request = request; self.width = width; self.height = height
+    init(_ request: Pair, width: Int, height: Int,pixelGuard:TerminalPixelGuard) {
+        self.pixelGuard=pixelGuard;self.request = request; self.width = width; self.height = height
         super.init()
         mach_timebase_info(&scale)
     }
@@ -459,7 +582,7 @@ private final class Frames: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         let intact = pairIntact(request) && [request.topology.current, request.target].contains(space ?? 0)
         row["identitiesIntact"] = intact
         var image: Picture?
-        if intact, (name == "complete" || name == "started"), let when,
+        if intact, (name == "complete" || name == "started"), let when,pixelGuard.permits(when),
            let buf = CMSampleBufferGetImageBuffer(sample), CVPixelBufferGetWidth(buf) == width,
            CVPixelBufferGetHeight(buf) == height, CVPixelBufferGetPixelFormatType(buf) == kCVPixelFormatType_32BGRA,
            CVPixelBufferLockBaseAddress(buf, .readOnly) == kCVReturnSuccess {
@@ -591,7 +714,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
     }
 
     @MainActor private static func verifyTarget(_ p:Pair,display:SCDisplay,screen:NSScreen,crop:CGRect,hz:Int,endpoint:Endpoint,
-                                                 stream:SCStream,probe:DisplayProbe,end:End) async -> JSON {
+                                                 stream:SCStream,probe:DisplayProbe,end:End,context:CensusContext,withhold:@escaping ()->Void) async -> JSON {
         var result:JSON=["eligible":false,"sameStream":true,"independentTargetAndDisplayAgree":false,"linkedToNativeTarget":false]
         var observations=[JSON]()
         func check(_ stage:String)->(Bool,Bool) {
@@ -611,25 +734,27 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             result["endRequest"]=["callerConfirmed":end.allowMovie,"positivePress":end.pressed>0,"independentEndAfterPress":end.ended>end.pressed]
             guard end.allowMovie,end.pressed>0,end.ended>end.pressed else {throw Failure("independent caller did not bind an issued interval")}
             var cleanReads=0
-            let limit=uptime()+0.65
-            for index in 0..<8 {
+            let limit=uptime()+1.5
+            for index in 0..<20 {
                 let (scoped,transient)=check("terminal-admission-\(index+1)")
+                if !scoped {withhold()}
                 if !scoped && !transient {throw Failure("terminal target foreground, bound process, wallpaper or physical input changed")}
                 if scoped {
-                    let census=desktopCensus(p)
+                    let started=uptime(),census=desktopCensus(p,context:context,unexpected:withhold)
+                    observations[observations.count-1]["membershipFrom"]=started;observations[observations.count-1]["membershipThrough"]=uptime()
                     observations[observations.count-1]["membership"]=census.1
                     observations[observations.count-1]["censusQualified"]=census.0
-                    if [census.1["source"],census.1["target"]].contains(where:{part in
-                        guard let facts=part as? JSON,let n=facts["ordinaryCount"] as? Int,let exact=facts["exactFixtureCount"] as? Int else {return false}
-                        return n>exact
-                    }) {throw Failure("terminal census found a different ordinary window")}
+                    if [census.1["source"],census.1["target"]].contains(where:{($0 as? JSON)?["confirmedForeignOrdinary"] as? Bool==true}) {
+                        throw Failure("terminal census positively identified an unregistered ordinary window")
+                    }
                     cleanReads=census.0 ? cleanReads+1:0
                 } else {cleanReads=0}
                 if cleanReads==2 {break}
-                guard uptime()<limit,index<7 else {throw Failure("two consecutive clean foreground and desktop censuses were not observed within 650 ms")}
+                guard uptime()<limit,index<19 else {throw Failure("two consecutive strictly clean desktop censuses were not observed within 1500 ms")}
                 try await Task.sleep(for:.milliseconds(35))
             }
             result["confirmedConsecutiveCensuses"]=cleanReads
+            probe.pixelGuard.resume();result["strictCleanAt"]=uptime()
             let current=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:false)
             guard let freshDisplay=current.displays.first(where:{$0.displayID==display.displayID}),current.displays.count==1 else {throw Failure("physical display changed")}
             let pair=try [p.sourceWindow,p.targetWindow].map { w -> SCWindow in
@@ -664,14 +789,16 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                                       $0["space"] as? UInt64==p.target && $0["safe"] as? Bool==true}) else {return nil}
                 return tail
             }
-            func linked()->Double? {
-                guard let tail=targetTail(),let lastCheck=tail.last?["callback"] as? Double else {return nil}
+            func linked()->(Double,Double)? {
+                guard let tail=targetTail(),let marker=tail.first?["displayTime"] as? Double,marker>=from,
+                      let lastCheck=tail.last?["callback"] as? Double else {return nil}
                 // An owned idle sample may carry only the last matching native complete frame; use an actual display time.
-                return tail.reversed().compactMap { row -> Double? in
+                let stamp=tail.reversed().compactMap { row -> Double? in
                     guard let t=row["displayTime"] as? Double,t>=max(end.ended,sampledAt),uptime()-t<=0.05,
                           max(row["metadataThrough"] as? Double ?? 0,lastCheck)>=t else {return nil}
                     return t
                 }.first
+                return stamp.map{($0,marker)}
             }
             if targetTail()==nil {
                 // Re-enumerate the permitted apps from the *current* destination. Update only this same physical stream.
@@ -683,8 +810,9 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             let deadline=uptime()+0.9
             repeat {
                 guard check("native-presentation-link").0 else {throw Failure("target changed while binding the native display presentation")}
-                if let stamp=linked() {
-                    result["linkedToNativeTarget"]=true;result["nativeTargetTime"]=stamp;result["observations"]=observations;return result
+                if let (stamp,marker)=linked() {
+                    result["linkedToNativeTarget"]=true;result["nativeTargetTime"]=stamp;result["nativeTargetCompleteTime"]=marker
+                    result["corroboratedAt"]=uptime();result["observations"]=observations;return result
                 }
                 try await Task.sleep(for:.milliseconds(20))
             } while uptime()<deadline
@@ -733,14 +861,22 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         guard allowed.count == 2 else { throw Failure("window identity collision") }
         let crop = probeRect(included, display: display)
         let hz = max(1, min(60, screen.maximumFramesPerSecond))
-        let wall=wallpaperProof(NSWorkspace.shared.desktopImageURL(for:screen)),census=desktopCensus(p)
+        let wall=wallpaperProof(NSWorkspace.shared.desktopImageURL(for:screen))
+        let context=crop.map{CensusContext(nonce:b.nonce,reader:b.reader,crop:$0)}
+        let firstCensus=desktopCensus(p,context:context)
+        if firstCensus.0 {try await Task.sleep(for:.milliseconds(35))}
+        let baselineStable=pairIntact(p) && inventory(p).0==p.topology.current
+        let census=firstCensus.0 && baselineStable ? desktopCensus(p,context:context):firstCensus
+        admission["strictPreflightCensuses"]=firstCensus.0 && baselineStable ? [firstCensus.1,census.1]:[firstCensus.1]
+        admission["strictCleanPreflightReads"]=firstCensus.0 ? (baselineStable && census.0 ? 2:1):0
+
         let surface=crop.map{probeSurface($0,p)}
         admission["wallpaper"]=wall.fields;admission["membership"]=census.1
         admission["crop"]=crop.map(rectangle) as Any? ?? NSNull();admission["foremostSurface"]=surface?.category ?? "noCommonRectangle"
         var reasons=[String]()
         if crop==nil {reasons.append("no common interior rectangle on the physical display")}
         if wall.fingerprint==nil {reasons.append("wallpaper: "+wall.source)}
-        if !census.0 {reasons.append("exclusive ordinary desktop membership unconfirmed")}
+        if !firstCensus.0 || !baselineStable || !census.0 {reasons.append("two strictly clean ordinary desktop censuses were not confirmed")}
         if surface?.value != p.sourceWindow.number {reasons.append("physical crop: "+(surface?.category ?? "unavailable"))}
         admission["failed"]=reasons
         try json(admission,receipt)
@@ -777,6 +913,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             try JSONEncoder().encode(ep).write(to:directory.appendingPathComponent("endpoint.json"),options:.atomic)
             return
         }
+        let permission=TerminalPixelGuard()
         var probe:DisplayProbe?,observerStream:SCStream?
         let a=b.endpoints?[String(p.topology.current)],z=b.endpoints?[String(p.target)]
         let qualified=a?.display==p.topology.display && z?.display==p.topology.display && a?.space==p.topology.current && z?.space==p.target
@@ -791,7 +928,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         if !approvedWallpaper {reasons.append("current wallpaper does not match the enrolled source")}
         admission["failed"]=reasons
         if reasons.isEmpty,let crop,let endpoints=b.endpoints {
-            let observer = DisplayProbe(p, crop, screen, endpoints)
+            let observer = DisplayProbe(p, crop, screen, endpoints,permission)
             let probeConfig=probeConfiguration(crop,display,hz)
             // Ask the physical display for native cadence. Each complete/idle sample keeps its own WindowServer time.
             probeConfig.minimumFrameInterval = .zero;probeConfig.queueDepth=5
@@ -819,7 +956,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.showsCursor = false; config.capturesAudio = false; config.captureMicrophone = false
         config.includeChildWindows = false; config.shouldBeOpaque = false; config.queueDepth = 5
-        let output = Frames(p, width: width, height: height)
+        let output = Frames(p, width: width, height: height,pixelGuard:permission)
         let stream = SCStream(filter: filter, configuration: config, delegate: output)
         try stream.addStreamOutput(output, type: .screen, sampleHandlerQueue: output.queue)
         try await stream.startCapture()
@@ -849,8 +986,11 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         }
         var terminal:JSON=[:]
         if let end,let observerStream,let probe,let crop,let endpoint=b.endpoints?[String(p.target)] {
-            terminal=await verifyTarget(p,display:display,screen:screen,crop:crop,hz:hz,endpoint:endpoint,stream:observerStream,probe:probe,end:end)
+            terminal=await verifyTarget(p,display:display,screen:screen,crop:crop,hz:hz,endpoint:endpoint,stream:observerStream,probe:probe,end:end,context:CensusContext(nonce:b.nonce,reader:b.reader,crop:crop)){
+                permission.hold();probe.queue.sync{};output.queue.sync{}
+            }
         }
+        terminal["withheldPixelIntervals"]=permission.receipt
         try? await stream.stopCapture()
         if let observerStream {try? await observerStream.stopCapture()}
         if let probe {await probe.finish()}
@@ -875,7 +1015,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                   "requestedHz": hz, "refreshLimitHz": screen.maximumFramesPerSecond, "displayModeHz": CGDisplayCopyDisplayMode(display.displayID)?.refreshRate ?? 0,
                   "width": width, "height": height, "filterStyle": filter.style.rawValue,
                   "windows": allowed.sorted(), "wallpaperIncluded": false, "audioEnabled": false,
-                  "physical": ["presentationReviewVersion":3,"machTimebase":probe?.timebase ?? [:],"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
+                  "physical": ["presentationReviewVersion":4,"machTimebase":probe?.timebase ?? [:],"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
                                "filter": "display-excluding-other-apps", "crop": crop.map(rectangle) as Any? ?? NSNull(),
                                "error": probe?.failed ?? false, "frames": probe?.rows ?? []] as JSON,
                   "changed": changed, "stoppedEarly": failed, "start": start, "stop": uptime(), "postSpace": post as Any? ?? NSNull(),

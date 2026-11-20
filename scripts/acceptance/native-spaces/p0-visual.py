@@ -119,10 +119,20 @@ def witness(kit, p, at, window_witness=None):
                 and proof["forward"] is True and proof["standard"] is True and proof["reverse"] == [sid],
                 "fixture generation, exact AX window, or two-way Space membership changed")
         records.append({k: w[k] for k in ("pid", "birth", "number", "identifier", "hash")})
-    state = ask(reader, "state")
+    retained_state=answer.get("state") if window_witness is not None else None
+    state = retained_state if retained_state is not None else ask(reader, "state")
     require(state["topology"] == dict(topology, current=at) and state["hid"] == p["hid"],
             "physical display, Space UUID order, current ID or real input changed")
-    return {"current": at, "uptime": state["uptime"], "display": topology["display"], "windows": records}
+    result={"current":at,"uptime":state["uptime"],"display":topology["display"],"windows":records,
+            "stateSource":"retained-reader" if retained_state is not None else "one-shot-reader"}
+    if retained_state is not None:
+        helper=answer.get("reader") or {}
+        require(helper.get("executable")==str(reader) and type(helper.get("pid")) is int and helper["pid"]>1
+                and type(helper.get("birth")) is int and helper["birth"]>0 and isinstance(helper.get("hash"),str)
+                and len(helper["hash"])==40 and all(c in "0123456789abcdef" for c in helper["hash"]),
+                "retained state reply did not attest its private-kit reader")
+        result["registeredReader"]={k:helper[k] for k in ("pid","birth","executable","identifier","hash")}
+    return result
 
 
 def pair_id(p):
@@ -132,9 +142,10 @@ def pair_id(p):
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
 
-def binding(kit, p, folder, guardian, endpoints=None):
+def binding(kit, p, folder, guardian, endpoints=None, reader=None):
     born = ask(kit/"p0-card", "process", [guardian])["birth"]
     b = dict(nonce=str(uuid.uuid4()).upper(), guardian=guardian, guardianBirth=born, request=p, endpoints=endpoints)
+    if reader is not None:b["reader"]=reader
     write(folder/"binding.json", b)
     return b
 
@@ -160,7 +171,7 @@ def enroll(kit, attempt, request, *, window_witness=None):
         private(root,directory=True)
         with tempfile.TemporaryDirectory(dir=root) as tmp:
             folder=Path(tmp)
-            b=binding(kit,request,folder,os.getpid())
+            b=binding(kit,request,folder,os.getpid(),reader=pre.get("registeredReader"))
             try:
                 result=subprocess.run([str(binary(kit)),str(folder),"enroll"],stdin=subprocess.DEVNULL,
                                       stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
@@ -209,7 +220,7 @@ def start(kit, attempt, request, guardian=None, *, window_witness=None):
             result=unknown("Missing corroborated physical endpoint calibration for Space "+", ".join(map(str,missing)))
             result.update(missingEndpointSpaces=missing,calibrationFailures=failures,physicalReady=False)
             write(folder/"admission.json",result);write(folder/"receipt.json",result);return result
-        b = binding(kit, request, folder, guardian or os.getpid(), endpoints)
+        b = binding(kit, request, folder, guardian or os.getpid(), endpoints, pre.get("registeredReader"))
         proc = subprocess.Popen([str(binary(kit)), str(folder)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL, start_new_session=True)
         CHILDREN[str(folder)] = proc
@@ -281,6 +292,43 @@ def presentation_proof(genuine, index, source, target, hz, version):
     return False,"earlyPresentationMissingFollowingSurfaceAndSpace",None
 
 
+def verify_terminal_interval(rows,probe,source,target,hz,pressed,ended,version):
+    terminal=probe.get("terminalTarget") or {}
+    result={"qualified":False,"reason":"Independent target color, timing or two strictly clean censuses were unavailable",
+            "heldPixelsAfterObservedAction":terminal.get("withheldPixelIntervals",[])}
+    clean,requested,returned,marker,last,confirmed=[stamp(terminal,k) for k in
+        ("strictCleanAt","sampleRequested","sampleReturned","nativeTargetCompleteTime","nativeTargetTime","corroboratedAt")]
+    audits=[s for s in terminal.get("observations",[]) if "censusQualified" in s]
+    last_two=audits[-2:]
+    if not (all((clean,requested,returned,marker,last,confirmed)) and terminal.get("linkedToNativeTarget") is True
+            and ended<=clean<=requested<=returned<=last<=confirmed and requested<=marker<=last and len(last_two)==2
+            and all(s.get("censusQualified") is True and 0<s.get("membershipFrom",0)<=s.get("membershipThrough",0)<=clean
+                    for s in last_two) and last_two[0]["membershipThrough"]<=last_two[1]["membershipFrom"]):
+        return result
+    ending=[(i,r) for i,r in enumerate(rows) if r["displayTime"]==last]
+    confirmed_within=any(pressed<=r["displayTime"]<=ended and r.get("matchesTarget") is True and r.get("status") in (0,4)
+        and r.get("space")==target and r.get("visible")=="target" and presentation_proof(rows,i,source,target,hz,version)[0] for i,r in enumerate(rows))
+    start=next((i for i,r in enumerate(rows) if r["displayTime"]>=requested),None)
+    if not ending or start is None or not confirmed_within:
+        result["reason"]="No genuine target-color presentation within the original issued interval or independent target cross-check"
+        return result
+    last_i=ending[-1][0];segment=rows[start:last_i+1];clock=probe.get("machTimebase",{})
+    if not segment or not all(tick_matches_time(r,clock) for r in segment):return result
+    gaps=[(b["presentationMachTicks"]-a["presentationMachTicks"])*clock["numerator"] for a,b in zip(segment,segment[1:])]
+    if (any(n<0 or n>50_000_000*clock["denominator"] for n in gaps) or segment[0]["displayTime"]-requested>.050 or
+            not any(r["displayTime"]==marker and r.get("status") in (0,4) and r.get("matchesTarget") is True for r in segment)):
+        result["reason"]="Independent target readings lack a matching same-stream complete or exceed the native 50ms bound";return result
+    for i,r in enumerate(segment,start):
+        if (r.get("space")!=target or r.get("visible")!="target" or not presentation_proof(rows,i,source,target,hz,version)[0] or
+                r.get("status") not in (0,1,4) or (r["status"]!=1 and (r.get("lit") is not True or r.get("matchesTarget") is not True))):
+            result["reason"]="An unverified, blank, withheld or different target presentation occurred during the independent target readings"
+            return result
+    result.update(qualified=True,reason="Genuine action-time target color and separate same-stream target readback both confirmed",
+                  fromUptime=requested,toUptime=last,nativeComplete=marker,events=len(segment),
+                  maxGapMS=max(gaps,default=0)/clock["denominator"]/1e6)
+    return result
+
+
 def score(data, request, pressed, ended, pre, post):
     result = unknown("The allowlisted fixture stream does not establish the visible desktop")
     result["captureFilter"] = "ScreenCaptureKit physical display, including only two exact fixture windows"
@@ -317,9 +365,13 @@ def score(data, request, pressed, ended, pre, post):
             result.update(status="FAIL",physicallyQualified=True,blankPresentationTimes=confirmed,
                           reason="The scoped native display stream reported SCFrameStatus.blank during the issued press")
             return result
+    terminal=probe.get("terminalTarget") or {}
+    # Outer evidence collected after the independently observed action belongs to a separate window.
+    # It cannot repair an in-action gap or revoke positive data already captured at the required time.
+    late_census=version>=4 and terminal.get("confirmedConsecutiveCensuses")==2 and stamp(terminal,"strictCleanAt")
     if not (math.isfinite(pressed) and math.isfinite(ended) and 0 < pressed < ended and pre and post
             and pre["current"] == request["topology"]["current"] and post["current"] == request["target"]
-            and data.get("postSpace") == request["target"] and pre["windows"] == post["windows"]
+            and (data.get("postSpace") == request["target"] or version>=4) and pre["windows"] == post["windows"]
             and pre["uptime"] <= pressed < ended <= post["uptime"] and data.get("ready")
             and not data.get("changed") and not data.get("stoppedEarly")):
         result["reason"] = "Issued interval or independently revalidated endpoints unavailable"
@@ -329,7 +381,7 @@ def score(data, request, pressed, ended, pre, post):
                               "cropPoints": probe.get("crop"), "privatePixelOutput": False}
     result["displayProbe"]["sourceFrameReadyBeforePress"]=probe.get("sourceFrameReadyBeforePress") is True
     if isinstance(probe.get("admission"),dict):result["displayProbe"]["admission"]=probe["admission"]
-    if not (probe.get("armed") and probe.get("sourceFrameReadyBeforePress") is True and probe.get("censusAfter") and not probe.get("error")
+    if not (probe.get("armed") and probe.get("sourceFrameReadyBeforePress") is True and (probe.get("censusAfter") or late_census) and not probe.get("error")
             and probe.get("filter") == "display-excluding-other-apps"):
         diagnostics=probe.get("admission") or {}
         result["reason"]="; ".join(diagnostics.get("failed") or []) or diagnostics.get("streamStartError") or (
@@ -357,9 +409,9 @@ def score(data, request, pressed, ended, pre, post):
         requested, returned = stamp(terminal,"sampleRequested"), stamp(terminal,"sampleReturned")
         checks["independentTerminalTargetMatched"] = bool(terminal.get("eligible") is True and terminal.get("sameStream") is True
             and terminal.get("freshFramesAgreeWithEnrolledCrop") is True and terminal.get("shareableTargetOnScreen") is True
-            and terminal.get("independentTargetAndDisplayAgree") is True and requested and returned and ended <= requested <= returned <= post["uptime"]
+            and terminal.get("independentTargetAndDisplayAgree") is True and requested and returned and ended <= requested <= returned <= (stamp(terminal,"corroboratedAt") or 0 if version>=4 else post["uptime"])
             and (version<3 or terminal.get("confirmedConsecutiveCensuses")==2))
-    boundary = max(ended, link_at) if version >= 2 and link_at else ended
+    boundary = max(ended, link_at) if 2<=version<4 and link_at else ended
     after=[i for i,r in enumerate(genuine) if r["displayTime"]>=boundary]
     if not before or not after:
         result["reason"]="Missing a genuine source presentation before press or native presentation after independent observation";return result
@@ -435,8 +487,15 @@ def score(data, request, pressed, ended, pre, post):
         result["reason"]="; ".join(reasons);return result
     if not target_marker:
         result["reason"]="The genuine display stream did not match the target fixture color on its final Space";return result
-    if version>=2 and not (checks["independentTerminalTargetMatched"] and terminal.get("linkedToNativeTarget") is True and link_at
-                           and link_at==upper and returned<=link_at<=post["uptime"]):
+    if version>=4:
+        supplemental=verify_terminal_interval(genuine,probe,source,target,hz,pressed,ended,version)
+        result["displayProbe"]["postActionTargetCorroboration"]=supplemental
+        checks["independentTerminalTargetMatched"]=bool(checks["independentTerminalTargetMatched"] and supplemental["qualified"])
+        if not checks["independentTerminalTargetMatched"]:
+            result["reason"]=terminal.get("reason") or supplemental["reason"]
+            return result
+    elif version>=2 and not (checks["independentTerminalTargetMatched"] and terminal.get("linkedToNativeTarget") is True and link_at
+                             and link_at==upper and returned<=link_at<=post["uptime"]):
         result["reason"]=terminal.get("reason") or "Fresh physical display, isolated target marker and same-stream presentation were not jointly verified"
         return result
     result.update(status="PASS",physicallyQualified=True,reason="Genuine time-bound physical presentations remained lit and reached the independently bound target marker")
@@ -459,6 +518,7 @@ def finish(kit, attempt, pressed, ended, *, window_witness=None):
                 post = witness(kit, p, p["target"], window_witness)
             except ERRORS:
                 pass
+        if post:write(folder/"terminal-witness.json",post)
         write(folder/"end.json", dict(nonce=b["nonce"], pressed=pressed, ended=ended, allowMovie=bool(post)))
         limit = time.monotonic() + 11
         while time.monotonic() < limit and not (folder/"frames.json").exists() and not (folder/"error.json").exists():
@@ -467,8 +527,14 @@ def finish(kit, attempt, pressed, ended, *, window_witness=None):
         require(observed["nonce"] == b["nonce"], "recorder generation changed")
         pre = read(folder/"before.json")
         if post:
-            post = witness(kit, p, p["target"], window_witness)
-            write(folder/"after.json", post)
+            try:
+                latest=witness(kit,p,p["target"],window_witness)
+                write(folder/"after.json",latest)
+                post=latest
+            except ERRORS as error:
+                if observed.get("physical",{}).get("presentationReviewVersion",1)<4:raise
+                write(folder/"after.json",dict(post,postCleanupWitness="different or unavailable",lateReason=str(error)))
+
         result = score(observed, p, float(pressed), float(ended), pre, post)
         movie = folder/"verified-pair.mp4"
         if movie.is_file() and observed.get("movie") and post:
@@ -503,6 +569,7 @@ def replay(attempt, destination):
     require(name.endswith(".json") and str(uuid.UUID(name[:-5])).upper()+".json"==name, "invalid terminal Host receipt filename")
     paths = ["identity.json", "card-before.json", "ax-dispatch.json", "visual-start.json", "result.json", name, "windowserver.jsonl",
              *["visual/"+n+".json" for n in ("receipt", "binding", "end", "ready", "admission", "before", "after", "frames")]]
+    if (attempt/"visual/terminal-witness.json").is_file():paths.append("visual/terminal-witness.json")
     inputs = {}
     digests = {}
     for path in paths:

@@ -402,8 +402,11 @@ func keepOwnedWindows() {
                 receipt["present"]=cards.count==1 && receipt["scanComplete"] as? Bool==true && receipt["role"] as? String==kAXButtonRole
                 emit(receipt)
             } else if mode=="windows" {
-                _=try topology()
-                let windows=try JSONDecoder().decode([Window].self,from:body);emit(["windows":try windows.map(windowProof)])
+                let windows=try JSONDecoder().decode([Window].self,from:body),proof=try windows.map(windowProof)
+                let pid=getpid()
+                guard let born=birth(pid),let exe=path(pid),let signed=signature(pid) else {throw Refusal("retained reader could not attest its own process")}
+                emit(["windows":proof,"state":try snapshot(false),
+                      "reader":["pid":pid,"birth":born,"executable":exe,"identifier":signed.0,"hash":signed.1]])
             } else if mode=="inspect" || mode=="press" {
                 let pair=try JSONDecoder().decode(Pair.self,from:body)
                 try need(retainedWindows[pair.sourceWindow.number] != nil && retainedWindows[pair.targetWindow.number] != nil,"both actual owned ordinary documents must be enrolled")

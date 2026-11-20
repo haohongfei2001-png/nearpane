@@ -146,6 +146,48 @@ class VisualTests(unittest.TestCase):
             self.assertGreater(proof["coverage"]["maxGapMS"],50)
             self.assertEqual(proof["displayProbe"]["targetCompleteColorCounts"]["allTargetSurfaceCompleteIncludingTransition"],6)
 
+    def test_terminal_withheld_frames_after_original_interval_are_disclosed_and_never_fill_either_required_window(self):
+        self.version_three()
+        tail=self.frames[-1]
+        for n in range(13,26):
+            t=10+n*.01;r=copy.deepcopy(tail);r.update(displayTime=t,callback=t+.003,presentationMachTicks=round(t*1e9))
+            for i,read in enumerate(r["postPresentationSurfaces"]):read.update({"from":t+.002+i*.004,"to":t+.003+i*.004})
+            self.frames.append(r)
+        self.post["uptime"]=10.3
+        ph=self.data["physical"];ph["presentationReviewVersion"]=4;ph["censusAfter"]=False
+        term=ph["terminalTarget"]
+        term.update(strictCleanAt=10.155,sampleRequested=10.165,sampleReturned=10.195,nativeTargetTime=10.21,
+                    nativeTargetCompleteTime=10.21,corroboratedAt=10.23,withheldPixelIntervals=[{"from":10.125,"to":10.145}],
+                    observations=[{"censusQualified":False},{"censusQualified":True,"membershipFrom":10.141,"membershipThrough":10.143},
+                                  {"censusQualified":True,"membershipFrom":10.15,"membershipThrough":10.154}])
+        self.frames[13].update(safe=False,blockedBy="pixelsWithheldForUnexpectedTerminalMember")
+        proof=self.result();self.assertEqual(proof["status"],"PASS",proof["reason"])
+        self.assertLess(proof["coverage"]["to"],10.125)
+        self.assertEqual(len(proof["displayProbe"]["postActionTargetCorroboration"]["heldPixelsAfterObservedAction"]),1)
+        self.frames[18].update(safe=False)
+        proof=self.result();self.assertEqual(proof["status"],"UNKNOWN");self.assertEqual(proof["subchecks"]["continuousVisibleLight"],"PASS")
+        self.frames[18].update(safe=True)
+        for r in self.frames[:11]:r["matchesTarget"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+        self.frames[8].update(safe=False)
+        self.assertEqual(self.result()["subchecks"]["continuousVisibleLight"],"UNKNOWN")
+
+    def test_retained_argv_reader_reuses_its_system_state_and_attests_identity(self):
+        kit=Path("/private/tmp/nearpane-d01.example")
+        a=dict(pid=7,birth=11,number=17,hash="a",identifier="net.example.spaces-route-witness",executable=str(kit/"Route Notes.app/Contents/MacOS/FieldNotes"))
+        b=dict(pid=8,birth=12,number=18,hash="b",identifier="net.example.spaces-document",executable=str(kit/"Field Notes.app/Contents/MacOS/FieldNotes"))
+        top=dict(current=4,display="FFFFFFFF-9999-4444-8888-000000000001",records=[{"id":4},{"id":5}])
+        helper=dict(pid=21,birth=33,executable=str(kit/"p0-card"),identifier="owned-reader",hash="a"*40)
+        req=dict(topology=top,sourceWindow=a,targetWindow=b,target=5,hid=[42])
+        def live(windows):return {"state":dict(topology=top,hid=[42],uptime=11),"reader":helper,
+            "windows":[dict(w,forward=True,standard=True,reverse=[sid]) for w,sid in zip(windows,[4,5])]}
+        with patch.object(visual,"kit_paths",return_value=(kit,kit/"p0-card")),patch.object(visual,"ask") as spawn:
+            result=visual.witness(kit,req,4,live)
+            self.assertEqual(result["registeredReader"],helper);self.assertEqual(result["stateSource"],"retained-reader");spawn.assert_not_called()
+            helper["executable"]="/outside"
+            with self.assertRaises(ValueError):visual.witness(kit,req,4,live)
+            spawn.assert_not_called()
+
     def test_native_blank_survives_overlapping_static_reads(self):
         at=self.frames[7]["displayTime"]
         self.frames[7]["status"]=2
