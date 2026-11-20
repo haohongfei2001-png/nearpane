@@ -97,10 +97,43 @@ func guardState(_ r: WorkspaceRequest, stage: String = "initial", expected: UInt
     }
     return current
 }
+enum SystemDock {
+    static let executable = "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
+    private static var enrollment: (pid:pid_t,birth:UInt64)?
+
+    private static func kernelPath(_ pid:pid_t) -> String? {
+        var name = [CChar](repeating:0,count:4096)
+        return proc_pidpath(pid,&name,UInt32(name.count)) > 0 ? String(cString:name) : nil
+    }
+    static func identity() throws -> (pid:pid_t,birth:UInt64) {
+        if enrollment == nil {
+            let bytes=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),nil,0)
+            guard bytes>0,bytes<1_000_000 else {throw Refusal("kernel user-process enumeration unavailable")}
+            var ids=[pid_t](repeating:0,count:Int(bytes)/MemoryLayout<pid_t>.size+64)
+            let capacity=Int32(ids.count*MemoryLayout<pid_t>.size)
+            let used=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),&ids,capacity)
+            guard used>0,used<capacity else {throw Refusal("kernel user-process inventory changed")}
+            let matches=ids.prefix(Int(used)/MemoryLayout<pid_t>.size).filter { $0>1 && kernelPath($0)==executable }
+            guard matches.count==1,let pid=matches.first,let born=operatorBirth(pid) else {
+                throw Refusal("expected one signed-in user's Dock executable, found \(matches.count)")
+            }
+            enrollment=(pid,born)
+        }
+        guard let dock=enrollment,kernelPath(dock.pid)==executable,operatorBirth(dock.pid)==dock.birth else {
+            throw Refusal("the enrolled kernel Dock executable or process generation changed")
+        }
+        var code:SecCode?,requirement:SecRequirement?
+        guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid:NSNumber(value:dock.pid)] as CFDictionary,[],&code)==errSecSuccess,
+              let code,SecRequirementCreateWithString("anchor apple and identifier \"com.apple.dock\"" as CFString,[],&requirement)==errSecSuccess,
+              let requirement,SecCodeCheckValidity(code,[],requirement)==errSecSuccess else {
+            throw Refusal("running Dock failed the Apple anchor and identifier requirement")
+        }
+        return dock
+    }
+}
 func overviewGroup() throws -> AXUIElement? {
-    let running = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
-    guard running.count == 1, let dock = running.first, overviewHost(dock.processIdentifier) == "com.apple.dock" else {throw Refusal("system Dock unavailable")}
-    let root = AXUIElementCreateApplication(dock.processIdentifier)
+    let dock=try SystemDock.identity()
+    let root = AXUIElementCreateApplication(dock.pid)
     _ = AXUIElementSetMessagingTimeout(root,0.5)
     let groups=try children(root,named:"mc")
     guard groups.count<=1 else {throw Refusal("multiple system overview roots")}
@@ -113,7 +146,13 @@ func awaitDismissal(of owned: AXUIElement?, request: WorkspaceRequest, timeout: 
     var absent=0
     repeat {
         guard hardware()==request.hid else {throw Refusal("user input changed during overview dismissal")}
-        if let actual=try overviewGroup() {
+        let group:AXUIElement?
+        do {group=try overviewGroup()}
+        catch let e as Refusal where e.reason=="Dock control children unavailable or unbounded" {
+            // The AX reply may temporarily vanish when the strip rebuilds. This is never an absence reading.
+            absent=0;usleep(80_000);continue
+        }
+        if let actual=group {
             if let owned, !CFEqual(actual,owned) {throw Refusal("a new overview owner replaced the enrolled root")}
             absent=0
         } else {
@@ -126,13 +165,31 @@ func awaitDismissal(of owned: AXUIElement?, request: WorkspaceRequest, timeout: 
 }
 func finishOverview(_ owned: AXUIElement, request: WorkspaceRequest, proof: inout [String:Any]) {
     do {
+        let dock=try SystemDock.identity()
+        proof["overviewDock"]=["pid":dock.pid,"birth":dock.birth,"executable":SystemDock.executable,"appleSignature":true]
         if try awaitDismissal(of:owned,request:request,timeout:request.command=="select" ? 0.8 : 0.28) {
             proof["overviewDismissed"]=true;return
         }
-        guard let actual=try overviewGroup(),CFEqual(owned,actual),hardware()==request.hid else {throw Refusal("owned overview changed before dismissal")}
+        var reacquired:AXUIElement?, absent=0
+        let end=ProcessInfo.processInfo.systemUptime+1.5
+        repeat {
+            try demand(hardware()==request.hid,"new input before owned overview closure")
+            do {
+                if let group=try overviewGroup() {
+                    try demand(CFEqual(owned,group),"a different Mission Control root appeared before closure")
+                    reacquired=group;break
+                }
+                absent+=1
+                if absent>=2 {proof["overviewDismissed"]=true;return}
+            } catch let e as Refusal where e.reason=="Dock control children unavailable or unbounded" {absent=0}
+            usleep(80_000)
+        } while ProcessInfo.processInfo.systemUptime<end
+        guard let actual=reacquired,CFEqual(owned,actual),hardware()==request.hid else {throw Refusal("same signed Dock root could not be reread before dismissal")}
         var names:CFArray?
+        var usedCancel=false
         if AXUIElementCopyActionNames(owned,&names) == .success, (names as? [String])?.contains(kAXCancelAction)==true {
             let result=AXUIElementPerformAction(owned,kAXCancelAction as CFString)
+            usedCancel=true
             proof["overviewCloseAction"]="AXCancel"
             proof["overviewCloseAXResult"]=result.rawValue
         } else {
@@ -140,7 +197,25 @@ func finishOverview(_ owned: AXUIElement, request: WorkspaceRequest, proof: inou
             try runOverviewLauncher()
             proof["overviewCloseAction"]="native launcher"
         }
-        proof["overviewDismissed"]=try awaitDismissal(of:owned,request:request,timeout:3.0)
+        var dismissed=try awaitDismissal(of:owned,request:request,timeout:3.0)
+        if !dismissed && usedCancel {
+            // A system-wide toggle could open a closed overview. Use it only after
+            // two fresh positive readings of the very same owned root and Dock.
+            for _ in 0..<2 {
+                guard let held=try overviewGroup() else {
+                    try demand(try awaitDismissal(of:owned,request:request,timeout:0.35),"overview changed after AXCancel")
+                    proof["overviewDismissed"]=true; return
+                }
+                guard CFEqual(owned,held),try SystemDock.identity().birth==dock.birth,
+                      hardware()==request.hid else {throw Refusal("cannot corroborate the owned overview after AXCancel")}
+                usleep(90_000)
+            }
+            guard let current=try overviewGroup(),CFEqual(current,owned),hardware()==request.hid else {throw Refusal("overview changed before native closure")}
+            proof["stillOpenAfterAXCancel"]=true
+            try runOverviewLauncher();dismissed=try awaitDismissal(of:owned,request:request,timeout:3.0)
+            proof["verifiedFollowupCloseAction"]="native launcher"
+        }
+        proof["overviewDismissed"]=dismissed
     } catch {
         proof["overviewDismissed"]=false
         proof["overviewCloseReason"]=(error as? Refusal)?.reason ?? "overview dismissal unavailable"
@@ -446,6 +521,24 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
 }
 @main enum Main {
     static func main() {
+        if CommandLine.arguments.dropFirst().elementsEqual(["overview-state"]) {
+            do {
+                let dock=try SystemDock.identity(),a=try overviewGroup()
+                usleep(120_000);let b=try overviewGroup()
+                let stable=(a==nil && b==nil) || (a != nil && b != nil && CFEqual(a!,b!))
+                let proof:[String:Any]=["pid":dock.pid,"birth":dock.birth,"stable":stable,"visible":b != nil,"events":0]
+                print(String(decoding:try JSONSerialization.data(withJSONObject:proof,options:.sortedKeys),as:UTF8.self))
+            } catch {fputs("\(error)\n",stderr);exit(2)}
+            return
+        }
+        if CommandLine.arguments.dropFirst().elementsEqual(["dock-identity"]) {
+            do {
+                let dock=try SystemDock.identity()
+                let proof:[String:Any]=["pid":dock.pid,"birth":dock.birth,"executable":SystemDock.executable,"appleSignature":true,"events":0]
+                print(String(decoding:try JSONSerialization.data(withJSONObject:proof,options:.sortedKeys),as:UTF8.self))
+            } catch {fputs("\(error)\n",stderr);exit(2)}
+            return
+        }
         if CommandLine.arguments.count==3,CommandLine.arguments[1]=="birth",let pid=Int32(CommandLine.arguments[2]) {
             guard let birth=operatorBirth(pid) else {exit(2)}
             print(birth);return

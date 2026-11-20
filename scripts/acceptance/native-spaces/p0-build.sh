@@ -6,7 +6,14 @@ cd "$(dirname "$0")/../../.."
 src=scripts/acceptance/native-spaces
 kit="${1:-$(mktemp -d /private/tmp/nearpane-d01.XXXXXXXX)}"
 [[ "$kit" == /private/tmp/nearpane-d01.* && -d "$kit" && ! -L "$kit" ]]
-[[ -x "$kit/system-workspace" && -x "$kit/observe" && -x "$kit/Route Notes.app/Contents/MacOS/FieldNotes" ]] || "$src/build-contract.sh" "$kit"
+if [[ -x "$kit/system-workspace" && -x "$kit/observe" && -x "$kit/Route Notes.app/Contents/MacOS/FieldNotes" ]]; then
+    xcrun swiftc -D SECONDARY_FOCUS_OBSERVER -D NATIVE_CONTRACT -parse-as-library -Xcc -I -Xcc Sources/CReadOnlySpaces/include \
+        -import-objc-header "$src/contract_members.h" scripts/acceptance/observe-secondary-space-controls.swift \
+        "$src/system_workspace.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$kit/system-workspace.next"
+    mv "$kit/system-workspace.next" "$kit/system-workspace"
+else
+    "$src/build-contract.sh" "$kit"
+fi
 app="$kit/Lifecycle Window.app"
 mkdir -p "$app/Contents/MacOS"
 cp "$src/fixture.plist" "$app/Contents/Info.plist"
