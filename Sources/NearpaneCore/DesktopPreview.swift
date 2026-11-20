@@ -48,14 +48,28 @@ public struct DesktopPreview: Sendable {
             let slot = Rect(viewport.x, viewport.y + Double(index) * (height + gap), viewport.width, height)
             guard let map = try? PreviewTransform(source: source, viewport: slot) else { return nil }
             var shapes = [DesktopPreviewWindow](), regions = [HitRegion](), unknown = false
-            // The reader enumerates visible windows. A background desktop's current
-            // layout cannot be reconstructed from the foreground sample.
+            // The catalogue includes other Spaces and Stage Manager's strip. Only actual
+            // presented frames belong in this screen's map. Unknown foreground surfaces
+            // can still block hits at their observed location.
+            let activeIDs: Set<String>? = native.catalogComplete.map { _ in
+                Set(snapshot.activeSpaceWindows(on: display.id, now: now, uptime: uptime).map(\.id))
+            }
             let visibleWindows: [WindowObservation]
-            if case .previouslyWitnessedSpace = plan.1 { visibleWindows = [] } else { visibleWindows = snapshot.windows }
+            if case .previouslyWitnessedSpace = plan.1 {
+                visibleWindows = []
+            } else if let activeIDs {
+                visibleWindows = snapshot.windows.filter { w in
+                    guard w.displayID == display.id, let m = w.metadata, m.hasCatalogGeometry == true else { return false }
+                    return activeIDs.contains(w.id) || (w.membership == .unknown && m.isOnscreen == true && m.onActiveDesktop == true)
+                }
+            } else {
+                visibleWindows = snapshot.windows
+            }
             for w in visibleWindows.sorted(by: { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }) {
                 guard let m = w.metadata, let clip = source.intersection(m.globalFrame.geometry),
                       let geometry = try? map.project(clip) else { continue }
-                var belongs = true
+                var belongs = activeIDs?.contains(w.id) ?? true
+                if !belongs { unknown = true }
                 if case let .witnessedSpace(id) = plan.1 {
                     switch w.membership {
                     case .known(let ids): guard ids.contains(id) else { continue }
@@ -103,7 +117,8 @@ public struct DesktopPreview: Sendable {
         default: return nil
         }
         guard let window = snapshot.windows.first(where: { $0.id == id && $0.displayID == row.displayID }),
-              window.canWitnessCurrentSpace, window.metadata?.onActiveDesktop == true else { return nil }
+              window.canWitnessCurrentSpace, window.metadata?.onActiveDesktop == true,
+              snapshot.native?.catalogComplete == nil || snapshot.isCurrentDesktopWindow(window) else { return nil }
         return window
     }
 }
@@ -200,5 +215,75 @@ public extension DesktopSnapshot {
         var demand = DisplayDemand(spaces: records.count + previouslyWitnessed, windows: eligible.count, complete: complete)
         demand.hasCurrentDesktopWindows = !currentDesktopWindows(on: displayID, now: now, uptime: uptime).isEmpty
         return demand
+    }
+}
+
+/// Two read-only presentations in one current native fullscreen Space. Frames are measured
+/// in top-left display-local logical points, including the actual divider between panes.
+public struct NativeSplitViewLayout: Equatable, Sendable {
+    public let displayID, spaceID: String
+    public let spaceUUID: UUID
+    public let displayFrame, leftFrame, rightFrame: SurfaceRect
+    public let left, right: WindowObservation
+}
+
+public extension DesktopSnapshot {
+    /// Current regular windows for presentation. Native fullscreen members stay outside
+    /// the ordinary-window selection, capture authorization and tiling contracts.
+    func activeSpaceWindows(on displayID: String, now: Date, uptime: Double) -> [WindowObservation] {
+        guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime),
+              let native, native.population == .workWindows, !native.windowLimitReached,
+              let display = displays.first(where: { $0.id == displayID }),
+              displays.count == 1 || separateSpaces == true else { return [] }
+        guard native.spaces == .observed, native.catalogComplete != nil else {
+            return currentDesktopWindows(on: displayID, now: now, uptime: uptime)
+        }
+        guard let current = scopes.first(where: { $0.displayID == displayID })?.records.first(where: \.isCurrent) else { return [] }
+        if current.nativeKind == .ordinary { return currentDesktopWindows(on: displayID, now: now, uptime: uptime) }
+        guard current.nativeKind == .fullscreen, native.accessibility != .denied else { return [] }
+        return windows.filter { w in
+            guard w.displayID == displayID, w.membership == .known(recordIDs: [current.id]),
+                  let m = w.metadata, m.activeFullscreenSpaceID == current.id, m.isOnscreen == true,
+                  m.overviewIsPresented == true, m.overviewOrdinaryRole == true, m.minimized == false,
+                  display.frame.geometry.intersection(m.globalFrame.geometry) == m.globalFrame.geometry else { return false }
+            return true
+        }.sorted { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }
+    }
+
+    func currentSplitView(on displayID: String, now: Date, uptime: Double) -> NativeSplitViewLayout? {
+        guard let current = scopes.first(where: { $0.displayID == displayID })?.records.first(where: \.isCurrent),
+              let uuid = current.fullscreenUUID, let display = displays.first(where: { $0.id == displayID }) else { return nil }
+        let active = activeSpaceWindows(on: displayID, now: now, uptime: uptime)
+        guard active.count == 2, active.allSatisfy({ $0.metadata?.activeFullscreenSpaceID == current.id &&
+              $0.metadata?.hasCatalogGeometry == true }) else { return nil }
+        let pair = active.sorted { $0.bounds.x < $1.bounds.x }
+        guard let a = pair[0].metadata, let b = pair[1].metadata else { return nil }
+        let managed = a.matchesNativeTile == true && b.matchesNativeTile == true
+        // Some system inventories omit the tile manager. Two independently confirmed,
+        // standard AX fullscreen windows in this same exclusive native Space can corroborate it.
+        if !managed {
+            guard a.matchesNativeTile == nil && b.matchesNativeTile == nil && a.fullScreen == true && b.fullScreen == true else { return nil }
+            // With no explicit tile roster a third unresolved visible surface could be another
+            // pane. Offscreen members, auxiliary roles and positively foreign desktops cannot be.
+            let unresolved = windows.contains { w in
+                guard w.displayID == displayID, w.id != pair[0].id, w.id != pair[1].id, let m = w.metadata,
+                      m.isOnscreen == true, m.overviewOrdinaryRole != false, m.minimized != true else { return false }
+                if case let .known(ids) = w.membership { return ids.contains(current.id) }
+                return true
+            }
+            guard !unresolved else { return nil }
+        }
+        let left = pair[0].bounds.geometry, right = pair[1].bounds.geometry
+        let gap = right.x - left.maxX
+        guard left.isValid, right.isValid, gap >= 0, managed || gap <= 24 else { return nil }
+        let full = Rect(0, 0, display.frame.width, display.frame.height)
+        let extents = [full, display.usable?.geometry].compactMap { $0 }
+        guard extents.contains(where: { area in
+            abs(area.x - left.x) <= 2 && abs(area.maxX - right.maxX) <= 2 &&
+            abs(left.y - area.y) <= 2 && abs(right.y - area.y) <= 2 &&
+            abs(left.maxY - area.maxY) <= 2 && abs(right.maxY - area.maxY) <= 2
+        }) else { return nil }
+        return .init(displayID: displayID, spaceID: current.id, spaceUUID: uuid, displayFrame: display.frame,
+                     leftFrame: pair[0].bounds, rightFrame: pair[1].bounds, left: pair[0], right: pair[1])
     }
 }
