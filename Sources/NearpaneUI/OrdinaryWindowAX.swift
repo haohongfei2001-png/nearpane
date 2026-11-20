@@ -114,6 +114,9 @@ private actor OrdinaryWindowChannel {
         }
         if let error = reply.failure {
             if command.action == .list, reply.listAccessDenied == true { throw AdmissionReadFailure.permission }
+            if command.action == .write, command.pairPlacement != nil {
+                throw IncompletePairWrite(reason: error, steps: reply.steps ?? [])
+            }
             throw OrdinaryWindowFailure(error)
         }
         return reply
@@ -243,15 +246,20 @@ private actor OrdinaryWindowChannel {
     }
 
     func verify(expected: SurfaceRect) async throws -> AdmissionPair { try await sample(.verify, from: expected) }
+    func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement) async throws -> AdmissionPair {
+        try await sample(.write, from: from, to: to, placement: placement)
+    }
+
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair {
         try await sample(.write, from: from, to: to)
     }
 
-    private func sample(_ action: OrdinaryWindowRequest.Action, from: SurfaceRect? = nil, to: SurfaceRect? = nil, revision: UUID? = nil) async throws -> AdmissionPair {
+    private func sample(_ action: OrdinaryWindowRequest.Action, from: SurfaceRect? = nil, to: SurfaceRect? = nil, revision: UUID? = nil,
+                        placement: OrdinaryWindowPairPlacement? = nil) async throws -> AdmissionPair {
         guard !closed else { throw OrdinaryWindowFailure("该窗口授权已结束。") }
         let response = try await channel.call(.init(action, pid: id.pid, launch: id.launch, bundle: bundle,
                                                     id: id, expected: from, destination: to, boundaryRevision: revision,
-                                                    desktop: desktopBinding))
+                                                    desktop: desktopBinding, pairPlacement: placement))
         if !closed, action == .verify, let witness = response.closure, witness.id == id, response.pair == nil {
             throw witness
         }

@@ -9,6 +9,11 @@ import NearpaneCore
     static let type = UTType(exportedAs: "com.holdsnow.nearpane.space-window")
     private var gesture: (UUID, NativeSidebarMember, UUID, ContinuousClock.Instant)?
 
+    var pendingMember: NativeSidebarMember? {
+        guard let gesture, gesture.3 >= .now else { return nil }
+        return gesture.1
+    }
+
     func begin(_ member: NativeSidebarMember, feed: CurrentDesktopWindows?) -> NSItemProvider {
         guard !member.selectionOnly, member.source.kind == .ordinary, let lifetime = feed?.lifetime(of: member.key) else { return NSItemProvider() }
         let token = UUID()
@@ -22,13 +27,14 @@ import NearpaneCore
         return item
     }
 
-    func receive(_ items: [NSItemProvider], action: @escaping @MainActor (NativeSidebarMember, UUID) -> Void) -> Bool {
-        guard let gesture, gesture.3 >= .now, items.count == 1, let item = items.first,
+    func receive(_ items: [NSItemProvider], accepts: (NativeSidebarMember) -> Bool = { _ in true }, action: @escaping @MainActor (NativeSidebarMember, UUID) -> Void) -> Bool {
+        guard let gesture, gesture.3 >= .now, accepts(gesture.1), items.count == 1, let item = items.first,
               item.hasItemConformingToTypeIdentifier(Self.type.identifier) else { return false }
+        let input = NativeSelectionPermit.inputCounters()
         item.loadDataRepresentation(forTypeIdentifier: Self.type.identifier) { [weak self] data, _ in
             guard let data, data == Data(gesture.0.uuidString.utf8) else { return }
             Task { @MainActor in
-                guard let self, self.gesture?.0 == gesture.0, gesture.3 >= .now else { return }
+                guard let self, self.gesture?.0 == gesture.0, gesture.3 >= .now, NativeSelectionPermit.inputCounters() == input else { return }
                 self.gesture = nil
                 action(gesture.1, gesture.2)
             }
@@ -46,6 +52,82 @@ struct NativeWindowDragSource: ViewModifier {
     }
 }
 
+/// Both the drag and its destination bind to the original card lifetimes. The drop point
+/// is local to the destination card, including its caption and transparent hit area.
+struct SidebarPairDrop {
+    let dragged, target: NativeSidebarMember
+    let draggedLifetime, targetLifetime: UUID
+    let draggedOnLeft: Bool
+
+    static func left(at x: CGFloat, width: CGFloat) -> Bool? {
+        guard width.isFinite, width > 0, x.isFinite, x >= 0, x <= width else { return nil }
+        return x < width / 2
+    }
+}
+
+struct SidebarWindowDragAndDrop: ViewModifier {
+    let member: NativeSidebarMember?
+    let lifetime: UUID?
+    let width: CGFloat
+    let drag: NativeSidebarDrag
+    let feed: CurrentDesktopWindows?
+    let canMove: Bool
+    let place: (SidebarPairDrop) -> Void
+    let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
+
+    @State private var highlightedSide: Bool?
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let member, let lifetime, let feed, member.source.kind == .ordinary, !member.selectionOnly {
+            content
+                .modifier(NativeWindowDragSource(member: member, drag: drag, feed: feed))
+                .overlay(alignment: highlightedSide == true ? .leading : .trailing) {
+                    if highlightedSide != nil {
+                        RoundedRectangle(cornerRadius: 4).fill(Color.accentColor.opacity(0.18))
+                            .frame(width: width / 2).allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                }
+                .onDrop(of: [NativeSidebarDrag.type], delegate: CardDrop(member: member, width: width,
+                    drag: drag, highlighted: $highlightedSide, accepts: { source in
+                        feed.lifetime(of: member.key) == lifetime && source.key != member.key &&
+                            (source.source == member.source || canMove)
+                    }, perform: { source, birth, left in
+                        guard feed.lifetime(of: member.key) == lifetime else { return }
+                        if source.source == member.source {
+                            place(.init(dragged: source, target: member, draggedLifetime: birth,
+                                        targetLifetime: lifetime, draggedOnLeft: left))
+                        } else if canMove { move(source, member.source, birth) }
+                    }))
+                .accessibilityHint("拖到另一扇窗口预览的左半或右半可在本屏分屏")
+        } else { content }
+    }
+
+    @MainActor private struct CardDrop: DropDelegate {
+        let member: NativeSidebarMember, width: CGFloat, drag: NativeSidebarDrag
+        @Binding var highlighted: Bool?
+        let accepts: (NativeSidebarMember) -> Bool
+        let perform: (NativeSidebarMember, UUID, Bool) -> Void
+
+        func validateDrop(info: DropInfo) -> Bool { drag.pendingMember.map(accepts) == true }
+        func dropEntered(info: DropInfo) { update(info) }
+        func dropUpdated(info: DropInfo) -> DropProposal? {
+            update(info)
+            return DropProposal(operation: validateDrop(info: info) ? .move : .forbidden)
+        }
+        private func update(_ info: DropInfo) {
+            let side = drag.pendingMember?.source == member.source && validateDrop(info: info)
+                ? SidebarPairDrop.left(at: info.location.x, width: width) : nil
+            if highlighted != side { highlighted = side }
+        }
+        func dropExited(info: DropInfo) { highlighted = nil }
+        func performDrop(info: DropInfo) -> Bool {
+            highlighted = nil
+            guard let left = SidebarPairDrop.left(at: info.location.x, width: width) else { return false }
+            return drag.receive(info.itemProviders(for: [NativeSidebarDrag.type]), accepts: accepts) { perform($0, $1, left) }
+        }
+    }
+}
+
 /// A list of actual windows also accepts a drop into their verified ordinary Space.
 struct NativeWindowDropTarget: ViewModifier {
     let destination: NativeSidebarDestination?
@@ -56,7 +138,7 @@ struct NativeWindowDropTarget: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if canMove, let destination, destination.kind == .ordinary {
             content.onDrop(of: [NativeSidebarDrag.type], isTargeted: nil) { items in
-                drag.receive(items) { move($0, destination, $1) }
+                drag.receive(items, accepts: { $0.source != destination }) { move($0, destination, $1) }
             }
         } else { content }
     }
@@ -78,6 +160,8 @@ struct NativeWindowGroupCard: View {
     let id: UUID
     let windows: [WindowObservation]
     let snapshot: DesktopSnapshot
+    let place: (SidebarPairDrop) -> Void
+    let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
     let dissolve: () -> Void
     @Environment(\.colorScheme) private var scheme
 
@@ -201,6 +285,7 @@ struct NativeWindowGroupCard: View {
         .help(name + (history == nil ? "" : " · 最近画面"))
         .accessibilityLabel(name + (history == nil ? "" : "，最近画面"))
         .accessibilityIdentifier("native-space-window:\(dest.display):\(dest.space):\(member.key.pid):\(member.key.number)")
-        .modifier(NativeWindowDragSource(member: canMove && dest.kind == .ordinary ? member : nil, drag: drag, feed: feed))
+        .modifier(SidebarWindowDragAndDrop(member: isCurrent || canMove ? member : nil, lifetime: feed.lifetime(of: member.key),
+            width: width, drag: drag, feed: feed, canMove: canMove, place: place, move: move))
     }
 }

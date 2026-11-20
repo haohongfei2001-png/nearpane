@@ -161,6 +161,17 @@ struct DesktopSurface: View {
         navigation.move(member, into: destination, lifetime: lifetime, feed: feed, allowed: { canNavigate })
     }
 
+    private func place(_ pair: SidebarPairDrop, feed: CurrentDesktopWindows) {
+        guard let tiling = feed.automaticTiling, canNavigate else { return }
+        selectionIssue = nil
+        let input = NativeSelectionPermit.inputCounters()
+        navigation.submit(selection: false) { token in
+            try await tiling.place(pair, allowed: {
+                canNavigate && navigation.isCurrent(token) && NativeSelectionPermit.inputCounters() == input
+            })
+        }
+    }
+
     private struct GalleryRun: Equatable {
         let display: String, visible: Bool, permitted: Bool, generation: UInt64
     }
@@ -209,7 +220,8 @@ struct DesktopSurface: View {
                             permitted: permitted, canSwitch: canNavigate && navigation.canSwitch,
                             canMove: canNavigate && navigation.canMove, workArea: workArea(for: screen),
                             select: { navigation.select(member.source, member: $0, feed: feed, allowed: { canNavigate }) },
-                            id: group.id, windows: grouped, snapshot: snapshot, dissolve: { feed.groups.dissolve(group.id) })
+                            id: group.id, windows: grouped, snapshot: snapshot,
+                            place: { place($0, feed: feed) }, move: { move($0, to: $1, lifetime: $2, feed: feed) }, dissolve: { feed.groups.dissolve(group.id) })
                             .id(group.members)
                     }
                 } else {
@@ -219,7 +231,10 @@ struct DesktopSurface: View {
                         describe: { cardDescription(window, within: screen, size: pictureSize, index: row.index, source: $0) },
                         select: { if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) } },
                         selectable: target != nil)
-                    .modifier(NativeWindowDragSource(member: navigation.canMove ? member : nil, drag: drag, feed: feed))
+                    .modifier(SidebarWindowDragAndDrop(member: canNavigate ? member : nil, lifetime: lifetime,
+                        width: width, drag: drag, feed: feed, canMove: canNavigate && navigation.canMove,
+                        place: { pair in if let feed { place(pair, feed: feed) } },
+                        move: { source, dest, birth in if let feed { move(source, to: dest, lifetime: birth, feed: feed) } }))
                     .contextMenu {
                         if let member, let feed, member.source.kind == .ordinary {
                             ForEach(Array(windows.enumerated()), id: \.element.id) { i, other in

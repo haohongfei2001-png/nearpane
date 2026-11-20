@@ -159,6 +159,72 @@ import Testing
         }
     }
 
+    @Test func localDropPlacesOnlyItsTwoCardsAndReleasesTemporaryGrants() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        env.context.settings.measures[.reservedWidth] = .init(160)
+        let a = WindowDouble(pid: 101, number: 101), b = WindowDouble(pid: 101, number: 102), other = WindowDouble()
+        a.desktopBinding = world.space; b.desktopBinding = world.space
+        let feed = world.feed(), windows = world.automation(manager, feed)
+        world.windows = [a, b, other]; feed.observe(true)
+        defer { feed.observe(false) }
+        let sample = try #require(await feed.readNow())
+        let map = try #require(NativeSpaceCatalog(sample, displayID: "side", now: .now, uptime: ProcessInfo.processInfo.systemUptime))
+        let dest = try #require(map.rows.first(where: { $0.id == world.space.record }).flatMap { NativeSidebarDestination($0, in: map) })
+        let x = try #require(NativeSidebarMember(sample.windows[0], source: dest)), y = try #require(NativeSidebarMember(sample.windows[1], source: dest))
+        let xLife = try #require(feed.lifetime(of: x.key)), yLife = try #require(feed.lifetime(of: y.key))
+        func drop(_ left: Bool, life: UUID) -> SidebarPairDrop {
+            .init(dragged: x, target: y, draggedLifetime: life, targetLifetime: yLife, draggedOnLeft: left)
+        }
+        #expect(SidebarPairDrop.left(at: 0, width: 100) == true)
+        #expect(SidebarPairDrop.left(at: 50, width: 100) == false)
+        #expect(SidebarPairDrop.left(at: .nan, width: 100) == nil)
+        await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: UUID()), allowed: { true }) }
+        await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: xLife), allowed: { false }) }
+        #expect(a.writes == 0 && b.writes == 0)
+        for left in [false, true] {
+            try await windows.place(drop(left, life: xLife), allowed: { true })
+            #expect((left ? a : b).frame == .init(width: 420, height: 800))
+            #expect((left ? b : a).frame == .init(x: 420, width: 420, height: 800))
+            #expect(manager.activeIDs.isEmpty && !manager.blocked && !FileManager.default.fileExists(atPath: env.journal.path))
+            #expect(other.writes == 0 && other.frame == other.original)
+        }
+        world.sticky.insert(a.id.number)
+        await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: xLife), allowed: { true }) }
+        #expect(a.writes == 2 && b.writes == 2)
+    }
+
+    @Test func localDropPreservesGrantedRatioAndLeavesAnUnselectedManagedSiblingInPlace() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        env.context.settings.measures[.reservedWidth] = .init(160)
+        let a = WindowDouble(), b = WindowDouble(), c = WindowDouble()
+        let plan = try await manager.prepare([a, b], context: env.context)
+        try await manager.confirm(plan, context: env.context)
+        try await manager.editPair(leftPercent: 60, swap: false, context: env.context)
+        try await manager.placeSidebarPair(left: b, right: a, desktop: world.space, context: env.context, current: { true })
+        #expect(b.frame == .init(width: 504, height: 800) && a.frame == .init(x: 504, width: 336, height: 800))
+        let third = try await manager.prepare([c], context: env.context)
+        try await manager.confirm(third, context: env.context)
+        let frame = c.frame, writes = c.writes
+        try await manager.placeSidebarPair(left: a, right: b, desktop: world.space, context: env.context, current: { true })
+        #expect(a.frame.width == 420 && b.frame.x == 420)
+        #expect(c.frame == frame && c.writes == writes && Set(manager.activeIDs) == [a.id, b.id, c.id])
+        try await manager.stop()
+    }
+
+    @Test func partialSidebarWriteKeepsRecoveryAndNeverDispatchesAnotherWindow() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        let a = WindowDouble(), b = WindowDouble()
+        a.desktopBinding = world.space; b.desktopBinding = world.space
+        b.immediatelyBeforeWrite = { throw IncompletePairWrite(reason: "second window clamped", steps: []) }
+        await #expect(throws: IncompletePairWrite.self) {
+            try await manager.placeSidebarPair(left: a, right: b, desktop: world.space, context: env.context, current: { true })
+        }
+        #expect(manager.blocked && manager.paused && a.writes == 1 && b.writes == 0)
+        let record = try JSONDecoder().decode(OrdinaryJournal.Record.self, from: Data(contentsOf: env.journal))
+        #expect(record.entries.first(where: { $0.id == b.id })?.intended != nil)
+        try manager.keepCurrent()
+    }
+
     @Test func currentDeskGrantAutomaticallyTilesTwoDifferentOwnersAndRestoresThem() async throws {
         let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
         s.context.settings.measures[.reservedWidth] = .init(160)

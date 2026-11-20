@@ -126,6 +126,40 @@ struct DesktopTilingRoster: Equatable {
             "窗口已移入目标桌面，等待核对目标桌面的布局。"
     }
 
+    /// A drop authorizes exactly two real windows on this desktop. A whole-desktop grant is optional.
+    func place(_ pair: SidebarPairDrop, allowed: @escaping @MainActor () -> Bool) async throws {
+        let a = pair.dragged, b = pair.target, source = a.source
+        let desktop = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
+        guard let feed, !ending, nativeModeAvailable(), !starting, source.kind == .ordinary, source == b.source,
+              a.key != b.key, !a.selectionOnly, !b.selectionOnly, permitsOwner(a.key), permitsOwner(b.key),
+              scope == nil || scope == desktop else { throw OrdinaryRefusal.scope }
+        func current() -> Bool {
+            allowed() && !ending && nativeModeAvailable() && feed.lifetime(of: a.key) == pair.draggedLifetime &&
+                feed.lifetime(of: b.key) == pair.targetLifetime
+        }
+        func membersPresent(_ snapshot: DesktopSnapshot?) -> Bool {
+            guard let snapshot, source.resolve(snapshot)?.current.ordinaryUUID == source.uuid,
+                  snapshot.native?.stageManagerEnabled != true else { return false }
+            return [a, b].allSatisfy { member in
+                guard let w = member.resolve(snapshot), w.membership == .known(recordIDs: [source.space]),
+                      snapshot.isCurrentDesktopWindow(w), let m = w.metadata else { return false }
+                return m.isOnscreen == true && m.minimized != true && m.fullScreen != true
+            }
+        }
+        try await manager.performUserAction {
+            guard current(), membersPresent(await feed.readNow()), current(),
+                  let ctx = manager.liveContext?(source.display) else { throw OrdinaryRefusal.stale }
+            let keys = pair.draggedOnLeft ? [a.key, b.key] : [b.key, a.key]
+            let missing = keys.filter { manager.retainedWindow($0) == nil }
+            let new = missing.isEmpty ? [] : try await resolve(missing, desktop, ctx.preferences)
+            let selected = keys.compactMap { key in manager.retainedWindow(key) ?? new.first { key.matches($0.id) } }
+            guard selected.count == 2, current(), membersPresent(await feed.readNow()), current() else { throw OrdinaryRefusal.stale }
+            try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
+                                               context: ctx, current: current)
+            feed.changed()
+        }
+    }
+
     func retry() { previous = nil; feed?.changed(); changed() }
     func awaitCleanDesktop(_ desktop: OrdinaryDesktopIdentity) {
         guard !ending, scope == nil, feed != nil, !manager.blocked else { return }

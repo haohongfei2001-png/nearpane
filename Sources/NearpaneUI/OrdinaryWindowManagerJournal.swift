@@ -136,6 +136,14 @@ struct OrdinaryJournal {
     func record(_ receipt: Receipt) throws {
         try persist(receipt, to: directory.appendingPathComponent("action-\(receipt.operation.uuidString).json"))
     }
+    struct IncompleteWrite: Codable {
+        let operation: UUID, session: UUID, id: ManagedWindowID, previous: SurfaceRect, requested: SurfaceRect
+        let confirmedSteps: [OrdinaryWindowStep], reason: String
+    }
+    func record(_ failed: IncompleteWrite) throws {
+        try persist(failed, to: directory.appendingPathComponent("incomplete-\(failed.operation.uuidString).json"))
+    }
+
     struct BoundaryRead: Codable {
         let session: UUID, id: ManagedWindowID, revision: UUID
         let previous: SurfaceRect

@@ -145,6 +145,21 @@ public struct ManagedWindowTiler: Codable, Equatable, Sendable {
         return frames
     }
 
+    /// Validate the selected ratio directly. An intermediate 50/50 template may be too small for one window.
+    public func placingPair(left: ManagedMember, right: ManagedMember, ratio: Double, in area: SurfaceRect) throws -> Self {
+        guard left.id != right.id, ratio.isFinite, (0.2...0.8).contains(ratio),
+              members.isEmpty || (members.count == 2 && Set(members.map(\.id)) == [left.id, right.id]) else {
+            throw WorkspaceFailure.membership
+        }
+        var next = self
+        let leftSlot = members.first?.id == right.id ? 1 : 0
+        next.members = leftSlot == 0 ? [left, right] : [right, left]
+        next.partition = .split(.columns, ratio, .slot(leftSlot), .slot(1 - leftSlot))
+        _ = try next.frames(in: area, wholePoints: true)
+        next.rememberCustomization()
+        return next
+    }
+
     public func adding(_ member: ManagedMember, in area: SurfaceRect) throws -> Self {
         guard !members.contains(where: { $0.id == member.id }) else { throw WorkspaceFailure.membership }
         var next = self
