@@ -7,6 +7,17 @@ import SwiftUI
 import Translation
 #endif
 
+struct TranslationResultContent: View {
+    let text: String
+    let request: UUID
+
+    var body: some View {
+        Text(text).font(.system(size: 14)).padding(10)
+            .frame(maxWidth: 280).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+            .accessibilityIdentifier("nearpane-translation-content-" + request.uuidString)
+    }
+}
+
 @MainActor public final class SelectionTranslation: NSObject {
     private let inbox: TranslationInbox
     private var notebook: SidebarNotebook?
@@ -163,9 +174,7 @@ import Translation
 
     private func show(_ text: String, at rect: NSRect, id: UUID) {
         guard let screen = NSScreen.screens.first(where: { $0.frame.intersects(rect) }) else { LocalToolStage.panelUnavailable.emit(id); close(); return }
-        let view = NSHostingView(rootView: Text(text).font(.system(size: 14)).padding(10)
-            .frame(maxWidth: 280).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-            .accessibilityIdentifier("nearpane-translation-content-" + id.uuidString))
+        let view = NSHostingView(rootView: TranslationResultContent(text:text, request:id))
         let size = view.fittingSize
         let visible = screen.visibleFrame
         let x = min(max(rect.minX, visible.minX), visible.maxX - size.width)
