@@ -417,6 +417,19 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    private var selectionService: SelectionTranslation?
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        if CandidateProfile.selected, acceptanceSession == nil,
+           let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let service = SelectionTranslation(support: support)
+            selectionService = service
+            service.register()
+        }
+        #endif
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Report the permissions of the installed Host itself. No window identities or content.
         let canPreview = CGPreflightScreenCaptureAccess()
@@ -494,7 +507,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
-        if testSession == nil && candidate { modules.registerSelectionService() }
+        if let selectionService, testSession == nil, candidate, let id = UUID(uuidString: support.lastPathComponent) {
+            modules.bindSelectionService(selectionService, generation: id)
+        }
         modules.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         #if canImport(SaytileKit)
         if !profileTrial && !enrolledFullscreenTrial { modules.workRect?.start() }

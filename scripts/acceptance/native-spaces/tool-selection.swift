@@ -6,8 +6,31 @@ import NaturalLanguage
 import Translation
 import Vision
 
-struct Word: Codable, Equatable { let id: UUID; let source, translation, language: String }
+struct Word: Codable, Equatable {
+    let id: UUID
+    let source, translation, language: String
+    let sourceLanguage: String?, providerVersion: String?, sourceSHA256: String?, requestID: UUID?, committedAt: Date?
+}
 struct Notebook: Decodable { let words: [Word] }
+
+@MainActor private func hostStages(pid: pid_t, phrase: String, after: Double) -> [String:Any] {
+    let hash = SHA256.hash(data: Data(phrase.utf8)).map { String(format: "%02x", $0) }.joined()
+    let predicate = "processID == \(pid) AND subsystem == 'com.holdsnow.nearpane.alpha' AND category == 'LocalToolStage'"
+    guard let logs = try? ToolUI.run("/usr/bin/log", ["show", "--style", "compact", "--last", "1m", "--predicate", predicate]),
+          let pattern = try? NSRegularExpression(pattern: #"toolStage id=([0-9A-Fa-f-]{36}) stage=([a-zA-Z]+) hash=(-|[0-9a-f]{64}) uptime=([0-9.]+)"#) else {
+        return ["available":false]
+    }
+    let records = logs.split(separator:"\n").compactMap { line -> [String]? in
+        let text = String(line) as NSString
+        guard let match = pattern.firstMatch(in: text as String, range:NSRange(location:0,length:text.length)) else { return nil }
+        let fields = (1...4).map { text.substring(with:match.range(at:$0)) }
+        guard (Double(fields[3]) ?? -1) >= after else { return nil }
+        return fields
+    }
+    let callbacks = records.filter { $0[1] == "serviceCallback" && $0[2] == hash }
+    guard callbacks.count == 1, let id = callbacks.first?.first else { return ["available":false,"callbackMatches":callbacks.count] }
+    return ["available":true,"requestID":id,"stages":records.filter { $0[0] == id }.map { ["stage":$0[1], "sha256":$0[2], "uptime":$0[3]] }]
+}
 
 @MainActor private func serviceRoute() throws -> [String:Any] {
     let app = "/Applications/Nearpane.app"
@@ -69,6 +92,8 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let priorPanels = Set(ToolUI.windows(context.host.processIdentifier).map(\.id))
     let sourcePNG = context.output.appendingPathComponent("selection.png")
     try await ToolUI.screenshot(number,pid:pid,to:sourcePNG)
+    let pointer = CGEvent(source: nil)?.location
+    let started = ProcessInfo.processInfo.systemUptime
     let performed = try await fixture.requestService()
     var report: [String:Any] = ["hostPID":context.host.processIdentifier,"generation":context.generation.lastPathComponent,
                                 "phase":"translation","source":phrase,"sourceLanguage":source,
@@ -76,6 +101,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
                                 "clientSelection":NSStringFromRect(clientSelection),"axBoundsAvailable":!axBounds.isEmpty,"rowsBefore":originalWords.count]
     guard performed else { report["status"]="FAIL"; report["reason"]="macOS could not deliver the declared Service"; return report }
     var sample: (CGWindowID,CGRect)?
+    var pointerSample: (CGWindowID,CGRect)?
     var words: [Word] = []
     var observedFrames=[CGWindowID:String]()
     for tick in 0..<180 {
@@ -93,15 +119,26 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
                 try? await ToolUI.screenshot(panel.id,pid:context.host.processIdentifier,to:context.output.appendingPathComponent("bubble-intermediate.png"))
             }
         }
+        if let pointer, let panel = panels.first(where: { $0.bounds.width > 15 && $0.bounds.width < 450 &&
+            $0.bounds.height < 230 && $0.bounds.insetBy(dx:-12,dy:-12).contains(pointer) }) {
+            pointerSample = (panel.id,panel.bounds)
+        }
         words = try context.words(phrase)
-        if sample != nil && ((!words.isEmpty) || language != .installed) { break }
+        if (sample != nil || pointerSample != nil) && ((!words.isEmpty) || language != .installed) { break }
         await ToolUI.pause(90)
     }
     report["newPopupFrames"]=observedFrames.values.sorted()
+    let stages = hostStages(pid: context.host.processIdentifier, phrase: phrase, after: started)
+    report["hostHandoff"] = stages
+    let ordered = (stages["stages"] as? [[String:String]])?.compactMap { $0["stage"] } ?? []
+    if sample == nil, ordered.contains("anchorPointer") { sample = pointerSample }
     report["notebookMatchingRows"] = words.count
     if words.count == 1, let word=words.first, word.language == "zh-Hans" {
         report["translation"] = word.translation
         report["wordID"] = word.id.uuidString
+        report["requestID"] = word.requestID?.uuidString
+        report["providerVersion"] = word.providerVersion
+        report["sourceHash"] = word.sourceSHA256
         report["expectedMeaning"] = word.translation.contains("蓝") && (word.translation.contains("自行车") || word.translation.contains("单车"))
     }
     guard let sample else { report["status"]="FAIL"; report["reason"]="No new installed-Host bubble next to the selected fixture text"; return report }
@@ -136,7 +173,11 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let exact = ([observed] + ax).contains { normalized($0) == normalized(word.translation) }
     let plausible = report["expectedMeaning"] as? Bool == true
     report["bubbleMatchesStoredTranslation"] = exact
-    report["status"] = exact && plausible ? "PASS" : "FAIL"
+    let expectedStages = Set(["requestQueued","hostReceived","modelInstalled","translated","panelVisible","wordCommitted"])
+    let stored = words[0]
+    let linked = stored.requestID?.uuidString == stages["requestID"] as? String && stored.providerVersion != nil &&
+        stored.sourceLanguage == source && stored.committedAt != nil && stored.sourceSHA256 != nil
+    report["status"] = exact && plausible && linked && expectedStages.isSubset(of: Set(ordered)) ? "PASS" : "FAIL"
     return report
 }
 
@@ -155,7 +196,9 @@ func readback(_ context: ToolContext, prior: URL) async throws -> [String:Any] {
         return ["phase":"wordbookAfterRelaunch","status":words.isEmpty ? "BLOCKED":"UNKNOWN","rowsAfterRelaunch":words.count,
                 "oldHostPID":previous,"hostPID":context.host.processIdentifier,"reason":"No pre-restart row identity for comparison"]
     }
-    let retained = words.count == 1 && words.first?.id.uuidString == id && words.first?.translation == answer
+    let retained = words.count == 1 && words.first?.id.uuidString == id && words.first?.translation == answer &&
+        words.first?.requestID?.uuidString == source["requestID"] as? String && words.first?.providerVersion != nil &&
+        words.first?.providerVersion == source["providerVersion"] as? String && words.first?.committedAt != nil
     // Reopen the ordinary settings window so SwiftUI reads the newly constructed notebook instance.
     try await ToolUI.openSettings(context.host)
     var entries: [String] = []

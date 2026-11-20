@@ -1,60 +1,143 @@
 import AppKit
 import ApplicationServices
 import NaturalLanguage
+import NearpaneCore
 import SwiftUI
 #if canImport(Translation)
 import Translation
 #endif
 
-/// macOS supplies the selection through Services. AX is read only after that explicit request.
-@MainActor final class SelectionTranslation: NSObject {
-    private let notebook: SidebarNotebook
+@MainActor public final class SelectionTranslation: NSObject {
+    private let inbox: TranslationInbox
+    private var notebook: SidebarNotebook?
+    private var generation: UUID?
+    private var worker: Task<Void, Never>?
+    private var dismissal: Task<Void, Never>?
     private var bubble: NSPanel?
-    private var pending: Task<Void, Never>?
-    init(notebook: SidebarNotebook) { self.notebook = notebook }
+    private var liveOrigins = [UUID: pid_t]()
+    private var binding = UUID()
 
-    @objc func translateNearpaneSelection(_ pasteboard: NSPasteboard, userData: String?,
-                                          error: AutoreleasingUnsafeMutablePointer<NSString?>) {
-        guard let selection = pasteboard.string(forType: .string), !selection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let anchor = Self.selectionBounds(for: selection) else {
-            error.pointee = "无法定位原选区。请核对 Nearpane 的辅助功能权限，再选择文字。" as NSString
-            return
+    public init(support: URL) { inbox = TranslationInbox(support: support) }
+
+    public func register() {
+        NSApp.servicesProvider = self
+        LocalToolStage.serviceRegistered.emit(binding)
+    }
+
+    func bind(notebook: SidebarNotebook, generation: UUID) {
+        detach()
+        self.notebook = notebook
+        self.generation = generation
+        if let prior = notebook.contents.words.first, let id = prior.requestID, let saved = try? notebook.diskWord(for: id) {
+            LocalToolStage.wordReopened.emit(id, hash: LocalToolStage.digest(Data(saved.translation.utf8)))
         }
-        pending?.cancel()
-        show("正在查询…", at: anchor)
-        pending = Task {
-            #if canImport(Translation)
-            if #available(macOS 26, *) {
-                let language = NLLanguageRecognizer.dominantLanguage(for: selection)?.rawValue ?? "en"
-                let target = language.hasPrefix("zh") ? "en" : "zh-Hans"
-                let from = Locale.Language(identifier: language), to = Locale.Language(identifier: target)
-                do {
-                    guard await LanguageAvailability().status(from: from, to: to) == .installed else {
-                        throw TranslationIssue.language
-                    }
-                    let answer = try await TranslationSession(installedSource: from, target: to).translate(selection)
-                    try Task.checkCancellation()
-                    guard let live = Self.selectionBounds(for: selection), live.intersects(anchor) else { close(); return }
-                    let saved = notebook.edit { data in
-                        data.words.removeAll { $0.source == selection && $0.language == target }
-                        data.words.insert(.init(source: selection, translation: answer.targetText, language: target), at: 0)
-                    }
-                    show(answer.targetText + (saved ? "" : "\n单词本保存失败"), at: live)
-                } catch {
-                    if !Task.isCancelled { show(error.localizedDescription, at: anchor) }
-                }
-            } else { show("当前系统不支持本地翻译。", at: anchor) }
-            #else
-            show("当前系统不支持本地翻译。", at: anchor)
-            #endif
-            do { try await Task.sleep(for: .seconds(8)) } catch { return }
-            close()
+        drain()
+    }
+
+    func detach() {
+        binding = UUID()
+        worker?.cancel(); worker = nil
+        dismissal?.cancel(); dismissal = nil
+        if generation != nil { liveOrigins.removeAll() }
+        close()
+        notebook = nil; generation = nil
+    }
+
+    @objc public func translateNearpaneSelection(_ pasteboard: NSPasteboard, userData: String?,
+                                                error outputError: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        guard let source = pasteboard.string(forType: .string) else {
+            outputError.pointee = "请选择文字后再查询。" as NSString; return
+        }
+        do {
+            let request = try TranslationRequest(source, generation: inbox.target())
+            LocalToolStage.serviceCallback.emit(request.id, hash: request.hash)
+            try inbox.append(request)
+            LocalToolStage.requestQueued.emit(request.id, hash: request.hash)
+            if let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier { liveOrigins[request.id] = pid }
+            drain()
+        } catch { outputError.pointee = "无法保存翻译请求。请选择不超过 64 KiB 的文字，并核对资料目录。" as NSString }
+    }
+
+    private func drain() {
+        guard worker == nil, let notebook, let generation else { return }
+        let epoch = binding
+        worker = Task { [weak self] in
+            guard let self else { return }
+            defer { if binding == epoch { worker = nil } }
+            while !Task.isCancelled, binding == epoch, let next = try? inbox.pending(for: generation).first {
+                LocalToolStage.hostReceived.emit(next.id, hash: next.hash)
+                if let saved = try? notebook.diskWord(for: next.id) {
+                    LocalToolStage.wordReopened.emit(next.id, hash: LocalToolStage.digest(Data(saved.translation.utf8)))
+                } else if !(await process(next, notebook: notebook)) { return }
+                guard !Task.isCancelled, epoch == binding else { return }
+                do { try inbox.finish(next) } catch { return }
+                liveOrigins.removeValue(forKey: next.id)
+            }
         }
     }
 
-    private enum TranslationIssue: LocalizedError {
-        case language
-        var errorDescription: String? { "请先在 macOS 翻译设置中下载所需语言。" }
+    func waitForRequests() async { await worker?.value }
+
+    private func process(_ request: TranslationRequest, notebook: SidebarNotebook) async -> Bool {
+        var consumed = true
+        let id = request.id
+        let hint = liveOrigins[id]
+        func present(_ text: String) {
+            guard let hint else { return }
+            let exact = Self.selectionBounds(for: request.source)
+            guard exact != nil || NSWorkspace.shared.frontmostApplication?.processIdentifier == hint || hint == getpid() else { return }
+            let anchor = exact ?? NSRect(origin: NSEvent.mouseLocation, size: NSSize(width: 1, height: 1))
+            (exact == nil ? LocalToolStage.anchorPointer : .anchorSelection).emit(id)
+            show(text, at: anchor, id: id)
+        }
+        dismissal?.cancel()
+        present("正在查询…")
+        #if canImport(Translation)
+        if #available(macOS 26, *) {
+            let language = NLLanguageRecognizer.dominantLanguage(for: request.source)?.rawValue ?? "en"
+            let target = language.hasPrefix("zh") ? "en" : "zh-Hans"
+            let from = Locale.Language(identifier: language), to = Locale.Language(identifier: target)
+            let available = await LanguageAvailability().status(from: from, to: to)
+            guard !Task.isCancelled else { return false }
+            switch available {
+            case .installed:
+                LocalToolStage.modelInstalled.emit(id)
+                do {
+                    let translated = try await TranslationSession(installedSource: from, target: to).translate(request.source).targetText
+                    try Task.checkCancellation()
+                    guard !translated.isEmpty else { throw CocoaError(.fileReadCorruptFile) }
+                    let hash = LocalToolStage.digest(Data(translated.utf8))
+                    LocalToolStage.translated.emit(id, hash: hash)
+                    let system = ProcessInfo.processInfo.operatingSystemVersion
+                    let framework = Bundle(identifier: "com.apple.Translation")?.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+                    let version = "Apple.Translation/" + (framework ?? "macOS-\(system.majorVersion).\(system.minorVersion).\(system.patchVersion)")
+                    do {
+                        _ = try notebook.commit(request, answer: translated, from: language, to: target, provider: version)
+                        LocalToolStage.wordCommitted.emit(id, hash: hash)
+                        present(translated)
+                    } catch { consumed = false; present(translated + "\n单词本保存失败") }
+                } catch {
+                    guard !Task.isCancelled else { return false }
+                    LocalToolStage.translationFailed.emit(id)
+                    present("本机翻译未完成。")
+                }
+            case .supported:
+                LocalToolStage.modelMissing.emit(id)
+                present("请先在 macOS 翻译设置中下载所需语言。")
+            default:
+                LocalToolStage.modelUnsupported.emit(id)
+                present("当前系统不支持这组语言的本地翻译。")
+            }
+        } else { LocalToolStage.modelUnsupported.emit(id); present("当前系统不支持本地翻译。") }
+        #else
+        LocalToolStage.modelUnsupported.emit(id); present("当前系统不支持本地翻译。")
+        #endif
+        guard !Task.isCancelled else { return false }
+        dismissal = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(8)) } catch { return }
+            self?.close()
+        }
+        return consumed
     }
 
     private static func selectionBounds(for text: String) -> NSRect? {
@@ -76,8 +159,8 @@ import Translation
         return NSRect(x: rect.minX, y: primary.frame.maxY - rect.maxY, width: rect.width, height: rect.height)
     }
 
-    private func show(_ text: String, at rect: NSRect) {
-        guard let screen = NSScreen.screens.first(where: { $0.frame.intersects(rect) }) else { close(); return }
+    private func show(_ text: String, at rect: NSRect, id: UUID) {
+        guard let screen = NSScreen.screens.first(where: { $0.frame.intersects(rect) }) else { LocalToolStage.panelUnavailable.emit(id); close(); return }
         let view = NSHostingView(rootView: Text(text).font(.system(size: 14)).padding(10)
             .frame(maxWidth: 280).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10)))
         let size = view.fittingSize
@@ -87,11 +170,13 @@ import Translation
         let y = below >= visible.minY ? below : min(rect.maxY + 5, visible.maxY - size.height)
         let panel = bubble ?? NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true
-        panel.hidesOnDeactivate = false; panel.level = .popUpMenu; panel.ignoresMouseEvents = true
+        panel.becomesKeyOnlyIfNeeded = true; panel.hidesOnDeactivate = true; panel.level = .popUpMenu; panel.ignoresMouseEvents = true
         panel.contentView = view
         panel.setFrame(NSRect(origin: CGPoint(x: x, y: y), size: size), display: true)
         bubble = panel
         panel.orderFrontRegardless()
+        if panel.isVisible && visible.intersects(panel.frame) { LocalToolStage.panelVisible.emit(id) }
+        else { LocalToolStage.panelUnavailable.emit(id) }
     }
 
     func close() { bubble?.orderOut(nil); bubble = nil }

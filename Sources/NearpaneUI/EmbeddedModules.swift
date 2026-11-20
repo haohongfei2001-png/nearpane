@@ -17,8 +17,11 @@ public final class EmbeddedModules {
     #endif
 
     let notebook: SidebarNotebook
-    private lazy var translation = SelectionTranslation(notebook: notebook)
-    public func registerSelectionService() { NSApp.servicesProvider = translation }
+    private weak var translation: SelectionTranslation?
+    public func bindSelectionService(_ service: SelectionTranslation, generation: UUID) {
+        translation = service
+        service.bind(notebook: notebook, generation: generation)
+    }
     var voiceCompact: Bool {
         #if canImport(NearpaneVoice)
         voice.panelIsCompact
@@ -111,6 +114,7 @@ public final class EmbeddedModules {
     }
 
     public func finishStopping() async {
+        translation?.detach()
         await workRect?.finish()
         stopWindowContentPreview()
         #if canImport(NearpaneVoice)
