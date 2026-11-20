@@ -100,14 +100,21 @@ def main():
     def live_scope(path):
         o=ws.read()
         return load_scope(path,o,ws.boot,o["uptime"])
-    def one_product_space(path,n):
-        o=ws.read(); s=live_scope(path); start=validate_live(s,o,s["host"])
-        channel=Driver(kit/"row-driver",s,receipt.log)
+    def one_product_space(scope,start,target):
+        attempt = dict(scenario="S03", source=start, target=target, status="UNKNOWN", inputAcknowledged=None)
+        def stage(event, **detail):
+            if event=="before-press":receipt.attempts.append(attempt)
+            if event=="after-press":
+                attempt["inputAcknowledged"]=detail.get("axError")==0
+                if not attempt["inputAcknowledged"]:attempt["status"]="FAIL"
+            receipt.log(event,scenario="S03",**detail)
+        channel=Driver(kit/"row-driver",scope,stage)
         try:
-            actions=channel.command([n],[start])
-            final=ws.settled(lambda o:validate_live(s,o,s["host"],False)==n
+            actions=channel.command([target],[start])
+            require(len(actions)==1 and actions[0]["axError"]==0,"production control did not acknowledge one row action")
+            final=ws.settled(lambda o:validate_live(scope,o,scope["host"],False)==target
                              and catalog_match(o)["highlightMatchesSystem"],"installed-sidebar target did not arrive")
-            require(len(actions)==1 and actions[0]["axError"]==0,"production control did not accept one action")
+            attempt["status"]="PASS"
             return final
         finally:channel.close()
     try:
@@ -139,16 +146,24 @@ def main():
                 path=scope([(a,fa.path),(b,fb.path)],"members")
                 if "S01" in wanted:
                     def s01():
-                        o=ws.read(); s=live_scope(path);validate_live(s,o,s["host"])
-                        catalog=catalog_match(o); sidebar=o["sidebar"]
+                        s=live_scope(path)
+                        deadline=time.monotonic()+3.5
+                        while True:
+                            o=ws.read();validate_live(s,o,s["host"])
+                            sidebar=o["sidebar"]
+                            if (sidebar["currentWindowCount"]==1 and sidebar["windowCounts"].get(f"{ws.display}:{b}")==1) or time.monotonic()>=deadline:
+                                break
+                            time.sleep(.12)
+                        catalog=catalog_match(o)
                         empty_id=f"native-space-row:{ws.display}:{c}"
                         empty,=[r for r in sidebar["rows"] if r["identifier"]==empty_id]
                         receipt.log("S01-inventory",ids=[a,b,c],independent=o["scopedMembers"],catalog=catalog,emptyControl=empty,
                                     visibleA=sidebar["currentWindowCount"],visibleB=sidebar["windowCounts"].get(f"{ws.display}:{b}",0))
                         require(catalog["rowIdentitiesMatch"] and catalog["highlightMatchesSystem"] and empty["press"] and empty["enabled"]
                                 and empty.get("membershipLabels") in (["empty"],["unread"]),"empty Space control or explicit coverage label not confirmed")
-                        require(sidebar["currentWindowCount"]==1 and sidebar["windowCounts"].get(f"{ws.display}:{b}")==1,
-                                "installed sidebar did not expose both independently known test windows")
+                        if sidebar["currentWindowCount"]!=1 or sidebar["windowCounts"].get(f"{ws.display}:{b}")!=1:
+                            mark("S01","FAIL","Installed sidebar did not expose both independently known test windows within its refresh interval.")
+                            return
                         mark("S01","PASS","System UUIDs and exact fixture occupancy match, with an actionable empty Space and explicit membership state.")
                     run_case("S01",s01)
                 if wanted & {"S02","R01"}:
@@ -170,19 +185,14 @@ def main():
                         native=ws.select(b)
                         ws.settled(lambda o:row(o)["current"]==b and catalog_match(o)["highlightMatchesSystem"],"sidebar did not follow native switch")
                         receipt.log("S03-native-selection",fromID=a,target=b,actual=row(native)["current"])
-                        one_product_space(path,a)
+                        one_product_space(live_scope(path),b,a)
                         ordered=ws.swap(b,c)
                         try:
                             # Permit only this exact adjacent swap. Post-reorder selection rebinds the row by original ID/UUID.
                             monotonic=ordered["uptime"]; prior=prepare_s03_scope(path,before,ordered,ws.boot)
-                            chan=Driver(kit/"row-driver",prior,receipt.log)
-                            try:
-                                chan.command([b],[a])
-                                end=ws.settled(lambda o:validate_live(prior,o,prior["host"],False)==b and catalog_match(o)["highlightMatchesSystem"],
-                                               "post-reorder product selection did not reach the same UUID")
-                                receipt.log("S03-post-reorder",target=b,oldPosition=[i["id"] for i in origin_order].index(b),
-                                            newPosition=[i["id"] for i in row(end)["records"]].index(b),seconds=end["uptime"]-monotonic)
-                            finally:chan.close()
+                            end=one_product_space(prior,a,b)
+                            receipt.log("S03-post-reorder",target=b,oldPosition=[i["id"] for i in origin_order].index(b),
+                                        newPosition=[i["id"] for i in row(end)["records"]].index(b),seconds=end["uptime"]-monotonic)
                         finally:ws.swap(b,c)
                         ws.select(a)
                         mark("S03","PASS","Native selection and controlled reorder followed by installed row presses to the same original Space identities.")
@@ -264,7 +274,9 @@ def main():
             except ERRORS as e:receipt.summary["cleanup"]=dict(outstanding=ws.ids(),errors=[str(e)],topologyRestored=False)
         receipt.summary.update(requested=sorted(wanted),failures=failures)
         receipt.finish()
-    return 0 if all(receipt.scenarios[k]["status"]=="PASS" for k in wanted) and receipt.summary.get("cleanup",{}).get("topologyRestored") else 2
+    cleanup=receipt.summary.get("cleanup",{})
+    restored=cleanup.get("topologyRestored") and cleanup.get("focusRestored") and not cleanup.get("outstanding") and not cleanup.get("errors")
+    return 0 if restored and all(receipt.scenarios[k]["status"]=="PASS" for k in wanted) else 2
 
 
 def prepare_s03_scope(path, before, reordered, boot):
