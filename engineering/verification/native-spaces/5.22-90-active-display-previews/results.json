@@ -77,19 +77,41 @@
         "neutralWithoutSourceBracket": 0,
         "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
         "neutralEvidence": "physical-14/continuity.json"
+      },
+      {
+        "evidence": "physical-15/result.json",
+        "action": "ordinary signed Host with isolated user data",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4323,
+        "eligiblePanelFrames": 1428,
+        "p50ms": 29.19,
+        "p95ms": 61.2,
+        "p95UpperMs": 78.66,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-15/continuity.json"
       }
     ],
-    "totalConfirmedChanges": 36,
-    "totalPresentationsRecorded": 12972,
-    "eligiblePanelFrames": 4280,
+    "totalConfirmedChanges": 48,
+    "totalPresentationsRecorded": 17295,
+    "eligiblePanelFrames": 5708,
     "pooledConfirmedPresentationDifferenceMs": {
       "method": "nearest-rank across the current installed candidate trials",
-      "count": 36,
+      "count": 48,
       "p50": 32.503,
-      "p95": 46.411,
-      "p99": 51.311,
-      "max": 51.311,
-      "p95UpperMs": 63.327
+      "p95": 48.942,
+      "p99": 61.2,
+      "max": 61.2,
+      "p95UpperMs": 66.461
     },
     "uninterruptedAccuratePictureEveryFrame": {
       "status": "PASS_WITHIN_SAMPLED_FIXTURES",
@@ -111,18 +133,22 @@
       ],
       "independentPhysicalDisplays": "BLOCKED"
     },
-    "readableCurrentCandidatePhoto": "physical-13/media/paired-overview.png",
-    "qualifiedFilm": "physical-13/media/paired-cards.mp4",
+    "readableCurrentCandidatePhoto": "physical-15/media/paired-overview.png",
+    "qualifiedFilm": "physical-15/media/paired-cards.mp4",
     "filmDecoderVerification": "physical-13/media/decoded-cards.json",
     "fullCardMovie": {
       "status": "CAPTURED",
-      "lossyRGBMarker": "FAIL",
-      "duration": 2.7776833333333335,
-      "frames": 33,
-      "markerMismatchCount": 8,
-      "markerSamples": 66,
-      "audioTracks": 0
-    }
+      "evidence": "physical-15/media/receipt.json",
+      "durationSeconds": 2.54705,
+      "frames": 30,
+      "audioTracks": 0,
+      "bothCardsChange": true,
+      "losslessIndependentDecoder": "physical-15/media/lossless-pixel-replay.json",
+      "historicalLossyFilm": "physical-13/media/paired-cards.mp4",
+      "historicalLossyMarkerReadback": "physical-13/media/decoded-cards.json",
+      "historicalLossyMarkerMismatchCount": 8
+    },
+    "qualifiedLosslessFilm": "physical-15/media/paired-cards.apng"
   },
   "permissions": {
     "installed": "PASS",
@@ -168,7 +194,13 @@
     "mostRecentPressAccepted": true,
     "focusReadback": "UNKNOWN",
     "evidence": "same-space-focus/W01-system-documents.json",
-    "fixtureTerminationIndependent": "same-space-focus/recovery-kernel.json"
+    "fixtureTerminationIndependent": "same-space-focus/recovery-kernel.json",
+    "distinctControlAttempt": {
+      "status": "BLOCKED",
+      "pressIssued": false,
+      "inputMarkers": 0,
+      "evidence": "same-space-focus/distinct-read-attempt/W01-system-documents.json"
+    }
   },
   "P3": {
     "status": "BLOCKED",
@@ -221,7 +253,7 @@
     },
     "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
     "nativePython": {
-      "ran": 166,
+      "ran": 168,
       "skipped": 6,
       "failed": 0
     },

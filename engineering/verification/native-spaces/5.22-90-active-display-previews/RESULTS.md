@@ -2,23 +2,26 @@
 
 ## 正式安装候选 `d2d0bb6`
 
-Nearpane 5.22（90）在 macOS 27.0（26A428）、一块 1470 × 956 pt 显示器上进行了三轮同屏实测。两扇真实测试窗各自变色 18 次，正式侧栏确认 **36/36** 次更新。12,972 条源与侧栏呈现记录中，有 4,280 帧侧栏画面同时采到了两个色标，错窗、空白、未识别颜色和灰色中断均为零。单次变色首次得到确认的呈现差合计 P50 为 32.50 ms、P95 为 46.41 ms、最大值为 51.31 ms。考虑采样区间后的 P95 上界为 63.33 ms。Apple 原生同条件样本为零。[各窗逐帧结果](results.json) · [Apple 对照资格](physical-13/apple-reference.json)
+Nearpane 5.22（90）在 macOS 27.0（26A428）、一块 1470 × 956 pt 显示器上进行了四轮同屏实测。两扇真实测试窗各自变色 24 次，正式侧栏确认 **48/48** 次更新。17,295 条源与侧栏呈现记录中，有 5,708 帧侧栏画面同时采到了两个色标，错窗、空白、未识别颜色和灰色中断均为零。单次变色首次得到确认的呈现差合计 P50 为 32.50 ms、P95 为 48.94 ms、最大值为 61.20 ms。考虑采样区间后的 P95 上界为 66.46 ms。Apple 原生同条件样本为零。[各窗逐帧结果](results.json) · [Apple 对照资格](physical-13/apple-reference.json)
 
 | 正式 Host 启动方式 | 已确认变化 | P50 | P95 | 逐窗证据 |
 | --- | ---: | ---: | ---: | --- |
 | 隔离资料，启用双窗诊断 | 12/12 | 26.20 ms | 51.31 ms | [原始时钟重算](physical-12/replay.json) · [卡片连续性](physical-12/continuity.json) |
 | 隔离资料，常规启动并录制整卡 | 12/12 | 34.03 ms | 38.72 ms | [原始时钟重算](physical-13/replay.json) · [卡片连续性](physical-13/continuity.json) |
 | 隔离资料，常规启动 | 12/12 | 29.45 ms | 46.41 ms | [原始时钟重算](physical-14/replay.json) · [卡片连续性](physical-14/continuity.json) |
+| 隔离资料，常规启动并录制无损整卡 | 12/12 | 29.19 ms | 61.20 ms | [原始时钟重算](physical-15/replay.json) · [卡片连续性](physical-15/continuity.json) |
 
 **灰帧原因。** 前一诊断版的采集流仍在交付，B 窗绘制时一次所有者查询失败，侧栏随即画出轮廓。修复后，活采集流仅在进程代际、可执行文件、签名、普通应用身份、共享资格及窗口归属均成立时继续显示。新安装包的正式 Host 记录到 3 次 AppKit 应用查找缺失，均完成了独立身份复核。对应整轮两张卡都未出现灰帧。早期 212.35 ms 样本没有同类跟踪，原始失败保留。[旧版关联收据](physical-11/diagnosis.json) · [修复后的三次读回](physical-12/owner-readback.json)
 
-**实机媒体。** 两张完整卡片的截图和 2.78 秒 MP4 均取自同一个正式侧栏，只含已登记的测试文档。视频有 33 帧、无音轨。独立解码后，66 次卡片色标读回中有 8 次因 H.264 色差超出原始色标阈值，不能用这个有损文件证明原始色值。逐帧延迟使用原始无损采样。[双卡原图](physical-13/media/paired-overview.png) · [实机录像](physical-13/media/paired-cards.mp4) · [完整解码读回](physical-13/media/decoded-cards.json)
+**无损实机录像。** 第四轮正式侧栏的两张完整卡片共录制 2.55 秒，两扇文档都在画面中变色。30 帧原始呈现逐像素解码并与采集时的摘要比对一致。最大播放边界误差为 7.88 微秒。文件同时保留每帧的原始时钟。[完整双卡无损动画](physical-15/media/paired-cards.apng) · [实机截图](physical-15/media/paired-overview.png) · [独立像素复核](physical-15/media/lossless-pixel-replay.json)
 
-**侧栏归属。** 当前安装包在台前调度开启时保留三项工具，实测 0 张窗口卡、0 条采集流。台前调度关闭后，三轮都确认初始桌面为零卡，打开两扇普通窗口后为两卡，窗口退出后归零。上一签名候选在两个真实桌面之间验证了有窗 A → 空 B → 原 A，对应 2 → 0 → 2。物理三指滑动中逐帧表现、两块显示器、双窗原生 Split View 尚待验收。系统调度中心展开动画与台前调度的结果分别记录。[台前调度开启](physical-12/installed-stage-manager.json) · [本轮日常设置恢复](physical-13/lease.json) · [两个桌面间的实际读回](physical-05/paired-preview.json)
+**此前有损录像。** 第二轮的双卡截图和 2.78 秒 MP4 均取自同一个正式侧栏，只含已登记的测试文档。视频有 33 帧、无音轨。独立解码后，66 次卡片色标读回中有 8 次因 H.264 色差超出原始色标阈值，不能用这个有损文件证明原始色值。逐帧延迟使用原始无损采样。[双卡原图](physical-13/media/paired-overview.png) · [实机录像](physical-13/media/paired-cards.mp4) · [完整解码读回](physical-13/media/decoded-cards.json)
+
+**侧栏归属。** 当前安装包在台前调度开启时保留三项工具，实测 0 张窗口卡、0 条采集流。台前调度关闭后，四轮都确认初始桌面为零卡，打开两扇普通窗口后为两卡，窗口退出后归零。上一签名候选在两个真实桌面之间验证了有窗 A → 空 B → 原 A，对应 2 → 0 → 2。物理三指滑动中逐帧表现、两块显示器、双窗原生 Split View 尚待验收。系统调度中心展开动画与台前调度的结果分别记录。[台前调度开启](physical-12/installed-stage-manager.json) · [本轮日常设置恢复](physical-13/lease.json) · [两个桌面间的实际读回](physical-05/paired-preview.json)
 
 **精确焦点。** 对两份全新 TextEdit 文件执行了 1 次正式侧栏按压，收到系统回执。随后的输入前核验未能确认目标，提交键盘标记 0 次。之后独立验证两扇窗口均属于原测试文件，正常退出该测试进程，两次内核读回均确认进程已退出。两张更早的测试桌面 5094、5095 仍待回收，当前为 5095，原桌面 4、6 保留。[选窗记录](same-space-focus/W01-system-documents.json) · [夹具退出](same-space-focus/recovery-kernel.json) · [桌面清单](physical-12/desktop-readback.json)
 
-**安装、回退与验证。** 当前签名 ZIP 的 SHA-256 为 `a630316f845b90525bd158e64f4eac633a473b0ab47773453e43b3433bd841a4`。上一签名候选为 `32b9f92`。两包均在原 Draft 附件中。安装和归档的 248 项逐一一致，系统登记一份 Nearpane，三项已有授权在正常启动的 Host 内读回为允许。560 项 Swift 测试和候选原生 CI 均通过。发行暂存副本的 13 个二进制均有 Developer ID 安全时间戳，公证及干净设备验收待测。PR #15 保持 Draft。[候选和回退](physical-12/candidate.json) · [安装核验](physical-12/archive-installed.json) · [权限](physical-12/permissions.json) · [签名](physical-12/distribution-staging/result.json) · [原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44786730117)
+**安装、回退与验证。** 当前签名 ZIP 的 SHA-256 为 `a630316f845b90525bd158e64f4eac633a473b0ab47773453e43b3433bd841a4`。上一签名候选为 `32b9f92`。两包均在原 Draft 附件中。从 GitHub 完整下载当前包的 25,241,606 字节，SHA-256 再次匹配。[下载校验](physical-12/github-binary-readback.json) 安装和归档的 248 项逐一一致，系统登记一份 Nearpane，三项已有授权在正常启动的 Host 内读回为允许。560 项 Swift 测试和候选原生 CI 均通过。发行暂存副本的 13 个二进制均有 Developer ID 安全时间戳，公证及干净设备验收待测。PR #15 保持 Draft。[候选和回退](physical-12/candidate.json) · [安装核验](physical-12/archive-installed.json) · [权限](physical-12/permissions.json) · [签名](physical-12/distribution-staging/result.json) · [原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44786730117)
 
 ## 上一签名候选 `32b9f92`
 
