@@ -1,0 +1,104 @@
+{
+  "status": "BLOCKED",
+  "reason": "physicalInputChanged",
+  "preflightOnly": false,
+  "ordinaryDesktopsRequested": 2,
+  "leasedSpace": 5086,
+  "preview": {
+    "status": "NOT_RUN"
+  },
+  "splitView": {
+    "status": "NOT_RUN"
+  },
+  "media": {
+    "status": "NOT_RUN"
+  },
+  "stageSetup": {
+    "status": "BLOCKED",
+    "reason": "physicalInputChanged",
+    "journal": "stage-off.jsonl"
+  },
+  "stageRestore": {
+    "status": "BLOCKED",
+    "reason": "ownedSettingsNormalQuitUnconfirmed: stage-off"
+  },
+  "workspaceCleanup": {
+    "status": "BLOCKED",
+    "topologyRestored": false,
+    "focusRestored": true,
+    "originalCurrent": 6,
+    "cleanupCurrent": 6,
+    "originalOrderRestored": false,
+    "preservedLatestOrder": false,
+    "retainedUserSelectedSpace": false,
+    "created": 1,
+    "removed": 0,
+    "outstanding": [
+      5086
+    ],
+    "errors": [
+      "independent inventory does not establish empty desktop 5086: {'desktopElements': 2, 'ordinary': [{'number': 51564, 'pid': 40167}], 'otherDetails': [], 'otherMembers': 0, 'systemMenuSurfaces': 1, 'unresolved': 0, 'verifiedHostPanels': 1, 'verifiedSharedOverlays': 0}"
+    ]
+  },
+  "initialEmptyScope": {
+    "space": 5086,
+    "spaceUUID": "B197F1F7-FEB8-BA77-D179-7A3A3E207CDD",
+    "uptimes": [
+      259920.84304725,
+      259921.12843200003
+    ]
+  },
+  "stageBaseline": [
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 259915.99719750002
+    },
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 259916.225263125
+    }
+  ],
+  "originalStageSurface": {
+    "status": "PASS",
+    "stage": true,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 0
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 0
+      }
+    ]
+  }
+}

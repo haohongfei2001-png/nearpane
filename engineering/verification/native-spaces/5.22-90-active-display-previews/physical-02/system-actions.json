@@ -1,0 +1,69 @@
+[
+  {
+    "event": "creation-ledger",
+    "operation": "329a2199-1106-4344-9940-95fa3aba5691"
+  },
+  {
+    "event": "system-fixture-intent",
+    "operation": "add",
+    "current": 6,
+    "target": null,
+    "other": null
+  },
+  {
+    "event": "system-fixture-result",
+    "operation": "add",
+    "target": null,
+    "issued": true,
+    "acknowledged": true,
+    "overviewDismissed": true,
+    "windowServerConfirmedBeforeClose": true
+  },
+  {
+    "event": "system-fixture-created",
+    "oldCurrent": 6,
+    "newCurrent": 6
+  },
+  {
+    "event": "system-AX-tile-intent",
+    "source": 6,
+    "target": 5086,
+    "occupancy": "empty"
+  },
+  {
+    "event": "system-AX-tile-result",
+    "source": 6,
+    "target": 5086,
+    "proof": {
+      "acknowledged": true,
+      "issued": true,
+      "action": "AXPress",
+      "axError": 0,
+      "overviewDismissed": true,
+      "targetConfirmedBeforeOwnedOverviewClosed": true,
+      "productActions": 0,
+      "setupOnly": true
+    }
+  },
+  {
+    "event": "system-AX-tile-intent",
+    "source": 5086,
+    "target": 6,
+    "occupancy": "daily-origin"
+  },
+  {
+    "event": "system-AX-tile-result",
+    "source": 5086,
+    "target": 6,
+    "proof": {
+      "acknowledged": true,
+      "issued": true,
+      "action": "AXPress",
+      "axError": 0,
+      "overviewDismissed": true,
+      "targetConfirmedBeforeOwnedOverviewClosed": true,
+      "productActions": 0,
+      "setupOnly": true
+    }
+  }
+]
