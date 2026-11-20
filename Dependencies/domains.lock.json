@@ -145,8 +145,8 @@
         "Sources/SaytileKit/VoiceTranscriptFlow.swift": "Sources/SaytileVoiceUI/VoiceTranscriptFlow.swift"
       },
       "captureReadiness": {
-        "patchSHA256": "1ed10ef7a09299b205d0e136336cc843378cee5958d01b56a20070c6bceff79f",
-        "compiledSHA256": "ad9eda5b75238bde24eafb03465b51a96a8a997289d1bb8d3755b97ac07a0d05"
+        "patchSHA256": "ae80e48765ac292ce6a387d259de0934a45d3214cff809359b823ed9ffea6b65",
+        "compiledSHA256": "5f8bf574054ec519fd79eca33fd926f0dfd439ce93f588db9de81446a42737d7"
       }
     },
     "riftlet": {

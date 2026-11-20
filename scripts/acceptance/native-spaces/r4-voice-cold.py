@@ -1,4 +1,4 @@
-"""Measure the first unprimed phrase of three separate installed Nearpane processes.
+"""Measure unprimed phrases in separate launches of the installed Nearpane Host.
 
 From scripts/acceptance/native-spaces run:
   python3 installed_profile.py OUTPUT/profile -- python3 r4-voice-cold.py OUTPUT/voice
@@ -35,6 +35,16 @@ def normalized(text):
                    if not ch.isspace() and not unicodedata.category(ch).startswith("P"))
 
 
+def character_distance(wanted, heard):
+    previous = list(range(len(heard) + 1))
+    for i, left in enumerate(wanted, 1):
+        current = [i]
+        for j, right in enumerate(heard, 1):
+            current.append(min(current[-1] + 1, previous[j] + 1, previous[j - 1] + (left != right)))
+        previous = current
+    return previous[-1]
+
+
 def compare(expected, actual):
     wanted, heard = normalized(expected), normalized(actual)
     # Leave fixture characters inspectable; never publish unrelated microphone speech.
@@ -48,7 +58,9 @@ def compare(expected, actual):
         if first != second:
             break
         leading += 1
-    return {"exact": wanted == heard, "heardNormalized": visible, "rawTextSHA256": digest(actual.encode()),
+    distance = character_distance(wanted, heard)
+    return {"exact": wanted == heard, "characterEdits": distance, "cer": distance / len(wanted) if wanted else None,
+            "heardNormalized": visible, "rawTextSHA256": digest(actual.encode()),
             "leadingCharactersMatched": leading, "edits": edits}
 
 
@@ -188,15 +200,24 @@ def calibrate(driver, stimulus, voice, attempt):
     return report
 
 
-def run(output, calibration=False, file_readback=False):
+def run(output, calibration=False, file_readback=False, matrix=False):
+    import voice_matrix
     import installed_profile as profile  # A normal Launch Services session owned by the outer wrapper.
     require_readback = calibration or file_readback
     phrases = (PHRASES[1], PHRASES[0]) if calibration else PHRASES
-    attempts = [{"phrase": phrase, "status": "NOT_RUN"} for phrase in phrases]
-    summary = {"mode": "counterbalanced diagnostic" if calibration else "three independent cold starts", "app": "/Applications/Nearpane.app", "rounds": attempts, "speech": "local Tingting, rate 165, physical speaker to microphone",
+    attempts = voice_matrix.schedule(PHRASES) if matrix else [{"phrase": phrase, "status": "NOT_RUN"} for phrase in phrases]
+    mode = "3 phrases × 10 cold starts × clean or +10 dB SNR stimulus" if matrix else (
+        "counterbalanced diagnostic" if calibration else "three independent cold starts")
+    summary = {"mode": mode, "app": "/Applications/Nearpane.app", "rounds": attempts, "speech": "local Tingting, rate 165, physical speaker to microphone",
                "textComparison": "NFKC, omit spaces and punctuation only; unrelated characters masked in published readback"}
     def snapshot():
         summary["status"] = summarize(attempts)
+        if matrix:
+            summary["counts"] = {key: sum(a["status"] == key for a in attempts)
+                                 for key in ("PASS", "FAIL", "UNKNOWN", "BLOCKED", "NOT_RUN")}
+            if summary["status"] == "PASS" and any(a.get("reopened", {}).get("status") != "PASS"
+                    or a.get("productionStages", {}).get("status") != "PASS" for a in attempts):
+                summary["status"] = "UNKNOWN"
         if require_readback or any("calibration" in a for a in attempts):
             summary["physicalStatus"] = summary["status"]
             controls = [a.get("calibration", {}).get("status", "PENDING") for a in attempts]
@@ -222,6 +243,18 @@ def run(output, calibration=False, file_readback=False):
         summary.update(build=info["CFBundleVersion"], version=info["CFBundleShortVersionString"],
                        source=info.get("NearpaneSourceRevision"), generation=active)
         seen = {profile.installed_pid()}
+        def verify_reopened(attempt):
+            original = voice_matrix.fingerprint(attempt.get("readback", {}))
+            restored = None
+            if original and original["recordingID"] in all_ids(voice):
+                baseline = all_ids(voice) - {original["recordingID"]}
+                restored = voice_matrix.fingerprint(read_new(voice, baseline, attempt["phrase"]))
+            attempt["reopened"] = {"status": "PASS" if restored and restored == original else "UNKNOWN",
+                                   "record": restored, "witnessPID": profile.installed_pid()}
+            if attempt["status"] == "PASS" and attempt["reopened"]["status"] != "PASS":
+                attempt.update(status="UNKNOWN", reason="Relaunched installed Host could not confirm the same final and original WAV")
+            snapshot()
+
         with tempfile.TemporaryDirectory(prefix="nearpane-voice-", dir="/private/tmp") as temp:
             temp = Path(temp)
             driver = temp / "cold-microphone"
@@ -239,6 +272,11 @@ def run(output, calibration=False, file_readback=False):
                     phrase = attempt["phrase"]
                     stimulus = temp / f"{number}.wav"
                     attempt["stimulus"] = make_stimulus(stimulus, phrase)
+                    if matrix and attempt["condition"] == "noise10dB":
+                        original = attempt["stimulus"]["sha256"]
+                        clean_onset = attempt["stimulus"]["firstSignalSeconds"]
+                        attempt["stimulus"].update(voice_matrix.add_noise(stimulus, seed=number),
+                                                   cleanSHA256=original, cleanFirstSignalSeconds=clean_onset)
                     previous = profile.installed_pid()
                     if previous:
                         if not profile.owns_profile(previous, root):
@@ -248,6 +286,8 @@ def run(output, calibration=False, file_readback=False):
                     if fresh != generation or pid in seen or not profile.owns_profile(pid, root):
                         raise RuntimeError("A distinct cold Host in the same isolated generation could not be confirmed")
                     seen.add(pid)
+                    if matrix and number > 1:
+                        verify_reopened(attempts[number - 2])
                     before = all_ids(voice)
                     attempt.update(pid=pid, previousPID=previous, baselineRecordings=len(before), status="UNKNOWN")
                     snapshot()
@@ -280,6 +320,31 @@ def run(output, calibration=False, file_readback=False):
                     snapshot()
                     if pid and profile.owns_profile(pid, root):
                         profile.quit_host(pid)
+                    if matrix and pid:
+                        try:
+                            stages = voice_matrix.stages(pid, attempt.get("readback", {}))
+                        except (OSError, ValueError, subprocess.SubprocessError):
+                            stages = {"status": "UNKNOWN", "reason": "Installed Host stage log unavailable"}
+                        attempt["productionStages"] = stages
+                        if attempt["status"] == "PASS" and stages["status"] != "PASS":
+                            attempt.update(status="UNKNOWN", reason="First PCM or durable final did not match this installed Host")
+                        snapshot()
+                if matrix and (not pid or (attempt["status"] == "BLOCKED" and
+                        not any(e["kind"] == "startPressed" for e in attempt.get("ui", {}).get("events", [])))):
+                    summary["stoppedAtRound"] = number
+                    break
+            attempted = [a for a in attempts if "pid" in a]
+            if matrix and attempted:
+                if profile.installed_pid() is not None:
+                    raise RuntimeError("An unexpected Host appeared before the last independent reopen")
+                last, fresh = profile.launch_isolated(home)
+                if fresh != generation or last in seen or not profile.owns_profile(last, root):
+                    raise RuntimeError("A fresh installed Host could not reopen the matrix generation")
+                verify_reopened(attempted[-1])
+                for attempt in attempted:
+                    if attempt["status"] == "PASS" and attempt.get("reopened", {}).get("status") != "PASS":
+                        attempt.update(status="UNKNOWN", reason="Missing independent reopen")
+                snapshot()
             # Finish all physical trials before initializing the independent recognizer; its Apple asset cache
             # must not warm the second live trial. Use the same, hashed PCM before the outer cleanup removes it.
             if require_readback or any(a["status"] == "FAIL" for a in attempts):
@@ -288,6 +353,8 @@ def run(output, calibration=False, file_readback=False):
                                 str(Path(__file__).with_name("r4-voice-replay.swift")), "-o", str(replay)],
                                check=True, timeout=90)
                 for number, attempt in enumerate(attempts, start=1):
+                    if matrix and not require_readback and attempt["status"] != "FAIL":
+                        continue
                     try:
                         attempt["calibration"] = calibrate(replay, temp / f"{number}.wav", voice, attempt)
                     except (OSError, KeyError, ValueError, RuntimeError, sqlite3.Error, subprocess.SubprocessError) as error:
@@ -306,13 +373,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--file-readback", action="store_true",
                         help="analyze each existing WAV after all three physical starts; always automatic on a failed phrase")
-    parser.add_argument("--calibrate", action="store_true",
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--matrix", action="store_true",
+                      help="60 cold installed starts, counterbalanced clean and deterministic +10 dB acoustic stimuli, with relaunch readback")
+    mode.add_argument("--calibrate", action="store_true",
                         help="two counterbalanced cold starts and file-only controls; retain the original acceptance outcomes")
     parser.add_argument("output", type=Path, help="new directory for receipts, outside the disposable home")
     args = parser.parse_args()
     os.umask(0o077)
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
-    return run(args.output.resolve(), calibration=args.calibrate, file_readback=args.file_readback)
+    return run(args.output.resolve(), calibration=args.calibrate, file_readback=args.file_readback, matrix=args.matrix)
 
 
 if __name__ == "__main__":

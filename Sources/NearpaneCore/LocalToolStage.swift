@@ -6,7 +6,8 @@ import OSLog
 public enum LocalToolStage: String, Sendable {
     case serviceRegistered, serviceCallback, requestQueued, hostReceived, modelInstalled, modelMissing, modelUnsupported
     case translated, translationFailed, anchorSelection, anchorPointer, panelVisible, panelUnavailable, wordCommitted, wordReopened
-    case firstPCM, voiceStarted, voicePaused, voiceInterrupted, voiceFinal, voiceRecoverable, voiceDiscarded
+    case firstPCM, voiceStarted, voicePaused, voiceInterrupted, voiceRecordingLinked, voiceAudioPersisted
+    case voiceFinal, voiceRecoverable, voiceDiscarded, voiceUnverified
 
     public static func digest(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()

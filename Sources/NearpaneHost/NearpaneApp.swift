@@ -642,8 +642,15 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let ids = displays.compactMap { UUID(uuidString: $0)?.uuidString }.sorted()
             modules?.workRect?.send((["topology"] + ids).joined(separator: " "))
         }
-        panels.managementChanged = { [weak modules] id, state, deadline in
+        panels.managementChanged = { [weak self, weak modules] id, state, deadline in
             guard UUID(uuidString: id) != nil else { return }
+            #if canImport(SaytileKit)
+            if state == "hold", let self {
+                let screens = MultiDisplayPresentationCoordinator.identifiedScreens(placementScreens())
+                let resident = screens.first { $0.id == self.host?.configuration.preferredDisplayID } ?? screens.first
+                if resident?.id == id { modules?.voice.interruptForHost(.fullscreen) }
+            }
+            #endif
             let expiry = deadline.map { " " + String($0) } ?? ""
             modules?.workRect?.ordinaryPresentation(state, display: id, deadline: deadline)
             modules?.workRect?.send("presentation " + state + " " + id + expiry)
@@ -852,7 +859,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func applyDesktopSessionState() {
         if sessionUnavailable { modules?.stopWindowContentPreview() }
         #if canImport(SaytileKit)
-        if sessionUnavailable { modules?.voice.stopArchivePlayback() }
+        if sessionUnavailable {
+            modules?.voice.stopArchivePlayback()
+            modules?.voice.interruptForHost(.session)
+        }
         #endif
         refreshSettingsExposure()
         modules?.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
