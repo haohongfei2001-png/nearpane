@@ -27,12 +27,14 @@ private func occupants(_ r:WorkspaceRequest,_ admission:Admission,prior:Set<UInt
         guard admission.kind=="two-documents",let f=admission.fixture,f.space==n,f.numbers.count==2,Set(f.numbers).count==2,
               operatorBirth(f.fixturePID)==f.fixtureBirth,let identity=operatorIdentity(f.fixturePID),
               identity.0=="net.example.spaces-document",identity.1==f.fixtureHash else {throw Refusal("fixtureGenerationOrSignatureChanged")}
-        let kit=URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent()
+        guard let kit=PreviewCensus.kit(CommandLine.arguments[0]) else{throw Refusal("unrecognizedSourceFixtureExecutable")}
         var path=[CChar](repeating:0,count:4096)
         try demand(kit.deletingLastPathComponent().path=="/private/tmp" && kit.lastPathComponent.hasPrefix("nearpane-d01.") &&
                    proc_pidpath(f.fixturePID,&path,UInt32(path.count))>0 && String(cString:path)==kit.appendingPathComponent("Field Notes.app/Contents/MacOS/FieldNotes").path,
                    "unrecognizedSourceFixtureExecutable")
-        pid=f.fixturePID;numbers=f.numbers
+        let checked=PreviewCensus.report(n,host:r.hostPID,fixture:f.fixturePID,expected:f.numbers,visible:false)
+        try demand(checked["admitted"] as? Bool==true,"exactEnrolledForwardOrReverseScopeChanged")
+        return ["scopedTwoDocumentCensus":checked]
     }
     guard let report=NPContractMemberReport([NSNumber(value:n)] as CFArray,r.hostPID) as? [String:[String:Any]],
           let row=report[String(n)],row["otherMembers"] as? Int==0,row["unresolved"] as? Int==0,

@@ -2,6 +2,7 @@
 func pairedPreviewProof(_ args: [String]) -> Object {
     var out: Object = ["ready":false,"stageManager":stage as Any? ?? NSNull(),"observerAX":AXIsProcessTrusted(),
                        "observerScreen":CGPreflightScreenCaptureAccess()]
+    out["hardware"]=[.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map{CGEventSource.counterForEventType(.hidSystemState,eventType:$0)}
     func stop(_ reason:String) -> Object { out["reason"]=reason; return out }
     guard args.count == 3 || args.count == 10, let pid = Int32(args[1]), let host, host.processIdentifier == pid,
           let hostBirth = birthMicroseconds(pid), runningCodeHash(pid) == args[2] else { return stop("installedHostIdentityUnavailable") }
@@ -30,12 +31,12 @@ func pairedPreviewProof(_ args: [String]) -> Object {
         return stop(stage==true ? "sidebarUnavailableWithStageManagerOn":"visiblePanelUnavailable")
     }
     out["panel"]=panel
-    guard let members=NPContractMemberReport([NSNumber(value:space)] as CFArray,pid) as? [String:Object],let census=members[String(space)],
-          let normal=census["ordinary"] as? [[String:NSNumber]],census["unresolved"] as? Int==0 else {return stop("ordinaryWindowCensusIncomplete")}
-    out["ordinaryCount"]=normal.count
     let cards=index.controls.filter{$0.key.hasPrefix("current-desktop-window:") || $0.key.hasPrefix("native-space-window:")}
+    out["hostCardCount"]=cards.count
     if args.count==3 {
-        out["ready"]=normal.isEmpty && cards.isEmpty
+        let census=PreviewCensus.report(space,host:pid,fixture:0,expected:[],visible:false)
+        out["windowCensus"]=census;out["ordinaryCount"]=census["rawOrdinary"]
+        out["ready"]=census["admitted"] as? Bool==true && cards.isEmpty
         if out["ready"] as? Bool != true {out["reason"]="activeSpaceContainsOtherWindows"};return out
     }
     guard let fixture=Int32(args[3]),let birth=UInt64(args[4]),birthMicroseconds(fixture)==birth,
@@ -45,9 +46,19 @@ func pairedPreviewProof(_ args: [String]) -> Object {
     guard proc_pidpath(fixture,&executable,UInt32(executable.count))>0,String(cString:executable)==args[6],
           args[6].hasPrefix("/private/tmp/nearpane-d01."),args[6].hasSuffix("/Field Notes.app/Contents/MacOS/FieldNotes") else {return stop("unexpectedFixtureExecutable")}
     let nums=[a,b],ids=nums.map{"current-desktop-window:\(fixture):\($0)"}
-    guard normal.count==2,normal.allSatisfy({$0["pid"]?.int32Value==fixture}),Set(normal.compactMap{$0["number"]?.uint32Value})==Set(nums) else {return stop("activeSpaceContainsUnexpectedMembers")}
     out["fixturePID"]=fixture;out["fixtureBirth"]=birth;out["fixtureHash"]=args[5];out["numbers"]=nums
     out["present"]=ids.map{cards[$0]?.count==1}
+    let windowCensus=PreviewCensus.report(space,host:pid,fixture:fixture,expected:nums,visible:true)
+    let reg=NSRunningApplication(processIdentifier:fixture)
+    let expectedApp=URL(fileURLWithPath:args[6]).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    let bundleMatches=reg?.bundleURL?.resolvingSymlinksInPath().path==expectedApp.resolvingSymlinksInPath().path
+    let regular=reg?.activationPolicy == .regular && reg?.bundleIdentifier=="net.example.spaces-document" && bundleMatches
+    out["launchServices"]=["registered":reg != nil,"regular":reg?.activationPolicy == .regular,"bundleMatches":bundleMatches,
+                            "signedBundleIdentifierMatches":reg?.bundleIdentifier=="net.example.spaces-document"]
+    out["windowCensus"]=windowCensus;out["ordinaryCount"]=windowCensus["rawOrdinary"]
+    out["sourceProven"]=windowCensus["expectedProven"] as? Bool==true && regular
+    guard regular else{return stop("fixtureLaunchServicesRegistrationUnconfirmed")}
+    guard windowCensus["expectedProven"] as? Bool==true else {return stop("activeSpaceContainsUnexpectedMembers")}
     guard Set(cards.keys)==Set(ids),ids.allSatisfy({cards[$0]?.count==1}) else {return stop("missingOrUnexpectedSidebarCard")}
     var sources=[[Double]](),pictures=[[Double]](),kinds=[String]()
     for (i,n) in nums.enumerated() {

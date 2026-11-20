@@ -1,9 +1,8 @@
 // Appended to the independent read-only observer. Exports only fixed product labels and aggregate counts.
 func surfaceEvidence() -> Object {
     let args=CommandLine.arguments
-    if args.count==9 && args[1]=="members" {
-        let kit=URL(fileURLWithPath:args[0]).standardizedFileURL.deletingLastPathComponent()
-        guard let h=Int32(args[2]),let host,host.processIdentifier==h,runningCodeHash(h)==args[3],
+    if (9...11).contains(args.count) && args[1]=="members" {
+        guard let kit=PreviewCensus.kit(args[0]), let h=Int32(args[2]),let host,host.processIdentifier==h,runningCodeHash(h)==args[3],
               let p=Int32(args[4]),let b=UInt64(args[5]),birthMicroseconds(p)==b,runningCodeHash(p)==args[6],
               let a=UInt32(args[7]),let z=UInt32(args[8]),a != z,a>0,z>0,
               let scopes=inventory(requireComplete:true),scopes.count==1,let current=scopes[0]["current"] as? UInt64
@@ -14,14 +13,28 @@ func surfaceEvidence() -> Object {
               kit.deletingLastPathComponent().path=="/private/tmp",kit.lastPathComponent.hasPrefix("nearpane-d01.") else {return ["available":false]}
         let nums=[a,z];var reverse=[[UInt64]]()
         for n in nums {
-            guard let row=CGWindowListCopyWindowInfo(.optionIncludingWindow,n) as? [Object],row.count==1,
+            guard let row=PreviewCensus.windowRows(n),row.count==1,
                   row[0][kCGWindowNumber as String] as? UInt32==n,row[0][kCGWindowOwnerPID as String] as? Int32==p,
                   row[0][kCGWindowLayer as String] as? Int==0,let membership=NPReadWindowSpaces(n) as? [UInt64],!membership.isEmpty
             else {return ["available":false]}
             reverse.append(membership.sorted())
         }
         guard birthMicroseconds(p)==b else {return ["available":false]}
-        return ["available":true,"current":current,"numbers":nums,"fixturePID":p,"fixtureBirth":b,"reverse":reverse,"uptime":ProcessInfo.processInfo.systemUptime]
+        let reg=NSRunningApplication(processIdentifier:p)
+        let bundle=kit.appendingPathComponent("Field Notes.app")
+        let registered=reg?.activationPolicy == .regular && reg?.bundleIdentifier=="net.example.spaces-document" &&
+                       reg?.bundleURL?.resolvingSymlinksInPath().path==bundle.resolvingSymlinksInPath().path
+        var result:Object=["available":true,"current":current,"numbers":nums,"fixturePID":p,"fixtureBirth":b,
+                           "fixtureRegularRegistered":registered,"hostBirth":birthMicroseconds(h) as Any? ?? NSNull(),
+                           "reverse":reverse,"hardware":[.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map{CGEventSource.counterForEventType(.hidSystemState,eventType:$0)},
+                           "uptime":ProcessInfo.processInfo.systemUptime]
+        if args.count>=10,let source=UInt64(args[9]){
+            result["sourceCensus"]=PreviewCensus.report(source,host:h,fixture:p,expected:nums,visible:current==source)
+        }
+        if args.count==11,let target=UInt64(args[10]){
+            result["targetCensus"]=PreviewCensus.report(target,host:h,fixture:p,expected:[],visible:false)
+        }
+        return result
     }
     guard args.count==3,let pid=Int32(args[1]),let host,host.processIdentifier==pid,AXIsProcessTrusted(),
           let hash=runningCodeHash(pid),hash==args[2],let birth=birthMicroseconds(pid),

@@ -13,6 +13,7 @@ import uuid
 
 from acceptance import encode, identity, wait_state
 from installed_profile import APP, PROFILE, installed_pid, owns_profile
+from paired_preview_audit import PairedWindowAudit
 from paired_preview_metrics import summarize
 from preview_support import copy_witnesses, overview, with_current_streams, surface_checkpoint
 
@@ -38,6 +39,82 @@ def collect(command, proof, folder, retain=False):
         except ValueError: records.append({'refusal':'incompleteSamplerReply'})
     return records,proc.returncode,timed_out
 
+
+ERRORS=(ValueError,KeyError,OSError,RuntimeError,subprocess.SubprocessError)
+INVARIANT=("hostPID","hostBirth","hostHash","display","space","panel")
+PROOF_KEYS=("ready","reason","present","kinds","ordinaryCount","panel","hostCardCount","windowCensus","sourceProven",
+            "launchServices","fixtureBirth","numbers","hostBirth","space")
+
+def measured(action):
+    try:return action()
+    except ERRORS as error:return {"status":"BLOCKED","reason":str(error)[:200]}
+
+def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source=None):
+    def fresh():
+        value=read(query)
+        if any(value.get(k)!=before[k] for k in INVARIANT if k!="panel") or not owns_profile(host,profile):
+            raise ValueError("hostOrDesktopChanged")
+        return value
+    def required(*,cards=False,sterile=False):
+        proof=fresh()
+        if not proof.get("sourceProven"):raise ValueError(proof.get("reason","enrolledVisibleSourcesUnproven"))
+        if sterile and (proof.get("hardware")!=before.get("hardware") or not proof.get("windowCensus",{}).get("admitted")):
+            raise ValueError("controlledCensusContainsUnverifiedOwnersOrDocumentsOrNewInput")
+        if cards and not proof.get("ready"):raise ValueError(proof.get("reason","productionCardsUnproven"))
+        return proof
+    attempts=[];result["geometryReads"]=attempts;deadline=time.monotonic()+8
+    proof={};last_error=None
+    while deadline-time.monotonic()>.45:
+        try:
+            sample=read(query, min(5,deadline-time.monotonic()))
+            attempts.append({k:sample[k] for k in PROOF_KEYS if k in sample})
+            proof=sample
+            if sample.get("ready") and sample.get("kinds")==["窗口画面","窗口画面"]:break
+            if not sample.get("ready") and sample.get("reason") not in ("missingOrUnexpectedSidebarCard","boundPictureGeometryUnavailable",
+                    "activeSpaceContainsUnexpectedMembers","fixtureLaunchServicesRegistrationUnconfirmed","ordinaryWindowCensusIncomplete"):break
+        except ERRORS as error:
+            last_error=type(error).__name__;attempts.append({"readError":last_error})
+        time.sleep(.15)
+    save()
+    if audit:result["auditBeforeSampling"]=measured(lambda:audit.evidence("before-sampling"))
+    events=[];batches=[]
+    try:
+        if not proof.get("ready"):raise ValueError(proof.get("reason") or last_error or "noBoundSourceAndSidebarGeometry")
+        proof=required(cards=True);result["binding"]=proof;result["captureAttempted"]=True;save()
+        events,exit_code,timed_out=collect(kit/"paired-capture",proof,folder,witness)
+        batches=[e["batch"] for e in events if "batch" in e];result["samples"]=batches
+        result["sampler"]={"exit":exit_code,"timedOut":timed_out,"events":[e for e in events if "batch" not in e]}
+        result["metrics"]=summarize(batches)
+        after=required(cards=True);result["finalBinding"]=after
+        keys=(*INVARIANT,"numbers","fixtureBirth","fixtureHash","fixturePID","sources","pictures")
+        if any(after.get(k)!=proof[k] for k in keys):raise ValueError("finalIdentityOrGeometryChanged")
+        if witness:
+            result["witnessFiles"]=copy_witnesses(folder,output,events,batches,after)
+        if exit_code or timed_out or not any(e.get("completedBatches")==len(batches) for e in events):
+            reasons=[e["refusal"] for e in events if "refusal" in e]
+            raise ValueError(reasons[-1] if reasons else "samplerDidNotComplete")
+        result["status"]=result["metrics"]["status"];result["sampler"]["status"]=result["status"]
+    except ERRORS as error:
+        result["reason"]=str(error)[:220]
+        result.setdefault("sampler",{})["status"]="BLOCKED"
+    save()
+    host_id={"pid":host,"codeHash":host_hash}
+    if witness or budget:
+        result["twoCardSurface"]=measured(lambda:surface_checkpoint(kit,host_id,before["space"],False,2));save()
+    if witness:
+        result["overview"]=measured(lambda:overview(kit,folder,output,required(cards=True)));save()
+    if budget:
+        def hidden():
+            value=required(cards=True,sterile=True)
+            if value.get("kinds")!=["窗口画面","窗口画面"]:raise ValueError("bothInstalledCardsAreNotLive")
+            return with_current_streams(kit,host_id,lambda:owns_profile(host,profile),fresh,output/"hidden")
+        result["hiddenBudget"]=measured(hidden);save()
+    if cross_space:
+        def switch():
+            source=independent_source() if independent_source else required(sterile=True)
+            result["systemSwitchAdmission"]=source
+            return cross_space(source)
+        result["systemDesktopSwitch"]=measured(switch);save()
 
 def run(kit, output, preflight_only=False, expected_space=None, witness=False, budget=False, cross_space=None):
     os.umask(0o077)
@@ -71,68 +148,62 @@ def run(kit, output, preflight_only=False, expected_space=None, witness=False, b
         with tempfile.TemporaryDirectory(prefix='nearpane-preview-pair.',dir='/private/tmp') as temporary:
             folder=Path(temporary)/str(uuid.uuid4());folder.mkdir(mode=0o700)
             home=Path(temporary)/'home';home.mkdir(mode=0o700)
-            proc=subprocess.Popen([fixture,folder,'2'],env={**os.environ,'HOME':str(home),'CFFIXED_USER_HOME':str(home),
-                                  'NP_FIXTURE_PRESENTATION':'paired-preview'},
-                                  stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-            result['fixtureLaunched']=True;result['cleanup']={'status':'UNKNOWN'};numbers=[]
+            proc=subprocess.Popen(["/usr/bin/open","-n","-W","-g","-a",str(app),"--env","HOME="+str(home),
+                                   "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_FIXTURE_PRESENTATION=paired-preview",
+                                   "--args",str(folder),"2"],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            result["fixtureLaunched"]=True;result["cleanup"]={"status":"UNKNOWN"};numbers=[];state={};audit=None;expected=None
             try:
-                state=wait_state(folder/'windows.json',lambda s:s.get('pid')==proc.pid and s.get('session')==folder.name and
-                                 s.get('presentation')=='paired-preview' and (s.get('birth') or 0)>0 and len(set(s.get('numbers',[])))==2
-                                 and s.get('visible')==[True,True],time.monotonic()+5)
-                if not state:raise ValueError('twoOwnedSourceWindowsUnavailable')
-                numbers=state['numbers']; result['fixture']={k:state[k] for k in ('pid','birth','numbers','presentation')}
-                query=cmd+[proc.pid,state['birth'],fixture_hash,fixture,*numbers,before['space']]
-                deadline=time.monotonic()+8;proof={}; attempts=[];result['geometryReads']=attempts
-                while deadline-time.monotonic()>.3:
-                    proof=read(query, min(5,deadline-time.monotonic()))
-                    attempts.append({k:proof[k] for k in ('ready','reason','present','kinds','ordinaryCount','panel') if k in proof})
-                    if proof.get('ready'):break
-                    if proof.get('reason') not in ('missingOrUnexpectedSidebarCard','boundPictureGeometryUnavailable','activeSpaceContainsUnexpectedMembers'):break
-                    time.sleep(.15)
-                if not proof.get('ready'):raise ValueError(proof.get('reason','noBoundSourceAndSidebarGeometry'))
-                invariant=('hostPID','hostBirth','hostHash','display','space','panel')
-                if any(proof[k]!=before[k] for k in invariant) or not owns_profile(host,profile):raise ValueError('hostOrDesktopChanged')
-                result['binding']=proof;result['captureAttempted']=True;save()
-                events,exit_code,timed_out=collect(kit/'paired-capture',proof,folder,witness)
-                batches=[e['batch'] for e in events if 'batch' in e];result['samples']=batches
-                result['sampler']={'exit':exit_code,'timedOut':timed_out,'events':[e for e in events if 'batch' not in e]}
-                result['metrics']=summarize(batches);save()
-                after=read(query);result['finalBinding']=after
-                keys=(*invariant,'numbers','fixtureBirth','fixtureHash','fixturePID','sources','pictures')
-                if not after.get('ready') or any(after.get(k)!=proof[k] for k in keys) or not owns_profile(host,profile):raise ValueError('finalIdentityOrGeometryChanged')
-                if exit_code or not any(e.get('completedBatches')==len(batches) for e in events):
-                    reasons=[e['refusal'] for e in events if 'refusal' in e];raise ValueError(reasons[-1] if reasons else 'samplerDidNotComplete')
-                result['status']=result['metrics']['status']
-                if witness or budget:
-                    result['twoCardSurface']=surface_checkpoint(kit,{'pid':host,'codeHash':host_hash},before['space'],False,2)
-                if witness:
-                    try:
-                        result['witnessFiles']=copy_witnesses(folder,output,events,batches,after)
-                        result['overview']=overview(kit,folder,output,after)
-                    except (ValueError,KeyError,OSError,subprocess.SubprocessError) as error:
-                        result['overview']={'status':'BLOCKED','reason':str(error)[:200]}
-                if cross_space:
-                    result['systemDesktopSwitch']=cross_space(after);save()
-                    if result['systemDesktopSwitch'].get('returnedA') is not True:raise ValueError('controlledSourceDesktopNotRestored')
-                if budget:
-                    if any(e['twoConsecutive'] for e in result['metrics']['simultaneous']) and read(query).get('ready'):
-                        result['hiddenBudget']=with_current_streams(kit,{'pid':host,'codeHash':host_hash},lambda:owns_profile(host,profile),
-                                                                   lambda:read(query),output/'hidden')
-                    else:result['hiddenBudget']={'status':'NOT_RUN','reason':'noPositiveSimultaneousPhysicalFrames'}
-                save()
+                state=wait_state(folder/"windows.json",lambda s:s.get("session")==folder.name and s.get("bundle")=="net.example.spaces-document"
+                                 and s.get("presentation")=="paired-preview" and (s.get("pid") or 0)>1 and (s.get("birth") or 0)>0
+                                 and len(set(s.get("numbers",[])))==2 and s.get("visible")==[True,True],time.monotonic()+7)
+                if not state:raise ValueError("twoOwnedLaunchServicesSourceWindowsUnavailable")
+                fixture_pid=state["pid"];numbers=state["numbers"]
+                expected=dict(pid=fixture_pid,birth=state["birth"],identifier="net.example.spaces-document",executable=str(fixture),hash=fixture_hash)
+                observed=read([kit/"p0-card","process",fixture_pid])
+                if observed!=expected:raise ValueError("launchServicesFixtureKernelGenerationMismatch")
+                result["fixture"]={k:state[k] for k in ("pid","birth","numbers","presentation","key","main")}
+                result["fixture"].update(launcher="Apple Launch Services new instance",kernelGenerationMatches=True)
+                try:
+                    installed=read([kit/"p0-card","process",host])
+                    if (installed.get("pid"),installed.get("birth"),installed.get("hash"))!=(host,before["hostBirth"],host_hash):
+                        raise ValueError("installedHostGenerationChangedBeforeAudit")
+                    audit=PairedWindowAudit(Path(test_home),output,kit,installed)
+                    audit.bind(observed,expected,numbers)
+                except ERRORS as error:
+                    result["hostAudit"]={"status":"UNAVAILABLE","reason":str(error)[:200]};audit=None
+                query=cmd+[fixture_pid,state["birth"],fixture_hash,fixture,*numbers,before["space"]]
+                def independent_source():
+                    current=read([kit/"preview-surface","members",host,host_hash,fixture_pid,state["birth"],fixture_hash,*numbers,before["space"]])
+                    census=current.get("sourceCensus",{})
+                    result["systemSwitchAdmissionRead"]=current
+                    if (not current.get("available") or current.get("hostBirth")!=before["hostBirth"] or not owns_profile(host,profile)
+                            or current.get("hardware")!=before.get("hardware") or current.get("current")!=before["space"]
+                            or not current.get("fixtureRegularRegistered") or current.get("numbers")!=numbers or current.get("reverse")!=[[before["space"]]]*2
+                            or not census.get("admitted")):raise ValueError("independentTwoDocumentCleanDesktopBeforeSwitchUnconfirmed")
+                    return dict(hostBirth=before["hostBirth"],hostPID=host,space=before["space"],fixturePID=fixture_pid,fixtureBirth=state["birth"],
+                                fixtureHash=fixture_hash,numbers=numbers,sourceProven=True,windowCensus=census)
+                casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source)
             finally:
-                (folder/'close').touch();forced=False
-                try:proc.wait(4)
+                if audit:result["hostAudit"]=measured(lambda:audit.evidence("final",release=True))
+                (folder/"close").touch();forced=False;fixture_terminated=False
+                try:proc.wait(5)
                 except subprocess.TimeoutExpired:
-                    forced=True;proc.terminate();proc.wait(3)
-                gone=None
+                    forced=True
+                    if expected and measured(lambda:read([kit/"p0-card","process",expected["pid"]]))==expected:
+                        try:os.kill(expected["pid"],signal.SIGTERM);fixture_terminated=True
+                        except ProcessLookupError:pass
+                    try:proc.wait(2)
+                    except subprocess.TimeoutExpired:proc.terminate();proc.wait(2)
+                gone=None;generation_gone=None
                 if numbers:
-                    stop=time.monotonic()+3;gone=False
+                    stop=time.monotonic()+4;gone=False
                     while time.monotonic()<stop:
-                        if read([kit/'observe','absence',*numbers],3).get('allGone') is True:gone=True;break
+                        if read([kit/"observe","absence",*numbers],3).get("allGone") is True:gone=True;break
                         time.sleep(.12)
-                result['cleanup']={'status':'PASS' if proc.returncode==0 and not forced and (gone is True or not numbers) else 'FAIL',
-                                   'fixtureExitCode':proc.returncode,'forced':forced,'windowNumbersGone':gone}
+                    try:os.kill(state["pid"],0);generation_gone=False
+                    except ProcessLookupError:generation_gone=True
+                result["cleanup"]={"status":"PASS" if proc.returncode==0 and not forced and gone is True and generation_gone is True else "FAIL",
+                                   "launcherExitCode":proc.returncode,"fixtureProcessAbsent":generation_gone,"forced":forced,"forcedFixtureTermination":fixture_terminated,"windowNumbersGone":gone}
                 save()
     except (ValueError,KeyError,OSError,RuntimeError,subprocess.SubprocessError) as error:
         result['reason']=str(error)[:200]

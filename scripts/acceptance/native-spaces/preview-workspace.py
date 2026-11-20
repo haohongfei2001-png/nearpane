@@ -151,14 +151,14 @@ def system_switch(ws, a, fixture, folder):
         out=[]
         for i in range(2):
             if i:time.sleep(.17)
-            args=[ws.kit/"preview-surface","members",str(host["pid"]),host["codeHash"],str(p),str(fixture["fixtureBirth"]),fixture["fixtureHash"],*map(str,windows)]
+            args=[ws.kit/"preview-surface","members",str(host["pid"]),host["codeHash"],str(p),str(fixture["fixtureBirth"]),fixture["fixtureHash"],*map(str,windows),str(a)]+([str(b)] if b is not None else [])
             reverse=json.loads(subprocess.check_output(args,text=True,timeout=5))
             snapshot=ws.read();current=ws.check(snapshot)["current"]
             membership=(snapshot.get("scopedMembers") or {})
             view={}
             for sid in [a]+([b] if b is not None else []):
                 c=membership.get(str(sid),{});raw=c.get("ordinary")
-                view[str(sid)]={"complete":isinstance(raw,list) and c.get("otherMembers")==0 and c.get("unresolved")==0,
+                view[str(sid)]={"complete":isinstance(raw,list) and c.get("unresolved")==0,"otherLayers":c.get("otherMembers"),
                                 "count":len(raw) if isinstance(raw,list) else None,
                                 "enrolled":sorted(w["number"] for w in (raw or []) if w["pid"]==p and w["number"] in windows)}
             value={"current":current,"expectedCurrent":expected_current,"forward":view,"reverse":reverse,"uptime":snapshot["uptime"]}
@@ -167,7 +167,8 @@ def system_switch(ws, a, fixture, folder):
             require(all(c["complete"] for c in view.values()),"partialIndependentForwardCensus")
             if reverse["reverse"]!=[[a],[a]] or view[str(a)]["enrolled"]!=sorted(windows) or (b is not None and view[str(b)]["enrolled"]):
                 result["status"]="FAIL";raise ScopeError("enrolledWindowsDidNotStayExclusivelyOnA")
-            require(view[str(a)]["count"]==2 and (b is None or view[str(b)]["count"]==0),"anotherOrdinaryWindowEnteredControlledSpace")
+            require(reverse.get("sourceCensus",{}).get("admitted") is True and
+                    (b is None or reverse.get("targetCensus",{}).get("admitted") is True),"controlledCensusContainsUnverifiedOwnersOrDocuments")
         return out
     def card_pair():
         tool=ws.kit/"paired-scope"
@@ -183,7 +184,11 @@ def system_switch(ws, a, fixture, folder):
     b=None;baseline=ws.hardware();persist();ws.fixture=fixture
     try:
         require(a in ws.ids() and ws.check(ws.read())["current"]==a and states(ws.kit)[-1]["state"] is False,"requiresStageOffOwnedSpaceA")
-        check_members(a,None);result["beforeA"]=card_pair();require(result["beforeA"]["exact"],"exactSourceCardsBeforeSystemSwitchMissing")
+        check_members(a,None)
+        try:result["beforeA"]=card_pair()
+        except (OSError,ValueError,KeyError,RuntimeError,subprocess.SubprocessError) as e:
+            result["beforeA"]={"exact":False,"reason":str(e)[:180]}
+        persist()
         b=ws.create();result["b"]=b;lease_for(ws,b);persist()
         current=ws.check(ws.read())["current"]
         require(current in (a,b) and ws.hardware()==baseline,"userInputOrUnenrolledSpaceChangedDuringDesktopCreation")
@@ -202,7 +207,8 @@ def system_switch(ws, a, fixture, folder):
             result["firstNonzeroUptime"]=leaks[0]["uptime"];result["firstSubsequentZeroUptime"]=first_zero
             result["status"]="FAIL";raise ScopeError("productionSidebarShowedCardsOnIndependentlyEmptyB")
         require(surface["status"]=="PASS","twoProductZeroCardReadsOnEmptyBUnconfirmed")
-        result["status"]="PASS"
+        result["status"]="PASS" if result["beforeA"]["exact"] else "BLOCKED"
+        if not result["beforeA"]["exact"]:result["reason"]="exactSourceCardsBeforeSystemSwitchMissing"
     except (OSError,ValueError,KeyError,RuntimeError,subprocess.SubprocessError) as e:result["reason"]=str(e)[:220]
     finally:
         try:

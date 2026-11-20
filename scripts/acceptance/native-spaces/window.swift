@@ -26,6 +26,10 @@ NSWindow.allowsAutomaticWindowTabbing = false
 let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
 #if PAIRED_PREVIEW
 let paired = presentation == "paired-preview" && expected == 2 && Bundle.main.bundleIdentifier == "net.example.spaces-document"
+if paired {
+    let home=run.deletingLastPathComponent().appendingPathComponent("home").path
+    guard ProcessInfo.processInfo.environment["HOME"]==home,ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"]==home else {exit(4)}
+}
 var previewStarted: TimeInterval?, previewEpoch = -1
 #endif
 final class SharedFixtureWindow: NSPanel {
@@ -69,11 +73,19 @@ final class SharedFixtureWindow: NSPanel {
 }
 DispatchQueue.main.asyncAfter(deadline:.now()+0.3) {
     for i in 0..<(presentation == "contract-split" ? 1 : expected) { addDocument(i) }
+    #if PAIRED_PREVIEW
+    if paired,windows.count==2 {
+        // These two owned documents have just opened on the preverified empty lease. Normal
+        // AppKit activation publishes a real key/standard AX window for the production roster.
+        windows[0].makeKeyAndOrderFront(nil)
+        app.activate(ignoringOtherApps:true)
+    }
+    #endif
 }
 let start = ProcessInfo.processInfo.systemUptime
 let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     if FileManager.default.fileExists(atPath: run.appendingPathComponent("close").path) ||
-       ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : 150) {
+       ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : (presentation=="paired-preview" ? 240 : 150)) {
         for w in windows { w.orderOut(nil); w.close() }
         app.terminate(nil); return
     }

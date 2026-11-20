@@ -32,9 +32,8 @@ private func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> Bool {
     guard hardware()==input,NSEvent.pressedMouseButtons==0,birth(r.hostPID)==r.hostBirth,birth(r.fixturePID)==r.fixtureBirth,
           let scopes=NPReadInventory() as? [[String:Any]],scopes.count==1,scopes[0]["Display Identifier"] as? String==r.display,
           (scopes[0]["Current Space"] as? [String:Any])?["id64"] as? UInt64==r.space,
-          let report=NPContractMemberReport([NSNumber(value:r.space)] as CFArray,r.hostPID) as? [String:[String:Any]],
-          let record=report[String(r.space)],record["unresolved"] as? Int==0,let normal=record["ordinary"] as? [[String:NSNumber]],
-          normal.count==2,normal.allSatisfy({$0["pid"]?.int32Value==r.fixturePID}),Set(normal.compactMap{$0["number"]?.uint32Value})==Set(r.numbers),
+          let forward=NPReadCatalogSpaceWindowNumbers(r.space) as? [UInt32],
+          r.numbers.allSatisfy({forward.contains($0) && NPReadWindowSpaces($0) as? [UInt64]==[r.space]}),
           let rows=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else{return false}
     for crop in crops {
         var found=false
@@ -96,12 +95,12 @@ private func observe(_ crop:Crop,witness:Bool) async -> [Observation] {
         let data=FileHandle.standardInput.readDataToEndOfFile();let r=try JSONDecoder().decode(Request.self,from:data)
         guard CommandLine.arguments.count==2,CGPreflightScreenCaptureAccess(),NPReadOnlySpacesOpen()==1,
               Set(r.numbers).count==2,r.numbers.count==2,r.pictures.count==2,r.sources.count==2 else{throw Refusal("invalidCaptureAdmission")}
-        let folder=URL(fileURLWithPath:CommandLine.arguments[1]).standardizedFileURL
+        guard let folder=PreviewCensus.ownedTemporaryURL(CommandLine.arguments[1]) else{throw Refusal("unownedTriggerDirectory")}
         let temp=folder.deletingLastPathComponent();var info=stat()
         guard UUID(uuidString:folder.lastPathComponent) != nil,temp.lastPathComponent.hasPrefix("nearpane-preview-pair."),
-              temp.deletingLastPathComponent().path=="/private/tmp",folder.resolvingSymlinksInPath()==folder,
+              temp.deletingLastPathComponent().path=="/private/tmp",PreviewCensus.ownedTemporaryURL(temp.path) != nil,
               lstat(folder.path,&info)==0,info.st_uid==getuid(),info.st_mode & 0o077==0 else{throw Refusal("unownedTriggerDirectory")}
-        let kit=URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent()
+        guard let kit=PreviewCensus.kit(CommandLine.arguments[0]) else{throw Refusal("unqualifiedBuildDirectory")}
         func confirmCards() throws -> [String] {
             let child=Process(),pipe=Pipe()
             child.executableURL=kit.appendingPathComponent("paired-scope")
