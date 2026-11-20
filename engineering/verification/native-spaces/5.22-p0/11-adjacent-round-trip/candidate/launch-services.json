@@ -1,0 +1,10 @@
+{
+  "bundleID" : "com.holdsnow.nearpane.alpha",
+  "registeredPaths" : [
+    "\/Applications\/Nearpane.app"
+  ],
+  "runningPaths" : [
+    "\/Applications\/Nearpane.app"
+  ],
+  "singleFormalInstallation" : true
+}
