@@ -143,6 +143,10 @@
       "sharedSources": {
         "Sources/SaytileKit/VoiceRailProportions.swift": "Sources/SaytileVoiceUI/VoiceRailProportions.swift",
         "Sources/SaytileKit/VoiceTranscriptFlow.swift": "Sources/SaytileVoiceUI/VoiceTranscriptFlow.swift"
+      },
+      "captureReadiness": {
+        "patchSHA256": "1ed10ef7a09299b205d0e136336cc843378cee5958d01b56a20070c6bceff79f",
+        "compiledSHA256": "ad9eda5b75238bde24eafb03465b51a96a8a997289d1bb8d3755b97ac07a0d05"
       }
     },
     "riftlet": {

@@ -8,6 +8,8 @@ struct DomainPin: Decodable {
     let commit: String
     let treeSHA256: String
     let sources: [String]
+    struct CaptureReadiness: Decodable { let compiledSHA256: String }
+    let captureReadiness: CaptureReadiness?
     var key: String { commit + "-" + treeSHA256 }
 }
 struct DomainLock: Decodable {
@@ -43,13 +45,15 @@ if full {
     let cache = (run.isEmpty ? ".build" : "build/standalone." + run + "/cache") + "/domain-cache-v1/"
     let saytile = cache + speech.key + "/Sources/"
     let riftlet = cache + tray.key + "/Sources/"
+    let voiceSuffix = speech.captureReadiness.map { "-" + $0.compiledSHA256 } ?? ""
     targets += [
         .binaryTarget(name: "Sparkle", path: updateCache),
         .systemLibrary(name: "CSQLite", path: saytile + "CSQLite"),
         .target(name: "CAudio", path: saytile + "CAudio",
                 exclude: ["WEBRTC-LICENSE.txt", "webrtc/common_audio/signal_processing/dot_product_with_scale.cc"],
                 cSettings: [.headerSearchPath("."), .define("WEBRTC_POSIX")]),
-        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key,
+        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key + voiceSuffix,
+                exclude: speech.captureReadiness == nil ? [] : ["Upstream/AudioCapture.swift"],
                 resources: [.copy("Upstream/Resources/ConnectionSample.pcm"), .copy("Upstream/Resources/LocalASR")]),
         .target(name: "SaytileVoiceUI", path: saytile + "SaytileVoiceUI"),
         .target(name: "RiftletCore", dependencies: ["CSQLite"], path: riftlet + "RiftletCore",

@@ -125,6 +125,8 @@ def verify(app, lock, sandbox):
         expected = {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}
         if pin.get("releaseTag"):
             expected["releaseTag"] = pin["releaseTag"]
+        if name == "saytile" and pin.get("captureReadiness"):
+            expected["captureReadiness"] = pin["captureReadiness"]
         if name == "saytile" and lock.get("saytileUpdates"):
             updates = lock["saytileUpdates"]
             expected["updates"] = updates

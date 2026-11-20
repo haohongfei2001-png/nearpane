@@ -1,3 +1,5 @@
+import AVFoundation
+import Combine
 import Foundation
 import Synchronization
 import Testing
@@ -15,6 +17,39 @@ struct PCMPipelineTests {
         #expect(final.fullText == "第一句，第二句。" && final.stableText == final.fullText && final.isCompletelyFinal)
         #expect(transcript.apply(start: 2, end: 2, text: "。", isFinal: true) == final)
         #expect(transcript.apply(start: 2, end: 2, text: "别的文字", isFinal: true) == final)
+    }
+
+    @MainActor @Test func coldCaptureWaitsForActualPCMAndAcceptsSilentInput() async throws {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data")
+            .appendingPathComponent("cold-capture-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SaytileStore(directory: root)
+        let controller = AudioController(store: store, startupRecoveryReady: false)
+        var states = [CaptureState]()
+        let observation = controller.$state.sink { states.append($0) }
+        defer { observation.cancel() }
+        for frames in [0, 3_200] {
+            let url = root.appendingPathComponent("silence-" + String(frames) + ".wav")
+            do {
+                let format = try #require(AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000,
+                                                       channels: 1, interleaved: false))
+                let file = try AVAudioFile(forWriting: url, settings: format.settings, commonFormat: .pcmFormatInt16,
+                                           interleaved: false)
+                if frames > 0 {
+                    let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: UInt32(frames)))
+                    buffer.frameLength = UInt32(frames)
+                    buffer.int16ChannelData![0].update(repeating: 0, count: frames)
+                    try file.write(from: buffer)
+                }
+            }
+            states.removeAll()
+            _ = try await controller.replayLocalFixture(url, recordOnly: true)
+            #expect(states.first == .starting)
+            #expect(states.contains(.listening) == (frames > 0))
+            #expect(states.last == .paused)
+        }
+        await controller.shutdown()
     }
 
     @Test func injectedSamplesDrainThroughTheDomainRingAndJournalWithoutRecognition() async throws {

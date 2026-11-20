@@ -48,6 +48,7 @@ public struct VoiceSurface: View {
                 Button { Task { await module.toggle() } } label: {
                     Image(systemName: "play.fill").font(.system(size: 13)).frame(width: 48, height: 27)
                 }.disabled(module.busy || !module.active).accessibilityLabel("开始或恢复收音")
+                    .accessibilityIdentifier("voice-capture-toggle")
                     .accessibilityValue("暂停")
             }
         }
@@ -157,6 +158,7 @@ public struct VoiceSurface: View {
                 .buttonStyle(VoiceGlassControlStyle(copy: false, height: buttonHeight))
                 .disabled(module.busy || !module.active)
                 .help(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
+                .accessibilityIdentifier("voice-capture-toggle")
                 .accessibilityLabel(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
                 .accessibilityValue(module.control.state == .standby ? "待命" : module.control.state == .recognizing ? "正在识别" : "暂停")
             }

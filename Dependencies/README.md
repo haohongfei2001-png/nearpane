@@ -25,3 +25,5 @@ git diff --no-index Dependencies/domains.lock.json build/saytile-candidate.lock.
 审查新增或移除的源文件、接口、许可证和桥接文件，明确采纳后替换锁文件并运行 `scripts/verify-standalone.sh`。升级 Riftlet 使用域名参数 `riftlet`。项目本身的 SwiftPM 定义、未公开组件的接口或许可范围发生变化时也要审查相应目标。不存在轮询分支或自动更新版本的任务。
 
 Saytile 的两个 Swift 文件在上游通过符号链接与 `SaytileVoiceUI` 共享。锁文件的 `sharedSources` 逐个声明映射，升级提案验证 Git 树中的链接目标。构建只读取对应的已校验常规文件。原先的 RC2 加三份替换源码已整体升级为同一发布提交。成品的 `Upstream/{saytile,riftlet}/source.json` 记录 releaseTag、提交、来源和指纹。
+
+Nearpane 针对本机收音启动的修订位于 `saytile-capture-readiness.patch`。构建时从已校验的 Saytile `AudioCapture.swift` 派生编译副本，补丁和副本摘要均记录在锁文件与成品的 `Upstream/saytile/source.json`。实际音频缓冲到达后才显示待命，静音缓冲同样有效。

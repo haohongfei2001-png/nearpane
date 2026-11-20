@@ -1,0 +1,22 @@
+--- AudioCapture.swift
++++ AudioCapture.swift
+@@ -451,7 +451,7 @@
+             recognitionEnabled: !recordOnly, recognitionFactory: recognitionFactory,
+             update: { updates.yield(($0, $1)) }, failed: { [weak self] message in self?.issue = message })
+         let clock = ContinuousClock(), began = clock.now
+-        state = .listening
++        state = .starting
+         await worker.start()
+         let buffer = AVAudioPCMBuffer(pcmFormat: source.processingFormat, frameCapacity: 320)!
+         do {
+@@ -667,7 +667,9 @@
+                 if requestPermission { requestedRunning = false }
+                 throw AudioFailure.message(MicrophoneLid.reason)
+             }
+-            self.engine = engine; self.ring = ring; self.worker = worker; state = .listening
++            // Keep the display in .starting until the worker's first actual input buffer.
++            // Its existing meter publishes .listening even for digital silence.
++            self.engine = engine; self.ring = ring; self.worker = worker
+             await worker.start()
+             prepareLocalSpeechResourcesIfNeeded()
+         } catch {

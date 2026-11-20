@@ -10,6 +10,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -222,7 +223,9 @@ def validate_voice_updates(pin, updates):
 def voice_bindings(cache, pin, updates=None):
     # Keep the domain's internal dependency-injection API in its own Swift module.
     # The verified upstream directory remains byte-for-byte intact.
-    dest = cache / ("voice-" + key(pin) + ("-" + key(updates) if updates else ""))
+    adjustment = pin.get("captureReadiness")
+    suffix = "-" + adjustment["compiledSHA256"] if adjustment else ""
+    dest = cache / ("voice-" + key(pin) + ("-" + key(updates) if updates else "") + suffix)
     links = {"Upstream": cache / key(pin) / "Sources/SaytileKit",
              "Nearpane": ROOT / "Sources/NearpaneSaytileBridge"}
     # Compile the shared source in both modules, using only the locked regular file.
@@ -231,15 +234,34 @@ def voice_bindings(cache, pin, updates=None):
     if updates:
         # SwiftPM excludes these originals and discovers only these verified replacements.
         links.update({PurePosixPath(path).name: cache / key(updates) / path for path in updates["sources"]})
+    patch_file = ROOT / "Dependencies/saytile-capture-readiness.patch"
+    source_name = "AudioCapture.swift"
+    expected_entries = set(links)
+    if adjustment:
+        require(re.fullmatch(r"[0-9a-f]{64}", adjustment["compiledSHA256"])
+                and hashlib.sha256(patch_file.read_bytes()).hexdigest() == adjustment["patchSHA256"]
+                and source_name not in links, "Unexpected microphone readiness patch")
+        expected_entries.add(source_name)
     if not dest.exists():
         with tempfile.TemporaryDirectory(prefix=".bindings-", dir=cache) as work:
             stage = Path(work) / "voice"
             stage.mkdir()
             for name, target in links.items():
                 (stage / name).symlink_to(os.path.relpath(target, dest))
+            if adjustment:
+                # Apply only in the derived binding. The verified upstream tree stays immutable.
+                result = subprocess.run(["/usr/bin/patch", "-s", "-F", "0", "-o", str(stage / source_name),
+                                         str(links["Upstream"] / source_name), str(patch_file)], cwd=stage)
+                require(result.returncode == 0 and hashlib.sha256((stage / source_name).read_bytes()).hexdigest()
+                        == adjustment["compiledSHA256"], "Cannot reproduce the pinned microphone adapter")
             stage.rename(dest)
-    require(not dest.is_symlink() and {p.name for p in dest.iterdir()} == set(links),
+    require(not dest.is_symlink() and {p.name for p in dest.iterdir()} == expected_entries,
             "Unexpected entry in the SaytileKit binding")
+    if adjustment:
+        adapted = dest / source_name
+        require(not adapted.is_symlink() and adapted.is_file()
+                and hashlib.sha256(adapted.read_bytes()).hexdigest() == adjustment["compiledSHA256"],
+                "Microphone source differs from the reviewed adaptation")
     for name, target in links.items():
         require((dest / name).is_symlink() and (dest / name).resolve(strict=True) == target,
                 f"Invalid SaytileKit bridge link: {name}")
@@ -267,6 +289,8 @@ def package_resources(resources, pins, directories, updates, update_directory):
         provenance = {k: pin[k] for k in ("repository", "commit", "treeSHA256", "notices")}
         if pin.get("releaseTag"):
             provenance["releaseTag"] = pin["releaseTag"]
+        if name == "saytile" and pin.get("captureReadiness"):
+            provenance["captureReadiness"] = pin["captureReadiness"]
         if name == "saytile" and updates:
             provenance["updates"] = updates
             for path in updates["notices"]:
