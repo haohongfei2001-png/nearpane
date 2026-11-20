@@ -149,7 +149,26 @@ def main():
             require(validate_live(scope, independent(), host) == a, "Unexpected desktop or unrelated member after drag")
             record("confirmed", action=action, receipt=sample)
             result["completed"].append(dict(action=action, fromSpace=src, toSpace=dst))
-        result.update(status="PASS", reason="Four installed-sidebar gestures and independent final readbacks matched.")
+        original_number = numbers[0]
+        (folder / "recreate-closed").touch(exist_ok=False)
+        replacement = wait_state(folder / "windows.json", lambda s: len(s.get("numbers", [])) == 3 and
+                                 s["numbers"][-1] > 0 and s["numbers"][-1] not in numbers, time.monotonic()+4)
+        require(replacement, "Fixture did not recreate the closed window with a fresh WindowServer identity.")
+        new_number = replacement["numbers"][-1]
+        numbers.append(new_number)
+        fresh = {**ws[0], "number":new_number, "space":a}
+        scope["witnesses"] = [ws[1],fresh]
+        # The stale source stays absent. A new window from the same PID must remain on A after the cancelled request settles.
+        for index in range(4):
+            snapshot=independent()
+            require(validate_live(scope,snapshot,host)==a, "Old drag reached the replacement window or changed its sibling")
+            absent=json.loads(checked([str(observer),"absence",str(original_number)]))
+            require(absent.get("allGone") is True,"Old window identity was not independently absent")
+            record("recreated-readback",sample=index+1,old=original_number,replacement=new_number,
+                   unchangedSibling=numbers[1],scope=a)
+            time.sleep(.18)
+        result["completed"].append(dict(action="recreate-window",old=original_number,new=new_number,correctSpace=a))
+        result.update(status="PASS", reason="Four installed-sidebar gestures and stable readbacks for the independently recreated window matched.")
     except (OSError, KeyError, ValueError, TypeError, subprocess.SubprocessError) as exc:
         result["status"] = "FAIL" if result["inputs"] else "BLOCKED"
         result["reason"] = str(exc)
@@ -164,7 +183,7 @@ def main():
                     proc.wait(timeout=4)
                 end = independent()
                 absence = json.loads(checked([str(observer), "absence", *map(str, numbers)])) if numbers else {}
-                clear = len(numbers) == 2 and absence.get("allGone") is True
+                clear = len(numbers) >= 2 and absence.get("allGone") is True
                 restored = (end.get("frontmostPID"), end.get("focusedNumber")) == initial_focus and end.get("scopes") == before.get("scopes")
                 result["cleanup"] = dict(required=True, exit=proc.returncode, windowsAbsent=clear, originalFocusAndSpacesRestored=restored)
                 if not clear or not restored:

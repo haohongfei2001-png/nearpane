@@ -299,8 +299,39 @@ static void emit(NSDictionary *report) {
 }
 
 #ifdef NEARPANE_CONTRACT_MEMBERS
+#import <Security/Security.h>
 // Metadata-only, per-Space forward inventory. Unassigned windows elsewhere do not
 // establish occupancy here. Unknown members on the requested desktop remain blocking.
+static NSArray *contractTopology(NSArray *inventory) {
+    need(inventory.count == 1, @"one physical display required");
+    NSDictionary *scope = inventory[0];
+    NSString *display = scope[@"Display Identifier"];
+    NSNumber *current = integer(scope[@"Current Space"][@"id64"]);
+    NSMutableArray *records = [NSMutableArray new];
+    for (NSDictionary *r in scope[@"Spaces"]) {
+        NSNumber *sid = integer(r[@"id64"]), *type = integer(r[@"type"]);
+        NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:r[@"uuid"]];
+        need(sid && type && uuid, @"incomplete Space identity");
+        [records addObject:@[sid,type,uuid.UUIDString]];
+    }
+    need(display && current && records.count, @"incomplete display inventory");
+    return @[display,current,records];
+}
+
+static NSDictionary *contractSigning(NSNumber *pid) {
+    SecCodeRef code = NULL;
+    if (SecCodeCopyGuestWithAttributes(NULL, (__bridge CFDictionaryRef)@{(__bridge NSString*)kSecGuestAttributePid:pid}, kSecCSDefaultFlags, &code) != errSecSuccess || !code) return @{};
+    CFDictionaryRef info = NULL;
+    SecCodeCopySigningInformation(code, kSecCSSigningInformation, &info);
+    NSDictionary *sign = CFBridgingRelease(info);
+    SecRequirementRef requirement = NULL;
+    BOOL apple = SecRequirementCreateWithString(CFSTR("anchor apple"),kSecCSDefaultFlags,&requirement) == errSecSuccess &&
+        SecCodeCheckValidity(code,kSecCSDefaultFlags,requirement) == errSecSuccess;
+    if (requirement) CFRelease(requirement);
+    CFRelease(code);
+    return @{@"identifier":sign[(__bridge NSString*)kSecCodeInfoIdentifier] ?: NSNull.null,@"apple":@(apple)};
+}
+
 CFDictionaryRef NPContractMemberReport(CFArrayRef spaceIDs, int hostPID) {
     @autoreleasepool { @try {
         need(NPReadOnlySpacesOpen() == 1 && spaceIDs && CFArrayGetCount(spaceIDs) > 0 &&
@@ -327,8 +358,8 @@ CFDictionaryRef NPContractMemberReport(CFArrayRef spaceIDs, int hostPID) {
         for (NSNumber *sid in selected) {
             NSSet *forward=reads[sid], *visible=windowsInSpace(sid.stringValue,2);
             need([visible isSubsetOfSet:forward],@"visible membership exceeds all-members query");
-            NSUInteger desktop=0, shared=0, other=0, unknown=0;
-            NSMutableArray *members=[NSMutableArray new];
+            NSUInteger desktop=0, shared=0, other=0, unknown=0, hostPanels=0, systemMenus=0;
+            NSMutableArray *members=[NSMutableArray new], *details=[NSMutableArray new];
             for (NSNumber *number in forward) {
                 if ([all containsObject:number] && ![nonDesktop containsObject:number]) { desktop++; continue; }
                 const void *id=(const void *)(uintptr_t)number.unsignedIntValue;
@@ -342,17 +373,37 @@ CFDictionaryRef NPContractMemberReport(CFArrayRef spaceIDs, int hostPID) {
                 if (layer.intValue == 0 && pid.intValue != hostPID) {
                     [members addObject:@{@"number":number,@"pid":pid}];continue;
                 }
-                BOOL global=[allRecords isSubsetOfSet:[NSSet setWithArray:reverse]];
+                NSSet *reverseSet=[NSSet setWithArray:reverse];
+                if (pid.intValue == hostPID && layer.intValue == CGWindowLevelForKey(kCGFloatingWindowLevelKey)) {
+                    BOOL coversOrdinary = [ordinary isSubsetOfSet:reverseSet];
+                    for (NSNumber *space in ordinary) coversOrdinary &= [reads[space] containsObject:number];
+                    if (coversOrdinary) { hostPanels++; continue; }
+                }
+                if (layer.intValue == CGWindowLevelForKey(kCGMainMenuWindowLevelKey) && [visible containsObject:number]) {
+                    NSDictionary *signing=contractSigning(pid);
+                    if ([signing[@"apple"] boolValue] && [signing[@"identifier"] isEqual:@"com.apple.WindowServer"]) {
+                        systemMenus++; continue;
+                    }
+                }
+                BOOL global=[allRecords isSubsetOfSet:reverseSet];
                 for (NSNumber *space in allRecords) global &= [reads[space] containsObject:number];
-                if (global) shared++; else other++;
+                if (global) { shared++; } else {
+                    other++;
+                    NSMutableArray *inSpaces=[NSMutableArray new];
+                    for (NSNumber *space in allRecords) if ([reads[space] containsObject:number]) [inSpaces addObject:space];
+                    [details addObject:@{@"number":number,@"pid":pid,@"layer":layer,@"code":contractSigning(pid),
+                        @"reverse":reverse?:@[],@"forward":inSpaces,@"ordinarySpaceIDs":ordinary.allObjects,
+                        @"onscreen":rows[0][(__bridge NSString*)kCGWindowIsOnscreen] ?: @NO,
+                        @"visibleQuery":@([visible containsObject:number]),@"installedHost":@([pid intValue]==hostPID)}];
+                }
             }
             need([forward isEqual:windowsInSpace(sid.stringValue,7)],@"target membership changed during verification");
             report[sid.stringValue]=@{@"ordinary":members,@"desktopElements":@(desktop),@"verifiedSharedOverlays":@(shared),
-                                      @"otherMembers":@(other),@"unresolved":@(unknown)};
+                                      @"verifiedHostPanels":@(hostPanels),@"systemMenuSurfaces":@(systemMenus),@"otherMembers":@(other),@"otherDetails":details,@"unresolved":@(unknown)};
         }
-        need([inventory isEqual:CFBridgingRelease(NPReadInventory())],@"topology changed while resolving occupancy");
+        need([contractTopology(inventory) isEqual:contractTopology(CFBridgingRelease(NPReadInventory()))],@"topology changed while resolving occupancy");
         return CFBridgingRetain(report);
-    } @catch (NSException *exception) { return NULL; } }
+    } @catch (NSException *exception) { return CFBridgingRetain(@{@"unavailable":exception.reason ?: @"per-Space census unavailable"}); } }
 }
 #else
 int main(int argc, const char **argv) { @autoreleasepool {

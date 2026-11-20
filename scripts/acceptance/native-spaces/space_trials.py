@@ -175,11 +175,18 @@ def scenarios(ids):
 def run(observer, driver, lease, output, *, run_rapid=True):
     output.mkdir(parents=True, exist_ok=False)
     stream = (output / "actions.jsonl").open("x")
-    result = {"S02": "NOT_RUN", "S03": "NOT_RUN", "R01": "NOT_RUN", "sent": 0, "prepared": 0, "unknown": 0}
+    result = {"S02": "NOT_RUN", "S03": "NOT_RUN", "R01": "NOT_RUN", "sent": 0, "prepared": 0, "unknown": 0, "attempts": []}
+    scenario = None
+    trial = None
     def log(event, **fields):
         if event == "before-press":
+            result["attempts"].append(dict(scenario=scenario,trial=trial,source=fields["source"],target=fields["target"],
+                                           inputAcknowledged=None,status="UNKNOWN"))
             result["prepared"] += 1
         if event == "after-press":
+            attempt=result["attempts"][-1]
+            attempt.update(inputAcknowledged=fields["axError"]==0,axError=fields["axError"])
+            if fields["axError"]!=0:attempt["status"]="FAIL"
             result["sent"] += 1
         stream.write(json.dumps(dict(event=event, monotonic=time.monotonic(), **fields)) + "\n")
         stream.flush()
@@ -244,33 +251,59 @@ def run(observer, driver, lease, output, *, run_rapid=True):
         channel.command([], [origin])
         singles, rapid = scenarios(ids)
         current = origin
+        scenario = "S02"
         result["S02"] = "IN_PROGRESS"
         for i, target in enumerate(singles):
+            trial=f"S02-{i+1}"
+            if target == current:
+                target = next(n for n in ids if n != current)
             channel.command([target], [current])
-            sample(target, f"S02-{i+1}")
-            current = target
-        result["S02"] = "PASS"
+            try:
+                sample(target,trial)
+            except ScopeError as error:
+                # Only a known, quiet, still-owned state admits the next independent trial.
+                # An interrupted action or a changed user/Host/fixture identity suspends input.
+                if str(error) != "target arrival and installed-sidebar highlight did not settle": raise
+                first_read = read()
+                actual=validate_live(scope,first_read,scope["host"],require_highlight=False)
+                time.sleep(.25)
+                second_read=read()
+                require(validate_live(scope,second_read,scope["host"],require_highlight=False)==actual
+                        and catalog_match(first_read)==catalog_match(second_read),"unsettled outcome after selection")
+                channel.command([], [actual])
+                result["attempts"][-1].update(status="FAIL",actual=actual,reason=str(error))
+                log("confirmed-failure",trial=trial,actual=actual,target=target)
+                current=actual
+            else:
+                result["attempts"][-1]["status"]="PASS"
+                current=target
+        result["S02"] = "PASS" if all(a["status"]=="PASS" for a in result["attempts"]) else "FAIL"
         if not run_rapid:
             return result
         # System-initiated switching and external reordering require their own witness;
         # independent readbacks of sidebar actions alone cannot satisfy S03.
         result["S03Readback"] = "Compared the actual WindowServer inventory and all current/highlight pairs for each S02 action."
+        scenario = "R01"
         result["R01"] = "IN_PROGRESS"
         for i, group in enumerate(rapid):
+            trial=f"R01-{i+1}"
             sent = channel.command(group, [current])
             require(len(sent) == len(group), "incomplete rapid group")
             gaps = [y["tPress"] - x["tPress"] for x, y in zip(sent, sent[1:])]
             log("rapid-group", group=i+1, gaps=gaps, last=group[-1])
             current = group[-1]
-            sample(current, f"R01-{i+1}", True)
+            sample(current,trial,True)
+            result["attempts"][-1]["status"]="PASS"
             if not all(0 <= gap <= .25 for gap in gaps):
                 if current != origin:
                     channel.command([origin], [current])
                     sample(origin, "return-after-timing-failure", True)
+                    result["attempts"][-1]["status"]="PASS"
                 raise ScopeError("input sequence did not exercise rapid selection")
         if current != origin:
             channel.command([origin], [current])
             sample(origin, "return-to-A", True)
+            result["attempts"][-1]["status"]="PASS"
         final = read()
         result["focusRestored"] = (origin == validate_live(scope, final, scope["host"]) and
                                    second["frontmostPID"] == final["frontmostPID"] and second["focusedNumber"] == final["focusedNumber"])
@@ -300,7 +333,9 @@ def run(observer, driver, lease, output, *, run_rapid=True):
         if channel:
             channel.close()
         stream.close()
-        result["unknown"] = result["prepared"] - result["sent"]
+        result["unknown"] = sum(a["status"]=="UNKNOWN" for a in result["attempts"])
+        result["failed"] = sum(a["status"]=="FAIL" for a in result["attempts"])
+        result["singles"] = sum(a["scenario"]=="S02" and "axError" in a for a in result["attempts"])
         result["S03Reason"] = "An independent system-initiated switch and a controlled native reorder are still required."
         (output / "results.json").write_text(json.dumps(result, indent=2) + "\n")
     return result

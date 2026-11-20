@@ -1,0 +1,165 @@
+// Included with the installed-sidebar observer by build-contract.sh. Only the two
+// enrolled synthetic file URLs may be inspected in a fresh system TextEdit process.
+import CryptoKit
+
+struct DocumentRefusal: Error { let reason: String; init(_ reason: String) { self.reason = reason } }
+struct DocumentRequest: Decodable {
+    let mode: String, folder: String, display: String, space: UInt64, hostPID: Int32, hostHash: String
+    let index: Int?, marker: String?, hid: [UInt32]
+}
+struct DocumentInstance: Codable {
+    let pid: Int32, launch: TimeInterval, hash: String
+}
+func textInputCounters() -> [UInt32] {
+    [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel].map {
+        CGEventSource.counterForEventType(.hidSystemState, eventType:$0)
+    }
+}
+func textDocuments(_ request: DocumentRequest) throws -> Object {
+    let folder = URL(fileURLWithPath:request.folder, isDirectory:true).resolvingSymlinksInPath().standardizedFileURL
+    let kit = folder.deletingLastPathComponent()
+    let manager = FileManager.default
+    let appURL = URL(fileURLWithPath:"/System/Applications/TextEdit.app", isDirectory:true)
+    let wanted = ["A.txt", "B.txt"].map { folder.appendingPathComponent($0) }
+    let receiptURL = folder.appendingPathComponent("instance.json")
+    guard UUID(uuidString:folder.lastPathComponent) != nil, folder.path == request.folder,
+          kit.deletingLastPathComponent().path == "/private/tmp", kit.lastPathComponent.hasPrefix("nearpane-d01."),
+          AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1 else { throw DocumentRefusal("private test folder or observer unavailable") }
+    func guardInput() throws {
+        let active = inventory()?.first { $0["scope"] as? String == request.display }
+        guard let host, host.processIdentifier == request.hostPID, runningCodeHash(host.processIdentifier) == request.hostHash,
+              active?["current"] as? UInt64 == request.space,
+              (active?["records"] as? [Object])?.contains(where: { $0["id"] as? UInt64 == request.space && $0["type"] as? Int == 0 }) == true,
+              textInputCounters()==request.hid, NSEvent.pressedMouseButtons==0
+        else { throw DocumentRefusal("test Space, user input or installed Host identity changed") }
+    }
+    func instance(_ application: NSRunningApplication) throws -> DocumentInstance {
+        guard application.bundleURL?.standardizedFileURL.path == appURL.path,
+              application.bundleIdentifier=="com.apple.TextEdit", !application.isTerminated,
+              let launch=application.launchDate?.timeIntervalSince1970, let hash=runningCodeHash(application.processIdentifier)
+        else { throw DocumentRefusal("could not verify Apple TextEdit at its system path") }
+        return DocumentInstance(pid:application.processIdentifier, launch:launch, hash:hash)
+    }
+    if request.mode == "open" {
+        try guardInput()
+        guard !manager.fileExists(atPath:receiptURL.path), NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.TextEdit").isEmpty,
+              wanted.allSatisfy({ $0.resolvingSymlinksInPath()==$0 && (try? Data(contentsOf:$0)) == Data() })
+        else { throw DocumentRefusal("TextEdit is already in use or test inputs are not fresh") }
+        let home=folder.appendingPathComponent("home",isDirectory:true)
+        try manager.createDirectory(at:home,withIntermediateDirectories:false)
+        let config=NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance=true
+        config.activates=true
+        config.addsToRecentItems=false
+        config.promptsUserIfNeeded=false
+        config.environment=["HOME":home.path,"CFFIXED_USER_HOME":home.path]
+        config.arguments=["-ApplePersistenceIgnoreState","YES","-NSQuitAlwaysKeepsWindows","NO","-AppleWindowTabbingMode","manual"]
+        var reply: Result<DocumentInstance,Error>?
+        NSWorkspace.shared.open(wanted,withApplicationAt:appURL,configuration:config) { app,error in
+            do {
+                if let error { throw error }
+                guard let app else { throw DocumentRefusal("Launch Services did not identify the new application") }
+                let record=try instance(app)
+                try JSONEncoder().encode(record).write(to:receiptURL,options:.withoutOverwriting)
+                reply = .success(record)
+            } catch { reply = .failure(error) }
+        }
+        let stop=Date().addingTimeInterval(8)
+        while reply==nil, Date()<stop { RunLoop.current.run(until:Date().addingTimeInterval(0.03)) }
+        guard let record=try reply?.get() else { throw DocumentRefusal("TextEdit launch receipt is unknown") }
+        return ["pid":record.pid,"launch":record.launch,"hash":record.hash]
+    }
+    let enrolled=try JSONDecoder().decode(DocumentInstance.self,from:Data(contentsOf:receiptURL))
+    guard let app=NSRunningApplication(processIdentifier:enrolled.pid) else {
+        if ["terminated","close"].contains(request.mode) { return ["terminated":true,"pid":enrolled.pid] }
+        throw DocumentRefusal("enrolled TextEdit exited")
+    }
+    if request.mode=="terminated" { return ["terminated":app.isTerminated || app.launchDate?.timeIntervalSince1970 != enrolled.launch,"pid":enrolled.pid] }
+    let live=try instance(app)
+    guard live.launch==enrolled.launch && live.hash==enrolled.hash else { throw DocumentRefusal("TextEdit process generation changed") }
+    let root=AXUIElementCreateApplication(enrolled.pid)
+    _=AXUIElementSetMessagingTimeout(root,0.5)
+    func boundWindows() throws -> [AXUIElement] {
+        guard let windows=value(root,kAXWindowsAttribute) as? [AXUIElement], windows.count==2 else {
+            throw DocumentRefusal("TextEdit has not exposed exactly the two enrolled document windows")
+        }
+        var result=[URL:AXUIElement]()
+        for window in windows {
+            guard let raw=value(window,kAXDocumentAttribute) as? String, let url=URL(string:raw)?.standardizedFileURL,
+                  wanted.contains(url), result[url]==nil else {throw DocumentRefusal("a window is not bound to the disposable document URLs")}
+            result[url]=window
+        }
+        return try wanted.map { guard let w=result[$0] else {throw DocumentRefusal("test document missing")}; return w }
+    }
+    let windows=try boundWindows()
+    if request.mode=="close" {
+        // A new user document in our process revokes permission to terminate it.
+        guard textInputCounters()==request.hid, app.terminate() else {throw DocumentRefusal("could not quit the owned TextEdit instance")}
+        let deadline=Date().addingTimeInterval(2)
+        while !app.isTerminated && Date()<deadline { usleep(60_000) }
+        if !app.isTerminated {
+            _=try boundWindows()
+            guard textInputCounters()==request.hid && app.forceTerminate() else {throw DocumentRefusal("test TextEdit did not terminate")}
+        }
+        return ["quitRequested":true,"pid":enrolled.pid]
+    }
+    try guardInput()
+    let numbers=windows.map { NPReadAXWindowNumber($0) }
+    guard Set(numbers).count==2, !numbers.contains(0),
+          numbers.allSatisfy({ NPReadWindowSpaces($0) as? [UInt64] == [request.space] }) else { throw DocumentRefusal("document number or system membership unavailable") }
+    func editor(_ window: AXUIElement) throws -> AXUIElement {
+        var queue=[window], found=[AXUIElement](), seen=0
+        while let e=queue.popLast(),seen<120 {
+            seen += 1
+            if value(e,kAXRoleAttribute) as? String == kAXTextAreaRole { found.append(e);continue }
+            queue += value(e,kAXChildrenAttribute) as? [AXUIElement] ?? []
+        }
+        guard queue.isEmpty, found.count==1 else {throw DocumentRefusal("owned TextEdit document has no unique editor")}
+        return found[0]
+    }
+    let editors=try windows.map(editor)
+    let focused=focusedNumber(enrolled.pid) ?? 0
+    let main: UInt32 = value(root,kAXMainWindowAttribute).map { NPReadAXWindowNumber($0) } ?? 0
+    if request.mode=="sample" {
+        let strings=try editors.map { e -> String in
+            guard let str=value(e,kAXValueAttribute) as? String,str.utf8.count<=4096 else {throw DocumentRefusal("bounded test editor unavailable")}
+            return str
+        }
+        let hashes=strings.map { SHA256.hash(data:Data($0.utf8)).map { String(format:"%02x",$0) }.joined() }
+        let marker=request.marker ?? ""
+        return ["numbers":numbers,"focused":focused,"main":main,"front":app.isActive,"pid":enrolled.pid,"hashes":hashes,
+                "markerCounts":strings.map { marker.isEmpty ? 0 : $0.components(separatedBy:marker).count-1 }]
+    }
+    guard let i=request.index, (0..<2).contains(i), app.isActive, numbers.contains(focused), let host else {
+        throw DocumentRefusal("test document lost foreground ownership")
+    }
+    if request.mode=="press" {
+        let id="current-desktop-window:\(enrolled.pid):\(numbers[i])"
+        let sidebar=Sidebar(host,rows:rows)
+        guard let exact=sidebar.controls[id],exact.count==1,value(exact[0],kAXEnabledAttribute) as? Bool == true else {
+            throw DocumentRefusal("installed sidebar has no unique enabled document control")
+        }
+        try guardInput()
+        let error=AXUIElementPerformAction(exact[0],kAXPressAction as CFString)
+        return ["issued":true,"axError":error.rawValue,"control":id]
+    }
+    guard request.mode=="marker", let marker=request.marker,marker.utf8.count==12,marker.hasPrefix("NP"),marker.dropFirst(2).allSatisfy(\.isHexDigit),
+          focused==numbers[i],main==numbers[i],let focus=value(root,kAXFocusedUIElementAttribute),CFEqual(focus,editors[i]),
+          CGPreflightPostEventAccess(),let source=CGEventSource(stateID:.privateState),
+          let down=CGEvent(keyboardEventSource:source,virtualKey:0,keyDown:true),let up=CGEvent(keyboardEventSource:source,virtualKey:0,keyDown:false)
+    else { throw DocumentRefusal("target is not the key, main, focused synthetic editor") }
+    let units=Array(marker.utf16)
+    for event in [down,up] { event.flags=[];event.keyboardSetUnicodeString(stringLength:units.count,unicodeString:units) }
+    try guardInput()
+    down.postToPid(enrolled.pid);up.postToPid(enrolled.pid)
+    return ["issued":true,"number":numbers[i]]
+}
+
+do {
+    let request=try JSONDecoder().decode(DocumentRequest.self,from:FileHandle.standardInput.readDataToEndOfFile())
+    let result=try textDocuments(request)
+    FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject:result)+Data([10]))
+} catch {
+    let reason=(error as? DocumentRefusal)?.reason ?? "system document fixture failed: \(error.localizedDescription)"
+    FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject:["issued":false,"reason":reason])+Data([10]));exit(2)
+}

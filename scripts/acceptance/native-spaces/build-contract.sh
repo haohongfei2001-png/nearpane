@@ -15,14 +15,16 @@ swift_flags=(-D NATIVE_CONTRACT -module-cache-path "$PWD/.build/clang-cache" -Xc
 link=("$kit/reader.o" "$kit/members.o" -framework ColorSync)
 xcrun swiftc "${swift_flags[@]}" -D SECONDARY_FOCUS_OBSERVER -parse-as-library scripts/acceptance/observe-secondary-space-controls.swift "$src/system_workspace.swift" "${link[@]}" -o "$kit/system-workspace"
 xcrun swiftc "${swift_flags[@]}" "$src/observe.swift" "${link[@]}" -o "$kit/observe"
-python3 - "$kit/main.swift" <<'PY'
+python3 - "$kit/main.swift" "$kit/textedit-trials.swift" <<'PY'
 from pathlib import Path
 import sys
 src=Path("scripts/acceptance/native-spaces")
 before,after=(src/"observe.swift").read_text().split("if CommandLine.arguments.count > 1 {")
 Path(sys.argv[1]).write_text(before+"\n"+(src/"row_trials.swift").read_text())
+Path(sys.argv[2]).write_text(before+"\n"+(src/"textedit_trials.swift").read_text())
 PY
 xcrun swiftc "${swift_flags[@]}" "$kit/main.swift" "${link[@]}" -o "$kit/row-driver"
+xcrun swiftc "${swift_flags[@]}" "$kit/textedit-trials.swift" "${link[@]}" -o "$kit/textedit"
 xcrun swiftc "${swift_flags[@]}" "$src/d01_input.swift" "${link[@]}" -o "$kit/d01-input"
 xcrun swiftc -module-cache-path "$PWD/.build/clang-cache" "$src/metrics.swift" -o "$kit/metrics"
 mkdir -p "$kit/Field Notes.app/Contents/MacOS"

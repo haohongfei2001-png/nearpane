@@ -11,6 +11,7 @@ import time
 import uuid
 
 from acceptance import Receipt, catalog_match, checked, controlled_window, encode, identity, manifest, wait_state
+from contract_document import run as document_trials
 from contract_workspace import Workspace, row
 from space_scope import ScopeError, load_scope, require, validate_live
 from space_trials import Driver, prepare_scope, run as space_trials
@@ -111,6 +112,13 @@ def main():
         frozen=manifest(ws.original,kit/"metrics")
         receipt.write("manifest.json",frozen)
         require(frozen["loadedMatchesInstalled"] and frozen["signatureValid"] and frozen["source"],"signed installed Host differs from running process")
+        if "D01" in wanted:
+            cap=(frozen.get("nativeCapabilitiesLog") or [{}])[-1]
+            if cap.get("canMove") is not True or cap.get("ready") is not True:
+                reason="Installed Host move capability is false or unknown; zero drag inputs dispatched."
+                details=dict(status="BLOCKED",reason=reason,installedMoveCapability=cap,inputs=0,movementAttempts=0,completed=[])
+                receipt.write("D01.json",details)
+                mark("D01","BLOCKED",reason,inputs=0)
         for _ in range(3):ws.create()
         a,b,c=ws.ids()
         # Scope membership/knowledge is only queried for positively created numbers.
@@ -118,6 +126,10 @@ def main():
         ws.select(a)
         if "W01" in wanted:
             def w01():
+                actual=document_trials(ws,receipt,a)
+                if actual["status"] in ("PASS","FAIL"):
+                    mark("W01",actual["status"],actual["reason"],issued=actual["issued"],passes=actual["passes"])
+                    return
                 child=Receipt(out/"same-app-documents")
                 try:
                     reason=controlled_window(kit/"observe",ws.read(),frozen,child,2)
@@ -126,9 +138,9 @@ def main():
                 count=child.summary.get("controlledWindowTrials",0)
                 require(count==10 and len(child.attempts)==10 and all(r["status"]=="PASS" for r in child.attempts)
                         and child.summary["cleanup"].get("windowNumbersGone"),reason)
-                mark("W01","PARTIAL","Ten alternating inputs verified in the ordinary AppKit document fixture; compatibility with a shipping document app is a separate evidence level.",fixturePasses=count)
+                mark("W01","PARTIAL","Ten ordinary AppKit fixture selections verified. System TextEdit: "+actual["reason"],fixturePasses=count)
             run_case("W01",w01)
-        if "D01" in wanted:
+        if "D01" in wanted and receipt.scenarios["D01"]["status"]=="NOT_RUN":
             def d01():
                 ws.select(a); path=scope([],"empty"); dest=out/"drag"
                 cmd=[sys.executable,str(Path(__file__).with_name("d01.py")),"--kit",str(kit),"run",str(dest),"--scope",str(path)]
@@ -160,6 +172,7 @@ def main():
                     run_case("S01",s01)
                 if wanted & {"S02","R01"}:
                     section=space_trials(kit/"observe",kit/"row-driver",path,out/"selections", run_rapid="R01" in wanted)
+                    receipt.attempts.extend(section["attempts"])
                     for k in ("S02","R01"):
                         if k in wanted:mark(k,section[k],section.get("reason") or section.get(k+"Reason") or "Installed row presses and independent readbacks recorded.",sent=section["sent"],unknown=section["unknown"])
                 if args.performance:

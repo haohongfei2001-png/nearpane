@@ -49,7 +49,8 @@ class Workspace:
         self.boot = checked(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"]).strip()
         self.ledgers = []
         self.closed = []
-        self.original = self.read()
+        live = self.read()
+        self.original = live
         if resume:
             self.original = json.loads(private_file((output/"original.json").resolve()))
             require(self.boot == self.original["boot"], "a different boot cannot resume desktop cleanup")
@@ -66,10 +67,26 @@ class Workspace:
             write_owned(output/"original.json", self.original)
         s = row(self.original)
         self.home, self.display = s["current"], s["scope"]
+        # A recovered inactive lease must not override a newer user-selected original Space.
+        self.cleanup_current = self.home
+        self.cleanup_focus = self.original
+        if resume:
+            current = row(live)["current"]
+            if current in {r["id"] for r in s["records"]}:
+                self.cleanup_current = current
+                self.cleanup_focus = live
         require(any(r["id"] == self.home and r["type"] in (0, 4) for r in s["records"]), "original active Space identity unavailable")
         require(self.original.get("observerAX") is True and self.original.get("host") and self.original.get("installedHostCount") == 1,
                 "installed Host and observer AX required")
+        self.host = live.get("host") or {}
+        require(live.get("installedHostCount") == 1 and self.host.get("codeHash") == self.original["host"].get("codeHash")
+                and self.host.get("codeHash"), "cleanup requires the same installed Host code signature")
+        if resume:
+            checked(["/usr/bin/codesign", "--verify", "--strict", "/Applications/Nearpane.app"])
+            self.record("cleanup-host-bound", original=self.original["host"], current=self.host)
         self.hid = self.hardware()
+        if resume:
+            self.reconcile_removed(live)
         self.check(self.read())
 
     def hardware(self):
@@ -85,7 +102,7 @@ class Workspace:
         return [n for n in created if n not in self.closed]
 
     def check(self, o):
-        require(o["host"] == self.original["host"] and o["displays"] == self.original["displays"], "installed Host or physical displays changed")
+        require(o["host"] == self.host and o["displays"] == self.original["displays"], "installed Host or physical displays changed")
         s = row(o)
         existing = row(self.original)["records"]
         leased = {int(v["target"]):v["after"]["spaceUUIDs"][v["target"]]
@@ -93,20 +110,22 @@ class Workspace:
         require([r for r in s["records"] if r["id"] not in leased] == existing
                 and {r["id"]:r["uuid"] for r in s["records"] if r["id"] in leased and r["type"] == 0} == leased,
                 "existing desktop order, original identities or leased desktop membership changed")
-        require(s["current"] == self.home or s["current"] in leased, "unrelated desktop became current")
+        require(s["current"] in (self.home, self.cleanup_current) or s["current"] in leased, "unrelated desktop became current")
         return s
 
-    def command(self, name, snapshot, target=None, other=None):
+    def command(self, name, snapshot, target=None, other=None, *, before_send=None, after_reply=None):
         s = self.check(snapshot)
         require(self.hardware() == self.hid, "physical input changed; further workspace input suspended")
-        req = dict(command=name, display=self.display, records=s["records"], current=s["current"], original=self.home,
-                   owned=self.ids(), target=target, other=other, hostPID=self.original["host"]["pid"], hid=self.hid)
+        req = dict(command=name, display=self.display, records=s["records"], current=s["current"], original=self.cleanup_current,
+                   owned=self.ids(), target=target, other=other, hostPID=self.host["pid"], hid=self.hid)
         self.record("system-fixture-intent", operation=name, current=s["current"], target=target, other=other)
+        if before_send: before_send()
         call = subprocess.run([str(self.kit/"system-workspace")], input=json.dumps(req), text=True, capture_output=True, timeout=20)
         try:
             out = json.loads(call.stdout)
         except ValueError as exc:
             raise ScopeError(f"{name}: system operator did not return an input receipt") from exc
+        if after_reply: after_reply(out)
         self.record("system-fixture-result", operation=name, target=target, **out)
         require(call.returncode == 0 and out.get("acknowledged") and out.get("issued"), f'{name}: {out.get("reason","native input not acknowledged")}')
 
@@ -115,7 +134,7 @@ class Workspace:
         end = time.monotonic()+duration
         while time.monotonic() < end:
             o = self.read()
-            require(o["host"] == self.original["host"] and o["displays"] == self.original["displays"], "observer lost installed Host/display")
+            require(o["host"] == self.host and o["displays"] == self.original["displays"], "observer lost installed Host/display")
             s = row(o)
             if condition(o) and s == last:
                 count += 1
@@ -146,7 +165,7 @@ class Workspace:
 
     def select(self,n):
         before = self.read(); s = self.check(before)
-        require(n == self.home or n in self.ids(), "system selection outside fixture")
+        require(n in (self.home, self.cleanup_current) or n in self.ids(), "system selection outside fixture")
         if s["current"] != n:
             self.command("select",before,n)
         return self.settled(lambda o: self.check(o)["current"] == n and row(o)["records"]==s["records"], "system selection did not arrive")
@@ -159,35 +178,67 @@ class Workspace:
         self.command("swap",before,a,b)
         return self.settled(lambda o: self.check(o)["records"]==order and row(o)["current"]==s["current"], "native drag did not exchange only the two enrolled desktops")
 
+    def reconcile_removed(self, snapshot):
+        """An already-issued removal may have completed after its caller exited."""
+        current = row(snapshot)
+        for receipt in reversed(self.ledgers):
+            pending = receipt.with_name("remove-intent.json")
+            if not pending.exists() or receipt.with_name("removed.json").exists():
+                continue
+            n = int(json.loads(private_file(receipt))["target"])
+            intent = json.loads(private_file(pending))
+            require(intent["target"] == n and intent.get("boot") == self.boot,
+                    "unrecognized previous removal")
+            if any(r["id"] == n for r in current["records"]):
+                continue
+            require(current["records"] == intent["expected"] and current["current"] == self.cleanup_current,
+                    "pending removal cannot be reconciled with current topology")
+            self.closed.append(n)
+            self.check(snapshot)
+            write_owned(receipt.with_name("removed.json"), dict(target=n,confirmed=True,recovered=True))
+            self.record("system-fixture-removal-reconciled", target=n)
+
     def cleanup(self):
-        failures=[]
-        if self.ids():
-            try:self.select(self.home)
-            except (ValueError,OSError,subprocess.SubprocessError) as exc:failures.append(str(exc))
-        for p in reversed(self.ledgers):
-            if (p.parent/"removed.json").exists():continue
-            try:
-                n=int(json.loads(private_file(p))["target"])
-                before=self.read();s=self.check(before)
-                require(s["current"]==self.home, "cannot remove a desktop before origin is restored")
-                occ=before.get("scopedMembers",{}).get(str(n),{})
-                require(occ.get("unresolved")==0 and occ.get("otherMembers")==0 and occ.get("ordinary")==[],
-                        f"independent inventory does not establish empty desktop {n}: {occ}")
-                require(not (p.parent/"remove-intent.json").exists(),"prior removal pending; stop for independent reconciliation")
-                expected=[r for r in s["records"] if r["id"]!=n]
-                # A pre-dispatch refusal is retryable. Only a positively dispatched or uncertain removal is spent.
-                self.command("remove",before,n)
-                write_owned(p.parent/"remove-intent.json",dict(issued=True,target=n))
-                self.settled(lambda o: row(o)["records"]==expected and row(o)["current"]==self.home,"removal not independently confirmed")
-                self.closed.append(n);write_owned(p.parent/"removed.json",dict(target=n,confirmed=True))
+        failures = []
+        try:
+            self.reconcile_removed(self.read())
+            if self.ids():
+                self.select(self.cleanup_current)
+            for receipt in reversed(self.ledgers):
+                if receipt.with_name("removed.json").exists():
+                    continue
+                n = int(json.loads(private_file(receipt))["target"])
+                before = self.read()
+                state = self.check(before)
+                require(state["current"] == self.cleanup_current, "original Space has not been restored")
+                report = before.get("scopedMembers") or {}
+                occupancy = report.get(str(n), {})
+                require(occupancy.get("unresolved") == 0 and occupancy.get("otherMembers") == 0 and occupancy.get("ordinary") == [],
+                        f"independent inventory does not establish empty desktop {n}: {occupancy or report}")
+                expected = [r for r in state["records"] if r["id"] != n]
+                pending = receipt.with_name("remove-intent.json")
+                if pending.exists():
+                    previous = json.loads(private_file(pending))
+                    reply = receipt.with_name("remove-reply-" + previous["operation"] + ".json")
+                    require(reply.exists() and json.loads(private_file(reply)).get("issued") is False,
+                            "previous removal has an unknown delivery; retaining its journal and desktop")
+                    pending.rename(receipt.with_name("remove-refused-" + previous["operation"] + ".json"))
+                operation = str(uuid.uuid4())
+                intent = dict(operation=operation, boot=self.boot, target=n, expected=expected)
+                self.command("remove", before, n,
+                             before_send=lambda: write_owned(pending,intent),
+                             after_reply=lambda data: write_owned(receipt.with_name("remove-reply-"+operation+".json"),data))
+                after = self.settled(lambda o: row(o)["records"] == expected and row(o)["current"] == self.cleanup_current,
+                                     "removal not independently confirmed")
+                self.reconcile_removed(after)
                 self.record("system-fixture-removed",target=n)
-            except (OSError,ValueError,subprocess.SubprocessError) as exc:
-                failures.append(str(exc))
-                break
+        except (OSError,ValueError,KeyError,subprocess.SubprocessError) as exc:
+            failures.append(str(exc))
         end=self.read()
-        ok = row(end)==row(self.original) and self.original["displays"]==end["displays"]
-        focus = (self.original.get("frontmostPID"),self.original.get("focusedNumber"))==(end.get("frontmostPID"),end.get("focusedNumber"))
-        return dict(topologyRestored=ok, focusRestored=focus, created=len(self.ledgers), removed=len(self.closed),
+        ok = row(end)["records"] == row(self.original)["records"] and row(end)["current"] == self.cleanup_current and self.original["displays"] == end["displays"]
+        focus = (self.cleanup_focus.get("frontmostPID"),self.cleanup_focus.get("focusedNumber"))==(end.get("frontmostPID"),end.get("focusedNumber"))
+        return dict(topologyRestored=ok, focusRestored=focus, originalCurrent=self.home, cleanupCurrent=self.cleanup_current,
+                    retainedUserSelectedSpace=self.cleanup_current != self.home, created=len(self.ledgers), removed=len(self.closed),
                     outstanding=self.ids(),errors=failures)
 
 if __name__ == "__main__":

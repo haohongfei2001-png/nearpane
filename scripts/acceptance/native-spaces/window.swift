@@ -73,6 +73,12 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     if presentation == "contract-split", windows.count==1, expected==2,
        FileManager.default.fileExists(atPath:run.appendingPathComponent("open-second").path) { MainActor.assumeIsolated { addDocument(1) } }
     guard !windows.isEmpty else { return }
+    if presentation == "contract", windows.count == 2, windows.filter({ !$0.isVisible }).count == 1 {
+        let recreate = run.appendingPathComponent("recreate-closed")
+        if (try? FileManager.default.removeItem(at:recreate)) != nil {
+            MainActor.assumeIsolated { addDocument(2) }
+        }
+    }
     if presentation?.hasPrefix("contract") == true {
         let activation = run.appendingPathComponent("activate-first")
         if (try? FileManager.default.removeItem(at:activation)) != nil {
