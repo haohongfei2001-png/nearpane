@@ -194,6 +194,16 @@ import ImageIO
         }}
         buffer[3*88+3*4+3]=240
         precondition((try? buffer.withUnsafeBytes{try mask.copyBGRA(from:$0.baseAddress!,stride:88)}) == nil)
+        let bound:[String:Any]=["hostPID":1,"hostBirth":1234567890123456 as UInt64,"hostHash":"h","display":"d","space":5342,
+                       "panel":111,"fixturePID":211,"fixtureBirth":1234567890123489 as UInt64,"fixtureHash":"f","numbers":[1,2],
+                       "sources":[[2,3,4,4],[7,8,4,4]],"pictures":[[1,2,3,4],[2,3,4,4]],"present":[true,true],"hardware":[6,7],"kinds":["窗口画面","窗口画面"]]
+        var typed=try JSONSerialization.jsonObject(with:JSONSerialization.data(withJSONObject:bound)) as! [String:Any]
+        typed["kinds"]=["未报告","窗口画面"]
+        precondition(overviewBindingDifference(typed,bound)==nil)
+        typed["fixtureBirth"]=1234567890123488 as UInt64
+        precondition(overviewBindingDifference(typed,bound)=="changedFixtureBirth")
+        typed["fixtureBirth"]=bound["fixtureBirth"];typed["hardware"]=[6,8]
+        precondition(overviewBindingDifference(typed,bound)=="changedHardware")
         let area=CGRect(x:10,y:20,width:20,height:20)
         let body=CGRect(x:12,y:22,width:10,height:8)
         var pixels=Data()

@@ -267,6 +267,17 @@ def publish(output):
             files={}
             if image is not None:
                 files['paired-overview.png']=image
+            if "cardFilm" in result:
+                from paired_card_film import NAME,verify
+                film=result["cardFilm"]
+                try:
+                    if film.get("status")!="CAPTURED":raise ValueError(film.get("reason","uncertifiedCardFilm"))
+                    bound=result["filmBinding"]
+                    require(all(proof[k]==bound[k] for k in MATCH_KEYS),"filmSourceGenerationChanged")
+                    movie=regular_file(witness/NAME,18_000_000);verify(film,bound,movie)
+                    files[NAME]=movie;receipt["readableFilm"]=film
+                except failures as error:
+                    receipt["readableFilm"]={"status":"BLOCKED","reason":public_reason(error)}
             first={}
             for f in frames:
                 first.setdefault(f['epoch'],f)

@@ -23,3 +23,13 @@ enum PairedPreviewPalette {
         return nearest <= 29 && second-nearest >= 9 ? result : "unknown"
     }
 }
+
+// Private two-window fixture command shared by its writer and reader.
+struct PairedFilmMarker:Codable {
+    let session:String,pid:Int32,birth:UInt64,numbers:[Int],epoch:Int,issued:Double
+    func admits(session:String,pid:Int32,birth:UInt64,numbers:[Int],now:Double)->Bool {
+        self.session==session && self.pid==pid && self.birth==birth && self.numbers==numbers &&
+        numbers.count==2 && numbers[0] != numbers[1] && PairedPreviewPalette.epochs.indices.contains(epoch) &&
+        issued.isFinite && now.isFinite && now>=issued && now-issued<8
+    }
+}

@@ -134,7 +134,15 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     if paired && editors.count == 2 {
         let now = ProcessInfo.processInfo.systemUptime
         if previewStarted == nil && FileManager.default.fileExists(atPath: run.appendingPathComponent("preview-start").path) { previewStarted = now }
-        let epoch = previewStarted.map { min(PairedPreviewPalette.epochs.count-1, 1+Int((now-$0)/(streaming ? 3.6:PairedPreviewPalette.seconds))) } ?? 0
+        var epoch = previewStarted.map { min(PairedPreviewPalette.epochs.count-1, 1+Int((now-$0)/(streaming ? 3.6:PairedPreviewPalette.seconds))) } ?? 0
+        // An optional post-measurement film changes only these two enrolled
+        // synthetic documents. The command expires even if its reader exits.
+        if streaming,previewStarted != nil,ProcessInfo.processInfo.environment["NP_PAIRED_CARD_FILM"]=="1",
+           let file=try? Data(contentsOf:run.appendingPathComponent("film-marker.json")),
+           let mark=try? JSONDecoder().decode(PairedFilmMarker.self,from:file),
+           mark.admits(session:session,pid:getpid(),birth:birth,numbers:windows.map(\.windowNumber),now:now) {
+            epoch=mark.epoch
+        }
         if epoch != previewEpoch {
             for (index, rgb) in PairedPreviewPalette.epochs[epoch].enumerated() where !streaming {
                 editors[index].backgroundColor = NSColor(srgbRed: CGFloat(rgb[0])/255, green: CGFloat(rgb[1])/255,

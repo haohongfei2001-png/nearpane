@@ -136,6 +136,15 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
             result["overviewBinding"]=proof
             return overview(kit,folder,output,proof)
         result["overview"]=measured(static_overview);save()
+        if os.environ.get("NEARPANE_PAIRED_FILM")=="1":
+            from paired_card_film import capture as capture_film
+            def film():
+                if sampler!="streams" or result.get("sampler",{}).get("timedOut") is not False or result["sampler"].get("exit")!=0:
+                    raise ValueError("finishedIndependentTimingSessionRequired")
+                proof=required(cards=True,sterile=True)
+                result["filmBinding"]=proof
+                return capture_film(kit,folder,output,proof)
+            result["cardFilm"]=measured(film);save()
     if budget:
         def hidden():
             value=required(sterile=True)
@@ -184,7 +193,8 @@ def run(kit, output, preflight_only=False, expected_space=None, witness=False, b
             foreground=sampler=="streams" and expected_space==before["space"]
             result["fixtureForegroundLaunchOnQualifiedSpace"]=foreground
             proc=subprocess.Popen(["/usr/bin/open","-n","-W"]+([] if foreground else ["-g"])+["-a",str(app),"--env","HOME="+str(home),
-                                   "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_FIXTURE_PRESENTATION=paired-preview","--env","NP_PAIRED_STREAM_FIXTURE="+("1" if sampler=="streams" else "0"),
+                                   "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_PAIRED_CARD_FILM="+("1" if witness and os.environ.get("NEARPANE_PAIRED_FILM")=="1" else "0"),
+                                   "--env","NP_FIXTURE_PRESENTATION=paired-preview","--env","NP_PAIRED_STREAM_FIXTURE="+("1" if sampler=="streams" else "0"),
                                    "--args",str(folder),"2"],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             result["fixtureLaunched"]=True;result["cleanup"]={"status":"UNKNOWN"};numbers=[];state={};audit=None;expected=None
             try:
