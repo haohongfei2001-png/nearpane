@@ -68,10 +68,12 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
               let width = settings["width"] as? Int, let height = settings["height"] as? Int,
               let origin = (settings["origin"] as? String).flatMap(AssetOrigin.init(rawValue:)) else { throw FixtureError("arguments") }
         let base = URL(fileURLWithPath:args[2], isDirectory:true).standardizedFileURL
-        guard base.path.hasPrefix(FileManager.default.currentDirectoryPath + "/build/local-browser-"), base == base.resolvingSymlinksInPath() else {
+        let root = URL(fileURLWithPath:FileManager.default.currentDirectoryPath,isDirectory:true).standardizedFileURL
+        let parent = base.deletingLastPathComponent()
+        guard parent.deletingLastPathComponent().path == root.appendingPathComponent("build").path,
+              parent.lastPathComponent.hasPrefix("local-browser-"), base == base.resolvingSymlinksInPath() else {
             throw FixtureError("test directory")
         }
-        let root = URL(fileURLWithPath:FileManager.default.currentDirectoryPath)
         let media = base.appendingPathComponent("media")
         let mediaFile = media.appendingPathComponent(id.uuidString + ".png")
         let data = try Data(contentsOf:mediaFile)
@@ -92,7 +94,10 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
         let source = try String(contentsOfFile:args[1], encoding:.utf8)
         let locked = WebPageProgram(sourceID:ChatGPTWebPageProgram.sourceID, functionSource:source,
             maximumChunkBytes:256 * 1024, inputDiscoveryTimeout:3)
-        let guardSource = try String(contentsOf:root.appendingPathComponent("build/debug/Nearpane.app/Contents/Resources/AcceptanceTargetGuard.js"), encoding:.utf8)
+        let guardPath = ProcessInfo.processInfo.environment["NEARPANE_BROWSER_FIXTURE_SWIFTPM"] == "1"
+            ? "Resources/AcceptanceTargetGuard.js" : "build/debug/Nearpane.app/Contents/Resources/AcceptanceTargetGuard.js"
+        let guardSource = try String(contentsOf:root.appendingPathComponent(guardPath), encoding:.utf8)
+        var refusedRestartedProcess = false
         let bound = ProductDraftExecutor(root:base, base:pipe, guardSource:guardSource, arm:{ image in
             let now = Date().timeIntervalSince1970
             let nonce = UUID().uuidString.lowercased()
@@ -106,13 +111,25 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
                 throw FixtureError("composer refused")
             }
             return binding(origin)
-        }, selected:{ _ in _ = try pipe.request(["cmd":"selected"]) })
+        }, selected:{ stored in
+            if args[3] == "browser-restarted" {
+                guard stored.process != proc else {throw FixtureError("old browser still running")}
+                // The old PID and birth must fail the production check before an Apple Event can be addressed.
+                let fields=stored.process.split(separator:":")
+                guard fields.count==4,let oldPID=Int32(fields[1]),ChromeProcessIdentity.read(pid:oldPID)?.session != stored.process else {
+                    throw FixtureError("original process still present")
+                }
+                do {try stored.requireSelected()} catch {refusedRestartedProcess=true;throw error}
+                throw FixtureError("stale original route passed")
+            }
+            _ = try pipe.request(["cmd":"selected"])
+        })
         let policy = OrdinaryCaptureConfiguration.admission
         let adapter = WebAttachmentAdapter(mediaDirectory:media, executor:bound, program:locked, mode:.ordinaryProduct,
             profile:policy.observationProfile, productStore:store, productOrigins:policy.productOrigins)
         let module = TrayModule(productAttachments:true) { notify, report in
             let owner = TrayOwner(store:store, root:base, adapter:adapter, policy:policy.receiptPolicy, captureEntry:false,
-                                  pin:{ try adapter.targetForClick() }, permission:{ _,_ in true }, notify:notify, report:report)
+                                  pin:{ try adapter.targetForClick() }, permission:{ _,_ in .granted }, notify:notify, report:report)
             owner.checkAsset = { try bound.checkAsset($0) }
             owner.cancelDraftSelections = { bound.cancelSelections() }
             return owner
@@ -151,6 +168,10 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
         await module.finishStopping()
         let result = try await store.asset(id:id)
         var final: [String:Any] = ["cmd":"done","status":result?.status.rawValue ?? "missing", "assetID":id.uuidString.lowercased(), "driverPID":getpid()]
+        if args[3]=="browser-restarted" {
+            guard refusedRestartedProcess else {throw FixtureError("stale process did not reach production identity rejection")}
+            final["refusedRestartedProcess"] = true
+        }
         if let issue { final["issue"] = issue }
         if let feedback { final["feedback"] = feedback }
         if let liveSamples { final["liveSamples"] = liveSamples }

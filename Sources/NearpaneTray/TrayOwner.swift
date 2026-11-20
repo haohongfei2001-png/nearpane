@@ -16,6 +16,9 @@ final class TrayOwner {
     let captureEntry: Bool
     let defaultMode: ScreenshotMode
     let root: URL
+    var draftSurface: (TargetLease) -> DraftBoundSurface? = { _ in nil }
+    let captureProvider: any CaptureAttachmentProvider
+    private var pendingCapture: (id: UUID, mode: String, preparing:Bool)?
     let importer: PrivateAssetImporter
     var mayObserveTestClaim: () -> Bool = { false }
     var cancelDraftSelections: () -> Void = {}
@@ -92,6 +95,7 @@ final class TrayOwner {
         if let product {
             owner.checkAsset = { try product.checkAsset($0) }
             owner.cancelDraftSelections = { product.cancelSelections() }
+            owner.draftSurface = { product.boundSurface(for:$0) }
         }
         // An explicit connection owns the original lock: finish already-journaled local imports
         // before projecting the queue. Never reinterpret an interrupted external transfer as a new click.
@@ -131,6 +135,7 @@ final class TrayOwner {
         let media = root.appendingPathComponent("media")
         thumbnails = ThumbnailCache(directory: media)
         importer = PrivateAssetImporter(privateRoot: root, store: store)
+        captureProvider = RiftletCaptureAttachmentProvider(ledger: TrayEvidenceLedger(root: root), store: store, importer: importer, root: root)
         transfer = TransferCoordinator(store: store, adapter: adapter, mediaDirectory: media, policy: policy,
             onChange: { [ownership] in await notify(); withExtendedLifetime(ownership) {} },
             onAcceptedSelectionFinished: { id in await authority.finish(id) },
@@ -197,26 +202,34 @@ final class TrayOwner {
                 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true,
                                                          attributes: [.posixPermissions: 0o700])
                 // screencapture refuses dot-prefixed output names, even on a successful selection.
-                let target = output.appendingPathComponent(UUID().uuidString + ".png")
+                let id = UUID()
+                try captureProvider.began(id, mode: "system")
+                let target = output.appendingPathComponent(id.uuidString + ".png")
                 let job = SystemCaptureJob(reviewCaptureWindow.map { MacSystemCaptureProcess(ownedWindow: $0) } ?? makeSystemCapture())
                 job.owner = self
                 systemCapture = job
                 workCount += 1
                 do {
+                    try captureProvider.startingCapture(id,mode:"system",nativeState:"systemLaunchRequested")
                     try job.process.start(output: target) { [weak self, weak job] status in
                         guard let self, let job, self.systemCapture === job, !job.completing else { return }
                         job.completing = true
                         defer { self.systemCapture = nil; job.owner = nil; self.endWork() }
-                        guard !self.cancelled else { return }
+                        guard !self.cancelled else {
+                            self.endCapture(id, mode: "system", state: "cancelled", dispatched: "childExited", cleanup: FileManager.default.fileExists(atPath:target.path) ? "sourceRetained" : "noSource")
+                            return
+                        }
                         self.exposureChanged(false)
                         guard status == 0, FileManager.default.fileExists(atPath: target.path) else {
+                            self.endCapture(id, mode: "system", state: "noImage", dispatched: "childExited", cleanup: FileManager.default.fileExists(atPath:target.path) ? "sourceRetained" : "noSource")
                             self.report("未取得截图，队列保持不变。")
                             return
                         }
-                        await self.importCapture(target, directory: output)
+                        await self.importCapture(target, directory: output, id: id, selection: .systemPicker)
                     }
                     exposureChanged(true)
                 } catch {
+                    endCapture(id, mode: "system", state: "launchFailed", dispatched: "notIssued", cleanup: "noChild")
                     job.owner = nil
                     systemCapture = nil
                     endWork()
@@ -226,23 +239,66 @@ final class TrayOwner {
         } else {
             let controller = captureController ?? InteractiveScreenshotController(outputDirectory: output)
             captureController = controller
+            controller.onStateChange = { [weak self, weak controller] state in
+                switch state {
+                case .capturing, .countdown: break
+                case .idle, .selecting: return
+                }
+                guard let self, let controller, let request = controller.presentationSnapshot else { return }
+                let mode = request.confirmedMode
+                do {
+                    if self.pendingCapture?.id != request.requestID {
+                        try self.captureProvider.began(request.requestID, mode: mode.rawValue)
+                        self.pendingCapture = (request.requestID, mode.rawValue, false)
+                    }
+                    if case .capturing = state, self.pendingCapture?.preparing == false {
+                        try self.captureProvider.startingCapture(request.requestID,mode:mode.rawValue,nativeState:"riftletPreparingCapture")
+                        self.pendingCapture?.preparing = true
+                    }
+                } catch { controller.cancel(); self.report("无法记录本次截图请求。") }
+            }
+            controller.onCancel = { [weak self] in self?.endPendingCapture(state: "cancelled", timeout: nil) }
             controller.onCapture = { [weak self] capture in
+                guard let self, let pending = self.pendingCapture else { return }
+                self.pendingCapture = nil
+                let selection = CaptureSelectionSource(capture)
+
                 let screen = NSScreen.screens.first { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == capture.displayID }
                 let source = capture.displayIDs.count == 1 ? screen.map { RiftArrivalSource(rect: capture.rect,
                     displayID: capture.displayID, displayFrame: $0.frame, backingScale: $0.backingScaleFactor) } : nil
-                Task { await self?.importCapture(capture.sourceURL, directory: output, source: source) }
+                self.workCount += 1
+                Task {
+                    defer { self.endWork() }
+                    await self.importCapture(capture.sourceURL, directory: output, id: pending.id, selection: selection,
+                                             encoded: capture.pngData, source: source)
+                }
             }
             controller.onCaptureVisibilityChanged = { [weak self] in self?.exposureChanged($0) }
-            controller.onError = { [weak self] error in self?.report(error.localizedDescription) }
+            controller.onError = { [weak self] error in
+                self?.endPendingCapture(state: "captureFailed", timeout: error == .captureTimedOut)
+                self?.report(error.localizedDescription)
+            }
             controller.start(mode: action.mode ?? defaultMode)
         }
     }
 
-    private func importCapture(_ url: URL, directory: URL, source: RiftArrivalSource? = nil) async {
-        guard !cancelled else { return }
+    private func endCapture(_ id: UUID, mode: String, state: String, dispatched: String, timeout: Bool? = nil, cleanup: String) {
+        do { try captureProvider.failed(id, mode: mode, state: state, dispatched: dispatched, timeout: timeout, cleanup: cleanup) }
+        catch { report("无法保存截图结果记录。") }
+    }
+    private func endPendingCapture(state: String, timeout: Bool?) {
+        guard let pendingCapture else { return }
+        self.pendingCapture = nil
+        endCapture(pendingCapture.id, mode: pendingCapture.mode, state: state, dispatched: "selectionConfirmed", timeout: timeout, cleanup: "requestRetired")
+    }
+    private func importCapture(_ url: URL, directory: URL, id: UUID, selection: CaptureSelectionSource, encoded: Data? = nil, source: RiftArrivalSource? = nil) async {
+        guard !cancelled else { endCapture(id, mode: selection.mode, state: "cancelled", dispatched: "captureReturned", cleanup: "sourceRetained"); return }
         do {
             let row = try await performWork {
-                try await importer.importBuiltInScreenshot(original: url, outputDirectory: directory)
+                let hash = await Task.detached(priority: .utility) {
+                    encoded.map { bytes in SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined() }
+                }.value
+                return try await captureProvider.completed(id, source: selection, url: url, directory: directory, captureHash: hash)
             }
             if !cancelled, magnetEnabled, let source {
                 arrived?(.init(id: row.id, ready: ProcessInfo.processInfo.systemUptime, source: .selected(source)))

@@ -295,11 +295,11 @@ private struct ThumbnailHit: NSViewRepresentable {
             guard let module, let press = held else { return }
             held = nil
             let inside = bounds.contains(convert(event.locationInWindow, from: nil))
-            guard module.pointer.end(inside: inside) == press.id, row?.id == press.id else { press.target.cancel(); return }
+            guard module.pointer.end(inside: inside) == press.id, row?.id == press.id else { press.cancel(); return }
             Task { await module.finishPress(press) }
         }
         func abort() {
-            if let held { held.target.cancel(); module?.pointer.cancel() }
+            if let held { held.cancel(); module?.pointer.cancel() }
             held = nil
         }
         override func accessibilityPerformPress() -> Bool {

@@ -28,6 +28,7 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
     let nonce, process, window, tab, assetID, sha256: String
     let boundAt, expiresAt: Double
     var timeOrigin: Double
+    var boundSurface: DraftBoundSurface?
 
     func accepts(_ target: TargetLease) -> Bool {
         target.adapterID == "chatgpt-web" && target.applicationID == "com.google.Chrome" &&
@@ -36,24 +37,22 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
         target.clickBindingID?.uuidString.lowercased() == nonce
     }
 
-    private static func signedChrome(pid: pid_t) -> Bool {
-        let rule = #"anchor apple generic and identifier "com.google.Chrome" and certificate leaf[subject.OU] = "EQHXZ8M8AV""#
-        var requirement: SecRequirement?
-        var process: SecCode?
-        let query = [kSecGuestAttributePid as String: NSNumber(value: pid)] as CFDictionary
-        return SecRequirementCreateWithString(rule as CFString, [], &requirement) == errSecSuccess &&
-            SecCodeCopyGuestWithAttributes(nil, query, [], &process) == errSecSuccess &&
-            process.map { SecCodeCheckValidity($0, [], requirement) == errSecSuccess } == true
-    }
-
     static func armScript(draft: Self, guardSource: String) throws -> String {
         let spec = String(decoding: try JSONEncoder().encode(draft), as: UTF8.self)
         return "(" + guardSource + ")({...(" + spec + "),mode:'product'},{action:'armProductDraft'})"
     }
 
     @MainActor static func arm(_ asset: ImportedAsset, guardSource: String) throws -> Self {
-        guard let app = NSWorkspace.shared.frontmostApplication, app.bundleIdentifier == "com.google.Chrome",
-              let identity = ChromeProcessIdentity.read(pid: app.processIdentifier), signedChrome(pid: identity.pid)
+        guard let app = NSWorkspace.shared.frontmostApplication, let appID=app.bundleIdentifier,
+              let browser=DraftBrowser(rawValue:appID),browser.signed(pid:app.processIdentifier) else {throw WebAdapterError.browserNotFrontmost}
+        guard browser.hasStableTabID else {throw DraftCapabilityFailure.indexedTab(try? AcceptanceBrowserRoute.safariWindow(pid:app.processIdentifier))}
+        if browser == .edge {
+            guard let route=try? AcceptanceBrowserRoute.front(pid:app.processIdentifier,browser:browser),
+                  let url=try? route.selectedURL(),let capability=DraftCapability.route(browserID:appID,url:url),
+                  let surface=try? route.inspect(capability,selected:url,guardSource:guardSource) else {throw DraftCapabilityFailure.readUnavailable(browser)}
+            throw DraftCapabilityFailure.noWriter(capability,surface)
+        }
+        guard let identity = ChromeProcessIdentity.read(pid: app.processIdentifier)
         else { throw WebAdapterError.browserNotFrontmost }
         // The persisted checkbox is user intent. Check the authority of this exact
         // running process before the first browser event, without requesting consent.
@@ -65,15 +64,21 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
         else { throw WebAdapterError.browserNotFrontmost }
         let route = try AcceptanceBrowserRoute.front(pid: identity.pid)
         let url = try route.selectedURL()
-        guard url.scheme == "https", url.host == "chatgpt.com", url.port == nil, url.user == nil, url.password == nil,
-              url.path.isEmpty || url.path == "/" || url.path.range(of: #"^/c/[A-Za-z0-9-]+/?$"#, options: .regularExpression) != nil,
-              identity.isCurrent() else { throw WebAdapterError.invalidTarget }
+        guard let capability = DraftCapability.route(browserID: appID, url: url),identity.isCurrent() else { throw WebAdapterError.invalidTarget }
+        guard capability.writerID != nil else {
+            let surface = try route.inspect(capability,selected:url,guardSource:guardSource)
+            throw DraftCapabilityFailure.noWriter(capability,surface)
+        }
+        guard capability.acceptsSelectedDraft(url) else {throw WebAdapterError.invalidTarget}
+        let surface = try? route.inspect(capability,selected:url,guardSource:guardSource)
+        if let surface, surface.surface.authenticated == false {throw DraftCapabilityFailure.loginRequired(surface)}
         let now = Date().timeIntervalSince1970
         var b = Self(nonce: UUID().uuidString.lowercased(), process: identity.session, window: route.windowID, tab: route.tabID,
                      assetID: asset.id.uuidString.lowercased(), sha256: asset.sha256, boundAt: now, expiresAt: now + 120, timeOrigin: 0)
         struct Reply: Decodable { let timeOrigin: Double }
         // Run at mouse-down, before any asynchronous resolution can bind a new document or editor.
         let result = try route.observe(armScript(draft: b, guardSource: guardSource))
+        b.boundSurface = surface
         b.timeOrigin = try JSONDecoder().decode(Reply.self, from: Data(result.utf8)).timeOrigin
         guard b.timeOrigin.isFinite, b.timeOrigin > 0, identity.isCurrent(), try route.selectedURL() == url
         else { throw WebAdapterError.invalidTarget }
@@ -83,7 +88,7 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
     @MainActor func requireSelected() throws {
         let segments = process.split(separator: ":")
         guard segments.count == 4, let pid = Int32(segments[1]),
-              ChromeProcessIdentity.read(pid: pid)?.session == process, Self.signedChrome(pid: pid),
+              ChromeProcessIdentity.read(pid: pid)?.session == process, DraftBrowser.chrome.signed(pid: pid),
               try AcceptanceBrowserRoute(pid: pid, window: window, tab: tab).selected() else {
             throw WebAdapterError.invalidTarget
         }
@@ -212,6 +217,11 @@ enum ImportedAttachmentError: Error { case previousAttempt }
             clicks[key] = Click(binding: b, target: target)
             return target
         }
+    }
+
+    func boundSurface(for target:TargetLease) -> DraftBoundSurface? {
+        guard let key=target.clickBindingID,let click=clicks[key],click.target==target else {return nil}
+        return click.binding.boundSurface
     }
 
     func execute(_ command: WebBridgeCommand, program: WebPageProgram) async throws -> Data {

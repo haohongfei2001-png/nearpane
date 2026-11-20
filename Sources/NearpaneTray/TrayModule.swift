@@ -8,9 +8,12 @@ import RiftletUI
 @MainActor
 struct TrayPress {
     let id: UUID
+    let intentID: UUID
     let revision: Int64
     let epoch: UUID
     let target: Task<TargetLease, Error>
+    let onCancel: () -> Void
+    func cancel() {target.cancel(); onCancel()}
 }
 
 /// An ephemeral view of Riftlet's durable visibility/operations, not a Host queue.
@@ -27,7 +30,7 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var acceptedRows: [UUID: Int64] = [:]
     @ObservationIgnored private var settle: Task<Void, Never>?
     @ObservationIgnored private var observe: Task<Void, Never>?
-    @ObservationIgnored private var pressTask: Task<TargetLease, Error>?
+    @ObservationIgnored private var pressTask: TrayPress?
     @ObservationIgnored private var resolvingPresses: [UUID: Task<TargetLease, Error>] = [:]
     @ObservationIgnored var pointer = PointerSelectionGate()
     @ObservationIgnored private var fileStore: TrayFileStore?
@@ -404,17 +407,35 @@ public final class TrayModule: HostModule {
     func beginPress(_ row: AssetRecord) -> TrayPress? {
         guard active, !hidden, let owner, acceptedRows[row.id] == row.visibilityRevision,
               row.status != .missing, row.status != .used, row.status != .transferring else { return nil }
-        guard mayAttach else { issue = attachmentAccessNotice ?? "请先在设置中允许附加到草稿。"; return nil }
+        let click = UUID()
+        let evidence = productAttachments ? owner.captureProvider : nil
+        if let evidence {
+            do {try evidence.requestedAttachment(click,assetID:row.id,sha256:row.image.sha256)}
+            catch {issue = "无法保存本次附加请求。";return nil}
+        }
+        let report = owner.report
+        func stopped(_ state:String,_ capability:DraftCapabilityFailure?=nil) {
+            do {try evidence?.haltedAttachment(click,assetID:row.id,state:state,capability:capability)}
+            catch {report("无法保存本次附加结果。")}
+        }
+        guard mayAttach else {stopped("attachmentDisabled");issue = attachmentAccessNotice ?? "请先在设置中允许附加到草稿。";return nil}
         do {
             try owner.checkAsset(row.image)
             let target = try owner.pinTarget()
             issue = nil
-            pressTask = target
-            return .init(id: row.id, revision: row.visibilityRevision, epoch: interaction, target: target)
+            let press = TrayPress(id:row.id,intentID:click,revision:row.visibilityRevision,epoch:interaction,target:target,onCancel:{stopped("cancelled")})
+            pressTask = press
+            return press
+        } catch let capability as DraftCapabilityFailure {
+            if case .loginRequired = capability {stopped("loginRequired",capability)} else {stopped("writerUnavailable",capability)}
+            issue = capability.notice
+            return nil
         } catch ImportedAttachmentError.previousAttempt {
+            stopped("previousAttempt")
             issue = "这张截图已有旧版附加记录。请在原草稿核对结果。"
             return nil
         } catch let unavailable as DraftAutomationUnavailable {
+            stopped("browserPermissionUnavailable")
             permissionRequest = UUID()
             if productAttachments && savedAttachmentConsent { saveConsent(.needsRecheck, owner: owner) }
             mayAttach = false
@@ -424,16 +445,19 @@ public final class TrayModule: HostModule {
             issue = attachmentAccessNotice
             return nil
         } catch AcceptanceBrowserRoute.ScriptError.javaScriptFromAppleEventsDenied {
+            stopped("browserScriptPermissionDenied")
             issue = "Chrome 已拒绝来自 Apple 事件的 JavaScript，截图仍在托盘中。可在 Chrome「视图 → 开发者」检查此项设置。"
             return nil
-        } catch { issue = "未能确认目标草稿，截图仍在托盘中。"; return nil }
+        } catch { stopped("draftUnconfirmed"); issue = "未能确认目标草稿，截图仍在托盘中。"; return nil }
     }
     func finishPress(_ press: TrayPress) async {
-        guard let owner, press.epoch == interaction else { press.target.cancel(); return }
+        guard let owner, press.epoch == interaction else { press.cancel(); return }
         pressTask = nil
-        let click = UUID()
+        let click = press.intentID
         resolvingPresses[click] = press.target
         defer { resolvingPresses[click] = nil }
+        let evidence = productAttachments ? owner.captureProvider : nil
+        var routed: TargetLease?, handedOff = false
         do {
             try await owner.performWork {
                 let selection = try await owner.authority.accept(id: click, assetID: press.id, visibilityRevision: press.revision,
@@ -453,12 +477,17 @@ public final class TrayModule: HostModule {
                     currentFeedbackAsset = press.id
                     feedbackFromCurrentConnection = true
                 }
+                routed = selection.target
+                try await evidence?.routedAttachment(click, assetID: press.id, target: selection.target, surface: owner.draftSurface(selection.target))
+                handedOff = true
                 try await owner.transfer.select(selection)
             }
+            try await evidence?.inspectAttachment(click, assetID: press.id, target: routed, handedOff: handedOff, policy: owner.receiptPolicy)
             guard self.owner === owner else { return }
             await refresh()
             scheduleObservation(owner)
         } catch {
+            try? await evidence?.inspectAttachment(click, assetID: press.id, target: routed, handedOff: handedOff, policy: owner.receiptPolicy)
             guard interaction == press.epoch else { return }
             issue = "未能确认附加；请检查原草稿。截图和原操作均已保留。"
             await refresh()
@@ -472,9 +501,15 @@ public final class TrayModule: HostModule {
                 do { try await Task.sleep(for: .seconds(delay)) } catch { return }
                 guard let self, owner === value, mayAttach else { return }
                 do {
-                    guard !(try await value.store.unresolvedOperations()).isEmpty else { return }
+                    let pending = try await value.store.unresolvedOperations()
+                    guard !pending.isEmpty else { return }
                     try await value.performWork {
                         try await value.transfer.observePending { target in await value.checkPermission(false, target.sessionID) == .granted }
+                        if productAttachments {
+                            for operation in pending {
+                                try await value.captureProvider.reconcileAttachment(operationID: operation.id, policy: value.receiptPolicy, observationExpired: delay == 8)
+                            }
+                        }
                     }
                     await refresh()
                 } catch { if owner === value { issue = "无法确认原操作的状态。" }; return }

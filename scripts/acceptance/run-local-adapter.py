@@ -5,6 +5,7 @@ import base64
 from contextlib import closing
 import hashlib
 import json
+import os
 import runpy
 import sqlite3
 from pathlib import Path
@@ -18,12 +19,16 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--product", action="store_true", help="Exercise the ordinary Swift adapter and durable queue with an isolated Chromium transport")
+    parser.add_argument("--swiftpm-fixture", action="store_true",
+                        help="Use the modules from scripts/test.sh and the repository guard without creating a second .app")
     parser.add_argument("--candidate", type=Path, help="Check both exercised browser resources against this signed, installed product")
     parser.add_argument("--scenario", choices=["composer-replaced"], help="Measure the live product feedback after editor replacement, without refresh, retry or restart")
     parser.add_argument("--session")
     parser.add_argument("--asset-id")
     parser.add_argument("--sha256")
     args = parser.parse_args()
+    if args.swiftpm_fixture and (not args.product or args.candidate or args.session):
+        parser.error("--swiftpm-fixture runs only the generated product fixture, without an installed candidate or session")
     fixture = {"productDriver": True} if args.product else {}
     if args.scenario:
         if not args.product:
@@ -50,7 +55,11 @@ def main():
     lock = json.loads((ROOT / "Dependencies/domains.lock.json").read_bytes())["domains"]["saytile"]
     module = ROOT / ".build/domain-cache-v1" / (lock["commit"] + "-" + lock["treeSHA256"]) / "Sources/CSQLite"
     product = ROOT / "build/debug/Nearpane.app/Contents"
-    subprocess.run([str(product / "MacOS/NearpaneHost"), "--verify-bundled-resources"], check=True, cwd=ROOT)
+    if args.swiftpm_fixture:
+        build = ROOT / ".build/native/debug"
+        (ROOT / "build/verification").mkdir(parents=True, exist_ok=True)
+    else:
+        subprocess.run([str(product / "MacOS/NearpaneHost"), "--verify-bundled-resources"], check=True, cwd=ROOT)
     page = Path("Resources/Riftlet_RiftletAdapters.bundle/Contents/Resources/chatgpt-web-20261027.js")
     if args.candidate:
         if not args.product or args.candidate.suffix != ".app":
@@ -72,9 +81,22 @@ def main():
                         "-I", str(build / "Modules"), "-I", str(build / "CAudio.build"), "-I", str(module),
                         str(ROOT / "scripts/acceptance" / ("product-browser-driver.swift" if args.product else "compose-local-adapter.swift")), *objects, "-lsqlite3", "-lc++", "-o", str(helper)],
                        check=True, cwd=ROOT)
-        source = product / page
-        subprocess.run(["node", "scripts/acceptance/local-browser.mjs", str(helper), str(source)],
-                       input=json.dumps(fixture), text=True, check=True, cwd=ROOT)
+        source = build / "Nearpane_RiftletAdapters.bundle" / page.name if args.swiftpm_fixture else product / page
+        env = os.environ.copy()
+        env["NEARPANE_BROWSER_FIXTURE_SWIFTPM"] = "1" if args.swiftpm_fixture else "0"
+        command = ["node", "scripts/acceptance/local-browser.mjs", str(helper), str(source)]
+        if args.swiftpm_fixture and not args.scenario:
+            def run_generated(options):
+                output = subprocess.run(command, input=json.dumps(options), text=True, check=True,
+                                        cwd=ROOT, env=env, stdout=subprocess.PIPE)
+                return json.loads(output.stdout)
+            first = run_generated(fixture)
+            restarted = run_generated({"productDriver":True,"restartFrom":Path(first["directory"]).name})
+            first["browserRestart"] = {k:v for k,v in restarted.items() if k != "directory"}
+            first["browserRestart"]["privateProfileRemoved"] = not (Path(restarted["directory"]) / "user-data").exists()
+            print(json.dumps(first))
+        else:
+            subprocess.run(command,input=json.dumps(fixture),text=True,check=True,cwd=ROOT,env=env)
 
 
 if __name__ == "__main__":

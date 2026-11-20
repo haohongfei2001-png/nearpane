@@ -8,6 +8,7 @@ extension TrayOwner {
         guard let asset = try await store.asset(id: assetID),
               let active = asset.activeOperationID, let op = try await store.operation(id: active),
               op.assetID == asset.id else { return nil }
+        try await captureProvider.reconcileAttachment(operationID: active, policy: receiptPolicy, observationExpired: false)
         let prefix = "截图 " + String(asset.sequence) + " · "
         switch op.phase {
         case .succeeded:

@@ -7,12 +7,13 @@ import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {createInterface} from 'node:readline';
 
-const page = owned => '<main><form><textarea id="prompt-textarea">Unsent fixture note</textarea>' +
+const page = (owned,blank=false) => '<main>'+(blank?'<button data-testid="profile-button">Fixture account</button>':'')+
+  '<form><textarea id="prompt-textarea">'+(blank?'':'Unsent fixture note')+'</textarea>' +
   '<button type="button" data-testid="composer-plus" aria-label="Attach file">+</button>' +
   '<button type="submit" aria-label="Send message">Send</button>' +
   (owned ? '<input type="file" accept="image/*">' : '') + '</form></main>';
 
-function installObservers(detached, renderPreview=false) {
+function installObservers(detached, renderPreview=false, delayed=false, canceled=false) {
   const count = {setter:0,input:0,change:0,foreignSetter:0,foreignChange:0,sendClick:0,submit:0,foreignPickerRequests:0,previews:0};
   const form = document.querySelector('form');
   const input = detached ? document.createElement('input') : form.querySelector('input');
@@ -26,7 +27,8 @@ function installObservers(detached, renderPreview=false) {
   }});
   document.addEventListener('submit',e=>{count.submit++;e.preventDefault();},true);
   document.addEventListener('click',e=>{if(e.target.closest('[type="submit"]'))count.sendClick++;},true);
-  let hash, fileName, previewImage;
+  const initialNote=document.querySelector('#prompt-textarea').value;
+  let hash, fileName, previewImage, previewReady;
   const track = (el, isForeign) => {
     el.addEventListener('input',()=>{count.input++;});
     el.addEventListener('change',()=>{
@@ -39,6 +41,8 @@ function installObservers(detached, renderPreview=false) {
       // This is only the fixture application's local preview of its actual input.
       // The locked page program and queue independently decide what it proves.
       if(renderPreview){
+        previewReady=(async()=>{
+        if(delayed) await new Promise(resolve=>setTimeout(resolve,400));
         const preview=document.createElement('span');
         preview.dataset.fileName=file.name;
         previewImage=document.createElement('img');
@@ -47,19 +51,25 @@ function installObservers(detached, renderPreview=false) {
         preview.append(previewImage);
         form.append(preview);
         count.previews++;
+        })();
       }
     });
   };
   track(input,detached);track(foreign,true);
-  if(detached) form.querySelector('[data-testid="composer-plus"]').addEventListener('click',()=>{
+  if(detached&&!canceled) form.querySelector('[data-testid="composer-plus"]').addEventListener('click',()=>{
     setTimeout(()=>{count.foreignPickerRequests++;try{input.showPicker();}catch{}},20);
+  });
+  if(canceled) form.querySelector('[data-testid="composer-plus"]').addEventListener('click',()=>{
+    count.pickerCanceled=(count.pickerCanceled||0)+1;
+    input.dispatchEvent(new Event('cancel',{bubbles:true}));
   });
   document.querySelector('#prompt-textarea').focus();
   globalThis.readFixture = async () => {
+    if(previewReady) await previewReady;
     if(previewImage) await previewImage.decode();
     return {...count, hash:await hash??null,fileName:fileName??null,
       previewSize:previewImage ? [previewImage.naturalWidth, previewImage.naturalHeight] : null,
-      textPreserved:document.querySelector('#prompt-textarea')?.value==='Unsent fixture note'};
+      textPreserved:document.querySelector('#prompt-textarea')?.value===initialNote};
   };
 }
 
@@ -98,19 +108,24 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
   const settings={assetID:id,sha256:sha,origin:fixture.origin??'systemScreenshot',
     width:fixture.width??2,height:fixture.height??2,chromePID,measureLiveFeedback:fixture.scenario==='composer-replaced'};
   const scenarios = fixture.scenario ? [fixture.scenario] :
-    ['owned-normal','owned','detached','composer-replaced','reload','tab-switch','route-changed','focused-other-editor','modal-over-composer'];
+    ['owned-normal','fresh-delay','owned','detached','canceled-picker','editor-absent','multiple-dialogs','composer-replaced','reload','tab-switch','route-changed','focused-other-editor','modal-over-composer'];
   for(const scenario of scenarios) {
     const folder=path.join(run,scenario);
     fs.mkdirSync(path.join(folder,'media'),{recursive:true,mode:0o700});
     fs.writeFileSync(path.join(folder,'media',id.toUpperCase()+'.png'),png,{flag:'wx'});
-    const url='https://chatgpt.com/c/'+randomUUID();
-    const html=page(scenario!=='detached');
+    const blank = scenario==='fresh-delay', canceled = scenario==='canceled-picker';
+    const url=blank?'https://chatgpt.com/':'https://chatgpt.com/c/'+randomUUID();
+    const html=page(scenario!=='detached'&&!canceled,blank);
     async function init() {
       await navigate(url,html);
-      await evalPage('('+installObservers.toString()+')('+String(scenario==='detached')+','+String(scenario==='owned-normal')+')');
+      await evalPage('('+installObservers.toString()+')('+[scenario==='detached'||canceled, scenario==='owned-normal'||blank,blank,canceled].join(',')+')');
     }
     await init();
-    if(scenario==='focused-other-editor'){
+    if(scenario==='editor-absent'){
+      await evalPage("document.querySelector('#prompt-textarea').remove()");
+    } else if(scenario==='multiple-dialogs'){
+      await evalPage("(()=>{for(let n=0;n<2;n++){const d=document.createElement('dialog');d.textContent='Fixture dialog';document.body.append(d);d.showModal()}})()");
+    } else if(scenario==='focused-other-editor'){
       await evalPage("(()=>{const other=document.createElement('textarea');document.body.prepend(other);other.focus()})()");
     } else if(scenario==='modal-over-composer'){
       await evalPage("(()=>{const dialog=document.createElement('dialog');dialog.textContent='fixture modal';document.body.append(dialog);dialog.showModal()})()");
@@ -212,12 +227,12 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
       await call('Target.closeTarget',{targetId:other}); await call('Target.activateTarget',{targetId:primary});
     }
     const events=await evalPage('readFixture()');
-    const positive=scenario==='owned'||scenario==='owned-normal';
+    const positive=scenario==='owned'||scenario==='owned-normal'||blank;
     assert.equal(events.foreignSetter,0);assert.equal(events.foreignChange,0);
     assert.equal(events.setter,Number(positive));assert.equal(events.change,Number(positive));assert.equal(events.input,Number(positive));
     assert.equal(events.hash,positive?sha:null);
     assert.equal(events.sendClick,0);assert.equal(events.submit,0);
-    assert.equal(events.textPreserved,true);
+    assert.equal(events.textPreserved,scenario!=='editor-absent');
     if(positive){
       assert.equal(events.fileName,'riftlet-'+domain.operation.toUpperCase()+'.png');
       assert.equal(actionCounts.commit,1);
@@ -238,12 +253,13 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
     } else {
       assert.ok(!['used','verifiedReady'].includes(domain.status));
       if(scenario==='detached')assert.equal(events.foreignPickerRequests,1);
+      if(canceled)assert.equal(events.pickerCanceled,1);
       if(scenario==='tab-switch'){ assert.ok(nativeRefusals>0); assert.ok(other); }
       if(['composer-replaced','route-changed','reload'].includes(scenario)){
         assert.ok(redirected);assert.equal(actionCounts.commit,1);assert.ok(pageRefusals>0);
       }
       if(scenario==='reload')assert.equal(documentBeforeReload.setter,0);
-      if(['focused-other-editor','modal-over-composer'].includes(scenario)){
+      if(['focused-other-editor','modal-over-composer','multiple-dialogs','editor-absent'].includes(scenario)){
         assert.equal(actionCounts.arm,1);assert.ok(!actionCounts.commit);assert.ok(pageRefusals>0);
       }
     }
@@ -253,4 +269,35 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
   return {scope:'ordinary Swift tray, executor, WebAttachmentAdapter and original queue policy with pipe in place of OS Chrome addressing. Local intercepted DOMs; no ChatGPT service.',
     transport:'fresh headless profile; reject proxy; private CDP pipe; synthetic native window/tab route; intercepted fixture documents',
     candidateBrowserResources:fixture.candidateBrowserResources,assetSHA256:sha,cases};
+}
+
+export async function runBrowserRestart({root,compose,source,fixture,chromePID,navigate,evalPage}) {
+  if (!/^local-browser-[A-Za-z0-9]+$/.test(fixture.restartFrom)) throw Error('Not an owned fixture run');
+  const original=path.join(root,'build',fixture.restartFrom);
+  assert.equal(fs.realpathSync(original),original);
+  const receipt=JSON.parse(fs.readFileSync(path.join(original,'receipt.json'),'utf8'));
+  const prior=receipt.cases.find(c=>c.scenario==='owned');
+  assert.equal(prior.domain.status,'unknown');
+  assert.equal(fs.lstatSync(path.join(original,'user-data'),{throwIfNoEntry:false}),undefined);
+  await navigate('https://chatgpt.com/',page(true,true));
+  await evalPage('('+installObservers.toString()+')(false)');
+  const folder=path.join(original,'owned');
+  assert.equal(fs.realpathSync(folder),folder);
+  const commands={};
+  async function callDriver(m) {
+    commands[m.cmd]=(commands[m.cmd]??0)+1;
+    if(m.cmd==='process') return 'ok';
+    throw Error('Restart issued an unexpected browser command');
+  }
+  const settings={assetID:prior.assetID,sha256:receipt.assetSHA256,origin:'systemScreenshot',width:2,height:2,chromePID};
+  const reopened=await drive(compose,[source,folder,'browser-restarted'],settings,callDriver);
+  assert.equal(reopened.refusedRestartedProcess,true);
+  assert.equal(reopened.operation,prior.domain.operation);
+  assert.equal(reopened.attempt,prior.domain.attempt);
+  const observed=await evalPage('readFixture()');
+  for(const key of ['input','change','setter','foreignSetter','foreignChange','sendClick','submit'])assert.equal(observed[key],0);
+  assert.deepEqual(commands,{process:1});
+  return {scope:'New real headless Chrome process, original persisted claim and production process-birth check.',
+    refusedRestartedProcess:true,sameOperation:true,sameAttempt:true,oldStatus:prior.domain.status,currentStatus:reopened.status,
+    browserCommands:0,setter:observed.setter,input:observed.input,sendClicks:observed.sendClick,submits:observed.submit};
 }

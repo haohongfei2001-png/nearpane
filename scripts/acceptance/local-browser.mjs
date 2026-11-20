@@ -11,10 +11,14 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const build = path.join(root, 'build');
 const run = fs.mkdtempSync(path.join(build, 'local-browser-'));
-const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const [compose, source] = process.argv.slice(2);
-assert.equal(fs.realpathSync(compose).startsWith(build + '/'), true);
 const fixture = JSON.parse(fs.readFileSync(0,'utf8') || '{}');
+if (fixture.capabilityBrowser) assert.ok(['chrome','edge'].includes(fixture.capabilityBrowser));
+else assert.equal(fs.realpathSync(compose).startsWith(build + '/'), true);
+const chrome = fixture.capabilityBrowser==='edge' ? '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' :
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const intercepted = fixture.productDriver || fixture.capabilityBrowser;
+
 const png = Buffer.from(fixture.png ||
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNQ91/l1DGH4cwql/K0UAAk9wVzjPxe1gAAAABJRU5ErkJggg==','base64');
 const sha = createHash('sha256').update(png).digest('hex');
@@ -54,7 +58,7 @@ child.stdio[4].setEncoding('utf8').on('data', part => {
   }
 });
 closed.then(() => { for (const waiter of pending.values()) waiter.reject(Error('Fixture browser exited')); });
-const timeout = setTimeout(() => child.kill('SIGKILL'), fixture.productDriver ? 120000 : 45000);
+const timeout = setTimeout(() => child.kill('SIGKILL'), fixture.productDriver ? 180000 : 45000);
 let verified = false;
 const draft = fs.readFileSync(path.join(root,'scripts/acceptance/draft-observation.js'),'utf8');
 try {
@@ -74,7 +78,7 @@ try {
   let url, html, fulfilled=0, denied=0;
   const fixtureDocuments = new Map();
   handlers.set('Fetch.requestPaused', ({params,sessionId:targetSession}) => {
-    const expected = fixture.productDriver ? fixtureDocuments.get(targetSession) : {url,html};
+    const expected = intercepted ? fixtureDocuments.get(targetSession) : {url,html};
     if (expected && params.resourceType === 'Document' && params.request.url === expected.url && params.request.method === 'GET') {
       fulfilled++;
       void call('Fetch.fulfillRequest',{requestId:params.requestId,responseCode:200,
@@ -84,8 +88,7 @@ try {
         body:Buffer.from(expected.html).toString('base64')},targetSession);
     } else { denied++; void call('Fetch.failRequest',{requestId:params.requestId,errorReason:'BlockedByClient'},targetSession); }
   });
-  if (fixture.productDriver) {
-    const {runProductCases} = await import('./product-browser-cases.mjs');
+  if (intercepted) {
     const navigate = async (next, body, targetSession=sessionId) => {
       fixtureDocuments.set(targetSession,{url:next,html:body});
       if(targetSession!==sessionId) {
@@ -96,8 +99,19 @@ try {
       await call('Page.navigate',{url:next},targetSession); await loaded;
       assert.equal(await evalPage('location.href',targetSession),next);
     };
-    const evidence = await runProductCases({run, root, compose, source, png, sha, fixture, call, send, evalPage, navigate,
-      primary:pages[0].targetId, chromePID:child.pid});
+    let evidence;
+    if (fixture.capabilityBrowser) {
+      const {runCapabilityCases} = await import('./draft-capability-cases.mjs');
+      evidence=await runCapabilityCases({guard:fs.readFileSync(path.join(root,'Resources/AcceptanceTargetGuard.js'),'utf8'),navigate,evalPage});
+      evidence.browser = fixture.capabilityBrowser;
+    } else if (fixture.restartFrom) {
+      const {runBrowserRestart}=await import('./product-browser-cases.mjs');
+      evidence=await runBrowserRestart({root,compose,source,fixture,chromePID:child.pid,navigate,evalPage});
+    } else {
+      const {runProductCases} = await import('./product-browser-cases.mjs');
+      evidence=await runProductCases({run,root,compose,source,png,sha,fixture,call,send,evalPage,navigate,
+        primary:pages[0].targetId,chromePID:child.pid});
+    }
     Object.assign(evidence, {chrome:version.product, fixtureDocumentResponses:fulfilled, otherRequestsDenied:denied});
     fs.writeFileSync(path.join(run,'receipt.json'), JSON.stringify(evidence,null,2), {flag:'wx'});
     console.log(JSON.stringify({directory:run,...evidence}));
@@ -177,6 +191,8 @@ try {
   if (verified) {
     assert.equal(exitCode, 0, 'Fixture browser did not exit normally');
     assert.equal(signal, null);
+  }
+  if (exitCode !== null || signal !== null) {
     const now = fs.lstatSync(profile);
     assert.ok(now.isDirectory() && now.dev === profileIdentity.dev && now.ino === profileIdentity.ino,
       'Fixture profile identity changed');

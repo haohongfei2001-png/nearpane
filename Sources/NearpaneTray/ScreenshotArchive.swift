@@ -89,8 +89,8 @@ struct ScreenshotArchivePage {
 actor ScreenshotArchiveMedia {
     static let shared = ScreenshotArchiveMedia()
 
-    func preview(_ image: ImportedAsset, root: URL, pixels: Int) -> CGImage? {
-        guard !Task.isCancelled, pixels > 0, image.byteCount > 0,
+    private func verifiedSource(_ image: ImportedAsset, root: URL) -> CGImageSource? {
+        guard !Task.isCancelled, image.byteCount > 0,
               image.byteCount <= ScreenshotImportLimits.bytes, !image.fileName.isEmpty,
               image.fileName != ".", image.fileName != "..",
               !image.fileName.contains("/"), !image.fileName.utf8.contains(0) else { return nil }
@@ -113,6 +113,19 @@ actor ScreenshotArchiveMedia {
               !Task.isCancelled,
               let source = CGImageSourceCreateWithData(bytes as CFData, [kCGImageSourceShouldCache: false] as CFDictionary)
         else { return nil }
+        return source
+    }
+
+    func verifiedDimensions(_ image: ImportedAsset, root: URL) -> CGSize? {
+        guard let source = verifiedSource(image, root: root), CGImageSourceGetCount(source) == 1,
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int else { return nil }
+        return CGSize(width: width, height: height)
+    }
+
+    func preview(_ image: ImportedAsset, root: URL, pixels: Int) -> CGImage? {
+        guard pixels > 0, let source = verifiedSource(image, root: root) else { return nil }
         return CGImageSourceCreateThumbnailAtIndex(source, 0, [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,

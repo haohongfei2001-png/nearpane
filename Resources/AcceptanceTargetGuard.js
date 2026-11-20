@@ -1,6 +1,56 @@
 // Shared receiver/side-effect guard for the locked Riftlet page program.
 function nearpaneBoundDraft(b, command, native, handoff, parts, deadline, conflicts) {
   const reject = () => { throw Error('TARGET_INVALID'); };
+  // A capability read on the explicitly selected tab. Only fixed booleans cross the bridge.
+  // No input, file assignment, history mutation, account value, URL or draft text is returned.
+  if (command.action === 'inspectCapabilities') {
+    const profiles = {
+      'chatgpt.com': {
+        editor: '#prompt-textarea', account: '[data-testid="profile-button"],[data-testid="accounts-profile-button"]',
+        login: '[data-testid="login-button"],a[href^="/auth/login"]', turns: '[data-message-author-role]',
+        blank: ['/'], composer: 'form,[data-testid="composer"],[data-composer-placement]'
+      },
+      'claude.ai': {
+        editor: '[data-testid="chat-input"],div.ProseMirror[contenteditable="true"]',
+        account: '[data-testid="user-menu-button"],[data-testid="account-menu-button"]',
+        login: 'a[href^="/login"],form[action*="/login"]', turns: '[data-testid="user-message"],[data-testid="assistant-message"]',
+        blank: ['/new'], composer: 'form,[data-testid="chat-input-container"],fieldset'
+      },
+      'gemini.google.com': {
+        editor: 'rich-textarea [contenteditable="true"]', account: 'a[href^="https://accounts.google.com/SignOutOptions"]',
+        login: 'a[href^="https://accounts.google.com/ServiceLogin"]', turns: 'user-query,model-response',
+        blank: ['/app'], composer: 'form,input-area-v2,input-container'
+      },
+      'chat.deepseek.com': {
+        editor: 'main textarea,[role="main"] textarea,#chat-input', account: '[data-testid="user-menu"],[data-testid="account-menu"]',
+        login: 'a[href^="/sign_in"],form[action*="/sign_in"]', turns: '[data-message-id],[data-testid="chat-message"]',
+        blank: ['/'], composer: 'form,[data-testid="chat-input-container"]'
+      }
+    };
+    const host = command.host, profile = profiles[host];
+    if (!Object.hasOwn(profiles,host) || location.origin !== 'https://' + host || top !== globalThis ||
+        document.visibilityState !== 'visible' || !document.hasFocus() || document.readyState !== 'complete') reject();
+    const visible = node => !node.closest('[hidden],[aria-hidden="true"],[inert]') &&
+      node.getClientRects().length > 0 && getComputedStyle(node).visibility !== 'hidden';
+    const present = selector => [...document.querySelectorAll(selector)].some(visible);
+    const account = present(profile.account), login = present(profile.login);
+    const candidates = [...document.querySelectorAll(profile.editor)].filter(node => visible(node) &&
+      !node.disabled && !node.readOnly && (node.isContentEditable || node.tagName === 'TEXTAREA') &&
+      !node.closest('nav,aside,article,dialog,[role="dialog"]'));
+    const editor = candidates.length === 1 ? candidates[0] : null;
+    const composer = editor?.closest(profile.composer);
+    const empty = editor && (editor.isContentEditable ? editor.textContent.trim().length === 0 : editor.textLength === 0);
+    const turns = present(profile.turns);
+    const blank = profile.blank.includes(location.pathname) && !location.search && !location.hash;
+    const modal = present('dialog[open],[aria-modal="true"],[role="alertdialog"],[role="dialog"]');
+    const fresh = turns ? false : blank && editor && composer && !modal ? !!empty : null;
+    const picker = composer && !modal ? [...composer.querySelectorAll('input[type="file"]')].filter(node =>
+      !node.disabled && !node.hasAttribute('form') && node.closest(profile.composer) === composer).length : null;
+    return JSON.stringify({service:host,accountControl:account,loginControl:login,
+      authenticated:account === login ? null : account,blankEditorAtFreshRoute:fresh,
+      editorPresent:candidates.length > 0,uniqueEditor:!!editor,ownedFileControl:picker === null ? null : picker === 1,
+      modal, pickerAccepted:null, attachmentRendered:null, uploadComplete:null, sendEvents:null});
+  }
   const surface = 'form,[data-testid="composer"],[data-composer-placement]';
   const product = b?.mode === 'product';
   const currentKey = 'data-nearpane-selected-image-v1';
