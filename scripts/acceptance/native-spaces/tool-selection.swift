@@ -6,126 +6,10 @@ import NaturalLanguage
 import Translation
 import Vision
 
-struct ToolRefusal: LocalizedError {
-    var errorDescription: String?
-    init(_ reason: String) { errorDescription = reason }
-}
-
-@MainActor
-enum ToolUI {
-    static func value(_ node: AXUIElement, _ key: String) -> CFTypeRef? {
-        var val: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(node, key as CFString, &val) == .success else { return nil }
-        return val
-    }
-
-    static func frame(_ node: AXUIElement) -> CGRect? {
-        guard let origin = value(node,kAXPositionAttribute), CFGetTypeID(origin) == AXValueGetTypeID(),
-              let size = value(node,kAXSizeAttribute), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
-        var p = CGPoint.zero, s = CGSize.zero
-        guard AXValueGetValue(origin as! AXValue,.cgPoint,&p), AXValueGetValue(size as! AXValue,.cgSize,&s) else { return nil }
-        return CGRect(origin: p, size: s)
-    }
-
-    static func nodes(_ host: NSRunningApplication) -> [AXUIElement] {
-        let root = AXUIElementCreateApplication(host.processIdentifier)
-        AXUIElementSetMessagingTimeout(root, 0.35)
-        var queue = value(root,kAXWindowsAttribute) as? [AXUIElement] ?? []
-        var read: [AXUIElement] = []
-        while let node = queue.popLast(), read.count < 1800 {
-            read.append(node)
-            if let kids = value(node,kAXChildrenAttribute) as? [AXUIElement] { queue.append(contentsOf:kids) }
-        }
-        return read
-    }
-
-    static func labels(_ item: AXUIElement) -> [String] {
-        [kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].compactMap { value(item,$0) as? String }
-    }
-
-    static func press(_ host: NSRunningApplication, label: String) -> Bool {
-        for node in nodes(host) where labels(node).contains(label) {
-            if AXUIElementPerformAction(node,kAXPressAction as CFString) == .success { return true }
-        }
-        return false
-    }
-
-    static func windows(_ pid: pid_t) -> [(id: CGWindowID, level: Int, bounds: CGRect)] {
-        let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] ?? []
-        return list.compactMap { w in
-            guard w[kCGWindowOwnerPID as String] as? Int32 == pid,
-                  let id = w[kCGWindowNumber as String] as? UInt32,
-                  let l = w[kCGWindowLayer as String] as? Int,
-                  let b = w[kCGWindowBounds as String] as? NSDictionary,
-                  let r = CGRect(dictionaryRepresentation:b) else { return nil }
-            return (id,l,r)
-        }
-    }
-
-    static func run(_ path: String, _ args: [String]) throws -> String {
-        let child = Process(), stdout = Pipe()
-        child.executableURL = URL(fileURLWithPath:path); child.arguments = args
-        child.standardOutput = stdout; child.standardError = FileHandle.nullDevice
-        try child.run()
-        let bytes = stdout.fileHandleForReading.readDataToEndOfFile()
-        child.waitUntilExit()
-        guard child.terminationStatus == 0 else { throw ToolRefusal("System observation failed: " + child.executableURL!.lastPathComponent) }
-        return String(decoding:bytes,as:UTF8.self)
-    }
-
-    static func screenshot(_ number: CGWindowID, pid: pid_t, to url: URL) throws {
-        guard number != 0, windows(pid).contains(where: { $0.id == number }), !FileManager.default.fileExists(atPath:url.path) else {
-            throw ToolRefusal("Owned window no longer exists or output already exists")
-        }
-        _ = try run("/usr/sbin/screencapture",["-x","-o","-l",String(number),url.path])
-    }
-
-    static func ocr(_ file: URL) throws -> [String] {
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.recognitionLanguages = ["zh-Hans","en-US"]
-        try VNImageRequestHandler(url:file).perform([request])
-        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
-    }
-
-    static func pause(_ ms: Int) async { try? await Task.sleep(for:.milliseconds(ms)) }
-}
-
 struct Word: Codable, Equatable { let id: UUID; let source, translation, language: String }
 struct Notebook: Decodable { let words: [Word] }
-struct Index: Decodable { let active: String }
 
-@MainActor
-struct ToolContext {
-    let host: NSRunningApplication
-    let generation: URL, output: URL
-    let appPath = "/Applications/Nearpane.app"
-    init(output: String) throws {
-        let env = ProcessInfo.processInfo.environment
-        guard let home = env["NEARPANE_TEST_HOME"], let path = env["NEARPANE_TEST_GENERATION"] else {
-            throw ToolRefusal("An installed-profile isolated lease is required")
-        }
-        let fm = FileManager.default
-        let homeURL = URL(fileURLWithPath:home).resolvingSymlinksInPath()
-        let gen = URL(fileURLWithPath:path).resolvingSymlinksInPath()
-        let root = homeURL.appendingPathComponent("Library/Application Support/Nearpane Alpha Profiles").resolvingSymlinksInPath()
-        guard homeURL != fm.homeDirectoryForCurrentUser.resolvingSymlinksInPath(),
-              gen.deletingLastPathComponent().path == root.appendingPathComponent("generations").path,
-              UUID(uuidString:gen.lastPathComponent) != nil,
-              try JSONDecoder().decode(Index.self,from:Data(contentsOf:root.appendingPathComponent("profile-index.json"))).active == gen.lastPathComponent else {
-            throw ToolRefusal("The generation does not belong to the designated isolated home")
-        }
-        let hosts = NSRunningApplication.runningApplications(withBundleIdentifier:"com.holdsnow.nearpane.alpha")
-        guard hosts.count == 1, let host = hosts.first, host.bundleURL?.path == appPath, AXIsProcessTrusted() else {
-            throw ToolRefusal("The sole installed Nearpane and an accessibility-capable observer are required")
-        }
-        let pids = try ToolUI.run("/usr/sbin/lsof",["-a","-p",String(host.processIdentifier),"-t",root.appendingPathComponent("writer.lock").path])
-        guard pids.trimmingCharacters(in:.whitespacesAndNewlines) == String(host.processIdentifier) else {
-            throw ToolRefusal("The installed Host does not own this isolated profile")
-        }
-        self.host = host; generation = gen
-        self.output = URL(fileURLWithPath:output,isDirectory:true)
-    }
+@MainActor extension ToolContext {
     func words(_ phrase: String) throws -> [Word] {
         let path = generation.appendingPathComponent("Nearpane/sidebar-notebook.json")
         guard FileManager.default.fileExists(atPath:path.path) else { return [] }
@@ -235,12 +119,12 @@ func readback(_ context: ToolContext, prior: URL) async throws -> [String:Any] {
     let words = try context.words(phrase)
     let retained = words.count == 1 && words.first?.id.uuidString == id && words.first?.translation == answer
     // Reopen the ordinary settings window so SwiftUI reads the newly constructed notebook instance.
-    NSWorkspace.shared.open(URL(fileURLWithPath:context.appPath))
+    try await ToolUI.openSettings(context.host)
     var entries: [String] = []
     for step in 0..<28 {
         let tree = ToolUI.nodes(context.host); entries = tree.flatMap(ToolUI.labels)
         if entries.contains(where: { $0.contains(phrase) }) && entries.contains(where: { $0.contains(answer) }) { break }
-        if step == 2 || step == 10 { _ = ToolUI.press(context.host,label:"模块") }
+        if step == 2 || step == 10 { _ = ToolUI.press(context.host,identifier:"settings-nav-modules") }
         if step == 6 || step == 15 { _ = ToolUI.press(context.host,label:"单词本") }
         await ToolUI.pause(180)
     }
