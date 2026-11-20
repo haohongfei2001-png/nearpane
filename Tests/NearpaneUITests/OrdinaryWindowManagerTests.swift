@@ -629,6 +629,19 @@ import Testing
 
     @Test func aCompletedDragWakesTheManagerAndUsesOnlyTheTargetsFreeSlot() async throws {
         let scope = OrdinaryScope(), manager = scope.manager(), a = WindowDouble(), b = WindowDouble()
+        let idle = AsyncStream<Void>.makeStream(), boundary = AsyncStream<Void>.makeStream()
+        defer { idle.continuation.finish(); boundary.continuation.finish() }
+        var boundaryWaits = 0
+        manager.monitorDelay = { interval in
+            let ticks: AsyncStream<Void>
+            switch interval {
+            case .seconds(1): ticks = idle.stream
+            case .milliseconds(260): boundaryWaits += 1; ticks = boundary.stream
+            default: Issue.record("Unexpected monitor interval"); throw CancellationError()
+            }
+            var reader = ticks.makeAsyncIterator()
+            guard await reader.next() != nil else { throw CancellationError() }
+        }
         try await manager.confirm(manager.prepare([a,b], context: scope.context), context: scope.context)
         let safe = a.frame, sibling = b.frame
         var beyond = safe
@@ -637,14 +650,19 @@ import Testing
         a.externalChange(to: beyond)
         let signal = try #require(a.boundaryAlert)
         signal()
+        let scheduled = try #require(manager.boundaryWake)
         signal()
-        // The private completion signal wakes the normal transaction before the idle scan.
-        let deadline = ContinuousClock.now + .milliseconds(850)
-        while a.writes == 1 && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        #expect(!manager.blocked && a.writes == 2 && a.frame == safe, "state \(manager.message); writes \(a.writes); frame \(a.frame); expected \(safe)")
-        #expect(b.writes == 1 && b.frame == sibling)
+        let duplicate = try #require(manager.boundaryWake)
+        #expect(duplicate == scheduled)
+        // The periodic scan stays suspended. The native completion hint alone must
+        // wake one full observe/acknowledge/write transaction for the registered window.
+        boundary.continuation.yield(())
+        boundary.continuation.finish()
+        await scheduled.value
+        await duplicate.value
+        #expect(boundaryWaits == 1 && a.boundaryAcknowledgements == 1)
+        #expect(!manager.busy && !manager.blocked && a.writes == 2 && a.frame == safe)
+        #expect(b.writes == 1 && b.frame == sibling && b.boundaryAcknowledgements == 0)
         try await manager.stop()
         #expect(a.boundaryAlert == nil && b.boundaryAlert == nil)
     }

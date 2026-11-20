@@ -197,7 +197,15 @@ import Testing
     }
 
     @Test func expiredOrdinaryPreviewWithdrawsConfirmationWithoutClearingSelectedWindows() async throws {
-        let reader = Reader(), selection = AdmissionSelection(reader: reader)
+        // Each deadline is delivered explicitly, including a cancelled timer whose wait
+        // already completed and whose continuation reaches the main actor late.
+        let waits = AsyncStream<(TimeInterval, CheckedContinuation<Void, Never>)>.makeStream()
+        defer { waits.continuation.finish() }
+        var deadlines = waits.stream.makeAsyncIterator()
+        let reader = Reader()
+        let selection = AdmissionSelection(reader: reader, waitForExpiry: { deadline in
+            await withCheckedContinuation { waits.continuation.yield((deadline, $0)) }
+        })
         selection.open()
         await selection.select(reader.app)
         selection.toggle(reader.row)
@@ -206,20 +214,30 @@ import Testing
         let rect = SurfaceRect(width: 800, height: 600)
         let context = AdmissionContext(display: "test", screen: rect, usable: rect, primary: true,
                                       settings: .init(), edge: .right, preferences: .init(), recoveryClear: true, exclusive: true)
-        let now = ProcessInfo.processInfo.systemUptime
-        let expired = OrdinaryWindowReview(token: UUID(), display: "test", validUntil: now, current: [:], proposed: [:])
-        selection.present(expired, context: context)
-        let deadline = ContinuousClock.now + .seconds(1)
-        while !selection.expired && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        let expired = OrdinaryWindowReview(token: UUID(), display: "test", validUntil: 100, current: [:], proposed: [:])
+        let first = selection.present(expired, context: context)
+        let expiry = try #require(await deadlines.next())
+        #expect(expiry.0 == expired.validUntil && !selection.expired)
+        expiry.1.resume()
+        await first.value
         #expect(selection.expired && selection.ordinaryReview == nil && selection.ordinaryContext == nil)
         #expect(released == 1 && selection.picks.first?.choice.id == reader.row.id)
+
         selection.invalidate()
-        selection.present(expired, context: context)
-        let current = OrdinaryWindowReview(token: UUID(), display: "test", validUntil: now + 60, current: [:], proposed: [:])
-        selection.present(current, context: context)
-        try await Task.sleep(for: .milliseconds(10))
+        let replaced = selection.present(expired, context: context)
+        let late = try #require(await deadlines.next())
+        let current = OrdinaryWindowReview(token: UUID(), display: "test", validUntil: 160, current: [:], proposed: [:])
+        let replacement = selection.present(current, context: context)
+        let future = try #require(await deadlines.next())
+        #expect(late.0 == expired.validUntil && future.0 == current.validUntil)
+        late.1.resume()
+        await replaced.value
         #expect(!selection.expired && selection.ordinaryReview?.token == current.token && released == 2)
+
         selection.close()
+        future.1.resume()
+        await replacement.value
+        #expect(!selection.expired && released == 3 && selection.picks.isEmpty)
     }
 
     @Test func staleLiveRefreshCannotRestoreClosedSettingsSelection() async {

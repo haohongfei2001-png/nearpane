@@ -89,7 +89,8 @@ enum OrdinaryRefusal: LocalizedError {
     private var checkingCreated = false
     private var previewRevision = 0
     private var monitoring: Task<Void, Never>?
-    @ObservationIgnored private var boundaryWake: Task<Void, Never>?
+    @ObservationIgnored private(set) var boundaryWake: Task<Void, Never>?
+    @ObservationIgnored var monitorDelay: @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     private var closing = false
     private var passiveRead = false
     private var userActionReserved = false
@@ -875,9 +876,9 @@ enum OrdinaryRefusal: LocalizedError {
 
     private func startMonitoring() {
         guard monitoring == nil else { return }
-        monitoring = Task { [weak self] in
+        monitoring = Task { [weak self, monitorDelay] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
+                do { try await monitorDelay(.seconds(1)) } catch { return }
                 guard !Task.isCancelled, let self else { return }
                 await self.poll()
                 await self.checkNewWindows()
@@ -890,8 +891,8 @@ enum OrdinaryRefusal: LocalizedError {
     /// The private pipe is only a scheduling hint and confers no authority to write.
     private func scheduleBoundaryCheck() {
         guard boundaryWake == nil, !activeIDs.isEmpty, !blocked, !closing, !paused else { return }
-        boundaryWake = Task { [weak self] in
-            do { try await Task.sleep(for: .milliseconds(260)) } catch { return }
+        boundaryWake = Task { [weak self, monitorDelay] in
+            do { try await monitorDelay(.milliseconds(260)) } catch { return }
             guard let self, !Task.isCancelled else { return }
             self.boundaryWake = nil
             await self.poll()
