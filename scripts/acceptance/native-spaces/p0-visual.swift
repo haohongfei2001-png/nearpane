@@ -8,6 +8,7 @@ import CoreMedia
 import Darwin
 import ScreenCaptureKit
 import Security
+import VideoToolbox
 
 private typealias JSON = [String: Any]
 private struct Failure: Error { let message: String; init(_ message: String) { self.message = message } }
@@ -165,7 +166,7 @@ private func probeSurface(_ crop:CGRect,_ pair:Pair)->ProbeSurface {
 }
 private func layerAtProbe(_ crop:CGRect,_ p:Pair)->UInt32? { probeSurface(crop,p).value }
 
-private func physicalFilter(_ content:SCShareableContent,_ display:SCDisplay,_ p:Pair)->SCContentFilter {
+private func physicalFilter(_ content:SCShareableContent,_ display:SCDisplay,_ p:Pair,report:inout JSON)->SCContentFilter {
     let allowed=Set([p.sourceWindow.pid,p.targetWindow.pid])
     let excluded=content.applications.filter { app in
         if allowed.contains(app.processID) {return false}
@@ -173,9 +174,22 @@ private func physicalFilter(_ content:SCShareableContent,_ display:SCDisplay,_ p
     }
     let filter=SCContentFilter(display:display,excludingApplications:excluded,exceptingWindows:[])
     filter.includeMenuBar=false
+    func scope(_ w:Window)->JSON {
+        ["cataloguedAppCount":content.applications.filter{$0.processID==w.pid && $0.bundleIdentifier==w.identifier}.count,
+         "excluded":excluded.contains{$0.processID==w.pid},"includedApplicationEcho":filter.includedApplications.contains{$0.processID==w.pid},
+         "includedWindowEcho":filter.includedWindows.contains{$0.windowID==w.number && $0.owningApplication?.processID==w.pid}]
+    }
+    report=["source":scope(p.sourceWindow),"target":scope(p.targetWindow),"excludedOtherApplicationCount":excluded.count,
+            "filterModeDisplay":filter.style == .display]
     return filter
 }
 
+private func colorBand(_ candidate:[Int],_ expected:[Int]?)->String {
+    guard let expected,candidate.count==3,expected.count==3 else {return "unavailable"}
+    let difference=zip(candidate,expected).map{abs($0-$1)}.max() ?? 255
+    for (upper,label) in [(10,"0–10"),(20,"11–20"),(30,"21–30"),(45,"31–45"),(60,"46–60"),(90,"61–90"),(128,"91–128")] where difference<=upper {return label}
+    return "129–255"
+}
 private func rgb(_ img: CGImage) -> [Int]? {
     var data = [UInt8](repeating: 0, count: 4)
     return data.withUnsafeMutableBytes { bytes in
@@ -185,6 +199,22 @@ private func rgb(_ img: CGImage) -> [Int]? {
         guard bytes[3] >= 245 else { return nil }
         return [Int(bytes[0]), Int(bytes[1]), Int(bytes[2])]
     }
+}
+
+// Diagnostic comparison with the older raw BGRA reader. Never persist raw physical colors.
+private func directColor(_ pixels: CVPixelBuffer) -> [Int]? {
+    guard CVPixelBufferLockBaseAddress(pixels, .readOnly) == kCVReturnSuccess else {return nil}
+    defer {CVPixelBufferUnlockBaseAddress(pixels, .readOnly)}
+    guard let base=CVPixelBufferGetBaseAddress(pixels) else {return nil}
+    var sum=[Int](repeating:0,count:3)
+    for y in 0..<4 {
+        let line=base.advanced(by:y*CVPixelBufferGetBytesPerRow(pixels)).assumingMemoryBound(to:UInt8.self)
+        for x in 0..<4 {
+            guard line[x*4+3]>=245 else {return nil}
+            for k in 0..<3 {sum[k]+=Int(line[x*4+2-k])}
+        }
+    }
+    return sum.map{(($0/16+4)/8)*8}
 }
 
 // These authenticated negative-level system backdrops do not count as ordinary user windows.
@@ -236,7 +266,7 @@ private func rectangle(_ r: CGRect) -> [Double] { [r.minX, r.minY, r.width, r.he
 private func probeConfiguration(_ r: CGRect, _ display: SCDisplay, _ hz: Int) -> SCStreamConfiguration {
     let c = SCStreamConfiguration()
     c.sourceRect = r.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)
-    c.width = 4; c.height = 4
+    c.width=4;c.height=4;c.colorSpaceName=CGColorSpace.sRGB
     c.pixelFormat = kCVPixelFormatType_32BGRA
     c.minimumFrameInterval = CMTime(value: 1, timescale: Int32(hz))
     c.showsCursor = false; c.capturesAudio = false; c.captureMicrophone = false; c.includeChildWindows = false
@@ -256,62 +286,45 @@ private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @u
     func stream(_ stream: SCStream, didStopWithError error: Error) { DispatchQueue.main.async { self.failed = true } }
     func stream(_ stream: SCStream, didOutputSampleBuffer sample: CMSampleBuffer, of type: SCStreamOutputType) {
         guard type == .screen, rows.count < 6_000 else { return }
+        let received=uptime()
         let info = (CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]])?.first
         let ticks = (info?[.displayTime] as? NSNumber)?.uint64Value ?? 0
         let time = Double(ticks) * Double(scale.numer) / Double(scale.denom) / 1e9
         let status = info?[.status] as? Int ?? -1
         let space = inventory(pair).0
-        var row: JSON = ["displayTime": time, "callback": uptime(), "status": status, "space": space as Any? ?? NSNull(), "safe": false]
-        defer { rows.append(row) }
+        var row:JSON=["origin":"sck-display","displayTime":time,"presentationMachTicks":ticks,"callback":received,
+                      "status":status,"space":space as Any? ?? NSNull(),"safe":false]
+        defer {row["metadataThrough"]=uptime();rows.append(row)}
         guard pairIntact(pair) else {row["blockedBy"]="fixtureGenerationOrHumanInput";return}
         guard let space,let expected=endpoints[String(space)] else {row["blockedBy"]="spaceOrTopology";return}
         guard wallpaper(screen)==expected.wallpaper else {row["blockedBy"]="wallpaperChanged";return}
         let surface=probeSurface(crop,pair)
         guard let visible=surface.value else {row["blockedBy"]=surface.category;return}
-        var color: [Int]?
+        var color:[Int]?,legacy:[Int]?
         if status == SCFrameStatus.complete.rawValue || status == SCFrameStatus.started.rawValue,
            let pix = CMSampleBufferGetImageBuffer(sample), CVPixelBufferGetWidth(pix) == 4, CVPixelBufferGetHeight(pix) == 4,
-           CVPixelBufferGetPixelFormatType(pix) == kCVPixelFormatType_32BGRA, CVPixelBufferLockBaseAddress(pix, .readOnly) == kCVReturnSuccess {
-            defer { CVPixelBufferUnlockBaseAddress(pix, .readOnly) }
-            guard let base = CVPixelBufferGetBaseAddress(pix) else { return }
-            var channels = [Int](repeating: 0, count: 3)
-            for y in 0..<4 {
-                let line = base.advanced(by: y*CVPixelBufferGetBytesPerRow(pix)).assumingMemoryBound(to: UInt8.self)
-                for x in 0..<4 {
-                    guard line[x*4+3] >= 245 else { return }
-                    for k in 0..<3 { channels[k] += Int(line[x*4+2-k]) }
-                }
+           CVPixelBufferGetPixelFormatType(pix) == kCVPixelFormatType_32BGRA {
+            guard let opaque=directColor(pix) else {row["blockedBy"]="nonopaqueOrUnreadableNativeCrop";return}
+            legacy=opaque
+            var image:CGImage?
+            if VTCreateCGImageFromCVPixelBuffer(pix,options:nil,imageOut:&image)==noErr,let image,image.width==4,image.height==4 {
+                color=rgb(image)
             }
-            color = channels.map { (($0 / 16 + 4) / 8) * 8 }
         }
         guard inventory(pair).0==space,layerAtProbe(crop,pair)==visible,pairIntact(pair) else {row["blockedBy"]="surfaceChangedDuringRead";return}
         row["safe"] = true
         row["visible"] = visible == pair.sourceWindow.number ? "source" : (visible == pair.targetWindow.number ? "target" : "appleWallpaper")
         if let color {
+            if visible==pair.targetWindow.number || visible==pair.sourceWindow.number {
+                row["colorPipeline"]="sRGB CGImage for stream and reference"
+                row["sourceColorMaxDeltaBand"]=colorBand(color,endpoints[String(pair.topology.current)]?.rgb)
+                row["targetColorMaxDeltaBand"]=colorBand(color,endpoints[String(pair.target)]?.rgb)
+                if let legacy {row["directBGRAAgreesWithSRGB"]=comparison(legacy,color)}
+            }
             row["lit"] = (color.max() ?? 0) > 24
             row["matchesSource"] = comparison(color, endpoints[String(pair.topology.current)]?.rgb)
             row["matchesTarget"] = comparison(color, endpoints[String(pair.target)]?.rgb)
         }
-    }
-    /// Static desktops can stop delivering changed frames. Read the same guarded display crop only
-    /// during that silence. Capture bounds travel with the sample; slow captures cannot fill gaps.
-    @MainActor func sampleIfIdle(filter: SCContentFilter, config: SCStreamConfiguration) async {
-        let start = uptime()
-        guard rows.count < 6_000, start - (rows.last?["callback"] as? Double ?? 0) > 0.022,
-              pairIntact(pair), let space = inventory(pair).0, let expected = endpoints[String(space)],
-              wallpaper(screen) == expected.wallpaper, let surface = layerAtProbe(crop, pair) else { return }
-        guard let image = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) else { return }
-        let end = uptime()
-        let visible = surface == pair.sourceWindow.number ? "source" : (surface == pair.targetWindow.number ? "target" : "appleWallpaper")
-        var row: JSON = ["displayTime": (start + end)/2, "from": start, "to": end, "callback": end,
-                         "origin": "guarded-current-display-crop", "status": 0, "safe": false, "space": space]
-        defer { rows.append(row) }
-        guard end - start <= 0.050, image.width == 4, image.height == 4, let color = rgb(image),
-              pairIntact(pair), inventory(pair).0 == space, layerAtProbe(crop, pair) == surface,
-              wallpaper(screen) == expected.wallpaper else { return }
-        row["safe"] = true; row["visible"] = visible; row["lit"] = (color.max() ?? 0) > 24
-        row["matchesSource"] = comparison(color, endpoints[String(pair.topology.current)]?.rgb)
-        row["matchesTarget"] = comparison(color, endpoints[String(pair.target)]?.rgb)
     }
     private func comparison(_ sample: [Int], _ expected: [Int]?) -> Bool {
         guard let expected, expected.count == 3 else { return false }
@@ -490,6 +503,79 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         }
     }
 
+    @MainActor private static func verifyTarget(_ p:Pair,display:SCDisplay,screen:NSScreen,crop:CGRect,hz:Int,endpoint:Endpoint,
+                                                 stream:SCStream,probe:DisplayProbe,end:End) async -> JSON {
+        var result:JSON=["eligible":false,"sameStream":true,"independentTargetAndDisplayAgree":false,"linkedToNativeTarget":false]
+        func safe()->Bool {
+            pairIntact(p) && inventory(p).0==p.target && wallpaper(screen)==endpoint.wallpaper && layerAtProbe(crop,p)==p.targetWindow.number
+        }
+        do {
+            guard end.allowMovie,end.pressed>0,end.ended>end.pressed,safe(),cleanDesktops(p) else {throw Failure("target space, owner, source file or crop changed")}
+            let current=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:false)
+            guard let freshDisplay=current.displays.first(where:{$0.displayID==display.displayID}),current.displays.count==1 else {throw Failure("physical display changed")}
+            let pair=try [p.sourceWindow,p.targetWindow].map { w -> SCWindow in
+                let windows=current.windows.filter{$0.windowID==w.number && $0.owningApplication?.processID==w.pid && $0.owningApplication?.bundleIdentifier==w.identifier}
+                guard windows.count==1 else {throw Failure("current capture catalogue omitted a bound fixture")};return windows[0]
+            }
+            let validCrop=probeRect(pair,display:freshDisplay)==crop && rectangle(crop)==endpoint.crop
+            result["freshFramesAgreeWithEnrolledCrop"]=validCrop;result["shareableTargetOnScreen"]=pair[1].isOnScreen
+            guard validCrop,pair[1].isOnScreen,safe() else {throw Failure("current target geometry or visibility disagreed with enrollment")}
+            var scope:JSON=[:]
+            let active=physicalFilter(current,freshDisplay,p,report:&scope),config=probeConfiguration(crop,freshDisplay,hz)
+            result["freshFilterOwnership"]=scope;result["eligible"]=true
+            guard active.style == .display else {throw Failure("current physical filter lost its display binding")}
+            let only=SCContentFilter(display:freshDisplay,including:[pair[1]]);only.includeMenuBar=false
+            let from=uptime()
+            let own=try await SCScreenshotManager.captureImage(contentFilter:only,configuration:config)
+            guard safe(),own.width==4,own.height==4,let reference=rgb(own) else {throw Failure("current isolated target calibration unavailable")}
+            let real=try await SCScreenshotManager.captureImage(contentFilter:active,configuration:config)
+            guard safe(),real.width==4,real.height==4,let displayed=rgb(real) else {throw Failure("current display calibration unavailable")}
+            let sampledAt=uptime()
+            result["sampleRequested"]=from;result["sampleReturned"]=sampledAt
+            result["fixtureVsEnrolledBand"]=colorBand(reference,endpoint.rgb);result["displayVsCurrentFixtureBand"]=colorBand(displayed,reference)
+            guard (reference.max() ?? 0)>45,zip(reference,endpoint.rgb).allSatisfy({abs($0-$1)<=30}),
+                  zip(displayed,reference).allSatisfy({abs($0-$1)<=30}) else {throw Failure("fresh displayed pixels and independent target fixture color did not agree")}
+            result["independentTargetAndDisplayAgree"]=true
+            func targetTail()->ArraySlice<JSON>? {
+                let rows=probe.rows
+                guard let position=rows.lastIndex(where:{[0,4].contains($0["status"] as? Int ?? -1)}),
+                      rows[position]["matchesTarget"] as? Bool==true,rows[position]["lit"] as? Bool==true else {return nil}
+                let tail=rows[position...]
+                guard tail.allSatisfy({[0,1,4].contains($0["status"] as? Int ?? -1) && $0["visible"] as? String=="target" &&
+                                      $0["space"] as? UInt64==p.target && $0["safe"] as? Bool==true}) else {return nil}
+                return tail
+            }
+            func linked()->Double? {
+                guard let tail=targetTail(),let lastCheck=tail.last?["callback"] as? Double else {return nil}
+                // An owned idle sample may carry only the last matching native complete frame; use an actual display time.
+                return tail.reversed().compactMap { row -> Double? in
+                    guard let t=row["displayTime"] as? Double,t>=max(end.ended,sampledAt),uptime()-t<=0.05,
+                          max(row["metadataThrough"] as? Double ?? 0,lastCheck)>=t else {return nil}
+                    return t
+                }.first
+            }
+            if targetTail()==nil {
+                // Re-enumerate the permitted apps from the *current* destination. Update only this same physical stream.
+                // Keep all events before, during and after the update; a real handoff gap still fails the 50-ms gate.
+                result["filterUpdateRequested"]=uptime()
+                try await stream.updateContentFilter(active)
+                result["filterUpdateReturned"]=uptime()
+            }
+            let deadline=uptime()+0.9
+            repeat {
+                guard safe() else {throw Failure("target changed while binding the native display presentation")}
+                if let stamp=linked() {
+                    result["linkedToNativeTarget"]=true;result["nativeTargetTime"]=stamp;return result
+                }
+                try await Task.sleep(for:.milliseconds(20))
+            } while uptime()<deadline
+            throw Failure("current display and fixture matched but the continuous native stream did not show the target color")
+        } catch {
+            result["reason"]=(error as? Failure)?.message ?? "guarded target endpoint query unavailable"
+            return result
+        }
+    }
+
     @MainActor private static func capture(_ directory: URL) async throws {
         let b = try JSONDecoder().decode(Binding.self, from: Data(contentsOf: directory.appendingPathComponent("binding.json")))
         let p = b.request
@@ -538,7 +624,9 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         if surface?.value != p.sourceWindow.number {reasons.append("physical crop: "+(surface?.category ?? "unavailable"))}
         admission["failed"]=reasons
         try json(admission,receipt)
-        let displayFilter=physicalFilter(all,display,p)
+        var filterScope:JSON=[:]
+        let displayFilter=physicalFilter(all,display,p,report:&filterScope)
+        admission["filterOwnership"]=filterScope
         admission["displayFilterMode"]=displayFilter.style == .display
         if CommandLine.arguments.last == "enroll" {
             guard reasons.isEmpty,let crop,let fingerprint=wall.fingerprint,displayFilter.style == .display else {
@@ -569,7 +657,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             try JSONEncoder().encode(ep).write(to:directory.appendingPathComponent("endpoint.json"),options:.atomic)
             return
         }
-        var probe: DisplayProbe?, observerStream: SCStream?, staticCropTask: Task<Void, Never>?
+        var probe:DisplayProbe?,observerStream:SCStream?
         let a=b.endpoints?[String(p.topology.current)],z=b.endpoints?[String(p.target)]
         let qualified=a?.display==p.topology.display && z?.display==p.topology.display && a?.space==p.topology.current && z?.space==p.target
         let geometry=crop != nil && a?.crop==crop.map(rectangle) && z?.crop==a?.crop
@@ -584,19 +672,15 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         admission["failed"]=reasons
         if reasons.isEmpty,let crop,let endpoints=b.endpoints {
             let observer = DisplayProbe(p, crop, screen, endpoints)
-            let probeConfig = probeConfiguration(crop, display, hz)
+            let probeConfig=probeConfiguration(crop,display,hz)
+            // Ask the physical display for native cadence. Each complete/idle sample keeps its own WindowServer time.
+            probeConfig.minimumFrameInterval = .zero;probeConfig.queueDepth=5
             let independent = SCStream(filter: displayFilter, configuration: probeConfig, delegate: observer)
             do {
                 guard displayFilter.style == .display else { throw Failure("independent probe is not a display-bound stream") }
                 try independent.addStreamOutput(observer, type: .screen, sampleHandlerQueue: .main)
                 try await independent.startCapture()
                 probe = observer; observerStream = independent
-                staticCropTask = Task { @MainActor in
-                    while !Task.isCancelled {
-                        await observer.sampleIfIdle(filter: displayFilter, config: probeConfig)
-                        do { try await Task.sleep(for: .milliseconds(10)) } catch { return }
-                    }
-                }
             } catch {admission["streamStartError"]="physical display stream could not start";try? await independent.stopCapture()}
         }
         admission["physicalStreamArmed"]=probe != nil
@@ -642,9 +726,11 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
             if !ready && uptime() - start > 5 { break }
             try await Task.sleep(for: .milliseconds(12))
         }
+        var terminal:JSON=[:]
+        if let end,let observerStream,let probe,let crop,let endpoint=b.endpoints?[String(p.target)] {
+            terminal=await verifyTarget(p,display:display,screen:screen,crop:crop,hz:hz,endpoint:endpoint,stream:observerStream,probe:probe,end:end)
+        }
         try? await stream.stopCapture()
-        staticCropTask?.cancel()
-        await staticCropTask?.value
         if let observerStream { try? await observerStream.stopCapture() }
         output.queue.sync {}
         let (records, pictures, discarded, changed, failed) = output.completed()
@@ -667,7 +753,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                   "requestedHz": hz, "refreshLimitHz": screen.maximumFramesPerSecond, "displayModeHz": CGDisplayCopyDisplayMode(display.displayID)?.refreshRate ?? 0,
                   "width": width, "height": height, "filterStyle": filter.style.rawValue,
                   "windows": allowed.sorted(), "wallpaperIncluded": false, "audioEnabled": false,
-                  "physical": ["armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
+                  "physical": ["presentationReviewVersion":2,"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
                                "filter": "display-excluding-other-apps", "crop": crop.map(rectangle) as Any? ?? NSNull(),
                                "error": probe?.failed ?? false, "frames": probe?.rows ?? []] as JSON,
                   "changed": changed, "stoppedEarly": failed, "start": start, "stop": uptime(), "postSpace": post as Any? ?? NSNull(),

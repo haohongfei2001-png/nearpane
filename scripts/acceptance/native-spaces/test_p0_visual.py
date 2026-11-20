@@ -56,14 +56,82 @@ class VisualTests(unittest.TestCase):
         self.assertAlmostEqual(proof["coverage"]["maxGapMS"], 10)
         self.frames[7].update(status=1)
         self.assertEqual(self.result()["status"], "PASS")
-    def test_guarded_static_crops_keep_acquisition_uncertainty_in_the_gap_budget(self):
-        for r in self.frames:
-            r.update(origin="guarded-current-display-crop", **{"from": r["displayTime"]-.002, "to": r["displayTime"]+.002})
-        result = self.result()
-        self.assertEqual(result["status"], "PASS")
-        self.assertAlmostEqual(result["coverage"]["maxGapMS"], 14)
-        self.frames[5]["to"] += .060
-        self.assertEqual(self.result()["status"], "UNKNOWN")
+    def test_async_crops_neither_introduce_nor_bridge_presentation_gaps(self):
+        aux=dict(origin="guarded-current-display-crop",safe=False,**{"from":10.019,"to":10.095})
+        self.frames.insert(3,aux)
+        proof=self.result()
+        self.assertEqual(proof["status"],"PASS")
+        self.assertAlmostEqual(proof["coverage"]["maxGapMS"],10)
+        supplement=proof["displayProbe"]["auxiliaryRequests"][0]
+        self.assertEqual(supplement["nativePresentationsInsideRequest"],8)
+        self.assertFalse(supplement["usedForCoverage"])
+        self.frames[:]=[r for r in self.frames if r==aux or not 10.025<r["displayTime"]<10.085]
+        proof=self.result()
+        self.assertEqual(proof["status"],"UNKNOWN")
+        self.assertTrue(proof["coverage"]["uncoveredIntervals"])
+        self.frames[:]=[aux]
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_native_early_callback_requires_unchanged_ownership_after_presentation(self):
+        self.frames[7]["callback"]-=.008
+        proof=self.result()
+        self.assertEqual(proof["coverage"]["earlyEventsWithFollowingProof"],1)
+        self.assertEqual(proof["status"],"PASS")
+        for change in (dict(visible="source"),dict(safe=False),dict(callback=11.0),dict(space=4)):
+            data=copy.deepcopy(self.data);data["physical"]["frames"][8].update(change)
+            self.assertEqual(self.result(data)["status"],"UNKNOWN")
+        self.frames[7]["callback"]-=.020
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_native_blank_survives_overlapping_static_reads(self):
+        at=self.frames[7]["displayTime"]
+        self.frames[7]["status"]=2
+        self.frames.insert(7,{"origin":"guarded-current-display-crop","safe":True,"from":at-.02,"to":at+.02})
+        proof=self.result()
+        self.assertEqual(proof["status"],"FAIL")
+        self.assertEqual(proof["subchecks"]["scopedNativeBlankEventsDuringPress"],1)
+        self.frames[8]["safe"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_target_in_same_stream_and_independent_current_target_must_both_match(self):
+        terminal=dict(eligible=True,sameStream=True,freshFramesAgreeWithEnrolledCrop=True,shareableTargetOnScreen=True,
+                      independentTargetAndDisplayAgree=True,linkedToNativeTarget=True,nativeTargetTime=self.frames[12]["displayTime"],
+                      sampleRequested=10.112,sampleReturned=10.115)
+        self.data["physical"].update(presentationReviewVersion=2,terminalTarget=terminal)
+        proof=self.result()
+        self.assertTrue(proof["subchecks"]["streamingTargetMatched"])
+        self.assertTrue(proof["subchecks"]["independentTerminalTargetMatched"])
+        self.assertEqual(proof["status"],"PASS")
+        # A matching post-stop screenshot cannot replace the continuous stream's colored destination.
+        for r in self.frames:r["matchesTarget"]=False
+        proof=self.result()
+        self.assertEqual(proof["status"],"UNKNOWN")
+        self.assertEqual(proof["subchecks"]["continuousVisibleLight"],"PASS")
+        self.assertFalse(proof["subchecks"]["streamingTargetMatched"])
+        for r in self.frames:r["matchesTarget"]=r["visible"]=="target"
+        for patch in ({"independentTargetAndDisplayAgree":False},{"eligible":False},{"linkedToNativeTarget":False},{"sampleReturned":10.123},{"nativeTargetTime":10.119}):
+            data=copy.deepcopy(self.data);data["physical"]["terminalTarget"].update(patch)
+            self.assertEqual(self.result(data)["status"],"UNKNOWN")
+        self.frames[12]["safe"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_PRESENTATIONS"),"requires the separately archived installed display-pair/ten-01 receipts")
+    def test_preserved_real_windowserver_presentation_replay(self):
+        attempt=Path(os.environ["NEARPANE_P0_ARCHIVED_PRESENTATIONS"]).resolve()
+        with tempfile.TemporaryDirectory() as temp:
+            dest=Path(temp).resolve()/"review.json"
+            review=visual.replay(attempt,dest);result=review["review"]
+            self.assertEqual(review["originalVisual"]["status"],"UNKNOWN")
+            self.assertEqual((review["originalNavigation"],result["status"]),("PASS","UNKNOWN"))
+            self.assertEqual(result["subchecks"]["continuousVisibleLight"],"PASS")
+            self.assertFalse(result["subchecks"]["streamingTargetMatched"])
+            self.assertEqual(result["coverage"]["samples"],167)
+            self.assertAlmostEqual(result["coverage"]["maxGapMS"],33.334125,places=5)
+            self.assertEqual(result["displayProbe"]["targetCompleteColorCounts"]["matchingNeither"],17)
+            self.assertEqual(result["displayProbe"]["auxiliaryRequestCount"],13)
+            self.assertEqual(result["coverage"]["uncoveredIntervals"],[])
+            with self.assertRaises(FileExistsError):visual.replay(attempt,dest)
+            with self.assertRaises(ValueError):visual.replay(attempt,attempt/"result.json")
 
     def test_filtered_window_video_or_displays_without_isolation_are_unknown(self):
         for change in (dict(armed=False), dict(censusAfter=False), dict(error=True), dict(filter="windowGroup")):
