@@ -77,6 +77,7 @@ def prepare_scope(observer, receipts, fixture_files, output, *, scoped_members=F
     require(frozen["loadedMatchesInstalled"] and frozen["signatureValid"], "cannot identify installed Host")
     boot = checked(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"]).strip()
     spaces, witnesses, expiries = [], [], []
+    witness_receipts=[]
     for path in receipts:
         data = private_file(path)
         creation = json.loads(data)
@@ -89,7 +90,9 @@ def prepare_scope(observer, receipts, fixture_files, output, *, scoped_members=F
         require(path.name == "windows.json" and path.parent.parent.parent == Path("/private/tmp")
                 and path.parent.parent.name.startswith(("nearpane-wp5.", "nearpane-d01.", "nearpane-space-trials.")),
                 "not a disposable Field Notes fixture")
-        state = json.loads(private_file(path))
+        raw=private_file(path)
+        state = json.loads(raw)
+        witness_receipts.append(dict(space=int(raw_space),sha256=hashlib.sha256(raw).hexdigest(),attestation=state))
         app = path.parent.parent / ("Route Notes.app" if state.get("bundle") == "net.example.spaces-route-witness" else "Field Notes.app")
         signature = identity(app)
         require(signature["Identifier"] in ("net.example.spaces-document","net.example.spaces-route-witness"), "fixture bundle signing mismatch")
@@ -107,6 +110,8 @@ def prepare_scope(observer, receipts, fixture_files, output, *, scoped_members=F
         os.fsync(f.fileno())
     load_scope(pending.resolve(), observation, boot, observation["uptime"])
     pending.rename(output / "scope.json")
+    if witness_receipts:
+        (output/"fixture-attestations.json").write_text(json.dumps(witness_receipts,indent=2)+"\n")
 
 
 class Driver:

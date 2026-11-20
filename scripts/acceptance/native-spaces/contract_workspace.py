@@ -172,6 +172,20 @@ class Workspace:
             time.sleep(.1)
         raise ScopeError(description)
 
+    def archive_ledger(self, receipt):
+        # The active private ledger pins authorization in the checkout. Copy the
+        # immutable receipts into the result directory for independent offline review.
+        n=int(json.loads(private_file(receipt))["target"])
+        folder=self.output/"creation-evidence"/str(n)
+        folder.mkdir(mode=0o700,parents=True,exist_ok=True)
+        for source in receipt.parent.glob("*.json"):
+            dest=folder/source.name
+            raw=private_file(source)
+            if not dest.exists():
+                write_owned(dest,json.loads(raw))
+            else:
+                require(json.loads(private_file(dest))==json.loads(raw),"archived desktop receipt changed")
+
     def create(self):
         before = self.read(); s = self.check(before)
         folder = LEDGERS / str(uuid.uuid4()) / "provision"
@@ -187,6 +201,7 @@ class Workspace:
         p = folder/"created.json"; write_owned(p,made)
         self.ledgers.append(p)
         write_owned(self.output/f"desktop-{len(self.ledgers)}.json",dict(receipt=str(p),sha256=hashlib.sha256(private_file(p)).hexdigest()))
+        self.archive_ledger(p)
         self.record("system-fixture-created", desktop=new, oldCurrent=s["current"], newCurrent=current["current"])
         self.check(after,check_current=False)
         if current["current"] not in {self.home,self.cleanup_current,*self.ids()}:
@@ -325,6 +340,8 @@ class Workspace:
                 self.record("system-fixture-removed",target=n)
         except (OSError,ValueError,KeyError,subprocess.SubprocessError) as exc:
             failures.append(str(exc))
+        for receipt in self.ledgers:
+            self.archive_ledger(receipt)
         end=self.read()
         preserved = row(end)["records"] == self.protected
         original_order = row(end)["records"] == row(self.original)["records"]

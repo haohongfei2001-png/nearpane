@@ -23,6 +23,7 @@ class WorkspaceTests(unittest.TestCase):
         self.ledger = self.root / "created.json"
         write_owned(self.ledger, dict(target="4829",after={"spaceUUIDs":{"4829":"D"}}))
         w = Workspace.__new__(Workspace)
+        w.output = self.root / "results"
         w.home, w.display, w.record, w.host = 2000, self.display, Mock(), self.live["host"]
         w.original = self.snapshot(self.originals, 2000)
         w.protected = w.original["scopes"][0]["records"]
