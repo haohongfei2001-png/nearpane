@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure installed two-window previews on an already enrolled ordinary Space."""
+"""Exercise the installed sidebar on an already enrolled ordinary Space."""
 import argparse
 import importlib
 import json
@@ -10,6 +10,8 @@ import sys
 import time
 
 from installed_profile import PROFILE, owns_profile
+from acceptance import Receipt
+from contract_document import run as run_documents
 from space_scope import require
 
 driver = importlib.import_module("preview-workspace")
@@ -91,10 +93,21 @@ def run(args):
         result["offZeroBefore"] = driver.surface_checkpoint(kit, workspace.host, args.expected_space, False, 0)
         require(result["offZeroBefore"]["status"] == "PASS", "initial Host window area not empty")
         save()
-        child = subprocess.run([sys.executable, preview, kit, output / "preview", "--expected-space",
-                                str(args.expected_space), "--witness", "--preview-sampler", "streams"], timeout=160)
-        proof = driver.readable_result(output / "preview/result.json")
-        result["preview"] = dict(status=proof["status"], reason=proof.get("reason"), exit=child.returncode)
+        if args.scenario == "same-space-documents":
+            require(subprocess.run(["/usr/bin/pgrep", "-x", "TextEdit"], capture_output=True).returncode == 1,
+                    "a TextEdit process is already running")
+            document_receipt = Receipt(output / "documents")
+            try:
+                proof = run_documents(workspace, document_receipt, args.expected_space)
+                document_receipt.scenarios["W01"] = proof
+                result["documents"] = {k: proof[k] for k in ("status", "operationStatus", "reason", "issued", "passes", "cleanup")}
+            finally:
+                document_receipt.finish()
+        else:
+            child = subprocess.run([sys.executable, preview, kit, output / "preview", "--expected-space",
+                                    str(args.expected_space), "--witness", "--preview-sampler", "streams"], timeout=160)
+            proof = driver.readable_result(output / "preview/result.json")
+            result["preview"] = dict(status=proof["status"], reason=proof.get("reason"), exit=child.returncode)
         result["offZeroAfter"] = driver.surface_checkpoint(kit, workspace.host, args.expected_space, False, 0)
         result["status"] = proof["status"] if result["offZeroAfter"]["status"] == "PASS" else "BLOCKED"
     except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError, KeyboardInterrupt) as error:
@@ -107,7 +120,7 @@ def run(args):
                 result["stageRestore"] = dict(status="BLOCKED", reason=str(error)[:260])
             if result["stageRestore"]["status"] != "PASS":
                 result["status"] = "BLOCKED"
-            elif result["preview"]["status"] != "NOT_RUN":
+            elif result["preview"]["status"] != "NOT_RUN" or "documents" in result:
                 try:
                     result["afterFixture"] = empty_system_desktop(workspace, args.expected_space)
                 except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
@@ -131,6 +144,7 @@ if __name__ == "__main__":
     parser.add_argument("workspace", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--expected-space", required=True, type=int)
+    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents"), default="paired-preview")
     parser.add_argument("--previous-archive", type=Path)
     parser.add_argument("--install-receipt", type=Path)
     parser.add_argument("--original-checkout", type=Path)
