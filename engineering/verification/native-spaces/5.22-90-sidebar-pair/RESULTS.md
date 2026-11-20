@@ -33,3 +33,9 @@ macOS 27.0（26A428），单块 1470 × 956 点的物理显示器。每次使用
 ## 首轮切窗提速
 
 同一台 Mac 上，旧签名包 `d81c458` 的鼠标释放到确认目标焦点的区间中位数为 320–347 毫秒。`d277a1c` 的独立读回为 257–288 毫秒，两组均为 10/10 次唯一输入。带同包日志的前一候选 `203e34e`，从正式卡片收到点击到首条 AX 指令中位数为 311 毫秒；`d277a1c` 为 259 毫秒。原始显示样本仅获得源窗口色，目标画面首次可见的时间未知。[分项测量](installed-focus-comparison.json) · [d277a1c 同包交互与画面](final-pair/pair-pointer.json) · [d277a1c 右拖录像](final-pair/right-drag-fixture-windows.mp4)
+
+## 两个应用与实机显示基线
+
+`d277a1c` 已在同一已登记桌面上对两款不同 bundle ID、不同 PID 和签名散列的 AppKit 程序完成一次真实侧栏右拖。被拖窗口 A 最终为 (615, 33, 615, 923)，另一个进程的 B 为 (0, 33, 615, 923)。两次独立 AX/CG 读回及两个进程的清理均通过。[跨应用收据](separate-applications/result.json) · [日常配置恢复](separate-applications/protected-installation.json)
+
+修正观察器后，同一台 Mac 上的旧签名候选 `d81c458` 有 10/10 次取得目标窗口真实呈现。鼠标松开到第一帧目标画面的区间中位数为 358–378 毫秒。通过每帧窗口系统时间、独立遮挡检查以及 64 个实际目标色像素确定该区间。[实机读取与十次输入](baseline-presented/pair-pointer.json)
