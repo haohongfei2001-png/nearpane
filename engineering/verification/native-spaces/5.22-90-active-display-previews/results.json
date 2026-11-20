@@ -205,7 +205,7 @@
     },
     "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
     "nativePython": {
-      "ran": 158,
+      "ran": 161,
       "skipped": 6,
       "failed": 0
     },
