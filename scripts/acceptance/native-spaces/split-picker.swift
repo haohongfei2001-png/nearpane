@@ -138,8 +138,10 @@ func readSplitPicker(title: String, session: UUID, screen: CGRect, fixture: pid_
                 }
             }
             diagnostics["markerFirstSurface"]=front; diagnostics["markerHitOwner"]=category;diagnostics["markerAXHitStatus"]=error
-            if let route=SplitPickerGeometry.presentedRoute(top:front,hit:category) {
-                match.click=p;match.route=route;match.byMarker=true;match.authority=owners.first(where:{$0.pid==owner})
+            let enrolled=owners.first(where:{$0.pid==owner})
+            let verified=enrolled.map{ (try? $0.verify()) != nil }==true
+            if let route=SplitPickerGeometry.presentedRoute(top:front,hit:category,enrolledSystemHit:verified) {
+                match.click=p;match.route=route;match.byMarker=true;match.authority=enrolled
             }
         }
     } else {diagnostics["documentGeometryOrIdentityUnavailable"]=true}

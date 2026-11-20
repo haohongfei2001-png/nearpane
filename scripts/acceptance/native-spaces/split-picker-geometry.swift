@@ -38,11 +38,11 @@ enum SplitPickerGeometry {
             (match.upperBound==text.endIndex || boundary(text[match.upperBound]))
     }
 
-    static func presentedRoute(top: String, hit: String) -> String? {
+    static func presentedRoute(top: String, hit: String, enrolledSystemHit: Bool) -> String? {
         guard top == "enrolledDocumentB" else { return nil }
         switch hit {
         case "enrolledDocumentB": return "presentedMarkerHitEnrolledDocument"
-        case "appleDock", "appleWindowManager", "appleMissionControl": return "presentedMarkerHitSignedPicker"
+        case "appleDock", "appleWindowManager", "appleMissionControl": return enrolledSystemHit ? "presentedMarkerHitSignedPicker":nil
         default: return nil
         }
     }

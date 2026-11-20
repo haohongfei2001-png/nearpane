@@ -35,13 +35,15 @@ import CoreGraphics
             precondition(!SplitPickerGeometry.mentionsDocument(other,title:title))
         }
         for known in ["enrolledDocumentB","appleDock","appleWindowManager","appleMissionControl"] {
-            precondition(SplitPickerGeometry.presentedRoute(top:"enrolledDocumentB",hit:known) != nil)
+            precondition(SplitPickerGeometry.presentedRoute(top:"enrolledDocumentB",hit:known,enrolledSystemHit:true) != nil)
             for top in ["appleDock","appleWindowManager","otherFixtureSurface","otherSurface","unresolved","noSurface"] {
-                precondition(SplitPickerGeometry.presentedRoute(top:top,hit:known)==nil)
+                precondition(SplitPickerGeometry.presentedRoute(top:top,hit:known,enrolledSystemHit:true)==nil)
             }
         }
+        precondition(SplitPickerGeometry.presentedRoute(top:"enrolledDocumentB",hit:"appleDock",enrolledSystemHit:false)==nil)
+        precondition(SplitPickerGeometry.presentedRoute(top:"enrolledDocumentB",hit:"enrolledDocumentB",enrolledSystemHit:false) != nil)
         for hit in ["otherOwner","otherFixtureElement","unresolved","appleWindowServer","appleControlCenter"] {
-            precondition(SplitPickerGeometry.presentedRoute(top:"enrolledDocumentB",hit:hit)==nil)
+            precondition(SplitPickerGeometry.presentedRoute(top:"enrolledDocumentB",hit:hit,enrolledSystemHit:true)==nil)
         }
     }
 }
