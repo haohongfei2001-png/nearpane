@@ -303,8 +303,29 @@ func keepOwnedWindows() {
         } catch {emit(["ready":false,"issued":issued,"error":(error as? Refusal)?.reason ?? String(describing:error)])}
     }
 }
+func postSetupArrow(_ key:CGKeyCode, topology expected:Topology, source window:Window, target:UInt64, hid:[UInt32],
+                    finalCheck:() throws -> Void = {}) throws {
+    try need(NPP0SystemArrowEnabled(Int32(key))==1 && CGPreflightPostEventAccess(),"Apple adjacent Space shortcut disabled, remapped or event posting unavailable")
+    _ = try bound(window,expected.current)
+    guard let source=CGEventSource(stateID:.privateState),
+          let down=CGEvent(keyboardEventSource:source,virtualKey:key,keyDown:true),
+          let up=CGEvent(keyboardEventSource:source,virtualKey:key,keyDown:false) else {throw Refusal("system shortcut event construction failed")}
+    let flags:CGEventFlags=[.maskControl,.maskSecondaryFn,.maskNumericPad]
+    down.flags=flags;up.flags=flags
+    try finalCheck()
+    try need(hardware()==hid && (try topology())==expected &&
+             NSWorkspace.shared.frontmostApplication?.processIdentifier==window.pid && axFocus(window.pid)==window.number,
+             "owned source, input or topology changed before native setup shortcut")
+    issued=true;down.post(tap:.cgSessionEventTap);up.post(tap:.cgSessionEventTap)
+    emit(["issued":true,"setupOnly":true,"keyCode":Int(key),"source":expected.current,"target":target,"uptime":ProcessInfo.processInfo.systemUptime])
+}
 func main() throws {
     guard let verb = arguments.first else {throw Refusal("missing mode")}
+    #if P0_BORROWED_DIAGNOSTIC
+    guard ["leased-census","leased-setup-arrow","leased-artifact-check"].contains(verb) else {
+        throw Refusal("booked fixture binary only provides borrowed-lease operations")
+    }
+    #endif
     switch verb {
     case "watch":
         // The read-only watcher may span the visual recorder's bounded finalization.
@@ -324,6 +345,10 @@ func main() throws {
         emit(["windows":try owned.map(windowProof)])
     case "system-arrow-enabled":
         emit(["left":NPP0SystemArrowEnabled(123)==1,"right":NPP0SystemArrowEnabled(124)==1])
+    #if P0_BORROWED_DIAGNOSTIC
+    case "leased-census","leased-setup-arrow","leased-artifact-check":
+        try bookedOperation(verb)
+    #endif
     case "setup-arrow":
         let r = try JSONDecoder().decode(Arrow.self,from:FileHandle.standardInput.readDataToEndOfFile())
         let live = try topology(), original = r.before.records, ids=live.records.map(\.id)
@@ -334,18 +359,7 @@ func main() throws {
             throw Refusal("setup shortcut may land only on the single new adjacent ordinary Space")
         }
         let key: CGKeyCode = to>from ? 124 : 123
-        try need(NPP0SystemArrowEnabled(Int32(key))==1 && CGPreflightPostEventAccess(),"Apple adjacent Space shortcut disabled, remapped or event posting unavailable")
-        _ = try bound(r.sourceWindow,live.current)
-        guard let source=CGEventSource(stateID:.privateState),
-              let down=CGEvent(keyboardEventSource:source,virtualKey:key,keyDown:true),
-              let up=CGEvent(keyboardEventSource:source,virtualKey:key,keyDown:false) else {throw Refusal("system shortcut event construction failed")}
-        let flags: CGEventFlags = [.maskControl,.maskSecondaryFn,.maskNumericPad]
-        down.flags=flags;up.flags=flags
-        try need(hardware()==r.hid && (try topology())==live &&
-                 NSWorkspace.shared.frontmostApplication?.processIdentifier==r.sourceWindow.pid && axFocus(r.sourceWindow.pid)==r.sourceWindow.number,
-                 "owned source, input or topology changed before native setup shortcut")
-        issued=true;down.post(tap:.cgSessionEventTap);up.post(tap:.cgSessionEventTap)
-        emit(["issued":true,"setupOnly":true,"keyCode":Int(key),"source":live.current,"target":r.target,"uptime":ProcessInfo.processInfo.systemUptime])
+        try postSetupArrow(key,topology:live,source:r.sourceWindow,target:r.target,hid:r.hid)
     case "absence":
         let ids = arguments.dropFirst().compactMap(UInt32.init)
         try need(ids.count == arguments.count-1 && !ids.isEmpty,"invalid absent-window probe"); emit(["absence":ids.map { NPReadWindowNumberPresence($0) == 0 }])

@@ -1,6 +1,7 @@
 """Installed P0. Exactly one genuine background-window card press per attempt."""
 import argparse
 from contextlib import ExitStack
+from copy import copy
 import functools
 import hashlib
 import importlib.util
@@ -482,12 +483,15 @@ def physical_admission(started,request):
     return False,started.get("reason") or ", ".join(reasons) or "an independently visible lit source frame was not verified before dispatch"
 
 
-def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,admission=None,observer=None,issuer=None,workspace=None):
+def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,admission=None,observer=None,issuer=None,workspace=None,drift_only=False,check_lease=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     if admission is not None:store(folder/'admission-before.json',admission)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
     if issuer:
         item.update(scope='DIAGNOSTIC_ONLY',officialGateEligible=False,signedHostRequestAccepted=False)
+    if drift_only:
+        require(issuer is not None and visual_stage is None,'drift-only requires the isolated diagnostic issuer')
+        item.update(measurement='continuous-windowserver-drift',pixels=0,visualStatus='NOT_MEASURED')
     action = {}; holder = None; host = None; watch = None; recorder = None; called = False; started = None
     observer_options={'window_witness':lambda windows:keeper.call('windows',windows)} if keeper else {}
     lifetime=ExitStack()
@@ -531,6 +535,7 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
         log('diagnostic-host-intent' if issuer else 'card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
         item.update(status='UNKNOWN',invokedDriver=True,axIssued=False if issuer else None);store(folder/'result.json',item)
         if issuer:
+            if check_lease:check_lease()
             action=issuer.submit(p,checkpoint,observer,workspace,keeper,folder,cmd)
             store(folder/'host-diagnostic-response.json',action)
             item['signedHostRequestAccepted']=action.get('issued')
@@ -744,7 +749,12 @@ def evaluate_gate(stage, name, expected):
         stage.update(status=failed['status'],reason=failed.get('reason','installed card trial did not pass'));return
     if any((s.get('retainedTargetFocus') or {}).get('status') != 'PASS' for s in samples):
         stage.update(status='UNKNOWN',reason='exact target-document focus retention was not established');return
-    if navigation=='PASS' and stage['blankScreen']!='PASS':
+    diagnostic_drift=(name=='diagnostic' and expected==len(samples)==1 and samples[0].get('scope')=='DIAGNOSTIC_ONLY' and
+                      samples[0].get('officialGateEligible') is False and samples[0].get('measurement')=='continuous-windowserver-drift' and
+                      samples[0].get('hostIssued') is True and (samples[0].get('hostProof') or {}).get('confirmed') is True and
+                      samples[0].get('pixels')==0 and samples[0].get('visualStatus')=='NOT_MEASURED')
+    if diagnostic_drift:stage.update(measurement='continuous-windowserver-drift',visualStatus='NOT_MEASURED')
+    if navigation=='PASS' and stage['blankScreen']!='PASS' and not diagnostic_drift:
         stage.update(status='BLOCKED',reason='physical display coverage was not established for every selection')
     elif navigation=='PASS' and any(s.get('continuousClassification')!='settled' for s in samples):
         stage.update(status='UNKNOWN',reason='independent continuity through the installed actions was not established')
@@ -801,7 +811,7 @@ def run(args):
             'dynamicFixtureMarkerRequested':os.environ.get('NP_P0_DYNAMIC_MARKER')=='1'}
     result['through']=args.through
     isolated_key=getattr(args,'diagnostic_key',None)
-    issuer=None;stage_loan=None
+    issuer=None;stage_loan=None;booked=None
     if isolated_key:
         require(args.through=='diagnostic' and args.route=='ordinary','isolated candidate only supports a single adjacent ordinary diagnostic')
         result.update(scope='DIAGNOSTIC_ONLY',officialGateEligible=False)
@@ -872,43 +882,57 @@ def run(args):
             user=initial['topology'];user_space=user['current'];row=next(s for s in user['records'] if s['id']==user_space)
             require(row['type'] in (0,4),'unsupported type for original foreground Space')
             before=state();guard_setup(before,initial,{user_space},{initial['frontPID']});require(before['topology']==user,'original UUID order changed')
-            rootdoc=documents.launch('Lifecycle Window');first,second=rootdoc['windows']
-            before=state();require(before.get('hid')==initial['hid'] and before['topology']['records']==user['records'] and before['topology']['display']==user['display'],
-                                   'human input or topology changed while launching the dedicated document owner')
-            if before['topology']['current']!=user_space:
-                # A new regular app can already have brought its existing ordinary Space forward.
-                require(assigned_ordinary(user,before['topology'],[first['number'],second['number']],witnesses([first,second])),
-                        'unrelated foreground or Space arrived before the owned activation')
-            documents.control(rootdoc,'activate',0)
-            def confirmed_source(s):
-                require(s['hid']==initial['hid'] and s['topology']['records']==user['records'] and s['topology']['display']==user['display'],
-                        'human input or topology changed while macOS activated the own ordinary document')
-                if s.get('frontPID')!=first['pid'] or s.get('focusedNumber')!=first['number']:return False
-                return assigned_ordinary(user,s['topology'],[first['number'],second['number']],witnesses([first,second]))
-            owned=until(state,confirmed_source,'normal AppKit activation did not place both owned documents and exact focus together on an ordinary Space',9)
-            origin=owned['topology'];a=origin['current'];staging=a;store(out/'owned-source.json',dict(origin=origin,originalUserSpace=user_space,owned=first,witnesses=witnesses([first,second])))
-            log('owned-ordinary-source',source=a,originalUserSpace=user_space,macOSAssigned=a!=user_space)
-            route='ordinary' if args.route=='auto' else args.route
-            result['setupRoute']=route;report()
-            guard_setup(owned,initial,{a},{first['pid']})
+            if issuer and getattr(args,'stage_workspace',None):
+                from p0_diagnostic_pair import BookedPair
+                booked=BookedPair(args.kit,stage_loan,initial,log)
+                ws=copy(booked.workspace)
+                ws.kit=args.kit
+                a,b=booked.source,booked.target
+                staging=a
+                top=user
+                route='ordinary'
+                booked.confirm(a,'before-documents')
+                result.update(setupRoute='borrowed-adjacent-ordinary',measurement='continuous-windowserver-drift',pixels=0)
+                report()
+            else:
+                rootdoc=documents.launch('Lifecycle Window');first,second=rootdoc['windows']
+                before=state();require(before.get('hid')==initial['hid'] and before['topology']['records']==user['records'] and before['topology']['display']==user['display'],
+                                       'human input or topology changed while launching the dedicated document owner')
+                if before['topology']['current']!=user_space:
+                    # A new regular app can already have brought its existing ordinary Space forward.
+                    require(assigned_ordinary(user,before['topology'],[first['number'],second['number']],witnesses([first,second])),
+                            'unrelated foreground or Space arrived before the owned activation')
+                documents.control(rootdoc,'activate',0)
+                def confirmed_source(s):
+                    require(s['hid']==initial['hid'] and s['topology']['records']==user['records'] and s['topology']['display']==user['display'],
+                            'human input or topology changed while macOS activated the own ordinary document')
+                    if s.get('frontPID')!=first['pid'] or s.get('focusedNumber')!=first['number']:return False
+                    return assigned_ordinary(user,s['topology'],[first['number'],second['number']],witnesses([first,second]))
+                owned=until(state,confirmed_source,'normal AppKit activation did not place both owned documents and exact focus together on an ordinary Space',9)
+                origin=owned['topology'];a=origin['current'];staging=a;store(out/'owned-source.json',dict(origin=origin,originalUserSpace=user_space,owned=first,witnesses=witnesses([first,second])))
+                log('owned-ordinary-source',source=a,originalUserSpace=user_space,macOSAssigned=a!=user_space)
+                route='ordinary' if args.route=='auto' else args.route
+                result['setupRoute']=route;report()
+                guard_setup(owned,initial,{a},{first['pid']})
             if route=='ordinary':
                 keeper=OwnedKeeper(tool)
                 audit=InstalledWindowAudit(Path(os.environ['NEARPANE_TEST_HOME']),out,args.kit,host)
-                lease=out/'ordinary-lease';lease.mkdir(mode=0o700);ws=Workspace(args.kit,lease,log)
-                require(ws.home==staging,'ordinary lease origin changed')
-                a=ws.create();one=state();require(owned_insertion(origin,one['topology'],0)==a,'first lease mismatch')
-                checkpoint('first-lease')
-                require(one['hid']==initial['hid'] and one['topology']['current'] in (staging,a),'new human input or unrelated foreground Space after first insertion')
-                overview=until(lambda:cmd(args.kit/'system-workspace','overview-state'),
-                               lambda s:s.get('stable') is True and s.get('visible') is False,
-                               'signed Dock did not independently confirm closure of the first owned overview; second desktop was not requested',4)
-                log('first-overview-closed-before-second-create',**overview)
-                require(state().get('hid')==initial['hid'],'new physical input before second ordinary desktop creation')
-                b=ws.create();both=state();top=both['topology']
-                require(confirm_lease_pair(origin,one['topology'],top)==(a,b) and top['current'] in (staging,a,b),'new lease pair differs from the registered Spaces')
-                checkpoint('second-lease')
-                direct_setup(args.kit,ws,out,initial,top,top['current'],a,log,args.setup_input)
-                if stage_loan: stage_loan.borrow(ws,a,initial['hid'])
+                if not booked:
+                    lease=out/'ordinary-lease';lease.mkdir(mode=0o700);ws=Workspace(args.kit,lease,log)
+                    require(ws.home==staging,'ordinary lease origin changed')
+                    a=ws.create();one=state();require(owned_insertion(origin,one['topology'],0)==a,'first lease mismatch')
+                    checkpoint('first-lease')
+                    require(one['hid']==initial['hid'] and one['topology']['current'] in (staging,a),'new human input or unrelated foreground Space after first insertion')
+                    overview=until(lambda:cmd(args.kit/'system-workspace','overview-state'),
+                                   lambda s:s.get('stable') is True and s.get('visible') is False,
+                                   'signed Dock did not independently confirm closure of the first owned overview; second desktop was not requested',4)
+                    log('first-overview-closed-before-second-create',**overview)
+                    require(state().get('hid')==initial['hid'],'new physical input before second ordinary desktop creation')
+                    b=ws.create();both=state();top=both['topology']
+                    require(confirm_lease_pair(origin,one['topology'],top)==(a,b) and top['current'] in (staging,a,b),'new lease pair differs from the registered Spaces')
+                    checkpoint('second-lease')
+                    direct_setup(args.kit,ws,out,initial,top,top['current'],a,log,args.setup_input)
+                    if stage_loan: stage_loan.borrow(ws,a,initial['hid'])
                 first=documents.launch('Field Notes')['windows'][0]
                 def placed(window,space):
                     return until(state,lambda s:s.get('hid')==initial['hid'] and s.get('topology')==dict(top,current=space)
@@ -939,10 +963,14 @@ def run(args):
                     audit.snapshot(name+'-current',dict(space=space,currentCardEvidence=path.name))
                     log('installed-current-card-seen-twice',space=space,ownedWindow=window['number'],evidence=path.name)
                     checkpoint(name+'-document')
+                if booked:booked.documents[a]=first
                 admit(first,a,'first')
-                direct_setup(args.kit,ws,out,initial,top,a,b,log,args.setup_input)
+                if booked:booked.setup(state)
+                else:direct_setup(args.kit,ws,out,initial,top,a,b,log,args.setup_input)
                 second=documents.launch('Route Notes')['windows'][0]
+                if booked:booked.documents[b]=second
                 admit(second,b,'second')
+                if booked:booked.confirm(b,'after-two-documents')
                 require(anchored([first,second],[a,b]),'the two ordinary documents did not remain on their separate leased Spaces')
                 initial_source=b
             else:
@@ -964,9 +992,9 @@ def run(args):
             def request(source,target):
                 return dict(topology={**top,'current':source},sourceWindow=enrolled[source],targetWindow=enrolled[target],target=target,
                             hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid'])
-            # Both endpoints must be physically calibrated before the first formal press.
-            # The preparation activation addresses only a window created by this harness.
-            for i in range(2):
+            # Official cards require both endpoint color calibrations. The private two-lease
+            # drift probe collects real WindowServer/focus metadata without reading any pixels.
+            for i in range(0 if booked else 2):
                 target=b if source==a else a
                 req=request(source,target);folder=out/f'endpoint-{source}';folder.mkdir(mode=0o700)
                 require(admission_sample(state(),req)['admitted'],'endpoint focus or membership changed before visual calibration')
@@ -993,8 +1021,10 @@ def run(args):
                     except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as error:sample={'error':str(error) or type(error).__name__}
                     target=b if source==a else a
                     req=request(source,target)
-                    trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper,audit=audit,
-                                  admission=admission_sample(sample,req),observer=observer,issuer=issuer,workspace=ws)
+                    if booked:booked.confirm(source,'before-host')
+                    trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=None if booked else gate,keeper=keeper,audit=audit,
+                                  admission=admission_sample(sample,req),observer=observer,issuer=issuer,workspace=ws,drift_only=booked is not None,
+                                  check_lease=(lambda:booked.read(source,'host-admission')) if booked else None)
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break
@@ -1032,6 +1062,22 @@ def run(args):
                 close_observed_gates(result,evidence)
             if audit and audit.targets:audit.snapshot('before-cleanup',dict(stageStatus=result['status']),final=True)
             # Only a positively held fixture may return its own document to its original ordinary Space.
+            if booked and not superseded and booked.source in booked.documents:
+                try:
+                    now=state()
+                    if now['topology']['current']==booked.target and now['hid']==initial['hid']:
+                        booked.confirm(booked.target,'before-returning-own-document')
+                        require(booked.recoverable_front(now,initial,lambda pid:cmd(tool,'process',pid)),
+                                'a newer or unclassified foreground was preserved')
+                        last=state()
+                        require(all(last.get(k)==now.get(k) for k in ('topology','hid','systemFocus','frontPID','focusedNumber')),
+                                'foreground or input changed before returning the owned staging document')
+                        doc=next(d for d in documents.processes if booked.documents[booked.source] in d['windows'])
+                        (doc['folder']/'activate-first').touch(exist_ok=False)
+                        until(state,lambda s:s.get('topology')==dict(top,current=staging) and s.get('hid')==initial['hid'] and
+                              s.get('frontPID')==doc['proc'].pid and s.get('focusedNumber')==booked.documents[staging]['number'],
+                              'owned staging document did not regain the original leased Space',5)
+                except (OSError,ValueError,KeyError,subprocess.SubprocessError) as e:problems.append(str(e))
             if not superseded and rootdoc and initial and top and a and b:
                 try:
                     live=state(); current=live['topology']['current']

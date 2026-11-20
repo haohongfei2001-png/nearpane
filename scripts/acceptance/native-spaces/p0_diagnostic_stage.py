@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import time
 
-from contract_workspace import empty_system_desktop, write_owned
+from contract_workspace import empty_system_desktop, inactive_empty, write_owned
 from space_scope import require
 
 preview=importlib.import_module("preview-workspace")
@@ -28,6 +28,8 @@ class StageLoan:
         self.output=out/"stage-manager"
         self.output.mkdir(mode=0o700)
         self.transaction=None
+        self.workspace=None
+        self.stage_surfaces=[]
         states=preview.states(kit)
         self.original=states[-1]["state"]
         write_owned(self.output/"original.json",dict(login=states,hostProbe=probe))
@@ -36,7 +38,7 @@ class StageLoan:
     def existing(self,args,initial,log):
         fields=[getattr(args,key,None) for key in ("stage_workspace","stage_space","stage_original_checkout","stage_previous_archive","stage_install_receipt")]
         require(all(v is not None for v in fields) or not any(v is not None for v in fields),"incomplete historical Stage setup lease")
-        if not self.original or not all(fields):return
+        if not all(fields):return
         folder,n,checkout,archive,chain=fields
         if initial["topology"]["current"]!=n:
             log("registered-stage-space-not-current",expected=n,selected=initial["topology"]["current"])
@@ -45,6 +47,20 @@ class StageLoan:
         require(ledgers.resolve(strict=True)==ledgers,"existing Stage enrollment root changed")
         ws=preview.PreviewWorkspace(self.kit,folder,log,resume=True,previous_archive=archive,install_receipt=chain,original_ledgers=ledgers)
         ws.bind_quiet_cleanup()
+        from p0_diagnostic_pair import endpoints
+        owned=ws.ids()
+        _,neighbor=endpoints(initial["topology"],owned,{i:preview.lease_for(ws,i)[1] for i in owned})
+        for _ in range(2):
+            o=ws.read()
+            current=ws.check(o)
+            peer=(o.get("scopedMembers") or {}).get(str(neighbor),{})
+            log("existing-inactive-neighbor",space=neighbor,uptime=o.get("uptime"),ordinaryCount=len(peer.get("ordinary",[])),
+                unresolved=peer.get("unresolved"),otherMembers=peer.get("otherMembers"))
+            require(current["current"]==n and current["records"]==initial["topology"]["records"] and
+                    self.read_state().get("hid")==initial["hid"] and inactive_empty(peer,neighbor,system_surfaces=True),
+                    "inactive neighbor contains an ordinary or unidentified window, or the original state changed")
+            time.sleep(.12)
+        self.workspace=ws
         self.borrow(ws,n,initial["hid"])
 
     def confirm_hid(self,ws,original,phase):
@@ -88,6 +104,10 @@ class StageLoan:
         self.confirm_hid(ws,hid,"before-empty-check")
         evidence=empty_system_desktop(ws,target)
         write_owned(self.output/"empty-lease-admission.json",evidence)
+        from p2_stage_surfaces import lease_enrollment
+        _,space_uuid=preview.lease_for(ws,target)
+        enrollment=lease_enrollment(ws,target,space_uuid,self.original,evidence)
+        self.stage_surfaces=[dict(space=target,**r) for r in enrollment["surfaces"]]
         require(ws.check(ws.read())["current"]==target,"leased foreground changed before Stage setup")
         self.confirm_hid(ws,hid,"after-empty-check")
         self.transaction=preview.PreferenceStage(self.kit,self.output,ws,target)
