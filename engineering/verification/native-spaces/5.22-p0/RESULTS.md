@@ -24,6 +24,7 @@
 | [独立空间清单复读](08-native-list/results.json) | 稳定空清点通过，识别到 WindowManager 的真实 AX 按钮，第二次读取清单时不能确认系统显示组，选择未投递。两租约已回收。[系统按钮分项读回](08-native-list/setup-press-4995.json) |
 | [安装版保留窗口测试](09-installed-background-card/results.json) | `da46651` 的两扇受控窗口均已在各自的普通桌面显示，正式侧栏分别连续两次给出可按的正确当前卡。独立读回确认独占归属和原窗口身份。首次 B→A 在 5 秒内仅出现一张当前卡，后台目标卡为 0，正式按压和 helper 投递均为 0。原桌面顺序已恢复、无遗留临时桌面，瞬时前台及焦点恢复为 UNKNOWN。[正式按钮读回](09-installed-background-card/roundTrip-01/card-before.json) · [安装身份](09-installed-background-card/installed.json) |
 | [正式 Host 逐层读回](10-retained-AX-error/diagnosis.json) | `1ddec43` 在有界的专用测试目录写入了两扇夹具的诊断。A 在前台已绑定原 AX 对象；切到 B 后 Reader 仍交付 A 和独占归属，签名动作助手首次读取后台应用窗口列表返回 `AXError.illegalArgument (-25201)`，后续丢失原对象。正式按压为 0。两租约均已回收，日常前台原为已被替换的 Nearpane 进程，原窗口引用恢复为 UNKNOWN。[Host 原始事件](10-retained-AX-error/host-window-audit/installed.jsonl) · [日常配置和焦点](10-retained-AX-error/profile-session.json) |
+| [首次正式相邻往返](11-adjacent-round-trip/results.json) | `96a3e3d` 保留了后台原窗口。正式侧栏 B→A、A→B 均有一次真实三阶段投递及独立稳定落点。随后 10/10 交替落点也已确认，每次继续观察 2 秒。10 次的物理防黑屏前置校准拒绝当前系统壁纸目录，只有夹具视频，视觉结果为 UNKNOWN，50 次未运行。两个临时桌面均已回收，原顺序和日常配置已恢复。日常 Nearpane 前台原 PID 已退出，精确焦点恢复为 UNKNOWN。[12 条逐动作收据](11-adjacent-round-trip/per-action.jsonl) · [全部原始读回](11-adjacent-round-trip/original-receipts.tar.gz) · [观察范围与影片哈希](11-adjacent-round-trip/ten-01-visual.json) |
 
 以上建场成功次数和历史版本的尝试均不计入本候选的往返、10 次或 50 次门槛。
 
@@ -37,6 +38,10 @@
 - P3 的 Riftlet 专用分支在 Chrome、Edge 和四个域的 96 个隔离场景中验证了附件与零发送，16 个可见附件、8 个取消、72 个投递前拒绝。正式 Host、已登录服务的上传完成及 Safari 标签身份尚未通过。[源码、逐案证据及回退](https://github.com/haohongfei2001-png/nearpane/blob/35940ff2917aa51ec6ad2bf19050230af7c5611a/engineering/verification/native-spaces/5.22-p3/QUALIFICATION.md)
 
 ## 签名候选与回退
+
+当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。[签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
+
+此候选的侧栏实拍 0→2→0，无占位标签和空间行，14 帧、15.69 秒。双窗时候选显示了两张身份正确的卡，独立观察器本次报告了 0 扇可证明可见窗口，故此轮窗口完整性为 BLOCKED。夹具退出后两个号码均已消失。[截图](11-adjacent-round-trip/window-roster/two-documents-sidebar.png) · [侧栏录屏](11-adjacent-round-trip/window-roster/installed-sidebar.mp4) · [完整性分项](11-adjacent-round-trip/window-roster/results.json)
 
 签名候选 `da46651` 包含前台精确 AX 引用、后台进程与独占归属复核、单次导航及落地焦点约束。本机全量 531 项 Swift 测试通过，原位安装保留三项权限。窗口卡再次经实机验证为 0→2→0，本轮录屏 13 帧、15.22 秒、无音轨。ZIP 的 SHA-256 为 `9d5e04786cd9ebc17f8d31d11a3bd38a113b46d82c7b179dc30ab2e6df50f72a`。[安装及签名](retained-window-candidate/installation.json) · [实时权限](retained-window-candidate/live.json) · [窗口实拍](retained-window-candidate/window-roster/two-documents-sidebar.png) · [真实窗口区录屏](retained-window-candidate/window-roster/installed-sidebar.mp4) · [下载记录](retained-window-candidate/candidate.json)
 

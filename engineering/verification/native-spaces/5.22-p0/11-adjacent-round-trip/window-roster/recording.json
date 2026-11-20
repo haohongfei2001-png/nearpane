@@ -1,0 +1,156 @@
+{
+  "status": "CAPTURED",
+  "method": "timestamped ScreenCaptureKit sidebar samples with pre/post authorization",
+  "windowsPerRun": [
+    0,
+    2,
+    0
+  ],
+  "samples": [
+    {
+      "begin": 247821.494938541,
+      "saved": true,
+      "windows": [],
+      "filename": "0000.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247822.653118666
+    },
+    {
+      "begin": 247822.733174208,
+      "saved": true,
+      "windows": [],
+      "filename": "0001.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247824.834877125
+    },
+    {
+      "begin": 247824.914948041,
+      "saved": true,
+      "windows": [],
+      "filename": "0002.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247825.660366166
+    },
+    {
+      "begin": 247825.74039675,
+      "saved": true,
+      "windows": [],
+      "filename": "0003.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247826.49526575
+    },
+    {
+      "begin": 247826.575313916,
+      "saved": false,
+      "reason": "could not bind crop to visible installed window",
+      "end": 247826.81160075
+    },
+    {
+      "begin": 247826.891665791,
+      "saved": true,
+      "windows": [
+        49507,
+        49508
+      ],
+      "filename": "0005.png",
+      "sha256": "dbdb77e9637e28d6b4d0c18b68688fe93d368c439416df432fb05cb49f82ba9a",
+      "end": 247827.692989
+    },
+    {
+      "begin": 247827.773130333,
+      "saved": true,
+      "windows": [
+        49507,
+        49508
+      ],
+      "filename": "0006.png",
+      "sha256": "dbdb77e9637e28d6b4d0c18b68688fe93d368c439416df432fb05cb49f82ba9a",
+      "end": 247829.917521375
+    },
+    {
+      "begin": 247829.99755775,
+      "saved": true,
+      "windows": [
+        49507,
+        49508
+      ],
+      "filename": "0007.png",
+      "sha256": "dbdb77e9637e28d6b4d0c18b68688fe93d368c439416df432fb05cb49f82ba9a",
+      "end": 247830.765533416
+    },
+    {
+      "begin": 247830.845554541,
+      "saved": true,
+      "windows": [
+        49507,
+        49508
+      ],
+      "filename": "0008.png",
+      "sha256": "dbdb77e9637e28d6b4d0c18b68688fe93d368c439416df432fb05cb49f82ba9a",
+      "end": 247831.544322875
+    },
+    {
+      "begin": 247831.630457,
+      "saved": false,
+      "reason": "could not bind crop to visible installed window",
+      "end": 247831.861619
+    },
+    {
+      "begin": 247831.941835625,
+      "saved": true,
+      "windows": [],
+      "filename": "0010.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247832.678447833
+    },
+    {
+      "begin": 247832.758499875,
+      "saved": true,
+      "windows": [],
+      "filename": "0011.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247833.576772916
+    },
+    {
+      "begin": 247833.656814083,
+      "saved": true,
+      "windows": [],
+      "filename": "0012.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247835.751735333
+    },
+    {
+      "begin": 247835.831757375,
+      "saved": true,
+      "windows": [],
+      "filename": "0013.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247836.559583791
+    },
+    {
+      "begin": 247836.639619666,
+      "saved": true,
+      "windows": [],
+      "filename": "0014.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247837.374922791
+    },
+    {
+      "begin": 247837.454964708,
+      "saved": true,
+      "windows": [],
+      "filename": "0015.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 247838.247466166
+    }
+  ],
+  "inputFrames": 14,
+  "continuousSpaceTransition": false,
+  "tracks": {
+    "videoTracks": 1,
+    "inputFrames": 14,
+    "audioTracks": 0,
+    "seconds": 15.693333333333333
+  },
+  "sha256": "1686c41c096f4d1b1279680d31d93240b8fd8e160d70adf7b2f05e32485a64e0"
+}

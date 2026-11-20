@@ -1,0 +1,73 @@
+{
+  "phaseOrder": [
+    "P0",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+  ],
+  "candidate": "96a3e3d1e74ea490dee798385cbef207a6013609",
+  "testOS": "macOS 27.0 (26A428)",
+  "version": "5.22 (90)",
+  "draft": true,
+  "P0": {
+    "status": "BLOCKED",
+    "roundTrip": "PASS",
+    "productionAXPress": 12,
+    "productionGestureSequences": 12,
+    "ten": "BLOCKED",
+    "fifty": "NOT_RUN",
+    "evidence": "11-adjacent-round-trip/results.json",
+    "roundTripConfirmed": 2,
+    "tenConfirmedLandings": 10,
+    "tenBlackout": "UNKNOWN"
+  },
+  "P1": {
+    "installedMoves": 0,
+    "status": "BLOCKED",
+    "prerequisite": "P0",
+    "abi": "move-abi.json"
+  },
+  "P2": {
+    "installedFocusAndTyping": "NOT_RUN",
+    "prerequisite": "P1",
+    "historicalSameAppResult": "one confirmed, one failed; later intent unknown"
+  },
+  "P3": {
+    "status": "BLOCKED",
+    "developmentCommit": "35940ff2917aa51ec6ad2bf19050230af7c5611a",
+    "isolatedChromeEdgeCases": 96,
+    "isolatedSendEvents": 0,
+    "realAuthenticatedBrowserServiceCasesPassed": 0,
+    "realAuthenticatedBrowserServiceCasesBlocked": 12,
+    "prerequisiteForIntegration": "P2"
+  },
+  "P4": {
+    "status": "BLOCKED",
+    "developmentCommit": "baa28fe4b40205e1014b4f702ba1bdd80c6fce46",
+    "installedTranslationWordbookAndColdVoice": "NOT_RUN",
+    "systemLanguageModelForTestRunner": "supported, not installed",
+    "prerequisiteForIntegration": "P3"
+  },
+  "P5": {
+    "status": "BLOCKED",
+    "developmentCommit": "30595b287e66c7fb79ab0bb5999509745f0eaaaa",
+    "physicalDisplays": 1,
+    "twoDisplays": "BLOCKED",
+    "fullscreenReturnSplitViewSleepLockAndHotplug": "NOT_RUN",
+    "warmedProductBatches": 0,
+    "prerequisiteForIntegration": "P4"
+  },
+  "P6": {
+    "status": "BLOCKED",
+    "developerIDSignedInstalled": true,
+    "strictDistributionBinaryFailures": 13,
+    "notarization": "NOT_TESTED",
+    "staple": "NOT_TESTED",
+    "cleanInstall26And27": "NOT_TESTED",
+    "publicRelease": false,
+    "prerequisite": "core contracts"
+  }
+}
