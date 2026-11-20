@@ -24,7 +24,7 @@ struct SidebarCardPointer: NSViewRepresentable {
         }
         func side(at point: NSPoint) -> Bool? {
             let local = convert(point, from: nil)
-            guard !isHiddenOrHasHiddenAncestor, visibleRect.contains(local) else { return nil }
+            guard !isHiddenOrHasHiddenAncestor, bounds.contains(local), visibleRect.contains(local) else { return nil }
             return SidebarPairDrop.left(at: local.x - bounds.minX, width: bounds.width)
         }
     }

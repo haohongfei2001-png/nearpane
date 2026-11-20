@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import NearpaneCore
 @testable import NearpaneUI
@@ -45,6 +46,42 @@ import Testing
 
     func map(_ s: DesktopSnapshot) throws -> NativeSpaceCatalog {
         try #require(NativeSpaceCatalog(s, displayID: "screen", now: .now, uptime: ProcessInfo.processInfo.systemUptime))
+    }
+
+    @Test func ordinaryCardPointerDistinguishesClickDropAndCancelledTargetsWithoutOrderingAWindow() throws {
+        let panel = EdgePanel(contentRect: .init(x: 0, y: 0, width: 200, height: 200),
+                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        let content = try #require(panel.contentView)
+        let first = window(8, ["1"], front: 0), second = window(9, ["1"], front: 1)
+        let catalog = try map(snapshot([first, second]))
+        let destination = try #require(NativeSidebarDestination(catalog.rows[0], in: catalog))
+        let a = try #require(NativeSidebarMember(first, source: destination))
+        let b = try #require(NativeSidebarMember(second, source: destination))
+        var clicks = [UInt32](), placements = [SidebarPairDrop](), live = true
+        for (i, member) in [a, b].enumerated() {
+            let area = SidebarCardPointer.CardArea(frame: .init(x: 20, y: i * 85 + 10, width: 160, height: 70))
+            area.card = SidebarCardPointer(member: member, lifetime: UUID(), current: { live },
+                select: { clicks.append(member.key.number) }, place: { placements.append($0) }, highlight: { _ in })
+            content.addSubview(area)
+        }
+        func route(_ type: NSEvent.EventType, _ x: Int, _ y: Int, _ flags: NSEvent.ModifierFlags = []) throws -> Bool {
+            let event = try #require(NSEvent.mouseEvent(with: type, location: .init(x: x, y: y), modifierFlags: flags,
+                timestamp: 1, windowNumber: panel.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
+            return panel.cardPointer.receive(event, in: panel)
+        }
+        #expect(try !route(.leftMouseDown, 25, 25, .control))
+        #expect(try route(.leftMouseDown, 25, 25) && route(.leftMouseUp, 26, 25))
+        #expect(clicks == [8])
+        for x in [32, 160] {
+            #expect(try route(.leftMouseDown, 25, 25) && route(.leftMouseDragged, x, 120) && route(.leftMouseUp, x, 120))
+        }
+        #expect(placements.map(\.draggedOnLeft) == [true, false])
+        #expect(placements.allSatisfy { $0.dragged == a && $0.target == b })
+        #expect(try route(.leftMouseDown, 25, 25) && route(.leftMouseDragged, 120, 30) && route(.leftMouseUp, 120, 30))
+        #expect(try route(.leftMouseDown, 25, 25))
+        live = false
+        #expect(try route(.leftMouseUp, 150, 120))
+        #expect(clicks == [8] && placements.count == 2)
     }
 
     @Test func internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch() throws {
