@@ -1,0 +1,15 @@
+{
+  "source": "d81c458f58b8b2efcb393acc0d8fff8db07345a6",
+  "build": "90",
+  "version": "5.22",
+  "sha256": "82ee3f86fb0b3bca5dbbd0fb724d5859f72e4d36d75d00669d9b275651440196",
+  "bytes": 25465032,
+  "assetID": 773368509,
+  "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/773368509",
+  "draftReleaseID": 452393835,
+  "releaseStillDraft": true,
+  "publicRelease": false,
+  "releaseAssetCountBefore": 13,
+  "releaseAssetCountAfter": 14,
+  "independentDownload": "PASS"
+}

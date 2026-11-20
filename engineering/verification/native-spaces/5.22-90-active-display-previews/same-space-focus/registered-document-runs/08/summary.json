@@ -17,7 +17,7 @@
     },
     {
       "trial": 2,
-      "window": "B",
+      "window": "A",
       "id": 53671,
       "verifiedKeyPairs": 12,
       "targetDocumentSHA256": "b1d41d60e45b37d248c569d1178e9b92e85c838e35a1ead1a8b2a3f63f2eb7d8",
@@ -35,7 +35,7 @@
     },
     {
       "trial": 4,
-      "window": "B",
+      "window": "A",
       "id": 53671,
       "verifiedKeyPairs": 12,
       "targetDocumentSHA256": "2d75048d14d1f1eba6b104da871bd3a49d18bc5e2ef6047113abe1b06b9de341",
@@ -53,7 +53,7 @@
     },
     {
       "trial": 6,
-      "window": "B",
+      "window": "A",
       "id": 53671,
       "verifiedKeyPairs": 12,
       "targetDocumentSHA256": "8b6d4278f7d56a7c68a90c96e822b764ba4a9a4857c940bea8cb84acb5e001b2",
@@ -71,7 +71,7 @@
     },
     {
       "trial": 8,
-      "window": "B",
+      "window": "A",
       "id": 53671,
       "verifiedKeyPairs": 12,
       "targetDocumentSHA256": "4f101b1c1b483cd742c7e5f666d3936fd4286d61f931cd337b59e75b0632b920",
@@ -89,7 +89,7 @@
     },
     {
       "trial": 10,
-      "window": "B",
+      "window": "A",
       "id": 53671,
       "verifiedKeyPairs": 12,
       "targetDocumentSHA256": "515349bd3563ac387e7865d08a64f27bf2eab0713288bc0d8a72965d3cd412e7",
