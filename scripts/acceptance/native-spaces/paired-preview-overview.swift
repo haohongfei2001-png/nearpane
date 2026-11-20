@@ -13,6 +13,17 @@ private func rect(_ values:[Double]) throws -> CGRect {
     guard values.count==4,values.allSatisfy(\.isFinite),values[2]>0,values[3]>0 else{throw Refusal("invalidRectangle")}
     return CGRect(x:values[0],y:values[1],width:values[2],height:values[3])
 }
+func overviewTemporaryURL(_ spelling:String) -> URL? {
+    guard spelling.hasPrefix("/private/tmp/") || spelling.hasPrefix("/tmp/"),
+          let resolved=realpath(spelling,nil) else{return nil}
+    defer{free(resolved)}
+    let canonical=String(cString:resolved)
+    // The only accepted alias is the system's /tmp for /private/tmp. Refuse any
+    // other symlink, traversal or synthetic argv spelling, even into an owned kit.
+    guard canonical.hasPrefix("/private/tmp/"),
+          spelling==canonical || (spelling.hasPrefix("/tmp/") && "/private"+spelling==canonical) else{return nil}
+    return URL(fileURLWithPath:canonical)
+}
 private func dictionary(_ data:Data) throws -> Row {
     guard let v=try JSONSerialization.jsonObject(with:data) as? Row else{throw Refusal("invalidReadback")}
     return v
@@ -94,7 +105,8 @@ private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws ->
     }
     private static func capture() async throws -> Row {
         guard CommandLine.arguments.count==2,CGPreflightScreenCaptureAccess() else{throw Refusal("permissionOrArguments")}
-        let folder=URL(fileURLWithPath:CommandLine.arguments[1]).standardizedFileURL, parent=folder.deletingLastPathComponent()
+        guard let folder=overviewTemporaryURL(CommandLine.arguments[1]) else{throw Refusal("invalidSessionFolder")}
+        let parent=folder.deletingLastPathComponent()
         guard UUID(uuidString:folder.lastPathComponent) != nil,parent.lastPathComponent.hasPrefix("nearpane-preview-pair."),
               parent.deletingLastPathComponent().path=="/private/tmp" else{throw Refusal("invalidSessionFolder")}
         for u in [parent,folder] {
@@ -106,7 +118,12 @@ private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws ->
               let ids=r["numbers"] as? [UInt32],ids.count==2,Set(ids).count==2,let panel=r["panel"] as? UInt32,
               let sid=r["space"] as? UInt64,let displayID=r["display"] as? String,let sources=r["sources"] as? [[Double]],sources.count==2,
               r["kinds"] as? [String]==["窗口画面","窗口画面"],r["present"] as? [Bool]==[true,true] else {throw Refusal("twoLiveProductCardsRequired")}
-        let kit=URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent()
+        var executable=[CChar](repeating:0,count:4096)
+        guard proc_pidpath(getpid(),&executable,UInt32(executable.count))>0,
+              let reader=overviewTemporaryURL(String(cString:executable)),reader.lastPathComponent=="paired-overview" else{
+            throw Refusal("untrustedReaderExecutable")
+        }
+        let kit=reader.deletingLastPathComponent()
         var kitStat=stat()
         guard kit.deletingLastPathComponent().path=="/private/tmp",kit.lastPathComponent.hasPrefix("nearpane-d01."),
               lstat(kit.path,&kitStat)==0,kitStat.st_uid==getuid(),kitStat.st_mode & 0o177777 == 0o40700 else{throw Refusal("untrustedBuildDirectory")}

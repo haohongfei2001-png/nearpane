@@ -133,12 +133,19 @@ class MediaTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform=='darwin' and shutil.which('xcrun'),'requires macOS SDK')
     def test_native_body_pixel_gate_and_original_srgb_png_do_not_access_a_screen(self):
-        with tempfile.TemporaryDirectory() as temp:
+        with tempfile.TemporaryDirectory(dir='/private/tmp',prefix='nearpane-preview-pair.test-') as temp:
             folder=Path(temp);entry=folder/'check.swift';exe=folder/'check'
+            (folder/'alias').symlink_to(entry)
             entry.write_text('''import AppKit
 import ImageIO
 @main struct Check {
     static func main() throws {
+        let real=CommandLine.arguments[1]
+        precondition(overviewTemporaryURL(real)?.path==real)
+        precondition(overviewTemporaryURL(String(real.dropFirst("/private".count)))?.path==real)
+        precondition(overviewTemporaryURL(CommandLine.arguments[2])==nil)
+        precondition(overviewTemporaryURL(real+"/..")==nil)
+        precondition(overviewTemporaryURL("/usr/bin/true")==nil)
         let area=CGRect(x:10,y:20,width:20,height:20)
         let body=CGRect(x:12,y:22,width:10,height:8)
         var pixels=Data()
@@ -162,7 +169,7 @@ import ImageIO
 }''')
             subprocess.run(['xcrun','swiftc','-parse-as-library','-D','PAIRED_OVERVIEW_TEST',HERE/'paired-preview-palette.swift',
                             HERE/'paired-preview-overview.swift',entry,'-o',exe],check=True,timeout=45)
-            subprocess.run([exe],check=True,timeout=4)
+            subprocess.run([exe,entry,folder/'alias'],check=True,timeout=4)
 
 
 if __name__=='__main__':

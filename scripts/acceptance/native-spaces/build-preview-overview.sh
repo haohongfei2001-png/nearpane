@@ -12,7 +12,12 @@ from pathlib import Path
 import sys
 src, out = map(Path, sys.argv[1:])
 prelude = (src / 'observe.swift').read_text().split('if CommandLine.arguments.count > 1 {')[0]
-out.write_text('\n'.join([prelude, (src / 'paired-preview-overview-scope.swift').read_text(), (src / 'paired-preview-scope.swift').read_text()]))
+census=src/'paired-preview-census.swift'
+parts=[prelude]
+if census.is_file():
+    parts.append(census.read_text())
+parts.extend((src/name).read_text() for name in ('paired-preview-overview-scope.swift','paired-preview-scope.swift'))
+out.write_text('\n'.join(parts))
 PY
 flags=(-D NATIVE_CONTRACT -D PAIRED_OVERVIEW -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/contract_members.h")
 xcrun swiftc "${flags[@]}" "$kit/paired-overview-scope.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$kit/paired-overview-scope"
