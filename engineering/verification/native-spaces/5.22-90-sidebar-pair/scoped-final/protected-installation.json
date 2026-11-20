@@ -168,5 +168,6 @@
       "category": "SidebarPointer",
       "eventMessage": "phase=pairPlacing"
     }
-  ]
+  ],
+  "sameBundleHelperForHostClick": []
 }

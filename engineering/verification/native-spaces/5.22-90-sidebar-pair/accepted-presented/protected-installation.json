@@ -600,5 +600,127 @@
       "category": "WindowFocusLatency",
       "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=returned route=worker action=none uptime=290054.466812"
     }
+  ],
+  "sameBundleHelperForHostClick": [
+    {
+      "timestamp": "2026-11-21 07:17:17.230324+0800",
+      "processID": 87178,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=beforeAX route=worker action=raise uptime=290028.439619"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.273513+0800",
+      "processID": 87178,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=exactFocus route=worker action=none uptime=290028.482809"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.539015+0800",
+      "processID": 87475,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=beforeAX route=worker action=raise uptime=290031.748300"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.573782+0800",
+      "processID": 87475,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=exactFocus route=worker action=none uptime=290031.783067"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.345683+0800",
+      "processID": 87598,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=beforeAX route=worker action=raise uptime=290034.554959"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.371010+0800",
+      "processID": 87598,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=exactFocus route=worker action=none uptime=290034.580286"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:26.109052+0800",
+      "processID": 87694,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=beforeAX route=worker action=raise uptime=290037.318319"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:26.140502+0800",
+      "processID": 87694,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=exactFocus route=worker action=none uptime=290037.349769"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.992429+0800",
+      "processID": 87791,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=beforeAX route=worker action=raise uptime=290040.201687"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:29.020202+0800",
+      "processID": 87791,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=exactFocus route=worker action=none uptime=290040.229460"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.879961+0800",
+      "processID": 87904,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=beforeAX route=worker action=raise uptime=290043.089211"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.897000+0800",
+      "processID": 87904,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=exactFocus route=worker action=none uptime=290043.106250"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.606758+0800",
+      "processID": 87978,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=beforeAX route=worker action=raise uptime=290045.816000"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.639716+0800",
+      "processID": 87978,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=exactFocus route=worker action=none uptime=290045.848957"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.452801+0800",
+      "processID": 88044,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=beforeAX route=worker action=raise uptime=290048.662033"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.491285+0800",
+      "processID": 88044,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=exactFocus route=worker action=none uptime=290048.700517"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.318395+0800",
+      "processID": 88108,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=beforeAX route=worker action=raise uptime=290051.527619"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.356872+0800",
+      "processID": 88108,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=exactFocus route=worker action=none uptime=290051.566096"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:43.219238+0800",
+      "processID": 88236,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=beforeAX route=worker action=raise uptime=290054.428453"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:43.257094+0800",
+      "processID": 88236,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=exactFocus route=worker action=none uptime=290054.466308"
+    }
   ]
 }
