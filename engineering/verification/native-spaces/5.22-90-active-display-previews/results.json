@@ -110,7 +110,8 @@
       "source": "f50d6ac",
       "status": "PASS",
       "evidence": "physical-05/hidden-minute.json"
-    }
+    },
+    "missionControlOverviewOverlayDuringActualAnimation": "NOT_RUN"
   },
   "P0": {
     "status": "BLOCKED",
@@ -184,7 +185,7 @@
     },
     "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
     "nativePython": {
-      "ran": 154,
+      "ran": 157,
       "skipped": 6,
       "failed": 0
     },
