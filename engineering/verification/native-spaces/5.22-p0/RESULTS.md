@@ -61,6 +61,8 @@ P3 随后让两款签名无界面浏览器都实际退出并重启。新旧进�
 
 在这个关闭切换的安装版上，实际系统 TextEdit 首次取得正式侧栏 AXPress 成功回执。准备输入标记时 Launch Services 未解析出同一进程，0 个标记获证，W01 为 UNKNOWN。测试进程正常退出，日常配置与焦点恢复。原有桌面上另有窗口，侧栏截图在采集前被保护条件拒绝，当轮空态为 BLOCKED。[选窗、输入和内核收尾](quarantined-build-candidate/window-and-focus/w01-W01-system-documents.json) · [原桌面窗口清点](quarantined-build-candidate/window-and-focus/roster-results.json)
 
+补测时，原生调度中心为窗口实拍创建了一个临时桌面。系统控件操作期间检测到新输入，未采集桌面画面，正式 Host 空间动作数为 0。随后在原桌面核实临时桌面两次完全为空，按创建账本移除，待清理项 0。TextEdit 的后续测试在核对 Apple 签名时遇到运行切片与默认磁盘切片不同，未进入输入阶段；单独核实该 PID、内核代际、Apple 签名及仅有的两份空白测试文档后，正常退出并两次确认进程消失。[建场、中止与回收](quarantined-build-candidate/temporary-workspace-and-input/final-lease-cleanup.json) · [独立进程清理](quarantined-build-candidate/temporary-workspace-and-input/disposable-process-cleanup.json)
+
 此前测量切换的候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json) · [签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
 
 此候选的侧栏实拍 0→2→0，无占位标签和空间行，14 帧、15.69 秒。双窗时候选显示了两张身份正确的卡，独立观察器本次报告了 0 扇可证明可见窗口，故此轮窗口完整性为 BLOCKED。夹具退出后两个号码均已消失。[截图](11-adjacent-round-trip/window-roster/two-documents-sidebar.png) · [侧栏录屏](11-adjacent-round-trip/window-roster/installed-sidebar.mp4) · [完整性分项](11-adjacent-round-trip/window-roster/results.json)
