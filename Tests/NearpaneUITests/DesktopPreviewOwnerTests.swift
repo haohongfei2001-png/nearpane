@@ -31,6 +31,59 @@ import Testing
         }
     }
 
+    @Test func exactSelectionCanReproveAMissingApplicationReferenceForTheSameForegroundProcess() {
+        let f = Fixture()
+        let direct = DesktopPreviewOwner.read(f.key, generation: { _ in true }, find: { _ -> Application? in nil })
+        var frontReads = 0
+        let resolved = DesktopWindowTarget.selectionOwner(for: f.key, direct: direct, foreground: { f.app }, focusedPID: {
+            frontReads += 1; return f.key.pid
+        }, kernel: f.kernel, signing: f.signed)
+        #expect(resolved.app === f.app && resolved.evidence == .applicationLookupRecovered)
+        #expect(frontReads == 2 && f.kernelReads == 2 && f.signatureReads == 1)
+    }
+
+    @Test func exactSelectionNeedsTheSameForegroundThroughSignatureAndKernelReadback() {
+        let f = Fixture()
+        let direct = DesktopPreviewOwner.Read<Application>.missing(.application)
+        var fronts: [pid_t] = [f.key.pid, 999]
+        #expect(DesktopWindowTarget.selectionOwner(for: f.key, direct: direct, foreground: { f.app },
+            focusedPID: { fronts.removeFirst() }, kernel: f.kernel, signing: f.signed).app == nil)
+        #expect(DesktopWindowTarget.selectionOwner(for: f.key, direct: direct, foreground: { f.app },
+            focusedPID: { nil }, kernel: f.kernel, signing: f.signed).app == nil)
+        #expect(DesktopWindowTarget.selectionOwner(for: f.key, direct: direct, foreground: { f.app },
+            focusedPID: { f.key.pid }, kernel: f.kernel, signing: { _ in throw WindowIdentityFailure("unavailable") }).app == nil)
+        f.birth += 1
+        #expect(DesktopWindowTarget.selectionOwner(for: f.key, direct: direct, foreground: { f.app },
+            focusedPID: { f.key.pid }, kernel: f.kernel, signing: f.signed).app == nil)
+        f.birth = f.key.birth; f.app.executableURL = URL(fileURLWithPath: "/other")
+        #expect(DesktopWindowTarget.selectionOwner(for: f.key, direct: direct, foreground: { f.app },
+            focusedPID: { f.key.pid }, kernel: f.kernel, signing: f.signed).app == nil)
+    }
+
+    @Test func foregroundCannotReplacePositiveDenialUnknownGenerationOrForeignRegularApp() {
+        let f = Fixture()
+        for direct: DesktopPreviewOwner.Read<Application> in [.denied, .missing(.kernel), .missing(.bundle)] {
+            var looked = false
+            let got = DesktopWindowTarget.selectionOwner(for: f.key, direct: direct, foreground: { looked = true; return f.app },
+                focusedPID: { f.key.pid }, kernel: f.kernel, signing: f.signed)
+            #expect(got.app == nil && !looked)
+        }
+        for state in ["otherPID","accessory","terminated","toolBundle"] {
+            let other = Application()
+            switch state {
+            case "otherPID": other.processIdentifier += 1
+            case "accessory": other.activationPolicy = .accessory
+            case "terminated": other.isTerminated = true
+            default: other.bundleIdentifier = "com.holdsnow.nearpane.alpha"
+            }
+            #expect(DesktopWindowTarget.selectionOwner(for: f.key, direct: .missing(.application), foreground: { other },
+                focusedPID: { f.key.pid }, kernel: f.kernel, signing: f.signed).app == nil)
+        }
+        let direct = DesktopWindowTarget.selectionOwner(for: f.key, direct: .found(f.app, bundle: "net.example.spaces-document"),
+            foreground: { nil }, focusedPID: { nil }, kernel: f.kernel, signing: f.signed)
+        #expect(direct.app === f.app && direct.evidence == .allowed)
+    }
+
     @Test func activeCardSurvivesAMissingOwnerLookupOnlyAfterIndependentPositiveEvidence() throws {
         let f = Fixture()
         #expect(!f.check(nil, lookup: nil).allowed)

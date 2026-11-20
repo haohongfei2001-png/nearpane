@@ -21,6 +21,44 @@ extension DesktopWindowTarget {
     }
 }
 
+/// A new AppKit lookup by PID can return nil for a live application. For an explicit
+/// same-app selection, the foreground reference is independent and can be verified
+/// against both the system AX foreground and the selected kernel generation.
+extension DesktopWindowTarget {
+    static func selectionOwner<App: OrdinaryApplicationReference>(
+        for key: DesktopWindowKey, direct: DesktopPreviewOwner.Read<App>,
+        foreground: () -> App?, focusedPID: () -> pid_t?,
+        kernel: (pid_t) throws -> OrdinaryProcessImage = OrdinaryProcessImage.read,
+        signing: (pid_t) throws -> Data = OrdinaryProcessImage.signingDigest
+    ) -> (app: App?, bundle: String?, evidence: PreviewPipelineAudit.Reason) {
+        switch direct {
+        case .found(let app, let bundle): return (app, bundle, .allowed)
+        case .denied: return (nil, nil, .ownerChanged)
+        case .missing(.application):
+            guard let app = foreground(), app.processIdentifier == key.pid, focusedPID() == key.pid,
+                  let bundle = app.bundleIdentifier,
+                  DesktopPreviewOwner(key: key, app: app, kernel: kernel, signing: signing) != nil,
+                  app.bundleIdentifier == bundle, focusedPID() == key.pid else { return (nil, nil, .applicationLookupMissing) }
+            return (app, bundle, .applicationLookupRecovered)
+        case .missing(let gap): return (nil, nil, gap.evidence(recovered: false))
+        }
+    }
+
+    @MainActor func selectionOwner() -> (app: NSRunningApplication?, bundle: String?, evidence: PreviewPipelineAudit.Reason) {
+        let direct = DesktopPreviewOwner.read(key, find: NSRunningApplication.init(processIdentifier:))
+        return Self.selectionOwner(for: key, direct: direct, foreground: { NSWorkspace.shared.frontmostApplication }, focusedPID: {
+            guard AXIsProcessTrusted() else { return nil }
+            let system = AXUIElementCreateSystemWide()
+            var application: CFTypeRef?
+            guard AXUIElementSetMessagingTimeout(system, 0.12) == .success,
+                  AXUIElementCopyAttributeValue(system, kAXFocusedApplicationAttribute as CFString, &application) == .success,
+                  let application, CFGetTypeID(application) == AXUIElementGetTypeID() else { return nil }
+            var pid: pid_t = 0
+            return AXUIElementGetPid(application as! AXUIElement, &pid) == .success && pid > 1 ? pid : nil
+        })
+    }
+}
+
 /// A new click can arrive after AppKit gives a window the keyboard and before the
 /// previous acknowledgement reaches the sidebar. Serialize intents and keep the last
 /// explicit choice. A refusal discards pending work.
@@ -62,6 +100,11 @@ extension DesktopWindowTarget {
 @MainActor enum DesktopWindowSelection {
     private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowSelection")
 
+    static func refusedCurrentCard(_ gate: StaticString) -> Bool {
+        log.notice("selection card no longer current: \(String(describing: gate), privacy: .public)")
+        return false
+    }
+
     /// macOS can activate an application without Accessibility. Use that path only when
     /// even the off-Space WindowServer inventory contains exactly one visible layer-zero
     /// window for this owner. The returned window number, not just the PID, must be in front.
@@ -81,6 +124,10 @@ extension DesktopWindowTarget {
         guard let owner = NSRunningApplication(processIdentifier: key.pid), let bundle = owner.bundleIdentifier else {
             throw OrdinaryWindowFailure("所选窗口的应用已退出。")
         }
+        return try await bind(key, bundle: bundle)
+    }
+
+    private static func bind(_ key: DesktopWindowKey, bundle: String) async throws -> OrdinaryWindowAX {
         let directory = try OrdinaryWindowDirectory(.init(pid: key.pid, launch: key.birth, bundle: bundle, name: ""))
         let choices = try await directory.choices(initial: true).filter { $0.number == key.number }
         guard choices.count == 1, let choice = choices.first, let handle = directory.handles[choice.id] else {
@@ -104,14 +151,27 @@ extension DesktopWindowTarget {
         func current() -> Bool {
             stillCurrent() && WindowContentPreview.sessionAvailable() && ProcessInfo.processInfo.systemUptime <= deadline
         }
-        guard current(), let app = target.liveOwner() else {
+        guard stillCurrent() else {
+            log.notice("selection admission refused: current intent")
             throw OrdinaryWindowFailure("这扇窗口已变化，请重新选择。")
+        }
+        guard WindowContentPreview.sessionAvailable(), ProcessInfo.processInfo.systemUptime <= deadline else {
+            log.notice("selection admission refused: session or deadline")
+            throw OrdinaryWindowFailure("这扇窗口已变化，请重新选择。")
+        }
+        let owner = target.selectionOwner()
+        guard let app = owner.app, let bundle = owner.bundle else {
+            log.notice("selection admission refused: owner \(owner.evidence.rawValue, privacy: .public)")
+            throw OrdinaryWindowFailure("这扇窗口已变化，请重新选择。")
+        }
+        if owner.evidence == .applicationLookupRecovered {
+            log.notice("selection admission: foreground owner independently verified")
         }
         if target.overviewSpace != nil {
             guard let verifySpace, await verifySpace(), current() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
         }
-        if bound == nil, permit == nil, let bundle = app.bundleIdentifier, target.publiclyVisible {
-            let host = HostCurrentWindowFocus(target: target, bundle: bundle)
+        if bound == nil, permit == nil, target.publiclyVisible {
+            let host = HostCurrentWindowFocus(target: target, bundle: bundle, application: app)
             if await host.bind() {
                 if let verifySpace {
                     guard await verifySpace() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
@@ -129,7 +189,7 @@ extension DesktopWindowTarget {
         if let bound {
             retained = bound
         } else {
-            do { retained = try await bind(target.key) }
+            do { retained = try await bind(target.key, bundle: bundle) }
             catch AdmissionReadFailure.permission { retained = nil }
         }
         if let handle = retained {
@@ -150,7 +210,7 @@ extension DesktopWindowTarget {
             throw OrdinaryWindowFailure("系统没有确认原窗口仍然可选。")
         }
         if scoped {
-            guard let verifySpace, await verifySpace(), target.liveOwner() != nil,
+            guard let verifySpace, await verifySpace(), target.selectionOwner().app != nil,
                   soleWindow(target, requireVisible: false),
                   target.sharedSurface(visible: false, matchFrame: false, for: .windowSelection) else {
                 throw OrdinaryWindowFailure("窗口或桌面已变化，请重新选择。")
@@ -162,7 +222,7 @@ extension DesktopWindowTarget {
         }
         let end = min(deadline, ProcessInfo.processInfo.systemUptime + 0.8)
         repeat {
-            if target.liveOwner() != nil, NSWorkspace.shared.frontmostApplication?.processIdentifier == target.key.pid,
+            if target.selectionOwner().app != nil, NSWorkspace.shared.frontmostApplication?.processIdentifier == target.key.pid,
                soleWindow(target), (scoped ? target.sharedSurface(visible: true, matchFrame: false, for: .windowSelection) : target.isVisibleSurface(for: .windowSelection)),
                let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
                let front = rows.first(where: { $0[kCGWindowLayer as String] as? Int == 0 && ($0[kCGWindowAlpha as String] as? Double ?? 0) > 0 }),

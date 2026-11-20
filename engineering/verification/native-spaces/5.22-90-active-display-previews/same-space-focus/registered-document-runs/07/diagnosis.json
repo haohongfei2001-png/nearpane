@@ -1,0 +1,96 @@
+{
+  "candidate": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "hostPid": 81076,
+  "hostCDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+  "fixturePid": 81265,
+  "fixtureBirth": 1795206432146730,
+  "timeCalibration": {
+    "uptime": 279819.40331670834,
+    "unix": 1795206428.164222
+  },
+  "thirdPress": {
+    "control": "current-desktop-window:81265:53628",
+    "axError": 0,
+    "target": 53628,
+    "sibling": 53626,
+    "productActionTimeUpperBound": "2026-11-21T04:27:20.394+08:00",
+    "focusCheckCompleted": "2026-11-21T04:27:24.401+08:00",
+    "earlierIssuePresent": false,
+    "laterAllowlistedIssue": [
+      "这扇窗口已变化，请重新选择。"
+    ],
+    "foregroundCounts": {
+      "fixture": 14,
+      "other": 0
+    },
+    "retainedFullReads": 2,
+    "markerPostObserved": false,
+    "intentToReadDeadlineSeconds": 4.206498
+  },
+  "unifiedLog": {
+    "predicate": "processID == 81076 AND subsystem == \"com.holdsnow.nearpane.alpha\" AND (category == \"WindowSelection\" OR category == \"WindowOverview\")",
+    "startLocal": "2026-11-21 04:27:10",
+    "endLocal": "2026-11-21 04:27:26",
+    "timezone": "+08:00",
+    "windowSelectionRecords": 0,
+    "windowOverview": [
+      {
+        "time": "2026-11-21T04:27:13.281+08:00",
+        "total": 2,
+        "background": 0,
+        "inventory": 11
+      },
+      {
+        "time": "2026-11-21T04:27:13.704+08:00",
+        "total": 2,
+        "background": 0,
+        "inventory": 13
+      },
+      {
+        "time": "2026-11-21T04:27:13.833+08:00",
+        "total": 0,
+        "background": 0,
+        "inventory": 7
+      },
+      {
+        "time": "2026-11-21T04:27:14.085+08:00",
+        "total": 2,
+        "background": 0,
+        "inventory": 11
+      },
+      {
+        "time": "2026-11-21T04:27:14.471+08:00",
+        "total": 2,
+        "background": 0,
+        "inventory": 13
+      },
+      {
+        "time": "2026-11-21T04:27:24.800+08:00",
+        "total": 0,
+        "background": 0,
+        "inventory": 9
+      }
+    ],
+    "initialRead": "The first bounded log show returned the six WindowOverview changes below at millisecond precision and no WindowSelection record. A later read of the same interval returned no matching persisted entries."
+  },
+  "sourceEvidence": {
+    "onlyMatchingError": "Sources/NearpaneUI/DesktopWindowSelection.swift in select(), first guard of d2d0bb6",
+    "testedBeforeAnyFocusRoute": [
+      "current user intent and session/deadline",
+      "target.liveOwner()"
+    ],
+    "routesNotReachedForThisRefusal": [
+      "Host AX bind or AXRaise",
+      "ordinary AX worker",
+      "sole-window app activation"
+    ],
+    "deadlineSecondsFromThisChoice": 5,
+    "priorDuplicateOrDeduplicatedClickDoesNotExplainNewFailureMessage": true,
+    "selectorBranchHasNoPositiveOwnerOrIntentEvidenceInOriginalBinary": true
+  },
+  "causeWithinFirstGuard": "UNKNOWN",
+  "retainedWindowOverviewDoesNotMeasureHostOwnerLookup": true,
+  "priorPositiveOwnerLookupEvidence": "../../../physical-12/owner-readback.json",
+  "independentlyObservedDefect": "A fresh NSRunningApplication(PID) lookup can be unavailable even while the selected signed OS process is still verifiably live. The initial focus guard had no independent owner resolution in that case.",
+  "signedFixPhysicalOutcome": "NOT_RUN"
+}

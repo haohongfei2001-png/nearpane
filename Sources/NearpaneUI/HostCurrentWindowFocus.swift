@@ -9,13 +9,15 @@ actor HostCurrentWindowFocus {
     private let target: DesktopWindowTarget
     private let owner = OrdinaryOwnerIdentity()
     private let bundle: String
+    private let application: NSRunningApplication
     private let app: AXUIElement
     private let system = AXUIElementCreateSystemWide()
     private var element: AXUIElement?
 
-    init(target: DesktopWindowTarget, bundle: String) {
+    init(target: DesktopWindowTarget, bundle: String, application: NSRunningApplication) {
         self.target = target
         self.bundle = bundle
+        self.application = application
         app = AXUIElementCreateApplication(target.key.pid)
     }
 
@@ -32,7 +34,7 @@ actor HostCurrentWindowFocus {
 
     private func verifiedElement() throws -> AXUIElement {
         let key = target.key
-        try owner.verify(key.pid, launch: key.birth, bundle: bundle)
+        try owner.verify(key.pid, launch: key.birth, bundle: bundle, find: { _ in application })
         var list: CFArray?
         guard AXUIElementCopyAttributeValues(app, kAXWindowsAttribute as CFString, 0, 65, &list) == .success,
               let windows = list as? [AXUIElement], windows.count <= 64 else {

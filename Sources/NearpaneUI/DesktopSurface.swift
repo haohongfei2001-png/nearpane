@@ -262,11 +262,18 @@ struct DesktopSurface: View {
         let userInput = NativeSelectionPermit.inputCounters()
         let visibility = previews.visibilityGeneration[target.display]
         func stillCurrent() -> Bool {
-            host.isRunning && !host.configuration.surfaceHidden && display?.interactionVisible == true &&
-                (feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime)) &&
-                display?.id == target.display && generation == previews.gallery.generation &&
-                visibility == previews.visibilityGeneration[target.display] && target.remainsSelection(in: overview) &&
-                WindowContentPreview.sessionAvailable() && NativeSelectionPermit.inputCounters() == userInput
+            guard host.isRunning, !host.configuration.surfaceHidden, display?.interactionVisible == true,
+                  display?.id == target.display else { return DesktopWindowSelection.refusedCurrentCard("display or sidebar") }
+            guard feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime) else {
+                return DesktopWindowSelection.refusedCurrentCard("window lifetime")
+            }
+            guard generation == previews.gallery.generation, visibility == previews.visibilityGeneration[target.display] else {
+                return DesktopWindowSelection.refusedCurrentCard("visibility generation")
+            }
+            guard target.remainsSelection(in: overview) else { return DesktopWindowSelection.refusedCurrentCard("roster target") }
+            guard WindowContentPreview.sessionAvailable() else { return DesktopWindowSelection.refusedCurrentCard("console session") }
+            guard NativeSelectionPermit.inputCounters() == userInput else { return DesktopWindowSelection.refusedCurrentCard("new input") }
+            return true
         }
         guard target.present(in: overview), stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
         selectionIssue = nil

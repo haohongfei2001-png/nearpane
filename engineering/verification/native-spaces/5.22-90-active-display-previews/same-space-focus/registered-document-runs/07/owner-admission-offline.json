@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "scope": "offline production admission and retained exact-window regression",
+  "foundationOnly": true,
+  "testCount": 54,
+  "suites": [
+    "OwnerIdentityTests",
+    "DesktopPreviewOwnerTests",
+    "NativeSidebarNavigationTests",
+    "DesktopGalleryTargetTests",
+    "WindowOverviewAccessTests"
+  ],
+  "newTests": [
+    "exactSelectionCanReproveAMissingApplicationReferenceForTheSameForegroundProcess",
+    "exactSelectionNeedsTheSameForegroundThroughSignatureAndKernelReadback",
+    "foregroundCannotReplacePositiveDenialUnknownGenerationOrForeignRegularApp"
+  ],
+  "sourceRuntimeCauseWithinOriginalDoubleGuard": "UNKNOWN",
+  "installedFixedCandidateW01": "NOT_RUN",
+  "fixtureProtocolChanges": 0,
+  "extraSystemFocusOrInputActions": 0
+}

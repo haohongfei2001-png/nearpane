@@ -1,0 +1,290 @@
+{
+  "attempts": [
+    {
+      "id": "4a92d7d6-879a-4112-a71c-13aecb0d12e8",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53626,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53628,
+      "trial": 1
+    },
+    {
+      "id": "523b8268-f008-4772-86da-f2717af8677f",
+      "kind": "window",
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "sibling": 53628,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 53626,
+      "trial": 2
+    },
+    {
+      "id": "c08b94df-0a54-4806-96f8-939a2c3aa9c1",
+      "kind": "window",
+      "markerIssued": null,
+      "pressGateReason": "exactInstalledSidebarControlAdmitted",
+      "pressIssued": true,
+      "reason": "independentFocusUnconfirmed",
+      "sibling": 53626,
+      "status": "UNKNOWN",
+      "target": 53628,
+      "trial": 3
+    }
+  ],
+  "cleanup": {
+    "launcherExit": 0,
+    "ownedSessionRemoved": true,
+    "readback": {
+      "frontIsFixture": false,
+      "generationGone": true,
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "status": "EXITED",
+      "windowsGone": true
+    },
+    "signal": "close",
+    "status": "PASS"
+  },
+  "firstDocumentCapture": {
+    "after": {
+      "birth": 1795206432146730,
+      "clock": 279828.2198538334,
+      "fileSHA256": [
+        "548df5853bc600a10bb4e4bc8a430938e48cb056e903492a95b914106d3fd2f8",
+        "f6b6803ba99d26787729470cf9615248fa05acc41ed0fe0ef463285a3b5f188e"
+      ],
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795206421481702,
+      "pid": 81265,
+      "window": 53628
+    },
+    "before": {
+      "birth": 1795206432146730,
+      "clock": 279827.89204845834,
+      "fileSHA256": [
+        "548df5853bc600a10bb4e4bc8a430938e48cb056e903492a95b914106d3fd2f8",
+        "f6b6803ba99d26787729470cf9615248fa05acc41ed0fe0ef463285a3b5f188e"
+      ],
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795206421481702,
+      "pid": 81265,
+      "window": 53628
+    },
+    "file": "first-registered-document.png",
+    "height": 386,
+    "scope": "sole enrolled document window",
+    "sha256": "77e233f62ffec6fa3cc96dcd0ed87cbeb59b2a65a2509268238f68b2f981a47b",
+    "status": "CAPTURED",
+    "target": 53628,
+    "width": 640
+  },
+  "fixturePreparation": {
+    "checkedAt": 279823.3289372917,
+    "emptyLeaseReads": [
+      {
+        "extraOwners": [
+          "com.apple.dock",
+          "com.apple.WindowServer",
+          "com.holdsnow.nearpane.alpha"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 279822.57161829167
+      },
+      {
+        "extraOwners": [
+          "com.apple.dock",
+          "com.apple.WindowServer",
+          "com.holdsnow.nearpane.alpha"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 279822.9441435
+      }
+    ],
+    "focused": 53626,
+    "id": "0760751f-5444-4280-91a1-262c85e6a21c",
+    "issued": true,
+    "launcherPID": 81263,
+    "method": "singleForegroundLaunchServicesOpen",
+    "originalForegroundBirth": 1795206421481702,
+    "productAction": false,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+    "status": "VERIFIED"
+  },
+  "fixtureSigning": {
+    "CDHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+    "Identifier": "net.example.spaces-document",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "focusRestoreRequested": false,
+  "launch": "foreground Launch Services open -n -W -a",
+  "observerSigning": {
+    "CDHash": "4675e7b6cb4062bebeff60f0ad5f00681c98f0cc",
+    "Identifier": "net.example.nearpane.p2-observer",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "operationStatus": "UNKNOWN",
+  "passes": 2,
+  "reason": "independentFocusUnconfirmed",
+  "registration": {
+    "birth": 1795206432146730,
+    "bundle": "net.example.spaces-document",
+    "bundleURL": "/private/tmp/nearpane-d01.p2-stage-readback.wgBUMbcb/Field Notes.app",
+    "cdHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+    "executable": "/private/tmp/nearpane-d01.p2-stage-readback.wgBUMbcb/Field Notes.app/Contents/MacOS/FieldNotes",
+    "kernelExecutableConfirmed": true,
+    "launch": 1795206432.145057,
+    "pid": 81265,
+    "regular": true,
+    "team": "ZB9D4T66QB"
+  },
+  "scope": {
+    "allowedFront": 81076,
+    "allowedFrontBirth": 1795206421481702,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "hostBirth": 1795206421481702,
+    "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "hostPID": 81076,
+    "leaseHardwareCounters": [
+      5759,
+      70,
+      0,
+      3049,
+      136752
+    ],
+    "space": 5095,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+  },
+  "status": "UNKNOWN",
+  "superseded": false
+}
