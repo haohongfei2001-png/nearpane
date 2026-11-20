@@ -9,7 +9,7 @@ struct Request: Decodable, Equatable {
     let hostHash: String, fixtureHash: String
 }
 struct Refusal: Error { let reason:String; init(_ reason:String) {self.reason=reason} }
-struct Crop { let number: UInt32, pid: pid_t, rect: CGRect, patches:[CGRect], filter: SCContentFilter, config: SCStreamConfiguration }
+struct Crop { let number: UInt32, pid: pid_t, rect:CGRect, backing:CGRect, independentSource:Bool, patches:[CGRect], filter:SCContentFilter, config:SCStreamConfiguration }
 struct Observation: Encodable {
     let start:Double,end:Double,color:String,displayTime:Double?,frameStatus:Int?
     var patch:Data? = nil
@@ -17,6 +17,7 @@ struct Observation: Encodable {
 }
 private struct FilterGeometry:Encodable {
     let window:UInt32,frame:[Double],filterRect:[Double],requested:[Double],includedWindowCount:Int,nativePointPixelScale:Float
+    let mode:String,bufferPoints:[Double],sampledGlobalRects:[[Double]]
 }
 private func numbers(_ r:CGRect)->[Double] {[r.minX,r.minY,r.width,r.height]}
 struct PendingWitness {let batch:Int,epoch:Int,uptime:Double,data:Data}
@@ -32,7 +33,14 @@ private func birth(_ pid:pid_t) -> UInt64? {
     return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
 }
 func hardware() -> [UInt32] { [.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map{CGEventSource.counterForEventType(.hidSystemState,eventType:$0)} }
-func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> String? {
+struct SourceHostCover:Encodable {
+    let source:UInt32,window:UInt32,width:Double,height:Double
+    let owner="signed-isolated-installed-host",kind="ordinary-window-over-intrinsic-source"
+}
+func intrinsicSourceAllowsCover(isSource:Bool,independent:Bool,ownerIsInstalledHost:Bool,layer:Int?,isSidebar:Bool)->Bool {
+    isSource && independent && ownerIsInstalledHost && layer==0 && !isSidebar
+}
+func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32],onSourceCover:((SourceHostCover)->Void)?=nil) -> String? {
     guard hardware()==input,NSEvent.pressedMouseButtons==0,birth(r.hostPID)==r.hostBirth,birth(r.fixturePID)==r.fixtureBirth,
           let scopes=NPReadInventory() as? [[String:Any]],scopes.count==1,scopes[0]["Display Identifier"] as? String==r.display,
           (scopes[0]["Current Space"] as? [String:Any])?["id64"] as? UInt64==r.space,
@@ -45,12 +53,19 @@ func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> String? {
         for row in rows {
             guard let box=row[kCGWindowBounds as String] as? NSDictionary,let bounds=CGRect(dictionaryRepresentation:box) else{return "unreadableWindowBoundsBefore"+kind}
             if row[kCGWindowNumber as String] as? UInt32==crop.number {
-                found=row[kCGWindowOwnerPID as String] as? Int32==crop.pid && bounds.contains(crop.rect)
+                found=row[kCGWindowOwnerPID as String] as? Int32==crop.pid && bounds.contains(crop.rect) && (!crop.independentSource || bounds==crop.backing)
                 break
             }
             if crop.patches.contains(where:{bounds.intersects($0)}), (row[kCGWindowAlpha as String] as? Double ?? 1)>0 {
                 let pid=row[kCGWindowOwnerPID as String] as? pid_t
+                if let number=row[kCGWindowNumber as String] as? UInt32,
+                   intrinsicSourceAllowsCover(isSource:index<2 && r.numbers.contains(crop.number),independent:crop.independentSource,
+                                              ownerIsInstalledHost:pid==r.hostPID,layer:row[kCGWindowLayer as String] as? Int,isSidebar:number==r.panel) {
+                    onSourceCover?(SourceHostCover(source:crop.number,window:number,width:bounds.width,height:bounds.height))
+                    continue
+                }
                 let who=pid==r.fixturePID ? "Fixture" : pid==r.hostPID ? "Host":"Other"
+                if who=="Host",let layer=row[kCGWindowLayer as String] as? Int {return kind+"OccludedByHostLayer"+String(layer)}
                 return kind+"OccludedBy"+who
             }
         }
@@ -79,7 +94,7 @@ private func observe(_ crop:Crop,witness requestedWitness:Bool) async -> [Observ
         guard let bytes=CVPixelBufferGetBaseAddress(pixels)?.assumingMemoryBound(to:UInt8.self) else{return uniform("unknown")}
         let finished=now()
         return crop.patches.map { patch in
-            let x0=Int((patch.minX-crop.rect.minX)*2),y0=Int((patch.minY-crop.rect.minY)*2)
+            let x0=Int((patch.minX-crop.backing.minX)*2),y0=Int((patch.minY-crop.backing.minY)*2)
             var counts=[String:Int](),rgba=Data(),solidOpaque=true,first:UInt32?
             for y in y0..<(y0+8) {for x in x0..<(x0+8) {let k=y*CVPixelBufferGetBytesPerRow(pixels)+4*x
                 let red=bytes[k+2],green=bytes[k+1],blue=bytes[k],alpha=bytes[k+3]
@@ -155,26 +170,46 @@ private func observe(_ crop:Crop,witness requestedWitness:Bool) async -> [Observ
             }
             let rect=patches.dropFirst().reduce(patches[0]){$0.union($1)}
             guard rect.width<=8,rect.height<=400,window.frame.contains(rect),display.frame.contains(rect) else{throw Refusal("uncontainedROI")}
-            let filter=SCContentFilter(display:display,including:[window]);filter.includeMenuBar=false
-            guard filter.includedWindows.count==1,filter.includedWindows.first?.windowID==id else{throw Refusal("unboundedFilter")}
-            let config=SCStreamConfiguration();config.sourceRect=rect.offsetBy(dx:-display.frame.minX,dy:-display.frame.minY)
-            config.width=Int(rect.width)*2;config.height=Int(rect.height)*2;config.pixelFormat=kCVPixelFormatType_32BGRA;config.colorSpaceName=CGColorSpace.sRGB
+            let sourceFilter=(streams || sourceOnly) && pid==r.fixturePID && r.numbers.contains(id) ? SCContentFilter(desktopIndependentWindow:window):nil
+            let independent=sourceFilter?.pointPixelScale==2
+            let filter=independent ? sourceFilter! : SCContentFilter(display:display,including:[window])
+            filter.includeMenuBar=false
+            guard filter.includedWindows.count==1,let included=filter.includedWindows.first,included.windowID==id,
+                  included.owningApplication?.processID==pid,
+                  !independent || (filter.style == .window && filter.contentRect.size==window.frame.size && filter.pointPixelScale==2)
+            else{throw Refusal("unboundedFilter")}
+            let backing=independent ? window.frame:rect
+            guard backing.contains(rect),backing.width<=2048,backing.height<=2048,
+                  [backing.width*2,backing.height*2,(rect.minX-backing.minX)*2,(rect.minY-backing.minY)*2].allSatisfy({$0.rounded()==$0})
+            else{throw Refusal("unregisteredSourceBackingPixelGrid")}
+            let config=SCStreamConfiguration()
+            if independent {
+                // The native IOSurface belongs exclusively to the signed synthetic window. Read
+                // just the original 8x8 backing pixels at the bound source location.
+                config.ignoreShadowsSingleWindow=true;config.ignoreGlobalClipSingleWindow=true;config.shouldBeOpaque=true
+            } else {config.sourceRect=rect.offsetBy(dx:-display.frame.minX,dy:-display.frame.minY)}
+            config.width=Int(backing.width*2);config.height=Int(backing.height*2);config.pixelFormat=kCVPixelFormatType_32BGRA
+            config.colorSpaceName=CGColorSpace.sRGB
             config.showsCursor=false;config.capturesAudio=false;config.captureMicrophone=false;config.includeChildWindows=false
             if streams {
                 config.minimumFrameInterval=CMTime(value:1,timescale:60);config.queueDepth=5
                 if #available(macOS 15.0,*) {config.captureDynamicRange = .SDR}
             }
             filterGeometry.append(FilterGeometry(window:id,frame:numbers(window.frame),filterRect:numbers(filter.contentRect),requested:numbers(config.sourceRect),
-                                                 includedWindowCount:filter.includedWindows.count,nativePointPixelScale:filter.pointPixelScale))
-            crops.append(Crop(number:id,pid:pid,rect:rect,patches:patches,filter:filter,config:config))
+                                                 includedWindowCount:filter.includedWindows.count,nativePointPixelScale:filter.pointPixelScale,
+                                                 mode:independent ? "desktopIndependentFixtureWindow":"visibleDisplayWindow",bufferPoints:numbers(backing),
+                                                 sampledGlobalRects:patches.map(numbers)))
+            crops.append(Crop(number:id,pid:pid,rect:rect,backing:backing,independentSource:independent,patches:patches,filter:filter,config:config))
         }
         try emit(["filterGeometry":filterGeometry])
         let input=hardware(),began=now(),regions=crops
         if sourceOnly {
-            if let reason=scope(r,regions,input){throw Refusal(reason)}
+            var covers=[SourceHostCover]()
+            if let reason=scope(r,regions,input,onSourceCover:{covers.append($0)}){throw Refusal(reason)}
             async let a=observe(regions[0],witness:false);async let b=observe(regions[1],witness:false)
             let samples=await [a,b].flatMap{$0}
-            if let reason=scope(r,regions,input){throw Refusal(reason)}
+            if let reason=scope(r,regions,input,onSourceCover:{covers.append($0)}){throw Refusal(reason)}
+            try emit(["sourceHostOcclusionsBeforeAndAfter":covers])
             _=try confirmCards();try emit(["sources":samples]);return
         }
         let witness=ProcessInfo.processInfo.environment["NEARPANE_PAIRED_EVIDENCE"]=="1"

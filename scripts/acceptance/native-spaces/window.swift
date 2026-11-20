@@ -99,8 +99,14 @@ DispatchQueue.main.asyncAfter(deadline:.now()+0.3) {
     if paired,windows.count==2 {
         // These two owned documents have just opened on the preverified empty lease. Normal
         // AppKit activation publishes a real key/standard AX window for the production roster.
-        windows[0].makeKeyAndOrderFront(nil)
-        app.activate(ignoringOtherApps:true)
+        if streaming {
+            app.activate(ignoringOtherApps:true)
+            windows[1].orderFront(nil)
+            windows[0].makeKeyAndOrderFront(nil)
+        } else {
+            windows[0].makeKeyAndOrderFront(nil)
+            app.activate(ignoringOtherApps:true)
+        }
     }
     #endif
 }

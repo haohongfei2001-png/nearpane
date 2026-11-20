@@ -92,7 +92,8 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
         if run.returncode or "sources" not in last:raise ValueError(last.get("refusal","noExactSourcePixels"))
         samples=last["sources"]
         return dict(status="MATCH" if len(samples)==2 and all(p["color"].startswith(str(i)+"/") for i,p in enumerate(samples)) else "UNCONFIRMED",
-                    fixtureNumbers=ref["numbers"],crops=ref["sources"],filters=next((r["filterGeometry"] for r in rows if "filterGeometry" in r),[]),observations=samples)
+                    fixtureNumbers=ref["numbers"],crops=ref["sources"],filters=next((r["filterGeometry"] for r in rows if "filterGeometry" in r),[]),observations=samples,
+                    occlusion=next((r["sourceHostOcclusionsBeforeAndAfter"] for r in rows if "sourceHostOcclusionsBeforeAndAfter" in r),[]))
     if witness and proof.get("sourceProven"):
         result["sourceReference"]=measured(source_reference);save()
     if audit:result["auditBeforeSampling"]=measured(lambda:audit.evidence("before-sampling"))
@@ -180,7 +181,9 @@ def run(kit, output, preflight_only=False, expected_space=None, witness=False, b
         with tempfile.TemporaryDirectory(prefix='nearpane-preview-pair.',dir='/private/tmp') as temporary:
             folder=Path(temporary)/str(uuid.uuid4());folder.mkdir(mode=0o700)
             home=Path(temporary)/'home';home.mkdir(mode=0o700)
-            proc=subprocess.Popen(["/usr/bin/open","-n","-W","-g","-a",str(app),"--env","HOME="+str(home),
+            foreground=sampler=="streams" and expected_space==before["space"]
+            result["fixtureForegroundLaunchOnQualifiedSpace"]=foreground
+            proc=subprocess.Popen(["/usr/bin/open","-n","-W"]+([] if foreground else ["-g"])+["-a",str(app),"--env","HOME="+str(home),
                                    "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_FIXTURE_PRESENTATION=paired-preview","--env","NP_PAIRED_STREAM_FIXTURE="+("1" if sampler=="streams" else "0"),
                                    "--args",str(folder),"2"],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             result["fixtureLaunched"]=True;result["cleanup"]={"status":"UNKNOWN"};numbers=[];state={};audit=None;expected=None

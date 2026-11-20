@@ -49,7 +49,8 @@ def qualified(frames,session):
             rejected["nonAdvancingPresentation"]+=1;continue
         actual[n].append(dict(raw,time=t,basis=basis,guardBefore=times[i],guardAfter=times[j]))
     interval=max(c["uncertainty"] for c in clocks)
-    return actual,dict(machAndHostClockUncertaintyMs=1000*interval,statusCounts=[{str(k):v for k,v in x.items()} for x in status],
+    covers=Counter(str(c["source"]) for g in guards if g["valid"] for c in g.get("sourceHostOcclusions",[]))
+    return actual,dict(qualifiedSourceHostCoverObservations=dict(covers),panelSamplePointsRequireUnoccludedDisplay=True,machAndHostClockUncertaintyMs=1000*interval,statusCounts=[{str(k):v for k,v in x.items()} for x in status],
                        rejected=dict(rejected),observedDisplayToPTSDifferenceMs=[percentiles(x) for x in tested],
                        completePixelFrames=[len(x) for x in actual],basis=[dict(Counter(v["basis"] for v in x)) for x in actual],
                        actualPresentationIntervalsMs=[percentiles([1000*(b["time"]-a["time"]) for a,b in zip(x,x[1:])]) for x in actual])

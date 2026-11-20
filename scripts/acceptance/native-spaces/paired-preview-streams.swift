@@ -75,7 +75,7 @@ private final class Receiver:NSObject,SCStreamOutput,SCStreamDelegate,@unchecked
             if let cs=CVImageBufferGetColorSpace(image)?.takeUnretainedValue(),let name=cs.name as String? {
                 colorSpace=[CGColorSpace.sRGB as String,CGColorSpace.displayP3 as String,CGColorSpace.extendedSRGB as String].contains(name) ? name:"other"
             }
-            samples=crop.patches.compactMap{sampleColor(image,crop.rect,$0,width:crop.config.width,height:crop.config.height,witness:witness && crop.filter.pointPixelScale==2)}
+            samples=crop.patches.compactMap{sampleColor(image,crop.backing,$0,width:crop.config.width,height:crop.config.height,witness:witness && crop.filter.pointPixelScale==2)}
         }
         lock.withLock {
             guard frames.count<3600 else{failure="boundedStreamQueueExceeded";return}
@@ -87,7 +87,7 @@ private final class Receiver:NSObject,SCStreamOutput,SCStreamDelegate,@unchecked
     }
 }
 private struct StreamGuard:Encodable {
-    let time:Double,fullBinding:Bool,cardKinds:[String],valid:Bool,issue:String?
+    let time:Double,fullBinding:Bool,cardKinds:[String],valid:Bool,issue:String?,sourceHostOcclusions:[SourceHostCover]
 }
 private struct StreamSummary:Encodable {
     let mode:String,rates:[Int],crops:Int,clocks:[PreviewClock],guards:[StreamGuard],pulseStarted:Double?,stopped:[Bool],reason:String?
@@ -119,7 +119,24 @@ enum PairedStreams {
               partial.minimum[1]==0,partial.minimum[1]<partial.maximum[1],
               sampleColor(pixel,area,area.offsetBy(dx:1,dy:0),width:8,height:8,witness:true)==nil
         else{throw Refusal("unverifiedPixelsEscapedBoundCapture")}
-        try emit(["calibratedClockAndPixelChecks":count+2])
+        let coverCases=[(true,true,true,0,false,true),(true,false,true,0,false,false),(false,true,true,0,false,false),
+                        (true,true,false,0,false,false),(true,true,true,3,false,false),(true,true,true,0,true,false)]
+        for c in coverCases {
+            guard intrinsicSourceAllowsCover(isSource:c.0,independent:c.1,ownerIsInstalledHost:c.2,layer:c.3,isSidebar:c.4)==c.5 else{throw Refusal("scopeOcclusionOwnerCheckFailed")}
+        }
+        var full:CVPixelBuffer?
+        guard CVPixelBufferCreate(nil,32,32,kCVPixelFormatType_32BGRA,nil,&full)==kCVReturnSuccess,let full,
+              CVPixelBufferLockBaseAddress(full,[])==kCVReturnSuccess else{throw Refusal("offlineFullSourceUnavailable")}
+        defer{CVPixelBufferUnlockBaseAddress(full,[])}
+        guard let data=CVPixelBufferGetBaseAddress(full)?.assumingMemoryBound(to:UInt8.self) else{throw Refusal("offlineFullSourceUnavailable")}
+        for y in 0..<32 {for x in 0..<32 {
+            let k=y*CVPixelBufferGetBytesPerRow(full)+x*4
+            let inROI=(10..<18).contains(x) && (14..<22).contains(y)
+            data[k]=inROI ? 50:0;data[k+1]=inROI ? 55:0;data[k+2]=inROI ? 218:0;data[k+3]=255
+        }}
+        let checked=sampleColor(full,CGRect(x:400,y:150,width:16,height:16),CGRect(x:405,y:157,width:4,height:4),width:32,height:32,witness:true)
+        guard checked?.color=="0/0",checked?.median==[218,55,50,255],checked?.patch?.count==256 else{throw Refusal("registeredSourceBackingOffsetMismatch")}
+        try emit(["calibratedClockAndPixelChecks":count+2+coverCases.count+1])
     }
     static func run(_ request:Request,_ crops:[Crop],_ input:[UInt32],_ folder:URL,_ confirm:() throws->[String],witness:Bool) async throws {
         let first=try PreviewClock.read()
@@ -150,13 +167,17 @@ enum PairedStreams {
         }
         try emit(["streamClock":first])
         func guardScope(full:Bool) throws {
-            if let reason=scope(request,crops,input) {guards.append(StreamGuard(time:now(),fullBinding:full,cardKinds:[],valid:false,issue:reason));throw Refusal(reason)}
+            var covers=[SourceHostCover]()
+            if let reason=scope(request,crops,input,onSourceCover:{covers.append($0)}) {
+                let failed=StreamGuard(time:now(),fullBinding:full,cardKinds:[],valid:false,issue:reason,sourceHostOcclusions:covers)
+                guards.append(failed);try emit(["streamGuard":failed]);throw Refusal(reason)
+            }
             let kinds=full ? try confirm():[]
             if full {
                 let point=try PreviewClock.read();clocks.append(point);try emit(["streamClock":point])
                 guard abs(point.machOffset-first.machOffset)<=0.002,abs(point.hostOffset-first.hostOffset)<=0.002 else{throw Refusal("calibratedHostClockChanged")}
             }
-            let observation=StreamGuard(time:now(),fullBinding:full,cardKinds:kinds,valid:true,issue:nil)
+            let observation=StreamGuard(time:now(),fullBinding:full,cardKinds:kinds,valid:true,issue:nil,sourceHostOcclusions:covers)
             guards.append(observation);try emit(["streamGuard":observation])
             if full {try flushFrames()}
         }

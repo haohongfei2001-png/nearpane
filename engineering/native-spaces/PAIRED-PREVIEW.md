@@ -58,3 +58,6 @@ Field Notes 由 Launch Services 以独立实例启动，使用临时 HOME。两�
 `presentation-frames.jsonl` 保存三路各自的序列、SC 显示时间、样本 PTS、回调时间和同帧色块统计。只有位于受控身份与遮挡读回之间的 4×4 pt 色块才能留下 RGBA 范围与中位数。缺少 SC 显示时间的帧可另报 PTS。只有与 SC 显示时间实际校准过的 PTS 可以参与时延分位数。每次变化以独立源和卡片上的前一色及连续两次新色确定时间上下界。完整性、同帧匹配及精度分别见 `metrics`，普通轮询仍可选 `--preview-sampler polling`。
 
 已归档结果可运行 `python3 scripts/acceptance/native-spaces/paired_stream_metrics.py <本轮的 preview 目录>` 复算；同时校验原始帧文件的 SHA-256。
+
+
+常驻流的源读回限定于各自已登记的 Field Notes 单窗口。经验收确认的独立窗口 backing 中只读取中央 4×4 pt。若同一隔离签名 Host 的普通窗口遮住源，逐次保存该遮挡的身份与尺寸；此时测到的是夹具窗口自身呈现，而非覆盖物后的可见屏幕。任何其他源遮挡仍会中止。两张侧栏取样点每次都要求在实际显示器上无遮挡。
