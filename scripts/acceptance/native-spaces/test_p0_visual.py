@@ -1,5 +1,8 @@
 """Headless tests for timing, privacy admission and conservative P0 visual verdicts."""
 import copy
+import json
+import os
+import subprocess
 import importlib.util
 from pathlib import Path
 import tempfile
@@ -23,7 +26,7 @@ class VisualTests(unittest.TestCase):
             self.frames.append(dict(displayTime=t, callback=t+.003, status=0, space=4 if source else 5, safe=True, lit=True,
                                     visible="source" if source else "target", matchesSource=source, matchesTarget=not source))
         self.data = dict(frames=[], ready=True, width=192, height=108, postSpace=5, refreshLimitHz=60, displayModeHz=60,
-                         physical=dict(armed=True, censusAfter=True, filter="display-excluding-other-apps", frames=self.frames))
+                         physical=dict(armed=True, sourceFrameReadyBeforePress=True, censusAfter=True, filter="display-excluding-other-apps", frames=self.frames))
     def result(self, data=None, press=10.013, end=10.106):
         return visual.score(self.data if data is None else data, self.request, press, end, self.pre, self.post)
     def test_keeper_checks_both_windows_and_witness_still_checks_input_and_topology(self):
@@ -102,6 +105,32 @@ class VisualTests(unittest.TestCase):
                 visual.read(path/"alias")
             with self.assertRaises(ValueError):
                 visual.kit_paths(path)
+    def test_diagnostics_survive_the_temporary_enrollment_and_must_match_the_attempt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            attempt=Path(tmp).resolve();work=attempt/"calibration";work.mkdir()
+            data=dict(nonce="one",sourceSpace=4,targetSpace=5,failed=["wallpaper outside sealed system directories"])
+            visual.write(work/"admission.json",data)
+            self.assertEqual(visual.enrollment_admission(work,attempt,self.request,"one"),data)
+            self.assertEqual(visual.read(attempt/"visual-calibration.json"),data)
+            with self.assertRaises(ValueError):visual.enrollment_admission(work,attempt,self.request,"two")
+    def test_actual_physical_source_readiness_is_required_despite_a_ready_movie(self):
+        self.data["physical"]["sourceFrameReadyBeforePress"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+        self.data["physical"]["admission"]={"failed":["missing endpoint calibration"]}
+        self.assertEqual(self.result()["reason"],"missing endpoint calibration")
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires the compiled macOS metadata reader")
+    def test_private_asset_and_nonimage_never_enter_the_receipt(self):
+        executable=os.environ["NEARPANE_P0_VISUAL_BINARY"]
+        with tempfile.TemporaryDirectory() as tmp:
+            personal=Path(tmp)/"private-image-sentinel.heic";personal.touch()
+            run=subprocess.run([executable,"--test-wallpaper-file",str(personal)],text=True,capture_output=True,check=True)
+            self.assertFalse(json.loads(run.stdout)["qualified"])
+            self.assertNotIn(personal.name,run.stdout);self.assertNotIn(str(personal.parent),run.stdout)
+        live=json.loads(subprocess.check_output([executable,"--wallpaper-metadata"],text=True))["screens"]
+        for screen in live:
+            if screen["qualified"]:
+                self.assertIn(screen["source"],["systemDesktopPictures","systemWallpapers"])
+                self.assertTrue(all(screen[key] for key in ("rootOwned","regularFile","sameSystemVolume","readOnlyVolume","recognizedImage")))
     def test_endpoint_binding_survives_reverse_and_refuses_reassigned_windows(self):
         p = dict(topology={"current": 4, "display": "test", "records": [4,5]}, target=5,
                  sourceWindow=dict(pid=7, birth=10, number=20, identifier="a", hash="one"),

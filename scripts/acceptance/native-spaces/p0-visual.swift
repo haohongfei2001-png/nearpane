@@ -7,6 +7,7 @@ import CryptoKit
 import CoreMedia
 import Darwin
 import ScreenCaptureKit
+import Security
 
 private typealias JSON = [String: Any]
 private struct Failure: Error { let message: String; init(_ message: String) { self.message = message } }
@@ -48,7 +49,7 @@ private func pairIntact(_ p: Pair) -> Bool {
 
 // This is an independent metadata read after a callback. ScreenCaptureKit does not provide
 // an atomic physical-layer census for a displayTime. Unknown window identities never leave this process.
-private func inventory(_ p: Pair) -> (UInt64?, [UInt32]?) {
+private func inventory(_ p: Pair, ordered:Bool = false) -> (UInt64?, [UInt32]?) {
     guard let rows = NPReadInventory() as? [JSON], rows.count == 1, let row = rows.first,
           let display = row["Display Identifier"] as? String, UUID(uuidString: display) == p.topology.display,
           let spaces = row["Spaces"] as? [JSON], spaces.count == p.topology.records.count else { return (nil, nil) }
@@ -57,6 +58,7 @@ private func inventory(_ p: Pair) -> (UInt64?, [UInt32]?) {
               UUID(uuidString: a["uuid"] as? String ?? "") == b.uuid else { return (nil, nil) }
     }
     let current = (row["Current Space"] as? JSON)?["id64"] as? UInt64
+    if !ordered {return(current,nil)}
     // Only the window numbers enter the receipt. Foreign titles and application names are never read.
     let ordered = (CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [JSON])?.compactMap {
         $0[kCGWindowNumber as String] as? UInt32
@@ -64,39 +66,114 @@ private func inventory(_ p: Pair) -> (UInt64?, [UInt32]?) {
     return (current, ordered)
 }
 
-private func wallpaper(_ screen: NSScreen) -> String? {
-    guard let file = NSWorkspace.shared.desktopImageURL(for: screen)?.resolvingSymlinksInPath(),
-          file.path.hasPrefix("/System/Library/Desktop Pictures/"),
-          ["heic", "jpg", "jpeg", "png", "tif", "tiff"].contains(file.pathExtension.lowercased()) else { return nil }
-    var info = stat()
-    guard lstat(file.path, &info) == 0, info.st_uid == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
-    let fingerprint = file.path + "/" + String(info.st_ino) + "/" + String(info.st_size) + "/" + String(info.st_mtimespec.tv_sec)
-    return SHA256.hash(data: Data(fingerprint.utf8)).map { String(format: "%02x", $0) }.joined()
+private struct WallpaperProof {
+    var source="unavailable",fileURL=false,rootOwned=false,regular=false,systemVolume=false,readOnly=false,recognizedImage=false
+    var fingerprint:String?
+    var fields:JSON {["source":source,"fileURL":fileURL,"rootOwned":rootOwned,"regularFile":regular,
+                      "sameSystemVolume":systemVolume,"readOnlyVolume":readOnly,"recognizedImage":recognizedImage,
+                      "qualified":fingerprint != nil]}
 }
 
-private func layerAtProbe(_ crop: CGRect, _ pair: Pair) -> UInt32? {
-    guard let rows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [JSON] else { return nil }
-    for row in rows {
-        guard let bounds = row[kCGWindowBounds as String] as? [String: Any],
-              let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary),
-              let layer = row[kCGWindowLayer as String] as? Int, let wid = row[kCGWindowNumber as String] as? UInt32,
-              let pid = row[kCGWindowOwnerPID as String] as? pid_t, let alpha = row[kCGWindowAlpha as String] as? Double else { return nil }
-        guard alpha > 0, rect.intersects(crop) else { continue }
-        if let owned = [pair.sourceWindow, pair.targetWindow].first(where: { $0.number == wid && $0.pid == pid }), birth(pid) == owned.birth {
-            if alpha >= 0.999 && rect.insetBy(dx: 12, dy: 12).contains(crop) { return owned.number }
-            continue
-        }
-        // A transparent Finder desktop/icon plane, menu, popover or sidebar has unknown coverage. It cannot be assumed empty.
-        if layer < Int(CGWindowLevelForKey(.desktopWindow)) {
-            var exe = [CChar](repeating: 0, count: 4096)
-            guard proc_pidpath(pid, &exe, UInt32(exe.count)) > 0 else { return nil }
-            let path = String(cString: exe)
-            return rect.contains(crop) && (path == "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer" ||
-                (path.hasPrefix("/System/Library/") && path.hasSuffix("/WallpaperAgent"))) ? 0 : nil
-        }
-        return nil
+private func wallpaperProof(_ url:URL?) -> WallpaperProof {
+    var proof=WallpaperProof()
+    guard let url,url.isFileURL else { return proof }
+    proof.fileURL=true
+    // Resolve to a real, existing file, then allow only these two Apple's system-image directories.
+    // No path, name, digest or metadata of an untrusted or personal asset enters the receipt.
+    guard let raw=realpath(url.path,nil) else {proof.source="unresolved";return proof}
+    defer {free(raw)}
+    let path=String(cString:raw)
+    if path.hasPrefix("/System/Library/Desktop Pictures/") {proof.source="systemDesktopPictures"}
+    else if path.hasPrefix("/System/Library/Wallpapers/") {proof.source="systemWallpapers"}
+    else {proof.source="outsideSealedSystemWallpaperDirectories";return proof}
+    var file=stat(),system=stat(),volume=statfs()
+    guard lstat(path,&file)==0,stat("/System/Library",&system)==0,statfs(path,&volume)==0 else {return proof}
+    proof.rootOwned=file.st_uid==0 && file.st_mode&0o022==0
+    proof.regular=file.st_mode&S_IFMT==S_IFREG && file.st_size>0
+    proof.systemVolume=file.st_dev==system.st_dev
+    proof.readOnly=volume.f_flags&UInt32(MNT_RDONLY) != 0
+    proof.recognizedImage=["heic","jpg","jpeg","png","tif","tiff"].contains(URL(fileURLWithPath:path).pathExtension.lowercased())
+    if proof.rootOwned && proof.regular && proof.systemVolume && proof.readOnly && proof.recognizedImage {
+        let fingerprint="\(path)/\(file.st_dev)/\(file.st_ino)/\(file.st_size)/\(file.st_mtimespec.tv_sec)/\(file.st_mtimespec.tv_nsec)"
+        proof.fingerprint=SHA256.hash(data:Data(fingerprint.utf8)).map {String(format:"%02x",$0)}.joined()
     }
-    return nil
+    return proof
+}
+
+private func wallpaper(_ screen:NSScreen)->String? {
+    wallpaperProof(NSWorkspace.shared.desktopImageURL(for:screen)).fingerprint
+}
+
+private enum TrustedOwner:String {
+    case agent="com.apple.wallpaper.agent",server="com.apple.WindowServer",manager="com.apple.WindowManager",finder="com.apple.finder"
+    var executable:String {
+        switch self {
+        case .agent:return "/System/Library/CoreServices/WallpaperAgent.app/Contents/MacOS/WallpaperAgent"
+        case .server:return "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer"
+        case .manager:return "/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager"
+        case .finder:return "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder"
+        }
+    }
+    private static let all:[Self]=[.agent,.server,.manager,.finder]
+    private static let lock=NSLock()
+    private static var previous=[pid_t:(UInt64,Self)]()
+    static func identify(_ pid:pid_t) -> Self? {
+        var name=[CChar](repeating:0,count:4096),info=proc_bsdinfo()
+        let size=Int32(MemoryLayout.size(ofValue:info))
+        guard proc_pidpath(pid,&name,UInt32(name.count))>0,let result=all.first(where:{$0.executable==String(cString:name)}),
+              proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),info.pbi_start_tvsec>0 else {return nil}
+        let generation=info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
+        if lock.withLock({previous[pid]?.0==generation && previous[pid]?.1==result}) {return result}
+        var code:SecCode?,requirement:SecRequirement?
+        guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:pid] as CFDictionary,[],&code)==errSecSuccess,let code,
+              SecRequirementCreateWithString(("anchor apple and identifier \""+result.rawValue+"\"") as CFString,[],&requirement)==errSecSuccess,let requirement,
+              SecCodeCheckValidity(code,[],requirement)==errSecSuccess else {return nil}
+        lock.withLock{previous[pid]=(generation,result)}
+        return result
+    }
+}
+
+private struct ProbeSurface {
+    let value:UInt32?,category:String
+}
+private func probeSurface(_ crop:CGRect,_ pair:Pair)->ProbeSurface {
+    guard let rows=CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [JSON] else {return .init(value:nil,category:"noSystemLayerList")}
+    let desktop=Int(CGWindowLevelForKey(.desktopWindow))
+    for row in rows {
+        guard let bounds=row[kCGWindowBounds as String] as? [String:Any],let rect=CGRect(dictionaryRepresentation:bounds as CFDictionary) else {return .init(value:nil,category:"unknownBounds")}
+        guard rect.intersects(crop) else {continue}
+        guard let alpha=row[kCGWindowAlpha as String] as? Double else {return .init(value:nil,category:"unknownOpacity")}
+        if alpha<=0 {continue}
+        guard let level=row[kCGWindowLayer as String] as? Int,let number=row[kCGWindowNumber as String] as? UInt32,
+              let pid=row[kCGWindowOwnerPID as String] as? pid_t else {return .init(value:nil,category:"unknownIntersectingLayer")}
+        if let own=[pair.sourceWindow,pair.targetWindow].first(where:{$0.pid==pid && $0.number==number}),birth(pid)==own.birth {
+            guard alpha>=0.999,rect.insetBy(dx:12,dy:12).contains(crop) else {return .init(value:nil,category:"fixtureEdgeOrTranslucentRegion")}
+            return .init(value:number,category:number==pair.sourceWindow.number ? "sourceFixture":"targetFixture")
+        }
+        let controller=TrustedOwner.identify(pid)
+        guard alpha>=0.999,rect.contains(crop) else {return .init(value:nil,category:"partiallyCoveredByAnotherSurface")}
+        if controller == .agent && level==desktop-2 {return .init(value:0,category:"signedSystemWallpaper")}
+        if controller == .server && level==desktop-3 {return .init(value:0,category:"signedSystemBackdrop")}
+        switch controller {
+        case .finder:return .init(value:nil,category:"FinderSurfaceMayContainUserIcons")
+        case .manager:return .init(value:nil,category:"WindowManagerSurfaceMayContainUserPixels")
+        case .agent,.server:return .init(value:nil,category:"unqualifiedSystemLayer")
+        case nil:return .init(value:nil,category:"otherOwnerObscuresCrop")
+        }
+    }
+    return .init(value:nil,category:"noPositivePhysicalLayer")
+}
+private func layerAtProbe(_ crop:CGRect,_ p:Pair)->UInt32? { probeSurface(crop,p).value }
+
+private func physicalFilter(_ content:SCShareableContent,_ display:SCDisplay,_ p:Pair)->SCContentFilter {
+    let allowed=Set([p.sourceWindow.pid,p.targetWindow.pid])
+    let excluded=content.applications.filter { app in
+        if allowed.contains(app.processID) {return false}
+        return app.bundleIdentifier != TrustedOwner.agent.rawValue || TrustedOwner.identify(app.processID) != .agent
+    }
+    let filter=SCContentFilter(display:display,excludingApplications:excluded,exceptingWindows:[])
+    filter.includeMenuBar=false
+    return filter
 }
 
 private func rgb(_ img: CGImage) -> [Int]? {
@@ -110,15 +187,43 @@ private func rgb(_ img: CGImage) -> [Int]? {
     }
 }
 
-private func cleanDesktops(_ p: Pair) -> Bool {
-    let ids = [p.topology.current, p.target]
-    guard let census = NPContractMemberReport(ids as CFArray, p.hostPID) as? [String: JSON] else { return false }
-    return zip(ids, [p.sourceWindow, p.targetWindow]).allSatisfy { sid, window in
-        guard let data = census[String(sid)], data["otherMembers"] as? Int == 0, data["unresolved"] as? Int == 0,
-              let members = data["ordinary"] as? [JSON], members.contains(where: { $0["number"] as? UInt32 == window.number && $0["pid"] as? pid_t == window.pid }) else { return false }
-        return members.allSatisfy { member in [p.sourceWindow,p.targetWindow].contains { member["pid"] as? pid_t == $0.pid && birth($0.pid) == $0.birth } }
-    }
+// These authenticated negative-level system backdrops do not count as ordinary user windows.
+// They do not authorize a physical pixel read. The actual foremost crop surface is proved separately.
+private func censusBackdrop(_ detail:JSON,space:UInt64)->Bool {
+    guard let code=detail["code"] as? JSON,code["apple"] as? Bool==true,let number=detail["number"] as? UInt32,
+          let pid=detail["pid"] as? pid_t,let layer=detail["layer"] as? Int,
+          (detail["forward"] as? [UInt64])?.contains(space)==true,(detail["reverse"] as? [UInt64])?.contains(space)==true,
+          let owner=TrustedOwner.identify(pid),code["identifier"] as? String==owner.rawValue else {return false}
+    let level=Int(CGWindowLevelForKey(.desktopWindow))
+    guard (owner == .manager && layer==level-1) || (owner == .agent && layer==level-2) || (owner == .server && layer==level-3) else {return false}
+    var raw=UnsafeRawPointer(bitPattern:UInt(number))
+    guard let ids=CFArrayCreate(nil,&raw,1,nil),let rows=CGWindowListCreateDescriptionFromArray(ids) as? [JSON],rows.count==1,
+          rows[0][kCGWindowNumber as String] as? UInt32==number,rows[0][kCGWindowOwnerPID as String] as? pid_t==pid,
+          rows[0][kCGWindowLayer as String] as? Int==layer, let box=rows[0][kCGWindowBounds as String] as? JSON,
+          CGRect(dictionaryRepresentation:box as CFDictionary)==CGDisplayBounds(CGMainDisplayID()) else {return false}
+    return true
 }
+private func desktopCensus(_ p:Pair)->(Bool,JSON) {
+    let ids=[p.topology.current,p.target]
+    guard let census=NPContractMemberReport(ids as CFArray,p.hostPID) as? JSON else {return(false,["available":false])}
+    var output:JSON=[:],clean=true
+    for (index,window) in [p.sourceWindow,p.targetWindow].enumerated() {
+        let sid=ids[index],key=index==0 ? "source":"target"
+        guard let row=census[String(sid)] as? JSON,let windows=row["ordinary"] as? [JSON],let other=row["otherMembers"] as? Int,
+              let unknown=row["unresolved"] as? Int,let details=row["otherDetails"] as? [JSON] else {
+            output[key]=["available":false];clean=false;continue
+        }
+        let exact=windows.filter{$0["pid"] as? pid_t==window.pid && $0["number"] as? UInt32==window.number}
+        let accepted=details.filter{censusBackdrop($0,space:sid)}.count
+        let safe=exact.count==1 && windows.count==1 && birth(window.pid)==window.birth && unknown==0 && other==details.count && other==accepted
+        output[key]=["available":true,"ordinaryCount":windows.count,"exactFixtureCount":exact.count,"unclassifiedMembers":unknown,
+                     "otherMembers":other,"verifiedNegativeSystemBackdrops":accepted,"verifiedSharedOverlays":row["verifiedSharedOverlays"] ?? NSNull(),
+                     "verifiedHostPanels":row["verifiedHostPanels"] ?? NSNull(),"systemMenus":row["systemMenuSurfaces"] ?? NSNull(),"qualified":safe]
+        clean=clean && safe
+    }
+    return (clean,output)
+}
+private func cleanDesktops(_ p:Pair)->Bool {desktopCensus(p).0}
 
 private func probeRect(_ pair: [SCWindow], display: SCDisplay) -> CGRect? {
     let overlap = pair[0].frame.intersection(pair[1].frame).intersection(display.frame).insetBy(dx: 24, dy: 24)
@@ -158,8 +263,11 @@ private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @u
         let space = inventory(pair).0
         var row: JSON = ["displayTime": time, "callback": uptime(), "status": status, "space": space as Any? ?? NSNull(), "safe": false]
         defer { rows.append(row) }
-        guard pairIntact(pair), let space, let expected = endpoints[String(space)], wallpaper(screen) == expected.wallpaper,
-              let visible = layerAtProbe(crop, pair) else { return }
+        guard pairIntact(pair) else {row["blockedBy"]="fixtureGenerationOrHumanInput";return}
+        guard let space,let expected=endpoints[String(space)] else {row["blockedBy"]="spaceOrTopology";return}
+        guard wallpaper(screen)==expected.wallpaper else {row["blockedBy"]="wallpaperChanged";return}
+        let surface=probeSurface(crop,pair)
+        guard let visible=surface.value else {row["blockedBy"]=surface.category;return}
         var color: [Int]?
         if status == SCFrameStatus.complete.rawValue || status == SCFrameStatus.started.rawValue,
            let pix = CMSampleBufferGetImageBuffer(sample), CVPixelBufferGetWidth(pix) == 4, CVPixelBufferGetHeight(pix) == 4,
@@ -176,7 +284,7 @@ private final class DisplayProbe: NSObject, SCStreamOutput, SCStreamDelegate, @u
             }
             color = channels.map { (($0 / 16 + 4) / 8) * 8 }
         }
-        guard inventory(pair).0 == space, layerAtProbe(crop, pair) == visible, pairIntact(pair) else { return }
+        guard inventory(pair).0==space,layerAtProbe(crop,pair)==visible,pairIntact(pair) else {row["blockedBy"]="surfaceChangedDuringRead";return}
         row["safe"] = true
         row["visible"] = visible == pair.sourceWindow.number ? "source" : (visible == pair.targetWindow.number ? "target" : "appleWallpaper")
         if let color {
@@ -240,7 +348,7 @@ private final class Frames: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
         let name = status.flatMap { labels.indices.contains($0) ? labels[$0] : nil } ?? "unknown"
         let ticks = (attachment?[.displayTime] as? NSNumber)?.uint64Value ?? 0
         let when = ticks == 0 ? nil : Double(ticks) * Double(scale.numer) / Double(scale.denom) / 1e9
-        let (space, order) = inventory(request)
+        let (space, order) = inventory(request,ordered:true)
         let source = request.sourceWindow.number, target = request.targetWindow.number
         let visible = order.map { $0.filter { $0 == source || $0 == target } }
         var row: JSON = ["callback": received, "status": name, "ticks": ticks, "displayTime": when as Any? ?? NSNull(),
@@ -357,6 +465,14 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
 @main private struct P0Visual {
     @MainActor static func main() async {
         guard [2,3].contains(CommandLine.arguments.count) else { exit(2) }
+        if CommandLine.arguments[1]=="--wallpaper-metadata",CommandLine.arguments.count==2 {
+            let fields=NSScreen.screens.map{wallpaperProof(NSWorkspace.shared.desktopImageURL(for:$0)).fields}
+            print(String(decoding:try! JSONSerialization.data(withJSONObject:["screens":fields],options:.sortedKeys),as:UTF8.self));return
+        }
+        if CommandLine.arguments[1]=="--test-wallpaper-file",CommandLine.arguments.count==3 {
+            let fields=wallpaperProof(URL(fileURLWithPath:CommandLine.arguments[2])).fields
+            print(String(decoding:try! JSONSerialization.data(withJSONObject:fields,options:.sortedKeys),as:UTF8.self));return
+        }
         if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--test-encoder" {
             let path = URL(fileURLWithPath: CommandLine.arguments[2])
             guard !FileManager.default.fileExists(atPath: path.path) else { exit(2) }
@@ -377,21 +493,31 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
     @MainActor private static func capture(_ directory: URL) async throws {
         let b = try JSONDecoder().decode(Binding.self, from: Data(contentsOf: directory.appendingPathComponent("binding.json")))
         let p = b.request
-        guard CGPreflightScreenCaptureAccess(), NPReadOnlySpacesOpen() == 1, birth(b.guardian) == b.guardianBirth,
-              pairIntact(p), inventory(p).0 == p.topology.current else { throw Failure("screen permission, guardian, source or fixture unavailable") }
+        var admission:JSON=["nonce":b.nonce.uuidString,"sourceSpace":p.topology.current,"targetSpace":p.target]
+        let receipt=directory.appendingPathComponent("admission.json")
+        defer {try? json(admission,receipt)}
+        let reader=NPReadOnlySpacesOpen()==1
+        let gate:[String:Bool]=["screenPermission":CGPreflightScreenCaptureAccess(),"nativeInventory":reader,"guardianGeneration":birth(b.guardian)==b.guardianBirth,
+                               "fixtureGenerationsAndInput":pairIntact(p),"sourceCurrent":reader && inventory(p).0==p.topology.current]
+        admission["initial"]=gate
+        let initialFailures=gate.filter{!$0.value}.keys.sorted()
+        guard initialFailures.isEmpty else {throw Failure("Initial physical admission: "+initialFailures.joined(separator:", "))}
         let all = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
         let displays = all.displays.filter {
             guard let uuid = CGDisplayCreateUUIDFromDisplayID($0.displayID)?.takeRetainedValue() else { return false }
             return UUID(uuidString: CFUUIDCreateString(nil, uuid) as String) == p.topology.display
         }
+        admission["matchingPhysicalDisplays"]=displays.count
         guard displays.count == 1, let display = displays.first, CGDisplayIsActive(display.displayID) != 0,
               CGDisplayIsInMirrorSet(display.displayID) == 0, CGDisplayIsAsleep(display.displayID) == 0,
               let screen = NSScreen.screens.first(where: { ($0.deviceDescription[.init("NSScreenNumber")] as? NSNumber)?.uint32Value == display.displayID }) else {
             throw Failure("active physical display could not be matched")
         }
+        var matchesPerWindow=[Int]()
         let included = try [p.sourceWindow,p.targetWindow].map { w -> SCWindow in
             let names = ["org.nearpane.acceptance.LifecycleWindow", "net.example.spaces-route-witness", "net.example.spaces-document"]
             let matches = all.windows.filter { $0.windowID == w.number && $0.owningApplication?.processID == w.pid && $0.owningApplication?.bundleIdentifier == w.identifier }
+            matchesPerWindow.append(matches.count);admission["matchingEnrolledWindows"]=matchesPerWindow
             guard names.contains(w.identifier), w.executable.hasPrefix("/private/tmp/nearpane-d01."), matches.count == 1, let only = matches.first else {
                 throw Failure("ScreenCaptureKit cannot bind both enrolled fixtures, including the off-Space endpoint")
             }
@@ -401,38 +527,62 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         guard allowed.count == 2 else { throw Failure("window identity collision") }
         let crop = probeRect(included, display: display)
         let hz = max(1, min(60, screen.maximumFramesPerSecond))
+        let wall=wallpaperProof(NSWorkspace.shared.desktopImageURL(for:screen)),census=desktopCensus(p)
+        let surface=crop.map{probeSurface($0,p)}
+        admission["wallpaper"]=wall.fields;admission["membership"]=census.1
+        admission["crop"]=crop.map(rectangle) as Any? ?? NSNull();admission["foremostSurface"]=surface?.category ?? "noCommonRectangle"
+        var reasons=[String]()
+        if crop==nil {reasons.append("no common interior rectangle on the physical display")}
+        if wall.fingerprint==nil {reasons.append("wallpaper: "+wall.source)}
+        if !census.0 {reasons.append("exclusive ordinary desktop membership unconfirmed")}
+        if surface?.value != p.sourceWindow.number {reasons.append("physical crop: "+(surface?.category ?? "unavailable"))}
+        admission["failed"]=reasons
+        try json(admission,receipt)
+        let displayFilter=physicalFilter(all,display,p)
+        admission["displayFilterMode"]=displayFilter.style == .display
         if CommandLine.arguments.last == "enroll" {
-            guard let crop, let wall = wallpaper(screen), cleanDesktops(p), layerAtProbe(crop, p) == p.sourceWindow.number else {
-                throw Failure("both exclusive ordinary fixture desktops, a sealed Apple wallpaper and unobstructed common rectangle are required")
+            guard reasons.isEmpty,let crop,let fingerprint=wall.fingerprint,displayFilter.style == .display else {
+                throw Failure("Endpoint admission: "+(reasons.isEmpty ? "not a display composition" : reasons.joined(separator:", ")))
             }
-            let sourceOnly = SCContentFilter(display: display, including: [included[0]])
-            sourceOnly.includeMenuBar = false
-            let shot = try await SCScreenshotManager.captureImage(contentFilter: sourceOnly, configuration: probeConfiguration(crop, display, hz))
-            guard let color = rgb(shot), (color.max() ?? 0) > 45, pairIntact(p), inventory(p).0 == p.topology.current,
-                  layerAtProbe(crop, p) == p.sourceWindow.number, wallpaper(screen) == wall else { throw Failure("controlled visible fixture color unavailable") }
-            let ep = Endpoint(space: p.topology.current, display: p.topology.display, wallpaper: wall, crop: rectangle(crop), rgb: color)
-            try JSONEncoder().encode(ep).write(to: directory.appendingPathComponent("endpoint.json"), options: .atomic)
+            let sourceOnly=SCContentFilter(display:display,including:[included[0]])
+            sourceOnly.includeMenuBar=false
+            let config=probeConfiguration(crop,display,hz)
+            let marker=try await SCScreenshotManager.captureImage(contentFilter:sourceOnly,configuration:config)
+            guard marker.width==4,marker.height==4,let expected=rgb(marker),(expected.max() ?? 0)>45 else {admission["markerReference"]=false;throw Failure("owned document reference crop was transparent or dark")}
+            admission["markerReference"]=true
+            func stillSafe()->Bool {
+                pairIntact(p) && inventory(p).0==p.topology.current && layerAtProbe(crop,p)==p.sourceWindow.number && wallpaper(screen)==fingerprint
+            }
+            guard stillSafe() else {admission["beforePhysicalSample"]=false;throw Failure("foreground fixture or wallpaper changed before marker calibration")}
+            admission["beforePhysicalSample"]=true
+            let image=try await SCScreenshotManager.captureImage(contentFilter:displayFilter,configuration:config)
+            let safe=stillSafe()
+            admission["afterPhysicalSample"]=safe
+            guard safe else {throw Failure("physical crop ownership changed during marker calibration")}
+            let physical=(image.width==4 && image.height==4) ? rgb(image) : nil
+            admission["physicalSampleSizeConfirmed"]=image.width==4 && image.height==4
+            let agrees=physical.map{candidate in zip(candidate,expected).allSatisfy{abs($0-$1)<=30}} ?? false
+            admission["actualDisplayMatchesOwnedReference"]=agrees
+            guard agrees,let color=physical,(color.max() ?? 0)>45 else {throw Failure("actual display crop did not match the enrolled document's color")}
+            // Persist only the color from the exact allowlisted synthetic window. The physical crop provides a yes/no comparison.
+            let ep=Endpoint(space:p.topology.current,display:p.topology.display,wallpaper:fingerprint,crop:rectangle(crop),rgb:expected)
+            try JSONEncoder().encode(ep).write(to:directory.appendingPathComponent("endpoint.json"),options:.atomic)
             return
         }
         var probe: DisplayProbe?, observerStream: SCStream?, staticCropTask: Task<Void, Never>?
-        if let crop, let endpoints = b.endpoints, let a = endpoints[String(p.topology.current)], let z = endpoints[String(p.target)],
-           a.display == p.topology.display, z.display == p.topology.display, a.space == p.topology.current, z.space == p.target,
-           a.crop == rectangle(crop), z.crop == a.crop, a.rgb.count == 3, z.rgb.count == 3,
-           zip(a.rgb,z.rgb).contains(where: { abs($0 - $1) > 60 }), a.wallpaper == wallpaper(screen), cleanDesktops(p), layerAtProbe(crop, p) == p.sourceWindow.number {
-            // Display excluding (not group-of-windows) retains the macOS desktop composition.
-            // Exclude every shareable application except the two registered synthetic window owners
-            // and Apple's wallpaper agent, then reject any unverified physical layer above the probe.
-            let allowedPIDs = Set([p.sourceWindow.pid, p.targetWindow.pid])
-            let excluded = all.applications.filter { app in
-                if allowedPIDs.contains(app.processID) { return false }
-                guard app.bundleIdentifier == "com.apple.wallpaper.agent" else { return true }
-                var path = [CChar](repeating: 0, count: 4096)
-                guard proc_pidpath(app.processID, &path, UInt32(path.count)) > 0 else { return true }
-                let exe = String(cString: path)
-                return !(exe.hasPrefix("/System/Library/") && exe.hasSuffix("/WallpaperAgent"))
-            }
-            let displayFilter = SCContentFilter(display: display, excludingApplications: excluded, exceptingWindows: [])
-            displayFilter.includeMenuBar = false
+        let a=b.endpoints?[String(p.topology.current)],z=b.endpoints?[String(p.target)]
+        let qualified=a?.display==p.topology.display && z?.display==p.topology.display && a?.space==p.topology.current && z?.space==p.target
+        let geometry=crop != nil && a?.crop==crop.map(rectangle) && z?.crop==a?.crop
+        let distinct=a?.rgb.count==3 && z?.rgb.count==3 && zip(a?.rgb ?? [],z?.rgb ?? []).contains{abs($0-$1)>60}
+        let approvedWallpaper=a != nil && z != nil && a?.wallpaper==wall.fingerprint && z?.wallpaper != nil
+        admission["endpointCalibration"]=["sourceEnrolled":a != nil,"targetEnrolled":z != nil,"displayAndSpaceIDs":qualified,
+                                         "commonCrop":geometry,"distinctMarkerColors":distinct,"sourceWallpaperMatches":approvedWallpaper]
+        if !qualified {reasons.append("both independent endpoint calibrations are required")}
+        if !geometry {reasons.append("physical crop does not match enrolled anchors")}
+        if !distinct {reasons.append("controlled source and target marker colors are not distinguishable")}
+        if !approvedWallpaper {reasons.append("current wallpaper does not match the enrolled source")}
+        admission["failed"]=reasons
+        if reasons.isEmpty,let crop,let endpoints=b.endpoints {
             let observer = DisplayProbe(p, crop, screen, endpoints)
             let probeConfig = probeConfiguration(crop, display, hz)
             let independent = SCStream(filter: displayFilter, configuration: probeConfig, delegate: observer)
@@ -447,8 +597,10 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                         do { try await Task.sleep(for: .milliseconds(10)) } catch { return }
                     }
                 }
-            } catch { try? await independent.stopCapture() }
+            } catch {admission["streamStartError"]="physical display stream could not start";try? await independent.stopCapture()}
         }
+        admission["physicalStreamArmed"]=probe != nil
+        try json(admission,receipt)
         let filter = SCContentFilter(display: display, including: included)
         filter.includeMenuBar = false
         guard Set(filter.includedWindows.map(\.windowID)) == allowed,
@@ -468,12 +620,21 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
         try await stream.startCapture()
         let start = uptime(), deadline = start + 25
         let endFile = directory.appendingPathComponent("end.json")
-        var ready = false, end: End?
+        var ready=false,physicalSourceReady=false,end:End?
         while uptime() < deadline && birth(b.guardian) == b.guardianBirth {
-            if !ready, output.ready() {
-                try json(["ready": true, "nonce": b.nonce.uuidString, "start": start, "pid": getpid(), "display": p.topology.display.uuidString],
-                         directory.appendingPathComponent("ready.json"))
-                ready = true
+            if !ready,output.ready() {
+                physicalSourceReady=probe?.rows.suffix(20).contains { row in
+                    row["safe"] as? Bool==true && row["lit"] as? Bool==true && row["matchesSource"] as? Bool==true &&
+                    row["visible"] as? String=="source" && row["space"] as? UInt64==p.topology.current &&
+                    (row["displayTime"] as? Double ?? 0)>0 && uptime()-(row["callback"] as? Double ?? 0)<=0.15
+                } ?? false
+                if physicalSourceReady || probe==nil || uptime()-start>2.5 {
+                    admission["sourceFrameReadyBeforePress"]=physicalSourceReady;try json(admission,receipt)
+                    try json(["ready":true,"physicalReady":physicalSourceReady,"physicalAdmission":admission,
+                              "nonce":b.nonce.uuidString,"start":start,"pid":getpid(),"display":p.topology.display.uuidString],
+                             directory.appendingPathComponent("ready.json"))
+                    ready=true
+                }
             }
             if let bytes = try? Data(contentsOf: endFile), let e = try? JSONDecoder().decode(End.self, from: bytes), e.nonce == b.nonce {
                 end = e; break
@@ -506,7 +667,7 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                   "requestedHz": hz, "refreshLimitHz": screen.maximumFramesPerSecond, "displayModeHz": CGDisplayCopyDisplayMode(display.displayID)?.refreshRate ?? 0,
                   "width": width, "height": height, "filterStyle": filter.style.rawValue,
                   "windows": allowed.sorted(), "wallpaperIncluded": false, "audioEnabled": false,
-                  "physical": ["armed": probe != nil, "censusAfter": probe != nil && cleanDesktops(p),
+                  "physical": ["armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
                                "filter": "display-excluding-other-apps", "crop": crop.map(rectangle) as Any? ?? NSNull(),
                                "error": probe?.failed ?? false, "frames": probe?.rows ?? []] as JSON,
                   "changed": changed, "stoppedEarly": failed, "start": start, "stop": uptime(), "postSpace": post as Any? ?? NSNull(),

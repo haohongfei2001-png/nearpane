@@ -137,29 +137,45 @@ def binding(kit, p, folder, guardian, endpoints=None):
     return b
 
 
+def enrollment_admission(folder, attempt, request, nonce):
+    source=folder/"admission.json"
+    if not source.is_file():return {}
+    data=read(source)
+    require(data.get("nonce")==nonce and data.get("sourceSpace")==request["topology"]["current"] and
+            data.get("targetSpace")==request["target"],"endpoint admission belongs to a different attempt")
+    write(attempt/"visual-calibration.json",data)
+    return data
+
+
 def enroll(kit, attempt, request, *, window_witness=None):
+    diagnostic={}
     try:
-        kit, _ = kit_paths(kit)
-        attempt = private(attempt, directory=True)
-        pre = witness(kit, request, request["topology"]["current"], window_witness)
-        root = attempt.parent / ".p0-visual-endpoints"
-        root.mkdir(mode=0o700, exist_ok=True)
-        private(root, directory=True)
+        kit,_=kit_paths(kit)
+        attempt=private(attempt,directory=True)
+        pre=witness(kit,request,request["topology"]["current"],window_witness)
+        root=attempt.parent/".p0-visual-endpoints"
+        root.mkdir(mode=0o700,exist_ok=True)
+        private(root,directory=True)
         with tempfile.TemporaryDirectory(dir=root) as tmp:
-            folder = Path(tmp)
-            b = binding(kit, request, folder, os.getpid())
-            result = subprocess.run([str(binary(kit)), str(folder), "enroll"], stdin=subprocess.DEVNULL,
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=9)
+            folder=Path(tmp)
+            b=binding(kit,request,folder,os.getpid())
+            try:
+                result=subprocess.run([str(binary(kit)),str(folder),"enroll"],stdin=subprocess.DEVNULL,
+                                      stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+            finally:
+                diagnostic=enrollment_admission(folder,attempt,request,b["nonce"])
             if result.returncode:
-                raise ValueError((read(folder/"error.json") if (folder/"error.json").exists() else {}).get("error", "endpoint calibration unavailable"))
-            witness(kit, request, pre["current"], window_witness)
-            observed = read(folder/"endpoint.json")
-            require(observed["space"] == pre["current"] and observed["display"].upper() == pre["display"].upper(), "unexpected enrollment identity")
-            name = f'{pair_id(request)}-{pre["current"]}.json'
-            write(root/name, observed)
-            return {"status": "READY", "display": pre["display"], "space": pre["current"], "nonce": b["nonce"]}
+                raise ValueError((read(folder/"error.json") if (folder/"error.json").exists() else {}).get("error","endpoint calibration unavailable"))
+            require(diagnostic.get("actualDisplayMatchesOwnedReference") is True,"actual display and identified fixture reference were not corroborated")
+            witness(kit,request,pre["current"],window_witness)
+            observed=read(folder/"endpoint.json")
+            require(observed["space"]==pre["current"] and observed["display"].upper()==pre["display"].upper(),"unexpected enrollment identity")
+            name=f'{pair_id(request)}-{pre["current"]}.json'
+            observed["actualDisplayMatchesOwnedReference"]=True
+            write(root/name,observed)
+            return {"status":"READY","display":pre["display"],"space":pre["current"],"nonce":b["nonce"],"admission":diagnostic}
     except ERRORS as error:
-        return {"status": "UNKNOWN", "reason": str(error)}
+        return {"status":"UNKNOWN","reason":str(error),"admission":diagnostic}
 
 
 def unknown(reason):
@@ -181,6 +197,16 @@ def start(kit, attempt, request, guardian=None, *, window_witness=None):
             f = attempt.parent/".p0-visual-endpoints"/f'{pair_id(request)}-{sid}.json'
             if f.is_file():
                 endpoints[str(sid)] = read(f)
+        missing=[sid for sid in [pre["current"],request["target"]] if
+                 endpoints.get(str(sid),{}).get("actualDisplayMatchesOwnedReference") is not True]
+        if missing:
+            failures=[]
+            for file in sorted(attempt.parent.glob("roundTrip-*/visual-enrollment.json")):
+                entry=read(file);details=entry.get("admission") or {}
+                if details.get("sourceSpace") in missing:failures.append({"space":details["sourceSpace"],"reason":entry.get("reason"),"failed":details.get("failed",[])})
+            result=unknown("Missing corroborated physical endpoint calibration for Space "+", ".join(map(str,missing)))
+            result.update(missingEndpointSpaces=missing,calibrationFailures=failures,physicalReady=False)
+            write(folder/"admission.json",result);write(folder/"receipt.json",result);return result
         b = binding(kit, request, folder, guardian or os.getpid(), endpoints)
         proc = subprocess.Popen([str(binary(kit)), str(folder)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL, start_new_session=True)
@@ -191,7 +217,7 @@ def start(kit, attempt, request, guardian=None, *, window_witness=None):
         if (folder/"ready.json").is_file():
             ready = read(folder/"ready.json")
             require(ready["nonce"] == b["nonce"] and ready["pid"] == proc.pid and ready["ready"], "recorder handshake mismatch")
-            return dict(status="READY", **ready)
+            return dict(status="READY" if ready.get("physicalReady") is True else "FIXTURE_STREAM_ONLY", **ready)
         write(folder/"end.json", dict(nonce=b["nonce"], allowMovie=False, pressed=0.0, ended=0.0))
         detail = read(folder/"error.json").get("error") if (folder/"error.json").is_file() else "no genuine source frame before dispatch"
         raise ValueError(detail)
@@ -223,11 +249,17 @@ def score(data, request, pressed, ended, pre, post):
     probe = data.get("physical", {})
     result["displayProbe"] = {"armed": probe.get("armed",False), "censusAfter": probe.get("censusAfter",False),
                               "cropPoints": probe.get("crop"), "privatePixelOutput": False}
-    if not (probe.get("armed") and probe.get("censusAfter") and not probe.get("error")
+    result["displayProbe"]["sourceFrameReadyBeforePress"]=probe.get("sourceFrameReadyBeforePress") is True
+    if isinstance(probe.get("admission"),dict):result["displayProbe"]["admission"]=probe["admission"]
+    if not (probe.get("armed") and probe.get("sourceFrameReadyBeforePress") is True and probe.get("censusAfter") and not probe.get("error")
             and probe.get("filter") == "display-excluding-other-apps"):
-        result["reason"] = "Two enrolled ordinary desktops, trusted wallpaper, distinct visible source/target markers and a clean physical crop were not confirmed"
+        diagnostics=probe.get("admission") or {}
+        result["reason"]="; ".join(diagnostics.get("failed") or []) or diagnostics.get("streamStartError") or (
+            "Physical display source frame was not verified before the product press" if not probe.get("sourceFrameReadyBeforePress")
+            else "Missing continuous physical display stream or independently confirmed final desktop membership")
         return result
     rows = probe["frames"]
+    result["displayProbe"]["blockedReadbacks"]=dict(collections.Counter(r["blockedBy"] for r in rows if r.get("blockedBy")))
     usable = sorted((r for r in rows if isinstance(r.get("displayTime"), (float,int)) and r["displayTime"] > 0),
                     key=lambda r: r["displayTime"])
     if any(pressed <= r.get("callback", -1) <= ended and (r.get("displayTime") or 0) <= 0 for r in rows):

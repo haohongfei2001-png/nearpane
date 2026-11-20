@@ -380,6 +380,19 @@ def audit_metadata_only(value):
     if isinstance(value,list):return all(audit_metadata_only(v) for v in value)
     return value is None or isinstance(value,(bool,int,float,str))
 
+def physical_admission(started,request):
+    if not started:return False,"physical recorder or endpoint calibration unavailable"
+    proof=started.get("physicalAdmission") or {}
+    calibration=proof.get("endpointCalibration") or {}
+    reasons=proof.get("failed") or []
+    verified=(started.get("status")=="READY" and started.get("ready") is True and started.get("physicalReady") is True
+              and proof.get("sourceFrameReadyBeforePress") is True and proof.get("physicalStreamArmed") is True
+              and (proof.get("sourceSpace"),proof.get("targetSpace"))==(request["topology"]["current"],request["target"])
+              and calibration.get("sourceEnrolled") is True and calibration.get("targetEnrolled") is True and not reasons)
+    if verified:return True,None
+    return False,started.get("reason") or ", ".join(reasons) or "an independently visible lit source frame was not verified before dispatch"
+
+
 def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
@@ -407,7 +420,13 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None):
                 elif recorder:
                     called=True;started=recorder.start(tool.parent,folder,p,**observer_options);store(folder/'visual-start.json',started)
             except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,ImportError,AttributeError,TypeError) as error:
-                store(folder/('visual-enrollment.json' if visual_stage=='roundTrip' else 'visual-start.json'),dict(status='UNKNOWN',reason=str(error)))
+                started=dict(status='UNKNOWN',reason=str(error))
+                store(folder/('visual-enrollment.json' if visual_stage=='roundTrip' else 'visual-start.json'),started)
+            if visual_stage=='ten':
+                allowed,reason=physical_admission(started,p)
+                if not allowed:
+                    item.update(status='BLOCKED',navigationStatus='NOT_RUN',reason=reason,visualAdmissionBlocked=True)
+                    return item
         with Watch(tool) as watch:
             first = watch.next(); require(first.get('topology') == p['topology'] and first.get('hid') == p['hid'],'source changed before dispatch')
             log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
@@ -444,7 +463,7 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None):
     except (ValueError,OSError,RuntimeError,KeyError,TypeError,queue.Empty,subprocess.SubprocessError) as e:
         item.update(status='UNKNOWN' if item.get('invokedDriver') else 'BLOCKED',reason=str(e) or type(e).__name__)
     finally:
-        item['navigationStatus']=item['status']
+        item.setdefault('navigationStatus',item['status'])
         if called:
             end=max((s.get('uptime',0) for s in (watch.samples if watch else [])),default=0)
             try:
@@ -453,6 +472,10 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None):
                 item['visualReason']=str(error)
             if item['blankScreen']=='FAIL':
                 item.update(status='FAIL',reason='visual observer reported a black physical display during this action')
+            elif visual_stage=='ten' and item['navigationStatus']=='PASS' and item['blankScreen']!='PASS':
+                receipt=folder/'visual'/'receipt.json'
+                reason=json.loads(receipt.read_bytes()).get('reason') if receipt.exists() else None
+                item.update(status='UNKNOWN',reason=reason or 'navigation confirmed but physical display coverage is unknown; remaining gestures stopped')
         if watch:
             with (folder/'windowserver.jsonl').open('w') as f:
                 for s in watch.samples: f.write(json.dumps(s,separators=(',',':'))+'\n')
@@ -539,10 +562,17 @@ def evaluate_gate(stage, name, expected):
     samples=stage['samples']
     navigation=gate_status([{'status':s.get('navigationStatus',s['status'])} for s in samples],expected)
     stage['navigationStatus']=navigation
+    stage['navigationConfirmed']=sum(s.get('navigationStatus',s['status'])=='PASS' for s in samples)
+    stage['navigationDispatched']=sum(s.get('axIssued') is True for s in samples)
+    if name=='ten' and samples and samples[-1].get('visualAdmissionBlocked'):
+        if stage['navigationConfirmed']:stage['navigationStatus']='BLOCKED'
+        stage.update(status='BLOCKED',blankScreen='UNKNOWN',reason=samples[-1]['reason']);return
     if any(s.get('blankScreen')=='FAIL' for s in samples):
         stage.update(status='FAIL',blankScreen='FAIL',reason='black physical display observed during a navigation');return
     if name=='ten':
         stage['blankScreen']='PASS' if len(samples)==expected and all(s.get('blankScreen')=='PASS' for s in samples) else 'UNKNOWN'
+    if name=='ten' and samples and samples[-1]['status']=='UNKNOWN' and samples[-1].get('navigationStatus')=='PASS':
+        stage.update(status='UNKNOWN',reason=samples[-1].get('reason','physical display coverage unknown after the confirmed navigation'));return
     if name=='ten' and navigation=='PASS' and stage['blankScreen']!='PASS':
         stage.update(status='BLOCKED',reason='10 independent navigations confirmed; absence of a black physical display was not witnessed')
     else:stage['status']=navigation

@@ -120,6 +120,28 @@ class GateTests(unittest.TestCase):
             daily.state=lambda:dict(original,hid=[10],systemFocus=dict(pid=39,number=36))
             daily.finish(True)
             self.assertEqual(daily.info['status'],'NEWER_INPUT_PRESERVED');handle.finish.assert_called_once_with(False)
+    def test_ten_visual_admission_blocks_without_issuing_and_preserves_round_trip(self):
+        trial=dict(navigationStatus="NOT_RUN",status="BLOCKED",reason="missing source",axIssued=False,visualAdmissionBlocked=True)
+        gate=dict(samples=[trial]);runner.evaluate_gate(gate,"ten",10)
+        self.assertEqual((gate["status"],gate["navigationStatus"],gate["navigationDispatched"]),("BLOCKED","NOT_RUN",0))
+        partial=dict(samples=[dict(status="UNKNOWN",navigationStatus="PASS",axIssued=True,blankScreen="UNKNOWN",reason="physical coverage gap")])
+        runner.evaluate_gate(partial,"ten",10)
+        self.assertEqual((partial["status"],partial["navigationConfirmed"],partial["reason"]),("UNKNOWN",1,"physical coverage gap"))
+        trip=dict(samples=[dict(status="PASS",navigationStatus="PASS",axIssued=True)]*2)
+        runner.evaluate_gate(trip,"roundTrip",2);self.assertEqual(trip["status"],"PASS")
+        qualified=dict(status="READY",ready=True,physicalReady=True,physicalAdmission={"sourceSpace":4,"targetSpace":5,"failed":[],
+                       "physicalStreamArmed":True,"sourceFrameReadyBeforePress":True,"endpointCalibration":{"sourceEnrolled":True,"targetEnrolled":True}})
+        self.assertTrue(runner.physical_admission(qualified,self.req)[0])
+        self.assertFalse(runner.physical_admission(dict(qualified,physicalReady=False),self.req)[0])
+        self.assertFalse(runner.physical_admission(qualified,dict(self.req,target=8))[0])
+    def test_missing_visual_source_stops_before_the_watch_and_product_input(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();recorder=mock.Mock();recorder.start.return_value=dict(status="UNKNOWN",reason="missing endpoint")
+            recorder.finish.return_value=dict(status="UNKNOWN");keeper=mock.Mock();keeper.call.return_value={"ready":True}
+            with mock.patch.object(runner,"visual_module",return_value=recorder),mock.patch.object(runner,"Watch",side_effect=AssertionError("product action not allowed")):
+                item=runner.attempt(root/"p0-card",self.req,root/"ten-01",root/"journal",lambda *args,**kwargs:None,"ten",keeper)
+            self.assertEqual((item["status"],item["navigationStatus"],item["axIssued"]),("BLOCKED","NOT_RUN",False))
+            self.assertEqual([call.args[0] for call in keeper.call.call_args_list],["inspect"])
     def test_host_audit_preserves_exact_complete_metadata_records_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             audit=object.__new__(runner.InstalledWindowAudit);audit.stream=Path(tmp)/'p0-window-audit.jsonl';audit.host={'pid':23}
