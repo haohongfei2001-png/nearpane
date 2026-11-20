@@ -232,7 +232,7 @@ def match_receipt(record, filename, request, press_time):
 def assess(samples, request, pressed_at, host_proof, ax):
     observed = [s for s in samples if s.get('uptime',0) >= pressed_at]
     if not ax.get('issued'): return 'BLOCKED', ax.get('error','background card not issued'), None
-    if ax.get('axError') != 0: return 'UNKNOWN','installed AX delivery incomplete',None
+    if ax.get('scope') != 'DIAGNOSTIC_ONLY' and ax.get('axError') != 0: return 'UNKNOWN','installed AX delivery incomplete',None
     source, target, first, last = request['topology']['current'], request['target'], None, None
     if observed and observed[0]['uptime'] - pressed_at > MAX_GAP:
         return 'UNKNOWN','first independent read arrived late',None
@@ -482,10 +482,12 @@ def physical_admission(started,request):
     return False,started.get("reason") or ", ".join(reasons) or "an independently visible lit source frame was not verified before dispatch"
 
 
-def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,admission=None,observer=None):
+def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,admission=None,observer=None,issuer=None,workspace=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     if admission is not None:store(folder/'admission-before.json',admission)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
+    if issuer:
+        item.update(scope='DIAGNOSTIC_ONLY',officialGateEligible=False,signedHostRequestAccepted=False)
     action = {}; holder = None; host = None; watch = None; recorder = None; called = False; started = None
     observer_options={'window_witness':lambda windows:keeper.call('windows',windows)} if keeper else {}
     lifetime=ExitStack()
@@ -495,17 +497,18 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
             return item
         require(not (journal/'pending.json').exists(),'installed adapter already has an unresolved transition')
         before = journal_files(journal)
-        # Feed refresh and first SwiftUI AX layout can finish asynchronously. This is a read-only wait.
-        inspect = None; end = time.monotonic() + 5
-        while time.monotonic() < end:
-            inspect = keeper.call('inspect',p) if keeper else cmd(tool,'inspect',body=p)
-            if inspect.get('ready'): break
-            if inspect.get('error','').startswith('official background card'): time.sleep(.18); continue
-            break
-        store(folder/'card-before.json',inspect)
-        if audit and not inspect.get('ready') and inspect.get('error','').startswith('official background card'):
-            audit.snapshot('unavailable-'+folder.name,dict(source=p['topology']['current'],target=p['target'],control=inspect))
-        require(inspect.get('ready'),inspect.get('error','installed background card unavailable'))
+        if issuer is None:
+            # Feed refresh and first SwiftUI AX layout can finish asynchronously. This is a read-only wait.
+            inspect = None; end = time.monotonic() + 5
+            while time.monotonic() < end:
+                inspect = keeper.call('inspect',p) if keeper else cmd(tool,'inspect',body=p)
+                if inspect.get('ready'): break
+                if inspect.get('error','').startswith('official background card'): time.sleep(.18); continue
+                break
+            store(folder/'card-before.json',inspect)
+            if audit and not inspect.get('ready') and inspect.get('error','').startswith('official background card'):
+                audit.snapshot('unavailable-'+folder.name,dict(source=p['topology']['current'],target=p['target'],control=inspect))
+            require(inspect.get('ready'),inspect.get('error','installed background card unavailable'))
         if visual_stage is not None:
             try:
                 recorder=visual_module()
@@ -523,13 +526,21 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
         store(folder/'admission-before-dispatch.json',first)
         require(first['admitted'],'source changed before dispatch: '+', '.join(first['mismatches']))
         require(observer is not None,'continuous independent observer unavailable')
-        store(folder/'continuous-admission.json',observer.before(p))
-        log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
-        item.update(status='UNKNOWN',invokedDriver=True,axIssued=None);store(folder/'result.json',item)
-        action=keeper.call('press',p) if keeper else cmd(tool,'press',body=p,timeout=10); store(folder/'ax-dispatch.json',action); item['axIssued']=action.get('issued')
-        if item['axIssued'] is not True:
-            if item['axIssued'] is False:item.update(status='BLOCKED',reason=action.get('error','official input refused before AXPress'))
-            else:item.update(status='UNKNOWN',reason=action.get('error','AXPress issuance is unknown'))
+        checkpoint=observer.before(p)
+        store(folder/'continuous-admission.json',checkpoint)
+        log('diagnostic-host-intent' if issuer else 'card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
+        item.update(status='UNKNOWN',invokedDriver=True,axIssued=False if issuer else None);store(folder/'result.json',item)
+        if issuer:
+            action=issuer.submit(p,checkpoint,observer,workspace,keeper,folder,cmd)
+            store(folder/'host-diagnostic-response.json',action)
+            item['signedHostRequestAccepted']=action.get('issued')
+        else:
+            action=keeper.call('press',p) if keeper else cmd(tool,'press',body=p,timeout=10)
+            store(folder/'ax-dispatch.json',action)
+            item['axIssued']=action.get('issued')
+        if action.get('issued') is not True:
+            item.update(status='BLOCKED' if action.get('issued') is False else 'UNKNOWN',
+                        reason=action.get('error') or 'input acknowledgement unavailable')
             return item
         stamp=action['uptime']; end=time.monotonic()+9; landed=None; terminal_time=None
         while time.monotonic()<end:
@@ -545,6 +556,7 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
                 if created:
                     holder=created.pop(); raw=journal_read(journal/holder); (folder/holder).write_bytes(raw)
                     host=match_receipt(json.loads(raw),holder,p,stamp); terminal_time=now
+                    if issuer: require(str(uuid.UUID(holder[:-5]))==issuer.operation,'journal operation differs from the sealed diagnostic request')
             # Keep taking observations after terminal reply and after landing. A refusal is never replayed.
             # Stop accepting success on any anomaly, but let an already-issued action
             # write its terminal Host receipt. This only observes; the gate cannot retry.
@@ -561,7 +573,8 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
     except (ValueError,OSError,RuntimeError,KeyError,TypeError,queue.Empty,subprocess.SubprocessError) as e:
         item.update(status='UNKNOWN' if item.get('invokedDriver') else 'BLOCKED',reason=str(e) or type(e).__name__)
     finally:
-        item.setdefault('navigationStatus','NOT_RUN' if item['axIssued'] is False else item['status'])
+        issued=item.get('signedHostRequestAccepted') if issuer else item['axIssued']
+        item.setdefault('navigationStatus','NOT_RUN' if issued is False else item['status'])
         item['navigationReason']=item.get('reason')
         if (admission is None or admission['admitted']) and not action.get('issued') and item['status']!='PASS':
             try:refusal_sample=cmd(tool,'state',timeout=3)
@@ -716,6 +729,9 @@ def evaluate_gate(stage, name, expected):
     stage['navigationStatus']=navigation
     stage['navigationConfirmed']=sum(s.get('navigationStatus',s['status'])=='PASS' for s in samples)
     stage['navigationDispatched']=sum(s.get('axIssued') is True for s in samples)
+    if any(s.get('scope')=='DIAGNOSTIC_ONLY' for s in samples):
+        stage['officialGateEligible']=False
+        stage['diagnosticHostDispatches']=sum(s.get('hostIssued') is True for s in samples)
     if samples and samples[-1].get('visualAdmissionBlocked'):
         if stage['navigationConfirmed']:stage['navigationStatus']='BLOCKED'
         stage.update(status='BLOCKED',blankScreen='UNKNOWN',reason=samples[-1]['reason']);return
@@ -784,6 +800,11 @@ def run(args):
     result={'status':'BLOCKED','stages':{n:{'status':'NOT_RUN','navigationStatus':'NOT_RUN','blankScreen':'UNKNOWN','requested':c,'samples':[]} for n,c in GATES},'blankScreen':'UNKNOWN','privateContentCaptured':False,
             'dynamicFixtureMarkerRequested':os.environ.get('NP_P0_DYNAMIC_MARKER')=='1'}
     result['through']=args.through
+    isolated_key=getattr(args,'diagnostic_key',None)
+    issuer=None
+    if isolated_key:
+        require(args.through=='diagnostic' and args.route=='ordinary','isolated candidate only supports a single adjacent ordinary diagnostic')
+        result.update(scope='DIAGNOSTIC_ONLY',officialGateEligible=False)
     if args.through=='diagnostic':
         result['stages']['diagnostic']=dict(status='NOT_RUN',requested=1,samples=[])
     report=lambda:store(out/'results.json',result)
@@ -819,6 +840,9 @@ def run(args):
             store(out/f'fixture-{name}.json',view)
         try:
             host,journal=freeze(args.kit,out);require(not (journal/'pending.json').exists(),'unresolved installed switch already present')
+            if isolated_key:
+                from p0_diagnostic_issuer import Issuer
+                issuer=Issuer(isolated_key,host)
             caps=native_capabilities(dict(pid=host['pid'],launch=host['birth']/1_000_000))
             result['installedCapabilities']=caps
             report()
@@ -827,8 +851,12 @@ def run(args):
                 result['capabilityRead']='PASS' if caps else 'UNKNOWN'
                 result['reason']='read-only preflight: no product or fixture actions requested'
                 return 0 if caps else 2
-            require(caps and caps[-1]['ready'] and caps[-1]['canSwitch'],
-                    'installed Host switch capability is closed or unavailable; no fixtures or product inputs issued')
+            if issuer:
+                require(caps and caps[-1]['ready'] and caps[-1]['canSwitch'] is False,
+                        'expected ready Host with ordinary switch capability quarantined')
+            else:
+                require(caps and caps[-1]['ready'] and caps[-1]['canSwitch'],
+                        'installed Host switch capability is closed or unavailable; no fixtures or product inputs issued')
             drift_kit=args.drift_kit
             if drift_kit is None:
                 path=subprocess.check_output([Path(__file__).with_name('build-p0-drift.sh')],text=True,timeout=90).strip()
@@ -882,6 +910,7 @@ def run(args):
                                  and s.get('frontPID')==window['pid'] and s.get('focusedNumber')==window['number'] and anchored([window],[space]),
                                  'owned ordinary document was not independently placed and focused on its leased Space')
                 def admit(window,space,name):
+                    if issuer: issuer.enroll(window,space,top)
                     audit.register(window)
                     placed(window,space)
                     evidence=out/f'retained-{name}.json'
@@ -893,6 +922,15 @@ def run(args):
                     confirmed_current_cards(
                         lambda:keeper.call('current-card',window,hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid']),
                         lambda samples:store(path,samples),f"current-desktop-window:{window['pid']}:{window['number']}",space)
+                    if issuer:
+                        identity={k:window[k] for k in ('pid','birth','number')}
+                        def original():
+                            try: rows=audit.read()[0]
+                            except FileNotFoundError: return {}
+                            return next((r for line,r,_ in reversed(rows) if line>audit.baselineLines and
+                                         r.get('stage')=='history-original-applied' and r.get('current') is True and r.get('window')==identity),{})
+                        proof=until(original,bool,'installed signed helper did not retain the exact foreground document original',10)
+                        store(out/f'host-original-{name}.json',proof)
                     audit.snapshot(name+'-current',dict(space=space,currentCardEvidence=path.name))
                     log('installed-current-card-seen-twice',space=space,ownedWindow=window['number'],evidence=path.name)
                     checkpoint(name+'-document')
@@ -951,7 +989,7 @@ def run(args):
                     target=b if source==a else a
                     req=request(source,target)
                     trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper,audit=audit,
-                                  admission=admission_sample(sample,req),observer=observer)
+                                  admission=admission_sample(sample,req),observer=observer,issuer=issuer,workspace=ws)
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break
@@ -1035,8 +1073,11 @@ def run(args):
             if focus:focus.finish(False)
             clean['errors']=problems;clean['status']='UNKNOWN' if problems else 'PASS';result['cleanup']=clean
             if problems and result['status']=='PASS':result['status']='UNKNOWN'
+            if isolated_key:
+                result['diagnosticOutcome']='NOT_RUN' if result.get('preflightOnly') else result['status']
+                result['status']='DIAGNOSTIC_ONLY'
             report()
-    return 0 if result['status']=='PASS' else 2
+    return 0 if result.get('diagnosticOutcome',result['status'])=='PASS' else 2
 
 
 if __name__=='__main__':

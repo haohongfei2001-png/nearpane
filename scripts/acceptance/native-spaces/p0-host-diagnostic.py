@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""Run one private signed Host diagnostic. All ordinary product gates remain NOT_RUN."""
+import argparse
+import importlib
+import os
+from pathlib import Path
+import signal
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("kit",type=lambda v:Path(v).resolve(strict=True))
+    parser.add_argument("output",type=Path)
+    parser.add_argument("--issuer-key",dest="diagnostic_key",required=True,type=lambda v:Path(v).absolute())
+    parser.add_argument("--drift-kit",type=lambda v:Path(v).resolve(strict=True))
+    parser.add_argument("--preflight-only",action="store_true")
+    args=parser.parse_args()
+    args.through="diagnostic"
+    args.route="ordinary"
+    args.setup_input="ax"
+    os.umask(0o077)
+    def stop(signum,frame):
+        raise RuntimeError("received termination signal "+str(signum))
+    signal.signal(signal.SIGTERM,stop)
+    raise SystemExit(importlib.import_module("p0-cards").run(args))

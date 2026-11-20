@@ -23,7 +23,8 @@ import NearpaneCore
         retained[location]?.token == token && retained[location]?.published == true
     }
 
-    mutating func update(_ snapshot: inout DesktopSnapshot, audit: NativeSidebarWindowAudit.Sample? = nil, read: Read) async {
+    mutating func update(_ snapshot: inout DesktopSnapshot, audit: NativeSidebarWindowAudit.Sample? = nil,
+                         eligible: Set<NativeSidebarWindowLocation>? = nil, read: Read) async {
         for i in snapshot.windows.indices where snapshot.windows[i].sidebarOriginalWindow != nil {
             snapshot.windows[i].sidebarOriginalWindow = nil
         }
@@ -53,6 +54,7 @@ import NearpaneCore
                   m.overviewOrdinaryRole != false, m.minimized != true, m.fullScreen != true else { continue }
             let location = NativeSidebarWindowLocation(window: .init(pid: m.pid, birth: birth, number: m.number),
                                                        display: display, space: space, spaceUUID: uuid)
+            if let eligible, !eligible.contains(location) { continue }
             let original = retained[location]?.token
             let audited = audit?.targets.contains(location.window) == true
             let probe = NativeSidebarWindowProbe(location, current: record.isCurrent, original: original, audit: audited ? true : nil)

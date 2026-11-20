@@ -20,7 +20,14 @@ func isBundledChild() -> Bool {
 @MainActor
 func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindowWitnesses,
          authorize: (NativeSpaceReply) throws -> NativeSpaceStepPermission) -> NativeSpaceReply {
-    let switchProtocol = NPDockInstalledProtocol()
+    let installedProtocol = NPDockInstalledProtocol()
+    #if NEARPANE_P0_DIAGNOSTIC
+    let diagnostic = request.action == .select ? P0DiagnosticLease.installed() : nil
+    let grant = diagnostic.flatMap { try? $0.read(host:getppid()) }
+    let switchProtocol = grant?.matches(request) == true && isBundledChild() ? NPDockSerialized27 : installedProtocol
+    #else
+    let switchProtocol = installedProtocol
+    #endif
     let canSwitch = available && switchProtocol != NPDockUnsupported && CGPreflightPostEventAccess()
     let canMove = available && NPMoveAvailable() && AXIsProcessTrusted()
     var before: ActionInventory?, after: ActionInventory?
@@ -32,7 +39,7 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
     var issuedAt: TimeInterval?, steps = 0
     func reply(_ state: NativeSpaceReply.State, _ text: String) -> NativeSpaceReply {
         trace.dockNotificationUptimes = notifications?.values ?? []
-        return .init(id: request.id, state: state, detail: text, canSwitch: canSwitch && state != .outcomeUnknown, canMove: canMove,
+        return .init(id: request.id, state: state, detail: text, canSwitch: installedProtocol != NPDockUnsupported && canSwitch && state != .outcomeUnknown, canMove: canMove,
               currentBefore: before?.currents, currentAfter: after?.currents,
               membershipBefore: oldMembership, membershipAfter: newMembership,
               issuedAtUptime: issuedAt, confirmedAtUptime: state == .confirmed ? ProcessInfo.processInfo.systemUptime : nil,
@@ -125,7 +132,24 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
             trace.observations.append(.init(uptime: now, currents: start.currents,
                 frontPID: NSWorkspace.shared.frontmostApplication?.processIdentifier))
             var dispatch = NPDockDispatch()
-            guard NPSendAdjacentSwipe(to > from, display.number, &dispatch) else {
+            let delivered: Bool
+            #if NEARPANE_P0_DIAGNOSTIC
+            if let diagnostic, let grant, grant.matches(request) {
+                guard try diagnostic.read(host:getppid()) == grant,
+                      try verifyDiagnosticSource(grant,inventory:start), request.isFresh(at:ProcessInfo.processInfo.systemUptime)
+                else { throw ActionFailure("诊断租约、输入、窗口或桌面已变化。") }
+                try diagnostic.spend(grant)
+                guard permission.permits(request,after:0,now:ProcessInfo.processInfo.systemUptime),
+                      try verifyDiagnosticSource(grant,inventory:start), try diagnostic.read(host:getppid()) == grant else {
+                    throw ActionFailure("单次诊断已消费，最终检查已拒绝投递。")
+                }
+                try selectedWindow?.verify()
+                delivered = NPSendDiagnosticAdjacentSwipe(to > from,display.number,&dispatch)
+            } else { delivered = NPSendAdjacentSwipe(to > from,display.number,&dispatch) }
+            #else
+            delivered = NPSendAdjacentSwipe(to > from,display.number,&dispatch)
+            #endif
+            guard delivered else {
                 throw ActionFailure("当前指针、显示器或系统版本无法接收桌面手势。")
             }
             issued = true

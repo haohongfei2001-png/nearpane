@@ -33,6 +33,23 @@ import Testing
         return SidebarBackgroundWindows.sections(in: catalog).map { $0.windows.map(\.id) }
     }
 
+    @Test func diagnosticRosterOnlyBindsTheRegisteredDocumentAndSpace() async throws {
+        var history = NativeSidebarWindowHistory()
+        var data = snapshot(active:true,role:true)
+        let window = NativeSpaceWindow(pid:17,birth:30,number:11)
+        let token = UUID(), correct = NativeSidebarWindowLocation(window:window,display:display,space:"4975",spaceUUID:a)
+        let another = NativeSidebarWindowLocation(window:window,display:display,space:"4975",spaceUUID:b)
+        await history.update(&data,eligible:[another]) { _ in Issue.record("unregistered original requested"); return .init([]) }
+        #expect(data.windows.first?.sidebarOriginalWindow == nil)
+        await history.update(&data,eligible:[correct]) { probes in
+            #expect(probes.map(\.location) == [correct])
+            return .init([token])
+        }
+        #expect(data.windows.first?.sidebarOriginalWindow == token)
+        await history.update(&data,eligible:[]) { _ in Issue.record("withdrawn original requested"); return .init([]) }
+        #expect(!history.tracks(token,at:correct))
+    }
+
     @Test func exactLiveReferenceRelatesTheRealBackgroundRowAndNeverLeavesTheReaderWire() async throws {
         var history = NativeSidebarWindowHistory()
         let original = UUID()

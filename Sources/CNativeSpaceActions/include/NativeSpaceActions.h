@@ -21,6 +21,9 @@ typedef struct {
     double endVelocity;
 } NPDockDispatch;
 bool NPSendAdjacentSwipe(bool right, CGDirectDisplayID intendedDisplay, NPDockDispatch *receipt);
+#ifdef NEARPANE_P0_DIAGNOSTIC
+bool NPSendDiagnosticAdjacentSwipe(bool right, CGDirectDisplayID display, NPDockDispatch *receipt);
+#endif
 bool NPMoveAvailable(void);
 // Returns NULL when gated. The caller owns a prepared context through terminal readback.
 CFTypeRef NPCreateWindowMove(uint32_t window, uint64_t space) CF_RETURNS_RETAINED;

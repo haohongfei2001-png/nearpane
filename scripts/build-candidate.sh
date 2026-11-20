@@ -20,6 +20,18 @@ check_candidate_source() {
     fi
 }
 check_candidate_source
+if [[ -n "${NEARPANE_P0_DIAGNOSTIC_PUBLIC_KEY:-}" ]]; then
+    python3 - <<'P0CHECK'
+import base64,os,stat
+from pathlib import Path
+key=base64.b64decode(os.environ["NEARPANE_P0_DIAGNOSTIC_PUBLIC_KEY"],validate=True)
+stage=Path(os.environ.get("NEARPANE_CANDIDATE_OUTPUT","."))
+if not (len(key)==32 and os.environ.get("NEARPANE_FROZEN_SOURCE")=="1" and os.environ.get("NEARPANE_SIGNING_MODE","local")=="local"
+        and stage.is_dir() and stage==stage.resolve() and stage.name=="candidate" and stage.parent.name.startswith("nearpane-p0-candidate.")
+        and stage.parent.parent==Path("/private/tmp") and all(p.stat().st_uid==os.getuid() and not p.stat().st_mode & 0o077 for p in (stage,stage.parent))):
+    raise SystemExit("Isolated P0 diagnostic candidates can only be staged in a private temporary candidate directory")
+P0CHECK
+fi
 source scripts/build-paths.sh
 base="$(mktemp -d /private/tmp/nearpane-candidate-base.XXXXXXXX)"
 stage=""
@@ -65,6 +77,9 @@ services="$(/usr/bin/plutil -extract NSServices json -o - Resources/Info.plist)"
 /usr/bin/plutil -replace CFBundleShortVersionString -string "$version" "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace CFBundleVersion -string "$build_number" "$candidate/Contents/Info.plist"
 /usr/bin/plutil -replace NearpaneSourceRevision -string "$source_revision" "$candidate/Contents/Info.plist"
+if [[ -n "${NEARPANE_P0_DIAGNOSTIC_PUBLIC_KEY:-}" ]]; then
+    /usr/bin/plutil -insert NearpaneP0DiagnosticPublicKey -string "$NEARPANE_P0_DIAGNOSTIC_PUBLIC_KEY" "$candidate/Contents/Info.plist"
+fi
 /usr/bin/plutil -insert LSMultipleInstancesProhibited -bool true "$candidate/Contents/Info.plist"
 for helper in NearpaneFrameController NearpaneFixtureWindows; do
     ditto --norsrc --noextattr "$lab/$helper.app" "$candidate/Contents/Helpers/$helper.app"

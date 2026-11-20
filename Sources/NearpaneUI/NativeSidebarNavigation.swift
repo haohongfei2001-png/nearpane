@@ -181,7 +181,7 @@ struct CrossSpaceFocusContinuity {
     func isCurrent(_ token: UUID) -> Bool { generation == token }
 
     func select(_ destination: NativeSidebarDestination, member: NativeSidebarMember?, feed: CurrentDesktopWindows,
-                allowed: @escaping @MainActor () -> Bool) {
+                operation: UUID = UUID(), allowed: @escaping @MainActor () -> Bool) {
         let userInput = NativeSelectionPermit.inputCounters()
         let originalFront = SelectionForeground.read(NSWorkspace.shared.frontmostApplication?.processIdentifier)
         let lifetime = member.flatMap { feed.lifetime(of: $0.key) }
@@ -232,7 +232,7 @@ struct CrossSpaceFocusContinuity {
             var current = before
             if map.current.id != destination.space {
                 guard let sourceUUID = map.current.nativeUUID, let sourceKind = map.current.nativeKind else { throw OrdinaryWindowFailure("当前空间无法执行此操作。") }
-                let request = NativeSpaceCommand(id: UUID(), action: .select, display: destination.display,
+                let request = NativeSpaceCommand(id: operation, action: .select, display: destination.display,
                     source: map.current.id, target: destination.space, sourceUUID: sourceUUID, targetUUID: destination.uuid,
                     window: member.map { .init(pid: $0.key.pid, birth: $0.key.birth, number: $0.key.number) },
                     sourceKind: sourceKind, targetKind: destination.kind, originalWindow: original)

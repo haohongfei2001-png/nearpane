@@ -71,8 +71,7 @@ static bool pointerOnDisplay(CGPoint *point, CGDirectDisplayID intendedDisplay) 
            count == 1 && display == intendedDisplay && !CGDisplayIsInMirrorSet(display);
 }
 
-bool NPSendAdjacentSwipe(bool right, CGDirectDisplayID intendedDisplay, NPDockDispatch *receipt) {
-    NPDockProtocol protocol = NPDockInstalledProtocol();
+static bool sendAdjacentSwipe(NPDockProtocol protocol, bool right, CGDirectDisplayID intendedDisplay, NPDockDispatch *receipt) {
     CGPoint point;
     if (!receipt || protocol == NPDockUnsupported || !CGPreflightPostEventAccess() ||
         !pointerOnDisplay(&point, intendedDisplay)) return false;
@@ -109,3 +108,13 @@ cleanup:
     }
     return posted;
 }
+
+bool NPSendAdjacentSwipe(bool right, CGDirectDisplayID intendedDisplay, NPDockDispatch *receipt) {
+    return sendAdjacentSwipe(NPDockInstalledProtocol(), right, intendedDisplay, receipt);
+}
+
+#ifdef NEARPANE_P0_DIAGNOSTIC
+bool NPSendDiagnosticAdjacentSwipe(bool right, CGDirectDisplayID display, NPDockDispatch *receipt) {
+    return sendAdjacentSwipe(NPDockSerialized27, right, display, receipt);
+}
+#endif

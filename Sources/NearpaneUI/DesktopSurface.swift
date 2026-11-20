@@ -68,6 +68,13 @@ struct DesktopSurface: View {
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
+        #if NEARPANE_P0_DIAGNOSTIC
+        .task(id: canNavigate ? displayID : nil) {
+            guard canNavigate, let id = displayID, let feed = display?.pointer?.windowPreviews?.currentDesktop,
+                  let lease = P0DiagnosticLease.installed() else { return }
+            await P0HostDiagnostic().listen(lease, display:id, feed:feed, navigation:navigation, allowed:{ canNavigate })
+        }
+        #endif
     }
 
     @ViewBuilder private var roster: some View {

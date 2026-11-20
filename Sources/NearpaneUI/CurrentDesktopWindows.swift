@@ -6,6 +6,9 @@ import OSLog
 /// serves geometry and window management independently of the window switcher.
 @MainActor @Observable final class CurrentDesktopWindows {
     typealias Read = NativeDesktopProvider.Read
+    #if NEARPANE_P0_DIAGNOSTIC
+    private let diagnosticLease = P0DiagnosticLease.installed()
+    #endif
     private let read: Read
     private let sessionAvailable: @MainActor () -> Bool
     private let fingerprint: @MainActor () -> Int
@@ -255,10 +258,17 @@ import OSLog
             }
             audit?.snapshot(result, stage: "reader")
             self.pendingAudit = audit
-            if self.panelRequested && (NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil) {
+            let ordinaryObservation = NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil
+            var diagnosticTargets: Set<NativeSidebarWindowLocation>?
+            #if NEARPANE_P0_DIAGNOSTIC
+            if self.panelRequested, !ordinaryObservation {
+                diagnosticTargets = self.diagnosticLease?.observationTargets(host:getpid())
+            }
+            #endif
+            if self.panelRequested && (ordinaryObservation || diagnosticTargets?.isEmpty == false) {
                 var history = self.sidebarWindows
                 let sampleWindows = self.readSidebarWindows ?? { await NativeSpaceActionClient.shared.observe($0, audit: audit) }
-                await history.update(&result, audit: audit, read: sampleWindows)
+                await history.update(&result, audit: audit, eligible: diagnosticTargets, read: sampleWindows)
                 guard !Task.isCancelled, expected == self.epoch, self.sessionAvailable(), self.panelRequested,
                       result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return nil }
                 self.sidebarWindows = history
