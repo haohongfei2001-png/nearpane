@@ -12,9 +12,27 @@ from space_scope import private_file
 def finite(n):
     return type(n) in (int,float) and math.isfinite(n)
 
+def timing_version(clocks):
+    return clocks[0].get("frameTimingVersion", 1) if clocks else 1
+
+
+def valid_presentation(t, display, pts, callback, version):
+    if not finite(t) or not finite(callback) or t <= 0:
+        return False
+    lag = callback - t
+    if version == 1:
+        return -.005 <= lag <= 1.0
+    if lag >= 0:
+        return lag <= 1.0
+    return (-lag <= 1 / 60 and finite(display) and finite(pts) and abs(display - pts) <= .001)
+
+
 def qualified(frames,session):
     guards=session.get("guards",[]);times=[g["time"] for g in guards]
     clocks=session.get("clocks",[])
+    version = timing_version(clocks)
+    if version not in (1, 2) or any(c.get("frameTimingVersion", 1) != version for c in clocks):
+        return [], {"reason": "unknownOrInconsistentFrameTimingVersion"}
     if not guards or len(clocks)<2 or not all(finite(c.get("uncertainty")) and 0<=c["uncertainty"]<=.005 for c in clocks):
         return [],{"reason":"noIndependentClockBracket"}
     if (not all(b>a for a,b in zip(times,times[1:])) or not guards[0]["fullBinding"] or
@@ -28,21 +46,25 @@ def qualified(frames,session):
         if type(n) is not int or n not in (0,1,2):raise ValueError("unexpectedStreamChannel")
         status[n][raw["status"]]+=1
         d,p,cb=raw.get("displayTime"),raw.get("hostPTS"),raw.get("callback")
-        valid=lambda t:finite(t) and finite(cb) and 0<t and -.005<=cb-t<=1.0
+        valid=lambda t:valid_presentation(t,d,p,cb,version)
         if valid(d) and valid(p):tested[n].append(abs(d-p)*1000)
     # A presentation timestamp without an SC display clock is explicitly lower-confidence. Never
     # substitute the callback time or the scheduled fixture pulse for an actual presentation.
     pts_correlated=[len(x)>=3 and (percentiles(x)["p95"]<=34) for x in tested]
     for raw in frames:
         n=raw["channel"];d,p,cb=raw.get("displayTime"),raw.get("hostPTS"),raw.get("callback")
-        valid=lambda t:finite(t) and finite(cb) and 0<t and -.005<=cb-t<=1.0
+        valid=lambda t:valid_presentation(t,d,p,cb,version)
         if valid(d):t,basis=d,"SCDisplayTime"
-        elif valid(p):t,basis=p,"correlatedHostPTS" if pts_correlated[n] else "hostPTSOnly"
-        else:rejected["missingPresentationTime"]+=1;continue
+        elif (version == 1 or d is None) and valid(p):t,basis=p,"correlatedHostPTS" if pts_correlated[n] else "hostPTSOnly"
+        else:
+            reason = "outOfBoundsOrUncorroboratedPresentation" if version == 2 and (finite(d) or finite(p)) else "missingPresentationTime"
+            rejected[reason] += 1
+            continue
         if raw["status"] not in (0,4) or len(raw["samples"])!=(2 if n==2 else 1):
             rejected["noNewCompletePixels"]+=1;continue
-        i=bisect_right(times,t)-1;j=bisect_left(times,max(t,cb))
-        if (i<0 or j>=len(guards) or t<good_full[0] or cb>good_full[-1] or
+        begin, end = (min(t, cb), max(t, cb)) if version == 2 else (t, cb)
+        i=bisect_right(times,begin)-1;j=bisect_left(times,max(t,cb))
+        if (i<0 or j>=len(guards) or begin<good_full[0] or end>good_full[-1] or
                 times[j]-times[i]>1.2 or not all(g["valid"] for g in guards[i:j+1])):
             rejected["unbracketedScope"]+=1;continue
         if actual[n] and (raw["sequence"]<=actual[n][-1]["sequence"] or t<=actual[n][-1]["time"]):
@@ -50,10 +72,17 @@ def qualified(frames,session):
         actual[n].append(dict(raw,time=t,basis=basis,guardBefore=times[i],guardAfter=times[j]))
     interval=max(c["uncertainty"] for c in clocks)
     covers=Counter(str(c["source"]) for g in guards if g["valid"] for c in g.get("sourceHostOcclusions",[]))
-    return actual,dict(qualifiedSourceHostCoverObservations=dict(covers),panelSamplePointsRequireUnoccludedDisplay=True,machAndHostClockUncertaintyMs=1000*interval,statusCounts=[{str(k):v for k,v in x.items()} for x in status],
+    sampling=dict(qualifiedSourceHostCoverObservations=dict(covers),panelSamplePointsRequireUnoccludedDisplay=True,machAndHostClockUncertaintyMs=1000*interval,statusCounts=[{str(k):v for k,v in x.items()} for x in status],
                        rejected=dict(rejected),observedDisplayToPTSDifferenceMs=[percentiles(x) for x in tested],
                        completePixelFrames=[len(x) for x in actual],basis=[dict(Counter(v["basis"] for v in x)) for x in actual],
                        actualPresentationIntervalsMs=[percentiles([1000*(b["time"]-a["time"]) for a,b in zip(x,x[1:])]) for x in actual])
+    if version == 2:
+        sampling["prePresentationCallbacks"] = {
+            "maximumPermittedLeadMs": 1000/60, "requiredDisplayToHostPTSAgreementMs": 1,
+            "qualifiedCount": [sum(f["time"] > f["callback"] for f in s) for s in actual],
+            "qualifiedLeadMs": [percentiles([(f["time"] - f["callback"]) * 1000 for f in s if f["time"] > f["callback"]]) for s in actual]
+        }
+    return actual,sampling
 
 def steps(series,patch,doc):
     colors=[f["samples"][patch]["color"] for f in series]
@@ -106,7 +135,11 @@ def metrics(streams,clock,session):
                         if all(x!="hostPTSOnly" for x in ref):latencies.append((low,high,observable))
                     else:r["outcome"]="CARD_PRECEDES_SOURCE"
                 elif len(stable)>=2 and all(s=="blank" for s in counts):r["outcome"]="BLANK"
-                elif len(stable)>=2 and all(s.startswith(f"{doc}/") for s in counts):r["outcome"]="STALE"
+                elif len(stable)>=2 and all(s.startswith(f"{doc}/") for s in counts):
+                    if timing_version(session.get("clocks", [])) == 1 or set(counts) <= {f"{doc}/{old}" for old in range(epoch)}:
+                        r["outcome"]="STALE"
+                    elif f"{doc}/{epoch}" in counts:
+                        r["reason"]="currentColorObservedWithoutBoundedPrecedingTransition"
             results.append(r)
         combined.extend(latencies)
         source_counts=Counter(f["samples"][0]["color"] for f in src)

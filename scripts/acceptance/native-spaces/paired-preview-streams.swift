@@ -4,7 +4,8 @@ import CoreMedia
 import CryptoKit
 import ScreenCaptureKit
 
-struct PreviewClock:Codable {
+struct PreviewClock:Encodable {
+    let frameTimingVersion = 2
     let uptime:Double, uncertainty:Double, machOffset:Double, hostOffset:Double, denominator:UInt32, numerator:UInt32
     static func read() throws -> Self {
         var scale=mach_timebase_info_data_t()
@@ -13,6 +14,16 @@ struct PreviewClock:Codable {
         let mid=(begin+end)/2,mach=Double(ticks)*Double(scale.numer)/Double(scale.denom)/1e9
         guard end-begin<=0.01,host.isFinite,mach.isFinite else{throw Refusal("hostClockCalibrationUnavailable")}
         return Self(uptime:mid,uncertainty:(end-begin)/2,machOffset:mid-mach,hostOffset:mid-host,denominator:scale.denom,numerator:scale.numer)
+    }
+    // A display stream may arrive before its WindowServer presentation. Require both
+    // calibrated clocks to agree, and retain the patch only after that presentation is guarded.
+    static func presentationBounds(display: Double?, pts: Double?, callback: Double) -> ClosedRange<Double>? {
+        guard let t = display ?? pts, t.isFinite, callback.isFinite, t > 0, callback - t <= 1 else { return nil }
+        if t > callback {
+            guard t - callback <= 1.0 / 60, let display, let pts, pts.isFinite,
+                  abs(display - pts) <= 0.001 else { return nil }
+        }
+        return min(t, callback)...max(t, callback)
     }
     func mapped(_ ticks:UInt64)->Double {Double(ticks)*Double(numerator)/Double(denominator)/1e9+machOffset}
 }
@@ -98,6 +109,13 @@ enum PairedStreams {
     static func offlineChecks() throws {
         let clock=try PreviewClock.read()
         guard abs(clock.mapped(mach_absolute_time())-now())<0.01 else{throw Refusal("machClockCheckFailed")}
+        let early = PreviewClock.presentationBounds(display: 2.012, pts: 2.012001, callback: 2)
+        guard early == 2...2.012,
+              PreviewClock.presentationBounds(display: 2.02, pts: 2.020001, callback: 2) == nil,
+              PreviewClock.presentationBounds(display: 2.012, pts: 2.008, callback: 2) == nil,
+              PreviewClock.presentationBounds(display: nil, pts: 2.012, callback: 2) == nil else {
+            throw Refusal("earlyPresentationBracketCheckFailed")
+        }
         let area=CGRect(x:20,y:20,width:4,height:4)
         var pixel:CVPixelBuffer?
         guard CVPixelBufferCreate(nil,8,8,kCVPixelFormatType_32BGRA,nil,&pixel)==kCVReturnSuccess,let pixel,
@@ -136,7 +154,7 @@ enum PairedStreams {
         }}
         let checked=sampleColor(full,CGRect(x:400,y:150,width:16,height:16),CGRect(x:405,y:157,width:4,height:4),width:32,height:32,witness:true)
         guard checked?.color=="0/0",checked?.median==[218,55,50,255],checked?.patch?.count==256 else{throw Refusal("registeredSourceBackingOffsetMismatch")}
-        try emit(["calibratedClockAndPixelChecks":count+2+coverCases.count+1])
+        try emit(["calibratedClockAndPixelChecks":count+2+coverCases.count+1, "earlyPresentationBracketChecks":4])
     }
     static func run(_ request:Request,_ crops:[Crop],_ input:[UInt32],_ folder:URL,_ confirm:() throws->[String],witness:Bool) async throws {
         let first=try PreviewClock.read()
@@ -146,15 +164,15 @@ enum PairedStreams {
         func flushFrames(terminal:Bool=false) throws {
             for (i,receiver) in receivers.enumerated() {
                 for var item in receiver.since(consumed[i]) {
-                    let t=item.displayTime ?? item.hostPTS
-                    let bracketed=t.map{frameTime in
-                        guard let lower=guards.last(where:{$0.time<=frameTime}),let upper=guards.first(where:{$0.time>=item.callback}) else{return false}
-                        return lower.valid && upper.valid && upper.time-lower.time<=1.2 && frameTime<=item.callback+0.005 &&
-                               !guards.contains(where:{!$0.valid && $0.time>=lower.time && $0.time<=upper.time})
+                    let bounds = PreviewClock.presentationBounds(display: item.displayTime, pts: item.hostPTS, callback: item.callback)
+                    let bracketed = bounds.map { range in
+                        guard let lower = guards.last(where: { $0.time <= range.lowerBound }),
+                              let upper = guards.first(where: { $0.time >= range.upperBound }) else { return false }
+                        return lower.valid && upper.valid && upper.time - lower.time <= 1.2 &&
+                               !guards.contains(where: { !$0.valid && $0.time >= lower.time && $0.time <= upper.time })
                     } ?? false
                     if !bracketed {
-                        // A last callback newer than this checkpoint can still get a later scope read.
-                        if !terminal && item.callback>(guards.last?.time ?? 0) {break}
+                        if !terminal, let bounds, bounds.upperBound > (guards.last?.time ?? 0) { break }
                         item.samples=[]
                     }
                     item.offsets=item.samples.map{s in

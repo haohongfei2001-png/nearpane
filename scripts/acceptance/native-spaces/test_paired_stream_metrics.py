@@ -38,6 +38,47 @@ class StreamTiming(unittest.TestCase):
         self.assertEqual(r["windows"][0]["events"][2]["outcome"],"UNKNOWN")
         self.assertEqual(r["windows"][0]["events"][2]["observedRGBA"]["card"],[190,70,35,255])
 
+    def test_supported_early_display_is_bracketed_at_both_callback_and_presentation(self):
+        frames, session = scenario()
+        for clock in session["clocks"]:
+            clock["frameTimingVersion"] = 2
+        for f in frames:
+            if f["channel"] == 2:
+                f["callback"] = f["displayTime"] - .013
+        streams, clock = qualified(frames, session)
+        result = metrics(streams, clock, session)
+        self.assertEqual(result["latencyMs"]["n"], 12)
+        self.assertAlmostEqual(result["latencyMs"]["firstConfirmedPresentationDifference"]["p50"], 50, places=1)
+        self.assertEqual(clock["prePresentationCallbacks"]["qualifiedCount"], [0, 0, 210])
+
+        frame = dict(frames[2], callback=100.191, displayTime=100.204, hostPTS=100.204001)
+        start, end = session["guards"][0], session["guards"][-1]
+        session["guards"] = [start, dict(start, time=100.198, valid=False, fullBinding=False),
+                             dict(start, time=100.200, fullBinding=False), end]
+        self.assertEqual(qualified([frame], session)[1]["rejected"], {"unbracketedScope": 1})
+        session["guards"] = [start, end]
+        end["time"] = 100.201
+        self.assertEqual(qualified([frame], session)[1]["rejected"], {"unbracketedScope": 1})
+        end["time"] = 100.5
+        invalid = [dict(frame, displayTime=None), dict(frame, hostPTS=100.208), dict(frame, hostPTS=None),
+                   dict(frame, callback=100.180), dict(frame, displayTime=100.220, hostPTS=100.190)]
+        self.assertEqual(qualified(invalid, session)[1]["rejected"], {"outOfBoundsOrUncorroboratedPresentation": 5})
+
+    def test_an_observed_current_target_without_the_previous_color_has_unknown_latency(self):
+        frames, session = scenario(unknown=True)
+        for clock in session["clocks"]:
+            clock["frameTimingVersion"] = 2
+        series, clock = qualified(frames, session)
+        event = metrics(series, clock, session)["windows"][0]["events"][3]
+        self.assertEqual(event["outcome"], "UNKNOWN")
+        self.assertEqual(event["reason"], "currentColorObservedWithoutBoundedPrecedingTransition")
+        self.assertNotIn("latencyMs", event)
+        for row in frames:
+            if row["channel"] == 2 and row["samples"][0]["color"] == "0/4":
+                row["samples"][0]["color"] = "0/2"
+        series, clock = qualified(frames, session)
+        self.assertEqual(metrics(series, clock, session)["windows"][0]["events"][3]["outcome"], "STALE")
+
     def test_archived_json_roundtrip_replays_the_exact_report(self):
         f,s=scenario()
         with tempfile.TemporaryDirectory() as d:
