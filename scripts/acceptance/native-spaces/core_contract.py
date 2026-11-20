@@ -122,36 +122,13 @@ def main():
                 details=dict(status="BLOCKED",reason=reason,installedMoveCapability=cap,inputs=0,movementAttempts=0,completed=[])
                 receipt.write("D01.json",details)
                 mark("D01","BLOCKED",reason,inputs=0)
-        for _ in range(3):ws.create()
-        a,b,c=ws.ids()
+        a=ws.create()
+        ws.select(a)
+        b=ws.create()
+        c=ws.create()
         # Scope membership/knowledge is only queried for positively created numbers.
         os.environ["NEARPANE_CONTRACT_SPACE_IDS"]=",".join(map(str,(a,b,c)))
         ws.select(a)
-        if "W01" in wanted:
-            def w01():
-                actual=document_trials(ws,receipt,a)
-                if actual["status"] in ("PASS","FAIL"):
-                    mark("W01",actual["status"],actual["reason"],issued=actual["issued"],passes=actual["passes"])
-                    return
-                child=Receipt(out/"same-app-documents")
-                try:
-                    reason=controlled_window(kit/"observe",ws.read(),frozen,child,2)
-                finally:child.finish()
-                receipt.attempts.extend(child.attempts)
-                count=child.summary.get("controlledWindowTrials",0)
-                require(count==10 and len(child.attempts)==10 and all(r["status"]=="PASS" for r in child.attempts)
-                        and child.summary["cleanup"].get("windowNumbersGone"),reason)
-                mark("W01","PARTIAL","Ten ordinary AppKit fixture selections verified. System TextEdit: "+actual["reason"],fixturePasses=count)
-            run_case("W01",w01)
-        if "D01" in wanted and receipt.scenarios["D01"]["status"]=="NOT_RUN":
-            def d01():
-                ws.select(a); path=scope([],"empty"); dest=out/"drag"
-                cmd=[sys.executable,str(Path(__file__).with_name("d01.py")),"--kit",str(kit),"run",str(dest),"--scope",str(path)]
-                proc=subprocess.run(cmd,capture_output=True,text=True,timeout=90)
-                data=json.loads((dest/"D01.json").read_text())
-                receipt.attempts.extend(data.get("attempts",[]))
-                mark("D01",data["status"],data["reason"],movementAttempts=data["movementAttempts"],completed=data["completed"],childExit=proc.returncode)
-            run_case("D01",d01)
         if wanted & {"S01","S02","S03","R01","N01"}:
             try:
                 ws.select(b);fb=fixture("Route")
@@ -214,6 +191,31 @@ def main():
                 for k in wanted & {"S01","S02","S03","R01","N01"}:
                     if receipt.scenarios[k]["status"]=="NOT_RUN":mark(k,"BLOCKED",str(e))
             finally:close_fixtures()
+        if "D01" in wanted and receipt.scenarios["D01"]["status"]=="NOT_RUN":
+            def d01():
+                ws.select(a); path=scope([],"empty"); dest=out/"drag"
+                cmd=[sys.executable,str(Path(__file__).with_name("d01.py")),"--kit",str(kit),"run",str(dest),"--scope",str(path)]
+                proc=subprocess.run(cmd,capture_output=True,text=True,timeout=90)
+                data=json.loads((dest/"D01.json").read_text())
+                receipt.attempts.extend(data.get("attempts",[]))
+                mark("D01",data["status"],data["reason"],movementAttempts=data["movementAttempts"],completed=data["completed"],childExit=proc.returncode)
+            run_case("D01",d01)
+        if "W01" in wanted:
+            def w01():
+                actual=document_trials(ws,receipt,a)
+                if actual["status"] in ("PASS","FAIL"):
+                    mark("W01",actual["status"],actual["reason"],issued=actual["issued"],passes=actual["passes"])
+                    return
+                child=Receipt(out/"same-app-documents")
+                try:
+                    reason=controlled_window(kit/"observe",ws.read(),frozen,child,2)
+                finally:child.finish()
+                receipt.attempts.extend(child.attempts)
+                count=child.summary.get("controlledWindowTrials",0)
+                require(count==10 and len(child.attempts)==10 and all(r["status"]=="PASS" for r in child.attempts)
+                        and child.summary["cleanup"].get("windowNumbersGone"),reason)
+                mark("W01","PARTIAL","Ten ordinary AppKit fixture selections verified. System TextEdit: "+actual["reason"],fixturePasses=count)
+            run_case("W01",w01)
         if "W02" in wanted:
             def w02():
                 ws.select(a);other=fixture("Route");docs=fixture(count=2,split=True)

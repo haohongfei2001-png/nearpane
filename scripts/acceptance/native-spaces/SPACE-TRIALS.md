@@ -1,5 +1,17 @@
 # Native Space trial entry
 
+The installed-host contract creates and recycles three ordinary desktops on one physical display. Run it in a fresh evidence directory after the signed app is running at `/Applications/Nearpane.app`. For the 50 individual selections, use:
+
+```sh
+scripts/acceptance/native-spaces/run.sh core-contract build/verification/core-spaces --scenarios S01,S02
+```
+
+Omit `--scenarios` to include native switching and reorder, window focus, migration and rapid selections. `--performance` adds N01 on the same owned desktops. Each actual row press and independent system readback is journalled. The suite preserves outcomes from refused and interrupted actions. It restores the original foreground or, during cleanup recovery, preserves the user's latest protected foreground and desktop order.
+
+To resume an interrupted cleanup, use `run.sh cleanup-contract <original evidence directory>` from the checkout that issued the creation receipts. If an intervening installation changed the Host CDHash, pass `--previous-archive <signed previous candidate ZIP> --install-receipt <installation.json>`. The recovery verifies the archived and installed signatures in both directions before removing a positively empty leased desktop.
+
+## Existing leases and read-only preflight
+
 From the checkout, use a fresh output directory for each run. A run without a lease reads the installed Host, signatures, permission probe, sidebar AX controls and WindowServer inventory, writes its refusal and issues zero inputs.
 
 ```sh

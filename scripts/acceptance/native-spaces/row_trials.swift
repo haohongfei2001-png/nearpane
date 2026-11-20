@@ -20,7 +20,7 @@ struct PhysicalInput: Equatable {
         }
     }
 }
-let physical = PhysicalInput()
+var physical = PhysicalInput()
 func trialSend(_ object: Object) {
     if let data = try? JSONSerialization.data(withJSONObject: object, options: .sortedKeys) {
         FileHandle.standardOutput.write(data + Data([10]))
@@ -105,6 +105,7 @@ if let line = readLine(), let scope = try? JSONDecoder().decode(TrialScope.self,
     while let message = readLine() {
         var attempts: [Object] = []
         do {
+            physical = PhysicalInput()
             guard let input = try JSONSerialization.jsonObject(with: Data(message.utf8)) as? Object,
                   let targets = input["targets"] as? [UInt64], targets.count <= 5,
                   let allowedSources = input["sources"] as? [UInt64]

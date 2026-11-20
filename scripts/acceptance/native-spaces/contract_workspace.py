@@ -121,7 +121,7 @@ class Workspace:
         created = (int(json.loads(private_file(p))["target"]) for p in self.ledgers)
         return [n for n in created if n not in self.closed]
 
-    def check(self, o):
+    def check(self, o, *, check_current=True):
         require(o["host"] == self.host and o["displays"] == self.original["displays"], "installed Host or physical displays changed")
         s = row(o)
         existing = self.protected
@@ -130,12 +130,19 @@ class Workspace:
         require([r for r in s["records"] if r["id"] not in leased] == existing
                 and {r["id"]:r["uuid"] for r in s["records"] if r["id"] in leased and r["type"] == 0} == leased,
                 "existing desktop order, original identities or leased desktop membership changed")
-        require(s["current"] in (self.home, self.cleanup_current) or s["current"] in leased, "unrelated desktop became current")
+        if check_current:
+            require(s["current"] in (self.home, self.cleanup_current) or s["current"] in leased, "unrelated desktop became current")
         return s
 
     def command(self, name, snapshot, target=None, other=None, *, before_send=None, after_reply=None):
         s = self.check(snapshot)
-        require(self.hardware() == self.hid, "physical input changed; further workspace input suspended")
+        # Each independent system operation binds its own quiet interval and positively
+        # identified source; a change during that interval suspends dispatch.
+        self.hid = self.hardware()
+        fresh = self.read()
+        require(self.check(fresh) == s and (snapshot.get("frontmostPID"),snapshot.get("focusedNumber")) ==
+                (fresh.get("frontmostPID"),fresh.get("focusedNumber")) and self.hardware() == self.hid,
+                "physical input, focus or Space changed before system dispatch")
         req = dict(command=name, display=self.display, records=s["records"], current=s["current"], original=self.cleanup_current,
                    owned=self.ids(), target=target, other=other, hostPID=self.host["pid"], hid=self.hid)
         self.record("system-fixture-intent", operation=name, current=s["current"], target=target, other=other)
@@ -180,7 +187,13 @@ class Workspace:
         self.ledgers.append(p)
         write_owned(self.output/f"desktop-{len(self.ledgers)}.json",dict(receipt=str(p),sha256=hashlib.sha256(private_file(p)).hexdigest()))
         self.record("system-fixture-created", desktop=new, oldCurrent=s["current"], newCurrent=current["current"])
-        self.check(after)
+        self.check(after,check_current=False)
+        if current["current"] not in {self.home,self.cleanup_current,*self.ids()}:
+            # Closing native Mission Control over a fullscreen app can briefly show
+            # an existing ordinary desktop. Observe its return before sending more input.
+            permitted = {self.home,self.cleanup_current,*self.ids()}
+            self.settled(lambda o: self.check(o,check_current=False)["records"]==current["records"]
+                         and row(o)["current"] in permitted, "system overview did not settle on its origin or a created desktop",8)
         return new["id"]
 
     def select(self,n):
@@ -188,7 +201,7 @@ class Workspace:
         require(n in (self.home, self.cleanup_current) or n in self.ids(), "system selection outside fixture")
         if s["current"] != n:
             self.command("select",before,n)
-        return self.settled(lambda o: self.check(o)["current"] == n and row(o)["records"]==s["records"], "system selection did not arrive")
+        return self.settled(lambda o: self.check(o,check_current=False)["current"] == n and row(o)["records"]==s["records"], "system selection did not arrive")
 
     def swap(self,a,b):
         before = self.read(); s = self.check(before); order=s["records"].copy()
@@ -221,7 +234,6 @@ class Workspace:
     def bind_quiet_cleanup(self):
         """Wait for a quiet pre-dispatch interval and preserve the user's actual foreground."""
         deadline = time.monotonic() + 20
-        original_ids = {r["id"] for r in self.protected}
         while time.monotonic() < deadline:
             counters = self.hardware()
             first = self.read()
@@ -229,6 +241,8 @@ class Workspace:
             second = self.read()
             if self.hardware() != counters or row(first) != row(second):
                 continue
+            self.bind_protected_order(second)
+            original_ids = {r["id"] for r in self.protected}
             current = row(second)["current"]
             if current in original_ids:
                 self.cleanup_current, self.cleanup_focus = current, second
@@ -301,12 +315,18 @@ if __name__ == "__main__":
         def event(kind, **detail):
             stream.write(json.dumps(dict(event=kind,monotonic=time.monotonic(),**detail))+"\n")
             stream.flush();os.fsync(stream.fileno())
-        work=Workspace(args.kit.resolve(),args.output.resolve(),event,resume=args.cleanup,
-                       previous_archive=args.previous_archive,install_receipt=args.install_receipt)
+        try:
+            work=Workspace(args.kit.resolve(),args.output.resolve(),event,resume=args.cleanup,
+                           previous_archive=args.previous_archive,install_receipt=args.install_receipt)
+        except (OSError,ValueError,KeyError,subprocess.SubprocessError) as error:
+            event("workspace-refused",status="BLOCKED",reason=str(error),systemInputs=0)
+            raise
         try:
             if not args.cleanup:work.create()
         finally:
             receipt=work.cleanup()
+            event("workspace-cleanup",**receipt)
+            write_owned(args.output/("cleanup-"+str(uuid.uuid4())+".json"),receipt)
             (args.output/"workspace-cleanup.json").write_text(encode(receipt))
             print(encode(receipt))
             if receipt["outstanding"] or not receipt["topologyRestored"]:raise SystemExit(2)

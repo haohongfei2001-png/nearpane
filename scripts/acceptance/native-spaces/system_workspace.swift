@@ -66,7 +66,7 @@ func guardState(_ r: WorkspaceRequest, stage: String = "initial", expected: UInt
     if current != expect {
         // Opening the system overview at a fullscreen origin can display an existing
         // ordinary Space. Bind that observed transition only for inactive-desktop recovery.
-        guard admitFullscreenOverview, r.command=="remove", try overviewVisible(),
+        guard admitFullscreenOverview, (r.command=="add" || r.command=="remove" || (r.command=="select" && r.target.map(r.owned.contains)==true)), try overviewVisible(),
               r.records.contains(where:{$0.id==expect && $0.type==4}),
               r.records.contains(where:{$0.id==current && $0.type==0}),
               !r.owned.contains(current), current != r.target else {throw fail("current Space changed")}
