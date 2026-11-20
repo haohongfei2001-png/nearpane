@@ -153,13 +153,9 @@ import NearpaneCore
 
     private func forward(_ space: String) -> Set<UInt32>? {
         if let hit = members[space] { return hit }
-        guard let id = UInt64(space), let raw = NPReadCatalogSpaceWindowNumbers(id) as? [NSNumber],
-              raw.count <= 8192 else { return nil }
-        let ids = raw.compactMap { ActionInventory.id($0).flatMap(UInt32.init) }
-        let unique = Set(ids)
-        guard ids.count == raw.count, unique.count == raw.count else { return nil }
-        members[space] = unique
-        return unique
+        guard let numbers = ActionInventory.memberNumbers(in: space) else { return nil }
+        members[space] = numbers
+        return numbers
     }
 
     private func listed(_ pid: Int32) -> [UInt32: [AXUIElement]]? {

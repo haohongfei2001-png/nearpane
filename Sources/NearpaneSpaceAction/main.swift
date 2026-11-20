@@ -22,12 +22,13 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
          authorize: (NativeSpaceReply) throws -> NativeSpaceStepPermission) -> NativeSpaceReply {
     let switchProtocol = NPDockInstalledProtocol()
     let canSwitch = available && switchProtocol != NPDockUnsupported && CGPreflightPostEventAccess()
-    let canMove = available && AXIsProcessTrusted() && NPMoveAvailable()
+    let canMove = available && NPMoveAvailable() && AXIsProcessTrusted()
     var before: ActionInventory?, after: ActionInventory?
     var oldMembership: [String]?, newMembership: [String]?
     var trace = NativeSwitchTrace()
     var notifications: SpaceNotificationTimes?
     var issued = false
+    var moveSubmissionUncertain = false
     var issuedAt: TimeInterval?, steps = 0
     func reply(_ state: NativeSpaceReply.State, _ text: String) -> NativeSpaceReply {
         trace.dockNotificationUptimes = notifications?.values ?? []
@@ -42,6 +43,9 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
     do {
         guard available else { throw ActionFailure("此系统构建尚不支持原生桌面动作。") }
         guard request.isFresh(at: ProcessInfo.processInfo.systemUptime) else { throw ActionFailure("桌面动作已过期。") }
+        if request.action == .move && !canMove {
+            throw ActionFailure("此系统构建的窗口迁移尚未通过验收。")
+        }
         let start = try ActionInventory.read()
         before = start
         if request.action == .observeWindows {
@@ -63,6 +67,9 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
         let (display, from, to) = try start.route(request)
         var expected = start.currents
         var progress = from
+        var preparedMove: CFTypeRef?
+        // The bridge may finish asynchronously. Release only after the last independent read or refusal.
+        defer { withExtendedLifetime(preparedMove) {} }
         var witness: WindowWitness?
         var selectedWindow: SelectedWindowWitness?
         if request.action == .move {
@@ -70,17 +77,28 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
             else { throw ActionFailure("缺少窗口迁移权限或系统支持。") }
             let checked = try WindowWitness.read(window, display: display)
             witness = checked
-            oldMembership = WindowWitness.membership(window.number)
+            oldMembership = try checked.verifiedMoveMembership(request, rebound: checked, inventory: start)
             guard oldMembership == [request.source] else { throw ActionFailure("窗口的来源空间已改变。") }
             let live = try WindowWitness.read(window, display: display)
-            guard checked.agreesBeforeDispatch(with: live), try ActionInventory.read() == start,
-                  live.stillIdentical(),
-                  WindowWitness.membership(window.number) == oldMembership
+            guard checked.agreesBeforeDispatch(with: live), live.stillIdentical(),
+                  try checked.verifiedMoveMembership(request, rebound: live, inventory: start) == oldMembership,
+                  try ActionInventory.read() == start
             else { throw ActionFailure("迁移前窗口或空间已改变。") }
+            guard request.isFresh(at: ProcessInfo.processInfo.systemUptime) else { throw ActionFailure("迁移动作已过期。") }
+            if from == to { after = start; newMembership = oldMembership; return reply(.confirmed, "窗口已在目标桌面。") }
+            guard let context = NPCreateWindowMove(window.number, target) else {
+                throw ActionFailure("窗口迁移操作未获准创建。")
+            }
+            preparedMove = context
+            let final = try WindowWitness.read(window, display: display)
+            guard checked.agreesBeforeDispatch(with: final),
+                  try checked.verifiedMoveMembership(request, rebound: final, inventory: start) == oldMembership,
+                  try ActionInventory.read() == start else { throw ActionFailure("提交前窗口身份或桌面已改变。") }
             let submitted = ProcessInfo.processInfo.systemUptime
             guard request.isFresh(at: submitted) else { throw ActionFailure("迁移动作已过期。") }
-            if from == to { after = start; newMembership = oldMembership; return reply(.confirmed, "窗口已在目标桌面。") }
-            issued = NPRequestMove(window.number, target)
+            let delivery = NPSubmitWindowMove(context)
+            issued = delivery != NPMoveNotIssued
+            moveSubmissionUncertain = delivery == NPMoveSubmissionUncertain
             if issued { issuedAt = submitted; steps = 1 }
         } else {
             if from != to {
@@ -128,9 +146,8 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
             after = view
             if let witness {
                 let rebound = try WindowWitness.read(witness.identity, display: display)
-                guard witness.sameWindowAndSiblings(as: rebound),
-                      let membership = WindowWitness.membership(witness.identity.number),
-                      try ActionInventory.read() == view else {
+                let membership = try witness.verifiedMoveMembership(request, rebound: rebound, inventory: view)
+                guard try ActionInventory.read() == view else {
                     throw ActionFailure("提交后窗口、同应用其他窗口或空间已改变。")
                 }
                 newMembership = membership
@@ -166,7 +183,7 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
                 if stableSince == nil { stableSince = now }
             } else { stableSince = nil }
         } while ProcessInfo.processInfo.systemUptime < deadline
-        return reply(.outcomeUnknown, "动作已提交，系统未在期限内确认结果。")
+        return reply(.outcomeUnknown, moveSubmissionUncertain ? "迁移请求的投递与结果均未得到确认。" : "动作已提交，系统未在期限内确认结果。")
     } catch {
         return reply(issued ? .outcomeUnknown : .failed, (error as? ActionFailure)?.text ?? "无法核验系统状态。")
     }

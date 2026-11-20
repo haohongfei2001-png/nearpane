@@ -22,4 +22,7 @@ typedef struct {
 } NPDockDispatch;
 bool NPSendAdjacentSwipe(bool right, CGDirectDisplayID intendedDisplay, NPDockDispatch *receipt);
 bool NPMoveAvailable(void);
-bool NPRequestMove(uint32_t window, uint64_t space);
+// Returns NULL when gated. The caller owns a prepared context through terminal readback.
+CFTypeRef NPCreateWindowMove(uint32_t window, uint64_t space) CF_RETURNS_RETAINED;
+typedef enum { NPMoveNotIssued, NPMoveSubmitted, NPMoveSubmissionUncertain } NPWindowMoveSubmission;
+NPWindowMoveSubmission NPSubmitWindowMove(CFTypeRef context);

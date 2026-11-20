@@ -116,6 +116,40 @@ struct WindowWitness {
         otherCGSurfaces == other.otherCGSurfaces
     }
 
+    /// Cross-check window-to-Space reads with complete Space-to-window lists for the exact
+    /// generations. Only enrolled window numbers are retained from those lists.
+    func verifiedMoveMembership(_ move: NativeSpaceCommand, rebound: Self, inventory: ActionInventory,
+                                reverse: (UInt32) -> [String]? = { Self.membership($0) },
+                                members: (String) -> Set<UInt32>? = ActionInventory.memberNumbers(in:),
+                                now: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) throws -> [String] {
+        guard move.action == .move, move.window == identity, sameWindowAndSiblings(as: rebound) else {
+            throw ActionFailure("迁移窗口或同应用其他窗口的身份发生改变。")
+        }
+        _ = try inventory.route(move)
+        guard let target = reverse(identity.number), target == [move.source] || target == [move.target] else {
+            throw ActionFailure("目标窗口的唯一桌面归属无法确认。")
+        }
+        var expected = rebound.otherCGSurfaces.mapValues(Set.init)
+        for (number, sibling) in rebound.siblings { expected[number] = Set(sibling.spaces) }
+        expected[identity.number] = Set(target)
+        var observed = expected.mapValues { _ in Set<String>() }
+        let tracked = Set(expected.keys)
+        for display in inventory.displays.values {
+            for space in display.spaces {
+                guard move.isFresh(at: now()), let numbers = members(space.id) else {
+                    throw ActionFailure("无法读取迁移期间完整的桌面成员。")
+                }
+                for number in numbers.intersection(tracked) {
+                    observed[number, default: []].insert(space.id)
+                }
+            }
+        }
+        guard observed == expected, move.isFresh(at: now()) else {
+            throw ActionFailure("窗口和桌面的独立成员读回不一致或已过期。")
+        }
+        return target
+    }
+
     func stillIdentical() -> Bool {
         Self.owner(identity) && Self.cgFrame(identity) != nil && NPReadAXWindowNumber(element) == identity.number &&
         siblings.allSatisfy { Self.membership($0.key) == $0.value.spaces }

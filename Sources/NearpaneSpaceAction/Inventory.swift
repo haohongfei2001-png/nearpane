@@ -29,6 +29,14 @@ struct ActionInventory: Equatable {
         return String(id)
     }
 
+    /// Only member numbers leave WindowServer. A missing or ambiguous list cannot prove absence.
+    static func memberNumbers(in space: String) -> Set<UInt32>? {
+        guard let id = UInt64(space), let rows = NPReadCatalogSpaceWindowNumbers(id) as? [NSNumber],
+              rows.count <= 8192 else { return nil }
+        let numbers = Set(rows.compactMap { Self.id($0).flatMap(UInt32.init) })
+        return numbers.count == rows.count ? numbers : nil
+    }
+
     static func read() throws -> Self {
         var securitySession: SecuritySessionId = 0
         guard SessionGetInfo(callerSecuritySession, &securitySession, nil) == errSecSuccess,
