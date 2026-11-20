@@ -27,6 +27,14 @@ private final class MemoryVoiceKeys: VoiceCredentialAccess {
             .appendingPathComponent("voice-settings-" + UUID().uuidString)
     }
 
+    @Test func storageIdentitySurvivesCreationOfMissingAncestors() throws {
+        let parent=root(), destination=parent.appendingPathComponent("generation/Voice")
+        defer { try? FileManager.default.removeItem(at:parent) }
+        let initial=VoiceRecognitionProfile.identifier(for:destination)
+        try FileManager.default.createDirectory(at:destination,withIntermediateDirectories:true)
+        #expect(initial == VoiceRecognitionProfile.identifier(for:destination))
+    }
+
     @Test func newAndRestrictedHostsRemainLocalAndNeverInspectSavedKeys() throws {
         let dir = root()
         let keys = MemoryVoiceKeys()

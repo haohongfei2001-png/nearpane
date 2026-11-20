@@ -82,6 +82,35 @@ struct VoiceTests {
         await module.waitForTransition()
     }
 
+    @Test func residentHostBoundariesPauseOnceAndRequireAnExplicitRestart() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var input: ScriptedInput?
+        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) },
+            makeInput: { _, changed in
+                let device = ScriptedInput(changed)
+                input = device
+                return device
+            })
+        try module.start()
+        await module.waitForTransition()
+        #expect(module.interruptForHost(.session) == nil)
+        for boundary in [VoiceHostInterruption.fullscreen, .session] {
+            await module.toggle(requestPermission: false)
+            let device = try #require(input)
+            device.update(.speaking, 0.5, nil)
+            let interrupted = try #require(module.interruptForHost(boundary))
+            #expect(module.interruptForHost(boundary) == nil)
+            await interrupted.value
+            #expect(module.capture == .interrupted(boundary.message))
+            #expect(module.control.state == .paused)
+            #expect(!device.closed)
+        }
+        #expect(input?.permissionRequests == [false, false])
+        module.stop()
+        await module.waitForTransition()
+    }
+
     @Test func captureButtonFollowsDomainIncludingSilenceAndLateEvents() async throws {
         let dir = directory()
         defer { try? FileManager.default.removeItem(at: dir) }

@@ -24,6 +24,15 @@ import SwiftUI
         let source: String
         let translation: String
         let language: String
+        var sourceLanguage: String?
+        var providerVersion: String?
+        var committedAt: Date?
+        var requestID: UUID?
+        var sourceSHA256: String?
+
+        var normalizedSource: String {
+            source.trimmingCharacters(in: .whitespacesAndNewlines).precomposedStringWithCanonicalMapping.lowercased()
+        }
     }
     struct Contents: Codable {
         var memo = ""
@@ -42,6 +51,24 @@ import SwiftUI
         do { contents = try JSONDecoder().decode(Contents.self, from: Data(contentsOf: file)) }
         catch let e as CocoaError where e.code == .fileReadNoSuchFile {}
         catch { readable = false; issue = "暂时无法打开已保存的工具资料。" }
+    }
+
+    func diskWord(for request: UUID) throws -> Word? {
+        do {
+            return try JSONDecoder().decode(Contents.self, from: Data(contentsOf: file)).words.first { $0.requestID == request }
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile { return nil }
+    }
+
+    func commit(_ request: TranslationRequest, answer: String, from: String, to: String, provider: String) throws -> Word {
+        if let saved = try diskWord(for: request.id) { return saved }
+        let word = Word(source: request.source, translation: answer, language: to, sourceLanguage: from,
+                        providerVersion: provider, committedAt: Date(), requestID: request.id, sourceSHA256: request.hash)
+        guard edit({ data in
+            data.words.removeAll { $0.normalizedSource == word.normalizedSource && $0.language == to &&
+                $0.sourceLanguage == from && $0.providerVersion == provider }
+            data.words.insert(word, at: 0)
+        }), let readback = try diskWord(for: request.id), readback == word else { throw CocoaError(.fileWriteUnknown) }
+        return readback
     }
 
     @discardableResult func edit(_ body: (inout Contents) -> Void) -> Bool {

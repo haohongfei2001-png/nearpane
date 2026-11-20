@@ -63,7 +63,19 @@ final class VoiceRecognitionProfile {
     var language: LanguagePreference? { grant?.language }
 
     static func identifier(for directory: URL) -> String {
-        SHA256.hash(data: Data(directory.standardizedFileURL.path.utf8)).map { String(format: "%02x", $0) }.joined()
+        // Foundation can give /private/tmp and /tmp different spellings before and
+        // after the directory is created. Resolve the existing ancestor first.
+        var path=directory, suffix=[String]()
+        while !FileManager.default.fileExists(atPath:path.path), path.path != "/" {
+            suffix.append(path.lastPathComponent)
+            path=path.deletingLastPathComponent()
+        }
+        let existing=path.standardizedFileURL
+        let stable=suffix.reversed().reduce(existing) { $0.appendingPathComponent($1) }
+        return pathHash(stable.path)
+    }
+    private static func pathHash(_ path:String) -> String {
+        SHA256.hash(data:Data(path.utf8)).map { String(format:"%02x",$0) }.joined()
     }
     init(directory: URL, credentials: any VoiceCredentialAccess) {
         self.directory = directory
@@ -74,7 +86,10 @@ final class VoiceRecognitionProfile {
             try ProfileLease.checkPath(file)
             let bytes = try Data(contentsOf: file)
             let saved = try JSONDecoder().decode(Grant.self, from: bytes)
-            guard saved.format == 1, saved.profile == profileID else { throw CocoaError(.fileReadCorruptFile) }
+            // Old versions could bind the lexical spelling of this same destination.
+            // The profile path has already passed ProfileLease's symlink check.
+            let existingSpellings=[profileID,Self.pathHash(directory.path),Self.pathHash(directory.standardizedFileURL.path)]
+            guard saved.format == 1, existingSpellings.contains(saved.profile) else { throw CocoaError(.fileReadCorruptFile) }
             _ = try saved.configuration()
             grant = saved
         } catch let error as CocoaError where error.code == .fileReadNoSuchFile {

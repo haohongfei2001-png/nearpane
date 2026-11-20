@@ -1,0 +1,38 @@
+{
+  "base": "90808bd37123cc281e5ec6239c5d22e1c342ff7f",
+  "translationPredecessor": "1de8b632efdb7a839886e04e26a2c32244a9607c",
+  "upstreamSaytile": "012999c2018f591f3cf9a529e4c0ae81e7b81f21",
+  "version": "5.22 (90)",
+  "scope": "Reusable headless tests, disposable files, no device recording, no audio playback, no model download.",
+  "verified": {
+    "swiftTests": 41,
+    "swiftSuites": 9,
+    "physicalMatrixDriverUnitTests": 6,
+    "lockedDependencyTests": 8,
+    "firstPCMPrecedesReady": "PASS",
+    "productionVADPreRollAndSubframeTailByteExact": "PASS",
+    "normalShutdownLocalFinalSameRecordingAfterStoreReopen": "PASS",
+    "deadlineExpiredUnfinishedResultKeepsPartialAndOriginalAndReopensQueued": "PASS",
+    "cloudSessionCancelledBeforeLocalGrace": "PASS",
+    "truncatedWavAndUserErasureCannotPassAsFinal": "PASS",
+    "scriptedFullscreenAndSessionBoundaryPauseThenExplicitRestart": "PASS"
+  },
+  "receipts": {
+    "syntheticWorkerShutdownAndReopen": "voice-readback.json",
+    "actualChineseSpeechFrameworkForTestRunner": "voice-apple-file.json"
+  },
+  "modelEvidence": "The pinned local engine uses SpeechAnalyzer and SpeechTranscriber. The Chinese locale is supported but AssetInventory did not report its local model installed for this test-runner identity. File recognition is BLOCKED for this identity. The signed Host has a separate identity. No provider accuracy or local model ranking was established.",
+  "physicalQualification": {
+    "freshInstalledHost": "NOT_RUN",
+    "independentColdStarts": 0,
+    "requestedColdStarts": 60,
+    "acousticConditions": "Unmodified synthesized source and deterministic +10 dB source SNR. Ambient room SNR must be measured separately for any environmental claim.",
+    "fullscreenReturn": "NOT_RUN",
+    "sleepWakeAndMicrophoneChange": "NOT_RUN",
+    "forcedProcessTermination": "NOT_RUN",
+    "sourceFramesAndChineseCharacterAccuracy": "NOT_RUN",
+    "commandFromScriptsAcceptanceNativeSpaces": "python3 installed_profile.py OUTPUT/profile -- python3 r4-voice-cold.py --matrix --file-readback OUTPUT/voice"
+  },
+  "regressionEnvironment": "A checkout under /private/tmp produced three assertions in an unrelated grant reload test because Foundation canonicalizes that temporary path. The same built bundle ran all 41 tests with temporary fixtures in a newly created canonical ~/Library/Caches directory.",
+  "rollback": "Revert the P4 voice commit. The preceding locked patch restores the original recognition shutdown behavior. The store schema, existing WAV layout, permissions and grants remain compatible."
+}

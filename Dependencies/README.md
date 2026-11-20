@@ -26,4 +26,4 @@ git diff --no-index Dependencies/domains.lock.json build/saytile-candidate.lock.
 
 Saytile 的两个 Swift 文件在上游通过符号链接与 `SaytileVoiceUI` 共享。锁文件的 `sharedSources` 逐个声明映射，升级提案验证 Git 树中的链接目标。构建只读取对应的已校验常规文件。原先的 RC2 加三份替换源码已整体升级为同一发布提交。成品的 `Upstream/{saytile,riftlet}/source.json` 记录 releaseTag、提交、来源和指纹。
 
-Nearpane 针对本机收音启动的修订位于 `saytile-capture-readiness.patch`。构建时从已校验的 Saytile `AudioCapture.swift` 派生编译副本，补丁和副本摘要均记录在锁文件与成品的 `Upstream/saytile/source.json`。实际音频缓冲到达后才显示待命，静音缓冲同样有效。
+Nearpane 针对本机收音启动的修订位于 `saytile-capture-readiness.patch`。构建时从已校验的 Saytile `AudioCapture.swift` 派生编译副本，补丁和副本摘要均记录在锁文件与成品的 `Upstream/saytile/source.json`。实际音频缓冲到达后才显示待命，静音缓冲同样有效。暂停或退出时由同一 Saytile worker 刷新 WAV 和 SQLite。正常退出给已收音的本地识别任务共享五秒写入最终结果，超时保留可读原音并核对保存状态。

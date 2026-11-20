@@ -1,5 +1,8 @@
 """Offline regressions for the verdicts and recording boundaries; no UI, mic, or playback."""
 import importlib.util
+import collections
+import hashlib
+import struct
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -10,6 +13,10 @@ MODULE = Path(__file__).with_name("r4-voice-cold.py")
 spec = importlib.util.spec_from_file_location("cold_voice", MODULE)
 cold = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cold)
+matrix_spec = importlib.util.spec_from_file_location("voice_matrix", MODULE.with_name("voice_matrix.py"))
+matrix = importlib.util.module_from_spec(matrix_spec)
+matrix_spec.loader.exec_module(matrix)
+
 UI = {"physicalInputTransport": "bltn", "physicalOutputTransport": "bltn", "events": [{"kind": kind} for kind in ("startPressed", "captureReady", "stimulusStarted", "stimulusFinished",
                                                "pausePressed", "pauseObserved")]}
 
@@ -23,6 +30,59 @@ class VerdictTests(unittest.TestCase):
             self.assertFalse(result["exact"])
             self.assertNotIn("张", str(result))
         self.assertEqual(cold.compare(phrase, phrase[1:])["leadingCharactersMatched"], 0)
+
+    def test_matrix_balances_ten_starts_per_condition_and_phrase(self):
+        plan = matrix.schedule(cold.PHRASES)
+        counts = collections.Counter((r["phrase"], r["condition"]) for r in plan)
+        self.assertEqual(len(plan), 60)
+        self.assertEqual(len(counts), 6)
+        self.assertEqual(set(counts.values()), {10})
+        self.assertEqual({r["status"] for r in plan}, {"NOT_RUN"})
+        before = cold.PHRASES[0]
+        self.assertEqual(cold.compare(before, before[1:])["cer"], 1 / len(before))
+
+    def test_seeded_noise_writes_pcm_and_preserves_source_duration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "synthetic.wav"
+            with wave.open(str(path), "wb") as out:
+                out.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+                out.writeframes(b"".join(struct.pack("<h", i % 128 * 70) for i in range(3200)))
+            clean = path.read_bytes()
+            noisy = matrix.add_noise(path, seed=3)
+            self.assertNotEqual(noisy["sha256"], hashlib.sha256(clean).hexdigest())
+            with wave.open(str(path), "rb") as reader:
+                self.assertEqual(reader.getnframes(), 3200)
+            path.write_bytes(clean)
+            self.assertEqual(matrix.add_noise(path, seed=3), noisy)
+
+    def test_matrix_stage_hashes_and_session_must_match_the_durable_recording(self):
+        rid = "AA"
+        db = {"newIDs": [rid], "revisions": [{"id": "r", "preferred": True, "origin": "final",
+              "comparison": {"rawTextSHA256": "final"}}], "chunks": [{"sha256": "audio"}], "totalFrames": 1,
+              "recognitionState": "completed"}
+        records = [{"id": i, "stage": stage, "hash": digest, "uptime": t}
+                   for t, (i, stage, digest) in enumerate((
+                       ("I", "voiceStarted", "-"), ("I", "firstPCM", "-"),
+                       ("I", "voiceRecordingLinked", hashlib.sha256(rid.encode()).hexdigest()),
+                       (rid, "voiceAudioPersisted", "audio"), (rid, "voiceFinal", "final")))]
+        self.assertEqual(matrix.match_stages(records, db)["status"], "PASS")
+        self.assertEqual(matrix.match_stages(records[1:], db)["status"], "UNKNOWN")
+        records[-1]["hash"] = "partial"
+        self.assertEqual(matrix.match_stages(records, db)["status"], "UNKNOWN")
+
+    def test_multichunk_hash_and_link_after_first_pcm(self):
+        rid="DB-UUID"; intent="intent"; link=hashlib.sha256(rid.encode()).hexdigest()
+        db={"newIDs":[rid],"revisions":[{"id":"r","preferred":True,"origin":"final","comparison":{"rawTextSHA256":"text"}}],
+            "chunks":[{"sha256":"one"},{"sha256":"two"}],"journalSHA256":"both","totalFrames":2,"recognitionState":"completed"}
+        records=[dict(id=i,stage=s,hash=h,uptime=t) for t,(i,s,h) in enumerate([
+            (intent,"voiceStarted","-"),(intent,"firstPCM","-"),(intent,"voiceRecordingLinked",link),
+            (rid,"voiceAudioPersisted","both"),(rid,"voiceFinal","text")])]
+        self.assertEqual(matrix.match_stages(records,db)["status"],"PASS")
+        records[2]["uptime"]=0
+        self.assertEqual(matrix.match_stages(records,db)["status"],"UNKNOWN")
+        records[2]["uptime"]=2
+        db.pop("journalSHA256")
+        self.assertEqual(matrix.match_stages(records,db)["status"],"UNKNOWN")
 
     def test_only_new_final_and_durable_pcm_can_pass(self):
         with tempfile.TemporaryDirectory() as temp:
