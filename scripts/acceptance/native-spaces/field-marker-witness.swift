@@ -1,10 +1,14 @@
 import AppKit
 import CryptoKit
+#if P2_DOCUMENT_FIXTURE
+import Security
+#endif
 
 // Only compiled into the optional Field Notes fixture. No system event tap.
 struct FieldMarkerGrant: Codable, Equatable {
     let session: String, intent: String, digest: String, readerHash: String
     let pid: Int32, birth: UInt64, numbers: [Int], target: Int, tag: Int64, expires: Double
+    var transport: String? = nil
     func bound(session actual: String, pid current: Int32, birth generation: UInt64, numbers live: [Int], now: Double) -> Bool {
         session == actual && UUID(uuidString:intent) != nil && pid == current && birth == generation &&
         numbers == live && live.count == 2 && Set(live).count == 2 && live.allSatisfy { $0 > 0 } && live.contains(target) &&
@@ -13,7 +17,12 @@ struct FieldMarkerGrant: Codable, Equatable {
         digest.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
     }
     func matches(_ text: String?) -> Bool {
-        guard let text, text.utf8.count == 12, text.hasPrefix("NP") else { return false }
+        guard let text, text.utf8.count == 12 else { return false }
+        #if P2_DOCUMENT_FIXTURE
+        guard transport==P2Keypad.transport ? P2Keypad.keys(text) != nil : text.hasPrefix("NP") else { return false }
+        #else
+        guard text.hasPrefix("NP") else { return false }
+        #endif
         return SHA256.hash(data:Data(text.utf8)).map { String(format:"%02x",$0) }.joined() == digest
     }
     func receipt(status: String, events: [[String: Any]], truncated: Bool) -> [String: Any] {
@@ -44,6 +53,10 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
     private var monitor: Any?
     private var poster: FieldMarkerPoster?
     private var attribution: String?
+    #if P2_DOCUMENT_FIXTURE
+    private var keyCounts=P2KeyCounts()
+    private var physicalAtArm=[UInt32]()
+    #endif
 
     init?(folder: URL, session: String, birth: UInt64, objects: @escaping () -> ([NSWindow],[NSTextView])) {
         guard ProcessInfo.processInfo.environment["NP_W01_MARKER_WITNESS"] == "1",
@@ -63,8 +76,25 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
         self.folder=folder; self.session=session; self.pid=getpid(); self.birth=birth; self.objects=objects
     }
     #if P2_DOCUMENT_FIXTURE
+    private func enrolledPoster(_ grant:FieldMarkerGrant) -> FieldMarkerPoster? {
+        guard let record=read("marker-watch-poster-"+grant.intent+".json",as:FieldMarkerPoster.self),
+              record.matches(grant:grant,source:Int64(record.sender),now:ProcessInfo.processInfo.systemUptime,eventTime:0) else{return nil}
+        var info=proc_bsdinfo(), code:SecCode?, rule:SecRequirement?
+        let size=Int32(MemoryLayout<proc_bsdinfo>.size)
+        let requirement="identifier \"net.example.nearpane.p2-observer\" and cdhash H\""+grant.readerHash+"\""
+        guard proc_pidinfo(record.sender,PROC_PIDTBSDINFO,0,&info,size)==size,
+              info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec==record.birth,
+              SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:record.sender] as CFDictionary,[],&code)==errSecSuccess,
+              SecRequirementCreateWithString(requirement as CFString,[],&rule)==errSecSuccess,
+              let code,let rule,SecCodeCheckValidity(code,[],rule)==errSecSuccess else{return nil}
+        return record
+    }
+    var currentDocumentIntent:String? { grant?.intent }
     func enrolledDocumentEdit(_ addition: String) -> Bool {
         guard let grant, status == "ARMED", ProcessInfo.processInfo.systemUptime < grant.expires else { return false }
+        if grant.transport==P2Keypad.transport {
+            return physicalAtArm==p2Physical() && NSEvent.pressedMouseButtons==0 && keyCounts.matchesReceivedPrefix(addition)
+        }
         return grant.matches(addition)
     }
     #endif
@@ -87,6 +117,11 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
     }
     private func note(_ step: String, event: NSEvent? = nil, window: NSWindow? = nil, match: Bool? = nil) {
         guard let grant, status == "ARMED" else { return }
+        #if P2_DOCUMENT_FIXTURE
+        // Per-event counts live in keyDelivery. Retain one timing snapshot per
+        // AppKit stage so a twelve-key transaction cannot truncate the ledger.
+        if grant.transport==P2Keypad.transport, events.contains(where:{$0["step"] as? String==step}) { return }
+        #endif
         guard events.count < 64 else { truncated=true; dirty=true; return }
         var value=snapshot(); value["step"]=step
         if let event {
@@ -116,10 +151,34 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
         if ret == size {
             guard info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec == poster.birth else { return nil }
         } else if ret != 0 || errno != ESRCH { return nil }
+        #if P2_DOCUMENT_FIXTURE
+        // Ordinary characters can differ under an IME. Only count a stripped-tag
+        // event if its enrolled sender is still alive with the original kernel birth.
+        if grant.transport==P2Keypad.transport {
+            return ret==size ? "signedLiveSender" : nil
+        }
+        #endif
         // A serialized Quartz event can lose userData. Only inspect text from the attested one-shot sender.
         return grant.matches(event.characters) ? "signedSenderAndDigest" : nil
     }
     func appEvent(_ event: NSEvent) {
+        #if P2_DOCUMENT_FIXTURE
+        if let grant,grant.transport==P2Keypad.transport,status=="ARMED" {
+            guard !physicalAtArm.isEmpty, p2Physical()==physicalAtArm, NSEvent.pressedMouseButtons==0 else {
+                keyCounts.superseded=true; dirty=true; return
+            }
+            guard keyCounts.posterBound,let post=poster, post.intent==grant.intent,post.target==grant.target,post.tag==grant.tag,
+                  post.hash==grant.readerHash,post.session==grant.session,post.digest==grant.digest,
+                  ProcessInfo.processInfo.systemUptime<grant.expires else { return }
+            let origin=provenance(event)
+            keyCounts.saw(down:event.type == .keyDown,trustedKey:origin==nil ? nil : event.keyCode)
+            dirty=true
+            guard let origin else{return}
+            let prior=attribution;attribution=origin;defer{attribution=prior}
+            note(event.type == .keyDown ? "appKeyDown":"appKeyUp",event:event)
+            return
+        }
+        #endif
         guard let origin=provenance(event), let grant else { return }
         let prior=attribution; attribution=origin; defer { attribution=prior }
         note(event.type == .keyDown ? "appKeyDown":"appKeyUp",event:event,match:grant.matches(event.characters))
@@ -156,6 +215,9 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
             else if cmd.mode == "arm", status != "ARMED", finished.count < 10, !finished.contains(cmd.grant.intent), editors.count == 2,
                     cmd.grant.bound(session:session,pid:pid,birth:birth,numbers:windows.map(\.windowNumber),now:now) {
                 grant=cmd.grant; status="ARMED"; events=[]; truncated=false; poster=nil; attribution=nil
+                #if P2_DOCUMENT_FIXTURE
+                keyCounts=P2KeyCounts();physicalAtArm=cmd.grant.transport==P2Keypad.transport ? p2Physical() : []
+                #endif
                 // A local monitor only exists during this one enrolled marker. It forwards its input verbatim.
                 monitor=NSEvent.addLocalMonitorForEvents(matching:[.keyDown,.keyUp]) { [weak self] e in
                     MainActor.assumeIsolated { self?.appEvent(e) }; return e
@@ -163,8 +225,17 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
                 if monitor == nil { end("UNAVAILABLE") } else { note("arm") }
             }
         }
+        #if P2_DOCUMENT_FIXTURE
+        if let grant,grant.transport==P2Keypad.transport,status=="ARMED",monitor != nil,!keyCounts.posterBound,
+           let bound=enrolledPoster(grant) {
+            poster=bound; keyCounts.posterBound=true; dirty=true
+        }
+        #endif
         guard dirty, let grant else { return }
-        let data=grant.receipt(status:status,events:events,truncated:truncated)
+        var data=grant.receipt(status:status,events:events,truncated:truncated)
+        #if P2_DOCUMENT_FIXTURE
+        if grant.transport==P2Keypad.transport {data["keyDelivery"]=keyCounts.report(expected:grant.digest)}
+        #endif
         let output=folder.appendingPathComponent("marker-watch-response.json")
         do {
             try JSONSerialization.data(withJSONObject:data).write(to:output,options:.atomic)

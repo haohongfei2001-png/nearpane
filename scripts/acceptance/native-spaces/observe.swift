@@ -324,7 +324,7 @@ func fixturePictureCrop(card: AXUIElement, bounds: CGRect, text: String, host: p
             "fixtureNumber": number, "fixtureBirth": birth, "crop": coordinates]
 }
 
-func fixtureResult(_ args: [String], gate: (() -> Object?)? = nil) -> Object {
+func fixtureResult(_ args: [String], ordinaryKeys: Bool = false, gate: (() -> Object?)? = nil) -> Object {
     let cross = args.count == 12 && args[1] == "press-cross"
     guard args.count == 11 || cross, let host, let givenHost = Int32(args[2]), host.processIdentifier == givenHost,
           runningCodeHash(host.processIdentifier) == args[3], let fixturePID = Int32(args[4]),
@@ -440,8 +440,13 @@ func fixtureResult(_ args: [String], gate: (() -> Object?)? = nil) -> Object {
         let result = AXUIElementPerformAction(exact[0], kAXPressAction as CFString)
         return ["issued": true, "control": target, "axError": result.rawValue]
     }
-    guard args[1] == "marker", let marker = ProcessInfo.processInfo.environment["NP_TRIAL_MARKER"],
-          marker.utf8.count == 12, marker.hasPrefix("NP"), marker.dropFirst(2).allSatisfy({ $0.isHexDigit }),
+    func admittedMarker(_ marker:String)->Bool {
+        #if P2_DOCUMENT_FIXTURE
+        if ordinaryKeys { return P2Keypad.keys(marker) != nil && gate != nil }
+        #endif
+        return marker.utf8.count==12 && marker.hasPrefix("NP") && marker.dropFirst(2).allSatisfy{$0.isHexDigit}
+    }
+    guard args[1] == "marker", let marker = ProcessInfo.processInfo.environment["NP_TRIAL_MARKER"], admittedMarker(marker),
           NSWorkspace.shared.frontmostApplication?.processIdentifier == fixturePID else {
         return ["issued": false, "reason": "fixture not frontmost or invalid synthetic marker"]
     }
@@ -451,23 +456,32 @@ func fixtureResult(_ args: [String], gate: (() -> Object?)? = nil) -> Object {
           CFGetTypeID(editor) == AXUIElementGetTypeID(),
           value(editor as! AXUIElement, kAXRoleAttribute) as? String == "AXTextArea",
           let editorWindow = value(editor as! AXUIElement, kAXWindowAttribute), CFEqual(win, editorWindow),
-          CGPreflightPostEventAccess(), let source = CGEventSource(stateID: .privateState),
-          let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
-          let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else {
+          CGPreflightPostEventAccess(), let source = CGEventSource(stateID: .privateState) else {
         return ["issued": false, "reason": "exact AX window/editor or event permission missing"]
     }
-    let utf16 = Array(marker.utf16)
-    down.flags = []; up.flags = []
-    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+    // Single-window legacy callers retain their Unicode-payload event pair.
+    var payloadPair:(CGEvent,CGEvent)?
+    if !ordinaryKeys {
+        guard let down=CGEvent(keyboardEventSource:source,virtualKey:0,keyDown:true),
+              let up=CGEvent(keyboardEventSource:source,virtualKey:0,keyDown:false) else{return ["issued":false,"reason":"event creation failed"]}
+        let utf16=Array(marker.utf16)
+        for event in [down,up] {
+            event.flags=[]
+            event.keyboardSetUnicodeString(stringLength:utf16.count,unicodeString:utf16)
+        }
+        payloadPair=(down,up)
+    }
     var proof: Object = ["issued":true,"targetedOnly":true,"axFocusedWindow":number]
     if let raw = ProcessInfo.processInfo.environment["NP_TRIAL_MARKER_TAG"] {
         guard ProcessInfo.processInfo.environment["NP_W01_MARKER_WITNESS"] == "1",
               let tag = Int64(raw), tag > 0, String(tag) == raw else { return ["issued":false,"reason":"invalid fixture marker tag"] }
-        down.setIntegerValueField(.eventSourceUserData,value:tag)
-        up.setIntegerValueField(.eventSourceUserData,value:tag)
-        guard down.getIntegerValueField(.eventSourceUserData) == tag, up.getIntegerValueField(.eventSourceUserData) == tag else {
-            return ["issued":false,"reason":"could not bind both fixture marker events"]
+        if let pair=payloadPair {
+            for event in [pair.0,pair.1] {
+                event.setIntegerValueField(.eventSourceUserData,value:tag)
+                guard event.getIntegerValueField(.eventSourceUserData)==tag else {
+                    return ["issued":false,"reason":"could not bind both fixture marker events"]
+                }
+            }
         }
         proof["tagged"] = true
         proof["markerDigest"] = SHA256.hash(data:Data(marker.utf8)).map { String(format:"%02x",$0) }.joined()
@@ -498,10 +512,17 @@ func fixtureResult(_ args: [String], gate: (() -> Object?)? = nil) -> Object {
               let exactEditor=value(ax,kAXFocusedUIElementAttribute), CFEqual(exactEditor,editor) else {
             return ["issued":false,"reason":"fixture focus changed during sender registration"]
         }
+        #if P2_DOCUMENT_FIXTURE
+        if ordinaryKeys, let gate {
+            return p2PostDocumentKeys(marker,source:source,input:proof,fixture:fixturePID,birth:birth,path:dir,
+                                      session:session,intent:intent,tag:tag,target:number,gate:gate)
+        }
+        #endif
         proof["beforePost"] = ProcessInfo.processInfo.systemUptime
     }
     if let refusal=gate?() { return refusal }
-    down.postToPid(fixturePID); up.postToPid(fixturePID)
+    guard !ordinaryKeys,let pair=payloadPair else { return ["issued":false,"reason":"unsignedOrdinaryKeyEnrollment"] }
+    pair.0.postToPid(fixturePID); pair.1.postToPid(fixturePID)
     if proof["tagged"] as? Bool == true { proof["afterPost"] = ProcessInfo.processInfo.systemUptime }
     return proof
 }

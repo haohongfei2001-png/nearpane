@@ -137,6 +137,7 @@ func p2DocumentReport(_ request:P2Request) -> Object {
     result["numbers"]=numbers;result["axSHA256"]=hashes;result["focused"]=f.0 as Any? ?? NSNull();result["main"]=f.1 as Any? ?? NSNull()
     result["editorFocused"]=f.2;result["fileSlots"]=["A","B"]
     if request.mode=="read" {
+        result["screenRead"]=CGPreflightScreenCaptureAccess()
         let index=Sidebar(host,rows:rows)
         result["cards"]=numbers.map { n -> Bool in
             let id="current-desktop-window:\(pid):\(n)", nodes=index.controls[id] ?? []
@@ -149,7 +150,7 @@ func p2DocumentReport(_ request:P2Request) -> Object {
     guard ["press","marker"].contains(request.mode),let target=request.target,numbers.contains(target),hashes==request.digests,
           request.hid?.count==hardware.count else{return stop("unadmittedActionOrDocumentDigests")}
     let args=["observe",request.mode,String(request.hostPID),request.hostHash,String(pid),String(target),physical,code,request.display,String(request.space),String(born)]
-    var action=fixtureResult(args,gate:{
+    var action=fixtureResult(args,ordinaryKeys:request.mode=="marker",gate:{
         if changed(){return superseded()}
         guard birthMicroseconds(pid)==born,birthMicroseconds(request.hostPID)==hBirth,
               inventory()?.first(where:{$0["scope"] as? String==request.display})?["current"] as? UInt64==request.space,

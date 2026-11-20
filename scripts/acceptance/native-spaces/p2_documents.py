@@ -3,9 +3,13 @@ import hashlib
 import json
 import os
 import shutil
+import secrets
 import subprocess
+import struct
+import tempfile
 import time
 import uuid
+import zlib
 from pathlib import Path
 
 from acceptance import identity
@@ -70,6 +74,28 @@ def coherent(q, state, disk):
     return (q.get("status") == "READ" and state.get("pid") == q["registration"]["pid"]
             and state.get("birth") == q["registration"]["birth"] and state.get("numbers") == q["numbers"]
             and state.get("filesSaved") == [True, True] and q["axSHA256"] == state.get("sha256") == disk)
+
+
+def capture_dimensions(raw):
+    if not 45<=len(raw)<=8_000_000 or not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("singleWindowPNGUnavailable")
+    pos=8
+    size=None
+    image_data=False
+    while pos+12<=len(raw):
+        length,kind=struct.unpack(">I4s",raw[pos:pos+8])
+        end=pos+8+length
+        if end+4>len(raw) or zlib.crc32(raw[pos+4:end])!=int.from_bytes(raw[end:end+4],"big"):
+            break
+        if pos==8:
+            if kind!=b"IHDR" or length!=13:break
+            size=struct.unpack(">II",raw[pos+8:pos+16])
+        if kind==b"IDAT" and length>0:image_data=True
+        if kind==b"IEND" and length==0 and end+4==len(raw) and image_data and size:
+            if 80<=size[0]<=2048 and 60<=size[1]<=2048:return size
+            raise ValueError("fixtureImageDimensionsUnexpected")
+        pos=end+4
+    raise ValueError("incompleteSingleWindowPNG")
 
 
 def classify_read(q, state, disk, target, hashes, expect_focus):
@@ -181,6 +207,57 @@ class RegisteredRun:
         self.rec.log("P2-independent-document-read",trial=self.trial,stage=stage,confirmed=False,expectedSHA256=hashes,reads=recent,last=last)
         raise TrialStop("independent"+stage+"Unconfirmed","FAIL" if consistent_mismatches>=2 and focus else "UNKNOWN" if self.attempt else "BLOCKED")
 
+    def partial_readback(self, texts, marker):
+        lookups=[{digest((text+marker[:n]).encode()):n for n in range(len(marker)+1)} for text in texts]
+        samples=[]
+        for _ in range(2):
+            q=self.call("read")
+            check_hid(q,self.baseline)
+            state=json.loads(private_file(self.folder/"windows.json"))
+            files=[digest(private_file(self.folder/(s+".txt"),limit=4096)) for s in "AB"]
+            exact=state.get("session")==self.folder.name and coherent(q,state,files)
+            prefixes=[positions.get(d) for positions,d in zip(lookups,files)] if exact else [None,None]
+            samples.append(dict(clock=q.get("clock"),coherent=exact,fileSHA256=files,axSHA256=q.get("axSHA256"),
+                                selected=q.get("focused"),main=q.get("main"),editorFocused=q.get("editorFocused"),committedDigits=prefixes))
+            if len(samples)==1:time.sleep(.08)
+        self.rec.log("P2-partial-marker-readback",trial=self.trial,samples=samples)
+        stable=samples[0]["committedDigits"]==samples[1]["committedDigits"] and all(s["coherent"] for s in samples)
+        return "FAIL" if stable and None not in samples[0]["committedDigits"] else "UNKNOWN"
+
+    def capture_first(self,target,hashes):
+        proof={"status":"NOT_RUN","scope":"sole enrolled document window","target":target}
+        self.out["firstDocumentCapture"]=proof
+        def bound():
+            q=self.call("read",timeout=1.2)
+            check_hid(q,self.baseline)
+            state=json.loads(private_file(self.folder/"windows.json"))
+            files=[digest(private_file(self.folder/(s+".txt"),limit=4096)) for s in "AB"]
+            if not (q.get("screenRead") and state.get("session")==self.folder.name and classify_read(q,state,files,target,hashes,True)):
+                raise ValueError("exactSourceOrCapturePermissionUnavailable")
+            return dict(clock=q["clock"],pid=q["registration"]["pid"],birth=q["registration"]["birth"],
+                        hostBirth=q["hostBirth"],window=target,hid=q["hid"],fileSHA256=files)
+        try:
+            if not self.initial.get("observerScreenRead"):
+                raise ValueError("screenRecordingPreflightUnavailable")
+            before=bound()
+            with tempfile.TemporaryDirectory(prefix=".doc-crop.",dir=self.folder) as tmp:
+                png=Path(tmp)/"source.png"
+                delivery=subprocess.run(["/usr/sbin/screencapture","-x","-o","-t","png","-l"+str(target),str(png)],
+                                        capture_output=True,timeout=1.2)
+                after=bound()
+                if delivery.returncode or not png.is_file() or any(before[k]!=after[k] for k in before if k!="clock"):
+                    raise ValueError("captureOrIndependentRecheckUnavailable")
+                raw=png.read_bytes()
+                width,height=capture_dimensions(raw)
+                filename="first-registered-document.png"
+                with (self.rec.output/filename).open("xb") as out:out.write(raw)
+                proof.update(status="CAPTURED",file=filename,sha256=digest(raw),width=width,height=height,before=before,after=after)
+        except Superseded:
+            proof["reason"]="userSuperseded"
+            raise
+        except (ValueError,OSError,KeyError,subprocess.SubprocessError) as ex:
+            proof["reason"]=str(ex)[:120] if isinstance(ex,ValueError) else type(ex).__name__
+
     def seal(self):
         if self.watch is None:
             return
@@ -189,7 +266,7 @@ class RegisteredRun:
         result=watch.seal()
         self.rec.write(f"marker-witness-{self.trial:02}.json",result)
         self.rec.log("P2-fixture-event-closure",trial=self.trial,intent=watch.identity["intent"],status=result["status"],
-                     closureConfirmed=result["closureConfirmed"],steps=[v["step"] for v in result["events"]])
+                     closureConfirmed=result["closureConfirmed"],receiverDisposition=result.get("receiverDisposition"),steps=[v["step"] for v in result["events"]])
         return result
 
     def trials(self, reader):
@@ -198,14 +275,15 @@ class RegisteredRun:
         first=self.read_until(None,hashes,"Initial",ready=True,seconds=6)
         numbers=self.binding["numbers"]
         first_slot=1 if first.get("focused")==numbers[0] else 0
+        unique_tokens=secrets.SystemRandom().sample(range(10**12),10)
         for turn in range(10):
             self.trial=turn+1; self.attempt=None
             slot=(first_slot+turn)%2; n=numbers[slot]
             before=self.read_until(None,hashes,"BeforeSelection",ready=True)
             require(before.get("focused")!=n,"targetAlreadyFocusedBeforeNewSelection")
             target={"target":n,"digests":hashes,"allowedFront":self.initial.get("frontmostPID") if turn==0 else self.binding["pid"]}
-            intent=str(uuid.uuid4()); marker="NP"+uuid.uuid4().hex[:10]
-            self.watch=MarkerWatch(self.folder,self.folder.name,intent,self.binding["pid"],self.binding["birth"],numbers,n,marker,reader)
+            intent=str(uuid.uuid4()); marker=f"{unique_tokens[turn]:012d}"
+            self.watch=MarkerWatch(self.folder,self.folder.name,intent,self.binding["pid"],self.binding["birth"],numbers,n,marker,reader,transport="pidNumericKeypad")
             require(self.watch.arm(),"postReceiverEnrollmentUnavailable")
             attempt=dict(id=intent,kind="window",trial=self.trial,target=n,sibling=numbers[1-slot],status="UNKNOWN",markerIssued=None)
             self.attempt=attempt; self.rec.attempts.append(attempt);self.out["attempts"].append(attempt)
@@ -221,19 +299,25 @@ class RegisteredRun:
                      NP_TRIAL_MARKER_SESSION=self.folder.name,NP_TRIAL_MARKER_INTENT=intent,NP_TRIAL_MARKER_READER=reader)
             require(time.monotonic()<self.watch.grant["expires"],"markerEnrollmentExpired")
             self.watch.submitted()
-            sent=self.call("marker",target,env)
+            sent=self.call("marker",target,env,timeout=min(11,max(0.1,self.watch.grant["expires"]-time.monotonic())))
             tagged=self.watch.dispatched(sent)
             attempt["markerIssued"]=sent.get("issued")
             self.rec.log("pid-targeted-marker",intent=intent,result=sent)
             check_hid(sent,self.baseline)
             require(sent.get("issued") is True,"targetedMarkerNotAdmitted","UNKNOWN")
+            if sent.get("complete") is not True:
+                partial=self.partial_readback(texts,marker)
+                receipt=self.seal()
+                attempt["receiverDisposition"]=receipt.get("receiverDisposition")
+                raise TrialStop("ordinaryKeyDeliveryIncomplete:"+str(sent.get("reason")),partial)
             texts[slot]+=marker
             hashes=[digest(t.encode()) for t in texts]
             self.read_until(n,hashes,"Input",focus=True,seconds=2.5)
             receipt=self.seal()
-            require(tagged and receipt["closureConfirmed"] and not receipt["truncated"],"fixtureMarkerProvenanceIncomplete","UNKNOWN")
+            require(tagged and receipt.get("receiverDisposition")=="COMPLETE_REGISTERED_SEQUENCE" and receipt["closureConfirmed"] and not receipt["truncated"],"fixtureMarkerProvenanceIncomplete","UNKNOWN")
             attempt.update(status="PASS",siblingUnchanged=True)
             self.out["passes"]+=1
+            if self.trial==1:self.capture_first(n,hashes)
         self.out.update(status="PASS",reason="tenExactAlternatingWindowsAndInputs")
 
     def cleanup(self):

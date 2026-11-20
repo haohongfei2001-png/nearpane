@@ -6,6 +6,8 @@ import AppKit
     let file: FileHandle, url: URL, seed: String
     var saved = false
     private var previous: String
+    private var currentIntent: String?
+    private var markerBase = ""
     init?(folder: URL, slot: Int, session: String) {
         guard (0..<2).contains(slot), UUID(uuidString:session) != nil, folder.lastPathComponent == session else { return nil }
         let kit = folder.deletingLastPathComponent()
@@ -31,8 +33,10 @@ import AppKit
     func textDidChange(_ notification: Notification) {
         guard let editor=notification.object as? NSTextView else { return }
         let text=editor.string
-        guard text.utf8.count <= 4096, text.hasPrefix(previous),
-              FieldMarkerWitness.active?.enrolledDocumentEdit(String(text.dropFirst(previous.count)))==true else { saved=false; return }
+        guard let witness=FieldMarkerWitness.active, let intent=witness.currentDocumentIntent else { saved=false; return }
+        if currentIntent != intent { currentIntent=intent; markerBase=previous }
+        guard text.utf8.count<=4096, text.hasPrefix(previous), text.hasPrefix(markerBase),
+              witness.enrolledDocumentEdit(String(text.dropFirst(markerBase.count))) else { saved=false; return }
         let data=Data(text.utf8)
         do {
             try file.seek(toOffset:0)

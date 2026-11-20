@@ -75,7 +75,7 @@ class DocumentsTests(unittest.TestCase):
             if [p2.digest(v.encode()) for v in docs]!=hashes or kwargs.get("focus") and focused!=target:
                 raise p2.TrialStop("independent"+stage+"Unconfirmed","FAIL")
             return dict(focused=focused,cards=[True,True])
-        def dispatch(mode,target,env=None):
+        def dispatch(mode,target,env=None,timeout=None):
             nonlocal focused
             trial=self.run.trial
             calls.append((mode,target["target"]))
@@ -87,17 +87,17 @@ class DocumentsTests(unittest.TestCase):
                 markers.append(marker)
                 if drop!=trial:
                     docs[numbers.index(focused)]+=marker
-                reply=dict(issued=True,tagged=True,markerDigest=p2.digest(marker.encode()),axFocusedWindow=focused)
+                reply=dict(issued=True,complete=True,tagged=True,markerDigest=p2.digest(marker.encode()),axFocusedWindow=focused)
             if user_after==(mode,trial):
                 reply["userSuperseded"]=True
             return reply
-        def watch(*args):
+        def watch(*args,**kwargs):
             item=Mock()
             item.identity={"intent":args[2]}
             item.grant={"tag":411, "expires":float("inf")}
             item.arm.return_value=armed
             item.dispatched.return_value=True
-            item.seal.return_value=dict(status="SEALED",closureConfirmed=True,truncated=False,events=[])
+            item.seal.return_value=dict(status="SEALED",closureConfirmed=True,truncated=False,events=[],receiverDisposition="COMPLETE_REGISTERED_SEQUENCE")
             return item
         with patch.object(p2,"MarkerWatch",side_effect=watch),patch.object(self.run,"call",side_effect=dispatch),patch.object(self.run,"read_until",side_effect=proof):
             self.run.trials("f"*40)
@@ -141,6 +141,47 @@ class DocumentsTests(unittest.TestCase):
         self.assertEqual(self.run.out["cleanup"]["status"],"DEFERRED_UNTIL_INACTIVE")
         self.assertEqual(query.call_args.args,("exit",))
         self.run.launcher.terminate.assert_not_called()
+
+    def test_no_repost_when_first_normal_pair_has_no_receiver(self):
+        numbers=self.numbers
+        replies=[dict(issued=True,axError=0),dict(issued=True,complete=False,reason="receiverPairUnconfirmed",
+                                                postedDown=1,postedUp=1)]
+        w=Mock(identity={"intent":"i"},grant={"tag":1,"expires":float("inf")})
+        w.arm.return_value=True
+        w.seal.return_value=dict(status="SEALED",closureConfirmed=True,events=[],receiverDisposition="NO_APPKIT_KEY_SEEN_DURING_REGISTERED_DELIVERY")
+        with patch.object(p2,"MarkerWatch",return_value=w),patch.object(self.run,"read_until",return_value={"focused":None}), \
+             patch.object(self.run,"call",side_effect=replies) as calls,patch.object(self.run,"partial_readback",return_value="FAIL"):
+            with self.assertRaisesRegex(p2.TrialStop,"receiverPairUnconfirmed"):self.run.trials("f"*40)
+        self.assertEqual([c.args[0] for c in calls.call_args_list],["press","marker"])
+        self.assertEqual(self.r.attempts[0]["receiverDisposition"],"NO_APPKIT_KEY_SEEN_DURING_REGISTERED_DELIVERY")
+
+    def test_single_source_screenshot_only_retained_after_exact_readback(self):
+        self.initial["observerScreenRead"]=True
+        files=[p2.digest(v.encode()) for v in "AB"]
+        for c in "AB":
+            f=self.folder/(c+".txt");f.write_text(c);f.chmod(0o600)
+        state={"session":self.folder.name,"pid":91,"birth":1300,"numbers":self.numbers,"filesSaved":[True,True],"sha256":files,
+               "key":317,"main":317,"editorsFocused":[True,False]}
+        f=self.folder/"windows.json";f.write_text(json.dumps(state));f.chmod(0o600)
+        self.r.output=self.folder
+        q=dict(status="READ",screenRead=True,registration={"pid":91,"birth":1300},hostBirth=11,clock=1,hid=[0]*13,
+               axSHA256=files,focused=317,main=317,editorFocused=True,numbers=self.numbers)
+        import struct,zlib
+        def chunk(kind,data):
+            return struct.pack(">I",len(data))+kind+data+struct.pack(">I",zlib.crc32(kind+data))
+        image=(b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">II5B",320,160,8,0,0,0,0))+
+               chunk(b"IDAT",zlib.compress(bytes(321*160)))+chunk(b"IEND",b""))
+        with self.assertRaises(ValueError):p2.capture_dimensions(image[:-4])
+        def capture(argv,**_):
+            self.assertEqual(argv[:-1],["/usr/sbin/screencapture","-x","-o","-t","png","-l317"])
+            Path(argv[-1]).write_bytes(image)
+            return Mock(returncode=0)
+        with patch.object(self.run,"call",side_effect=[q,q|{"hid":[1]+[0]*12}]),patch.object(subprocess,"run",side_effect=capture):
+            with self.assertRaises(p2.Superseded):self.run.capture_first(317,files)
+        self.assertFalse((self.folder/"first-registered-document.png").exists())
+        with patch.object(self.run,"call",side_effect=[q,q|{"clock":2}]),patch.object(subprocess,"run",side_effect=capture):
+            self.run.capture_first(317,files)
+        self.assertEqual(self.run.out["firstDocumentCapture"]["status"],"CAPTURED")
 
     def test_stale_count_or_one_error_cannot_satisfy_two_consecutive_disk_and_ax_reads(self):
         q={"status":"READ","registration":{"pid":91,"birth":1300},"numbers":self.numbers,

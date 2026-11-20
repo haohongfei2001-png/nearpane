@@ -15,11 +15,16 @@ TERMINAL = {"SEALED", "EXPIRED", "EXITED", "UNAVAILABLE"}
 
 
 class MarkerWatch:
-    def __init__(self, folder, session, intent, pid, birth, numbers, target, marker, reader_hash):
+    def __init__(self, folder, session, intent, pid, birth, numbers, target, marker, reader_hash, *, transport=None):
         self.folder = folder
         self.identity = dict(session=session, intent=intent, pid=pid, birth=birth, numbers=numbers, target=target,
                              digest=hashlib.sha256(marker.encode()).hexdigest(), readerHash=reader_hash)
         self.grant = {**self.identity, "tag": 1 + secrets.randbits(62), "expires": time.monotonic() + 14}
+        self.transport = transport
+        if transport:
+            if transport != "pidNumericKeypad":
+                raise ValueError("unknown registered marker transport")
+            self.grant["transport"]=transport
         self.last = None
         self.sender = {"status":"NOT_ATTEMPTED"}
 
@@ -33,6 +38,12 @@ class MarkerWatch:
                   0 < reply["beforePost"] <= reply["afterPost"] < self.grant["expires"])
         self.sender = ({"status":"TAGGED_POST", "beforePost":reply["beforePost"], "afterPost":reply["afterPost"]} if tagged else
                        {"status":"REFUSED" if reply.get("issued") is False else "TAG_UNCONFIRMED"})
+        if self.transport:
+            fields=("transport","complete","reason","senderPID","senderBirth","senderAliveUntil","firstReceiverAck","postedDown","postedUp")
+            self.sender.update({k:reply[k] for k in fields if k in reply})
+            if tagged and reply.get("complete") is not True:
+                self.sender["status"]="PARTIAL_TAGGED_POST"
+            tagged=tagged and reply.get("transport")==self.transport and reply.get("complete") is True
         return tagged
 
     def command(self, mode):
@@ -48,10 +59,18 @@ class MarkerWatch:
 
     def validate(self, value):
         if (not isinstance(value, dict) or any(value.get(k) != v for k, v in self.identity.items()) or
-                set(value) != set(self.identity) | {"status", "events", "truncated"} or
+                set(value) != set(self.identity) | {"status", "events", "truncated"} | ({"keyDelivery"} if self.transport else set()) or
                 value.get("status") not in ("ARMED", "SEALED", "EXPIRED", "EXITED", "UNAVAILABLE") or
                 type(value.get("truncated")) is not bool or not isinstance(value.get("events"), list) or len(value["events"]) > 64):
             return None
+        if self.transport:
+            counts=value["keyDelivery"]
+            integer_keys={"attributedDown","attributedUp","unattributedDown","unattributedUp"}
+            flags={"sequenceMatches","physicalSuperseded","overflow","posterBound"}
+            if (not isinstance(counts,dict) or set(counts)!=integer_keys | flags | {"mode"} or counts["mode"]!=self.transport or
+                    any(type(counts[x]) is not int or not 0<=counts[x]<=96 for x in integer_keys) or
+                    any(type(counts[x]) is not bool for x in flags)):
+                return None
         numbers = self.identity["numbers"]
         previous = 0
         for e in value["events"]:
@@ -68,7 +87,7 @@ class MarkerWatch:
             for k in ("eventWindow", "receiver"):
                 if k in e and (type(e[k]) is not int or e[k] not in [-1,0,*numbers]):
                     return None
-            if "attribution" in e and e["attribution"] not in ("eventTag","signedSenderAndDigest"):
+            if "attribution" in e and e["attribution"] not in ("eventTag","signedSenderAndDigest","signedLiveSender"):
                 return None
             if "markerMatches" in e and type(e["markerMatches"]) is not bool:
                 return None
@@ -100,5 +119,18 @@ class MarkerWatch:
         closed = self.wait(TERMINAL)
         result = dict(closed or self.last or {**self.identity,"status":"NO_ACK","events":[],"truncated":False})
         result["sender"] = self.sender
+        if self.transport:
+            c=result.get("keyDelivery")
+            if not c: outcome="UNKNOWN"
+            elif c["physicalSuperseded"]:outcome="SUPERSEDED"
+            elif not c["posterBound"]:outcome="LIVE_SENDER_ENROLLMENT_UNCONFIRMED"
+            elif c["overflow"]:outcome="OVERFLOW"
+            elif c["attributedDown"]==c["attributedUp"]==12 and c["sequenceMatches"]:outcome="COMPLETE_REGISTERED_SEQUENCE"
+            elif c["attributedDown"] or c["attributedUp"]:outcome="PARTIAL_REGISTERED_SEQUENCE"
+            elif c["unattributedDown"] or c["unattributedUp"]:outcome="APP_SAW_ONLY_UNATTRIBUTED_KEYS"
+            elif any(e["step"].startswith(("windowKey","editorKey")) for e in result["events"]):
+                outcome="APPKIT_DISPATCH_WITHOUT_LOCAL_MONITOR"
+            else:outcome="NO_APPKIT_KEY_SEEN_DURING_REGISTERED_DELIVERY" if closed and self.sender.get("postedDown",0)>0 else "UNKNOWN"
+            result["receiverDisposition"]=outcome
         result["closureConfirmed"] = bool(closed and closed["status"] == "SEALED" and closed["events"] and closed["events"][-1]["step"] == "end")
         return result

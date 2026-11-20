@@ -47,6 +47,31 @@ class MarkerWitnessTests(unittest.TestCase):
         self.assertFalse(result["closureConfirmed"])
         self.assertEqual((result["status"],result["sender"]["status"],result["events"]),("NO_ACK","TAGGED_POST",[]))
 
+    def test_ordinary_keys_distinguish_no_app_event_unattributed_partial_and_complete(self):
+        w=MarkerWatch(self.folder,str(uuid.uuid4()),str(uuid.uuid4()),71,900,[321,322],322,"012345678912","1"*40,
+                      transport="pidNumericKeypad")
+        base=dict(mode="pidNumericKeypad",posterBound=True,attributedDown=0,attributedUp=0,
+                  unattributedDown=0,unattributedUp=0,sequenceMatches=False,physicalSuperseded=False,overflow=False)
+        end=dict(step="end",clock=1,key=322,main=322,active=True,marked=[False,False],responders=[True,True])
+        w.sender={"postedDown":1}
+        for change,expect in [({},"NO_APPKIT_KEY_SEEN_DURING_REGISTERED_DELIVERY"),({"unattributedDown":1},"APP_SAW_ONLY_UNATTRIBUTED_KEYS"),
+                              ({"attributedDown":1},"PARTIAL_REGISTERED_SEQUENCE"),({"posterBound":False},"LIVE_SENDER_ENROLLMENT_UNCONFIRMED"),
+                              ({"attributedDown":12,"attributedUp":12,"sequenceMatches":True},"COMPLETE_REGISTERED_SEQUENCE"),
+                              ({"physicalSuperseded":True},"SUPERSEDED")]:
+            valid={**w.identity,"status":"SEALED","events":[end],"truncated":False,"keyDelivery":base|change}
+            self.assertEqual(w.validate(valid),valid)
+            with patch.object(w,"wait",return_value=valid):
+                self.assertEqual(w.seal()["receiverDisposition"],expect)
+            self.assertIsNone(w.validate(valid|{"keyDelivery":dict(base,rawText="unexpected")}))
+
+    def test_real_quartz_key_construction_without_posting(self):
+        src=Path(__file__).resolve().parent
+        binary=self.folder/"pure-keypad"
+        subprocess.run(["xcrun","swiftc",src/"p2-keypad.swift",src/"test_p2_keypad.swift","-o",binary],check=True,timeout=45)
+        result=json.loads(subprocess.check_output([binary],timeout=5))
+        self.assertTrue(result["sequenceMatches"])
+        self.assertEqual((result["attributedDown"],result["attributedUp"],result["unattributedDown"]),(12,12,1))
+
     def test_in_memory_quartz_tag_and_digest(self):
         root=Path(__file__).resolve().parent
         binary=self.folder/"pure-marker"

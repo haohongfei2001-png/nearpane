@@ -148,3 +148,9 @@ NP_P2_DOCUMENT_KIT="$document_kit" python3 "$src/installed_profile.py" --p0-focu
 `full_kit`、`workspace`、`space_id` 和最后三个参数沿用同一已登记租约的入口，`output` 为新的输出目录。Launch Services 在后台新开同一 App 的两个普通文件窗。签名、进程生辰、两个 AXDocument/CGID 和每个编辑器均与夹具绑定后才允许向正式侧栏发起选窗。每轮标记随机，单次定向投递，前后连续两次交叉检查两个文件的 AX、AppKit 和落盘摘要。首次不一致即终止后续试次。新的物理按键、点击或拖动会使验收标记为 `userSuperseded` 并释放焦点。若用户停留在夹具内，夹具等失去前台后才关闭。
 
 `native/controlled-window/registered-documents.json` 记录 10 次是否完成、签名、登记身份与清理。`actions.jsonl` 记录每个意图、真实 AXPress 和定向事件是否已发出，以及两份文件各自的独立读回。`marker-witness-NN.json` 记录该随机标记的 AppKit 事件来源。`profile/profile-session.json` 记录日常资料恢复；夹具准备、正式 Host 选窗和其他应用的覆盖分别判定。
+
+#### W01 的 PID 定向键盘收据
+
+双文档标记由 12 个随机数字组成，十个标记互异。签名发送进程在每轮内持有同一私有 Quartz 事件源。夹具从其内核生辰和签名确认发送者后，发送者对已核实的 PID、CGID 和系统焦点投递正常数字小键盘的按下/抬起事件。每对按键都在同一夹具的 AppKit 收据确认后继续；发生拒绝或超时即封存该轮。键码对应的实际输入继续经过 NSTextView 与输入法。
+
+`marker-witness-NN.json` 的 `receiverDisposition` 和 `keyDelivery` 区分夹具内没有看到按键、看到无法归属的按键、仅收到部分已归属事件和确认完整序列。校验继续使用两个文件的 AX、AppKit 和落盘摘要。首个确认的输入另行尝试保存 `first-registered-document.png`；截图前后复核同一进程/窗口、物理输入计数和两个文件的摘要。收据中的 `firstDocumentCapture` 记录是否成功。
