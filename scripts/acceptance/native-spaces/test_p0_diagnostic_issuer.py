@@ -81,17 +81,51 @@ class IsolatedIssuerTests(unittest.TestCase):
         open_lease.assert_not_called()
         log.assert_called_once()
 
-    def test_stage_hid_change_refuses_before_writing_and_untouched_loan_uses_readback(self):
+    def test_stage_hid_replays_the_eight_counters_and_checks_every_reader_position(self):
+        baseline=[5759,70,0,3049,136752,19137,35,0]  # drift-materialized original, held and final
+        with tempfile.TemporaryDirectory() as tmp:
+            loan=stage.StageLoan.__new__(stage.StageLoan)
+            loan.output=Path(tmp)
+            for reader,size in (("before",8),("stage",5),("after",8)):
+                for position in range(size):
+                    case=f"{reader}-{position}"
+                    with self.subTest(case=case):
+                        values={"before":baseline[:],"stage":baseline[:5],"after":baseline[:]}
+                        values[reader][position]+=1
+                        loan.read_state=Mock(side_effect=[{"hid":values["before"],"uptime":1},{"hid":values["after"],"uptime":2}])
+                        workspace=Mock()
+                        workspace.hardware.return_value=values["stage"]
+                        with self.assertRaisesRegex(ValueError,"physical input changed"):
+                            loan.confirm_hid(workspace,baseline,case)
+                        evidence=json.loads((loan.output/(case+"-hid.json")).read_bytes())
+                        self.assertEqual(evidence["status"],"CHANGED")
+                        field=stage.P0_HID[position]
+                        self.assertEqual(evidence["stageChanged"] if reader=="stage" else evidence["p0Changed"],[field])
+            loan.read_state=Mock(side_effect=[{"hid":baseline,"uptime":281684.6605901667},{"hid":baseline,"uptime":281688.0120485417}])
+            workspace=Mock()
+            workspace.hardware.return_value=baseline[:5]
+            loan.confirm_hid(workspace,baseline,"materialized-readback")
+            accepted=json.loads((loan.output/"materialized-readback-hid.json").read_bytes())
+            self.assertEqual(accepted["status"],"CONFIRMED")
+            self.assertEqual((accepted["original"],accepted["before"]["hid"],accepted["after"]["hid"]),(baseline,baseline,baseline))
+            self.assertEqual(accepted["stage"],baseline[:5])
+
+    def test_stage_hid_schema_refuses_before_writing_and_untouched_loan_uses_readback(self):
         loan=stage.StageLoan.__new__(stage.StageLoan)
         loan.original=True
         loan.transaction=None
         loan.kit=Path("/private/tmp/kit")
         ws=Mock(kit=loan.kit)
-        ws.hardware.return_value=[2]
-        with patch.object(stage.preview,"lease_for"),patch.object(stage,"empty_system_desktop") as empty:
-            with self.assertRaises(ValueError):
-                loan.borrow(ws,5095,[1])
-            empty.assert_not_called()
+        baseline=[0]*8
+        with tempfile.TemporaryDirectory() as tmp:
+            loan.output=Path(tmp)
+            loan.read_state=Mock(side_effect=[{"hid":baseline,"uptime":1},{"hid":baseline[:5],"uptime":2}])
+            ws.hardware.return_value=baseline[:5]
+            with patch.object(stage.preview,"lease_for"),patch.object(stage,"empty_system_desktop") as empty:
+                with self.assertRaisesRegex(ValueError,"incomplete physical input"):
+                    loan.borrow(ws,5095,baseline)
+                empty.assert_not_called()
+            self.assertEqual(json.loads((loan.output/"before-empty-check-hid.json").read_bytes())["status"],"UNKNOWN")
         with patch.object(stage.preview,"states",return_value=[{"state":True}]):
             self.assertEqual(loan.restore()["status"],"PASS")
 

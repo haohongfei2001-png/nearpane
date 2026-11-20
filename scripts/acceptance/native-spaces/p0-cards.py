@@ -867,7 +867,7 @@ def run(args):
                 require((initial['frontPID'],initial['focusedNumber'],initial['topology'],initial['hid'])==(held['pid'],held['number'],held['topology'],held['hid']),'original focus or user input changed at admission')
             if issuer:
                 from p0_diagnostic_stage import StageLoan
-                stage_loan=StageLoan(getattr(args,"stage_kit",None) or args.kit,out,caps[-1])
+                stage_loan=StageLoan(getattr(args,"stage_kit",None) or args.kit,out,caps[-1],read_state=state)
                 stage_loan.existing(args,initial,log)
             user=initial['topology'];user_space=user['current'];row=next(s for s in user['records'] if s['id']==user_space)
             require(row['type'] in (0,4),'unsupported type for original foreground Space')
