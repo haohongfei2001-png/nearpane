@@ -196,7 +196,7 @@
   "P2": {
     "status": "UNKNOWN",
     "qualifiedTwoWindowIdentity": "PASS",
-    "installedTypingMarkerCount": 0,
+    "installedTypingMarkerCount": 1,
     "mostRecentFormalAXPresses": 1,
     "mostRecentPressAccepted": true,
     "focusReadback": "UNKNOWN",
@@ -207,7 +207,28 @@
       "pressIssued": false,
       "inputMarkers": 0,
       "evidence": "same-space-focus/distinct-read-attempt/W01-system-documents.json"
-    }
+    },
+    "exactFocusAfterAcceptedPress": "OBSERVED on one test before a synthetic marker was allowed",
+    "markerReadback": "NO_CONFIRMED_INPUT",
+    "mostRecentWitnessedExtraDialog": "same-space-focus/bounded-enrollment/diagnosis.json",
+    "readyMarkerAttempt": "same-space-focus/ready-marker-attempt/W01-system-documents.json",
+    "latestRealDocument": {
+      "presses": 0,
+      "confirmedMarkers": 0,
+      "status": "BLOCKED",
+      "expandedAXWindowCount": 4,
+      "unrelatedDialogInFreshTestTextEdit": true,
+      "cleanupIndependent": "same-space-focus/bounded-enrollment/recovery-kernel.json"
+    },
+    "controlledFixture": {
+      "confirmedCorrectWithUnchangedSibling": 1,
+      "attempted": 2,
+      "expectedTrials": 10,
+      "reason": "Second target became key/main and received a PID-directed event request. Its document remained empty.",
+      "status": "FAIL",
+      "evidence": "same-space-focus/owned-two-editor/keyboard-readback.json"
+    },
+    "realTextEditMarkers": 0
   },
   "P3": {
     "status": "BLOCKED",
@@ -260,7 +281,7 @@
     },
     "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
     "nativePython": {
-      "ran": 168,
+      "ran": 178,
       "skipped": 6,
       "failed": 0
     },

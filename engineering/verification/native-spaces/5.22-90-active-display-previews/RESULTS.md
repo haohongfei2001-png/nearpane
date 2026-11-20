@@ -21,7 +21,11 @@ Nearpane 5.22（90）在 macOS 27.0（26A428）、一块 1470 × 956 pt 显示�
 
 **侧栏归属。** 当前安装包在台前调度开启时保留三项工具，实测 0 张窗口卡、0 条采集流。台前调度关闭后，四轮都确认初始桌面为零卡，打开两扇普通窗口后为两卡，窗口退出后归零。上一签名候选在两个真实桌面之间验证了有窗 A → 空 B → 原 A，对应 2 → 0 → 2。物理三指滑动中逐帧表现、两块显示器、双窗原生 Split View 尚待验收。系统调度中心展开动画与台前调度的结果分别记录。[台前调度开启](physical-12/installed-stage-manager.json) · [本轮日常设置恢复](physical-13/lease.json) · [两个桌面间的实际读回](physical-05/paired-preview.json)
 
-**精确焦点。** 对两份全新 TextEdit 文件执行了 1 次正式侧栏按压，收到系统回执。随后的输入前核验未能确认目标，提交键盘标记 0 次。之后独立验证两扇窗口均属于原测试文件，正常退出该测试进程，两次内核读回均确认进程已退出。两张更早的测试桌面 5094、5095 仍待回收，当前为 5095，原桌面 4、6 保留。[选窗记录](same-space-focus/W01-system-documents.json) · [夹具退出](same-space-focus/recovery-kernel.json) · [桌面清单](physical-12/desktop-readback.json)
+**精确焦点。** 普通 AppKit 编辑器夹具的第一次正式选窗和键盘标记落入 A，B 保持空白。第二次选择后 B 已是 key/main，独立标记投递返回已发出，最后 B 仍为空，A 的摘要也没有变化。因此完整的 10 次合同未通过。[两次输入和最终文档摘要](same-space-focus/owned-two-editor/keyboard-readback.json)
+
+**TextEdit。** 对两份全新 TextEdit 文件执行了 1 次正式侧栏按压，收到系统回执。随后的输入前核验未能确认目标，提交键盘标记 0 次。之后独立验证两扇窗口均属于原测试文件，正常退出该测试进程，两次内核读回均确认进程已退出。新的两窗试验在正式控件稳定后收到了按压回执；两次系统读回确认目标焦点，发标记前 AX 窗口数从 2 变成 4，输入被中止。在另一对新文件上实际复制了 4 个 AX 引用，额外项中有一个属于测试 TextEdit 的独立对话框，窗口号与两份文档均不同。未读对话框标题或正文。之后两扇临时文档再次独立验证并正常退出。这一对话框的身份只适用于最后一轮。[按压后读回](same-space-focus/ready-marker-attempt/W01-system-documents.json) · [额外对话框](same-space-focus/bounded-enrollment/diagnosis.json)
+
+两张更早的测试桌面 5094、5095 仍待回收，当前为 5095，原桌面 4、6 保留。[选窗记录](same-space-focus/W01-system-documents.json) · [夹具退出](same-space-focus/recovery-kernel.json) · [桌面清单](physical-12/desktop-readback.json)
 
 **安装、回退与验证。** 当前签名 ZIP 的 SHA-256 为 `a630316f845b90525bd158e64f4eac633a473b0ab47773453e43b3433bd841a4`。上一签名候选为 `32b9f92`。两包均在原 Draft 附件中。从 GitHub 完整下载当前包的 25,241,606 字节，SHA-256 再次匹配。[下载校验](physical-12/github-binary-readback.json) 安装和归档的 248 项逐一一致，系统登记一份 Nearpane，三项已有授权在正常启动的 Host 内读回为允许。560 项 Swift 测试和候选原生 CI 均通过。发行暂存副本的 13 个二进制均有 Developer ID 安全时间戳，公证及干净设备验收待测。PR #15 保持 Draft。[候选和回退](physical-12/candidate.json) · [安装核验](physical-12/archive-installed.json) · [权限](physical-12/permissions.json) · [签名](physical-12/distribution-staging/result.json) · [原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44786730117)
 
