@@ -302,6 +302,12 @@ static void emit(NSDictionary *report) {
 #import <Security/Security.h>
 // Metadata-only, per-Space forward inventory. Unassigned windows elsewhere do not
 // establish occupancy here. Unknown members on the requested desktop remain blocking.
+CFArrayRef NPContractPublicWindowNumbers(void) {
+    @autoreleasepool { @try {
+        return CFBridgingRetain(windowNumbers(kCGWindowListOptionAll).allObjects);
+    } @catch (NSException *exception) { return NULL; } }
+}
+
 static NSArray *contractTopology(NSArray *inventory) {
     need(inventory.count == 1, @"one physical display required");
     NSDictionary *scope = inventory[0];

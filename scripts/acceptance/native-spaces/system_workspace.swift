@@ -154,20 +154,37 @@ func mouseReorder(_ tiles: Tiles, from: Int, to: Int, _ r: WorkspaceRequest) thr
     }
     usleep(250_000)
 }
-func requireEmpty(_ n: UInt64, host: pid_t) throws {
-    let report = NPContractMemberReport([NSNumber(value:n)] as CFArray, host) as? [String:Any]
-    guard let row=report?[String(n)] as? [String:Any], row["unresolved"] as? Int == 0,
-          row["otherMembers"] as? Int == 0, let members=row["ordinary"] as? [[String:Any]], members.isEmpty else {
-        let data = try JSONSerialization.data(withJSONObject:report ?? [:],options:.sortedKeys)
-        throw Refusal("WindowServer could not establish an empty desktop: "+String(decoding:data,as:UTF8.self))
+func publicWindowNumbers() throws -> Set<UInt32> {
+    guard let numbers=NPContractPublicWindowNumbers() as? [UInt32], (1...8192).contains(numbers.count) else {
+        throw Refusal("public WindowServer number inventory unavailable")
     }
+    return Set(numbers)
 }
-func perform(_ r: WorkspaceRequest, issued: inout Bool) throws {
+func requireEmpty(_ n: UInt64, host: pid_t, beforeOverview: Set<UInt32>? = nil) throws -> [String:Any]? {
+    let report = NPContractMemberReport([NSNumber(value:n)] as CFArray, host) as? [String:Any]
+    if let row=report?[String(n)] as? [String:Any], row["unresolved"] as? Int == 0,
+       row["otherMembers"] as? Int == 0, let members=row["ordinary"] as? [[String:Any]] {
+        if members.isEmpty {return nil}
+        // The authenticated system overview creates a normal-layer compositing window.
+        // The target had zero ordinary windows immediately before this invocation opened
+        // Mission Control. Only a single newly allocated, Apple-signed system surface qualifies.
+        if let beforeOverview, members.count==1, let member=members.first,
+           let pid=member["pid"] as? Int32, let number=member["number"] as? UInt32,
+           !beforeOverview.contains(number), try overviewVisible(), overviewHost(pid)=="com.apple.WindowManager" {
+            return ["pid":pid,"number":number,"owner":"com.apple.WindowManager","newSinceOverview":true,"otherOrdinary":0]
+        }
+    }
+    let data = try JSONSerialization.data(withJSONObject:report ?? [:],options:.sortedKeys)
+    throw Refusal("WindowServer could not establish an empty desktop: "+String(decoding:data,as:UTF8.self))
+}
+func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any]) throws {
     try guardState(r)
-    guard let uuid=UUID(uuidString:r.display), !r.records.isEmpty, r.records.contains(where: { $0.id == r.original && [0, 4].contains($0.type)}) else {throw Refusal("original active Space disappeared")}
+    guard let uuid=UUID(uuidString:r.display), !r.records.isEmpty, r.records.contains(where: {$0.id == r.original && [0, 4].contains($0.type)}) else {throw Refusal("original active Space disappeared")}
+    var beforeOverview: Set<UInt32>?
     if r.command=="remove" {
-        guard let target=r.target, r.owned.contains(target), target != r.current else {throw Refusal("only a positively empty, inactive created desktop may be removed")}
-        try requireEmpty(target,host:r.hostPID)
+        guard let target=r.target, r.owned.contains(target), target != r.current else {throw Refusal("only an inactive created desktop may be removed")}
+        _=try requireEmpty(target,host:r.hostPID)
+        beforeOverview=try publicWindowNumbers()
     }
     let prior = try overviewVisible()
     try demand(!prior, "Mission Control was already open")
@@ -211,7 +228,12 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool) throws {
     guard AXUIElementCopyActionNames(el,&choices) == .success, (choices as? [String])?.contains(action)==true,
           attr(el,kAXEnabledAttribute) as? Bool == true else {throw Refusal("system desktop action unavailable")}
     try guardState(r)
-    if r.command=="remove" {try requireEmpty(r.target!,host:r.hostPID)}
+    if r.command=="remove", let target=r.target, let beforeOverview {
+        if let surface = try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {
+            proof["overviewComposite"] = surface
+        }
+        try guardState(r)
+    }
     issued=true
     let err=AXUIElementPerformAction(el,action as CFString)
     try demand(err == .success,"system control did not acknowledge input: \(err.rawValue)")
@@ -225,10 +247,12 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool) throws {
             return
         }
         var issued=false
+        var proof=[String:Any]()
         do {
             let request=try JSONDecoder().decode(WorkspaceRequest.self,from:FileHandle.standardInput.readDataToEndOfFile())
-            try perform(request,issued:&issued)
-            print("{\"acknowledged\":true,\"issued\":true}")
+            try perform(request,issued:&issued,proof:&proof)
+            proof["acknowledged"]=true;proof["issued"]=true
+            FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject:proof)+Data([10]))
         } catch {
             let detail=(error as? Refusal)?.reason ?? String(describing:error)
             let data=try! JSONSerialization.data(withJSONObject:["acknowledged":false,"issued":issued,"reason":detail])

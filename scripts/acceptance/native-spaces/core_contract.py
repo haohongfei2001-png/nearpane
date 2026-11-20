@@ -77,7 +77,10 @@ def main():
     def run_case(k,body):
         try:body()
         except ERRORS as e:
-            failures.append((k,str(e))); mark(k,"FAIL" if receipt.scenarios[k]["status"]=="IN_PROGRESS" else "BLOCKED",str(e))
+            failures.append((k,str(e)))
+            ledger=[a["status"] for a in receipt.attempts if a.get("scenario")==k]
+            status = "UNKNOWN" if "UNKNOWN" in ledger else ("FAIL" if "FAIL" in ledger or "PASS" in ledger else "BLOCKED")
+            mark(k,status,str(e))
     def fixture(name="Field",count=1,split=False):
         f=Fixture(kit,name,count,split);fixtures.append(f)
         f.state(lambda d:len(d["numbers"])==(1 if split else count))
@@ -146,6 +149,7 @@ def main():
                 cmd=[sys.executable,str(Path(__file__).with_name("d01.py")),"--kit",str(kit),"run",str(dest),"--scope",str(path)]
                 proc=subprocess.run(cmd,capture_output=True,text=True,timeout=90)
                 data=json.loads((dest/"D01.json").read_text())
+                receipt.attempts.extend(data.get("attempts",[]))
                 mark("D01",data["status"],data["reason"],movementAttempts=data["movementAttempts"],completed=data["completed"],childExit=proc.returncode)
             run_case("D01",d01)
         if wanted & {"S01","S02","S03","R01","N01"}:
@@ -226,7 +230,10 @@ def main():
                     receipt.log("W02-intent",**attempt)
                     tap=json.loads(checked([str(kit/"observe"),"press-cross",*args,str(dst)]))
                     receipt.log("W02-sidebar",intent=intent,result=tap)
-                    require(tap.get("issued") and tap.get("axError")==0,tap.get("reason","cross-desktop window control unavailable"))
+                    attempt["inputAcknowledged"] = tap.get("issued") and tap.get("axError")==0
+                    if tap.get("issued") is False: attempt["status"]="BLOCKED"
+                    elif tap.get("axError") != 0: attempt["status"]="FAIL"
+                    require(attempt["inputAcknowledged"],tap.get("reason","cross-desktop window control unavailable"))
                     ws.settled(lambda o:row(o)["current"]==dst and o.get("frontmostPID")==docs.proc.pid and o.get("focusedNumber")==n
                                and occupancy_matches(o,expected),"exact destination Space, focused window and unchanged sibling not confirmed")
                     docs.state(lambda s:s["key"]==s["main"]==n and s["editorsFocused"][idx])

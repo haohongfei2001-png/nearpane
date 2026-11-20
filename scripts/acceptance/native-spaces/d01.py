@@ -35,7 +35,7 @@ def main():
     output.mkdir(exist_ok=False, parents=True)
     log = (output / "actions.jsonl").open("x", encoding="utf-8")
     result = {"scenario": "D01", "status": "BLOCKED", "movementAttempts": 0, "fixtureStarted": False,
-              "inputs": 0, "completed": [], "cleanup": {"required": False}}
+              "inputs": 0, "attempts": [], "completed": [], "cleanup": {"required": False}}
 
     def record(kind, **details):
         log.write(json.dumps(dict(event=kind, monotonic=time.monotonic(), **details), ensure_ascii=False) + "\n")
@@ -111,11 +111,17 @@ def main():
                            fixture=str(app), fixtureHash=sign, target=ws[0], sibling=ws[1],
                            display=scope["display"], source=src, dest=dst, sourceUUID=ids[src], destUUID=ids[dst],
                            current=a, frontPID=focus[0], focused=focus[1], expiresUptime=scope["expiresUptime"])
+            if action != "sample":
+                result["attempts"].append(dict(scenario="D01", action=action, source=src, target=dst, window=numbers[0], status="UNKNOWN"))
             r = subprocess.run([str(driver)], input=json.dumps(request), capture_output=True, text=True, timeout=12)
             data = json.loads(r.stdout)
             if action != "sample":
                 record("driver-result", action=action, evidence=data, exit=r.returncode)
                 result["inputs"] += data.get("inputs", 0)
+                attempt = result["attempts"][-1]
+                attempt["inputs"] = data.get("inputs")
+                if r.returncode and data.get("inputs") == 0:
+                    attempt.update(status="BLOCKED",reason=data.get("reason","driver refused before dispatch"))
             require(r.returncode == 0, data.get("reason", "Driver refused"))
             return data
 
@@ -148,6 +154,7 @@ def main():
                 ws[0]["space"] = expected[0]
             require(validate_live(scope, independent(), host) == a, "Unexpected desktop or unrelated member after drag")
             record("confirmed", action=action, receipt=sample)
+            result["attempts"][-1]["status"] = "PASS"
             result["completed"].append(dict(action=action, fromSpace=src, toSpace=dst))
         original_number = numbers[0]
         (folder / "recreate-closed").touch(exist_ok=False)
@@ -170,7 +177,8 @@ def main():
         result["completed"].append(dict(action="recreate-window",old=original_number,new=new_number,correctSpace=a))
         result.update(status="PASS", reason="Four installed-sidebar gestures and stable readbacks for the independently recreated window matched.")
     except (OSError, KeyError, ValueError, TypeError, subprocess.SubprocessError) as exc:
-        result["status"] = "FAIL" if result["inputs"] else "BLOCKED"
+        uncertain = [a for a in result["attempts"] if a["status"]=="UNKNOWN"]
+        result["status"] = "UNKNOWN" if uncertain else ("FAIL" if result["inputs"] else "BLOCKED")
         result["reason"] = str(exc)
     finally:
         if proc is not None:
