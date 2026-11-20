@@ -22,6 +22,16 @@ import Foundation
             guard PreviewCensus.disposition(signedCompositor:row.0,fixture:row.1,validShape:row.2,explicitlyNonstandard:row.3,
                                              absentFromFixtureAX:row.4,unpresented:row.5,thinOffscreen:row.6)==row.7 else{exit(4)}
         }
-        print("4 private path and 8 scoped disposition checks passed")
+        // The v4 shape was a drawn, single-Space nonstandard child from the signed fixture.
+        // Only our own command-line PID is used; no GUI or desktop is inspected.
+        func recognized(owner:pid_t=getpid(),oneSpace:Bool=true,role:String?="AXWindow",subrole:String?="AXFloatingWindow",
+                        count:Int?=1,bounds:CGRect=CGRect(x:12,y:14,width:40,height:30),on:Bool=true)->Bool {
+            PreviewCensus.extra(pid:getpid(),fixture:owner,rect:bounds,on:on,drawn:on,singleSpace:oneSpace,publicNow:on,publicAll:on,
+                                axCount:count,role:role,subrole:subrole,strict:true).admitted
+        }
+        guard recognized(),!recognized(owner:0),!recognized(oneSpace:false),!recognized(role:nil),
+              !recognized(subrole:"AXStandardWindow"),!recognized(subrole:nil),!recognized(count:2),
+              !recognized(role:nil,subrole:nil,count:0,on:false),!recognized(bounds:.zero) else{exit(5)}
+        print("4 private path, 8 scoped disposition and 9 strict Split View auxiliary checks passed")
     }
 }

@@ -53,7 +53,7 @@ class SplitObservationTests(unittest.TestCase):
 class EnrollmentTests(unittest.TestCase):
     def test_read_only_startup_convergence_and_immediate_specific_identity_errors(self):
         good={'ready':True,'onlyTwoInLease':True,'space':7,'type':0,'newFullscreenIDs':[],
-              'memberships':[[7],[7]],'axStandard':[True,True],'hostGroupCount':0,'hardware':[4]}
+              'memberships':[[7],[7]],'axStandard':[True,True],'hostGroupCount':0,'hardware':[4],'foreignVisibleMembers':0,'unknownVisibleMembers':0}
         read=Mock(side_effect=[{**good,'axStandard':[True,False]},good])
         self.assertEqual(module.wait_ordinary_control(read,7,deadline=time.monotonic()+1),good)
         self.assertEqual(read.call_count,2)
@@ -65,6 +65,8 @@ class EnrollmentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'physicalInputChanged'):
             module.wait_ordinary_control(changed,7,deadline=time.monotonic()+1)
         self.assertEqual(module.ordinary_control({**good,'hostGroupCount':1},7),'ordinaryWindowsAlreadyShownAsNativeSplit')
+        self.assertEqual(module.ordinary_control({**good,'foreignVisibleMembers':1},7),'foreignVisibleWindowOnLeasedDesktop')
+        self.assertEqual(module.ordinary_control({**good,'unknownVisibleMembers':1},7),'visibleWindowNativeMembershipUnresolved')
 
     @unittest.skipUnless(sys.platform=='darwin','requires the macOS signing and process APIs')
     def test_private_tmp_alias_live_kernel_executable_and_signing_identity_without_a_gui(self):

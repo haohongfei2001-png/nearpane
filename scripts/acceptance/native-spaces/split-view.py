@@ -108,6 +108,8 @@ def ordinary_control(state, target):
         ('systemReadUnavailable',state.get('ready') is True),
         ('ordinaryLeaseIsNoLongerCurrent',state.get('space')==target and state.get('type')==0 and state.get('newFullscreenIDs')==[]),
         ('leaseDoesNotContainExactlyTwoEnrolledDocuments',state.get('onlyTwoInLease') is True),
+        ('foreignVisibleWindowOnLeasedDesktop',state.get('foreignVisibleMembers')==0),
+        ('visibleWindowNativeMembershipUnresolved',state.get('unknownVisibleMembers')==0),
         ('oneOrBothDocumentsHaveDifferentNativeMembership',state.get('memberships')==[[target],[target]]),
         ('notTwoLiveStandardAXDocuments',state.get('axStandard')==[True,True]),
         ('ordinaryWindowsAlreadyShownAsNativeSplit',state.get('hostGroupCount')==0))

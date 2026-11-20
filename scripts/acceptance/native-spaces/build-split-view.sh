@@ -25,7 +25,7 @@ from pathlib import Path
 src, destination=map(Path,sys.argv[1:])
 part=(src/'observe.swift').read_text().split('if CommandLine.arguments.count > 1 {')
 assert len(part)==2
-destination.write_text(part[0]+'\n'+(src/'lifecycle-menu.swift').read_text()+'\n'+(src/'split-fixture-identity.swift').read_text()+'\n'+(src/'split-view-read.swift').read_text())
+destination.write_text(part[0]+'\n'+(src/'paired-preview-census.swift').read_text()+'\n'+(src/'lifecycle-menu.swift').read_text()+'\n'+(src/'split-fixture-identity.swift').read_text()+'\n'+(src/'split-view-read.swift').read_text())
 PY
 stage=$(mktemp -d "$kit/.split-reader.XXXXXXXX")
 trap 'rm -f "$stage/split-view-read"; rmdir "$stage"' EXIT

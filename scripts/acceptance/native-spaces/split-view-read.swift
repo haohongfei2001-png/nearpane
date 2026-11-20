@@ -168,20 +168,57 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     guard members.allSatisfy({$0.count==1}), ownerRows.allSatisfy({$0.count==1}), let forward=currentMembers else {return stop("exactWindowIdentityOrMembershipUnavailable")}
     let frames=ownerRows.compactMap { ($0[0][kCGWindowBounds as String] as? NSDictionary).flatMap(CGRect.init(dictionaryRepresentation:)) }
     let drawn=ownerRows.map { $0[0][kCGWindowIsOnscreen as String] as? Bool==true }
-    var foreign=0,unknown=0
-    for row in rows {
-        guard row[kCGWindowLayer as String] as? Int==0,row[kCGWindowIsOnscreen as String] as? Bool==true,
-              (row[kCGWindowAlpha as String] as? Double ?? 0)>0,let n=row[kCGWindowNumber as String] as? UInt32,
-              let pid=row[kCGWindowOwnerPID as String] as? Int32,pid != r.hostPID,!r.numbers.contains(n),
-              let app=NSRunningApplication(processIdentifier:pid),app.activationPolicy == .regular else {continue}
-        let reverse=NPReadWindowSpaces(n) as? [UInt64]
-        if forward.contains(n) || reverse?.contains(current)==true {foreign+=1}
-        else if reverse?.isEmpty != false {unknown+=1}
-    }
-    result["foreignVisibleMembers"]=foreign;result["unknownVisibleMembers"]=unknown
     let fixtureRoot=AXUIElementCreateApplication(r.fixturePID)
     _ = AXUIElementSetMessagingTimeout(fixtureRoot,0.15)
-    let windows=value(fixtureRoot,kAXWindowsAttribute) as? [AXUIElement] ?? []
+    let fixtureAX=value(fixtureRoot,kAXWindowsAttribute) as? [AXUIElement]
+    let windows=fixtureAX ?? []
+    let expectedLease=zip(r.numbers,members).compactMap {number,spaces in spaces==[r.lease] ? number:nil}
+    func leaseCensus()->Object {
+        // The ordinary census cannot run on the fullscreen Space. Its expected
+        // roster shrinks from A+B to B to empty as the system moves the documents.
+        PreviewCensus.report(r.lease,host:r.hostPID,fixture:r.fixturePID,expected:expectedLease,visible:false,strictExtras:true)
+    }
+    let census=leaseCensus()
+    func exactly(_ expected:[UInt32]) -> Bool {
+        census["admitted"] as? Bool==true && Set(expectedLease)==Set(expected)
+    }
+    result["onlyTwoInLease"]=exactly(r.numbers)
+    result["leaseWindowCensus"]=census
+    result["leaseOrdinaryCount"]=census["rawOrdinary"]
+    result["enrolledOrdinaryCount"]=(census["expectedEvidence"] as? [Object])?.filter{$0["accepted"] as? Bool==true}.count
+    result["unresolvedLeaseMembership"]=census["unresolved"];result["otherLeaseMembers"]=census["otherLayers"]
+
+    func visibleMembers(_ list:[Object],on sid:UInt64,forward:Set<UInt32>,fixtureAX:[AXUIElement]?) -> (foreign:Int,unknown:Int,classes:[String:Int]) {
+        var foreign=0,unknown=0,classes=[String:Int]()
+        for row in list {
+            guard row[kCGWindowLayer as String] as? Int==0,row[kCGWindowIsOnscreen as String] as? Bool==true else{continue}
+            guard let alpha=row[kCGWindowAlpha as String] as? Double else{unknown+=1;continue}
+            if alpha<=0 {continue}
+            guard let n=row[kCGWindowNumber as String] as? UInt32,let p=row[kCGWindowOwnerPID as String] as? pid_t else{unknown+=1;continue}
+            if p==r.fixturePID && r.numbers.contains(n) {continue}
+            guard let reverse=NPReadWindowSpaces(n) as? [UInt64],!reverse.isEmpty,forward.contains(n)==reverse.contains(sid) else{unknown+=1;continue}
+            if !forward.contains(n) {continue}
+            // Pin this particular CG number to the same owner, geometry and bidirectional
+            // membership. Anonymous counts from a previous Space cannot clear a different row.
+            guard let rows=PreviewCensus.windowRows(n),rows.count==1,let cg=rows.first,
+                  cg[kCGWindowNumber as String] as? UInt32==n,cg[kCGWindowOwnerPID as String] as? pid_t==p,
+                  cg[kCGWindowLayer as String] as? Int==0,cg[kCGWindowIsOnscreen as String] as? Bool==true,
+                  let a=cg[kCGWindowAlpha as String] as? Double,a>0,
+                  let b=row[kCGWindowBounds as String] as? NSDictionary,let rect=CGRect(dictionaryRepresentation:b),
+                  let again=cg[kCGWindowBounds as String] as? NSDictionary,CGRect(dictionaryRepresentation:again)==rect else{unknown+=1;continue}
+            let matches=p==r.fixturePID ? fixtureAX?.filter{NPReadAXWindowNumber($0)==n}:nil
+            let el=matches?.count==1 ? PreviewCensus.ownedAX(matches?.first,pid:p):nil
+            let evidence=PreviewCensus.extra(pid:p,fixture:r.fixturePID,rect:rect,on:true,drawn:rect.width>1 && rect.height>1,
+                singleSpace:reverse==[sid],publicNow:nil,publicAll:nil,axCount:matches?.count,
+                role:el.flatMap{value($0,kAXRoleAttribute) as? String},subrole:el.flatMap{value($0,kAXSubroleAttribute) as? String},strict:true)
+            classes[evidence.owner+"/"+evidence.category,default:0]+=1
+            if !evidence.admitted {foreign+=1}
+        }
+        return (foreign,unknown,classes)
+    }
+    let visibility=visibleMembers(rows,on:current,forward:Set(forward),fixtureAX:fixtureAX)
+    let foreign=visibility.foreign,unknown=visibility.unknown
+    result["foreignVisibleMembers"]=foreign;result["unknownVisibleMembers"]=unknown;result["visibleExtraClasses"]=visibility.classes
     let ax=r.numbers.map { n in windows.filter { NPReadAXWindowNumber($0)==n } }
     let ordinary=ax.map { $0.count==1 && value($0[0],kAXRoleAttribute) as? String==kAXWindowRole &&
         value($0[0],kAXSubroleAttribute) as? String==kAXStandardWindowSubrole &&
@@ -196,25 +233,16 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
               latest[0]["current"] as? UInt64==current, let rs=latest[0]["records"] as? [Object],
               (rs as NSArray).isEqual(to: records), birthMicroseconds(r.fixturePID)==r.fixtureBirth,
               birthMicroseconds(r.hostPID)==r.hostBirth else {return false}
+        guard leaseCensus()["admitted"] as? Bool==true,
+              let freshRows=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [Object],
+              let actual=NPReadCatalogSpaceWindowNumbers(current) as? [UInt32] else{return false}
+        let fresh=visibleMembers(freshRows,on:current,forward:Set(actual),fixtureAX:value(fixtureRoot,kAXWindowsAttribute) as? [AXUIElement])
+        guard fresh.foreign==0,fresh.unknown==0 else{return false}
         return splitInput()==hardware && NSEvent.pressedMouseButtons==0 &&
             CFPreferencesCopyAppValue("GloballyEnabled" as CFString,"com.apple.WindowManager" as CFString) as? Bool==false
     }
     let trustedState=CGEventSource.buttonState(.combinedSessionState,button:.left)==false && NSEvent.pressedMouseButtons==0 &&
         r.hardware==hardware && splitInput()==hardware && birthMicroseconds(r.fixturePID)==r.fixtureBirth
-    let census=NPContractMemberReport([NSNumber(value:r.lease)] as CFArray,r.hostPID) as? [String:Object]
-    let stats=census?[String(r.lease)]
-    func exactly(_ numbers:[UInt32]) -> Bool {
-        guard let list=stats?["ordinary"] as? [[String:NSNumber]],stats?["unresolved"] as? Int==0,
-              list.count==numbers.count, list.allSatisfy({$0["pid"]?.int32Value==r.fixturePID}) else {return false}
-        return Set(list.compactMap{$0["number"]?.uint32Value})==Set(numbers)
-    }
-    result["onlyTwoInLease"]=exactly(r.numbers)
-    if let normal=stats?["ordinary"] as? [[String:NSNumber]] {
-        result["leaseOrdinaryCount"]=normal.count
-        result["enrolledOrdinaryCount"]=normal.filter{$0["pid"]?.int32Value==r.fixturePID && r.numbers.contains($0["number"]?.uint32Value ?? 0)}.count
-    }
-    result["unresolvedLeaseMembership"]=stats?["unresolved"]
-    result["otherLeaseMembers"]=stats?["otherMembers"]
     guard ["read","tile","picker","pair"].contains(verb) else {return stop("unknownOperation")}
     if verb=="read" {
         let index=Sidebar(host,rows:rows), groupID="current-split-view:"+r.display+":"+String(current)
@@ -254,6 +282,7 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
         result["alreadyTogether"]=true;return result
     }
     guard let extra, (current==r.lease || current==extra), members==[[extra],[r.lease]], exactly([r.numbers[1]]),
+          foreign==0,unknown==0,
           (NPReadCatalogSpaceWindowNumbers(extra) as? [UInt32])?.contains(r.numbers[0])==true,
           (NPReadCatalogSpaceWindowNumbers(r.lease) as? [UInt32])?.contains(r.numbers[1])==true,
           front?.processIdentifier==r.fixturePID || front.map(systemAgent)==true,

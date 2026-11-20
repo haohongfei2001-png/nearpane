@@ -69,7 +69,39 @@ enum PreviewCensus {
         if !fixture && thinOffscreen {return "unverifiedThinOffscreen"}
         return "unverifiedOrdinary"
     }
-    static func report(_ space:UInt64,host:pid_t,fixture:pid_t,expected:[UInt32],visible:Bool)->Row {
+    static func ownedAX(_ element:AXUIElement?,pid:pid_t)->AXUIElement? {
+        var actual:pid_t=0
+        guard let element,AXUIElementGetPid(element,&actual) == .success,actual==pid else{return nil}
+        return element
+    }
+    struct Extra {
+        let owner:String, category:String
+        let details:Row
+        var admitted:Bool {category=="signedCompositor" || category=="enrolledNonDocument"}
+    }
+    // Only the enrolled fixture's own AX metadata is consulted. No title, other
+    // application's AX object, image or content participates in classification.
+    static func extra(pid:pid_t, fixture:pid_t, rect:CGRect, on:Bool, drawn:Bool, singleSpace:Bool,
+                      publicNow:Bool?, publicAll:Bool?, axCount:Int?, role:String?, subrole:String?,
+                      strict:Bool=false)->Extra {
+        let service=apple(pid),isFixture=pid==fixture
+        let owner=service ?? (isFixture ? "fixtureAuxiliary" : otherAppleID(pid) ?? "otherOwner")
+        let standard=role==kAXWindowRole && subrole==kAXStandardWindowSubrole
+        let valid=rect.minX.isFinite && rect.minY.isFinite && rect.width.isFinite && rect.height.isFinite && rect.width>0 && rect.height>0
+        let nonePublic=publicNow==false && publicAll==false
+        let thin=rect.height>0 && rect.height<=48 && rect.width>=rect.height*8
+        let kind=disposition(signedCompositor:service != nil,fixture:isFixture && (!strict || singleSpace),validShape:valid,
+                             explicitlyNonstandard:axCount==1 && subrole != nil && !standard && (!strict || (role==kAXWindowRole && subrole != kAXStandardWindowSubrole)),
+                             absentFromFixtureAX:!strict && axCount==0,unpresented:(!on || !drawn) && nonePublic,
+                             thinOffscreen:thin && !on && !drawn && nonePublic)
+        let detail:Row=["owner":owner,"category":kind,"onscreen":on,"drawn":drawn,"thin":thin,"singleSpace":singleSpace,
+                        "inPublicCurrent":publicNow as Any? ?? NSNull(),"inPublicAll":publicAll as Any? ?? NSNull(),
+                        "fixtureAXStandard":isFixture ? standard as Any:NSNull(),
+                        "fixtureAXWindowRole":isFixture ? (role==kAXWindowRole) as Any:NSNull(),
+                        "fixtureAXSubroleReported":isFixture ? (subrole != nil) as Any:NSNull()]
+        return Extra(owner:owner,category:kind,details:detail)
+    }
+    static func report(_ space:UInt64,host:pid_t,fixture:pid_t,expected:[UInt32],visible:Bool,strictExtras:Bool=false)->Row {
         var out:Row=["admitted":false,"expected":expected,"unknown":0]
         func fail(_ why:String)->Row {out["reason"]=why;return out}
         guard NPReadOnlySpacesOpen()==1,let record=(NPContractMemberReport([NSNumber(value:space)] as CFArray,host) as? [String:Row])?[String(space)],
@@ -107,7 +139,7 @@ enum PreviewCensus {
             let on=cg[kCGWindowIsOnscreen as String] as? Bool==true
             let drawn=(cg[kCGWindowAlpha as String] as? Double ?? 0)>0 && rect.width>1 && rect.height>1
             let list=windows?.filter{NPReadAXWindowNumber($0)==n}
-            let item=list?.count==1 ? list?.first:nil
+            let item=list?.count==1 ? (strictExtras ? ownedAX(list?.first,pid:p):list?.first):nil
             let role=item.flatMap{prop($0,kAXRoleAttribute) as? String},subrole=item.flatMap{prop($0,kAXSubroleAttribute) as? String}
             let standard=role==kAXWindowRole && subrole==kAXStandardWindowSubrole
             let validShape=rect.origin.x.isFinite && rect.origin.y.isFinite && rect.width>0 && rect.height>0
@@ -120,22 +152,12 @@ enum PreviewCensus {
                     "axStandard":standard,"cgOnscreen":on,"drawn":drawn,"bounds":[rect.minX,rect.minY,rect.width,rect.height],"accepted":accepted])
                 continue
             }
-            let service=apple(p),unlistedApple=service==nil && p != fixture ? otherAppleID(p):nil
-            let ownerClass=service ?? (p==fixture ? "fixtureAuxiliary" : unlistedApple ?? "otherOwner")
-            let nonePublic=(publicNow?.contains(n)==false && publicAll?.contains(n)==false)
-            let noPresentation = !on && !drawn && nonePublic
-            let thin=rect.height>0 && rect.height<=48 && rect.width>=rect.height*8
-            let why=disposition(signedCompositor:service != nil,fixture:p==fixture,validShape:validShape,
-                                explicitlyNonstandard:!standard && list?.count==1 && subrole != nil,
-                                absentFromFixtureAX:list?.isEmpty==true,unpresented:(!on || !drawn) && nonePublic,
-                                thinOffscreen:thin && noPresentation)
-            if !["signedCompositor","enrolledNonDocument"].contains(why){unknown+=1}
-            extra[ownerClass+"/"+why,default:0]+=1
-            if details.count<8 {
-                details.append(["owner":ownerClass,"category":why,"onscreen":on,"drawn":drawn,"thin":thin,"singleSpace":reverse==[space],
-                    "inPublicCurrent":publicNow?.contains(n) as Any? ?? NSNull(),"inPublicAll":publicAll?.contains(n) as Any? ?? NSNull(),
-                    "fixtureAXStandard":p==fixture ? standard as Any:NSNull()])
-            }
+            let evidence=Self.extra(pid:p,fixture:fixture,rect:rect,on:on,drawn:drawn,singleSpace:reverse==[space],
+                                    publicNow:publicNow?.contains(n),publicAll:publicAll?.contains(n),
+                                    axCount:list?.count,role:role,subrole:subrole,strict:strictExtras)
+            if !evidence.admitted {unknown+=1}
+            extra[evidence.owner+"/"+evidence.category,default:0]+=1
+            if details.count<8 {details.append(evidence.details)}
         }
         out["expectedProven"]=seen==numbers;out["expectedEvidence"]=expectedRows;out["extraClasses"]=extra;out["extraEvidence"]=details;out["unknown"]=unknown
         let other=record["otherMembers"] as? Int,otherRows=record["otherDetails"] as? [Row]
