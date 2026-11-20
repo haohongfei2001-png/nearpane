@@ -166,6 +166,37 @@ def choose_clip(frames):
     return best
 
 
+def independent_window_crop(ov, proof):
+    panel_frame=ov.get('panelFrame')
+    cards=ov.get('retainedCardFrames')
+    def rectangle(r):
+        return isinstance(r,list) and len(r)==4 and all(type(v) in (int,float) and math.isfinite(v) for v in r) and r[2]>0 and r[3]>0
+    def contains(outer,inner):
+        x,y,w,h=inner
+        return outer[0]<=x and outer[1]<=y and x+w<=outer[0]+outer[2] and y+h<=outer[1]+outer[3]
+    census=proof.get('windowCensus') or {}
+    require(ov.get('filterStyle')=='window' and ov.get('includedWindowNumbers')==[proof['panel']] and
+            ov.get('nativeTransparencyBacking')==ov.get('cardGapBacking')=='solidWhite' and ov.get('captureIncludesChildWindows') is False and
+            ov.get('retainedCardIDs')==[f"current-desktop-window:{proof['fixturePID']}:{n}" for n in proof['numbers']] and
+            census.get('admitted') is True and census.get('expectedProven') is True and census.get('expected')==proof['numbers'] and
+            census.get('unknown')==census.get('unresolved')==0,'uncertifiedIndependentWindow')
+    require(rectangle(panel_frame) and isinstance(cards,list) and len(cards)==2 and all(rectangle(c) for c in cards) and
+            cards==[r.get('frame') for r in proof.get('cardGeometry',[])] and
+            all(contains(panel_frame,c) and contains(c,patch) for c,patch in zip(cards,proof['pictures'])),'unboundRetainedCardFrames')
+    upper,lower=sorted(cards,key=lambda r:r[1])
+    x0,y0=math.ceil(min(r[0] for r in cards)),math.ceil(upper[1])
+    x1,y1=math.floor(max(r[0]+r[2] for r in cards)),math.floor(lower[1]+lower[3])
+    require(0<=lower[1]-upper[1]-upper[3]<=18 and abs(upper[0]-lower[0])<=1 and
+            abs(upper[0]+upper[2]-lower[0]-lower[2])<=1 and ov['crop']==[x0,y0,x1-x0,y1-y0] and ov['crop']!=panel_frame,
+            'unboundedRetainedCardUnion')
+    intervals=ov.get('sourceSamples')
+    require(isinstance(intervals,list) and len(intervals)==2 and all(isinstance(t,list) and len(t)==2 and
+            all(type(v) in (int,float) and math.isfinite(v) for v in t) and
+            ov['bindingBefore']<=t[0]<=t[1]<=ov['bindingAfter'] for t in intervals),'unbracketedWindowReferences')
+    return {k:ov[k] for k in ('captureSource','filterStyle','includedWindowNumbers','nativeTransparencyBacking','cardGapBacking',
+                                'captureIncludesChildWindows','panelFrame','retainedCardFrames','retainedCardIDs','fixedCaptions','sourceSamples')}
+
+
 def readable_overview(result,proof,witness):
     ov = result.get('overview') or {}
     if ov.get('status') != 'CAPTURED':
@@ -173,7 +204,7 @@ def readable_overview(result,proof,witness):
         return {'status':'BLOCKED','reason':reason if isinstance(reason,str) and re.fullmatch('[A-Za-z][A-Za-z0-9]{0,90}',reason) else 'unconfirmedTwoCardCrop'},None
     require(ov.get('file') == 'paired-overview.png' and all(ov.get(k) == proof[k] for k in ('display','space','hostPID','hostBirth','hostHash','panel','fixturePID','fixtureBirth','fixtureHash','numbers')) and
             all(ov.get(k) is True for k in ('singleIncludedHostWindow','beforeAfterScopeEqual','isolatedProfile','sourceDocumentsEmpty')) and
-            ov.get('fixedCaptions') == ['Field Notes · 1','Field Notes · 2'] and ov.get('otherControlsInCrop') == 0 and ov.get('otherNonDesktopSurfacesInCrop') == 0,
+            ov.get('fixedCaptions') == ['Field Notes · 1','Field Notes · 2'] and ov.get('otherControlsInCrop') == 0,
             'uncertifiedReadableCrop')
     crop,scale=ov['crop'],ov['scale']
     require(isinstance(crop,list) and len(crop)==4 and all(math.isfinite(v) and int(v)==v for v in crop) and
@@ -186,10 +217,16 @@ def readable_overview(result,proof,witness):
             0<ov['bindingBefore']<=timing[0]<=timing[1]<=ov['bindingAfter'], 'unbracketedReadableCrop')
     epoch=ov['epoch']
     require(type(epoch) is int and epoch in range(len(PALETTE)) and ov.get('sourceEpochs') == ov.get('cardEpochs') == [epoch,epoch], 'readableCropColorMismatch')
+    if ov.get('captureSource')=='desktopIndependentWindow':
+        evidence=independent_window_crop(ov,proof)
+    else:
+        require('captureSource' not in ov and ov.get('otherNonDesktopSurfacesInCrop')==0,'unrecognizedReadableCaptureSource')
+        evidence={'captureSource':'displayIncludingBoundWindow'}
     data=regular_file(witness/'paired-overview.png',12_000_000)
     require(sha(data) == ov.get('sha256') and data[:8] == SIGNATURE and data[12:16] == b'IHDR' and
             len(data) >= 40 and struct.unpack('>II',data[16:24]) == (ov['width'],ov['height']), 'readablePNGChanged')
-    return {k:ov[k] for k in ('status','file','sha256','width','height','crop','scale','epoch','panelSample')},data
+    evidence.update({k:ov[k] for k in ('status','file','sha256','width','height','crop','scale','epoch','panelSample')})
+    return evidence,data
 
 
 def public_reason(error):

@@ -37,7 +37,7 @@ python3 scripts/acceptance/native-spaces/paired-preview.py "$kit" build/preview-
 python3 scripts/acceptance/native-spaces/live-preview-media.py build/preview-with-media
 ```
 
-`media/receipt.json` 分别列出可读截图、色标抽帧和短序列。可读截图在计时结束后拍摄，保留原尺寸，只含正式侧栏上相邻的两张测试卡。捕获前后核对 Host 的隔离资料锁、两张实时卡、固定的 Field Notes 标签、桌面归属、遮挡顺序、物理输入和测试文档空正文摘要。实际两个源窗口与卡内正文区域必须确认为各自同一阶段的测试色。区域内出现第三个控件、其他窗口或未经确认的桌面元素时，可读截图记为 `BLOCKED`。
+`media/receipt.json` 分别列出可读截图、色标抽帧和短序列。可读截图在计时结束后取自正式 Host 的独立窗口。采集前后核对安装进程、隔离资料写锁、专用桌面成员、两个测试窗口及其空正文摘要、两张真实 AX 卡的窗口号和固定 Field Notes 标签。ScreenCaptureKit 的窗口滤镜仅包含正式侧栏这一扇窗口，排除子窗、光标和音频。系统以白色衬底生成该窗口的原尺寸图面，取证器只复制两张已绑定卡框内的像素，卡间留白。两张卡的图案必须匹配同时分别从两扇测试窗读回的实测色标。卡框、所属窗口、色标或物理输入发生变化时保留具体拒绝原因。这幅 PNG 记录窗口本身的渲染，屏幕最前方的遮挡情况不在本图的测量范围。单窗口截图的输入边界见 [Apple ScreenCaptureKit 文档](https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration/sourcerect)。
 
 每个色标 PNG 保留一张卡中央的原始 8×8 像素。只在该批两源、两卡均有一致且完全不透明的测试色，并有前后两次实时卡绑定时保存。APNG 只使用连续的合格批次，至少包含一次变色，附逐帧时间和原始摘要。间隔缺读会中断序列。macOS 台前调度的原生缩略图缺少已验证的逐窗对应关系和同条件采样入口，对照保留 `NOT_MEASURED`。
 

@@ -77,46 +77,23 @@ func pairedOverviewScope(_ index: Sidebar, region: AXUIElement, regionFrame: CGR
         return children.allSatisfy { onlyCards($0,depth:depth+1) }
     }
     guard onlyCards(region,depth:0),found==expected else { return stop("otherOrUnresolvedHostContentInCardCrop") }
-    func permitsWallpaper(_ pid:pid_t,level:Int) -> Bool {
-        let desktop=Int(CGWindowLevelForKey(.desktopWindow))
-        let identifier:String, expectedPath:String
-        switch level {
-        case desktop-2:
-            identifier="com.apple.wallpaper.agent";expectedPath="/System/Library/CoreServices/WallpaperAgent.app/Contents/MacOS/WallpaperAgent"
-        case desktop-3:
-            identifier="com.apple.WindowServer";expectedPath="/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer"
-        default: return false
-        }
-        var path=[CChar](repeating:0,count:4096),code:SecCode?,requirement:SecRequirement?
-        let rule = "anchor apple and identifier \"" + identifier + "\""
-        return proc_pidpath(pid,&path,UInt32(path.count))>0 && String(cString:path)==expectedPath &&
-            SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:pid] as CFDictionary,[],&code)==errSecSuccess &&
-            SecRequirementCreateWithString(rule as CFString,[],&requirement)==errSecSuccess &&
-            code.map { guest in requirement.map { SecCodeCheckValidity(guest,[],$0)==errSecSuccess } ?? false } == true
-    }
-    guard let displayBounds=NSScreen.screens.first.flatMap({ screen -> CGRect? in
-        guard let n=screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? UInt32 else{return nil}
-        return CGDisplayBounds(n)
-    }),displayBounds.contains(crop),
-          let rows=CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [Object] else{return stop("onscreenWindowOrderUnavailable")}
-    var foundPanel=false
-    for row in rows {
-        guard let bounds=row[kCGWindowBounds as String] as? NSDictionary,let rect=CGRect(dictionaryRepresentation:bounds),
-              let alpha=row[kCGWindowAlpha as String] as? Double,let pid=row[kCGWindowOwnerPID as String] as? pid_t,
-              let num=row[kCGWindowNumber as String] as? UInt32 else{return stop("unknownOnscreenWindow")}
-        guard alpha>0,rect.intersects(crop) else{continue}
-        if num==panel && pid==hostPID {guard !foundPanel,rect.contains(crop) else{return stop("ambiguousHostSurface")}; foundPanel=true;continue}
-        // A backdrop may contribute to a material even through a single-window filter.
-        // Include desktop elements in this check so Finder icon labels cannot slip through.
-        guard foundPanel else{return stop("otherSurfaceOccludesHost")}
-        if pid==fixture,windows.contains(num){continue}
-        guard let level=row[kCGWindowLayer as String] as? Int,alpha>=0.999,rect==displayBounds,
-              permitsWallpaper(pid,level:level) else{return stop("unrelatedOnscreenSurfaceAtCrop")}
-    }
-    guard foundPanel else{return stop("hostPanelMissingFromWindowOrder")}
+    // The capture uses an independent window. Re-read only that WindowServer
+    // object; foreground and background windows cannot enter its SCK filter.
+    guard NSScreen.screens.count==1,let screen=NSScreen.screens.first, let displayNumber=screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? UInt32,
+          let uuid=CGDisplayCreateUUIDFromDisplayID(displayNumber),
+          CFUUIDCreateString(nil,uuid.takeRetainedValue()) as String==display,
+          CGDisplayBounds(displayNumber).contains(crop) else{return stop("boundDisplayDoesNotContainCards")}
+    guard let rows=PreviewCensus.windowRows(panel),rows.count==1,let row=rows.first,
+          row[kCGWindowOwnerPID as String] as? pid_t==hostPID,row[kCGWindowNumber as String] as? UInt32==panel,
+          row[kCGWindowLayer as String] as? Int==Int(CGWindowLevelForKey(.floatingWindow)),
+          row[kCGWindowIsOnscreen as String] as? Bool==true,(row[kCGWindowAlpha as String] as? Double ?? 0)>0,
+          let bounds=row[kCGWindowBounds as String] as? NSDictionary,let panelFrame=CGRect(dictionaryRepresentation:bounds),
+          panelFrame.contains(crop),panelFrame != crop else{return stop("exactVisibleHostWindowDoesNotContainCards")}
     let hid: [UInt32] = [.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map { CGEventSource.counterForEventType(.hidSystemState,eventType:$0) }
     guard NSEvent.pressedMouseButtons == 0 else{return stop("activeMouseInput")}
-    return ["ready":true,"isolatedProfile":true,"cardIDs":ids,"fixedCaptions":captions.sorted(),
+    let sourceFrames=geometry.compactMap{$0["sourceFrame"] as? [Double]}
+    guard sourceFrames.count==2 else{return stop("unboundSourceFrames")}
+    return ["ready":true,"isolatedProfile":true,"sourceFrames":sourceFrames,"cardIDs":ids,"fixedCaptions":captions.sorted(),
             "cards":cardFrames.map(numbers),"previews":previews.map(numbers),"crop":numbers(crop),
-            "display":display,"space":space,"hid":hid,"otherControlsInCrop":0,"otherNonDesktopSurfacesInCrop":0]
+            "display":display,"space":space,"hid":hid,"otherControlsInCrop":0,"panelFrame":numbers(panelFrame)]
 }

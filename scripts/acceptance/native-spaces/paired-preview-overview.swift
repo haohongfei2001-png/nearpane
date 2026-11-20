@@ -68,30 +68,78 @@ struct ImageRead {
         return data as Data
     }
 }
-private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws -> ImageRead {
-    guard window.frame.contains(area),display.frame.contains(area),area.integral==area else{throw Refusal("uncontainedCapture")}
-    let filter=SCContentFilter(display:display,including:[window]);filter.includeMenuBar=false
-    guard filter.includedWindows.count==1,filter.includedWindows[0].windowID==window.windowID else{throw Refusal("filterIsNotExactWindow")}
+// Single-window SCK sources supply a full-size IOSurface. Only approved rows
+// are copied into user space. White fills the space between the two AX cards.
+struct WindowSampleRegion {
+    let windowWidth:Int, windowHeight:Int, width:Int, height:Int
+    let originX:Int, originY:Int, retained:[CGRect]
+    init(window:CGRect, crop:CGRect, allowed:[CGRect], scale:Int) throws {
+        guard (1...4).contains(scale), (1...2).contains(allowed.count), window.contains(crop), window != crop,
+              window.width>0,window.height>0,window.width*CGFloat(scale)<=8192,window.height*CGFloat(scale)<=8192,
+              !crop.isEmpty,crop.integral==crop else{throw Refusal("uncontainedWindowCrop")}
+        let s=CGFloat(scale)
+        // CG and AX both give top-left global display coordinates. Translate to
+        // native window backing pixels, retaining only complete approved pixels.
+        let values=[window.width*s,window.height*s,(crop.minX-window.minX)*s,(crop.minY-window.minY)*s,crop.width*s,crop.height*s]
+        guard values.allSatisfy({$0.isFinite && $0.rounded()==$0}) else{throw Refusal("unregisteredPhysicalPixelGrid")}
+        windowWidth=Int(values[0]);windowHeight=Int(values[1]);originX=Int(values[2]);originY=Int(values[3]);width=Int(values[4]);height=Int(values[5])
+        retained=try allowed.map { rect in
+            guard window.contains(rect) else{throw Refusal("cardOutsideNativeWindow")}
+            let cut=rect.intersection(crop)
+            guard !cut.isNull,!cut.isEmpty else{throw Refusal("emptyRetainedCard")}
+            let x=ceil((cut.minX-crop.minX)*s),y=ceil((cut.minY-crop.minY)*s)
+            let farX=floor((cut.maxX-crop.minX)*s),farY=floor((cut.maxY-crop.minY)*s)
+            guard farX>x,farY>y else{throw Refusal("emptyRetainedCard")}
+            return CGRect(x:x,y:y,width:farX-x,height:farY-y)
+        }
+        guard retained.count==1 || !retained[0].intersects(retained[1]) else{throw Refusal("overlappingRetainedCards")}
+    }
+    func copyBGRA(from address:UnsafeRawPointer,stride:Int) throws -> Data {
+        guard stride>=4*windowWidth else{throw Refusal("invalidNativeWindowStride")}
+        var output=Data(repeating:255,count:width*height*4)
+        try output.withUnsafeMutableBytes { (bytes:UnsafeMutableRawBufferPointer) in
+            guard let destination=bytes.baseAddress else{throw Refusal("emptyWindowCrop")}
+            for r in retained {
+                let x=Int(r.minX), count=Int(r.width)*4
+                for y in Int(r.minY)..<Int(r.maxY) {
+                    let input=address.advanced(by:(originY+y)*stride+(originX+x)*4).assumingMemoryBound(to:UInt8.self)
+                    let row=destination.advanced(by:(y*width+x)*4)
+                    row.copyMemory(from:input,byteCount:count)
+                    for alpha in Swift.stride(from:3,to:count,by:4) where input[alpha] != 255 {throw Refusal("nativeWhiteBackingNotOpaque")}
+                }
+            }
+        }
+        return output
+    }
+}
+
+private func snap(window:SCWindow,area:CGRect,allowed:[CGRect]) async throws -> ImageRead {
+    let filter=SCContentFilter(desktopIndependentWindow:window)
+    filter.includeMenuBar=false
+    guard filter.style == .window,filter.includedWindows.count==1,let only=filter.includedWindows.first,
+          only.windowID==window.windowID,let owner=window.owningApplication?.processID,only.owningApplication?.processID==owner,
+          filter.contentRect.size==window.frame.size else{throw Refusal("filterIsNotExactIndependentWindow")}
     let scale=Int(filter.pointPixelScale)
-    guard (1...4).contains(scale),Float(scale)==filter.pointPixelScale else{throw Refusal("unknownPhysicalScale")}
+    guard Float(scale)==filter.pointPixelScale else{throw Refusal("unknownPhysicalScale")}
+    let region=try WindowSampleRegion(window:window.frame,crop:area,allowed:allowed,scale:scale)
     let config=SCStreamConfiguration()
-    config.sourceRect=area.offsetBy(dx:-display.frame.minX,dy:-display.frame.minY)
-    config.width=Int(area.width)*scale;config.height=Int(area.height)*scale
+    config.width=region.windowWidth;config.height=region.windowHeight
     config.pixelFormat=kCVPixelFormatType_32BGRA;config.colorSpaceName=CGColorSpace.sRGB
-    config.showsCursor=false;config.capturesAudio=false;config.captureMicrophone=false;config.includeChildWindows=false
-    let began=captureUptime(), sample=try await SCScreenshotManager.captureSampleBuffer(contentFilter:filter, configuration:config)
+    config.shouldBeOpaque=true
+    config.ignoreShadowsSingleWindow=true;config.ignoreGlobalClipSingleWindow=true
+    config.showsCursor=false;config.showMouseClicks=false;config.capturesAudio=false;config.captureMicrophone=false;config.includeChildWindows=false
+    let began=captureUptime(),sample=try await SCScreenshotManager.captureSampleBuffer(contentFilter:filter,configuration:config),ended=captureUptime()
     let info=(CMSampleBufferGetSampleAttachmentsArray(sample,createIfNecessary:false) as? [[SCStreamFrameInfo:Any]])?.first
     let status=(info?[.status] as? NSNumber)?.intValue
     guard status==nil || status==SCFrameStatus.complete.rawValue || status==SCFrameStatus.started.rawValue,
           CMSampleBufferIsValid(sample),CMSampleBufferDataIsReady(sample),let image=CMSampleBufferGetImageBuffer(sample),
-          CVPixelBufferGetWidth(image)==config.width,CVPixelBufferGetHeight(image)==config.height,
+          CVPixelBufferGetWidth(image)==region.windowWidth,CVPixelBufferGetHeight(image)==region.windowHeight,
           CVPixelBufferGetPixelFormatType(image)==kCVPixelFormatType_32BGRA,
-          CVPixelBufferLockBaseAddress(image,.readOnly)==kCVReturnSuccess else{throw Refusal("actualImageUnavailable")}
+          CVPixelBufferLockBaseAddress(image,.readOnly)==kCVReturnSuccess else{throw Refusal("actualNativeWindowFrameUnavailable")}
     defer{CVPixelBufferUnlockBaseAddress(image,.readOnly)}
-    guard let address=CVPixelBufferGetBaseAddress(image)?.assumingMemoryBound(to:UInt8.self) else{throw Refusal("emptyFrame")}
-    var pixels=Data(capacity:4*config.width*config.height)
-    for y in 0..<config.height {pixels.append(address.advanced(by:y*CVPixelBufferGetBytesPerRow(image)),count:4*config.width)}
-    return ImageRead(pixels:pixels,width:config.width,height:config.height,area:area,scale:scale,start:began,end:captureUptime())
+    guard let address=CVPixelBufferGetBaseAddress(image) else{throw Refusal("emptyFrame")}
+    let pixels=try region.copyBGRA(from:address,stride:CVPixelBufferGetBytesPerRow(image))
+    return ImageRead(pixels:pixels,width:region.width,height:region.height,area:area,scale:scale,start:began,end:ended)
 }
 
 #if !PAIRED_OVERVIEW_TEST
@@ -142,12 +190,16 @@ private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws ->
             guard p.terminationStatus==0,fresh["pictureInteriorsProven"] as? Bool==true,fresh["cardIdentityProven"] as? Bool==true,sameBinding(fresh,r),let overview=fresh["overview"] as? Row else{
                 throw Refusal("signedWindowCardOrDesktopBindingChanged")
             }
+            guard let census=fresh["windowCensus"] as? Row,census["expected"] as? [UInt32]==ids,
+                  census["admitted"] as? Bool==true,census["unknown"] as? Int==0,census["unresolved"] as? Int==0 else{throw Refusal("isolatedDesktopMembershipUnconfirmed")}
             guard overview["ready"] as? Bool==true else{throw Refusal(overview["reason"] as? String ?? "unconfirmedCardRegion")}
             return overview
         }
         let initial=try confirm()
-        guard let coordinates=initial["crop"] as? [Double],let pictureRects=initial["previews"] as? [[Double]],pictureRects.count==2 else{throw Refusal("missingReadableGeometry")}
-        let crop=try rect(coordinates), areas=try sources.map(rect)
+        guard let coordinates=initial["crop"] as? [Double],let pictureRects=initial["previews"] as? [[Double]],pictureRects.count==2,
+              let cardRects=initial["cards"] as? [[Double]],cardRects.count==2,let frame=initial["panelFrame"] as? [Double],
+              let sourceFrames=initial["sourceFrames"] as? [[Double]],sourceFrames.count==2 else{throw Refusal("missingReadableGeometry")}
+        let crop=try rect(coordinates),areas=try sources.map(rect),cards=try cardRects.map(rect)
         let windows=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
         let matches=windows.displays.filter{ screen in
             CGDisplayCreateUUIDFromDisplayID(screen.displayID).map{CFUUIDCreateString(nil,$0.takeRetainedValue()) as String==displayID} ?? false
@@ -158,19 +210,29 @@ private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws ->
             guard w.count==1 else{throw Refusal("exactOnscreenSCKWindowUnavailable")};return w[0]
         }
         let w0=try one(ids[0],fixture),w1=try one(ids[1],fixture),wp=try one(panel,host)
+        guard display.frame.contains(crop),areas.allSatisfy(display.frame.contains),
+              wp.owningApplication?.bundleIdentifier=="com.holdsnow.nearpane.alpha",wp.frame == (try rect(frame)),
+              w0.frame == (try rect(sourceFrames[0])),w1.frame == (try rect(sourceFrames[1])),
+              [w0,w1].allSatisfy({$0.owningApplication?.bundleIdentifier=="net.example.spaces-document"}) else{
+            throw Refusal("sckWindowIdentityOrGeometryChanged")
+        }
         guard NSDictionary(dictionary:initial).isEqual(to:try confirm()) else{throw Refusal("captureAdmissionChanged")}
         let bindingBefore=captureUptime()
-        async let a=snap(display:display,window:w0,area:areas[0])
-        async let b=snap(display:display,window:w1,area:areas[1])
-        async let picture=snap(display:display,window:wp,area:crop)
+        async let a=snap(window:w0,area:areas[0],allowed:[areas[0]])
+        async let b=snap(window:w1,area:areas[1],allowed:[areas[1]])
+        async let picture=snap(window:wp,area:crop,allowed:cards)
         let (left,right,raw)=try await (a,b,picture)
-        let sourceEpochs=try [left.marker(areas[0],document:0),right.marker(areas[1],document:1)]
+        func marker(_ read:ImageRead,region:CGRect,document:Int,site:String) throws -> Int {
+            do {return try read.marker(region,document:document)}
+            catch let refusal as Refusal {throw Refusal(site + (document==0 ? "One":"Two") + refusal.reason.prefix(1).uppercased() + refusal.reason.dropFirst())}
+        }
+        let sourceEpochs=try [marker(left,region:areas[0],document:0,site:"source"),marker(right,region:areas[1],document:1,site:"source")]
         var cardEpochs=[Int]()
         for (i, coords) in pictureRects.enumerated() {
             let p=try rect(coords)
             // Use a substantial interior below the synthetic window's title bar.
             let body=CGRect(x:p.minX+p.width*0.12,y:p.minY+p.height*0.38,width:p.width*0.76,height:p.height*0.48)
-            cardEpochs.append(try raw.marker(body,document:i))
+            cardEpochs.append(try marker(raw,region:body,document:i,site:"card"))
         }
         guard sourceEpochs==cardEpochs,Set(sourceEpochs).count==1 else{throw Refusal("actualSourceAndCardMarkersDiffer")}
         guard NSDictionary(dictionary:initial).isEqual(to:try confirm()) else{throw Refusal("bindingOrPhysicalInputChangedDuringImage")}
@@ -182,7 +244,10 @@ private func snap(display:SCDisplay,window:SCWindow,area:CGRect) async throws ->
                 "bindingBefore":bindingBefore,"bindingAfter":bindingAfter,"width":raw.width,"height":raw.height,"scale":raw.scale,"crop":coordinates,
                 "epoch":sourceEpochs[0],"sourceEpochs":sourceEpochs,"cardEpochs":cardEpochs,"panelSample":[raw.start,raw.end],
                 "singleIncludedHostWindow":true,"beforeAfterScopeEqual":true,"isolatedProfile":true,"fixedCaptions":initial["fixedCaptions"]!,
-                "sourceDocumentsEmpty":true,"otherControlsInCrop":0,"otherNonDesktopSurfacesInCrop":0]
+                "sourceDocumentsEmpty":true,"otherControlsInCrop":0,"captureSource":"desktopIndependentWindow",
+                "includedWindowNumbers":[panel],"filterStyle":"window","nativeTransparencyBacking":"solidWhite",
+                "captureIncludesChildWindows":false,"cardGapBacking":"solidWhite","panelFrame":frame,"retainedCardFrames":cardRects,
+                "retainedCardIDs":initial["cardIDs"]!,"sourceSamples":[[left.start,left.end],[right.start,right.end]]]
     }
 }
 #endif

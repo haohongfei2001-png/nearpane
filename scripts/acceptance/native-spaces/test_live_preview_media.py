@@ -126,6 +126,27 @@ class MediaTests(unittest.TestCase):
             self.assertEqual(report['microCrops']['status'],'BLOCKED')
             self.assertEqual((root/'media/paired-overview.png').read_bytes(),png)
 
+    def test_authenticated_window_filter_and_exact_two_ax_frames_required(self):
+        import copy
+        proof={'fixturePID':12,'panel':20,'numbers':[31,32],'pictures':[[5,6,4,4],[5,40,4,4]],
+               'cardGeometry':[{'frame':[1,4,40,25]},{'frame':[1,36,40,25]}],
+               'windowCensus':{'admitted':True,'expectedProven':True,'expected':[31,32],'unknown':0,'unresolved':0}}
+        row={'captureSource':'desktopIndependentWindow','filterStyle':'window','includedWindowNumbers':[20],
+             'nativeTransparencyBacking':'solidWhite','cardGapBacking':'solidWhite','captureIncludesChildWindows':False,
+             'panelFrame':[-10,1,61,80],'crop':[1,4,40,57],'retainedCardFrames':[[1,4,40,25],[1,36,40,25]],
+             'retainedCardIDs':['current-desktop-window:12:31','current-desktop-window:12:32'],
+             'fixedCaptions':['Field Notes · 1','Field Notes · 2'],'bindingBefore':1,'bindingAfter':3,'sourceSamples':[[1.5,2],[1.5,2.2]]}
+        self.assertEqual(media.independent_window_crop(row,proof)['includedWindowNumbers'],[20])
+        for key,bad in [('filterStyle','display'),('includedWindowNumbers',[20,21]),('includedWindowNumbers',[31]),
+                        ('panelFrame',[0,5,61,80]),('crop',[1,3,40,58]),('captureIncludesChildWindows',True),
+                        ('retainedCardIDs',row['retainedCardIDs'][::-1]),('cardGapBacking','desktop'),
+                        ('retainedCardFrames',[[1,4,41,25],[1,36,40,25]]),('sourceSamples',[[1,3.1],[1,2]])]:
+            with self.subTest(key=key,bad=bad),self.assertRaises(ValueError):
+                media.independent_window_crop({**row,key:bad},proof)
+        changed=copy.deepcopy(proof);changed['windowCensus']['unknown']=1
+        with self.assertRaises(ValueError):
+            media.independent_window_crop(row,changed)
+
     def test_marker_source_tables_are_identical(self):
         text=(HERE/'paired-preview-palette.swift').read_text()
         declared=text.split('static let epochs = ',1)[1].split('static let seconds',1)[0]
@@ -146,6 +167,33 @@ import ImageIO
         precondition(overviewTemporaryURL(CommandLine.arguments[2])==nil)
         precondition(overviewTemporaryURL(real+"/..")==nil)
         precondition(overviewTemporaryURL("/usr/bin/true")==nil)
+        let panel=CGRect(x:-15.5,y:3.5,width:10,height:10)
+        let crop=CGRect(x:-14,y:5,width:4,height:5)
+        let firstCard=CGRect(x:-14,y:5,width:4,height:1),secondCard=CGRect(x:-14,y:8,width:4,height:2)
+        let mask=try WindowSampleRegion(window:panel,crop:crop,allowed:[firstCard,secondCard],scale:2)
+        precondition(mask.windowWidth==20 && mask.windowHeight==20 && mask.originX==3 && mask.originY==3 && mask.width==8 && mask.height==10)
+        precondition((try? WindowSampleRegion(window:panel,crop:crop,allowed:[crop,crop],scale:2)) == nil)
+        precondition((try? WindowSampleRegion(window:panel,crop:crop,allowed:[panel.offsetBy(dx:1,dy:0)],scale:2)) == nil)
+        precondition((try? WindowSampleRegion(window:panel,crop:panel,allowed:[panel],scale:2)) == nil)
+        precondition((try? WindowSampleRegion(window:panel,crop:crop,allowed:[crop],scale:1)) == nil)
+        var buffer=Array(repeating:UInt8(20),count:20*88)
+        for y in 0..<20 { for x in 0..<20 {
+            let n=y*88+x*4
+            buffer[n]=UInt8(y);buffer[n+1]=UInt8(x);buffer[n+3]=0  // forbidden pixels have invalid alpha
+            if (3..<11).contains(x) && ((3..<5).contains(y) || (9..<13).contains(y)) { buffer[n+3]=255 }
+        }}
+        let result=try buffer.withUnsafeBytes{try mask.copyBGRA(from:$0.baseAddress!,stride:88)}
+        precondition(result.count==8*10*4)
+        for y in 0..<10 { for x in 0..<8 {
+            let n=4*(8*y+x)
+            if (2..<6).contains(y) {
+                precondition(Array(result[n..<(n+4)])==[255,255,255,255])
+            } else {
+                precondition(Array(result[n..<(n+4)])==[UInt8(y+3),UInt8(x+3),20,255])
+            }
+        }}
+        buffer[3*88+3*4+3]=240
+        precondition((try? buffer.withUnsafeBytes{try mask.copyBGRA(from:$0.baseAddress!,stride:88)}) == nil)
         let area=CGRect(x:10,y:20,width:20,height:20)
         let body=CGRect(x:12,y:22,width:10,height:8)
         var pixels=Data()
