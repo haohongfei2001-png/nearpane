@@ -39,3 +39,9 @@ macOS 27.0（26A428），单块 1470 × 956 点的物理显示器。每次使用
 `d277a1c` 已在同一已登记桌面上对两款不同 bundle ID、不同 PID 和签名散列的 AppKit 程序完成一次真实侧栏右拖。被拖窗口 A 最终为 (615, 33, 615, 923)，另一个进程的 B 为 (0, 33, 615, 923)。两次独立 AX/CG 读回及两个进程的清理均通过。[跨应用收据](separate-applications/result.json) · [日常配置恢复](separate-applications/protected-installation.json)
 
 修正观察器后，同一台 Mac 上的旧签名候选 `d81c458` 有 10/10 次取得目标窗口真实呈现。鼠标松开到第一帧目标画面的区间中位数为 358–378 毫秒。通过每帧窗口系统时间、独立遮挡检查以及 64 个实际目标色像素确定该区间。[实机读取与十次输入](baseline-presented/pair-pointer.json)
+
+## 定向读回的第一次实机试验
+
+`d1e0361` 在首击绑定目标后报告 `targetScopeChanged`。生产助手向目标发出的置前指令为零，独立观察器没有读到目标焦点或目标画面，未输入标记。此轮选窗合同 FAIL，剩余九次未执行。该包在同一安装期内自投、右拖通过，紧接着的左拖到达 `pairPlacing`，六次系统采样均未见预期交换，左拖 FAIL。初次收据的粒度不足以确定哪项定向检查发生冲突。测试结束后日常应用与配置已恢复。[逐项系统读回](scoped-final/pair-pointer.json) · [生产 Host 时序与恢复](scoped-final/protected-installation.json) · [独立签名归档](../5.22-p6/integrated-d1e0361/installation-result.json)
+
+该源码的本机 Swift 测试 625 项、加载历史原件的 Python 验收测试 305 项均通过。前一轮托管 macOS 26 曾暴露一项测试把时钟延迟误当作执行顺序的问题，新用例显式等待首次读取完成。[本机回归与原 CI 失败](targeted-focus-regression.json)

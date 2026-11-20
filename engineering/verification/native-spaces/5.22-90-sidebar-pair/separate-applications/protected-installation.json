@@ -45,5 +45,41 @@
     }
   },
   "originalReceiptSHA256": "22b30380dcd3ba951fb7a4e2bc39f525872bf9c62844da433de91ed4b2359617",
-  "hostLog": []
+  "hostLog": [
+    {
+      "processID": 77479,
+      "timestamp": "2026-11-21 07:04:14.962655+0800",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "processID": 77479,
+      "timestamp": "2026-11-21 07:04:15.596258+0800",
+      "eventMessage": "phase=cardDrop"
+    },
+    {
+      "processID": 77479,
+      "timestamp": "2026-11-21 07:04:15.614487+0800",
+      "eventMessage": "phase=pairResolving"
+    },
+    {
+      "processID": 77479,
+      "timestamp": "2026-11-21 07:04:15.692344+0800",
+      "eventMessage": "phase=pairListed"
+    },
+    {
+      "processID": 77479,
+      "timestamp": "2026-11-21 07:04:15.753498+0800",
+      "eventMessage": "phase=pairListed"
+    },
+    {
+      "processID": 77479,
+      "timestamp": "2026-11-21 07:04:15.813246+0800",
+      "eventMessage": "phase=pairPlacing"
+    },
+    {
+      "processID": 77479,
+      "timestamp": "2026-11-21 07:04:17.714984+0800",
+      "eventMessage": "phase=pairVerified"
+    }
+  ]
 }
