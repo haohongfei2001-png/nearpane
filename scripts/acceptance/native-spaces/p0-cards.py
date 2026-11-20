@@ -757,7 +757,7 @@ def close_observed_gates(result,evidence):
         evaluate_gate(stage,name,stage['requested'])
     failed=next((s for s in result['stages'].values() if s['samples'] and s['status']!='PASS'),None)
     if failed:
-        result.update(status=failed['status'],reason=failed['reason'])
+        result.update(status=failed['status'],reason=failed.get('reason','gate stopped before every action was confirmed'))
     elif result['status']=='PASS' and (not evidence.get('observationComplete') or evidence.get('incompleteJournals') or
                                        evidence.get('otherOperations') or not bound or bound!=set(observed)):
         result.update(status='UNKNOWN',reason='formal journal set or final independent observation was incomplete')
