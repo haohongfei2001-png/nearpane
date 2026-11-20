@@ -309,7 +309,7 @@ func fixtureResult(_ args: [String]) -> Object {
           let scope = spaces?.first(where: { $0["scope"] as? String == args[8] }),
           let sid = scope["current"] as? UInt64, String(sid) == args[9],
           (scope["records"] as? [Object])?.contains(where: { $0["id"] as? UInt64 == sid && $0["type"] as? Int == 0 }) == true,
-          (args[1] == "fixture-card-presence" || NPReadWindowNumberPresence(number) == 1) else {
+          (args[1] == "fixture-card-presence" || cross || NPReadWindowNumberPresence(number) == 1) else {
         return ["issued": false, "reason": "changed scope or fixture identity"]
     }
     if args[1] == "fixture-card-presence" {
@@ -326,7 +326,20 @@ func fixtureResult(_ args: [String]) -> Object {
         return ["issued": false, "reason": "changed source, application, window or signing identity"]
     }
     let owned = rows.filter { $0[kCGWindowNumber as String] as? UInt32 == number && $0[kCGWindowOwnerPID as String] as? pid_t == fixturePID }
-    guard owned.count == 1 else { return ["issued": false, "reason": "no unique owner CG record"] }
+    var publishedOwner = owned.count == 1
+#if NATIVE_CONTRACT
+    if cross {
+        let census=NPContractMemberReport([NSNumber(value:destination)] as CFArray,givenHost) as? [String:[String:Any]]
+        guard let targetCensus=census?[String(destination)],targetCensus["unresolved"] as? Int==0,
+              let ordinary=targetCensus["ordinary"] as? [[String:NSNumber]],
+              ordinary.filter({ $0["number"]?.uint32Value==number && $0["pid"]?.int32Value==fixturePID }).count == 1
+        else {return ["issued":false,"reason":"cross-Space number/PID lacks an exact forward and reverse system owner witness"]}
+        publishedOwner=true
+    }
+#else
+    if cross {return ["issued":false,"reason":"cross-Space selection requires the enrolled contract observer"]}
+#endif
+    guard publishedOwner else { return ["issued": false, "reason": "no unique owner CG record"] }
     let target = destination == sid ? "current-desktop-window:" + args[4] + ":" + args[5]
         : "native-space-window:" + args[8] + ":" + String(destination) + ":" + args[4] + ":" + args[5]
     if args[1] == "roster-card" || args[1] == "roster-shared-card" {

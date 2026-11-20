@@ -78,14 +78,25 @@ func validateTrial(_ scope: TrialScope, original: [Object], geometry: [Object]) 
         var b = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue: b))
         guard proc_pidinfo(w.pid, PROC_PIDTBSDINFO, 0, &b, size) == size, b.pbi_pid == UInt32(w.pid), b.pbi_uid == getuid(),
-              b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec == w.birth,
-              let fx = NSRunningApplication(processIdentifier: w.pid), ["net.example.spaces-document","net.example.spaces-route-witness"].contains(fx.bundleIdentifier ?? ""),
-              fx.bundleIdentifier == w.bundleID, fx.bundleURL?.resolvingSymlinksInPath().path == w.bundlePath,
-              fx.bundleURL?.lastPathComponent == (w.bundleID == "net.example.spaces-document" ? "Field Notes.app" : "Route Notes.app"), runningCodeHash(w.pid) == w.codeHash,
-              windows.filter({ $0[kCGWindowNumber as String] as? UInt32 == w.number &&
-                               $0[kCGWindowOwnerPID as String] as? Int32 == w.pid }).count == 1,
-              (NPReadWindowSpaces(w.number) as? [UInt64]) == [w.space]
-        else { throw TrialRefusal("witness identity or membership changed") }
+              b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec == w.birth else {
+            throw TrialRefusal("fixture PID or process birth changed: \(w.pid)")
+        }
+        guard let fx=NSRunningApplication(processIdentifier:w.pid),fx.bundleIdentifier==w.bundleID,
+              ["net.example.spaces-document","net.example.spaces-route-witness"].contains(w.bundleID),
+              fx.bundleURL?.resolvingSymlinksInPath().path==w.bundlePath else {
+            throw TrialRefusal("fixture bundle ID or signed path changed: \(w.pid)")
+        }
+        guard runningCodeHash(w.pid)==w.codeHash else {throw TrialRefusal("fixture CDHash changed: \(w.pid)")}
+        guard (NPReadWindowSpaces(w.number) as? [UInt64]) == [w.space] else {
+            throw TrialRefusal("reverse membership changed for fixture window \(w.number) on \(w.space)")
+        }
+#if !NATIVE_CONTRACT
+        // The standalone legacy observer lacks the per-Space owner census used above.
+        guard windows.filter({ $0[kCGWindowNumber as String] as? UInt32 == w.number &&
+                               $0[kCGWindowOwnerPID as String] as? Int32 == w.pid }).count==1 else {
+            throw TrialRefusal("public window owner unavailable: \(w.number)")
+        }
+#endif
     }
     let foreground = NSWorkspace.shared.frontmostApplication
     let focused = focusedNumber(foreground?.processIdentifier)
