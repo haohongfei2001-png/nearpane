@@ -48,7 +48,7 @@ struct DesktopWindowCard: View {
             preview
             caption.frame(height: 18)
         }
-        .foregroundStyle(scheme == .dark ? Color.white : Color.black)
+        .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
         .frame(maxWidth: .infinity, alignment: .center)
         .clipped()
         .contentShape(Rectangle())

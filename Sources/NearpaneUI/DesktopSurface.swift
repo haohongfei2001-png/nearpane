@@ -52,7 +52,7 @@ struct DesktopSurface: View {
         VStack(alignment: .leading, spacing: 0) {
             roster
             if let selectionIssue = navigation.issue ?? selectionIssue {
-                Text(selectionIssue).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+                Text(selectionIssue).font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).lineLimit(2)
                     .layoutPriority(1)
             }
             if enabled, display?.interactionVisible == true, !host.configuration.surfaceHidden,
@@ -345,7 +345,7 @@ struct DesktopSurface: View {
     }
 
     private func status(_ text: String) -> some View {
-        Text(text).font(.caption).foregroundStyle(.secondary).padding(4)
+        Text(text).font(.caption).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).padding(4)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

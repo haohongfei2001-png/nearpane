@@ -56,11 +56,13 @@ public struct TraySurface: View {
                                     }
                                 } label: {
                                     Image(systemName: "camera").font(.system(size: 21))
+                                        .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
                                         .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
                                 }.buttonStyle(.plain).accessibilityLabel("展开截图方式").accessibilityIdentifier("tray-camera-entry")
                             }
                         case .folder:
                             Image(systemName: "folder").font(.system(size: 21))
+                                .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .accessibilityLabel("文件拖放区").accessibilityIdentifier("tray-file-drop")
                         case .file(let id):

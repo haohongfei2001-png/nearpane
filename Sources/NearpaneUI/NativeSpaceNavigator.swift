@@ -112,7 +112,7 @@ struct NativeSpaceNavigator: View {
                             ZStack(alignment: .topLeading) {
                                 if windows.isEmpty {
                                     Text(row.regularWindowListComplete ? "未发现普通窗口" : "窗口归属尚未读全")
-                                        .font(.caption2).foregroundStyle(.secondary)
+                                        .font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary))
                                         .frame(maxWidth: .infinity, maxHeight: .infinity).allowsHitTesting(false)
                                 }
                                 ForEach(windows.reversed()) { window in

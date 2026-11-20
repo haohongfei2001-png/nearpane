@@ -55,6 +55,7 @@ public struct EdgeSurfaceView: View {
                     expandedModule(id,width:geometry.size.width).place(in:rect)
                 }
             }
+            .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
             // Offset children don't contribute their offsets to a ZStack's measured size.
             // Clip at the whole panel, not at the height of its largest individual region.
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
@@ -89,7 +90,7 @@ public struct EdgeSurfaceView: View {
 
     private var unavailableVoice: some View {
         Text(enabled(BuiltinCatalog.voice) ? "语音模块暂不可用" : "语音模块已停用")
-            .font(.caption).foregroundStyle(.secondary).padding(8)
+            .font(.caption).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).padding(8)
     }
 
     @ViewBuilder private var screenshots: some View {
@@ -104,7 +105,7 @@ public struct EdgeSurfaceView: View {
 
     private var unavailableTray: some View {
         Text(enabled(BuiltinCatalog.screenshots) ? "截图托盘暂不可用" : "截图模块已停用")
-            .font(.caption).foregroundStyle(.secondary).padding(8)
+            .font(.caption).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).padding(8)
     }
 
     private var desktop: some View {
@@ -139,7 +140,7 @@ public struct EdgeSurfaceView: View {
                     .help(module.name)
                     .accessibilityLabel(module.name)
                     .accessibilityIdentifier(module.id)
-                    .foregroundStyle(host.registry.expandedID == module.id ? host.configuration.accent.color : Color.secondary)
+                    .foregroundStyle(host.registry.expandedID == module.id ? host.configuration.accent.color : Color(nsColor: SidebarTextColor.secondary))
                 }
             }.padding(.horizontal, 8)
         }
@@ -169,7 +170,7 @@ public struct EdgeSurfaceView: View {
                         Text("Sample refreshes: \(projection?.refreshCount ?? 0)").font(.caption).monospacedDigit()
                         Button("Refresh sample") { host.handle(.module(id, .refresh)) }
                         Text("This is a Host lifecycle sample. Module data remains owned by its future adapter.")
-                            .font(.caption2).foregroundStyle(.secondary)
+                            .font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary))
                     }
                 }
             }
@@ -237,7 +238,7 @@ struct FoldedSurfaceButton: View {
                     Image(nsImage: Self.appIcon).resizable().scaledToFit()
                         .frame(width: PanelSizeMetrics.iconSide, height: PanelSizeMetrics.iconSide)
                     ForEach(Array(symbols.prefix(count)), id: \.self) { symbol in
-                        Image(systemName: symbol).font(.caption).foregroundStyle(.secondary)
+                        Image(systemName: symbol).font(.caption).foregroundStyle(Color(nsColor: SidebarTextColor.secondary))
                             .frame(width: PanelSizeMetrics.iconSide, height: PanelSizeMetrics.iconSide)
                     }
                 }

@@ -100,7 +100,7 @@ public struct VoiceSurface: View {
                         if module.rows.allSatisfy({ $0.text.isEmpty && $0.recognitionState != .failed }),
                            module.capture == .paused, module.issue == nil {
                             Text("点播放按钮开始收音")
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.caption).foregroundStyle(Color(nsColor: SidebarTextColor.secondary))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         if module.hasEarlier {
@@ -130,7 +130,7 @@ public struct VoiceSurface: View {
                 }.frame(maxWidth: .infinity, maxHeight: min(size.height,settings.points(.textHeight,in:size.height)), alignment: .topLeading)
             }
             if let issue = module.issue ?? module.insertionNotice {
-                Text(issue).font(.caption2).foregroundStyle(.secondary).lineLimit(2).help(issue)
+                Text(issue).font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).lineLimit(2).help(issue)
             }
             HStack(spacing:settings.points(.buttonGap,in:size.width)) {
                 Button {
@@ -184,7 +184,7 @@ private struct VoiceGlassControlStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: copy ? 9 : height / 2, style: .continuous)
         configuration.label
-            .foregroundStyle(enabled ? Color.primary : Color(nsColor: .disabledControlTextColor))
+            .foregroundStyle(Color(nsColor: enabled ? SidebarTextColor.primary : SidebarTextColor.secondary))
             .background {
                 shape.fill(opaque ? Color(nsColor: .controlBackgroundColor) :
                     Color.white.opacity(configuration.isPressed ? 0.58 : scheme == .dark ? 0.1 : 0.42))
@@ -257,7 +257,7 @@ struct TranscriptLine: NSViewRepresentable {
         view.textContainer?.lineFragmentPadding = 0
         view.textContainer?.widthTracksTextView = false
         view.font = transcriptFont(fontSize)
-        view.textColor = .labelColor
+        view.textColor = SidebarTextColor.primary
         return view
     }
 
