@@ -273,7 +273,8 @@ private func windowAXTraits(_ pid:pid_t,_ number:UInt32)->JSON {
     func attribute(_ key:String)->CFTypeRef? {
         var value:CFTypeRef?;return AXUIElementCopyAttributeValue(window,key as CFString,&value) == .success ? value:nil
     }
-    let role=attribute(kAXRoleAttribute) as? String,sub=attribute(kAXSubroleAttribute) as? String
+    let role=attribute(kAXRoleAttribute) as? String,reported=attribute(kAXSubroleAttribute) as? String
+    let sub=reported.flatMap{$0.isEmpty || $0=="AXUnknown" ? nil:$0}
     return ["query":"exactNumberAndPID","roleIsWindow":role.map{$0==kAXWindowRole} as Any? ?? NSNull(),
             "standard":sub.map{$0==kAXStandardWindowSubrole && role==kAXWindowRole} as Any? ?? NSNull(),
             "main":attribute(kAXMainAttribute) as? Bool as Any? ?? NSNull(),"minimized":attribute(kAXMinimizedAttribute) as? Bool as Any? ?? NSNull()]
@@ -295,7 +296,8 @@ private func ordinaryDetail(_ row:JSON,space:UInt64,pair:Pair,ctx:CensusContext)
     out["layer"]=d[kCGWindowLayer as String] as? Int as Any? ?? NSNull()
     out["onScreen"]=d[kCGWindowIsOnscreen as String] as? Bool as Any? ?? NSNull()
     out["alpha"]=d[kCGWindowAlpha as String] as? Double as Any? ?? NSNull()
-    if let bounds=d[kCGWindowBounds as String] as? JSON,let rect=CGRect(dictionaryRepresentation:bounds as CFDictionary) {
+    if let bounds=d[kCGWindowBounds as String] as? JSON,let rect=CGRect(dictionaryRepresentation:bounds as CFDictionary),!rect.isNull,!rect.isInfinite,
+       [rect.minX,rect.minY,rect.width,rect.height].allSatisfy(\.isFinite),rect.width>0,rect.height>0 {
         out["cropRelation"]=rect.contains(ctx.crop) ? "contains":(rect.intersects(ctx.crop) ? "intersects":"outside")
     }
     guard let path=observerPath(pid),let processBirth=censusBirth(pid) else {out["classification"]="ownerExitedOrUnavailable";return out}
@@ -335,6 +337,28 @@ private func ordinaryDetail(_ row:JSON,space:UInt64,pair:Pair,ctx:CensusContext)
     } else {out["classification"]=sealedApple ? "signedAppleSystemSurfaceUnclassified":"unregisteredSystemProcessUnclassified"}
     return out
 }
+// The visible auxiliary is admissible only for its own signed endpoint and outside the actual display crop.
+private func fixtureAuxiliary(_ d:JSON,_ endpoint:Window,_ opposite:Window)->Bool {
+    guard endpoint.pid != opposite.pid,d["classification"] as? String=="otherWindowOfEnrolledFixtureProcess",
+          d["confirmedForeignOrdinary"] as? Bool==false,d["privateKitExecutable"] as? Bool==true,
+          d["ownerPID"] as? pid_t==endpoint.pid,d["ownedPID"] as? pid_t==endpoint.pid,
+          d["ownerBirth"] as? UInt64==endpoint.birth,d["ownedBirth"] as? UInt64==endpoint.birth,
+          d["ownedCDHash"] as? String==endpoint.hash,d["ownedExecutable"] as? String==endpoint.executable,
+          let number=d["windowNumber"] as? UInt32,number>0,number != endpoint.number,number != opposite.number,
+          d["layer"] as? Int==0,d["cropRelation"] as? String=="outside",d["sourceReportForwardAndReverse"] as? Bool==true,
+          d["forwardAtDetail"] as? Bool==true,d["reverseAtDetail"] as? Bool==true,d["reverseExclusive"] as? Bool==true,
+          let ax=d["ax"] as? JSON,ax["query"] as? String=="exactNumberAndPID",ax["roleIsWindow"] as? Bool==true,
+          ax["standard"] as? Bool==false,ax["main"] as? Bool==false,ax["minimized"] as? Bool==false else {return false}
+    return true
+}
+private func auxiliarySummary(_ ordinary:Int,_ exact:Int,_ details:[JSON],_ endpoint:Window,_ opposite:Window,_ oppositeForward:Set<UInt32>?)->(Int,Bool) {
+    let accepted=details.filter{d in
+        guard fixtureAuxiliary(d,endpoint,opposite),let n=d["windowNumber"] as? UInt32,let oppositeForward else {return false}
+        return !oppositeForward.contains(n)
+    }
+    let ids=Set(accepted.compactMap{$0["windowNumber"] as? UInt32})
+    return(ids.count,exact==1 && ordinary==exact+details.count && ids.count==details.count)
+}
 private func desktopCensus(_ p:Pair,context:CensusContext?=nil,unexpected:(()->Void)?=nil)->(Bool,JSON) {
     let ids=[p.topology.current,p.target]
     guard let census=NPContractMemberReport(ids as CFArray,p.hostPID) as? JSON else {unexpected?();return(false,["available":false])}
@@ -347,23 +371,29 @@ private func desktopCensus(_ p:Pair,context:CensusContext?=nil,unexpected:(()->V
         }
         let exact=windows.filter{$0["pid"] as? pid_t==window.pid && $0["number"] as? UInt32==window.number}
         let accepted=details.filter{censusBackdrop($0,space:sid)}.count
-        let safe=exact.count==1 && windows.count==1 && birth(window.pid)==window.birth && unknown==0 && other==details.count && other==accepted
-        output[key]=["available":true,"ordinaryCount":windows.count,"exactFixtureCount":exact.count,"unclassifiedMembers":unknown,
-                     "otherMembers":other,"verifiedNegativeSystemBackdrops":accepted,"verifiedSharedOverlays":row["verifiedSharedOverlays"] ?? NSNull(),
-                     "verifiedHostPanels":row["verifiedHostPanels"] ?? NSNull(),"systemMenus":row["systemMenuSurfaces"] ?? NSNull(),"qualified":safe]
-        if !safe {unexpected?()}
-        if let context,let saved=output[key] as? JSON {
-            let extra=windows.filter{$0["pid"] as? pid_t != window.pid || $0["number"] as? UInt32 != window.number}
-            let inspected=extra.prefix(16).map{ordinaryDetail($0,space:sid,pair:p,ctx:context)}
-            var updated=saved;updated["extraOrdinary"]=inspected;updated["additionalUninspectedCount"]=max(0,extra.count-inspected.count)
-            updated["confirmedForeignOrdinary"]=inspected.contains{$0["confirmedForeignOrdinary"] as? Bool==true}
-            output[key]=updated
+        let extra=windows.filter{$0["pid"] as? pid_t != window.pid || $0["number"] as? UInt32 != window.number}
+        let opposite=index==0 ? p.targetWindow:p.sourceWindow
+        if exact.count != 1 || unknown != 0 || other != accepted || extra.contains(where:{$0["pid"] as? pid_t != window.pid || $0["number"] as? UInt32==opposite.number}) {
+            unexpected?()
         }
+        let inspected=context.map{ctx in extra.prefix(16).map{ordinaryDetail($0,space:sid,pair:p,ctx:ctx)}} ?? []
+        let peerRows=(census[String(ids[1-index])] as? JSON)?["ordinary"] as? [JSON]
+        let oppositeForward=peerRows.flatMap{rs->Set<UInt32>? in
+            let numbers=rs.compactMap{$0["number"] as? UInt32};return numbers.count==rs.count ? Set(numbers):nil
+        }
+        let (auxiliary,allOrdinaryAccounted)=auxiliarySummary(windows.count,exact.count,inspected,window,opposite,oppositeForward)
+        let safe=allOrdinaryAccounted && birth(window.pid)==window.birth && unknown==0 && other==details.count && other==accepted
+        output[key]=["available":true,"ordinaryCount":windows.count,"exactFixtureCount":exact.count,"verifiedFixtureAuxiliaryCount":auxiliary,
+                     "extraOrdinary":inspected,"additionalUninspectedCount":extra.count-inspected.count,
+                     "confirmedForeignOrdinary":inspected.contains{$0["confirmedForeignOrdinary"] as? Bool==true},
+                     "unclassifiedMembers":unknown,"otherMembers":other,"verifiedNegativeSystemBackdrops":accepted,
+                     "verifiedSharedOverlays":row["verifiedSharedOverlays"] ?? NSNull(),"verifiedHostPanels":row["verifiedHostPanels"] ?? NSNull(),
+                     "systemMenus":row["systemMenuSurfaces"] ?? NSNull(),"qualified":safe]
+        if !safe {unexpected?()}
         clean=clean && safe
     }
     return (clean,output)
 }
-private func cleanDesktops(_ p:Pair)->Bool {desktopCensus(p).0}
 
 private func probeRect(_ pair: [SCWindow], display: SCDisplay) -> CGRect? {
     let overlap = pair[0].frame.intersection(pair[1].frame).intersection(display.frame).insetBy(dx: 24, dy: 24)
@@ -688,6 +718,15 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
 @main private struct P0Visual {
     @MainActor static func main() async {
         guard [2,3].contains(CommandLine.arguments.count) else { exit(2) }
+        if CommandLine.arguments[1]=="--test-fixture-auxiliary",CommandLine.arguments.count==2 {
+            struct Input:Decodable {let endpoint:Window,opposite:Window}
+            let raw=FileHandle.standardInput.readDataToEndOfFile()
+            guard raw.count<=262144,let request=try? JSONDecoder().decode(Input.self,from:raw),
+                  let rows=try? JSONSerialization.jsonObject(with:raw) as? JSON,let ordinary=rows["ordinaryCount"] as? Int,
+                  let exact=rows["exactFixtureCount"] as? Int,let details=rows["extraOrdinary"] as? [JSON] else {exit(2)}
+            let (count,ok)=auxiliarySummary(ordinary,exact,details,request.endpoint,request.opposite,(rows["oppositeForwardWindowNumbers"] as? [UInt32]).map{Set($0)})
+            print(String(decoding:try! JSONSerialization.data(withJSONObject:["verifiedFixtureAuxiliaryCount":count,"allOrdinaryAccounted":ok],options:.sortedKeys),as:UTF8.self));return
+        }
         if CommandLine.arguments[1]=="--wallpaper-metadata",CommandLine.arguments.count==2 {
             let fields=NSScreen.screens.map{wallpaperProof(NSWorkspace.shared.desktopImageURL(for:$0)).fields}
             print(String(decoding:try! JSONSerialization.data(withJSONObject:["screens":fields],options:.sortedKeys),as:UTF8.self));return
@@ -1011,11 +1050,12 @@ private func writeMovie(_ pictures: [Picture], width: Int, height: Int, to url: 
                 }
             } catch {}
         }
+        let finalMembership=probe != nil ? desktopCensus(p,context:context):(false,[:] as JSON)
         try json(["nonce": b.nonce.uuidString, "ready": ready, "display": p.topology.display.uuidString,
                   "requestedHz": hz, "refreshLimitHz": screen.maximumFramesPerSecond, "displayModeHz": CGDisplayCopyDisplayMode(display.displayID)?.refreshRate ?? 0,
                   "width": width, "height": height, "filterStyle": filter.style.rawValue,
                   "windows": allowed.sorted(), "wallpaperIncluded": false, "audioEnabled": false,
-                  "physical": ["presentationReviewVersion":4,"machTimebase":probe?.timebase ?? [:],"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":probe != nil && cleanDesktops(p),
+                  "physical": ["presentationReviewVersion":4,"machTimebase":probe?.timebase ?? [:],"terminalTarget":terminal,"armed":probe != nil,"sourceFrameReadyBeforePress":physicalSourceReady,"admission":admission,"censusAfter":finalMembership.0,"membershipAfter":finalMembership.1,
                                "filter": "display-excluding-other-apps", "crop": crop.map(rectangle) as Any? ?? NSNull(),
                                "error": probe?.failed ?? false, "frames": probe?.rows ?? []] as JSON,
                   "changed": changed, "stoppedEarly": failed, "start": start, "stop": uptime(), "postSpace": post as Any? ?? NSNull(),

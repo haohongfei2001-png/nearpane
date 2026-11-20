@@ -188,6 +188,47 @@ class VisualTests(unittest.TestCase):
             with self.assertRaises(ValueError):visual.witness(kit,req,4,live)
             spawn.assert_not_called()
 
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires the compiled native auxiliary classifier")
+    def test_only_the_same_endpoint_exact_nonstandard_auxiliary_outside_the_crop_is_admitted(self):
+        def window(pid,n):return dict(pid=pid,birth=pid*100,number=n,identifier="net.example.spaces-document",executable=f"/private/tmp/fixture-{pid}",hash=str(pid)*8)
+        target,other=window(3,9),window(4,10)
+        row=dict(classification="otherWindowOfEnrolledFixtureProcess",confirmedForeignOrdinary=False,privateKitExecutable=True,
+            ownerPID=3,ownedPID=3,ownerBirth=300,ownedBirth=300,ownedCDHash=target["hash"],ownedExecutable=target["executable"],
+            windowNumber=11,layer=0,cropRelation="outside",sourceReportForwardAndReverse=True,forwardAtDetail=True,
+            reverseAtDetail=True,reverseExclusive=True,ax=dict(query="exactNumberAndPID",roleIsWindow=True,standard=False,main=False,minimized=False))
+        def check(details,count=2,exact=1,peer_numbers=(10,)):
+            data=dict(endpoint=target,opposite=other,ordinaryCount=count,exactFixtureCount=exact,extraOrdinary=details,oppositeForwardWindowNumbers=peer_numbers)
+            return json.loads(subprocess.check_output([os.environ["NEARPANE_P0_VISUAL_BINARY"],"--test-fixture-auxiliary"],input=json.dumps(data),text=True))
+        self.assertEqual(check([row]),{"allOrdinaryAccounted":True,"verifiedFixtureAuxiliaryCount":1})
+        for changes in [dict(classification="registeredKeeper"),dict(classification="unregisteredOrdinaryProcess"),dict(confirmedForeignOrdinary=True),
+                 dict(ownedBirth=301),dict(ownerPID=4),dict(ownedCDHash="different"),dict(ownedExecutable="/elsewhere"),
+                 dict(privateKitExecutable=False),dict(windowNumber=9),dict(windowNumber=10),dict(cropRelation="intersects"),
+                 dict(cropRelation="contains"),dict(forwardAtDetail=False),dict(reverseExclusive=False),dict(reverseAtDetail=None)]:
+            with self.subTest(changes=changes):self.assertFalse(check([dict(row,**changes)])["allOrdinaryAccounted"])
+        for change in [dict(query="ambiguous"),dict(standard=True),dict(standard=None),dict(main=True),dict(main=None),
+                       dict(roleIsWindow=False),dict(minimized=True)]:
+            with self.subTest(ax=change):self.assertFalse(check([dict(row,ax=dict(row["ax"],**change))])["allOrdinaryAccounted"])
+        self.assertFalse(check([row],peer_numbers=[10,11])["allOrdinaryAccounted"])
+        self.assertFalse(check([row],peer_numbers=None)["allOrdinaryAccounted"])
+        self.assertFalse(check([row,row],3)["allOrdinaryAccounted"])
+        self.assertFalse(check([row],3)["allOrdinaryAccounted"])
+        self.assertFalse(check([row],2,0)["allOrdinaryAccounted"])
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_AUXILIARY") and os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires archived terminal-pair and the compiled classifier")
+    def test_all_twenty_saved_auxiliary_observations_match_without_promoting_the_original_outcome(self):
+        root=Path(os.environ["NEARPANE_P0_ARCHIVED_AUXILIARY"]);request=json.loads((root/"identity.json").read_bytes())
+        physical=json.loads((root/"visual/frames.json").read_bytes())["physical"]
+        seen=[o["membership"] for o in physical["terminalTarget"]["observations"] if "membership" in o]
+        self.assertEqual(len(seen),20);self.assertEqual(json.loads((root/"visual/receipt.json").read_bytes())["status"],"UNKNOWN")
+        for sample in seen:
+            for side,peer,want in [("source","target",0),("target","source",1)]:
+                facts=sample[side]
+                data=dict(endpoint=request[side+"Window"],opposite=request[peer+"Window"],ordinaryCount=facts["ordinaryCount"],
+                          exactFixtureCount=facts["exactFixtureCount"],extraOrdinary=facts["extraOrdinary"],
+                          oppositeForwardWindowNumbers=[request[peer+"Window"]["number"]]+[x["windowNumber"] for x in sample[peer]["extraOrdinary"]])
+                decision=json.loads(subprocess.check_output([os.environ["NEARPANE_P0_VISUAL_BINARY"],"--test-fixture-auxiliary"],input=json.dumps(data),text=True))
+                self.assertTrue(decision["allOrdinaryAccounted"]);self.assertEqual(decision["verifiedFixtureAuxiliaryCount"],want)
+
     def test_native_blank_survives_overlapping_static_reads(self):
         at=self.frames[7]["displayTime"]
         self.frames[7]["status"]=2
