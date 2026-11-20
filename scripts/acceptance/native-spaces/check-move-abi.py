@@ -31,7 +31,7 @@ def qualify(directory):
         run([*common, flag, ADAPTER, fixture, "-framework", "Foundation", "-framework", "ApplicationServices", "-o", binary])
         variants[flag] = json.loads(run([binary], stdout=subprocess.PIPE).stdout)
     xml = directory / "swift.xml"
-    run(["swift", "test", "--jobs", "4", "--filter", "MoveReadbackTests|WindowWitnessTests|ActionInventoryTests",
+    run([str(ROOT/"scripts/test.sh"), "--jobs", "4", "--filter", "MoveReadbackTests|WindowWitnessTests|ActionInventoryTests",
          "--xunit-output", xml], env={**os.environ, "NEARPANE_FOUNDATION_ONLY": "1"}, stdout=sys.stderr)
     suites = {}
     for case in ET.parse(xml).findall(".//testcase"):
