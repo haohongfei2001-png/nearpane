@@ -83,6 +83,46 @@ struct TargetedCurrentFocusTests {
         }
     }
 
+    @Test func archivedPairGeometryMissingPublicFlagsAndHardConflictsHaveDistinctReasons() throws {
+        // P2 scoped-final measured the target's exact AX/CG rectangle before/after the failed click.
+        let rect = SurfaceRect(x: 585, y: 367, width: 320, height: 193)
+        var trace = CurrentFocusScope.Trace()
+        #expect(CurrentFocusScope.surface(owner: 42, pid: 42, layer: 0, visible: nil, drawn: true,
+                                          frame: rect, expected: rect, trace: trace) == .fullRosterRequired)
+        #expect(trace.findings.map(\.reason) == [.surfaceVisibility])
+        #expect(trace.findings.first?.observed == nil)
+        trace = CurrentFocusScope.Trace()
+        #expect(CurrentFocusScope.surface(owner: 42, pid: 42, layer: 0, visible: false, drawn: nil,
+                                          frame: rect, expected: rect, trace: trace) == .changed)
+        #expect(trace.findings.contains { $0.reason == .surfaceVisibility && $0.state == .changed && $0.observed == 0 })
+        trace = CurrentFocusScope.Trace()
+        #expect(CurrentFocusScope.surface(owner: 41, pid: 42, layer: 0, visible: nil, drawn: nil,
+                                          frame: rect, expected: rect, trace: trace) == .changed)
+        #expect(trace.findings.contains { $0.reason == .surfaceOwner && $0.state == .changed })
+        let screen = SurfaceRect(width: 1470, height: 956)
+        let usable = SurfaceRect(x: 0, y: 33, width: 1470, height: 923)
+        let published = DisplayObservation(id: display, frame: screen, rotationDegrees: 0, backingScale: 2, usable: usable)
+        let expected = try #require(OrdinaryFocusScope(display: display, topology: fingerprint, order: order,
+                                                       physicalDisplay: published, separateSpaces: true))
+        var actual = published
+        actual.usable = screen
+        trace = CurrentFocusScope.Trace()
+        #expect(CurrentFocusScope.physical(([actual], true, "other"), for: expected, point: .opening, trace: trace) == .changed)
+        #expect(trace.findings.map(\.reason) == [.usableFrame, .physicalTopology])
+        #expect(trace.findings.first?.observed == 10)
+        let encoded = String(decoding: try JSONEncoder().encode(trace.findings), as: UTF8.self)
+        #expect(!encoded.contains(display) && !encoded.contains("1470"))
+    }
+
+    @Test func probeOnlyAcceptsTheNonDispatchingListInspectionAndRelease() {
+        let allowed: [OrdinaryWindowRequest.Action] = [.list, .inspectFocusScope, .release]
+        let readOnly = allowed.allSatisfy { $0.allowedForFocusScopeProbe }
+        #expect(readOnly)
+        let denied: [OrdinaryWindowRequest.Action] = [.focusCurrent, .write, .prepare, .verify, .refresh, .observeBoundary,
+            .acknowledgeBoundary, .watchCreated, .takeCreated, .endCreated, .checkFocusPermission, .requestFocusPermission]
+        #expect(denied.allSatisfy { !$0.allowedForFocusScopeProbe })
+    }
+
     @Test func onlyOneCurrentOrdinaryRecordCanBeEnrolledAndOnlyTheSelectedControlGetsTheRequest() throws {
         #expect(OrdinaryFocusScope(display: display, topology: "partial", order: order) == nil)
         #expect(OrdinaryFocusScope(display: display, topology: fingerprint, order: [order[0], order[0]]) == nil)

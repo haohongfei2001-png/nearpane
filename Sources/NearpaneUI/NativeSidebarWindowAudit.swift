@@ -5,7 +5,16 @@ import NearpaneCore
 /// An isolated acceptance home can request evidence about its two fixture window
 /// identities. No process arguments, bundle names, titles, geometry or pixels are read here.
 @MainActor final class NativeSidebarWindowAudit {
-    private struct Manifest: Decodable { let version: Int, targets: [NativeSpaceWindow]; let previewTrace: PreviewPipelineAudit.Request? }
+    struct FocusRequest: Codable, Equatable {
+        let binding: PreviewPipelineAudit.Request
+        let desktop: OrdinaryDesktopIdentity
+    }
+    private struct Manifest: Decodable {
+        let version: Int, targets: [NativeSpaceWindow]
+        let previewTrace: PreviewPipelineAudit.Request?
+        let focusScopeProbe: FocusRequest?
+    }
+    private var lastFocusProbe: UUID?
     private let directory: Int32
     let previewTrace: PreviewPipelineAudit?
 
@@ -60,7 +69,10 @@ import NearpaneCore
                 accepted = true
             }
         }
-        return Sample(sink: self, targets: m.targets, feed: feed, epoch: epoch, revision: revision)
+        var status = stat()
+        guard fstat(fd, &status) == 0 else { return nil }
+        return Sample(sink: self, targets: m.targets, feed: feed, epoch: epoch, revision: revision,
+                      focusRequest: m.focusScopeProbe, stamp: .init(status))
     }
 
     private func append(_ row: [String: Any]) {
@@ -78,6 +90,22 @@ import NearpaneCore
         let targets: [NativeSpaceWindow]
         let feed, epoch: UUID
         let revision: UInt64
+        let focusRequest: FocusRequest?
+        let stamp: PreviewPipelineAudit.Stamp
+
+        @MainActor func focusProbeBound(_ request: FocusRequest) -> Bool {
+            var status = stat()
+            return targets.count == 2 && targets[0].pid == targets[1].pid && targets[0].birth == targets[1].birth &&
+                targets[0].number != targets[1].number &&
+                fstatat(sink.directory, "p0-window-audit-targets.json", &status, AT_SYMLINK_NOFOLLOW) == 0 &&
+                PreviewPipelineAudit.Stamp(status) == stamp && PreviewPipelineAudit.verifyGenerations(request.binding, targets)
+        }
+
+        @MainActor func claimFocusProbe() -> Bool {
+            guard let request = focusRequest, sink.lastFocusProbe != request.binding.token, focusProbeBound(request) else { return false }
+            sink.lastFocusProbe = request.binding.token
+            return true
+        }
 
         @MainActor func event(_ stage: String, _ fields: [String: Any] = [:], window: NativeSpaceWindow? = nil) {
             var row = fields

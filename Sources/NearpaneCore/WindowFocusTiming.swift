@@ -21,6 +21,12 @@ package struct WindowFocusTiming: Sendable {
         Self.log.info("operation=\(id.uuidString, privacy: .public) phase=\(phase, privacy: .public) route=\(route, privacy: .public) action=\(action, privacy: .public) uptime=\(ProcessInfo.processInfo.systemUptime, format: .fixed(precision: 6), privacy: .public)")
     }
 
+    package func scopeFindings(_ findings: [OrdinaryFocusScopeFinding], from source: Path) {
+        for item in findings {
+            Self.log.info("operation=\(id.uuidString, privacy: .public) phase=targetScopeFact route=\(source.rawValue, privacy: .public) action=\(item.reason.rawValue, privacy: .public) uptime=\(ProcessInfo.processInfo.systemUptime, format: .fixed(precision: 6), privacy: .public) point=\(item.point.rawValue, privacy: .public) evidence=\(item.state.rawValue, privacy: .public) expected=\(item.expected ?? -1, privacy: .public) observed=\(item.observed ?? -1, privacy: .public)")
+        }
+    }
+
     package func confirmed(_ path: Path) { record("exactFocus", path.rawValue) }
     package func completed(_ path: Path) { record("returned", path.rawValue) }
     package func beforeApplicationActivation() { record("beforeApplicationActivation", Path.application.rawValue) }

@@ -32,9 +32,11 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         try require(deadline >= now && deadline - now <= 12, "桌面已变化，请重新选择。")
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         if let scope {
-            let evidence = CurrentFocusScope.inspect(scope, number: id.number) {
-                CurrentFocusScope.original(id, element: element, frame: frame, display: display)
+            let trace = CurrentFocusScope.Trace()
+            let evidence = CurrentFocusScope.inspect(scope, number: id.number, trace: trace) {
+                CurrentFocusScope.original(id, element: element, frame: frame, display: display, trace: trace)
             }
+            if evidence != .confirmed { timing?.scopeFindings(trace.findings, from: .worker) }
             try require(evidence == .confirmed, "已绑定的窗口、可见位置或当前桌面已变化。")
             return
         }

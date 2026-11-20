@@ -36,7 +36,9 @@ final class Worker {
     private var creationHandles = Set<ManagedWindowID>()
     var windowsByID = [ManagedWindowID: WindowMonitor]()
     let previewWindow: UInt32?
-    init(_ parent: pid_t, previewWindow: UInt32? = nil) {
+    let scopeProbeOnly: Bool
+    init(_ parent: pid_t, previewWindow: UInt32? = nil, scopeProbeOnly: Bool = false) {
+        self.scopeProbeOnly = scopeProbeOnly
         self.parent = parent
         self.previewWindow = previewWindow
     }
@@ -49,14 +51,16 @@ final class Worker {
                 try require((r.action == .inspectFocusScope || r.action == .focusCurrent) && r.id != nil && r.expected != nil &&
                     r.destination == nil && r.desktop == nil && r.pairPlacement == nil &&
                     r.focusDisplay == scope.desktop.display && r.focusSpace == scope.desktop.record &&
-                    OrdinaryFocusScope(display: scope.desktop.display, topology: scope.topology, order: scope.order) == scope,
+                    OrdinaryFocusScope(display: scope.desktop.display, topology: scope.topology, order: scope.order,
+                                       physicalDisplay: scope.physicalDisplay, separateSpaces: scope.separateSpaces) == scope,
                     "定向读回与本次选窗不一致。")
             }
             if let placement = r.pairPlacement {
                 try require(r.action == .write && (r.desktop == nil || r.desktop == placement.desktop), "双窗授权只能用于本次指定桌面的写入。")
             }
             if let previewWindow {
-                try require(r.action.allowedForStillPreview && r.destination == nil &&
+                let allowed = scopeProbeOnly ? r.action.allowedForFocusScopeProbe : r.action.allowedForStillPreview
+                try require(allowed && r.destination == nil &&
                             (r.action == .list || r.id?.number == previewWindow), "此通道仅核对已选预览窗口。")
             }
             if r.action == .checkFocusPermission || r.action == .requestFocusPermission {
@@ -108,9 +112,11 @@ final class Worker {
                 case .inspectFocusScope:
                     guard let scope = r.focusScope, let frame = r.expected else { throw Refusal("缺少定向选窗读回凭据。") }
                     try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)
-                    reply.focusScopeEvidence = CurrentFocusScope.inspect(scope, number: id.number) {
-                        CurrentFocusScope.original(id, element: m.element, frame: frame, display: scope.desktop.display)
+                    let trace = CurrentFocusScope.Trace(includeConfirmed: scopeProbeOnly)
+                    reply.focusScopeEvidence = CurrentFocusScope.inspect(scope, number: id.number, trace: trace) {
+                        CurrentFocusScope.original(id, element: m.element, frame: frame, display: scope.desktop.display, trace: trace)
                     }
+                    reply.focusScopeFindings = trace.findings
                     try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)
                 case .focusCurrent:
                     guard let expected = r.expected, let display = r.focusDisplay, let deadline = r.focusDeadline,
@@ -202,10 +208,11 @@ guard verifyParent(parent) else { exit(64) }
 let args = CommandLine.arguments.dropFirst()
 let previewWindow: UInt32?
 if args.isEmpty { previewWindow = nil }
-else if args.count == 2, args.first == "--read-only-preview", let number = UInt32(args.last!), number > 0 {
+else if args.count == 2, args.first == "--read-only-preview" || args.first == "--read-only-focus-scope",
+        let number = UInt32(args.last!), number > 0 {
     previewWindow = number
 } else { exit(64) }
-let worker = Worker(parent, previewWindow: previewWindow)
+let worker = Worker(parent, previewWindow: previewWindow, scopeProbeOnly: args.first == "--read-only-focus-scope")
 final class CommandInput {
     let worker: Worker
     var pending = Data()

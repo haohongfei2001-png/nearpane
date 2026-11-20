@@ -27,8 +27,10 @@ public struct OrdinaryFocusScope: Codable, Equatable, Sendable {
     public let desktop: OrdinaryDesktopIdentity
     public let topology: String
     public let order: [SpaceRecord]
+    public let physicalDisplay: DisplayObservation?, separateSpaces: Bool?
 
-    public init?(display: String, topology: String, order: [SpaceRecord]) {
+    public init?(display: String, topology: String, order: [SpaceRecord], physicalDisplay: DisplayObservation? = nil,
+                 separateSpaces: Bool? = nil) {
         guard UUID(uuidString: display) != nil, topology.utf8.count == 64,
               topology.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
               !order.isEmpty, order.count <= 256, Set(order.map(\.id)).count == order.count,
@@ -36,6 +38,9 @@ public struct OrdinaryFocusScope: Codable, Equatable, Sendable {
               Set(order.compactMap { $0.ordinaryUUID ?? $0.fullscreenUUID }).count == order.count,
               order.filter(\.isCurrent).count == 1, let current = order.first(where: \.isCurrent),
               let uuid = current.ordinaryUUID else { return nil }
+        guard physicalDisplay == nil || (physicalDisplay?.id == display && separateSpaces != nil) else { return nil }
+        self.physicalDisplay = physicalDisplay
+        self.separateSpaces = separateSpaces
         desktop = .init(display: display, record: current.id, uuid: uuid)
         self.topology = topology
         // Previously witnessed is Host history, not part of the live WindowServer order.
@@ -67,6 +72,8 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
         case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
         case watchCreated, takeCreated, endCreated, focusCurrent, inspectFocusScope, checkFocusPermission, requestFocusPermission
+
+        public var allowedForFocusScopeProbe: Bool { self == .list || self == .inspectFocusScope || self == .release }
 
         public var allowedForStillPreview: Bool {
             switch self {
@@ -161,6 +168,7 @@ public struct OrdinaryWindowReply: Codable, Sendable {
     /// Set only for a read-only listing refused by the process that performs AX operations.
     public var listAccessDenied: Bool?
     public var focusScopeEvidence: OrdinaryFocusScopeEvidence?
+    public var focusScopeFindings: [OrdinaryFocusScopeFinding]?
     public var focusPermission: Bool?
     public var focusStep: Int?
     public var steps: [OrdinaryWindowStep]?

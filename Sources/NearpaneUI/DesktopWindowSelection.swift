@@ -15,7 +15,8 @@ extension DesktopWindowTarget {
         if let expected = currentFocusScope {
             guard snapshot.displays.count == 1, snapshot.scopes.count == 1, let scope = snapshot.scopes.first, scope.displayID == display,
                   snapshot.native?.stageManagerEnabled == false,
-                  OrdinaryFocusScope(display: display, topology: snapshot.topologyFingerprint, order: scope.records) == expected else { return false }
+                  OrdinaryFocusScope(display: display, topology: snapshot.topologyFingerprint, order: scope.records,
+                                     physicalDisplay: snapshot.displays.first, separateSpaces: snapshot.separateSpaces) == expected else { return false }
         }
         let matches = snapshot.currentDesktopWindows(on: display, now: now, uptime: uptime)
             .filter { $0.metadata?.number == key.number }
@@ -275,7 +276,9 @@ extension DesktopWindowTarget {
             guard current(), handle.id.pid == target.key.pid, handle.id.launch == target.key.birth,
                   handle.id.number == target.key.number else { throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。") }
             let admitted = try await resolveFocusScope(targetScope, current: current, inspect: { scope in
-                try await handle.inspectFocusScope(scope, frame: target.frame)
+                let reading = try await handle.inspectFocusScope(scope, frame: target.frame)
+                if reading.evidence != .confirmed { timing?.scopeFindings(reading.findings, from: .host) }
+                return reading.evidence
             }, fullRoster: { try await verifyOpeningScope(after:boundAt) }, timing: timing)
             try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline,
                                           space: admitted?.desktop.record ?? target.overviewSpace,

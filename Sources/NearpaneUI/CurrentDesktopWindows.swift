@@ -297,6 +297,14 @@ import OSLog
                 self.groups.reconcile(lifetimes: next) { key, space in known[key].map { $0 != [space] } ?? false }
             }
             self.lifetimes = next
+            if let audit, audit.focusRequest != nil {
+                let snapshot = result
+                Task { @MainActor [weak self] in
+                    await audit.inspectEnrolledFocus(snapshot) {
+                        self?.epoch == expected && self?.panelRequested == true && self?.sessionAvailable() == true
+                    }
+                }
+            }
             return result
         }
         let token = UUID()

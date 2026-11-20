@@ -17,8 +17,11 @@ struct DesktopWindowTarget: Equatable {
     let current: String?
     let overviewSpace: String?
     private let focusSpaceOrder: [SpaceRecord]?
+    private let focusPhysicalDisplay: DisplayObservation?
+    private let focusSeparateSpaces: Bool?
     var currentFocusScope: OrdinaryFocusScope? {
-        focusSpaceOrder.flatMap { OrdinaryFocusScope(display: display, topology: topology, order: $0) }
+        focusSpaceOrder.flatMap { OrdinaryFocusScope(display: display, topology: topology, order: $0,
+                                                    physicalDisplay: focusPhysicalDisplay, separateSpaces: focusSeparateSpaces) }
     }
     let publiclyVisible: Bool
     let membership: WindowMembership
@@ -81,8 +84,12 @@ struct DesktopWindowTarget: Equatable {
            let scope = snapshot.scopes.first, scope.displayID == display, let record = current, m.overviewSpaceID == record,
            membership == .known(recordIDs: [record]) {
             focusSpaceOrder = scope.records
+            focusPhysicalDisplay = snapshot.displays.first
+            focusSeparateSpaces = snapshot.separateSpaces
         } else {
             focusSpaceOrder = nil
+            focusPhysicalDisplay = nil
+            focusSeparateSpaces = nil
         }
         catalogSize = m.catalogLogicalFrame.map { CGSize(width: $0.width, height: $0.height) }
     }
