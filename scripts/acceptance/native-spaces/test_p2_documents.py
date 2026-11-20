@@ -28,9 +28,11 @@ class DocumentsTests(unittest.TestCase):
     def test_launch_enrolls_two_private_distinct_files_via_launch_services(self):
         app=self.folder/"Field Notes.app"
         with patch.object(subprocess,"Popen") as spawn:
-            self.assertIs(p2.open_documents(app,self.folder),spawn.return_value)
+            self.assertIs(p2.open_documents(app,self.folder,lambda:{"session":"test","hardware":[0]*13}),spawn.return_value)
         argv=spawn.call_args.args[0]
-        self.assertEqual(argv[:6],["/usr/bin/open","-n","-g","-W","-a",str(app)])
+        self.assertEqual(argv[:5],["/usr/bin/open","-n","-W","-a",str(app)])
+        self.assertNotIn("-g",argv)
+        self.assertEqual(argv.count("-a"),1)
         self.assertEqual(argv[-3:],["--args",str(self.folder),"2"])
         self.assertIn("CFFIXED_USER_HOME="+str(self.folder/"home"),argv)
         self.assertEqual(len({p2.private_file(self.folder/(s+".txt")) for s in "AB"}),2)
@@ -67,6 +69,9 @@ class DocumentsTests(unittest.TestCase):
         spawn.assert_not_called()
 
     def simulate(self, *, drop=None, user_after=None, armed=True):
+        self.run.trial=0
+        self.run.out["attempts"]=[]
+        self.run.out["fixturePreparation"].update(status="REQUESTED",id="session")
         numbers=self.numbers
         docs=[f"Field Notes {s} {self.folder.name}\n" for s in "AB"]
         calls=[]; markers=[]; focused=numbers[1]
@@ -102,44 +107,48 @@ class DocumentsTests(unittest.TestCase):
         with patch.object(p2,"MarkerWatch",side_effect=watch),patch.object(self.run,"call",side_effect=dispatch),patch.object(self.run,"read_until",side_effect=proof):
             self.run.trials("f"*40)
 
-    def test_only_setup_can_activate_once_and_it_cannot_be_a_product_intent(self):
-        background={"frontIsFixture":False,"frontMatchesOriginal":True,"focused":None,"main":None,"editorFocused":False}
-        ready={"frontIsFixture":True,"focused":409,"main":409,"editorFocused":True}
-        with patch.object(self.run,"read_until",side_effect=[background,ready]) as reads, \
-             patch.object(self.run,"call",return_value={"status":"PREPARATION","issued":True,"reason":"initialAppKitActivationRequested"}) as action:
-            self.assertEqual(self.run.prepare_front(["a","b"],"ab"*20),409)
-        self.assertEqual([c.args[0] for c in action.call_args_list],["prepare-active"])
-        self.assertEqual(reads.call_args_list[-1].kwargs["focus"],True)
-        self.assertEqual((self.run.out["fixturePreparation"]["status"],self.r.attempts),("VERIFIED",[]))
-        self.run.trial=1
-        with patch.object(self.run,"read_until",return_value=background),patch.object(self.run,"call") as action:
-            with self.assertRaisesRegex(p2.TrialStop,"formalWindowTrialAlreadyBegan"):self.run.prepare_front(["a","b"],"ab"*20)
-        action.assert_not_called()
+    def test_guard_checks_empty_lease_owned_host_original_foreground_and_all_physical_counters(self):
+        ws=Mock(host={"pid":41,"codeHash":"code"},host_birth=101)
+        ws.ids.return_value=[9]
+        self.run.workspace=ws
+        self.run.binding.update(hostBirth=101,allowedFront=23,allowedFrontBirth=99,spaceUUID="u")
+        proof=dict(status="LAUNCH_ADMITTED",frontMatchesOriginal=True,protectedFrontBirth=99,hid=[0]*13,clock=87,spaceUUID="u")
+        with patch("contract_workspace.empty_system_desktop",return_value=["first","second"]) as read,patch.object(self.run,"call",return_value=proof) as native:
+            got=self.run.admit_foreground_launch()
+            self.assertEqual((got["originalFront"],got["hardware"]),(23,[0]*13))
+            read.assert_called_once_with(ws,9)
+            native.assert_called_once_with("launch-admission",timeout=2)
+            with self.assertRaisesRegex(p2.TrialStop,"foregroundLaunchNotFreshOrUnleased"):self.run.admit_foreground_launch()
 
-    def test_refusal_new_foreground_or_missing_key_after_preparation_never_start_the_product(self):
-        background={"frontIsFixture":False,"frontMatchesOriginal":True,"focused":None}
-        with patch.object(self.run,"read_until",return_value=background|{"frontMatchesOriginal":False}),patch.object(self.run,"call") as action:
-            with self.assertRaisesRegex(p2.TrialStop,"initialForegroundChanged"):self.run.trials("a"*40)
-            action.assert_not_called()
-        with patch.object(self.run,"read_until",side_effect=[background,p2.TrialStop("focusMissing","UNKNOWN")]), \
-             patch.object(self.run,"call",return_value={"issued":True}) as action:
-            with self.assertRaisesRegex(p2.TrialStop,"focusMissing"):self.run.trials("a"*40)
-            self.assertEqual([c.args[0] for c in action.call_args_list],["prepare-active"])
+    def test_foreign_or_occupied_scope_prevents_the_launch_subprocess(self):
+        def refuse():raise p2.TrialStop("protectedForegroundOrOrdinaryLeaseChanged")
+        with patch.object(subprocess,"Popen") as spawn,self.assertRaisesRegex(p2.TrialStop,"protectedForeground"):
+            p2.open_documents(self.folder/"Field Notes.app",self.folder,refuse)
+        spawn.assert_not_called()
+
+    def test_foreground_launch_has_only_readback_and_no_second_activation(self):
+        self.run.out["fixturePreparation"].update(status="REQUESTED",id="session")
+        focused=dict(frontIsFixture=True,focused=409,main=409,editorFocused=True)
+        with patch.object(self.run,"read_until",return_value=focused) as read,patch.object(self.run,"call") as actor:
+            self.assertEqual(self.run.prepare_front(["a","b"]),409)
+            self.assertTrue(read.call_args.kwargs["focus"])
+        actor.assert_not_called()
+        self.assertEqual(self.run.out["fixturePreparation"]["status"],"VERIFIED")
         self.assertEqual(self.r.attempts,[])
 
-    def test_native_setup_admission_without_application_launch(self):
-        src=Path(__file__).resolve().parent
-        binary=self.folder/"pure-preparation"
-        subprocess.run(["xcrun","swiftc",src/"p2-document-prepare.swift",src/"p2-document-physical.swift",
-                        src/"test_p2_prepare.swift","-o",binary],check=True,timeout=45)
-        subprocess.run([binary],check=True,timeout=3)
+    def test_failed_foreground_launch_readback_is_blocked_without_any_press_or_activation(self):
+        self.run.out["fixturePreparation"].update(status="REQUESTED",id="session")
+        with patch.object(self.run,"read_until",side_effect=p2.TrialStop("noFocusedEditor","FAIL")),patch.object(self.run,"call") as actor:
+            with self.assertRaisesRegex(p2.TrialStop,"foregroundLaunchEditorUnconfirmed") as err:self.run.trials("9"*40)
+        actor.assert_not_called()
+        self.assertEqual((err.exception.status,self.r.attempts),("BLOCKED",[]))
 
-    def test_foreground_already_at_an_enrolled_editor_gets_no_setup_action(self):
-        focused={"frontIsFixture":True,"focused":317,"main":317,"editorFocused":True}
-        with patch.object(self.run,"read_until",return_value=focused),patch.object(self.run,"call") as action:
-            self.assertEqual(self.run.prepare_front(["a","b"],"9"*40),317)
-        action.assert_not_called()
-        self.assertEqual(self.run.out["fixturePreparation"]["method"],"alreadyFocused")
+    def test_native_initial_window_presentation_admission_without_launch(self):
+        src=Path(__file__).resolve().parent
+        binary=self.folder/"pure-presentation"
+        subprocess.run(["xcrun","swiftc",src/"p2-document-physical.swift",src/"test_p2_launch.swift",
+                        "-o",binary],check=True,timeout=45)
+        subprocess.run([binary],check=True,timeout=3)
 
     def test_ten_unique_single_posts_alternate_using_two_file_outcomes(self):
         self.simulate()
@@ -182,6 +191,7 @@ class DocumentsTests(unittest.TestCase):
         self.run.launcher.terminate.assert_not_called()
 
     def test_no_repost_when_first_normal_pair_has_no_receiver(self):
+        self.run.out["fixturePreparation"].update(status="REQUESTED",id="session")
         numbers=self.numbers
         replies=[dict(issued=True,axError=0),dict(issued=True,complete=False,reason="receiverPairUnconfirmed",
                                                 postedDown=1,postedUp=1)]

@@ -1,0 +1,48 @@
+{
+  "scope": "offline setup qualification",
+  "noGUIInQualification": true,
+  "observedPrevious": {
+    "run": "p2-registered-05",
+    "status": "BLOCKED",
+    "productOperations": "NOT_RUN",
+    "presses": 0,
+    "originalForegroundHeldAllReads": true,
+    "frontmostCounts": {
+      "fixture": 0,
+      "other": 16
+    },
+    "fixedSidebarMessages": [],
+    "initialActivationAcknowledged": true,
+    "reason": "fixturePreparationUnconfirmed:independentPreparedFixtureFocusUnconfirmed",
+    "denialCause": "UNKNOWN"
+  },
+  "previousFourthColdSelection": "FAIL after one acknowledged AXPress with no input",
+  "nextLaunch": [
+    "/usr/bin/open",
+    "-n",
+    "-W",
+    "-a",
+    "<signed Field Notes.app>"
+  ],
+  "nativeSelfActivationCalls": 0,
+  "foregroundLaunchRequestsPerSession": 1,
+  "formalSidebarSelectionsAfterTwoIndependentEditorReads": 10,
+  "nextInstalledW01": "NOT_RUN",
+  "signedKit": [
+    {
+      "name": "observe",
+      "Identifier": "net.example.nearpane.p2-observer",
+      "CDHash": "30de7a14750bbb82b04d41df5b1acc621d13932e",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "sha256": "1f2d989696c353890702b4ac1e4ee3b25c64060941aa58519f6239c64554171d"
+    },
+    {
+      "name": "Field Notes.app",
+      "Identifier": "net.example.spaces-document",
+      "CDHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "sha256": "7cb70a0e4f2362f9bbc4a90d40a3c274588c69ea02e78dac1a5de5bb9c371bf9"
+    }
+  ],
+  "offlineTests": 60
+}

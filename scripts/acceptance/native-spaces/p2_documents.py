@@ -15,7 +15,7 @@ from pathlib import Path
 from acceptance import identity
 from field_marker_witness import MarkerWatch
 from installed_profile import PROFILE, owns_profile
-from space_scope import private_file
+from space_scope import ScopeError, private_file
 
 
 class TrialStop(ValueError):
@@ -50,15 +50,16 @@ def static_part(path, identifier):
     return signed
 
 
-def open_documents(app, folder):
+def open_documents(app, folder, authorize):
     home = folder / "home"
     home.mkdir(mode=0o700)
     for name in ("A","B"):
         fd = os.open(folder/(name+".txt"), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd,"wb") as f:
             f.write(f"Field Notes {name} {folder.name}\n".encode())
-    # -g requests a background launch. The original sidebar makes every selection.
-    return subprocess.Popen(["/usr/bin/open","-n","-g","-W","-a",str(app),"--env","HOME="+str(home),
+    admission=authorize()
+    return subprocess.Popen(["/usr/bin/open","-n","-W","-a",str(app),"--env","HOME="+str(home),
+                             "--env","NP_P2_LAUNCH_ADMISSION="+json.dumps(admission,separators=(",",":")),
                              "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_FIXTURE_PRESENTATION=p2-documents",
                              "--env","NP_W01_MARKER_WITNESS=1","--args",str(folder),"2"],
                             stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -113,22 +114,24 @@ def classify_read(q, state, disk, target, hashes, expect_focus):
 
 
 class RegisteredRun:
-    def __init__(self, observer, initial, rec, lease_hid):
+    def __init__(self, observer, initial, rec, lease_hid, lease_workspace=None):
         override = os.environ.get("NP_P2_DOCUMENT_KIT") or os.environ.get("NP_W01_MARKER_KIT")
         self.kit = Path(override) if override else observer.parent
         self.observer = self.kit/"observe"
         self.app = self.kit/"Field Notes.app"
         self.folder = self.kit/str(uuid.uuid4())
         self.rec, self.initial, self.lease_hid = rec, initial, lease_hid
+        self.workspace=lease_workspace
         scope = initial["scopes"][0]
         self.binding = dict(hostPID=initial["host"]["pid"],hostHash=initial["host"]["codeHash"],display=scope["scope"],space=scope["current"],allowedFront=initial.get("frontmostPID"))
         self.baseline = None
         self.launcher = None
+        self.folder_created=False
         self.watch = None
         self.trial = 0
         self.attempt = None
         self.samples = []
-        self.out = dict(status="BLOCKED",reason="notStarted",passes=0,launch="Launch Services open -n -g -W",
+        self.out = dict(status="BLOCKED",reason="notStarted",passes=0,launch="foreground Launch Services open -n -W -a",
                         registration=None,superseded=False,focusRestoreRequested=False,attempts=[],cleanup={"status":"NOT_RUN"},
                         firstDocumentCapture={"status":"NOT_RUN","reason":"firstIndependentlyVerifiedInputUnavailable"},
                         fixturePreparation={"status":"NOT_RUN","issued":False,"productAction":False})
@@ -282,44 +285,50 @@ class RegisteredRun:
                      closureConfirmed=result["closureConfirmed"],receiverDisposition=result.get("receiverDisposition"),steps=[v["step"] for v in result["events"]])
         return result
 
-    def prepare_front(self, hashes, reader):
-        numbers=self.binding["numbers"]
-        initial=self.read_until(None,hashes,"Initial",ready=True,seconds=6)
+    def admit_foreground_launch(self):
+        from contract_workspace import empty_system_desktop
+        ws=self.workspace
         prep=self.out["fixturePreparation"]
-        prep.update(before=dict(frontIsFixture=initial.get("frontIsFixture"),frontMatchesOriginal=initial.get("frontMatchesOriginal"),
-                                focused=initial.get("focused"),main=initial.get("main"),editorFocused=initial.get("editorFocused")))
-        stable=initial.get("frontIsFixture") is True and initial.get("focused") in numbers and (
-            initial.get("focused")==initial.get("main") and initial.get("editorFocused") is True)
-        if not stable:
-            require(self.trial==0 and not self.out["attempts"],"formalWindowTrialAlreadyBegan")
-            require(prep["status"]=="NOT_RUN","initialFixturePreparationAlreadyAttempted")
-            require(initial.get("frontIsFixture") is True or initial.get("frontMatchesOriginal") is True,"initialForegroundChanged")
-            intent=str(uuid.uuid4())
-            prep.update(status="INTENT",id=intent,issued=None)
-            self.rec.log("P2-fixture-preparation-intent",id=intent,productAction=False)
-            reply=self.call("prepare-active",{"intent":intent,"readerHash":reader,"digests":hashes},timeout=3.5)
-            prep.update(status="ACKNOWLEDGED" if reply.get("issued") is True else "UNCONFIRMED",
-                        issued=reply.get("issued"),reason=reply.get("reason"))
-            self.rec.log("P2-fixture-preparation-delivery",id=intent,productAction=False,result=reply)
-            check_hid(reply,self.baseline)
-            require(reply.get("issued") is True,"initialAppKitPreparationUnconfirmed","BLOCKED")
+        require(ws is not None and prep["status"]=="NOT_RUN" and self.launcher is None and not self.out["attempts"],
+                "foregroundLaunchNotFreshOrUnleased")
+        space=self.binding["space"]
+        require(space in ws.ids() and ws.host["pid"]==self.binding["hostPID"] and ws.host["codeHash"]==self.binding["hostHash"]
+                and ws.host_birth==self.binding["hostBirth"],"foregroundLaunchHostGenerationOrLeaseChanged")
         try:
-            ready=self.read_until(None,hashes,"PreparedFixtureFocus",ready=True,focus=True,seconds=4)
+            empty=empty_system_desktop(ws,space)
+        except ScopeError as error:
+            raise TrialStop("emptyOrdinaryLeaseUnconfirmed:"+str(error)) from error
+        proof=self.call("launch-admission",timeout=2)
+        check_hid(proof,self.baseline)
+        require(proof.get("status")=="LAUNCH_ADMITTED" and proof.get("frontMatchesOriginal") is True and
+                proof.get("protectedFrontBirth")==self.binding["allowedFrontBirth"] and proof.get("hid")==self.baseline,
+                "foregroundLaunchAdmissionUnconfirmed")
+        prep.update(status="INTENT",productAction=False,issued=None,id=str(uuid.uuid4()),emptyLeaseReads=empty,
+                    originalForegroundBirth=proof["protectedFrontBirth"],checkedAt=proof["clock"],spaceUUID=proof["spaceUUID"],
+                    method="singleForegroundLaunchServicesOpen")
+        self.rec.log("P2-foreground-launch-admitted",**prep)
+        return dict(session=self.folder.name,originalFront=self.binding["allowedFront"],hardware=self.baseline,admittedAt=proof["clock"])
+
+    def prepare_front(self, hashes):
+        prep=self.out["fixturePreparation"]
+        require(self.trial==0 and prep["status"]=="REQUESTED" and not self.out["attempts"],"foregroundLaunchNotAdmitted")
+        try:
+            ready=self.read_until(None,hashes,"InitialForegroundDocument",ready=True,focus=True,seconds=6)
         except Superseded:
             prep.update(status="SUPERSEDED",reason="userSuperseded")
             raise
         except TrialStop as error:
             prep.update(status="BLOCKED",reason=error.reason)
-            raise TrialStop("fixturePreparationUnconfirmed:"+error.reason,"BLOCKED") from error
-        require(ready.get("frontIsFixture") is True and ready.get("focused") in numbers,"independentInitialFixtureFocusUnavailable")
-        prep.update(status="VERIFIED",method="alreadyFocused" if stable else "oneTimeNormalAppKitActivation",focused=ready["focused"])
-        self.rec.log("P2-fixture-preparation-readback",productAction=False,**{k:v for k,v in prep.items() if k!="productAction"})
+            raise TrialStop("foregroundLaunchEditorUnconfirmed:"+error.reason,"BLOCKED") from error
+        require(ready.get("frontIsFixture") is True and ready.get("focused") in self.binding["numbers"],"independentInitialFixtureFocusUnavailable")
+        prep.update(status="VERIFIED",focused=ready["focused"])
+        self.rec.log("P2-foreground-launch-readback",productAction=False,focused=ready["focused"],id=prep["id"])
         return ready["focused"]
 
     def trials(self, reader):
         texts=[f"Field Notes {n} {self.folder.name}\n" for n in ("A","B")]
         hashes=[digest(t.encode()) for t in texts]
-        initial_focus=self.prepare_front(hashes,reader)
+        initial_focus=self.prepare_front(hashes)
         numbers=self.binding["numbers"]
         first_slot=1 if initial_focus==numbers[0] else 0
         unique_tokens=secrets.SystemRandom().sample(range(10**12),10)
@@ -371,6 +380,12 @@ class RegisteredRun:
 
     def cleanup(self):
         if self.launcher is None:
+            if self.folder_created and self.folder.parent==self.kit and self.folder.name==self.binding.get("session") and self.folder.resolve()==self.folder:
+                if self.out["fixturePreparation"]["status"]=="NOT_RUN":
+                    shutil.rmtree(self.folder)
+                    self.out["cleanup"]={"status":"PASS","ownedSessionRemoved":not self.folder.exists(),"launchIssued":False}
+                else:
+                    self.out["cleanup"]={"status":"UNKNOWN","reason":"foregroundLaunchReceiptUnavailable"}
             return
         # Closing an active fixture after real input would change the user's new focus.
         token="close-when-inactive" if self.out["superseded"] else "close"
@@ -410,12 +425,19 @@ class RegisteredRun:
             check_hid(base,None)
             require(base.get("status")=="READY" and len(base.get("hid",[]))==13,"hardwareOrHostBaselineUnavailable")
             self.baseline=base["hid"]
+            if self.baseline[:5]!=self.lease_hid:raise Superseded()
+            uuid_value=next((r.get("uuid") for r in self.initial["scopes"][0]["records"] if r["id"]==self.binding["space"]),None)
+            require(isinstance(uuid_value,str) and str(uuid.UUID(uuid_value))==uuid_value.lower() and
+                    isinstance(base.get("protectedFrontBirth"),int) and base["protectedFrontBirth"]>0,
+                    "originalForegroundGenerationOrLeaseUUIDUnavailable")
+            self.binding.update(allowedFrontBirth=base["protectedFrontBirth"],spaceUUID=uuid_value)
             self.out["scope"]={**self.binding,"hostBirth":base["hostBirth"],"leaseHardwareCounters":self.lease_hid}
-            if self.lease_hid is not None and self.baseline[:5]!=self.lease_hid: raise Superseded()
             self.binding.update(hostBirth=base["hostBirth"],hid=self.baseline,folder=str(self.folder),app=str(self.app),hash=fixture["CDHash"],session=self.folder.name)
             self.folder.mkdir(mode=0o700)
-            self.launcher=open_documents(self.app,self.folder)
-            self.rec.log("P2-launch-services-open",session=self.folder.name,launcherPID=self.launcher.pid,background=True)
+            self.folder_created=True
+            self.launcher=open_documents(self.app,self.folder,self.admit_foreground_launch)
+            self.out["fixturePreparation"].update(status="REQUESTED",issued=True,launcherPID=self.launcher.pid)
+            self.rec.log("P2-launch-services-open",session=self.folder.name,launcherPID=self.launcher.pid,background=False,productAction=False)
             self.opened()
             self.rec.log("P2-fixture-app-bound",session=self.folder.name,launcherPID=self.launcher.pid,fixturePID=self.binding["pid"],
                          birth=self.binding["birth"],numbers=self.binding["numbers"])

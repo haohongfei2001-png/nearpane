@@ -186,7 +186,7 @@ def wait_state(path, predicate, deadline):
     return {}
 
 
-def controlled_window(observer, initial, frozen, rec, count, inspect_only=False, *, lease_hid=None):
+def controlled_window(observer, initial, frozen, rec, count, inspect_only=False, *, lease_hid=None, lease_workspace=None):
     if not frozen["signatureValid"] or not frozen["loadedMatchesInstalled"] or not frozen["source"]:
         return "A signed running candidate with a frozen source revision is required."
     if not initial["observerAX"] or len(initial["displays"]) != 1 or len(initial.get("scopes") or []) != 1:
@@ -196,7 +196,7 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False,
         return "Original desktop is not an ordinary Space."
     if count == 2 and not inspect_only:
         from p2_documents import RegisteredRun
-        return RegisteredRun(observer, initial, rec, lease_hid).run()
+        return RegisteredRun(observer, initial, rec, lease_hid, lease_workspace).run()
     app = observer.parent / "Field Notes.app"
     fx = app / "Contents/MacOS/FieldNotes"
     sign = identity(fx)["CDHash"]

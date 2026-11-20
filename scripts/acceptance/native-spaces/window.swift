@@ -39,7 +39,10 @@ NSWindow.allowsAutomaticWindowTabbing = false
 #if P2_DOCUMENT_FIXTURE
 let registeredDocuments = presentation == "p2-documents"
 let p2LaunchHID = registeredDocuments ? p2Physical() : []
-let p2FirstActivation=MainActor.assumeIsolated { P2FirstDocumentActivation() }
+let p2LaunchAdmission: P2LaunchPresentation? = {
+    guard registeredDocuments,let raw=ProcessInfo.processInfo.environment["NP_P2_LAUNCH_ADMISSION"] else{return nil}
+    return try? JSONDecoder().decode(P2LaunchPresentation.self,from:Data(raw.utf8))
+}()
 var documentFiles = [FieldDocumentFile]()
 #else
 let registeredDocuments = false
@@ -139,6 +142,20 @@ final class SharedFixtureWindow: NSPanel {
         w.initialFirstResponder = editor
         _ = w.makeFirstResponder(editor)
         windows.append(w); editors.append(editor)
+        #if P2_DOCUMENT_FIXTURE
+        if registeredDocuments {
+            guard let admission=p2LaunchAdmission,admission.allows(now:ProcessInfo.processInfo.systemUptime,hid:p2Physical(),
+                  front:NSWorkspace.shared.frontmostApplication?.processIdentifier,fixture:getpid(),mouseDown:NSEvent.pressedMouseButtons != 0,
+                  session:session) else{return}
+            if i==0 {
+                // The first ordinary document supplies the default key window during the original foreground launch.
+                w.makeKeyAndOrderFront(nil)
+            } else if let first=windows.first {
+                w.order(.below,relativeTo:first.windowNumber)
+            }
+            return
+        }
+        #endif
         if presentation == "contract" || presentation == "contract-split" || presentation == "roster-cycle" || presentation == "five-preview" {
             w.makeKeyAndOrderFront(nil)
             app.activate(ignoringOtherApps:true)
@@ -174,7 +191,6 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : (presentation=="paired-preview" ? 240 : 150))
     var yieldToUser = inactiveCleanup
     #if P2_DOCUMENT_FIXTURE
-    if registeredDocuments && !closing { MainActor.assumeIsolated { p2FirstActivation.tick(folder:run,birth:birth,windows:windows) } }
     if closing && registeredDocuments && (p2Physical() != p2LaunchHID || NSEvent.pressedMouseButtons != 0) {
         yieldToUser=true
         let flag=run.appendingPathComponent("p2-user-superseded")

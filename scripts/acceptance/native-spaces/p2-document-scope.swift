@@ -6,7 +6,7 @@ import Security
 struct P2Request: Decodable {
     let mode:String, hostPID:Int32, hostHash:String, display:String, space:UInt64
     let hostBirth:UInt64?, hid:[UInt32]?, app:String?, folder:String?, session:String?, pid:Int32?, birth:UInt64?, hash:String?
-    let numbers:[UInt32]?, target:UInt32?, digests:[String]?, allowedFront:Int32?, intent:String?, readerHash:String?
+    let numbers:[UInt32]?, target:UInt32?, digests:[String]?, allowedFront:Int32?, allowedFrontBirth:UInt64?, spaceUUID:String?
 }
 private func p2Path(_ path:String)->String? {
     guard let raw=realpath(path,nil) else { return nil }; defer{free(raw)}; return String(cString:raw)
@@ -54,7 +54,22 @@ func p2DocumentReport(_ request:P2Request) -> Object {
               $0["id"] as? UInt64==request.space && $0["type"] as? Int==0 })==true else{return stop("installedHostOrLeasedSpaceChanged")}
     result["hostBirth"]=hBirth
     if changed(){return superseded()}
+    let foreground=NSWorkspace.shared.frontmostApplication?.processIdentifier
+    if let original=request.allowedFront, foreground==original,let born=birthMicroseconds(original) {
+        result["protectedFrontBirth"]=born
+    }
     if request.mode=="baseline" {result["status"]="READY";return result}
+    if request.mode=="launch-admission" {
+        guard let original=request.allowedFront,original>1,let expected=request.allowedFrontBirth,expected>0,
+              foreground==original,birthMicroseconds(original)==expected,
+              let uuid=request.spaceUUID,(scope["records"] as? [Object])?.contains(where:{
+                  $0["id"] as? UInt64==request.space && $0["type"] as? Int==0 &&
+                  ($0["uuid"] as? String)?.lowercased()==uuid.lowercased()
+              })==true, request.hid?.count==hardware.count, !changed()
+        else{return changed() ? superseded() : stop("protectedForegroundOrOrdinaryLeaseChanged")}
+        result["status"]="LAUNCH_ADMITTED";result["frontMatchesOriginal"]=true;result["spaceUUID"]=uuid
+        return result
+    }
     guard let filename=request.app,let folder=request.folder,let token=request.session,let pid=request.pid,let born=request.birth,let code=request.hash,
           let numbers=request.numbers, numbers.count==2,Set(numbers).count==2,!numbers.contains(0),pid>1,born>0,
           UUID(uuidString:token) != nil,let physical=p2Path(filename),let sandbox=p2Path(folder) else{return stop("incompleteEnrollment")}
@@ -155,33 +170,6 @@ func p2DocumentReport(_ request:P2Request) -> Object {
         if changed(){return superseded()}
         guard birthMicroseconds(pid)==born,birthMicroseconds(request.hostPID)==hBirth else{return stop("generationChangedAtReadback")}
         result["status"]="READ";return result
-    }
-    if request.mode=="prepare-active" {
-        guard let initial=request.allowedFront,initial>1,currentFront==initial || currentFront==pid,
-              let intent=request.intent,UUID(uuidString:intent) != nil,let readerHash=request.readerHash,
-              let readerBirth=birthMicroseconds(getpid()),p2TrustedObserver(getpid(),readerBirth,readerHash),
-              let hid=request.hid,hid==p2Physical(),hashes==request.digests,
-              inventory()?.first(where:{$0["scope"] as? String==request.display})?["current"] as? UInt64==request.space,
-              numbers.allSatisfy({NPReadWindowSpaces($0) as? [UInt64]==[request.space]}) else{return stop("initialForegroundOrSignedSetupChanged")}
-        let path=URL(fileURLWithPath:sandbox,isDirectory:true)
-        guard !FileManager.default.fileExists(atPath:path.appendingPathComponent("marker-watch-command.json").path) else{return stop("formalTrialAlreadyBegan")}
-        let expires=ProcessInfo.processInfo.systemUptime+1.75
-        let setup=P2InitialActivation(session:token,intent:intent,readerHash:readerHash,pid:pid,reader:getpid(),allowedFront:initial,
-                                      birth:born,readerBirth:readerBirth,numbers:numbers,hid:hid,expires:expires)
-        do {
-            let file=path.appendingPathComponent("p2-initial-request.json")
-            try JSONEncoder().encode(setup).write(to:file,options:.withoutOverwriting)
-            try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:file.path)
-        } catch {return stop("initialActivationPreviouslyIssuedOrUnwritable")}
-        repeat {
-            if let reply=p2ReadInitialFile(P2ActiveReply.self,path.appendingPathComponent("p2-initial-result.json")),
-               reply.session==token,reply.intent==intent {
-                return ["status":"PREPARATION","issued":reply.issued,"reason":reply.reason,"hidAfter":p2Physical(),"userSuperseded":changed(),"clock":ProcessInfo.processInfo.systemUptime]
-            }
-            if changed(){return ["status":"BLOCKED","reason":"userSuperseded","issued":NSNull(),"requestWritten":true,"hid":p2Physical()]}
-            Thread.sleep(forTimeInterval:0.015)
-        } while ProcessInfo.processInfo.systemUptime<expires
-        return ["status":"UNKNOWN","reason":"initialActivationReplyUnavailable","hidAfter":p2Physical()]
     }
     guard ["press","marker"].contains(request.mode),let target=request.target,numbers.contains(target),hashes==request.digests,
           request.hid?.count==hardware.count else{return stop("unadmittedActionOrDocumentDigests")}

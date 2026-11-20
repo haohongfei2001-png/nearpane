@@ -13,40 +13,10 @@ import time
 from installed_profile import APP, PROFILE, owns_profile
 from acceptance import Receipt, controlled_window, manifest
 from contract_document import run as run_documents
+from contract_workspace import empty_system_desktop
 from space_scope import require
 
 driver = importlib.import_module("preview-workspace")
-
-
-def empty_system_desktop(workspace, target):
-    observations = []
-    prior_surfaces = None
-    for _ in range(2):
-        inventory = workspace.read()
-        state = workspace.check(inventory)
-        census = inventory["scopedMembers"][str(target)]
-        require(state["current"] == target and census["unresolved"] == 0, "leased desktop has an unidentified member")
-        surfaces = []
-        for member in census["ordinary"]:
-            query = dict(display=workspace.display, space=target, pid=member["pid"], number=member["number"])
-            proof = json.loads(subprocess.check_output(
-                [workspace.kit / "split-view-read", "compare-roster", "inactive-stage-surface"],
-                input=json.dumps(query), text=True, timeout=4))
-            require(proof.get("admitted") is True, "leased desktop has an ordinary application window")
-            surfaces.append(proof)
-        surfaces.sort(key=lambda entry: entry["number"])
-        require(prior_surfaces is None or prior_surfaces == surfaces, "inactive Stage Manager surfaces changed")
-        prior_surfaces = surfaces
-        others = census["otherDetails"]
-        require(len(others) == census["otherMembers"] and all(
-            member["installedHost"] == 1 or
-            (member["code"]["apple"] and member["code"]["identifier"] in
-             ("com.apple.dock", "com.apple.WindowServer", "com.apple.WindowManager"))
-            for member in others), "extra surface does not belong to the enrolled Host or system compositor")
-        observations.append(dict(uptime=inventory["uptime"], ordinary=0, unresolved=0,
-                                 inactiveStageSurfaces=surfaces, extraOwners=[m["code"]["identifier"] for m in others]))
-        time.sleep(.16)
-    return observations
 
 
 def run(args):
@@ -111,7 +81,7 @@ def run(args):
                 require(workspace.check(before)["current"] == args.expected_space, "leased desktop changed")
                 frozen = manifest(before, kit / "metrics")
                 fixture_receipt.write("installed-manifest.json", frozen)
-                reason = controlled_window(kit / "observe", before, frozen, fixture_receipt, 2, lease_hid=workspace.hid)
+                reason = controlled_window(kit / "observe", before, frozen, fixture_receipt, 2, lease_hid=workspace.hid, lease_workspace=workspace)
                 verdicts = [attempt["status"] for attempt in fixture_receipt.attempts]
                 complete = len(verdicts) == 10 and all(v == "PASS" for v in verdicts)
                 status = "PASS" if complete else "FAIL" if "FAIL" in verdicts else "UNKNOWN" if verdicts else "BLOCKED"

@@ -19,3 +19,12 @@ func p2TrustedObserver(_ pid:pid_t,_ birth:UInt64,_ hash:String)->Bool {
           let code,let rule else{return false}
     return SecCodeCheckValidity(code,[],rule)==errSecSuccess
 }
+
+struct P2LaunchPresentation: Codable {
+    let session:String, originalFront:pid_t, hardware:[UInt32], admittedAt:Double
+    func allows(now:Double,hid:[UInt32],front:pid_t?,fixture:pid_t,mouseDown:Bool,session actual:String)->Bool {
+        session==actual && UUID(uuidString:session) != nil && fixture>1 && originalFront>1 &&
+        (front==originalFront || front==fixture) && !mouseDown && hardware.count==13 && hardware==hid &&
+        admittedAt>0 && now>=admittedAt && now-admittedAt<8
+    }
+}

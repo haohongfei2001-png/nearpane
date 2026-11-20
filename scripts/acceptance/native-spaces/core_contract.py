@@ -219,7 +219,7 @@ def main():
                     return
                 child=Receipt(out/"same-app-documents")
                 try:
-                    reason=controlled_window(kit/"observe",ws.read(),frozen,child,2,lease_hid=ws.hid if a in ws.ids() else None)
+                    reason=controlled_window(kit/"observe",ws.read(),frozen,child,2,lease_hid=ws.hid if a in ws.ids() else None,lease_workspace=ws)
                 finally:child.finish()
                 receipt.attempts.extend({**attempt,"scenario":"W01","application":"net.example.spaces-document"}
                                         for attempt in child.attempts)
