@@ -95,7 +95,6 @@ def run(args):
                                 str(args.expected_space), "--witness", "--preview-sampler", "streams"], timeout=160)
         proof = driver.readable_result(output / "preview/result.json")
         result["preview"] = dict(status=proof["status"], reason=proof.get("reason"), exit=child.returncode)
-        result["afterFixture"] = empty_system_desktop(workspace, args.expected_space)
         result["offZeroAfter"] = driver.surface_checkpoint(kit, workspace.host, args.expected_space, False, 0)
         result["status"] = proof["status"] if result["offZeroAfter"]["status"] == "PASS" else "BLOCKED"
     except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError, KeyboardInterrupt) as error:
@@ -108,6 +107,12 @@ def run(args):
                 result["stageRestore"] = dict(status="BLOCKED", reason=str(error)[:260])
             if result["stageRestore"]["status"] != "PASS":
                 result["status"] = "BLOCKED"
+            elif result["preview"]["status"] != "NOT_RUN":
+                try:
+                    result["afterFixture"] = empty_system_desktop(workspace, args.expected_space)
+                except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
+                    result["cleanupReason"] = str(error)[:260]
+                    result["status"] = "BLOCKED"
         save()
         if (output / "preview/result.json").is_file():
             try:

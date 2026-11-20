@@ -11,7 +11,7 @@ from installed_profile import PROFILE, installed_pid, owns_profile
 from space_scope import private_file, require
 
 
-def run(kit, previous, checkout, output, apply):
+def run(kit, previous, checkout, output, apply, previous_archive=None, install_receipt=None):
     os.umask(0o077);output.mkdir(mode=0o700,parents=True,exist_ok=False)
     result={'status':'BLOCKED','mode':'apply' if apply else 'inspect','navigationRequested':False,'productActions':0}
     def log(event,**info):
@@ -29,7 +29,8 @@ def run(kit, previous, checkout, output, apply):
                 'originalProtectedSpaceMustAlreadyBeCurrentBeforeAnyRemoval')
         host=installed_pid()
         require(host and owns_profile(host,Path.home()/PROFILE) and current.get('host',{}).get('pid')==host,'signedDailyHostRequired')
-        ws=Workspace(kit,previous,log,resume=True,original_ledgers=ledgers)
+        ws=Workspace(kit,previous,log,resume=True,original_ledgers=ledgers,
+                     previous_archive=previous_archive,install_receipt=install_receipt)
         state=ws.check(ws.read())
         require(state['current']==origin==ws.cleanup_current==ws.home and ws.host['pid']==host,'currentOriginalHostOrSpaceChanged')
         scans=ws.read();scoped=scans.get('scopedMembers',{})
@@ -54,4 +55,7 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for n in ('kit','workspace','original_checkout','output'):p.add_argument(n,type=Path)
     p.add_argument('--apply',action='store_true',help='remove only proven empty inactive created desktops using their actual Apple controls')
-    a=p.parse_args();raise SystemExit(run(a.kit.resolve(),a.workspace.resolve(),a.original_checkout.resolve(),a.output.resolve(),a.apply))
+    p.add_argument('--previous-archive',type=Path)
+    p.add_argument('--install-receipt',type=Path)
+    a=p.parse_args();raise SystemExit(run(a.kit.resolve(),a.workspace.resolve(),a.original_checkout.resolve(),a.output.resolve(),
+                                          a.apply,a.previous_archive,a.install_receipt))
