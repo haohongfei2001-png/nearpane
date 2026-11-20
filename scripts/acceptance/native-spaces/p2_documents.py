@@ -329,10 +329,22 @@ class RegisteredRun:
         self.rec.log("P2-foreground-launch-readback",productAction=False,focused=ready["focused"],id=prep["id"])
         return ready["focused"]
 
+    def select_document(self, target, intent, attempt):
+        click=self.call("press",target)
+        self.rec.log("sidebar-press",intent=intent,result=click)
+        attempt["pressIssued"]=click.get("issued")
+        attempt["pressGateReason"]=click.get("reason","exactInstalledSidebarControlAdmitted")
+        check_hid(click,self.baseline)
+        require(click.get("issued") is True,"installedSidebarPressRefused","BLOCKED" if click.get("issued") is False else "UNKNOWN")
+        require(type(click.get("axError")) is int and click["axError"]==0,"installedSidebarRejectedAXPress","FAIL")
+
     def trials(self, reader):
         texts=[f"Field Notes {n} {self.folder.name}\n" for n in ("A","B")]
         hashes=[digest(t.encode()) for t in texts]
         initial_focus=self.prepare_front(hashes)
+        return self.selection_trials(reader, texts, hashes, initial_focus)
+
+    def selection_trials(self, reader, texts, hashes, initial_focus):
         numbers=self.binding["numbers"]
         first_slot=1 if initial_focus==numbers[0] else 0
         unique_tokens=secrets.SystemRandom().sample(range(10**12),10)
@@ -348,13 +360,7 @@ class RegisteredRun:
             attempt=dict(id=intent,kind="window",trial=self.trial,target=n,sibling=numbers[1-slot],status="UNKNOWN",markerIssued=None)
             self.attempt=attempt; self.rec.attempts.append(attempt);self.out["attempts"].append(attempt)
             self.rec.log("P2-window-intent",**attempt)
-            click=self.call("press",target)
-            self.rec.log("sidebar-press",intent=intent,result=click)
-            attempt["pressIssued"]=click.get("issued")
-            attempt["pressGateReason"]=click.get("reason","exactInstalledSidebarControlAdmitted")
-            check_hid(click,self.baseline)
-            require(click.get("issued") is True,"installedSidebarPressRefused","BLOCKED" if click.get("issued") is False else "UNKNOWN")
-            require(type(click.get("axError")) is int and click["axError"]==0,"installedSidebarRejectedAXPress","FAIL")
+            self.select_document(target, intent, attempt)
             self.read_until(n,hashes,"Focus",focus=True)
             env=dict(os.environ,NP_W01_MARKER_WITNESS="1",NP_TRIAL_MARKER=marker,NP_TRIAL_MARKER_TAG=str(self.watch.grant["tag"]),
                      NP_TRIAL_MARKER_SESSION=self.folder.name,NP_TRIAL_MARKER_INTENT=intent,NP_TRIAL_MARKER_READER=reader)
@@ -381,6 +387,7 @@ class RegisteredRun:
             self.out["passes"]+=1
             if self.trial==1:self.capture_first(n,hashes)
         self.out.update(status="PASS",reason="tenExactAlternatingWindowsAndInputs")
+        return hashes
 
     def cleanup(self):
         if self.launcher is None:
@@ -463,8 +470,11 @@ class RegisteredRun:
                 (Path(os.environ["NEARPANE_TEST_HOME"])/"p2-user-superseded").touch(mode=0o600,exist_ok=True)
             self.out["operationStatus"]=self.out["status"] if self.out["attempts"] else "NOT_RUN"
             if self.out["status"]=="PASS" and self.out["cleanup"]["status"]!="PASS":self.out.update(status="UNKNOWN",reason="ownedCleanupUnconfirmed")
-            self.rec.write("registered-documents.json",self.out)
-            self.rec.summary["controlledWindowTrials"]=self.out["passes"]
-            self.rec.scenarios["W01"]={"status":self.out["status"],"reason":self.out["reason"]}
-            self.rec.summary["registeredDocuments"]={k:self.out[k] for k in ("status","operationStatus","reason","passes","superseded","focusRestoreRequested","fixturePreparation","firstDocumentCapture","cleanup")}
+            self.publish()
         return self.out["reason"]
+
+    def publish(self):
+        self.rec.write("registered-documents.json",self.out)
+        self.rec.summary["controlledWindowTrials"]=self.out["passes"]
+        self.rec.scenarios["W01"]={"status":self.out["status"],"reason":self.out["reason"]}
+        self.rec.summary["registeredDocuments"]={k:self.out[k] for k in ("status","operationStatus","reason","passes","superseded","focusRestoreRequested","fixturePreparation","firstDocumentCapture","cleanup")}

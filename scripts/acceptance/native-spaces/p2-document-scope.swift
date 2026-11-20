@@ -6,6 +6,7 @@ import Security
 struct P2Request: Decodable {
     let mode:String, hostPID:Int32, hostHash:String, display:String, space:UInt64
     let hostBirth:UInt64?, hid:[UInt32]?, app:String?, folder:String?, session:String?, pid:Int32?, birth:UInt64?, hash:String?
+    let pointerKind:String?
     let numbers:[UInt32]?, target:UInt32?, digests:[String]?, allowedFront:Int32?, allowedFrontBirth:UInt64?, spaceUUID:String?
 }
 private func p2Path(_ path:String)->String? {
@@ -159,6 +160,15 @@ func p2DocumentReport(_ request:P2Request) -> Object {
     let currentFront=NSWorkspace.shared.frontmostApplication?.processIdentifier
     result["frontIsFixture"]=currentFront==pid
     result["frontMatchesOriginal"]=request.allowedFront.map{$0==currentFront} ?? false
+    #if P2_PAIR_POINTER
+    if request.mode == "pair-pointer" {
+        guard request.hid == hardware, request.digests == hashes, let target = request.target,
+              numbers.contains(target), let uuid = request.spaceUUID, let kind = request.pointerKind,
+              p2Signed(request.hostPID, id:bundleID, team:team), !changed() else { return stop("pairPointerAdmissionChanged") }
+        return pairPointer(kind: kind, target: target, host: host, request: request, uuid: uuid,
+                           numbers: numbers, windows: ordered, focus: focus)
+    }
+    #endif
     if request.mode=="read" {
         result["screenRead"]=CGPreflightScreenCaptureAccess()
         let index=Sidebar(host,rows:rows)

@@ -47,10 +47,12 @@ def extend_focus_chain(record, canonical, original_slot, out, gate, persist):
 
 def focus_command(here, record, out, chain, context):
     lease = record["focusLease"]
-    context["NP_P2_DOCUMENT_KIT"] = lease["documentKit"]
+    scenario = record.get("focusScenario", "controlled-window")
+    require(scenario in ("controlled-window", "pair-focus", "pair-pointer"), "Unrecognized ordinary-document scenario")
+    context["NP_P2_DOCUMENT_KIT"] = record.get("pairKit", lease["documentKit"])
     return [sys.executable, here/"preview-on-lease.py", lease.get("stageKit",record["kit"]), lease["workspace"], out/"p2",
             "--expected-space", str(lease["expectedSpace"]), "--original-checkout", lease["originalCheckout"],
-            "--previous-archive", lease["originArchive"], "--install-receipt", chain, "--scenario", "controlled-window"]
+            "--previous-archive", lease["originArchive"], "--install-receipt", chain, "--scenario", scenario]
 
 
 def diagnostic_command(here, record, out, chain=None):
