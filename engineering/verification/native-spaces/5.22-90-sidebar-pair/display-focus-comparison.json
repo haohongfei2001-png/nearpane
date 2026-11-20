@@ -467,6 +467,360 @@
         "targetScopeChanged": 1,
         "workerBindingFinished": 1
       }
+    },
+    "verified-scope-diagnostic": {
+      "source": "f7997a734e1689917cc1081d80e4e0974c990904",
+      "cdhash": "4b9ce3992bcc7acf7a142e86a8d839d45725488d",
+      "focusScenario": "pair-pointer",
+      "version": "5.22",
+      "build": "90",
+      "restored": "PASS",
+      "selection": {
+        "attempted": 10,
+        "focusTimed": 10,
+        "inputsConfirmed": 10,
+        "notAttempted": 0,
+        "planned": 10,
+        "status": "PASS"
+      },
+      "measurements": {
+        "boundedStaticScreenshots": {
+          "count": 0,
+          "downToConfirmedByUpperMs": {
+            "n": 0
+          },
+          "upToConfirmedByUpperMs": {
+            "n": 0
+          }
+        },
+        "clock": "ProcessInfo.systemUptime",
+        "displayPresentation": "OBSERVED",
+        "endpoint": "foreground application + focused and main AX window + both focused editor reads",
+        "nativeComparison": "NOT_MEASURED",
+        "origin": "WindowServer session mouse posting",
+        "percentiles": "sample only, median p50, nearest-rank p95",
+        "presentationCounts": {
+          "attempts": 10,
+          "observed": 10,
+          "sampled": 10
+        },
+        "statistics": {
+          "downToFocusLowerMs": {
+            "max": 173.14229166368023,
+            "n": 10,
+            "p50": 153.48845833796076,
+            "p95": 173.14229166368023
+          },
+          "downToFocusUpperMs": {
+            "max": 197.55375001113862,
+            "n": 10,
+            "p50": 181.16483330959454,
+            "p95": 197.55375001113862
+          },
+          "downToHostButtonMs": {
+            "max": 67.32299999566749,
+            "n": 10,
+            "p50": 61.81291665416211,
+            "p95": 67.32299999566749
+          },
+          "downToVisibleMSLower": {
+            "max": 203.02374998573214,
+            "n": 10,
+            "p50": 185.11662501259707,
+            "p95": 203.02374998573214
+          },
+          "downToVisibleMSUpper": {
+            "max": 230.2483333623968,
+            "n": 10,
+            "p50": 213.01779168425128,
+            "p95": 230.2483333623968
+          },
+          "secondPositiveAfterUpMs": {
+            "max": 164.86287501174957,
+            "n": 10,
+            "p50": 146.81231250870042,
+            "p95": 164.86287501174957
+          },
+          "upToFocusLowerMs": {
+            "max": 130.74933330062777,
+            "n": 10,
+            "p50": 110.74954166542739,
+            "p95": 130.74933330062777
+          },
+          "upToFocusUpperMs": {
+            "max": 148.00408331211656,
+            "n": 10,
+            "p50": 131.08529165037908,
+            "p95": 148.00408331211656
+          },
+          "upToVisibleMSLower": {
+            "max": 160.63079162267968,
+            "n": 10,
+            "p50": 142.40308335865848,
+            "p95": 160.63079162267968
+          },
+          "upToVisibleMSUpper": {
+            "max": 180.69866666337475,
+            "n": 10,
+            "p50": 162.64464583946392,
+            "p95": 180.69866666337475
+          }
+        },
+        "unit": "ms"
+      },
+      "visibleReasons": {
+        "OBSERVED": 10
+      },
+      "hostStageMS": {
+        "clickTobeforeAX": {
+          "n": 10,
+          "p50": 104.5,
+          "p95": 120.73
+        },
+        "beforeAXToexactFocus": {
+          "n": 10,
+          "p50": 29.69,
+          "p95": 37.01
+        },
+        "clickToexactFocus": {
+          "n": 10,
+          "p50": 134.97,
+          "p95": 157.74
+        }
+      },
+      "independentByClick": {
+        "firstClick": {
+          "upToFocusLowerMs": {
+            "n": 1,
+            "p50": 101.96,
+            "p95": 101.96
+          },
+          "upToFocusUpperMs": {
+            "n": 1,
+            "p50": 128.01,
+            "p95": 128.01
+          },
+          "upToVisibleMSLower": {
+            "n": 1,
+            "p50": 137.21,
+            "p95": 137.21
+          },
+          "upToVisibleMSUpper": {
+            "n": 1,
+            "p50": 156.8,
+            "p95": 156.8
+          }
+        },
+        "subsequentClicks": {
+          "upToFocusLowerMs": {
+            "n": 9,
+            "p50": 111.4,
+            "p95": 130.75
+          },
+          "upToFocusUpperMs": {
+            "n": 9,
+            "p50": 131.24,
+            "p95": 148.0
+          },
+          "upToVisibleMSLower": {
+            "n": 9,
+            "p50": 143.02,
+            "p95": 160.63
+          },
+          "upToVisibleMSUpper": {
+            "n": 9,
+            "p50": 163.43,
+            "p95": 180.7
+          }
+        }
+      },
+      "hostPathPhaseCounts": {
+        "beforeAX": 10,
+        "click": 10,
+        "controllerPreferred": 10,
+        "controllerReady": 10,
+        "exactFocus": 10,
+        "returned": 10,
+        "targetScopeConfirmed": 10,
+        "workerBindingFinished": 10
+      }
+    },
+    "final-installed": {
+      "source": "f7997a734e1689917cc1081d80e4e0974c990904",
+      "cdhash": "4b9ce3992bcc7acf7a142e86a8d839d45725488d",
+      "focusScenario": "pair-pointer",
+      "version": "5.22",
+      "build": "90",
+      "restored": "PASS",
+      "selection": {
+        "attempted": 10,
+        "focusTimed": 10,
+        "inputsConfirmed": 10,
+        "notAttempted": 0,
+        "planned": 10,
+        "status": "PASS"
+      },
+      "measurements": {
+        "boundedStaticScreenshots": {
+          "count": 0,
+          "downToConfirmedByUpperMs": {
+            "n": 0
+          },
+          "upToConfirmedByUpperMs": {
+            "n": 0
+          }
+        },
+        "clock": "ProcessInfo.systemUptime",
+        "displayPresentation": "OBSERVED",
+        "endpoint": "foreground application + focused and main AX window + both focused editor reads",
+        "nativeComparison": "NOT_MEASURED",
+        "origin": "WindowServer session mouse posting",
+        "percentiles": "sample only, median p50, nearest-rank p95",
+        "presentationCounts": {
+          "attempts": 10,
+          "observed": 10,
+          "sampled": 10
+        },
+        "statistics": {
+          "downToFocusLowerMs": {
+            "max": 178.572750010062,
+            "n": 10,
+            "p50": 147.49239583034068,
+            "p95": 178.572750010062
+          },
+          "downToFocusUpperMs": {
+            "max": 212.2877916553989,
+            "n": 10,
+            "p50": 172.33812500489876,
+            "p95": 212.2877916553989
+          },
+          "downToHostButtonMs": {
+            "max": 68.22708330582827,
+            "n": 10,
+            "p50": 58.5715833294671,
+            "p95": 68.22708330582827
+          },
+          "downToVisibleMSLower": {
+            "max": 207.95804174849764,
+            "n": 10,
+            "p50": 177.32883332064375,
+            "p95": 207.95804174849764
+          },
+          "downToVisibleMSUpper": {
+            "max": 234.81245833681896,
+            "n": 10,
+            "p50": 204.50614581932314,
+            "p95": 234.81245833681896
+          },
+          "secondPositiveAfterUpMs": {
+            "max": 172.17704170616344,
+            "n": 10,
+            "p50": 137.1907499851659,
+            "p95": 172.17704170616344
+          },
+          "upToFocusLowerMs": {
+            "max": 139.2008750117384,
+            "n": 10,
+            "p50": 105.47750000841916,
+            "p95": 139.2008750117384
+          },
+          "upToFocusUpperMs": {
+            "max": 165.54770834045485,
+            "n": 10,
+            "p50": 123.62318750820123,
+            "p95": 165.54770834045485
+          },
+          "upToVisibleMSLower": {
+            "max": 168.58616675017402,
+            "n": 10,
+            "p50": 139.41362500190735,
+            "p95": 168.58616675017402
+          },
+          "upToVisibleMSUpper": {
+            "max": 188.0723750218749,
+            "n": 10,
+            "p50": 158.85360416723415,
+            "p95": 188.0723750218749
+          }
+        },
+        "unit": "ms"
+      },
+      "visibleReasons": {
+        "OBSERVED": 10
+      },
+      "hostStageMS": {
+        "clickTobeforeAX": {
+          "n": 10,
+          "p50": 98.77,
+          "p95": 137.91
+        },
+        "beforeAXToexactFocus": {
+          "n": 10,
+          "p50": 25.91,
+          "p95": 35.2
+        },
+        "clickToexactFocus": {
+          "n": 10,
+          "p50": 127.19,
+          "p95": 170.82
+        }
+      },
+      "independentByClick": {
+        "firstClick": {
+          "upToFocusLowerMs": {
+            "n": 1,
+            "p50": 116.28,
+            "p95": 116.28
+          },
+          "upToFocusUpperMs": {
+            "n": 1,
+            "p50": 142.51,
+            "p95": 142.51
+          },
+          "upToVisibleMSLower": {
+            "n": 1,
+            "p50": 146.78,
+            "p95": 146.78
+          },
+          "upToVisibleMSUpper": {
+            "n": 1,
+            "p50": 166.27,
+            "p95": 166.27
+          }
+        },
+        "subsequentClicks": {
+          "upToFocusLowerMs": {
+            "n": 9,
+            "p50": 105.37,
+            "p95": 139.2
+          },
+          "upToFocusUpperMs": {
+            "n": 9,
+            "p50": 121.9,
+            "p95": 165.55
+          },
+          "upToVisibleMSLower": {
+            "n": 9,
+            "p50": 137.32,
+            "p95": 168.59
+          },
+          "upToVisibleMSUpper": {
+            "n": 9,
+            "p50": 157.01,
+            "p95": 188.07
+          }
+        }
+      },
+      "hostPathPhaseCounts": {
+        "beforeAX": 10,
+        "click": 10,
+        "controllerPreferred": 10,
+        "controllerReady": 10,
+        "exactFocus": 10,
+        "returned": 10,
+        "targetScopeConfirmed": 10,
+        "workerBindingFinished": 10
+      }
     }
   }
 }

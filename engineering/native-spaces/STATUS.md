@@ -2,6 +2,12 @@
 
 ## 2026-11-21 · 同屏拖放与切窗
 
+**当前签名候选 `f7997a7`，5.22（90）。** 在 macOS 27 正式安装路径，同一普通桌面里，两扇窗口向左或向右拖放分屏、拖回自身和不同应用间右拖均通过。最终槽位各为 615 × 923 点，两个系统来源连续两次读回一致。普通启动下十次鼠标选窗均命中目标编辑器，也均取得目标首帧。相较旧版 `d81c458`，松开至焦点的中位区间由 320–335 ms 降至 105–124 ms，至真实首帧由 358–378 ms 降至 139–159 ms。放手后首次确认双窗布局仍需 1.64–1.86 秒。日常安装 `d2d0bb6`、配置及原有台前调度状态已经恢复，`b55ed96` 回退存档原样保留。台前调度开启时由系统管理窗口。macOS 27 跨 Space 动作继续关闭，全屏 Split View、多屏、系统同条件性能及公证仍待通过。PR #15 保持 Draft。[正式验收、截图与视频](../verification/native-spaces/5.22-90-sidebar-pair/RESULTS.md) · [跨应用读回](../verification/native-spaces/5.22-90-sidebar-pair/final-cross/result.json) · [签名候选](../verification/native-spaces/5.22-p6/integrated-f7997a7/draft-asset.json)
+
+该候选通过 628 项 Swift 测试、317 项 Python 验收测试及托管 macOS 26 原生 CI。云端重新下载的 ZIP 与实机候选哈希一致，13 个代码对象、18 个切片签名通过。两台系统均确认缺少公证票据。[本轮机器摘要](../verification/native-spaces/5.22-90-sidebar-pair/final-acceptance.json) · [云端同包验签与 Gatekeeper 结果](../verification/native-spaces/5.22-p6/integrated-f7997a7/hosted-macos-26.json)
+
+### 早期迭代
+
 签名候选 `d277a1c` 已在同一普通桌面完成双向卡片拖放及跨应用分屏。两款不同签名应用各开一扇窗口，一次右拖就将 A、B 分别放到右、左两个 615 × 923 点的槽位。在同一台 macOS 27 上各点十次，旧签名包 `d81c458` 从松开鼠标到实际屏幕呈现的区间中位数为 358–378 ms，`d277a1c` 为 300–320 ms，两批均为 10/10 次准确键盘输入。单屏普通桌面验收使用关闭台前调度的隔离时段，日常应用、用户配置与台前调度已恢复。后续实验 `d1e0361` 的第一次选窗和反向分屏失败，故保留 `d277a1c` 作为已验证候选。[候选比较与全部失败项](../verification/native-spaces/5.22-90-sidebar-pair/RESULTS.md) · [实机分屏短片](../verification/native-spaces/5.22-90-sidebar-pair/final-pair/right-drag-fixture-windows.mp4) · [跨应用原件](../verification/native-spaces/5.22-90-sidebar-pair/separate-applications/result.json)
 
 签名候选 `203e34e` 在正式安装路径使用独立资料。对两扇已登记文档窗，自投保持原位，拖至另一卡右半及左半均通过，两次系统 AX 与 WindowServer 读回一致。桌面工作区为 1230 × 923 点，两个槽位分别为 615 × 923 点。右拖录像保留两窗从重叠到分屏的实际合成器画面，共 46 帧。正式鼠标交替选窗 10/10 次键盘输入落在目标编辑器。首次显示时延的读屏器在启流前因全屏库存检查拒绝了 10 次，此批的画面时延为 UNKNOWN。日常 App 与配置均已还原。[拖放收据与录像](../verification/native-spaces/5.22-90-sidebar-pair/binding-drag) · [鼠标与输入收据](../verification/native-spaces/5.22-90-sidebar-pair/binding-focus) · [内部签名候选](../verification/native-spaces/5.22-p6/integrated-203e34e/draft-asset.json)
