@@ -1,0 +1,604 @@
+{
+  "schema": 1,
+  "original": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "version": "5.22",
+    "build": "90",
+    "tree": "8255226250460e19451c356fcd021f3c7d38b9a45db2fc253f29adfe3bd10a89",
+    "root": [
+      16777233,
+      301433254
+    ],
+    "host": [
+      16777233,
+      301433259
+    ]
+  },
+  "candidate": {
+    "source": "d277a1c4f7df2af9e73fc48e10c3e2fc0e949726",
+    "cdhash": "b15861c87c61b38f02339d121a60437995d6aecb",
+    "version": "5.22",
+    "build": "90",
+    "tree": "3684b11cae322121589a653e239450aeefeef70ac7f71790c893b08642a9ccde",
+    "root": [
+      16777233,
+      302147572
+    ],
+    "host": [
+      16777233,
+      302147577
+    ]
+  },
+  "dailyConfiguration": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "b1b64d9fe1740024a25e82e53176f84ee725155a47eaa6496321f36d862eb9b2"
+  },
+  "isolatedHostGeneration": "/Users/hhf/Library/Caches/nearpane-native-acceptance.yqa07rg4/home/Library/Application Support/Nearpane Alpha Profiles/generations/d2841b65-1af7-45fa-af83-4195b6075510",
+  "restoredDailyHost": [
+    88708,
+    1795216673,
+    160411
+  ],
+  "focusScenario": "pair-focus",
+  "restoration": "PASS",
+  "cleanup": "PASS",
+  "trials": {
+    "P2": {
+      "status": "PASS",
+      "exit": 0,
+      "receipt": "p2/result.json",
+      "sha256": "c3560b8d171a0b93a423a663441a6a8f46ce4810505c5e0ef82a0c766468931c"
+    }
+  },
+  "originalReceiptSHA256": "dd0dfda3c7a9d15ec6222cf0902c79a799fc84c05704df079453f8e8faf2c88e",
+  "hostCapture": "RECORDED",
+  "hostLog": [
+    {
+      "timestamp": "2026-11-21 07:17:17.093990+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.134102+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.134139+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=click route=sidebar action=none uptime=290028.343435"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.136491+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=controllerStandby route=sidebar action=none uptime=290028.345787"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.152997+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=publicBindingUnavailable route=sidebar action=none uptime=290028.362292"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.153113+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=controllerReady route=sidebar action=none uptime=290028.362409"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.181335+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=workerBindingFinished route=sidebar action=none uptime=290028.390631"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.196461+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=rosterReadFinished route=sidebar action=none uptime=290028.405756"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.202514+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=rosterConfirmed route=sidebar action=none uptime=290028.411809"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:17.273904+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=1BA1BEE7-FCFD-45DE-91BF-C88C2CF64CFC phase=returned route=worker action=none uptime=290028.483199"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.260089+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.297074+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.297110+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=click route=sidebar action=none uptime=290031.506395"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.302375+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=controllerPreferred route=sidebar action=none uptime=290031.511659"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.302562+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=controllerReady route=sidebar action=none uptime=290031.511847"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.331517+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=workerBindingFinished route=sidebar action=none uptime=290031.540802"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.504888+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=rosterReadFinished route=sidebar action=none uptime=290031.714173"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.505117+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=rosterConfirmed route=sidebar action=none uptime=290031.714403"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:20.575803+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=2BD40E6C-3582-4B48-80CE-4CA9C73A7B74 phase=returned route=worker action=none uptime=290031.785088"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.091129+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.133816+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.133845+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=click route=sidebar action=none uptime=290034.343122"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.136272+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=controllerPreferred route=sidebar action=none uptime=290034.345548"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.136401+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=controllerReady route=sidebar action=none uptime=290034.345678"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.169204+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=workerBindingFinished route=sidebar action=none uptime=290034.378480"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.311852+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=rosterReadFinished route=sidebar action=none uptime=290034.521128"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.312337+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=rosterConfirmed route=sidebar action=none uptime=290034.521613"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:23.371382+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=FC656263-5503-49BA-A9C1-97E60A408F6B phase=returned route=worker action=none uptime=290034.580659"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:25.837778+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:25.863796+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:25.863840+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=click route=sidebar action=none uptime=290037.073107"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:25.868691+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=controllerPreferred route=sidebar action=none uptime=290037.077959"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:25.868829+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=controllerReady route=sidebar action=none uptime=290037.078098"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:25.899137+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=workerBindingFinished route=sidebar action=none uptime=290037.108405"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:26.073261+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=rosterReadFinished route=sidebar action=none uptime=290037.282529"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:26.073577+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=rosterConfirmed route=sidebar action=none uptime=290037.282845"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:26.142764+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=A85C6919-B6B9-44BE-8DCD-4CBD2510A5D8 phase=returned route=worker action=none uptime=290037.352032"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.672150+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.716333+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.716362+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=click route=sidebar action=none uptime=290039.925622"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.721163+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=controllerPreferred route=sidebar action=none uptime=290039.930421"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.721342+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=controllerReady route=sidebar action=none uptime=290039.930602"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.754196+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=workerBindingFinished route=sidebar action=none uptime=290039.963456"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.949795+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=rosterReadFinished route=sidebar action=none uptime=290040.159053"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:28.950159+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=rosterConfirmed route=sidebar action=none uptime=290040.159418"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:29.020518+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=9A07C288-C286-4F50-AF1E-DBB03680B286 phase=returned route=worker action=none uptime=290040.229777"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.570868+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.617152+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.617196+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=click route=sidebar action=none uptime=290042.826447"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.619773+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=controllerPreferred route=sidebar action=none uptime=290042.829023"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.619956+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=controllerReady route=sidebar action=none uptime=290042.829207"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.653263+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=workerBindingFinished route=sidebar action=none uptime=290042.862513"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.842330+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=rosterReadFinished route=sidebar action=none uptime=290043.051580"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.842631+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=rosterConfirmed route=sidebar action=none uptime=290043.051881"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:31.901326+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7F94A9C1-78C3-4D62-9661-5690EA7BF967 phase=returned route=worker action=none uptime=290043.110576"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.291558+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.333938+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.333965+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=click route=sidebar action=none uptime=290045.543207"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.338092+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=controllerPreferred route=sidebar action=none uptime=290045.547333"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.338242+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=controllerReady route=sidebar action=none uptime=290045.547485"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.377089+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=workerBindingFinished route=sidebar action=none uptime=290045.586331"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.566403+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=rosterReadFinished route=sidebar action=none uptime=290045.775645"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.567220+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=rosterConfirmed route=sidebar action=none uptime=290045.776463"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:34.642214+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=C16AB59A-550C-4EE6-B7A6-F2062D163A12 phase=returned route=worker action=none uptime=290045.851456"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.137275+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.163819+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.163859+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=click route=sidebar action=none uptime=290048.373092"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.172446+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=controllerPreferred route=sidebar action=none uptime=290048.381680"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.172570+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=controllerReady route=sidebar action=none uptime=290048.381804"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.212747+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=workerBindingFinished route=sidebar action=none uptime=290048.421980"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.400539+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=rosterReadFinished route=sidebar action=none uptime=290048.609771"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.400904+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=rosterConfirmed route=sidebar action=none uptime=290048.610137"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:37.491669+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=7D7AA9EC-D702-4FC6-B868-6394E22D933C phase=returned route=worker action=none uptime=290048.700902"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.020129+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.047188+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.047222+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=click route=sidebar action=none uptime=290051.256446"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.056334+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=controllerPreferred route=sidebar action=none uptime=290051.265558"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.056454+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=controllerReady route=sidebar action=none uptime=290051.265679"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.095302+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=workerBindingFinished route=sidebar action=none uptime=290051.304526"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.273494+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=rosterReadFinished route=sidebar action=none uptime=290051.482718"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.275880+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=rosterConfirmed route=sidebar action=none uptime=290051.485104"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:40.357274+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=E0728A2E-5700-4564-8264-1178A3175996 phase=returned route=worker action=none uptime=290051.566498"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:42.929681+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:42.966812+0800",
+      "processID": 86772,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardClick"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:42.966873+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=click route=sidebar action=none uptime=290054.176089"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:42.971100+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=controllerPreferred route=sidebar action=none uptime=290054.180315"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:42.971226+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=controllerReady route=sidebar action=none uptime=290054.180442"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:43.002546+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=workerBindingFinished route=sidebar action=none uptime=290054.211762"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:43.183261+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=rosterReadFinished route=sidebar action=none uptime=290054.392476"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:43.183786+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=rosterConfirmed route=sidebar action=none uptime=290054.393001"
+    },
+    {
+      "timestamp": "2026-11-21 07:17:43.257597+0800",
+      "processID": 86772,
+      "category": "WindowFocusLatency",
+      "eventMessage": "operation=6093FD6B-8588-48F7-88D1-668D8D27C009 phase=returned route=worker action=none uptime=290054.466812"
+    }
+  ]
+}
