@@ -18,13 +18,13 @@ import Foundation
             if let split,let direct,split != direct {return nil}
             return direct ?? split
         }
-        init(_ tiles:Tiles,index:Int) throws {
-            let tile=tiles.elements[index],pid=tiles.bar.owner.processIdentifier
+        init(_ tiles:P0Tiles,index:Int) throws {
+            let tile=tiles.elements[index],pid=tiles.owner.pid
             proxy=tile;owner=pid;birth=operatorBirth(pid);role=attr(tile,kAXRoleAttribute) as? String;enabled=attr(tile,kAXEnabledAttribute) as? Bool
             var actions:CFArray?;actionRead=AXUIElementCopyActionNames(tile,&actions) == .success;names=actions as? [String] ?? []
-            let list=try only(children(tiles.bar.spaces,named:"mc.spaces.list"),"enrolled native desktop list")
+            let list=tiles.list
             listCount=tiles.elements.count;parentList=belongs(tile,to:list,owner:pid)
-            parentStrip=belongs(tile,to:tiles.bar.spaces,owner:pid);parentContainer=belongs(tile,to:tiles.bar.container,owner:pid)
+            parentStrip=belongs(tile,to:tiles.spaces,owner:pid);parentContainer=belongs(tile,to:tiles.container,owner:pid)
             listRect=tiles.listFrame;let targetRect=Self.geometry(tile);rect=targetRect
             uniqueRect=targetRect.map { r in tiles.listFrame.contains(r) && tiles.elements.compactMap(Self.geometry).filter{$0==r}.count==1 } ?? false
             hitPoint=try? tiles.point(index,fraction:0.5)
@@ -64,23 +64,52 @@ import Foundation
             if let originalPointer,let clicked,let now=CGEvent(source:nil)?.location,
                hypot(now.x-clicked.x,now.y-clicked.y)<5,hardware()==r.hid {CGWarpMouseCursorPosition(originalPointer)}
         }
-        let deadline=ProcessInfo.processInfo.systemUptime+4
-        var tiles:Tiles?, detail="system space list not exposed"
-        repeat {
-            do {group=try overviewGroup();guard group != nil else {throw Refusal("signed Dock overview not ready")};tiles=try Tiles(r,display);break}
-            catch let e as Refusal {detail=e.reason};usleep(80_000)
-        } while ProcessInfo.processInfo.systemUptime<deadline
-        guard let left=tiles,let group else {throw Refusal(detail)}
+        var discovery=[[String:Any]](),consecutiveMissingRoots=0
+        let openedBy=try SystemDock.identity()
+        func verifiedList(_ stage:String,timeout:Double) throws -> P0Tiles {
+            let end=ProcessInfo.processInfo.systemUptime+timeout
+            var reason="owned single-display desktop list not ready"
+            repeat {
+                try guardState(r,stage:stage)
+                var details:[String:Any]=["stage":stage,"uptime":ProcessInfo.processInfo.systemUptime]
+                do {
+                    let root=try overviewGroup()
+                    details["dockOverviewExposed"]=root != nil
+                    if let root {
+                        var owner:pid_t=0
+                        try demand(AXUIElementGetPid(root,&owner) == .success && owner==openedBy.pid &&
+                                   operatorBirth(owner)==openedBy.birth && attr(root,kAXIdentifierAttribute) as? String=="mc",
+                                   "overview is no longer bound to the enrolled signed Dock process")
+                        details["dockRootPID"]=owner
+                        if let group {details["sameDockProxy"]=CFEqual(root,group)}
+                        group=root;consecutiveMissingRoots=0
+                    } else if group != nil {
+                        consecutiveMissingRoots+=1
+                    }
+                    let list=try P0Tiles.read(r,display:display,index:index,diagnostics:&details)
+                    try demand(root != nil,"signed Dock overview is not exposed")
+                    discovery.append(details);report["listDiscovery"]=discovery;return list
+                } catch let error as Refusal {reason=error.reason;details["error"]=reason}
+                if discovery.count<24 {discovery.append(details)} else {discovery[discovery.count-1]=details}
+                report["listDiscovery"]=discovery
+                if consecutiveMissingRoots>=2 {throw Refusal("owned system overview disappeared between consecutive reads")}
+                usleep(90_000)
+            } while ProcessInfo.processInfo.systemUptime<end
+            throw Refusal(stage+": "+reason)
+        }
+        let left=try verifiedList("first-list",timeout:4)
+        guard let group else {throw Refusal("no owned signed Dock overview root")}
         try guardState(r,stage:"first-complete-list")
         let a=try TileSample(left,index:index)
         report["tile"]=["index":index,"id":target,"uuid":r.records[index].uuid,"source":r.current,"left":a.fields]
         usleep(110_000)
-        let right=try Tiles(r,display),b=try TileSample(right,index:index)
+        let right=try verifiedList("second-list",timeout:3.0),b=try TileSample(right,index:index)
         let sameProxy=CFEqual(a.proxy,b.proxy),sameRect=a.uniqueRect && b.uniqueRect && a.rect==b.rect && a.listRect==b.listRect
         let sameHit=a.hitPoint != nil && a.hitPoint==b.hitPoint && a.listRect==b.listRect
         let sameOwner=a.owner==b.owner && a.birth != nil && a.birth==b.birth
         let dock=try SystemDock.identity()
-        let trusted=sameOwner && (a.owner==dock.pid || overviewHost(a.owner)=="com.apple.WindowManager")
+        try right.owner.verify()
+        let trusted=sameOwner && left.owner==right.owner && right.owner.pid==b.owner
         // Tiles proved the ordered full inventory and each button's association with this exact list.
         // Parent chains above the list can be flattened by AX or belong to WindowManager rather than Dock.
         let sameTarget=sameProxy || sameRect || sameHit
@@ -96,13 +125,14 @@ import Foundation
         try demand(sameTarget,"no stable target proxy, unique geometry, or independent same-point system hit")
         if let transient=try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {report["overviewComposite"]=transient}
         try guardState(r,stage:"immediately-before-system-input")
-        if press && !requestedClick {
+        if !requestedClick {
+            try demand(press,"the two reads did not both advertise AXPress for the owned target")
             report["action"]="AXPress";issued=true;let result=AXUIElementPerformAction(b.proxy,kAXPressAction as CFString)
             report["axError"]=result.rawValue;report["acknowledged"]=result == .success
         } else {
             // Only when no AXPress has been dispatched: native physical click on the actual thumbnail body.
             try demand(CGPreflightPostEventAccess(),"no event access for one system-owned thumbnail click")
-            if (try? expandedBody(right,index:index))==nil {
+            if (try? right.expandedBody(index))==nil {
                 let hover=try right.point(index,fraction:0.5)
                 try demand(hit(hover,b.proxy,b.owner),"verified native hover point lost")
                 originalPointer=CGEvent(source:nil)?.location;clicked=hover
@@ -115,8 +145,8 @@ import Foundation
             repeat {
                 do {
                     try guardState(r,stage:"native-hover")
-                    let updated=try Tiles(r,display),candidate=try expandedBody(updated,index:index)
-                    try demand(updated.bar.owner.processIdentifier==b.owner,"thumbnail owner changed")
+                    let updated=try verifiedList("hover-list",timeout:0.5),candidate=try updated.expandedBody(index)
+                    try demand(updated.owner.pid==b.owner,"thumbnail owner changed")
                     if let seen,seen.0==candidate.0 && seen.1==candidate.1 && seen.2==candidate.2 {stable=true;break}
                     seen=candidate
                 } catch let e as Refusal {detail=e.reason;seen=nil}

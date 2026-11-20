@@ -49,5 +49,5 @@ Path(sys.argv[2]).write_text(source.split(marker)[0])
 PY
 xcrun swiftc -D SECONDARY_FOCUS_OBSERVER -D NATIVE_CONTRACT -parse-as-library -Xcc -I -Xcc Sources/CReadOnlySpaces/include \
     -import-objc-header "$src/contract_members.h" scripts/acceptance/observe-secondary-space-controls.swift \
-    "$kit/p0-system-library.swift" "$src/p0-mission.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$kit/p0-mission"
+    "$kit/p0-system-library.swift" "$src/p0-mission-list.swift" "$src/p0-mission.swift" "$kit/reader.o" "$kit/members.o" -framework ColorSync -o "$kit/p0-mission"
 printf '%s\n' "$kit"
