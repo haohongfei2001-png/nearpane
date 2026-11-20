@@ -3,6 +3,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 import NearpaneCore
 
+private typealias ViewState<T> = State<T>
+
 /// Drag data stays inside this process. The item carries a one-use gesture ID,
 /// never a serialised action or authority to control an arbitrary window.
 @MainActor final class NativeSidebarDrag {
@@ -75,7 +77,7 @@ struct SidebarWindowDragAndDrop: ViewModifier {
     let place: (SidebarPairDrop) -> Void
     let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
 
-    @State private var highlightedSide: Bool?
+    @ViewState private var highlightedSide: Bool?
 
     @ViewBuilder func body(content: Content) -> some View {
         if let member, let lifetime, let feed, member.source.kind == .ordinary, !member.selectionOnly {

@@ -278,6 +278,7 @@ struct DesktopSurface: View {
     }
 
     private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, lifetime: UUID?) {
+        let timing = WindowFocusTiming.begin()
         guard snapshot.native != nil, let previews = display?.pointer?.windowPreviews else { return }
         let generation = previews.gallery.generation
         let feed = previews.currentDesktop
@@ -305,11 +306,8 @@ struct DesktopSurface: View {
                 { target.remainsSelection(in: await feed.readNow()) }
             }
             do {
-                if target.overviewSpace == nil, let verifySpace {
-                    guard await verifySpace(), stillCurrent() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
-                }
                 let path = try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 5,
-                    verifySpace: verifySpace, stillCurrent: { isLatest() && stillCurrent() })
+                    verifySpace: verifySpace, stillCurrent: { isLatest() && stillCurrent() }, timing: timing)
                 if isLatest() { selectionIssue = path.focusNotice }
             } catch {
                 // An explicitly superseded choice must not clear the newer pending click.
