@@ -67,7 +67,7 @@ class WorkspaceTests(unittest.TestCase):
 
     def test_unknown_dispatched_removal_is_not_replayed(self):
         pending=self.root/"remove-intent.json"
-        write_owned(pending, dict(target=4829,boot=self.ws.boot,operation="previous",expected=self.originals))
+        write_owned(pending, dict(target=4829,boot=self.ws.boot,operation="00000000-0000-4000-8000-000000000002",expected=self.originals))
         self.ws.command=Mock(side_effect=AssertionError("never issue a duplicate removal"))
         result=self.ws.cleanup()
         self.assertEqual(result["outstanding"],[4829])
@@ -86,7 +86,7 @@ class WorkspaceTests(unittest.TestCase):
     def test_already_completed_removal_reconciles_without_input(self):
         self.live["scopes"][0]["records"]=deepcopy(self.originals)
         pending=self.root/"remove-intent.json"
-        write_owned(pending,dict(target=4829,boot="boot-fixture",operation="spent",expected=self.originals))
+        write_owned(pending,dict(target=4829,boot="boot-fixture",operation="00000000-0000-4000-8000-000000000001",expected=self.originals))
         self.ws.command=Mock()
         result=self.ws.cleanup()
         self.assertTrue(result["topologyRestored"])

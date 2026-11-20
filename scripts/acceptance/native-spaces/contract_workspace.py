@@ -179,12 +179,21 @@ class Workspace:
         folder=self.output/"creation-evidence"/str(n)
         folder.mkdir(mode=0o700,parents=True,exist_ok=True)
         for source in receipt.parent.glob("*.json"):
-            dest=folder/source.name
+            if source.name not in ("create-intent.json","created.json","removed.json") and not source.name.startswith("remove-"):
+                continue
             raw=private_file(source)
+            data=json.loads(raw)
+            name=source.name
+            if name=="remove-intent.json":
+                # The active pointer advances after a definitively refused/no-effect
+                # action. Keep each attempt under its immutable operation UUID.
+                operation=str(uuid.UUID(data["operation"]))
+                name="remove-intent-"+operation+".json"
+            dest=folder/name
             if not dest.exists():
-                write_owned(dest,json.loads(raw))
+                write_owned(dest,data)
             else:
-                require(json.loads(private_file(dest))==json.loads(raw),"archived desktop receipt changed")
+                require(json.loads(private_file(dest))==data,"archived desktop receipt changed")
 
     def create(self):
         before = self.read(); s = self.check(before)
