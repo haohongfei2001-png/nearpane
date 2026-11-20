@@ -1,5 +1,9 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 同屏拖放与切窗
+
+签名候选 `203e34e` 在正式安装路径使用独立资料。对两扇已登记文档窗，自投保持原位，拖至另一卡右半及左半均通过，两次系统 AX 与 WindowServer 读回一致。桌面工作区为 1230 × 923 点，两个槽位分别为 615 × 923 点。右拖录像保留两窗从重叠到分屏的实际合成器画面，共 46 帧。正式鼠标交替选窗 10/10 次键盘输入落在目标编辑器。首次显示时延的读屏器在启流前因全屏库存检查拒绝了 10 次，此批的画面时延为 UNKNOWN。日常 App 与配置均已还原。[拖放收据与录像](../verification/native-spaces/5.22-90-sidebar-pair/binding-drag) · [鼠标与输入收据](../verification/native-spaces/5.22-90-sidebar-pair/binding-focus) · [内部签名候选](../verification/native-spaces/5.22-p6/integrated-203e34e/draft-asset.json)
+
 ## 2026-11-21 · 5.22（90）正式安装复核
 
 PR #15 从原生 PR #14 的 `629524b` 继续，采用研究分支 `3151827` 三份决策及原生分支 `c1604f3` 的复核。可运行内部候选 `d81c458` 完成双窗正式验收，日常安装 `d2d0bb6` 及日常资料已原位恢复。`b55ed96` 原回退档通过 SHA-256 与双向签名核验。PR 保持 Draft。[候选与还原](../verification/native-spaces/5.22-p6/integrated-d81c458/protected-installation.json) · [回退](../verification/native-spaces/5.22-p6/integrated-d81c458/b55ed96-rollback.json)

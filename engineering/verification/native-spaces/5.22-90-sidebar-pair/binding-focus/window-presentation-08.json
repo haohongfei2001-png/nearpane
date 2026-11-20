@@ -1,0 +1,24 @@
+{
+  "clockUncertaintySeconds": 6.145855877548456e-06,
+  "completeDeliveries": 0,
+  "cropPoints": [
+    726,
+    513,
+    8,
+    8
+  ],
+  "fixtureWindows": [
+    54093,
+    54095
+  ],
+  "frames": [],
+  "idleDeliveries": 0,
+  "method": "twoEnrolledWindowDisplayCropWithIndependentVisibleWindowServerStack",
+  "reason": "otherOrdinaryWindow",
+  "retainedPixelBytes": 0,
+  "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+  "stackQueryCount": 0,
+  "status": "UNKNOWN",
+  "targetFrameObserved": false,
+  "unbracketedBeforeEnrollment": 0
+}

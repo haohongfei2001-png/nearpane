@@ -5,6 +5,7 @@
     "actions.jsonl": "7f3af6e40fd2bfbb514846b949cb1a33f5128e6b5ca87465086bc1de1846da61",
     "marker-witness-01.json": "e1adb965263ccc4e89be5bce64f0476758eac869692e40170da829004e089e6f",
     "pair-pointer.json": "4269f26aad7b99aed1a96281f245f851dbf56edb3ba287b87824550c60a1c0c0",
-    "protected-installation.json": "71aa7326e2c12fe8f1c54679912f27b2e04dd46fbf023bcc36308a36ca06454c"
+    "protected-installation.json": "71aa7326e2c12fe8f1c54679912f27b2e04dd46fbf023bcc36308a36ca06454c",
+    "unwitnessed-delivery.json": "49334af5bc51fbf3e4fc9c3e4f50dc82b0f61845763ac3d431c6b4d49969177f"
   }
 }
