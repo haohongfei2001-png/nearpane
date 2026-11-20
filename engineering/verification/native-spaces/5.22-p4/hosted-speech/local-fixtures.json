@@ -1,0 +1,130 @@
+{
+  "scope": "Apple SpeechAnalyzer / SpeechTranscriber on generated 16 kHz mono PCM files",
+  "mode": "fixtures",
+  "physicalInstalledHost": {
+    "trials": 0,
+    "contractTrials": 60,
+    "status": "NOT_RUN"
+  },
+  "source": {
+    "voice": "Tingting",
+    "locale": "zh_CN",
+    "rate": 165,
+    "output": "WAVE file only",
+    "noise": "uniform seeded at +10 dB source SNR"
+  },
+  "macOS": "27.0",
+  "osBuild": "26A428",
+  "architecture": "arm64",
+  "status": "FIXTURES_READY",
+  "rounds": [
+    {
+      "case": "01-clean",
+      "expected": "今天测试语音",
+      "condition": "clean",
+      "seed": null,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "9a95f0fa7cc9ea059fbb411fe26eb6a3feccfd6f29cd76cf0de2dbad886b95c9",
+        "sha256": "9a95f0fa7cc9ea059fbb411fe26eb6a3feccfd6f29cd76cf0de2dbad886b95c9",
+        "frames": 26832,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0046875
+      }
+    },
+    {
+      "case": "02-noise10dB",
+      "expected": "窗外正在下雨",
+      "condition": "noise10dB",
+      "seed": 2,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "e47f33e18472a8637411ed9c5e05555b3171921fab573973f1d78970116ca3de",
+        "sha256": "e24ef49cc53fa2f169b18909f0be42c78d3c7ad44dd8fa6587dacf4bb5d6ead4",
+        "frames": 26321,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0001875,
+        "linearPeakGain": 1,
+        "measuredSourceSNRdB": 9.999990427389795
+      }
+    },
+    {
+      "case": "03-clean",
+      "expected": "蓝色雨伞放在门口",
+      "condition": "clean",
+      "seed": null,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "433ac55b7a30a5b9602cedc70479a1363d54a691415beb9281a558ded6a89af2",
+        "sha256": "433ac55b7a30a5b9602cedc70479a1363d54a691415beb9281a558ded6a89af2",
+        "frames": 33287,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 6.25e-05
+      }
+    },
+    {
+      "case": "01-noise10dB",
+      "expected": "今天测试语音",
+      "condition": "noise10dB",
+      "seed": 4,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "9a95f0fa7cc9ea059fbb411fe26eb6a3feccfd6f29cd76cf0de2dbad886b95c9",
+        "sha256": "9efab393ef77be0319ab20a1364fa15adb61f70ef5d88f1e638ee895649a106a",
+        "frames": 26832,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0046875,
+        "linearPeakGain": 1,
+        "measuredSourceSNRdB": 10.000004374841655
+      }
+    },
+    {
+      "case": "02-clean",
+      "expected": "窗外正在下雨",
+      "condition": "clean",
+      "seed": null,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "e47f33e18472a8637411ed9c5e05555b3171921fab573973f1d78970116ca3de",
+        "sha256": "e47f33e18472a8637411ed9c5e05555b3171921fab573973f1d78970116ca3de",
+        "frames": 26321,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0001875
+      }
+    },
+    {
+      "case": "03-noise10dB",
+      "expected": "蓝色雨伞放在门口",
+      "condition": "noise10dB",
+      "seed": 6,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "433ac55b7a30a5b9602cedc70479a1363d54a691415beb9281a558ded6a89af2",
+        "sha256": "d306ae2ac9b0187702dcf54d03181fb001a67540595775e7d04b2a6d3cd193e1",
+        "frames": 33287,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 6.25e-05,
+        "linearPeakGain": 1,
+        "measuredSourceSNRdB": 9.999999466553726
+      }
+    }
+  ],
+  "aggregate": {
+    "cases": 6,
+    "scoredFinals": 0,
+    "unscored": 6,
+    "exact": 0,
+    "firstCharacterCorrect": 0,
+    "firstCharacterRate": null,
+    "characterEdits": null,
+    "referenceCharacters": null,
+    "microCER": null
+  },
+  "fixtures": "READY"
+}

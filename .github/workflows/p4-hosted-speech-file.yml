@@ -1,0 +1,36 @@
+name: P4 on-device Chinese file transcription
+
+# An explicit, marked commit on the isolated side branch can spend one standard runner.
+# Publication of receipts changes none of these paths.
+on:
+  push:
+    branches: [codex/pr15-p4-apple-file-ci-20261120]
+    paths:
+      - .github/workflows/p4-hosted-speech-file.yml
+      - scripts/acceptance/native-spaces/p4-apple-file.swift
+      - scripts/acceptance/native-spaces/p4_apple_file.py
+      - scripts/acceptance/native-spaces/voice_matrix.py
+      - scripts/acceptance/native-spaces/r4-voice-cold.py
+
+permissions:
+  contents: read
+
+jobs:
+  apple-file:
+    if: github.event.repository.private == false && github.repository == 'haohongfei2001-png/nearpane' && contains(github.event.head_commit.message, '[p4-file-test]')
+    runs-on: macos-26
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Prepare local Chinese speech assets and score the six synthetic files
+        run: python3 scripts/acceptance/native-spaces/p4_apple_file.py hosted "$RUNNER_TEMP/hosted-speech.json"
+      - name: Retain the model state, process exits and per-file readbacks
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: p4-hosted-speech
+          path: ${{ runner.temp }}/hosted-speech.json
+          retention-days: 2
+          if-no-files-found: error

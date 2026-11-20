@@ -1,0 +1,156 @@
+{
+  "scope": "In-memory rescoring of retained, masked, synthetic-fixture finals from historical installed runs",
+  "unknownPolicy": "Missing finals are unscored. Each physical receipt retains its original verdict and source.",
+  "newPhysicalHostTrials": 0,
+  "reports": [
+    {
+      "receipt": "engineering/verification/native-spaces/5.22-90-installed-contract/voice/02-ordinary-cold/results.json",
+      "sha256": "a3f8ada780fa7183d76ad62669c8514e522f90b4ddbe26b4e979517f08d18688",
+      "originalSource": "00efb8b2fc6478cf842eea0c304608a946f0548e",
+      "version": "5.22",
+      "build": "90",
+      "rounds": [
+        {
+          "expected": "今天测试语音",
+          "originalStatus": "FAIL",
+          "score": {
+            "expectedCharacters": 6,
+            "heardCharacters": 9,
+            "firstCharacterCorrect": false,
+            "exact": false,
+            "edits": 9,
+            "cer": 1.5
+          }
+        },
+        {
+          "expected": "窗外正在下雨",
+          "originalStatus": "PASS",
+          "score": {
+            "expectedCharacters": 6,
+            "heardCharacters": 6,
+            "firstCharacterCorrect": true,
+            "exact": true,
+            "edits": 0,
+            "cer": 0.0
+          }
+        },
+        {
+          "expected": "蓝色雨伞放在门口",
+          "originalStatus": "PASS",
+          "score": {
+            "expectedCharacters": 8,
+            "heardCharacters": 8,
+            "firstCharacterCorrect": true,
+            "exact": true,
+            "edits": 0,
+            "cer": 0.0
+          }
+        }
+      ],
+      "aggregate": {
+        "cases": 3,
+        "scoredFinals": 3,
+        "unscored": 0,
+        "exact": 2,
+        "firstCharacterCorrect": 2,
+        "firstCharacterRate": 0.6666666666666666,
+        "characterEdits": 9,
+        "referenceCharacters": 20,
+        "microCER": 0.45
+      }
+    },
+    {
+      "receipt": "engineering/verification/native-spaces/5.22-90-installed-contract/voice/03-counterbalanced/results.json",
+      "sha256": "477e9faae911996b7637b09f01ef912f2a05487aee07a21e4fed248f23a7f7ae",
+      "originalSource": "00efb8b2fc6478cf842eea0c304608a946f0548e",
+      "version": "5.22",
+      "build": "90",
+      "rounds": [
+        {
+          "expected": "窗外正在下雨",
+          "originalStatus": "PASS",
+          "score": {
+            "expectedCharacters": 6,
+            "heardCharacters": 6,
+            "firstCharacterCorrect": true,
+            "exact": true,
+            "edits": 0,
+            "cer": 0.0
+          }
+        },
+        {
+          "expected": "今天测试语音",
+          "originalStatus": "PASS",
+          "score": {
+            "expectedCharacters": 6,
+            "heardCharacters": 6,
+            "firstCharacterCorrect": true,
+            "exact": true,
+            "edits": 0,
+            "cer": 0.0
+          }
+        }
+      ],
+      "aggregate": {
+        "cases": 2,
+        "scoredFinals": 2,
+        "unscored": 0,
+        "exact": 2,
+        "firstCharacterCorrect": 2,
+        "firstCharacterRate": 1.0,
+        "characterEdits": 0,
+        "referenceCharacters": 12,
+        "microCER": 0.0
+      }
+    },
+    {
+      "receipt": "engineering/verification/native-spaces/5.22-90-installed-contract/runs/voice-final/results.json",
+      "sha256": "b13185bf19867b3b305ecbabebe78ac16f010cefbd96933ae812e1c96a0cd38c",
+      "originalSource": "0777130ffd7bdaade0b634ede26fb70d811e06b5",
+      "version": "5.22",
+      "build": "90",
+      "rounds": [
+        {
+          "expected": "今天测试语音",
+          "originalStatus": "PASS",
+          "score": {
+            "expectedCharacters": 6,
+            "heardCharacters": 6,
+            "firstCharacterCorrect": true,
+            "exact": true,
+            "edits": 0,
+            "cer": 0.0
+          }
+        },
+        {
+          "expected": "窗外正在下雨",
+          "originalStatus": "PASS",
+          "score": {
+            "expectedCharacters": 6,
+            "heardCharacters": 6,
+            "firstCharacterCorrect": true,
+            "exact": true,
+            "edits": 0,
+            "cer": 0.0
+          }
+        },
+        {
+          "expected": "蓝色雨伞放在门口",
+          "originalStatus": "UNKNOWN",
+          "score": null
+        }
+      ],
+      "aggregate": {
+        "cases": 3,
+        "scoredFinals": 2,
+        "unscored": 1,
+        "exact": 2,
+        "firstCharacterCorrect": 2,
+        "firstCharacterRate": 1.0,
+        "characterEdits": 0,
+        "referenceCharacters": 12,
+        "microCER": 0.0
+      }
+    }
+  ]
+}
