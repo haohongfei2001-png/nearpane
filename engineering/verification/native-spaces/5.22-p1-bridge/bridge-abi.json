@@ -1,0 +1,16 @@
+{
+  "fixtureAllocations" : 1,
+  "fixturePerformCalls" : 1,
+  "fixtureReleasedAfterReadback" : 1,
+  "independentPhysicalWindowMembership" : "NOT_RUN",
+  "installedABI" : {
+    "class" : true,
+    "initializer" : true,
+    "perform" : true
+  },
+  "productionAvailable" : false,
+  "scope" : "mock operation plus installed runtime metadata",
+  "status" : "PASS",
+  "systemMoveRequests" : 0,
+  "systemOperationAllocations" : 0
+}

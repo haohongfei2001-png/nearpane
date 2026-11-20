@@ -1,36 +1,85 @@
 #import "NativeSpaceActions.h"
-#import <Foundation/Foundation.h>
-#import <ApplicationServices/ApplicationServices.h>
+#import "PreparedWindowMove.h"
 #import <dlfcn.h>
-#import <objc/message.h>
 #import <objc/runtime.h>
-// macOS 27 branch of yabai's space_manager_move_window_to_space. The
-// asynchronous submission has no completion result; the caller must read
-// window membership back from WindowServer. Other branches are not linked.
-typedef int64_t (*PerformMove)(void *);
-static PerformMove performMove;
-static Class moveClass;
-bool NPMoveAvailable(void) {
+
+@protocol NPBridgedMoveInitializer
+- (instancetype)initWithWindows:(NSArray<NSNumber *> *)windows spaceID:(uint64_t)space;
+@end
+
+static Method validatedMethod(Class cls, SEL selector, const char *encoding) {
+    Method method = cls ? class_getInstanceMethod(cls, selector) : NULL;
+    const char *actual = method ? method_getTypeEncoding(method) : NULL;
+    return actual && strcmp(actual, encoding) == 0 ? method : NULL;
+}
+
+NPBridgedMoveABI NPInspectMoveClass(Class cls) {
+    return (NPBridgedMoveABI){
+        .hasClass = cls != Nil,
+        .initializerMatches = validatedMethod(cls, @selector(initWithWindows:spaceID:), "@32@0:8@16Q24") != NULL,
+        .submissionMatches = validatedMethod(cls, NSSelectorFromString(@"performWithWMBridgeDelegate"), "v16@0:8") != NULL,
+    };
+}
+
+NPBridgedMoveABI NPInstalledMoveABI(void) {
+    static Class operationClass;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        void *image = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",
-                             RTLD_LOCAL | RTLD_LAZY);
-        if (!image) return;
-        performMove = (PerformMove)dlsym(image, "SLSPerformAsynchronousBridgedWindowManagementOperation");
-        moveClass = objc_getClass("SLSBridgedMoveWindowsToManagedSpaceOperation");
+        if (dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LOCAL | RTLD_LAZY)) {
+            operationClass = objc_lookUpClass("SLSBridgedMoveWindowsToManagedSpaceOperation");
+        }
     });
-    return performMove && moveClass && [moveClass instancesRespondToSelector:@selector(initWithWindows:spaceID:)];
+    return NPInspectMoveClass(operationClass);
+}
+
+@implementation NPPreparedWindowMove {
+    id _operation;
+    NSArray<NSNumber *> *_windows;
+    BOOL _submitted;
+}
+
+- (instancetype)initWithClass:(Class)cls window:(uint32_t)window space:(uint64_t)space {
+    self = [super init];
+    if (!self) return nil;
+    NPBridgedMoveABI abi = NPInspectMoveClass(cls);
+    if (window && space && abi.initializerMatches && abi.submissionMatches) {
+        _windows = [[NSArray alloc] initWithObjects:@(window), nil];
+        _operation = [(id<NPBridgedMoveInitializer>)[cls alloc] initWithWindows:_windows spaceID:space];
+        if (_operation && object_getClass(_operation) == cls) return self;
+    }
+#if !__has_feature(objc_arc)
+    [self release];
+#endif
+    return nil;
+}
+
+- (BOOL)submitOnce {
+    @synchronized (self) {
+        SEL selector = NSSelectorFromString(@"performWithWMBridgeDelegate");
+        Method method = validatedMethod(object_getClass(_operation), selector, "v16@0:8");
+        if (_submitted || !method) return NO;
+        _submitted = YES;
+        ((void (*)(id, SEL))method_getImplementation(method))(_operation, selector);
+        // The method returns void. Delivery alone cannot confirm window membership.
+        return YES;
+    }
+}
+
+#if !__has_feature(objc_arc)
+- (void)dealloc {
+    [_operation release];
+    [_windows release];
+    [super dealloc];
+}
+#endif
+@end
+
+bool NPMoveAvailable(void) {
+    // No build has qualified the P0 and P1 installed round-trip gates.
+    return false;
 }
 
 bool NPRequestMove(uint32_t window, uint64_t space) {
-    if (!window || !space || !NPMoveAvailable() || !AXIsProcessTrusted()) return false;
-    SEL initializer = @selector(initWithWindows:spaceID:);
-    id operation = ((id (*)(id, SEL, id, uint64_t))objc_msgSend)([moveClass alloc], initializer,
-                                                                @[@(window)], space);
-    if (!operation) return false;
-    (void)performMove((__bridge void *)operation);
-#if !__has_feature(objc_arc)
-    [operation release];
-#endif
-    return true;
+    // Prepare the backend in isolation, without enrolling a system window.
+    return false;
 }
