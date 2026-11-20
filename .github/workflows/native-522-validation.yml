@@ -68,6 +68,10 @@ jobs:
           src=scripts/acceptance/native-spaces
           xcrun swiftc -parse-as-library "$src/p0-generation.swift" "$src/p0-marker-tests.swift" -o "$RUNNER_TEMP/p0-marker-tests"
           "$RUNNER_TEMP/p0-marker-tests"
+          xcrun swiftc -parse-as-library "$src/pair-pointer-motion.swift" "$src/test-pair-pointer-motion.swift" -o "$RUNNER_TEMP/pair-pointer-motion"
+          "$RUNNER_TEMP/pair-pointer-motion"
+          xcrun swiftc -parse-as-library "$src/pair-pointer-cursor.swift" "$src/test-pair-pointer-cursor.swift" -o "$RUNNER_TEMP/pair-pointer-cursor"
+          "$RUNNER_TEMP/pair-pointer-cursor"
       - name: Build production helper and run no-input protocol tests
         run: |
           swift build --target NearpaneSpaceAction
