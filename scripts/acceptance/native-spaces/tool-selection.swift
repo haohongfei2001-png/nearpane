@@ -21,9 +21,9 @@ private func kernelBirth(_ pid:pid_t)->UInt64? {
     return state.pbi_start_tvsec*1_000_000+state.pbi_start_tvusec
 }
 
-@MainActor private func hostStages(pid: pid_t, phrase: String, after: Double, request: UUID? = nil) -> [String:Any] {
+@MainActor private func hostStages(pid: pid_t, phrase: String, after: Double, request: UUID? = nil, dispatch: [String:Double]? = nil) -> [String:Any] {
     let hash = SHA256.hash(data: Data(phrase.utf8)).map { String(format: "%02x", $0) }.joined()
-    let predicate = "processID == \(pid) AND subsystem == 'com.holdsnow.nearpane.alpha' AND category == 'LocalToolStage'"
+    let predicate = "processID == \(pid) AND subsystem == 'com.holdsnow.nearpane.alpha' AND (category == 'LocalToolStage' OR category == 'HostOpen')"
     guard let logs = try? ToolUI.run("/usr/bin/log", ["show", "--style", "compact", "--last", "1m", "--predicate", predicate]),
           let pattern = try? NSRegularExpression(pattern: #"toolStage id=([0-9A-Fa-f-]{36}) stage=([a-zA-Z]+) hash=(-|[0-9a-f]{64}) uptime=([0-9.]+)"#) else {
         return ["available":false]
@@ -41,7 +41,17 @@ private func kernelBirth(_ pid:pid_t)->UInt64? {
     }
     let callbacks = records.filter { $0[1] == "serviceCallback" && $0[2] == hash }
     guard callbacks.count == 1, let id = callbacks.first?.first else { return ["available":false,"callbackMatches":callbacks.count] }
-    return ["available":true,"requestID":id,"stages":records.filter { $0[0] == id }.map { ["stage":$0[1], "sha256":$0[2], "uptime":$0[3]] }]
+    var result:[String:Any] = ["available":true,"requestID":id,"stages":records.filter { $0[0] == id }.map { ["stage":$0[1], "sha256":$0[2], "uptime":$0[3]] }]
+    if let dispatch, let start=dispatch["before"], let end=dispatch["after"], end>=start,
+       let opens=try? NSRegularExpression(pattern:#"hostOpen phase=(open|reopen) marker=(service|login|background|unmarked) uptime=([0-9.]+)"#) {
+        result["openDelegateWithinService"] = logs.split(separator:"\n").compactMap { line -> [String:String]? in
+            let text=String(line) as NSString
+            guard let match=opens.firstMatch(in:text as String,range:NSRange(location:0,length:text.length)),
+                  let time=Double(text.substring(with:match.range(at:3))),time>=start,time<=end else {return nil}
+            return ["phase":text.substring(with:match.range(at:1)),"marker":text.substring(with:match.range(at:2)),"uptime":String(time)]
+        }
+    }
+    return result
 }
 
 @MainActor private func serviceRoute() throws -> [String:Any] {
@@ -132,7 +142,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
         }
         for row in panels {frames[row.id,default:[]].insert(NSStringFromRect(row.bounds))}
         let qualified=panels.filter { row in
-            nearSelection(row.bounds) || pointer.map {row.bounds.insetBy(dx:-12,dy:-12).contains($0)}==true
+            nearSelection(row.bounds) || pointer.map {nearTranslationPointer(row.bounds,$0)}==true
         }
         if qualified.count>1 {ambiguous+=1}
         if qualified.count==1,let candidate=qualified.first {
@@ -161,13 +171,14 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
         "windowObservations":frames.keys.sorted().map{["window":$0,"frames":Array(frames[$0] ?? []).sorted()] as [String:Any]},
         "fixtureServiceTimes":fixtureEnd?["serviceTimes"] ?? [:],"fixtureSelectionAcrossService":fixtureEnd?["selectionAcrossService"] ?? [:]]
     words=try context.words(phrase)
-    var stages = hostStages(pid: context.host.processIdentifier, phrase: phrase, after: started)
+    let dispatch=fixtureEnd?["serviceTimes"] as? [String:Double]
+    var stages = hostStages(pid: context.host.processIdentifier, phrase: phrase, after: started, dispatch: dispatch)
     for _ in 0..<3 {
         let log = stages["stages"] as? [[String:String]] ?? []
         if log.contains(where:{ $0["stage"] == "panelVisible" }) &&
             log.contains(where:{ ["wordCommitted","modelMissing","modelUnsupported"].contains($0["stage"] ?? "") }) { break }
         await ToolUI.pause(200)
-        stages = hostStages(pid: context.host.processIdentifier, phrase: phrase, after: started)
+        stages = hostStages(pid: context.host.processIdentifier, phrase: phrase, after: started, dispatch: dispatch)
     }
     report["hostHandoff"] = stages
     let evidence = stages["stages"] as? [[String:String]] ?? []
@@ -190,6 +201,11 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let terminal=words.count==1 ? "wordCommitted" : ordered.contains("modelMissing") ? "modelMissing" : "modelUnsupported"
     let content=TranslationProof.digest(TranslationProof.normalized(expected))
     var details=[[String:Any]](), winner:TranslationPanelSample?, signedHostTookFocus=false, unclearPostReturnSource=false, contentSeen=false
+    var genericWindowSeen=false, exactSelectionSeen=false, confirmedSourceSample=false
+    var genericContentSample:TranslationPanelSample?
+    let hasOrigin=ordered.contains("serviceOriginBound")
+    let unverified=ordered.contains("serviceCallerUnverified") || ordered.contains("serviceSelectionUnverified")
+    report["serviceOriginAttribution"]=hasOrigin ? "PASS" : unverified ? "BLOCKED_UNVERIFIED" : "UNKNOWN"
     let serviceReturn=(fixtureEnd?["serviceTimes"] as? [String:Double])?["after"]
     for sample in samples {
         let declared=request.flatMap { TranslationProof.presentation(evidence,source:phrase,answer:expected,terminal:terminal,
@@ -204,23 +220,37 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
         let verdict=TranslationPanelVerdict(isBound:declared != nil,
             panelCurrent:sample.beforeStack.clear && sample.afterStack.clear,
             sourceFocused:sample.beforeFocus.confirmed && sample.afterFocus.confirmed,
-            anchorMatches:(declared=="anchorSelection" && sample.selection) || (declared=="anchorPointer" && sample.pointer),
+            anchorMatches:(declared=="anchorSelection" && sample.selection) || (["anchorPointer","anchorFeedbackPointer"].contains(declared ?? "") && sample.pointer),
             hostSameGeneration:sample.sameHost,imageCaptured:sample.image != nil,contentMatches:optical.matches || (axExact && optical.visibleText))
         var item=sample.metadata
         item["checks"]=verdict.fields;item["exactRequestAXText"]=axExact;item["exactOCR"]=optical.matches;item["textSeenInImage"]=optical.visibleText
         let phaseBound=declared != nil && verdict.panelCurrent && verdict.hostSameGeneration && verdict.anchorMatches
         item["boundPanelContentObserved"]=phaseBound && verdict.imageCaptured && verdict.contentMatches
         if item["boundPanelContentObserved"] as? Bool==true {contentSeen=true}
+        if declared=="anchorFeedbackPointer", phaseBound {
+            genericWindowSeen=true
+            if genericContentSample==nil && verdict.imageCaptured && verdict.contentMatches {genericContentSample=sample}
+        }
         if phaseBound,let serviceReturn,sample.begin>=serviceReturn {
+            if verdict.sourceFocused {confirmedSourceSample=true}
             if sample.beforeFocus.leftForHost && sample.afterFocus.leftForHost {signedHostTookFocus=true}
             if !sample.beforeFocus.confirmed || !sample.afterFocus.confirmed {unclearPostReturnSource=true}
         }
-        item["declaredAnchor"]=declared ?? "unbound";item["qualified"]=verdict.passed
+        let sourceQualified=verdict.passed && TranslationProof.sourceAnchor(declared)
+        if sourceQualified && hasOrigin && declared=="anchorSelection" {exactSelectionSeen=true}
+        item["declaredAnchor"]=declared ?? "unbound";item["qualified"]=sourceQualified
         details.append(item)
-        if winner==nil && verdict.passed {winner=sample}
+        if winner==nil && sourceQualified {winner=sample}
     }
     report["panelSamples"]=details
-    report["anchorDeclarations"]=ordered.filter {["anchorSelection","anchorPointer"].contains($0)}
+    report["anchorDeclarations"]=ordered.filter {TranslationProof.anchors.contains($0)}
+    let usedGeneric=ordered.contains("anchorFeedbackPointer")
+    let missingPointer=unverified && ordered.contains("feedbackPointerUnavailable")
+    let revokedPointer=unverified && ordered.contains("feedbackPointerRevoked")
+    report["genericFeedbackWindow"]=genericWindowSeen ? "PASS" : usedGeneric ? "UNKNOWN" :
+        missingPointer ? "BLOCKED_POINTER_UNAVAILABLE" : revokedPointer ? "BLOCKED_CONTEXT_CHANGED" : "NOT_USED"
+    report["genericFeedbackContent"]=genericContentSample != nil ? "PASS" : usedGeneric ? "UNKNOWN" : "NOT_USED"
+    report["preciseSelectionPlacement"]=exactSelectionSeen ? "PASS" : unverified ? "BLOCKED_UNVERIFIED_SOURCE" : "UNKNOWN"
     report["panelChecks"]=["isBound","panelCurrent","sourceFocused","anchorMatches","hostSameGeneration","imageCaptured","contentMatches"].reduce(into:[String:String]()) { result,key in
         if details.isEmpty {result[key]="NOT_OBSERVED";return}
         let matches=details.filter{($0["checks"] as? [String:Bool])?[key]==true}.count
@@ -229,7 +259,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let crossed=fixtureEnd?["selectionAcrossService"] as? [String:Bool]
     let focusLost=signedHostTookFocus && crossed?["before"]==true && performed==true
     let retained=crossed?["before"]==true && crossed?["after"]==true && !unclearPostReturnSource && serviceReturn != nil
-    report["sourceFocusRetention"]=focusLost ? "FAIL" : retained && winner != nil ? "PASS":"UNKNOWN"
+    report["sourceFocusRetention"]=focusLost ? "FAIL" : retained && confirmedSourceSample ? "PASS":"UNKNOWN"
     report["panelVisualContent"]=contentSeen ? "PASS":"UNKNOWN"
     report["captureAPICalls"]=samples.filter(\.captureAttempted).count
     report["visibleNonactivatingBubble"]="UNKNOWN"
@@ -237,6 +267,11 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     guard performed == true, attempted == true else {
         report["status"]=attempted==true && performed==false ? "FAIL":"UNKNOWN"
         report["reason"]="Fixture did not positively confirm its single service dispatch";return report
+    }
+    if let sample=genericContentSample,let image=sample.image,
+       let png=NSBitmapImageRep(cgImage:image).representation(using:.png,properties:[:]) {
+        try png.write(to:context.output.appendingPathComponent("generic-feedback.png"),options:.withoutOverwriting)
+        report["genericFeedbackImage"]="generic-feedback.png"
     }
     if focusLost {
         report["status"]="FAIL";report["reason"]="The fixture lost its key document and the signed installed Host held foreground across a request-bound panel sample"

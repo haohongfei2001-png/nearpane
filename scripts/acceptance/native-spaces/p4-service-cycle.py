@@ -51,7 +51,8 @@ def run(kit,out,revision):
                        handoff=translation.get("serviceRequestHandoff","UNKNOWN"),
                        nonactivatingPanel=translation.get("visibleNonactivatingBubble","UNKNOWN"))
         save()
-        for key in ("panelChecks","translationCapability","sourceFocusRetention","panelVisualContent","captureAPICalls"):
+        for key in ("panelChecks","translationCapability","sourceFocusRetention","panelVisualContent","captureAPICalls",
+                    "serviceOriginAttribution","genericFeedbackWindow","genericFeedbackContent","preciseSelectionPlacement"):
             if key in translation: receipt[key]=translation[key]
         if translation["status"]!="PASS":
             receipt.update(status=translation["status"],reason=translation.get("reason","Service arrival or word not confirmed"))

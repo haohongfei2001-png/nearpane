@@ -152,13 +152,22 @@ struct TranslationPanelSample {
     }
 }
 
+@MainActor func nearTranslationPointer(_ rect:CGRect,_ pointer:CGPoint)->Bool {
+    if rect.insetBy(dx:-12,dy:-12).contains(pointer) {return true}
+    guard let primary=NSScreen.screens.first else{return false}
+    let screens=NSScreen.screens.filter{$0.frame.contains(CGPoint(x:pointer.x,y:primary.frame.maxY-pointer.y))}
+    guard screens.count==1,let frame=screens.first?.visibleFrame else{return false}
+    let visible=CGRect(x:frame.minX,y:primary.frame.maxY-frame.maxY,width:frame.width,height:frame.height)
+    return TranslationProof.clampedPointerMatch(rect,point:pointer,visible:visible)
+}
+
 @MainActor func sampleTranslationPanel(host:pid_t,fixture:pid_t,number:CGWindowID,rect:CGRect,selection:Bool,
                                       pointer:CGPoint?,focus:()->TranslationSourceWitness,sameHost:()->Bool) async -> TranslationPanelSample {
     let begin=ProcessInfo.processInfo.systemUptime, original=sameHost()
     let firstFocus=focus(), first=stack(host,fixture,number,rect)
     func atPointer()->Bool {
         guard let pointer,let now=CGEvent(source:nil)?.location else {return false}
-        return abs(now.x-pointer.x)<=1 && abs(now.y-pointer.y)<=1 && rect.insetBy(dx:-12,dy:-12).contains(now)
+        return abs(now.x-pointer.x)<=1 && abs(now.y-pointer.y)<=1 && nearTranslationPointer(rect,now)
     }
     let initialPointer=atPointer()
     var image:CGImage?,labels=[UUID:Set<String>]()

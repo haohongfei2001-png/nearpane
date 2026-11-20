@@ -27,6 +27,22 @@ enum TranslationProof {
 }
 
 extension TranslationProof {
+    static let anchors = Set(["anchorSelection", "anchorPointer", "anchorFeedbackPointer"])
+
+    static func sourceAnchor(_ stage: String?) -> Bool {
+        stage == "anchorSelection" || stage == "anchorPointer"
+    }
+
+    // Quartz coordinates. A pointer over the menu bar or Dock can place the
+    // feedback panel farther away than its five-point gap once it is kept on screen.
+    static func clampedPointerMatch(_ rect:CGRect,point:CGPoint,visible:CGRect)->Bool {
+        guard !rect.isEmpty, rect.width<=visible.width, rect.height<=visible.height else {return false}
+        let x=min(max(point.x,visible.minX),visible.maxX-rect.width)
+        let below=point.y+5
+        let y=min(max(below+rect.height<=visible.maxY ? below : point.y-rect.height-6,visible.minY),visible.maxY-rect.height)
+        return abs(rect.minX-x)<=2 && abs(rect.minY-y)<=2
+    }
+
     // The image interval must lie inside a single final presentation of this request.
     // A delayed log query may contain a later presentation as well.
     static func presentation(_ records:[[String:String]], source:String, answer:String, terminal:String,
@@ -38,12 +54,12 @@ extension TranslationProof {
         guard follows(records,[("serviceCallback",input),("requestQueued",input),("hostReceived",input)]),
               let visible = prefix.lastIndex(where:{ ["panelVisible","panelUnavailable"].contains($0["stage"] ?? "") }),
               prefix[visible]["stage"] == "panelVisible", prefix[visible]["sha256"] == expected,
-              let anchor = prefix[..<visible].last(where:{["anchorSelection","anchorPointer"].contains($0["stage"] ?? "")})?["stage"],
+              let anchor = prefix[..<visible].last(where:{anchors.contains($0["stage"] ?? "")})?["stage"],
               follows(Array(prefix[...visible]),[("serviceCallback",input),("requestQueued",input),("hostReceived",input),
                     (terminal,terminalHash),(anchor,"-"),("panelVisible",expected)]) else { return nil }
         let changed = records.contains { row in
             guard let time=Double(row["uptime"] ?? ""), time > begin && time <= end else { return false }
-            return ["panelVisible","panelUnavailable","anchorPointer","anchorSelection"].contains(row["stage"] ?? "")
+            return ["panelVisible","panelUnavailable"].contains(row["stage"] ?? "") || anchors.contains(row["stage"] ?? "")
         }
         return changed ? nil : anchor
     }

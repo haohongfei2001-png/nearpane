@@ -17,6 +17,19 @@ import CoreGraphics
             TranslationProof.presentation(rows,source:phrase,answer:text,terminal:"modelMissing",id:id,
                                           pid:owner,window:number,begin:start,end:end)
         }
+        let generic=records.map { row in
+            var row=row
+            if row["stage"]=="anchorPointer" {row["stage"]="anchorFeedbackPointer"}
+            return row
+        }
+        verify(bound(generic)=="anchorFeedbackPointer")
+        verify(!TranslationProof.sourceAnchor(bound(generic)))
+        verify(TranslationProof.sourceAnchor("anchorPointer") && TranslationProof.sourceAnchor("anchorSelection"))
+        verify(!TranslationProof.sourceAnchor(nil))
+        let visible=CGRect(x:0,y:30,width:1200,height:840),pointer=CGPoint(x:1195,y:4)
+        verify(TranslationProof.clampedPointerMatch(CGRect(x:920,y:30,width:280,height:40),point:pointer,visible:visible))
+        verify(!TranslationProof.clampedPointerMatch(CGRect(x:850,y:30,width:280,height:40),point:pointer,visible:visible))
+        verify(TranslationProof.clampedPointerMatch(CGRect(x:100,y:105,width:280,height:40),point:CGPoint(x:100,y:100),visible:visible))
         verify(bound(records)=="anchorPointer");verify(bound(records,5.3,5.4)==nil)
         verify(bound(records,7.8,8.1)==nil);verify(bound(records,8.1,8.2,pid+1)==nil)
         verify(bound(records,8.1,8.2,pid,win+1)==nil);verify(bound(records,8.1,8.2,pid,win,"下载")==nil)
