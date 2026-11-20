@@ -187,8 +187,14 @@ def run(output):
         with tempfile.TemporaryDirectory(prefix="nearpane-voice-", dir="/private/tmp") as temp:
             temp = Path(temp)
             driver = temp / "cold-microphone"
-            subprocess.run(["/usr/bin/xcrun", "swiftc", "-parse-as-library", str(Path(__file__).with_name("r4-cold-microphone.swift")),
-                            "-o", str(driver)], check=True, timeout=90)
+            sources = Path(__file__).resolve().parents[3] / "Sources/CReadOnlySpaces"
+            header = sources / "include/ReadOnlySpaces.h"
+            observer = temp / "read-spaces.o"
+            subprocess.run(["/usr/bin/xcrun", "clang", "-c", str(sources / "ReadOnlySpaces.c"), "-I", str(header.parent),
+                            "-o", str(observer)], check=True, timeout=30)
+            subprocess.run(["/usr/bin/xcrun", "swiftc", "-parse-as-library", "-import-objc-header", str(header),
+                            str(Path(__file__).with_name("r4-cold-microphone.swift")), str(observer), "-o", str(driver)],
+                           check=True, timeout=90)
             for number, attempt in enumerate(attempts, start=1):
                 pid = None
                 try:
