@@ -91,15 +91,8 @@ struct DesktopWindowTarget: Equatable {
     }
 
     func liveOwner() -> NSRunningApplication? {
-        var info = proc_bsdinfo()
-        let n = Int32(MemoryLayout.size(ofValue: info))
-        guard proc_pidinfo(key.pid, PROC_PIDTBSDINFO, 0, &info, n) == n,
-              info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec == key.birth,
-              let app = NSRunningApplication(processIdentifier: key.pid), !app.isTerminated,
-              app.activationPolicy == .regular, let bundle = app.bundleIdentifier,
-              !bundle.isEmpty, !bundle.hasPrefix("com.holdsnow.nearpane"), !bundle.hasPrefix("org.nearpane.")
-        else { return nil }
-        return app
+        if case let .found(app, _) = DesktopPreviewOwner.read(key, find: NSRunningApplication.init(processIdentifier:)) { return app }
+        return nil
     }
 
     /// Never read window titles. Require the same shared layer-zero surface, its on-screen
@@ -121,8 +114,11 @@ struct DesktopWindowTarget: Equatable {
         }
     }
 
-    @MainActor func pictureEligibility(needsMembership: Bool) -> PreviewPipelineAudit.Reason {
-        guard liveOwner() != nil else { return .ownerUnavailable }
+    @MainActor func pictureEligibility(needsMembership: Bool, owner: DesktopPreviewOwner?, audit: PreviewPipelineAudit?) -> PreviewPipelineAudit.Reason {
+        let observed = DesktopPreviewOwner.read(key, find: NSRunningApplication.init(processIdentifier:))
+        let checked = DesktopPreviewOwner.resolve(observed, key: key, bound: owner)
+        audit?.record(key, .owner, checked.evidence)
+        guard checked.allowed else { return .ownerUnavailable }
         if !needsMembership, !(NSWindow.windowNumbers(options: .allApplications) ?? []).contains(NSNumber(value: key.number)) {
             return .publicListMissing
         }
@@ -201,15 +197,17 @@ struct DesktopWindowTarget: Equatable {
     @MainActor private final class Live {
         let target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream
         let needsMembership: Bool
+        let owner: DesktopPreviewOwner?
         var task: Task<Void, Never>?
         let acquired = ProcessInfo.processInfo.systemUptime
         var sequence: UInt64 = 0
         var publishedEpoch: UInt64?
         var checkedRevision: UInt64?
         var cancelled = false
-        init(_ target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream, needsMembership: Bool) {
+        init(_ target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream, needsMembership: Bool, app: NSRunningApplication) {
             self.target = target; self.incarnation = incarnation; self.run = run; self.stream = stream
             self.needsMembership = needsMembership
+            owner = DesktopPreviewOwner(key: target.key, app: app)
         }
         func cancel() {
             cancelled = true
@@ -338,7 +336,7 @@ struct DesktopWindowTarget: Equatable {
         guard still.matches(target, lifetime: lifetime(target.key), now: now) else { return rejected(.stillMismatch) }
         guard WindowContentPreview.sessionAvailable() else { return rejected(.sessionUnavailable) }
         guard WindowPermissionProbe.screen.allowed() else { return rejected(.screenDenied) }
-        let check = target.pictureEligibility(needsMembership: live.needsMembership)
+        let check = target.pictureEligibility(needsMembership: live.needsMembership, owner: live.owner, audit: audit)
         guard check == .allowed else { return rejected(check) }
         audit?.record(target.key, .lookup, .allowed, epoch: live.stream.epoch, sequence: live.sequence)
         stills.touch(target.key)
@@ -542,12 +540,12 @@ struct DesktopWindowTarget: Equatable {
                           let incarnation = issued[key], lifetime(key) == incarnation, permitsWindow(key),
                           visible[display]?.contains(key) == true, target.present(in: before), target.present(in: snapshot()),
                           let windows = shared[key.number], windows.count == 1, let window = windows.first,
-                          target.liveOwner() != nil, (offstage ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()),
+                          let app = target.liveOwner(), (offstage ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()),
                           let pipe = WindowFrameStream(window: window, target: target, audit: audit) else {
                         if streams[key] == nil && visible[display]?.contains(key) == true { missingPictures[key] = display }
                         continue
                     }
-                    let live = Live(target, incarnation: incarnation, run: token, stream: pipe, needsMembership: offstage)
+                    let live = Live(target, incarnation: incarnation, run: token, stream: pipe, needsMembership: offstage, app: app)
                     audit?.record(key, .lifecycle, .created, epoch: pipe.epoch, sequence: 0)
                     streams[key] = live
                     lastService[key] = live.acquired
@@ -573,7 +571,7 @@ struct DesktopWindowTarget: Equatable {
             guard target.present(in: snapshot) else { return .rosterMismatch }
             live.checkedRevision = snapshot.revision
         }
-        return target.pictureEligibility(needsMembership: live.needsMembership)
+        return target.pictureEligibility(needsMembership: live.needsMembership, owner: live.owner, audit: audit)
     }
 
     private func admitted(_ live: Live, snapshot: DesktopSnapshot?, allowed: () -> Bool) -> Bool {

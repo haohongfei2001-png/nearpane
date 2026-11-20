@@ -55,14 +55,15 @@ class PairedWindowAudit(p0.InstalledWindowAudit):
             p0.require(len(raw) == start.st_size and end.st_size >= start.st_size and end.st_nlink == 1 and
                        end.st_mode == start.st_mode and end.st_uid == start.st_uid, "transition receipt changed")
         rows = []
-        lanes = {"stream", "admission", "membership", "lookup", "cache", "card", "lifecycle"}
+        lanes = {"stream", "admission", "membership", "lookup", "cache", "card", "lifecycle", "owner"}
         reasons = set(("enrolled capacityReached complete started idle blank suspended stopped invalidMetadata invalidBuffer "
                        "unknownStatus streamError allowed leaseChanged notPermitted notVisible incarnationChanged sessionUnavailable "
                        "screenDenied snapshotChanged staleSnapshot rosterMismatch ownerUnavailable publicListMissing metadataMissing "
                        "surfaceMismatch notDrawn sharingDenied offscreen frameChanged publicMembership freshMembership "
                        "membershipUnconfirmed streamEpochChanged noFrame streamInactive stillMismatch conversionFailed invalidPixelCost "
                        "notStored removed current previous recent mapOnly liveImage selectedImage previousImage outline mounted unmounted "
-                       "created cleared targetChanged ended").split())
+                       "ownerChanged kernelReadMissing kernelReadRecovered applicationLookupMissing applicationLookupRecovered "
+                       "bundleReadMissing bundleReadRecovered created cleared targetChanged ended").split())
         required = {"writerPID", "hostBirth", "window", "token", "feed", "epoch", "revision", "ordinal", "uptime", "lane", "reason", "stage"}
         partial = False
         for line in raw.splitlines(keepends=True):

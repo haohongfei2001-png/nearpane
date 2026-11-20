@@ -6,13 +6,14 @@ import os
 /// Opt-in diagnostics for two signed fixtures in the installed Host's isolated home.
 final class PreviewPipelineAudit: Sendable {
     enum Lane: Int, CaseIterable, Sendable {
-        case stream, admission, membership, lookup, cache, card, lifecycle
+        case stream, admission, membership, lookup, cache, card, lifecycle, owner
         var label: String { String(describing: self) }
     }
     enum Reason: String, Sendable {
         case enrolled, capacityReached, complete, started, idle, blank, suspended, stopped, invalidMetadata, invalidBuffer, unknownStatus, streamError
         case allowed, leaseChanged, notPermitted, notVisible, incarnationChanged, sessionUnavailable, screenDenied, snapshotChanged, staleSnapshot
         case rosterMismatch, ownerUnavailable, publicListMissing, metadataMissing, surfaceMismatch, notDrawn, sharingDenied, offscreen, frameChanged
+        case ownerChanged, kernelReadMissing, kernelReadRecovered, applicationLookupMissing, applicationLookupRecovered, bundleReadMissing, bundleReadRecovered
         case publicMembership, freshMembership, membershipUnconfirmed, streamEpochChanged
         case noFrame, streamInactive, stillMismatch, conversionFailed, invalidPixelCost, notStored, removed, current, previous, recent, mapOnly
         case liveImage, selectedImage, previousImage, outline, mounted, unmounted, created, cleared, targetChanged, ended
