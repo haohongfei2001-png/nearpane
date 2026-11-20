@@ -137,9 +137,13 @@ struct ToolContext {
         let gen = URL(fileURLWithPath:path).resolvingSymlinksInPath()
         let root = homeURL.appendingPathComponent("Library/Application Support/Nearpane Alpha Profiles").resolvingSymlinksInPath()
         let temporary = URL(fileURLWithPath:NSTemporaryDirectory()).resolvingSymlinksInPath().path
-        guard let account = getpwuid(getuid()),
-              homeURL.path != URL(fileURLWithPath:String(cString: account.pointee.pw_dir)).resolvingSymlinksInPath().path,
-              homeURL.path.hasPrefix("/private/tmp/") || homeURL.path.hasPrefix(temporary + "/"),
+        guard let account = getpwuid(getuid()) else { throw ToolRefusal("The local account home cannot be verified") }
+        let accountHome = URL(fileURLWithPath:String(cString: account.pointee.pw_dir)).resolvingSymlinksInPath()
+        let lease = homeURL.deletingLastPathComponent()
+        let cached = lease.deletingLastPathComponent().path == accountHome.appendingPathComponent("Library/Caches").path &&
+            lease.lastPathComponent.hasPrefix("nearpane-native-acceptance.") && homeURL.lastPathComponent == "home"
+        guard homeURL.path != accountHome.path,
+              cached || homeURL.path.hasPrefix("/private/tmp/") || homeURL.path.hasPrefix(temporary + "/"),
               gen.deletingLastPathComponent().path == root.appendingPathComponent("generations").path,
               UUID(uuidString:gen.lastPathComponent) != nil,
               try JSONDecoder().decode(Index.self,from:Data(contentsOf:root.appendingPathComponent("profile-index.json"))).active == gen.lastPathComponent else {

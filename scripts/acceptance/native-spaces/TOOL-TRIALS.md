@@ -6,6 +6,7 @@
 kit="$(mktemp -d /private/tmp/nearpane-tool-trial.XXXXXXXX)"
 src=scripts/acceptance/native-spaces
 bash "$src/build-tool-trials.sh" "$kit/bin"
+"$kit/bin/tool-selection" service-route "$kit/translation-provider"
 node "$src/tool-draft.mjs" preflight "$kit/guest-headless"
 "$kit/bin/tool-selection" translate "$kit/translation"
 "$kit/bin/tool-capture" capture "$kit/capture"
@@ -15,7 +16,7 @@ node "$src/tool-draft.mjs" preflight "$kit/guest-headless"
 node "$src/tool-draft.mjs" draft "$kit/official-draft" "$kit/capture/result.json" "$kit/bin/tool-capture"
 ```
 
-翻译命令在自身新建的 AppKit 编辑器中选中固定短语，通过 macOS「在 Nearpane 翻译选词」服务调用 Host。独立核对新面板与选区的间距、气泡文字、词义及隔离单词本。单词本验收要求新的 Host PID、相同条目 UUID、相同译文以及重新打开设置后可见的源文和译文。Apple Translation 仅使用本机已安装的语言，系统的「通用 → 语言与地区 → 翻译语言」可下载所需的英语和简体中文。
+服务预检只读取系统提供者登记。翻译命令先确认当前仅正式安装版提供这项服务，然后在自身新建的 AppKit 编辑器中选中固定短语，通过 macOS「在 Nearpane 翻译选词」服务调用 Host。独立核对新面板与选区的间距、气泡文字、词义及隔离单词本。单词本验收要求同份隔离资料、新的 Host PID、相同条目 UUID、相同译文以及重新打开设置后可见的源文和译文。即使气泡观察失败，只要此次服务确实写入了预期词条，仍可单独验收持久化。Apple Translation 使用本机已安装的语言，系统的「通用 → 语言与地区 → 翻译语言」可下载所需的英语和简体中文。
 
 截图命令从正式侧栏「区域截图」框选自身不透明双色窗口内的固定矩形。它检查整个区域的窗口覆盖关系、收录来源、尺寸、每个像素和摘要，匹配后才导出图片。草稿阶段可在同一候选及同一份测试资料重启后运行。
 

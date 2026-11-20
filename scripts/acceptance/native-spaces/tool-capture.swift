@@ -83,7 +83,7 @@ private func matchesPattern(_ bitmap: NSBitmapImageRep) -> Bool {
     guard try query(ctx,"select id from assets").isEmpty else {throw ToolRefusal("Use an empty isolated screenshot library")}
     guard CGPreflightPostEventAccess(), CGPreflightScreenCaptureAccess() else {throw ToolRefusal("Observer event or screen access unavailable")}
     let app=NSApplication.shared
-    app.setActivationPolicy(.regular);app.finishLaunching()
+    app.setActivationPolicy(.regular)
     let prior=NSWorkspace.shared.frontmostApplication
     let w=NSWindow(contentRect:NSRect(x:0,y:0,width:440,height:180),styleMask:[.titled],backing:.buffered,defer:false)
     w.isReleasedWhenClosed=false;w.title="Nearpane controlled capture"
@@ -226,7 +226,13 @@ private func matchesPattern(_ bitmap: NSBitmapImageRep) -> Bool {
 }
 
 @main struct CaptureTrial {
-    @MainActor static func main() async {
+    @MainActor static func main() {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.prohibited)
+        Task { @MainActor in await run() }
+        app.run()
+    }
+    @MainActor static func run() async {
         let args=Array(CommandLine.arguments.dropFirst())
         guard args.count>=2 else{exit(2)}
         let output=URL(fileURLWithPath:args[1])

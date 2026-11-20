@@ -44,7 +44,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let originalWords = try context.words(phrase)
     guard originalWords.isEmpty else { throw ToolRefusal("Use a fresh disposable generation for this phrase") }
     let app = NSApplication.shared
-    app.setActivationPolicy(.regular); app.finishLaunching()
+    app.setActivationPolicy(.regular)
     let previous = NSWorkspace.shared.frontmostApplication
     let window = NSWindow(contentRect:NSRect(x:0,y:0,width:460,height:135),styleMask:[.titled],backing:.buffered,defer:false)
     window.isReleasedWhenClosed = false; window.title = "Nearpane selection fixture"
@@ -76,7 +76,8 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let sourcePNG = context.output.appendingPathComponent("selection.png")
     try ToolUI.screenshot(CGWindowID(window.windowNumber),pid:getpid(),to:sourcePNG)
     let performed = NSPerformService("在 Nearpane 翻译选词",board)
-    var report: [String:Any] = ["hostPID":context.host.processIdentifier,"phase":"translation","source":phrase,"sourceLanguage":source,
+    var report: [String:Any] = ["hostPID":context.host.processIdentifier,"generation":context.generation.lastPathComponent,
+                                "phase":"translation","source":phrase,"sourceLanguage":source,
                                 "assetStatus":languageState,"serviceDispatched":performed,"serviceRegistration":route,"selection":NSStringFromRect(selection)]
     guard performed else { report["status"]="FAIL"; report["reason"]="macOS could not deliver the declared Service"; return report }
     var sample: (CGWindowID,CGRect)?
@@ -94,13 +95,23 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
         await ToolUI.pause(90)
     }
     report["notebookMatchingRows"] = words.count
+    if words.count == 1, let word=words.first, word.language == "zh-Hans" {
+        report["translation"] = word.translation
+        report["wordID"] = word.id.uuidString
+        report["expectedMeaning"] = word.translation.contains("蓝") && (word.translation.contains("自行车") || word.translation.contains("单车"))
+    }
     guard let sample else { report["status"]="FAIL"; report["reason"]="No new installed-Host bubble next to the selected fixture text"; return report }
     report["bubble"] = NSStringFromRect(sample.1)
     // The transient loading bubble is reused for the final text.
     await ToolUI.pause(280)
     let bubble = context.output.appendingPathComponent("bubble.png")
-    try ToolUI.screenshot(sample.0,pid:context.host.processIdentifier,to:bubble)
-    let observed = try ToolUI.ocr(bubble).joined()
+    let observed: String
+    do {
+        try ToolUI.screenshot(sample.0,pid:context.host.processIdentifier,to:bubble)
+        observed = try ToolUI.ocr(bubble).joined()
+    } catch {
+        report["status"]="UNKNOWN"; report["reason"]="The installed bubble could not be captured and read"; return report
+    }
     func normalized(_ text:String) -> String {
         text.filter { $0.isLetter || $0.isNumber }.lowercased()
     }
@@ -118,10 +129,9 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     guard words.count == 1, let word = words.first, word.language == "zh-Hans" else {
         report["status"]="FAIL"; report["reason"]="The isolated wordbook has no unique translated row"; return report
     }
-    report["translation"] = word.translation; report["wordID"] = word.id.uuidString
     let exact = ([observed] + ax).contains { normalized($0) == normalized(word.translation) }
-    let plausible = word.translation.contains("蓝") && (word.translation.contains("自行车") || word.translation.contains("单车"))
-    report["bubbleMatchesStoredTranslation"] = exact; report["expectedMeaning"] = plausible
+    let plausible = report["expectedMeaning"] as? Bool == true
+    report["bubbleMatchesStoredTranslation"] = exact
     report["status"] = exact && plausible ? "PASS" : "FAIL"
     return report
 }
@@ -129,10 +139,12 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
 @MainActor
 func readback(_ context: ToolContext, prior: URL) async throws -> [String:Any] {
     guard let source = try JSONSerialization.jsonObject(with:Data(contentsOf:prior)) as? [String:Any],
-          source["status"] as? String == "PASS", let previous = source["hostPID"] as? Int32,
+          source["serviceDispatched"] as? Bool == true, source["notebookMatchingRows"] as? Int == 1,
+          source["expectedMeaning"] as? Bool == true, source["generation"] as? String == context.generation.lastPathComponent,
+          let previous = source["hostPID"] as? Int32,
           previous != context.host.processIdentifier, let phrase = source["source"] as? String,
           phrase == "The blue bicycle", let answer = source["translation"] as? String, let id = source["wordID"] as? String else {
-        throw ToolRefusal("Readback requires a successful original translation and a freshly relaunched Host")
+        throw ToolRefusal("Readback requires the original translated row and a freshly relaunched Host using the same isolated generation")
     }
     let words = try context.words(phrase)
     let retained = words.count == 1 && words.first?.id.uuidString == id && words.first?.translation == answer
@@ -153,7 +165,13 @@ func readback(_ context: ToolContext, prior: URL) async throws -> [String:Any] {
 }
 
 @main struct SelectionTrial {
-    @MainActor static func main() async {
+    @MainActor static func main() {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.prohibited)
+        Task { @MainActor in await run() }
+        app.run()
+    }
+    @MainActor static func run() async {
         let args = Array(CommandLine.arguments.dropFirst())
         guard args.count == 2 || args.count == 3 else { exit(2) }
         let path = URL(fileURLWithPath:args[1],isDirectory:true)
