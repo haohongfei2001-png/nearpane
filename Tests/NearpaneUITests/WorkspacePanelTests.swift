@@ -6,6 +6,34 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct WorkspacePanelTests {
+    @Test func stageManagerOwnsTheSwitcherAndReleasesItWithoutChangingSettings() async throws {
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        let panel = EdgeWindowController(host: host)
+        let panels = DisplayPanels(host: host, primary: panel, present: { _ in })
+        defer { panels.stop(); panel.close(); host.stop() }
+        let rect = SurfaceRect(width: 1440, height: 900)
+        let screen = ScreenGeometry(id: "primary", frame: rect, visibleFrame: rect)
+        var preferences = DisplaySettings()
+        preferences.measures[.panelHeight] = .init(850)
+        host.setDisplaySettings(preferences, id: screen.id)
+        panels.update(screens: [screen])
+        let originalContent = host.panelContents[screen.id]
+        let originalHeight = try #require(panel.requestedFrame?.height)
+        panels.setSystemManagesWindows(true)
+        panels.request(screen.id)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .toolsOnly)
+        #expect(try #require(panel.requestedFrame?.height) < originalHeight)
+        #expect(panel.window?.collectionBehavior.contains(.transient) == true)
+        #expect(panel.window?.collectionBehavior.contains(.stationary) == false)
+        panels.setSystemManagesWindows(false)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == originalContent)
+        #expect(panel.requestedFrame?.height == originalHeight)
+        #expect(host.configuration.displays[screen.id] == preferences)
+    }
+
     @Test func residentCanRequestTheOnlyDesktopWithBothInputModulesOff() async throws {
         let host = HostSession(store: MemoryConfigurationStore())
         await host.start()

@@ -8,6 +8,9 @@ import NearpaneCore
     private var coordinator = MultiDisplayPresentationCoordinator()
     private var secondary = [String: EdgeWindowController]()
     private var suspended = false
+    public private(set) var systemManagesWindows = false
+    private var stageMonitor: Timer?
+
     private var localMouse: Any?, externalMouse: Any?
     private var clickLease: UUID?
     private var pendingSpaceOpenings = Set<String>()
@@ -28,6 +31,15 @@ import NearpaneCore
     var secondaryIDs: Set<String> { Set(secondary.keys) }
     public convenience init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil) {
         self.init(host: host, primary: primary, domains: domains, present: { $0.presentIfNeeded() })
+        setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
+        // The panel may be entirely withdrawn when Stage Manager owns the display.
+        // Observe the preference independently of the gallery, without prompting or writing it.
+        let timer = Timer(timeInterval: 0.35, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch) }
+        }
+        timer.tolerance = 0.08
+        RunLoop.main.add(timer, forMode: .common)
+        stageMonitor = timer
     }
     init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil, present: @escaping (EdgeWindowController) -> Void) {
         self.fullscreen = FullscreenPresentation(host: host, domains: domains)
@@ -41,7 +53,14 @@ import NearpaneCore
             self?.secondary[id]?.refreshGlass(on: id)
         }
     }
+    func setSystemManagesWindows(_ value: Bool) {
+        guard value != systemManagesWindows else { return }
+        systemManagesWindows = value
+        refresh?()
+    }
+
     public func request(_ display: String) {
+        guard !systemManagesWindows else { return }
         pendingSpaceOpenings.insert(display)
         coordinator.request(display)
         setDismissed(false, on: display)
@@ -89,8 +108,14 @@ import NearpaneCore
             return fullscreen.sample(screen: screen, override: witness, now: now, uptime: ProcessInfo.processInfo.systemUptime,
                                      suspended: suspended) ? screen.id : nil
         })
-        let plans = ordinary.map { plan in
-            suppressed.contains(plan.id) ? DisplaySurfacePlan(id: plan.id, primary: plan.primary, content: .hidden) : plan
+        let hasTools = prefs.contains { $0.enabled && BuiltinCatalog.sidebarTools.contains($0.id) } || !host.registry.pinnedModules.isEmpty
+        let plans = ordinary.map { plan -> DisplaySurfacePlan in
+            let content: PanelContent
+            if suppressed.contains(plan.id) || suspended || host.configuration.surfaceHidden { content = .hidden }
+            else if systemManagesWindows {
+                content = plan.primary && hasTools && demand[plan.id]?.blocked != true ? .toolsOnly : .hidden
+            } else { return plan }
+            return DisplaySurfacePlan(id: plan.id, primary: plan.primary, content: content)
         }
         host.updatePanelContents(Dictionary(uniqueKeysWithValues: plans.map { ($0.id, $0.content) }))
         // Resolve roles in the real topology even when an isolated trial may present on only one display.
@@ -182,6 +207,7 @@ import NearpaneCore
     }
 
     public func stop() {
+        stageMonitor?.invalidate(); stageMonitor = nil
         pendingSpaceOpenings.removeAll()
         stopObservingClicks()
         fullscreen.hide()

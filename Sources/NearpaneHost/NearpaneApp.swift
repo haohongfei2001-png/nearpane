@@ -379,6 +379,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         guard var metrics = modules?.windowPreviewMetrics, let host else { return }
+        metrics["stageManagerOwnsDispatch"] = NSNumber(value: panels?.systemManagesWindows == true)
         metrics["surfaceHidden"] = NSNumber(value: host.configuration.surfaceHidden)
         metrics["visibilityRevision"] = NSNumber(value: host.surfaceVisibilityRevision)
         DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
@@ -787,6 +788,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
+        if let overview = menu.items.first(where: { $0.action == #selector(showWindowOverview) }) {
+            let managed = panels?.systemManagesWindows == true
+            overview.title = managed ? "本屏窗口由台前调度管理" : "显示本屏窗口总览"
+            overview.isEnabled = host?.isRunning == true && !managed
+        }
         guard let entry = menu.items.first(where: { $0.action == #selector(toggleSurface) }) else { return }
         entry.title = host?.configuration.surfaceHidden == true ? "显示侧栏" : "隐藏侧栏"
         entry.isEnabled = host?.isRunning == true
@@ -802,7 +808,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func showWindowOverview() {
         guard let host, host.isRunning, !sessionUnavailable, terminationTask == nil, passiveDisplayID == nil,
               host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
-              let panels else { return }
+              let panels, !panels.systemManagesWindows else { return }
         let point = NSEvent.mouseLocation
         let hits = SystemScreens.geometry().filter { screen in
             let r = screen.frame

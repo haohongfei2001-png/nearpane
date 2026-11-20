@@ -88,7 +88,7 @@ public final class EdgeWindowController: NSWindowController {
         panel.becomesKeyOnlyIfNeeded = true
         panel.isReleasedWhenClosed = false
         panel.isMovable = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenNone, .stationary, .ignoresCycle]
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenNone, .transient, .ignoresCycle]
         material.material = .popover
         material.blendingMode = .behindWindow
         material.state = .active
@@ -194,7 +194,11 @@ public final class EdgeWindowController: NSWindowController {
         let voice = host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled }
         let tray = host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }
         guard let layout = PanelSizeLayout(settings: config, screen: screen, edge: host.configuration.edge,
-                                           content: content, voice: voice, tray: tray, floating: floating) else {
+                                           content: content, voice: voice, tray: tray, floating: floating,
+                                           toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
+                                           voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1,
+                                           pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count,
+                                           expanded: host.registry.expandedID != nil) else {
             hasPlacement = false; hide(); return
         }
         let form = layout.form

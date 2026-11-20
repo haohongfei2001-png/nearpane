@@ -71,7 +71,7 @@ public enum DisplayMetric: String, Codable, CaseIterable, Sendable {
 public enum SpacePanelPlacement: String, Codable, CaseIterable, Sendable { case docked, floating }
 public enum SecondaryPolicy: String, Codable, CaseIterable, Sendable { case onDemand, contextualAuto, pinned }
 public enum PanelAnchor: String, Codable, CaseIterable, Sendable { case top, center, bottom }
-public enum PanelContent: Equatable, Sendable { case full, compact, voiceOnly, trayOnly, spacesOnly, hidden }
+public enum PanelContent: Equatable, Sendable { case full, compact, toolsOnly, voiceOnly, trayOnly, spacesOnly, hidden }
 
 public enum PanelSizeForm: Equatable, Sendable { case full, compact, icon }
 
@@ -334,7 +334,7 @@ extension DisplaySettings {
         let sections = (voice: max(0, layout.voice.height), tray: max(0, layout.screenshots.height),
                         spaces: max(0, layout.desktop.height))
         let width = max(0, width - cardPadding)
-        if voice && [.full, .compact, .voiceOnly].contains(content) {
+        if voice && [.full, .compact, .toolsOnly, .voiceOnly].contains(content) {
             let pad = points(.textPadding, in: width)
             let requestedFont = points(.textSize, in: sections.voice)
             let font = readableFontSize(.textSize, in: sections.voice) ?? requestedFont
@@ -350,7 +350,7 @@ extension DisplaySettings {
             if width < 2 * pad + max(rowWidth, 2 * font)
                 || min(height, sections.voice) < 2 * pad + buttonHeight + lineHeight + Self.voiceFooterGap { return .compact }
         }
-        if tray && [.full, .compact, .trayOnly].contains(content) {
+        if tray && [.full, .compact, .toolsOnly, .trayOnly].contains(content) {
             let pad = points(.trayPadding, in: width)
             let glyph = points(.trayButtonSize, in: sections.tray)
             if width < 2 * pad + 2 * glyph + points(.columnGap, in: width)
@@ -378,8 +378,8 @@ extension DisplaySettings {
         voice: Double, tray: Double, spaces: Double, gap: Double
     ) {
         let h = max(0, height)
-        let showVoice = voice && [.full, .compact, .voiceOnly].contains(content)
-        let showTray = tray && [.full, .compact, .trayOnly].contains(content)
+        let showVoice = voice && [.full, .compact, .toolsOnly, .voiceOnly].contains(content)
+        let showTray = tray && [.full, .compact, .toolsOnly, .trayOnly].contains(content)
         let showSpaces = content == .full || content == .spacesOnly
         let gaps = max(0, [showVoice, showTray, showSpaces].filter { $0 }.count - 1)
         let gap = min(points(.sectionGap, in: h), h / Double(max(1, gaps + 1)))

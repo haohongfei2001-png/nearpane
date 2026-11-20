@@ -83,7 +83,7 @@ public enum LayoutComposer {
             case BuiltinCatalog.screenshots where sizes.tray > 0:
                 preferred = settings.measures[.trayHeight] == nil && trayRows > 1 ? 144 : sizes.tray
             case BuiltinCatalog.memo, BuiltinCatalog.tasks:
-                preferred = content == .full ? 128 : 0
+                preferred = content == .full || content == .toolsOnly ? 128 : 0
             default: continue
             }
             guard preferred > 0 else { continue }
@@ -92,8 +92,13 @@ public enum LayoutComposer {
             y = min(bottom, y + section.height + sizes.gap)
         }
         let available = content == .full || content == .spacesOnly ? max(0, bottom - y) : 0
-        let desktop = SurfaceRect(y: y, width: w, height: min(available, settings.points(.spacesHeight, in: reference)))
-        let railHeight = pinnedCount > 0 ? min(settings.points(.railHeight, in: h), desktop.height) : 0
+        let rail = pinnedCount > 0 ? settings.points(.railHeight, in: reference) : 0
+        let toolExpansion = expanded && rail > 0 ? settings.points(.moduleHeight, in: reference) : 0
+        let sectionHeight = content == .toolsOnly
+            ? min(max(0, bottom - y), rail + toolExpansion)
+            : min(available, settings.points(.spacesHeight, in: reference))
+        let desktop = SurfaceRect(y: y, width: w, height: sectionHeight)
+        let railHeight = min(rail, desktop.height)
         let windowHeight = desktop.height - railHeight
         let unit = max(1, settings.points(.railButtonWidth, in: w) + 4)
         let capacity = max(1, Int(max(0, w - 16) / unit))

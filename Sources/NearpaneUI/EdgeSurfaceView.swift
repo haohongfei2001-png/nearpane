@@ -46,7 +46,7 @@ public struct EdgeSurfaceView: View {
                     }
                 }
                 if let rail = layout.moduleRail { moduleRail(width:geometry.size.width,height:rail.height).place(in:rail) }
-                if layout.windowArea.height > 0 { desktop.padding(.horizontal, settings.glass.inset(width: geometry.size.width)).place(in: layout.windowArea) }
+                if display?.content != .toolsOnly, layout.windowArea.height > 0 { desktop.padding(.horizontal, settings.glass.inset(width: geometry.size.width)).place(in: layout.windowArea) }
                 if display?.secondary != true, let rect = layout.expanded, let id = host.registry.expandedID {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())

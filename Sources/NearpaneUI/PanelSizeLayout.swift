@@ -8,13 +8,24 @@ struct PanelSizeLayout {
     let form: PanelSizeForm
 
     init?(settings: DisplaySettings, screen: ScreenGeometry, edge: SurfaceEdge,
-          content: PanelContent, voice: Bool, tray: Bool, floating: Bool) {
+          content: PanelContent, voice: Bool, tray: Bool, floating: Bool,
+          toolOrder: [String] = BuiltinCatalog.sidebarTools, voiceCompact: Bool = false, trayRows: Int = 1,
+          pinnedCount: Int = 0, expanded: Bool = false) {
         guard let full = settings.panel(on: screen, fallbackEdge: edge) else { return nil }
         referenceHeight = full.height
         let sizes = settings.contentHeights(full.height, content: content, voice: voice, tray: tray)
         let sections = [sizes.voice, sizes.tray, sizes.spaces].filter { $0 > 0 }
-        let fittedHeight = 2 * settings.glass.inset(width: full.width) + sections.reduce(0, +) + Double(max(0, sections.count - 1)) * sizes.gap
-        let alwaysUseFullHeight = settings.measures[.panelHeight] != nil || content == .hidden || content == .full || content == .spacesOnly
+        let inset = settings.glass.inset(width: full.width)
+        var fittedHeight = 2 * inset + sections.reduce(0, +) + Double(max(0, sections.count - 1)) * sizes.gap
+        if content == .toolsOnly {
+            let layout = LayoutComposer.compose(width: full.width, height: full.height, pinnedCount: pinnedCount,
+                expanded: expanded, settings: settings, content: content, voiceEnabled: voice, trayEnabled: tray,
+                referenceHeight: full.height, voiceCompact: voiceCompact, trayRows: trayRows, toolOrder: toolOrder)
+            let tools = [layout.voice, layout.screenshots, layout.desktop] + Array(layout.additionalTools.values)
+            fittedHeight = inset + (tools.filter { $0.height > 0 }.map { $0.y + $0.height }.max() ?? inset)
+        }
+        let alwaysUseFullHeight = content != .toolsOnly &&
+            (settings.measures[.panelHeight] != nil || content == .hidden || content == .full || content == .spacesOnly)
         guard let rect = settings.panel(on: screen, fallbackEdge: edge,
                                         heightFraction: alwaysUseFullHeight ? 1 : max(PanelSizeMetrics.minimumSide, fittedHeight) / full.height,
                                         floating: floating) else { return nil }

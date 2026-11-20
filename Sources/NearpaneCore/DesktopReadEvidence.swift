@@ -9,8 +9,19 @@ public extension SurfaceRect {
 
 /// The preference describes this login's configuration, not the presentation of a particular window.
 public enum StageManagerPreference {
+    private static var value: CFPropertyList? {
+        CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString)
+    }
+
+    /// An unset preference is the factory-off state. An unreadable stored type
+    /// cannot safely give a second switcher ownership of the display.
+    public static var ownsWindowDispatch: Bool {
+        guard let value else { return false }
+        return CFGetTypeID(value) != CFBooleanGetTypeID() || (value as? Bool) != false
+    }
+
     public static func read() -> Bool? {
-        guard let value = CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString),
+        guard let value,
               CFGetTypeID(value) == CFBooleanGetTypeID() else { return nil }
         return value as? Bool
     }
