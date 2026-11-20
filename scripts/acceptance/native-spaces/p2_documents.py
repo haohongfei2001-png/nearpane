@@ -142,7 +142,7 @@ class RegisteredRun:
             try:
                 q=self.call("read",timeout=remaining)
                 check_hid(q,self.baseline)
-                last = {k:q[k] for k in ("status","reason","clock","hostBirth","reportedWindows","copiedWindows","ownedLayerZero","slot",
+                last = {k:q[k] for k in ("status","reason","clock","hostBirth","reportedWindows","copiedWindows","enrolledAXMatches","ownedLayerZero","enrolledMemberships","slot",
                                             "urlMatches","roleMatches","identifierMatches","editorCount","registrationStage") if k in q}
                 if q.get("registration"):
                     self.out["registration"]=q["registration"]

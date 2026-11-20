@@ -77,19 +77,26 @@ func p2DocumentReport(_ request:P2Request) -> Object {
     let root=AXUIElementCreateApplication(pid),system=AXUIElementCreateSystemWide()
     _=AXUIElementSetMessagingTimeout(root,0.35);_=AXUIElementSetMessagingTimeout(system,0.35)
     guard AXIsProcessTrusted() else{return stop("observerAXUnavailable")}
-    let catalog=AXWindowList.read(root,limit:2)
-    guard let windows=catalog.windows,windows.count==2 else {
-        result["reportedWindows"]=catalog.reportedCount as Any? ?? NSNull();result["copiedWindows"]=catalog.actualCount as Any? ?? NSNull()
-        return stop("twoFixtureAXWindowsUnavailable")
+    // AppKit can expose auxiliary windows in AXWindows. Only the two previously
+    // enrolled CG window numbers may be used for AX document or editor reads.
+    let catalog=AXWindowList.read(root,limit:32)
+    result["reportedWindows"]=catalog.reportedCount as Any? ?? NSNull()
+    result["copiedWindows"]=catalog.actualCount as Any? ?? NSNull()
+    guard let windows=catalog.windows else { return stop("fixtureAXWindowInventoryUnavailable") }
+    result["enrolledAXMatches"]=numbers.map { number in
+        Set(windows.filter { p2Owner($0,pid) && NPReadAXWindowNumber($0)==number }).count
     }
     let ownedCG=rows.filter{ $0[kCGWindowOwnerPID as String] as? pid_t==pid && $0[kCGWindowLayer as String] as? Int==0 }
-    result["ownedLayerZero"]=ownedCG.compactMap{$0[kCGWindowNumber as String] as? UInt32}
-    guard list != nil,Set(ownedCG.compactMap{$0[kCGWindowNumber as String] as? UInt32})==Set(numbers),
-          numbers.allSatisfy({NPReadWindowSpaces($0) as? [UInt64]==[request.space]}) else{return stop("CGWindowOrSpaceMembershipChanged")}
+    let layerZero=ownedCG.compactMap{$0[kCGWindowNumber as String] as? UInt32}
+    let memberships=numbers.map { NPReadWindowSpaces($0) as? [UInt64] }
+    result["ownedLayerZero"]=layerZero
+    result["enrolledMemberships"]=memberships.map { $0 as Any? ?? NSNull() }
+    guard list != nil,numbers.allSatisfy({ n in layerZero.filter({$0==n}).count==1 }),
+          memberships.allSatisfy({$0==[request.space]}) else{return stop("CGWindowOrSpaceMembershipChanged")}
     var ordered=[AXUIElement](),editors=[AXUIElement](),hashes=[String]()
     for (i,n) in numbers.enumerated() {
         let slot=i==0 ? "A":"B", expected=sandbox+"/"+slot+".txt"
-        let matches=windows.filter{p2Owner($0,pid) && NPReadAXWindowNumber($0)==n}
+        let matches=Set(windows.filter{p2Owner($0,pid) && NPReadAXWindowNumber($0)==n})
         result["slot"]=slot
         guard matches.count==1,let window=matches.first else{return stop("enrolledWindowCGNumberNotUnique")}
         let roleOK=value(window,kAXRoleAttribute) as? String==kAXWindowRole
