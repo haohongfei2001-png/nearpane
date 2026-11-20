@@ -56,3 +56,5 @@ macOS 27.0（26A428），单块 1470 × 956 点的物理显示器。每次使用
 | `d277a1c` | 258–285 | 300–320 | 160–180 | 307–328 |
 
 真实首帧区间的两个中位端点均缩短约 58 ms。每次用显示流的实际像素、呈现时间戳和原绑定窗口的前后层序取证。该对照只测当前普通桌面上两窗置前，系统调度中心的同条件基准尚缺。[旧版](baseline-presented/pair-pointer.json) · [通过候选](accepted-presented/pair-pointer.json) · [十次样本、P95、首击及后九次](display-focus-comparison.json)
+
+`d277a1c` 的 3.50 秒真实右拖视频在 3.43 秒处显示橙色 B 窗在左、蓝色 A 窗在右。捕获范围仅含已登记的两扇窗口，侧栏预留区以不透明底色呈现。[实机截图](right-drag-d277a1c.png) · [视频](final-pair/right-drag-fixture-windows.mp4) · [视频时间点与散列](right-drag-d277a1c-frame.json)
