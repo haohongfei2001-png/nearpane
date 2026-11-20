@@ -170,9 +170,18 @@
     "OFFToOnRestored": "PASS",
     "priorToolPicture": "physical-03/compact-tools.png",
     "hidden60s": {
-      "source": "f50d6ac",
+      "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
       "status": "PASS",
-      "evidence": "physical-05/hidden-minute.json"
+      "seconds": 60,
+      "samples": 7,
+      "zeroNewRequests": true,
+      "visibleAndDeliveringTwoStreamsAfter": true,
+      "evidence": "installed-hidden-minute/result.json",
+      "previousCandidate": {
+        "source": "f50d6ac",
+        "status": "PASS",
+        "evidence": "physical-05/hidden-minute.json"
+      }
     },
     "missionControlOverviewOverlayDuringActualAnimation": "NOT_RUN"
   },

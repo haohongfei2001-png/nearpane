@@ -1,0 +1,9 @@
+{
+  "status": "BLOCKED",
+  "reason": "The first temporary checkout lacked Dependencies/update-runtime.json.",
+  "preview": "NOT_RUN",
+  "fixtureLaunched": false,
+  "newDesktops": 0,
+  "profileRestored": true,
+  "afterCorrection": "result.json"
+}
