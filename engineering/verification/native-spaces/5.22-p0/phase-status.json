@@ -299,9 +299,15 @@
     "abi": "move-abi.json"
   },
   "P2": {
-    "installedFocusAndTyping": "NOT_RUN",
+    "installedFocusAndTyping": "UNKNOWN",
     "prerequisite": "P1",
-    "historicalSameAppResult": "one confirmed, one failed; later intent unknown"
+    "historicalSameAppResult": "one confirmed, one failed; later intent unknown",
+    "latestSameSpaceFocus": {
+      "intent": 1,
+      "confirmedAXPress": 0,
+      "confirmedMarkers": 0,
+      "evidence": "installed-same-space-focus/independent-readback.json"
+    }
   },
   "P3": {
     "status": "BLOCKED",
