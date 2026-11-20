@@ -1,0 +1,1062 @@
+{
+  "cleanup": {
+    "exit": 0,
+    "fixtureProcessExited": true,
+    "forced": false,
+    "onlyOriginalRecords": true,
+    "ordinaryLeaseIsCurrent": true,
+    "sameDisplay": true,
+    "status": "PASS",
+    "windowsGone": true
+  },
+  "fixture": {
+    "birth": 1795189246073806,
+    "cdHash": "f6f54bf6e5fb3ac5a2c910fd2f6b26ecb80387c3",
+    "numbers": [
+      52409,
+      52410
+    ],
+    "pid": 55603
+  },
+  "fixtureLaunched": true,
+  "install": {
+    "birth": 1795189207104864,
+    "build": "90",
+    "cdHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "pid": 54523,
+    "source": "f50d6ac5394be994e657abd77e7fdca79a77b4bc"
+  },
+  "installedLayout": "NOT_RUN",
+  "lease": {
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "id": 5093,
+    "uuid": "CC1D330E-A62F-8104-A765-9E0E41F07575"
+  },
+  "observations": [
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 0,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262638.49704825,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262638.8479289167,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262639.13426070835,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 3,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262639.41737483337,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262639.7273352917,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262640.0420659584,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262640.34674741665,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262640.6450789167,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262640.9574967084,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262641.26885308337,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262641.551388125,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262641.84876925003,
+      "verb": "read"
+    },
+    {
+      "axFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          405,
+          308,
+          540,
+          333
+        ],
+        [
+          585,
+          244,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "foreignVisibleMembers": 2,
+      "forward": [
+        true,
+        true
+      ],
+      "hostGroupCount": 0,
+      "hostMemberCounts": [
+        0,
+        0
+      ],
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "memberships": [
+        [
+          5093
+        ],
+        [
+          5093
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": false,
+      "otherLeaseMembers": 0,
+      "ready": true,
+      "space": 5093,
+      "spaceUUID": "CC1D330E-A62F-8104-A765-9E0E41F07575",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 262642.13728095836,
+      "verb": "read"
+    }
+  ],
+  "pair": {
+    "issued": false
+  },
+  "physicalSource": "two synthetic documents only",
+  "pixelsRead": 0,
+  "reason": "leaseDoesNotContainExactlyTwoEnrolledDocuments",
+  "status": "BLOCKED",
+  "systemPair": "NOT_RUN",
+  "tile": {
+    "issued": false
+  }
+}
