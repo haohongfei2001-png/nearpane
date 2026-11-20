@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import ApplicationServices
 import Foundation
 import Security
@@ -458,8 +459,49 @@ func fixtureResult(_ args: [String]) -> Object {
     down.flags = []; up.flags = []
     down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
     up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+    var proof: Object = ["issued":true,"targetedOnly":true,"axFocusedWindow":number]
+    if let raw = ProcessInfo.processInfo.environment["NP_TRIAL_MARKER_TAG"] {
+        guard ProcessInfo.processInfo.environment["NP_W01_MARKER_WITNESS"] == "1",
+              let tag = Int64(raw), tag > 0, String(tag) == raw else { return ["issued":false,"reason":"invalid fixture marker tag"] }
+        down.setIntegerValueField(.eventSourceUserData,value:tag)
+        up.setIntegerValueField(.eventSourceUserData,value:tag)
+        guard down.getIntegerValueField(.eventSourceUserData) == tag, up.getIntegerValueField(.eventSourceUserData) == tag else {
+            return ["issued":false,"reason":"could not bind both fixture marker events"]
+        }
+        proof["tagged"] = true
+        proof["markerDigest"] = SHA256.hash(data:Data(marker.utf8)).map { String(format:"%02x",$0) }.joined()
+        let env=ProcessInfo.processInfo.environment
+        guard let session=env["NP_TRIAL_MARKER_SESSION"], UUID(uuidString:session) != nil,
+              let intent=env["NP_TRIAL_MARKER_INTENT"], UUID(uuidString:intent) != nil,
+              let senderHash=runningCodeHash(getpid()), senderHash == env["NP_TRIAL_MARKER_READER"],
+              let senderBirth=birthMicroseconds(getpid()) else { return ["issued":false,"reason":"unverified marker witness sender"] }
+        let kit=URL(fileURLWithPath:args[6]).deletingLastPathComponent()
+        let dir=kit.appendingPathComponent(session)
+        func ownedFolder(_ url:URL) -> Bool {
+            var st=stat(); return lstat(url.path,&st) == 0 && st.st_uid == getuid() && st.st_mode & S_IFMT == S_IFDIR && st.st_mode & 0o077 == 0
+        }
+        guard ownedFolder(kit), ownedFolder(dir),
+              (kit.lastPathComponent.hasPrefix("nearpane-d01.") || kit.lastPathComponent.hasPrefix("nearpane-wp5.")),
+              let resolved=realpath(dir.path,nil) else { return ["issued":false,"reason":"unverified marker witness folder"] }
+        let path=String(cString:resolved); free(resolved)
+        guard path == "/private/tmp/"+kit.lastPathComponent+"/"+session else { return ["issued":false,"reason":"marker witness path changed"] }
+        let poster:Object=["session":session,"intent":intent,"digest":proof["markerDigest"]!,"hash":senderHash,"sender":getpid(),
+                           "birth":senderBirth,"tag":tag,"target":number,"written":ProcessInfo.processInfo.systemUptime]
+        let record=dir.appendingPathComponent("marker-watch-poster-"+intent+".json")
+        do {
+            try JSONSerialization.data(withJSONObject:poster).write(to:record,options:.withoutOverwriting)
+            try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:record.path)
+        } catch { return ["issued":false,"reason":"marker was previously registered or sender attestation is unavailable"] }
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == fixturePID, birthMicroseconds(fixturePID) == birth,
+              let exactWindow=value(ax,kAXFocusedWindowAttribute), CFEqual(exactWindow,win),
+              let exactEditor=value(ax,kAXFocusedUIElementAttribute), CFEqual(exactEditor,editor) else {
+            return ["issued":false,"reason":"fixture focus changed during sender registration"]
+        }
+        proof["beforePost"] = ProcessInfo.processInfo.systemUptime
+    }
     down.postToPid(fixturePID); up.postToPid(fixturePID)
-    return ["issued": true, "targetedOnly": true, "axFocusedWindow": number]
+    if proof["tagged"] as? Bool == true { proof["afterPost"] = ProcessInfo.processInfo.systemUptime }
+    return proof
 }
 func surfaceToggle(_ args: [String]) -> Object {
     guard args.count == 5, let host, args[2] == String(host.processIdentifier), args[3] == runningCodeHash(host.processIdentifier),

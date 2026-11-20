@@ -33,6 +33,13 @@ var editors = [NSTextView]()
 var lastState = Data()
 var withdrew = false, minimized = false
 NSWindow.allowsAutomaticWindowTabbing = false
+#if W01_MARKER_WITNESS
+if expected == 2 && (presentation == nil || presentation == "ordinary") {
+    MainActor.assumeIsolated {
+        FieldMarkerWitness.active = FieldMarkerWitness(folder:run,session:session,birth:birth) { (windows,editors) }
+    }
+}
+#endif
 #if PAIRED_PREVIEW
 let paired = presentation == "paired-preview" && expected == 2 && Bundle.main.bundleIdentifier == "net.example.spaces-document"
 if paired {
@@ -81,12 +88,21 @@ final class SharedFixtureWindow: NSPanel {
             panel.level = .normal
             w = panel
         } else {
+            #if W01_MARKER_WITNESS
+            if FieldMarkerWitness.active != nil { w=MarkerWitnessWindow(contentRect:rect,styleMask:style,backing:.buffered,defer:false) }
+            else { w=NSWindow(contentRect:rect,styleMask:style,backing:.buffered,defer:false) }
+            #else
             w = NSWindow(contentRect: rect, styleMask: style, backing: .buffered, defer: false)
+            #endif
         }
         w.title = i == 0 ? "Field Notes – A" : "Field Notes – B"
         w.isReleasedWhenClosed = false
         w.tabbingMode = .disallowed
+        #if W01_MARKER_WITNESS
+        let editor: NSTextView = FieldMarkerWitness.active == nil ? NSTextView(frame:w.contentView!.bounds) : MarkerWitnessEditor(frame:w.contentView!.bounds)
+        #else
         let editor = NSTextView(frame: w.contentView!.bounds)
+        #endif
         #if FIVE_PREVIEW
         w.title = "Field Notes " + String(fiveSlot + 1)
         w.colorSpace = .sRGB
@@ -131,6 +147,9 @@ let start = ProcessInfo.processInfo.systemUptime
 let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     if FileManager.default.fileExists(atPath: run.appendingPathComponent("close").path) ||
        ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : (presentation=="paired-preview" ? 240 : 150)) {
+        #if W01_MARKER_WITNESS
+        MainActor.assumeIsolated { FieldMarkerWitness.active?.tick(final:true) }
+        #endif
         for w in windows { w.orderOut(nil); w.close() }
         app.terminate(nil); return
     }
@@ -147,6 +166,9 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         }
     }
     guard !windows.isEmpty || presentation == "roster-cycle" else { return }
+    #if W01_MARKER_WITNESS
+    MainActor.assumeIsolated { FieldMarkerWitness.active?.tick() }
+    #endif
     #if FIVE_PREVIEW
     if fivePhase == 0, let window = windows.first, let editor = editors.first,
        let data = try? Data(contentsOf: run.appendingPathComponent("advance.json")),

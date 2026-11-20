@@ -194,6 +194,16 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
     scope = initial["scopes"][0]
     if not any(r["id"] == scope["current"] and r["type"] == 0 for r in scope["records"]):
         return "Original desktop is not an ordinary Space."
+    witness_mode = count == 2 and not inspect_only and os.environ.get("NP_W01_MARKER_WITNESS") == "1"
+    if witness_mode and os.environ.get("NP_W01_MARKER_KIT"):
+        scoped = Path(os.environ["NP_W01_MARKER_KIT"])
+        if not (scoped.is_dir() and scoped.resolve() == scoped and scoped.parent == Path("/private/tmp")
+                and scoped.name.startswith("nearpane-d01.") and scoped.stat().st_uid == os.getuid() and not scoped.stat().st_mode & 0o077):
+            return "The marker fixture kit is outside its private enrollment."
+        observer = scoped / "observe"
+        for item in (observer, scoped / "Field Notes.app"):
+            if item.resolve() != item or subprocess.run(["/usr/bin/codesign","--verify","--strict","--deep",item],capture_output=True,timeout=5).returncode:
+                return "The marker fixture kit failed its independent code-signature check."
     app = observer.parent / "Field Notes.app"
     fx = app / "Contents/MacOS/FieldNotes"
     sign = identity(fx)["CDHash"]
@@ -211,6 +221,20 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
     independent = lambda: json.loads(checked([str(observer)]))
     trials = []
     numbers = []
+    watch = None
+    def seal_watch():
+        nonlocal watch
+        if watch is None:
+            return
+        trial, item = watch
+        watch = None
+        try:
+            result = item.seal()
+        except (OSError, ValueError):
+            result = {**item.identity, "status":"WITNESS_UNAVAILABLE", "sender":item.sender, "events":[], "closureConfirmed":False}
+        rec.write(f"marker-witness-{trial:02}.json", result)
+        rec.log("fixture-marker-witness", trial=trial, intent=item.identity["intent"], status=result["status"],
+                closureConfirmed=result["closureConfirmed"], steps=[e["step"] for e in result["events"]])
     reason = "Two-window fixture subtest finished; actual document application coverage requires its own run."
     try:
         state = wait_state(path, lambda d: d.get("session") == session and d.get("pid") == proc.pid and
@@ -236,6 +260,14 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
             if before.get("frontmostPID") != allowed_front or before.get("host") != host:
                 return "Focus or installed process changed before the next consented selection."
             intent = str(uuid.uuid4())
+            marker = None
+            if witness_mode:
+                from field_marker_witness import MarkerWatch
+                marker = "NP" + uuid.uuid4().hex[:10]
+                item = MarkerWatch(folder,session,intent,proc.pid,state["birth"],numbers,n,marker,identity(observer)["CDHash"])
+                watch = (turn+1,item)
+                if not item.arm():
+                    return "The isolated fixture did not arm the requested marker witness before selection."
             rec.log("window-intent", intent=intent, target=n, sibling=numbers[1-idx] if count == 2 else None, beforeFocus=before.get("frontmostPID"))
             issued_wall = time.time()
             click = json.loads(checked([str(observer), "press", *args]))
@@ -255,8 +287,17 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
                         domainMessages=now.get("sidebar", {}).get("knownIssueMessages", []),
                         productLog=selection_logs(host["pid"], issued_wall))
                 return "Product selection did not reach the exact owned key/main window; no marker was sent."
-            marker = "NP" + uuid.uuid4().hex[:10]
-            sent = json.loads(checked([str(observer), "marker", *args], env={**os.environ, "NP_TRIAL_MARKER": marker}))
+            marker = marker or "NP" + uuid.uuid4().hex[:10]
+            env = {**os.environ, "NP_TRIAL_MARKER": marker}
+            env.pop("NP_TRIAL_MARKER_TAG", None)
+            if watch:
+                if time.monotonic() >= watch[1].grant["expires"]:
+                    return "The isolated marker witness expired before dispatch."
+                env.update(NP_TRIAL_MARKER_TAG=str(watch[1].grant["tag"]), NP_TRIAL_MARKER_SESSION=session,
+                           NP_TRIAL_MARKER_INTENT=intent, NP_TRIAL_MARKER_READER=watch[1].identity["readerHash"])
+                watch[1].submitted()
+            sent = json.loads(checked([str(observer), "marker", *args], env=env))
+            sender_bound = not watch or watch[1].dispatched(sent)
             rec.log("pid-targeted-marker", intent=intent, result=sent)
             if not sent.get("issued"):
                 attempt["status"] = "FAIL"
@@ -268,25 +309,31 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
             attempt["status"] = "PASS" if after else "FAIL"
             rec.log("input-readback", intent=intent, match=bool(after), expectedDocumentDigests=expected,
                     productLog=selection_logs(host["pid"], issued_wall))
+            seal_watch()
             if not after:
                 return "Synthetic input receipt or unchanged sibling failed; stopped after the first discrepancy."
             trials.append(n)
+            if not sender_bound:
+                return "The input readback completed but the observer did not confirm the diagnostic tag. Stopped before another selection."
         return reason if count == 2 else "Single-window synthetic document received the marker through the installed sidebar; sibling/cross-Space cases are separate."
     finally:
-        (folder / "close").touch()
         try:
-            proc.wait(timeout=4)
-        except subprocess.TimeoutExpired:
-            proc.terminate()
-            proc.wait(timeout=4)
-        after = independent()
-        rec.summary["controlledWindowTrials"] = len(trials)
-        rec.summary["cleanup"] = {"ownedProcessExited": proc.returncode is not None,
-                                  "frontmostRestored": after.get("frontmostPID") == initial.get("frontmostPID"),
-                                  "originalFocusedWindowRestored": bool(initial.get("focusedNumber")) and after.get("focusedNumber") == initial["focusedNumber"],
-                                  "windowNumbersGone": bool(numbers) and json.loads(checked([str(observer), "absence", *map(str, numbers)]))["allGone"],
-                                  "scopesRestored": after.get("scopes") == initial.get("scopes")}
-        rec.log("cleanup", **rec.summary["cleanup"])
+            seal_watch()
+        finally:
+            (folder / "close").touch()
+            try:
+                proc.wait(timeout=4)
+            except subprocess.TimeoutExpired:
+                proc.terminate()
+                proc.wait(timeout=4)
+            after = independent()
+            rec.summary["controlledWindowTrials"] = len(trials)
+            rec.summary["cleanup"] = {"ownedProcessExited": proc.returncode is not None,
+                                      "frontmostRestored": after.get("frontmostPID") == initial.get("frontmostPID"),
+                                      "originalFocusedWindowRestored": bool(initial.get("focusedNumber")) and after.get("focusedNumber") == initial["focusedNumber"],
+                                      "windowNumbersGone": bool(numbers) and json.loads(checked([str(observer), "absence", *map(str, numbers)]))["allGone"],
+                                      "scopesRestored": after.get("scopes") == initial.get("scopes")}
+            rec.log("cleanup", **rec.summary["cleanup"])
 
 
 def recover_sidebar(before, current, same_host, show, sample, wait=3):
