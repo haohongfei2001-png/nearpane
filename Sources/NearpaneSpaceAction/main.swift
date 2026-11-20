@@ -47,12 +47,16 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
             guard let probes = request.observations, request.window == nil, request.originalWindow == nil else {
                 throw ActionFailure("窗口观察请求不完整。")
             }
-            var reasons = [NativeSpaceWindow: String]()
-            let tokens = try witnesses.observe(probes, inventory: start, report: { window, reason in reasons[window] = reason })
+            var reasons = [NativeSpaceWindow: String](), fields = [NativeSpaceWindow: [String: String]]()
+            var withheld = [Int]()
+            let tokens = try witnesses.observe(probes, inventory: start, report: { reasons[$0] = $1 },
+                                              facts: { fields[$0] = $1 }, withheld: { withheld.append($0) })
             return .init(id: request.id, state: .ready, detail: "已核对窗口身份。", canSwitch: canSwitch,
                          canMove: canMove, observedWindows: tokens,
                          observationReasons: reasons.isEmpty ? nil : probes.map { reasons[$0.location.window] },
-                         observationWorkerPID: reasons.isEmpty ? nil : getpid())
+                         observationWorkerPID: reasons.isEmpty ? nil : getpid(),
+                         observationFacts: fields.isEmpty ? nil : probes.map { fields[$0.location.window] },
+                         withheldOriginals: withheld.isEmpty ? nil : withheld)
         }
         if request.action == .probe { return reply(.ready, "已读取当前空间能力。") }
         let (display, from, to) = try start.route(request)

@@ -33,9 +33,7 @@ func checkOwner(_ owner: OrdinaryOwnerIdentity, pid: Int32, launch: UInt64, bund
 func windows(_ pid: Int32) throws -> [AXUIElement] {
     let application = AXUIElementCreateApplication(pid)
     try require(AXUIElementSetMessagingTimeout(application, 0.18) == .success, "无法限制辅助功能读取时限。")
-    var list: CFArray?
-    guard AXUIElementCopyAttributeValues(application, kAXWindowsAttribute as CFString, 0, 65, &list) == .success,
-          let result = list as? [AXUIElement], result.count <= 64 else { throw Refusal("无法核对完整窗口清单。") }
+    guard let result = AXWindowList.read(application, limit: 64).windows else { throw Refusal("无法核对完整窗口清单。") }
     for item in result {
         var owner: pid_t = 0
         try require(AXUIElementGetPid(item, &owner) == .success && owner == pid &&

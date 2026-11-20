@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import NearpaneCore
 
 /// Roster evidence only. No title, document, child contents or action handle leaves this read.
 struct OverviewWindowRole {
@@ -58,10 +59,7 @@ struct OverviewWindowRole {
         }
 
         let app = AXUIElementCreateApplication(target.pid)
-        var rows: CFArray?
-        guard setTimeout(app, until: deadline),
-              AXUIElementCopyAttributeValues(app, kAXWindowsAttribute as CFString, 0, 129, &rows) == .success,
-              let windows = rows as? [AXUIElement], windows.count <= 128 else { return nil }
+        guard let windows = AXWindowList.read(app, limit: 128, canRead: { setTimeout(app, until: deadline) }).windows else { return nil }
         let attributes = [kAXRoleAttribute, kAXSubroleAttribute, kAXMinimizedAttribute, "AXFullScreen", kAXModalAttribute] as CFArray
         return readRows(rotated(windows, revision: revision), wanted: target.numbers, deadline: deadline,
                         now: { clock.systemUptime }, number: { window, limit in

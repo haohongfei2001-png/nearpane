@@ -39,7 +39,7 @@ import Testing
         var current = snapshot(active: true, role: true)
         await history.update(&current) { probes in
             #expect(probes.count == 1 && probes[0].original == nil && probes[0].current)
-            return [original]
+            return .init([original])
         }
         let encoded = try JSONEncoder().encode(current)
         #expect(try JSONDecoder().decode(DesktopSnapshot.self, from: encoded).windows[0].sidebarOriginalWindow == nil)
@@ -47,7 +47,7 @@ import Testing
         #expect(try sections(other).isEmpty)
         await history.update(&other) { probes in
             #expect(probes.count == 1 && probes[0].original == original && !probes[0].current)
-            return [original]
+            return .init([original])
         }
         #expect(other.windows[0].metadata?.overviewOrdinaryRole == nil)
         #expect(try sections(other) == [["controlled"]])
@@ -58,16 +58,16 @@ import Testing
         let member = try #require(NativeSidebarMember(other.windows[0], source: dest))
         #expect(member.resolve(other) != nil && member.selectionOnly)
         var unseen = snapshot(active: false, role: nil)
-        await history.update(&unseen) { _ in [] } // the readers straddled a switch
+        await history.update(&unseen) { _ in .init([]) } // the readers straddled a switch
         #expect(try sections(unseen).isEmpty)
         await history.update(&unseen) { probes in
             #expect(probes.first?.original == original)
-            return [nil] // exact original is now closed or cannot be read
+            return .init([nil]) // exact original is now closed or cannot be read
         }
         #expect(member.resolve(unseen) == nil)
         #expect(try sections(unseen).isEmpty)
         var next = snapshot(active: true, role: true)
-        await history.update(&next) { _ in [UUID()] }
+        await history.update(&next) { _ in .init([UUID()]) }
         #expect(member.resolve(next) == nil)
     }
 
@@ -80,11 +80,11 @@ import Testing
         for var changed in invalid {
             let original = UUID()
             var history = NativeSidebarWindowHistory(), first = snapshot(active:true, role:true)
-            await history.update(&first) { _ in [original] }
-            await history.update(&changed) { probes in Issue.record("unexpected invalid probe \(probes.count)"); return [] }
+            await history.update(&first) { _ in .init([original]) }
+            await history.update(&changed) { probes in Issue.record("unexpected invalid probe \(probes.count)"); return .init([]) }
             #expect(try sections(changed).isEmpty)
             var background = snapshot(active:false, role:nil)
-            await history.update(&background) { _ in Issue.record("old window was resurrected"); return [original] }
+            await history.update(&background) { _ in Issue.record("old window was resurrected"); return .init([original]) }
             #expect(try sections(background).isEmpty)
         }
     }
@@ -93,21 +93,36 @@ import Testing
         var history = NativeSidebarWindowHistory()
         let token = UUID()
         var active = snapshot(active: true, role: true)
-        await history.update(&active) { _ in [token] }
+        await history.update(&active) { _ in .init([token]) }
         var gap = snapshot(active: false, role: nil, include: false, complete: false)
-        await history.update(&gap) { _ in Issue.record("No absent window may be requested"); return [] }
+        await history.update(&gap) { _ in Issue.record("No absent window may be requested"); return .init([]) }
         #expect(try sections(gap).isEmpty)
         var background = snapshot(active: false, role: nil)
         await history.update(&background) { probes in
             #expect(probes.first?.original == token)
-            return [nil] // shared time slice elapsed without confirming this target
+            return .init([nil], withheld: [0]) // shared time slice elapsed without confirming this target
         }
         #expect(try sections(background).isEmpty)
         await history.update(&background) { probes in
             #expect(probes.first?.original == token)
-            return [token]
+            return .init([token])
         }
         #expect(try sections(background) == [["controlled"]])
+    }
+
+    @Test func sameForegroundTokenMayReturnOnlyAfterTheWorkerReverifiesIt() async {
+        var history = NativeSidebarWindowHistory()
+        let token = UUID()
+        var active = snapshot(active: true, role: true)
+        await history.update(&active) { _ in .init([token]) }
+        active = snapshot(active: true, role: true)
+        await history.update(&active) { _ in .init([nil], withheld: [0]) }
+        #expect(active.windows[0].sidebarOriginalWindow == nil)
+        await history.update(&active) { p in
+            #expect(p.first?.original == token)
+            return .init([token])
+        }
+        #expect(active.windows[0].sidebarOriginalWindow == token)
     }
 
     @Test func retainedGestureAcceptsOnlyTheWitnessFromItsOwnSignedConnection() async {

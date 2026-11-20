@@ -49,8 +49,8 @@ final class NativeSelectionPermit: @unchecked Sendable {
     static let shared = NativeSpaceActionClient()
     private let channel = SpaceActionChannel()
 
-    func observe(_ probes: [NativeSidebarWindowProbe], audit: NativeSidebarWindowAudit.Sample? = nil) async -> [UUID?] {
-        guard !probes.isEmpty, probes.count <= 16 else { return [] }
+    func observe(_ probes: [NativeSidebarWindowProbe], audit: NativeSidebarWindowAudit.Sample? = nil) async -> NativeSidebarWindowHistory.Batch {
+        guard !probes.isEmpty, probes.count <= 16 else { return .init([]) }
         let command = NativeSpaceCommand(id: UUID(), action: .observeWindows, display: "", source: "", target: "",
                                          observations: probes)
         let reply = await run(command)
@@ -59,14 +59,19 @@ final class NativeSelectionPermit: @unchecked Sendable {
                 var info: [String: Any] = ["state": reply.state.rawValue, "requestMatched": reply.id == command.id,
                                           "current": probe.current, "hadOriginal": probe.original != nil]
                 info["workerPID"] = reply.observationWorkerPID
+                info["withheldOriginal"] = reply.withheldOriginals?.contains(i) == true
+                if let facts = reply.observationFacts, facts.indices.contains(i) { info["axEvidence"] = facts[i] }
                 if let reasons = reply.observationReasons, reasons.indices.contains(i) { info["reason"] = reasons[i] }
                 if reply.state != .ready { info["reason"] = reply.detail }
                 audit.event("signed-helper-reply", info, window: probe.location.window)
             }
         }
         guard reply.id == command.id, reply.state == .ready, let tokens = reply.observedWindows,
-              tokens.count == probes.count else { return [] }
-        return tokens
+              tokens.count == probes.count else { return .init([]) }
+        let withheld = Set(reply.withheldOriginals ?? [])
+        guard withheld.allSatisfy({ tokens.indices.contains($0) && tokens[$0] == nil && probes[$0].original != nil })
+        else { return .init([]) }
+        return .init(tokens, withheld: withheld)
     }
 
     func run(_ command: NativeSpaceCommand, permit: NativeSelectionPermit? = nil) async -> NativeSpaceReply {

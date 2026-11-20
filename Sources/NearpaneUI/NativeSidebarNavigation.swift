@@ -209,7 +209,7 @@ struct SidebarBackgroundWindows: Identifiable {
                 // unique CFEqual foreground object it retained before the desktop changed.
                 let focus = try await DesktopWindowSelection.bind(member.key)
                 let probe = NativeSidebarWindowProbe(location, current: true, original: original)
-                guard valid(), await NativeSpaceActionClient.shared.observe([probe]) == [original],
+                guard valid(), await NativeSpaceActionClient.shared.observe([probe]).tokens == [original],
                       await focus.stillSelected(), valid() else {
                     throw OrdinaryWindowFailure("落地后原窗口身份已变化。")
                 }

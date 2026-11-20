@@ -40,6 +40,42 @@ import Testing
         #expect(SidebarWindowRead.original(in: [original,replacement], current: false, retained: original) == nil)
     }
 
+    @Test func aTransientReadWithholdsTheOriginalUntilPositiveProofAndCannotRefreshItsExpiry() throws {
+        let held = SidebarWindowWitnesses(), scope = location(), element = AXUIElementCreateApplication(401)
+        let home = NativeSidebarWindowProbe(scope, current: true, original: nil)
+        let original = try #require(held.sample(home, session: 1, now: 20, check: { _,_,_ in element }))
+        for (offset, active) in [false,true].enumerated() {
+            let t = Double(21 + 2 * offset)
+            let probe = NativeSidebarWindowProbe(scope, current: active, original: original)
+            #expect(held.sample(probe, session: 1, now: t, check: { _,_,_ in nil }, contradicted: { false }) == nil)
+            #expect(held.sample(probe, session: 1, now: t + 1, check: { _,_,saved in saved }, contradicted: { false }) == original)
+        }
+        let background = NativeSidebarWindowProbe(scope, current: false, original: original)
+        #expect(held.sample(background, session: 1, now: 35.9, check: { _,_,_ in nil }, contradicted: { false }) == nil)
+        #expect(held.sample(background, session: 1, now: 36.01, check: { _,_,saved in saved }) == nil)
+        let replacement = try #require(held.sample(home, session: 1, now: 37, check: { _,_,_ in element }))
+        let fresh = NativeSidebarWindowProbe(scope, current: false, original: replacement)
+        #expect(held.sample(fresh, session: 1, now: 38, check: { _,_,_ in nil }, contradicted: { true }) == nil)
+        #expect(held.sample(fresh, session: 1, now: 39, check: { _,_,saved in saved }) == nil)
+    }
+
+    @Test func originalPropertiesRequirePositiveSupportAndReportAllFieldsAtOnce() throws {
+        var err = AXError.attributeUnsupported
+        let unsupported = try #require(AXValueCreate(.axError,&err))
+        var facts = [String: String]()
+        func read(_ fields: [Any]) -> SidebarWindowRead.DirectEvidence {
+            SidebarWindowRead.properties(status: .success, fields: fields) { facts[$0] = $1 }
+        }
+        #expect(read([kAXWindowRole,kAXStandardWindowSubrole,false,false,false]) == .verified)
+        #expect(read([kAXWindowRole,kAXStandardWindowSubrole,unsupported,false,false]) == .unavailable("original-ax-modal-unreadable"))
+        #expect(facts["original.modal"] == "ax-error-" + String(err.rawValue))
+        #expect(facts["original.minimized"] == "false" && facts["original.fullscreen"] == "false")
+        #expect(read([kAXWindowRole,kAXStandardWindowSubrole,NSNumber(value: 0),false,false]) == .unavailable("original-ax-modal-unreadable"))
+        #expect(read([kAXWindowRole,kAXStandardWindowSubrole,unsupported,true,false]) == .invalid("original-ax-minimized-contradiction"))
+        #expect(read([kAXWindowRole,kAXStandardWindowSubrole,true,false,false]) == .invalid("original-ax-modal-contradiction"))
+        #expect(SidebarWindowRead.properties(status: .invalidUIElement, fields: nil, fact: { _,_ in }) == .invalid("original-ax-object-invalid"))
+    }
+
     @Test func samplesThatStraddleAnActualSpaceChangeCannotRevokeOrPublishAWindow() throws {
         func view(_ current: String) -> ActionInventory {
             let screen = ActionInventory.Display(number: 1, bounds: CGRect(x: 0, y: 0, width: 800, height: 600),
@@ -59,6 +95,10 @@ import Testing
         #expect(throws: ActionFailure.self) {
             try history.observe([source], inventory: home, permitted: { true }, after: { other }, check: { _,_,_ in nil })
         }
+        var withheld = [Int]()
+        #expect(try history.observe([away], inventory: other, permitted: { true }, after: { other },
+                                    check: { _,_,_ in nil }, withheld: { withheld.append($0) }) == [nil])
+        #expect(withheld == [0])
         #expect(try history.observe([away], inventory: other, permitted: { true }, after: { other },
                                     check: { _,_,saved in saved }) == [token])
         #expect(throws: ActionFailure.self) {

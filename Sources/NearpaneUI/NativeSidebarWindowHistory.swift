@@ -4,7 +4,12 @@ import NearpaneCore
 /// Only the visible window roster asks the installed action helper to retain a
 /// reference. Its token has no meaning for previews, management or migration.
 @MainActor struct NativeSidebarWindowHistory {
-    typealias Read = @MainActor ([NativeSidebarWindowProbe]) async -> [UUID?]
+    struct Batch {
+        let tokens: [UUID?]
+        let withheld: Set<Int>
+        init(_ tokens: [UUID?], withheld: Set<Int> = []) { self.tokens = tokens; self.withheld = withheld }
+    }
+    typealias Read = @MainActor ([NativeSidebarWindowProbe]) async -> Batch
     private struct Original {
         let token: UUID
         let confirmed: TimeInterval
@@ -19,6 +24,9 @@ import NearpaneCore
     }
 
     mutating func update(_ snapshot: inout DesktopSnapshot, audit: NativeSidebarWindowAudit.Sample? = nil, read: Read) async {
+        for i in snapshot.windows.indices where snapshot.windows[i].sidebarOriginalWindow != nil {
+            snapshot.windows[i].sidebarOriginalWindow = nil
+        }
         if session != snapshot.sessionID || topology != snapshot.topologyFingerprint {
             audit?.event("history-reset", ["sessionChanged": session != snapshot.sessionID, "topologyChanged": topology != snapshot.topologyFingerprint])
             retained.removeAll()
@@ -81,15 +89,20 @@ import NearpaneCore
             }
         }
         guard !work.isEmpty else { return }
-        let tokens = await read(work.map { $0.1 })
+        let batch = await read(work.map { $0.1 })
+        let tokens = batch.tokens
         // A Space can change between the independent readers. Withhold the row,
         // but keep the private token until a subsequent live check or invalidation.
-        guard tokens.count == work.count else { return }
-        for ((index, probe), token) in zip(work, tokens) {
+        guard tokens.count == work.count else {
+            for (_, probe) in work { retained[probe.location]?.published = false }
+            return
+        }
+        for (offset, pair) in zip(work, tokens).enumerated() {
+            let ((index, probe), token) = pair
             guard let token, probe.original == nil || probe.original == token else {
-                if !probe.current, token == nil {
-                    // The bounded helper may have skipped this item entirely. Only
-                    // that same helper can renew the original, before its 12s expiry.
+                if token == nil, batch.withheld.contains(offset), probe.original != nil {
+                    // Only the signed helper knows if an unverified original is still
+                    // held. It cannot renew its 12s expiry without affirmative evidence.
                     retained[probe.location]?.published = false
                 } else {
                     retained.removeValue(forKey: probe.location)

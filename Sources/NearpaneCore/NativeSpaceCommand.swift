@@ -148,13 +148,17 @@ public struct NativeSpaceReply: Codable, Sendable {
     public let observedWindows: [UUID?]?
     public let observationReasons: [String?]?
     public let observationWorkerPID: Int32?
+    public let observationFacts: [[String: String]?]?
+    /// Indices whose original was held privately without renewing its verification time.
+    public let withheldOriginals: [Int]?
 
     public init(id: UUID, state: State, detail: String, canSwitch: Bool, canMove: Bool,
                 currentBefore: [String: String]? = nil, currentAfter: [String: String]? = nil,
                 membershipBefore: [String]? = nil, membershipAfter: [String]? = nil,
                 issuedAtUptime: TimeInterval? = nil, confirmedAtUptime: TimeInterval? = nil, submittedSteps: Int = 0,
                 switchTrace: NativeSwitchTrace? = nil, originalWindow: UUID? = nil, observedWindows: [UUID?]? = nil,
-                observationReasons: [String?]? = nil, observationWorkerPID: Int32? = nil) {
+                observationReasons: [String?]? = nil, observationWorkerPID: Int32? = nil,
+                observationFacts: [[String: String]?]? = nil, withheldOriginals: [Int]? = nil) {
         self.id = id
         self.state = state
         self.detail = detail
@@ -172,5 +176,7 @@ public struct NativeSpaceReply: Codable, Sendable {
         self.observedWindows = observedWindows
         self.observationReasons = observationReasons
         self.observationWorkerPID = observationWorkerPID
+        self.observationFacts = observationFacts
+        self.withheldOriginals = withheldOriginals
     }
 }

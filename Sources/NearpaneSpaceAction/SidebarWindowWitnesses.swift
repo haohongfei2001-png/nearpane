@@ -17,7 +17,7 @@ import NearpaneCore
     func reset() { entries.removeAll(); session = nil }
 
     func sample(_ probe: NativeSidebarWindowProbe, session: Int, now: Double, check: Check,
-                rejected: (String) -> Void = { _ in }) -> UUID? {
+                contradicted: () -> Bool = { true }, rejected: (String) -> Void = { _ in }) -> UUID? {
         if self.session != session { reset(); self.session = session }
         entries = entries.filter { now >= $0.value.verified && now - $0.value.verified <= 12 }
         if let original = probe.original {
@@ -26,7 +26,10 @@ import NearpaneCore
                 entries.removeValue(forKey: original); rejected("registered-location-changed"); return nil
             }
             guard let live = check(saved.location, probe.current, saved.element) else {
-                entries.removeValue(forKey: original); return nil
+                // A transport error or an unsettled read grants no row or action.
+                // Keep only the original reference and its original expiry time.
+                if contradicted() { entries.removeValue(forKey: original) }
+                return nil
             }
             guard CFEqual(live, saved.element) else {
                 entries.removeValue(forKey: original); rejected("original-ax-object-changed"); return nil
@@ -47,7 +50,9 @@ import NearpaneCore
 
     func observe(_ probes: [NativeSidebarWindowProbe], inventory: ActionInventory,
                  permitted: () -> Bool = AXIsProcessTrusted, after: () throws -> ActionInventory = ActionInventory.read,
-                 check: Check? = nil, report: (NativeSpaceWindow, String) -> Void = { _,_ in }) throws -> [UUID?] {
+                 check: Check? = nil, report: (NativeSpaceWindow, String) -> Void = { _,_ in },
+                 facts: (NativeSpaceWindow, [String: String]) -> Void = { _,_ in },
+                 withheld: (Int) -> Void = { _ in }) throws -> [UUID?] {
         guard probes.count <= 16, Set(probes.map(\.location.window.number)).count == probes.count else {
             reset(); throw ActionFailure("窗口观察清单含重复或过多编号。")
         }
@@ -64,16 +69,20 @@ import NearpaneCore
         let deadline = ProcessInfo.processInfo.systemUptime + 0.38
         let observed = SidebarWindowRead(inventory, deadline: deadline)
         let read = check ?? observed.exact
-        let results = probes.map { probe -> UUID? in
+        let results = probes.enumerated().map { index, probe -> UUID? in
             let now = ProcessInfo.processInfo.systemUptime
             guard now < deadline else {
                 if probe.audit == true { report(probe.location.window, "batch-time-budget") }
+                if let token = probe.original, let entry = entries[token], entry.location == probe.location,
+                   (0...12).contains(now - entry.verified) { withheld(index) }
                 return nil
             }
-            observed.diagnosing = probe.audit == true
-            observed.lastReason = nil
-            let token = sample(probe, session: inventory.session, now: now, check: read) { observed.reason($0) }
+            observed.begin(diagnosing: probe.audit == true)
+            let token = sample(probe, session: inventory.session, now: now, check: read,
+                               contradicted: { observed.contradicted }, rejected: { observed.reason($0) })
+            if token == nil, let original = probe.original, entries[original]?.location == probe.location { withheld(index) }
             if probe.audit == true {
+                facts(probe.location.window, observed.facts)
                 report(probe.location.window, token == nil ? (observed.lastReason ?? "not-registered") :
                         (probe.original == nil ? "foreground-original-bound" : "same-original-confirmed"))
             }
@@ -99,8 +108,9 @@ import NearpaneCore
             reset(); throw ActionFailure("窗口权限或显示器已变化。")
         }
         let probe = NativeSidebarWindowProbe(location, current: current == location.space, original: token)
+        let read = SidebarWindowRead(view, deadline: request.deadlineUptime)
         guard sample(probe, session: view.session, now: ProcessInfo.processInfo.systemUptime,
-                     check: SidebarWindowRead(view, deadline: request.deadlineUptime).exact) == token, let original = entries[token]?.element else {
+                     check: read.exact, contradicted: { read.contradicted }) == token, let original = entries[token]?.element else {
             throw ActionFailure("原窗口已关闭、重建或离开原桌面。")
         }
         return original
@@ -109,12 +119,27 @@ import NearpaneCore
 
 @MainActor final class SidebarWindowRead {
     private let inventory: ActionInventory
-    var diagnosing = false
-    var lastReason: String?
+    private var diagnosing = false
+    private var factPrefix = ""
+    private(set) var lastReason: String?
+    private(set) var contradicted = false
+    private(set) var facts = [String: String]()
+    func begin(diagnosing: Bool) {
+        self.diagnosing = diagnosing
+        lastReason = nil; contradicted = false; facts.removeAll(keepingCapacity: true)
+    }
     func reason(_ value: String) { if diagnosing { lastReason = value } }
-    private func reject(_ value: String) -> AXUIElement? { reason(value); return nil }
+    private func reject(_ value: String, contradiction: Bool = false) -> AXUIElement? {
+        contradicted = contradiction
+        reason(value)
+        return nil
+    }
+    private func fact(_ key: String, _ value: @autoclosure () -> String) {
+        if diagnosing { facts[factPrefix + key] = value() }
+    }
     private var members = [String: Set<UInt32>]()
     private var owners = [Int32: [UInt32: [AXUIElement]]]()
+    private var ownerReads = [Int32: AXWindowList]()
     private let deadline: Double
     init(_ inventory: ActionInventory, deadline: Double) {
         self.inventory = inventory
@@ -138,13 +163,15 @@ import NearpaneCore
     }
 
     private func listed(_ pid: Int32) -> [UInt32: [AXUIElement]]? {
-        if let hit = owners[pid] { return hit }
         let app = AXUIElementCreateApplication(pid)
-        var list: CFArray?
-        guard bounded(app) else { reason("owner-ax-list-time-budget"); return nil }
-        let status = AXUIElementCopyAttributeValues(app, kAXWindowsAttribute as CFString, 0, 65, &list)
-        guard status == .success else { reason("owner-ax-list-status-" + String(status.rawValue)); return nil }
-        guard let rows = list as? [AXUIElement], rows.count <= 64 else { reason("owner-ax-list-size"); return nil }
+        let read = ownerReads[pid] ?? AXWindowList.read(app, limit: 64, canRead: { bounded(app) })
+        ownerReads[pid] = read
+        fact("listCountStatus", String(read.countStatus.rawValue))
+        fact("listReportedCount", read.reportedCount.map(String.init) ?? "unknown")
+        fact("listArrayStatus", read.arrayStatus.map { String($0.rawValue) } ?? "not-read")
+        fact("listActualCount", read.actualCount.map(String.init) ?? "unknown")
+        if let hit = owners[pid] { return hit }
+        guard let rows = read.windows else { reason("owner-ax-list-unconfirmed"); return nil }
         var indexed = [UInt32: [AXUIElement]]()
         for row in rows {
             var owner: pid_t = 0
@@ -161,51 +188,159 @@ import NearpaneCore
     func exact(_ scope: NativeSidebarWindowLocation, _ current: Bool, _ retained: AXUIElement?) -> AXUIElement? {
         let key = scope.window
         guard ProcessInfo.processInfo.systemUptime < deadline else { return reject("item-time-budget") }
-        guard AXIsProcessTrusted() else { return reject("worker-ax-denied") }
+        guard AXIsProcessTrusted() else { return reject("worker-ax-denied", contradiction: true) }
         guard let display = inventory.displays[scope.display] else { return reject("display-missing") }
         guard (display.current == scope.space) == current else { return reject("current-changed") }
         guard display.spaces.contains(where: { $0.id == scope.space && $0.kind == .ordinary && $0.uuid == scope.spaceUUID })
-        else { return reject("ordinary-space-uuid") }
-        guard let app = NSRunningApplication(processIdentifier: key.pid), app.activationPolicy == .regular,
-              !app.isTerminated else { return reject("owner-not-regular") }
-        guard !app.isHidden else { return reject("owner-hidden") }
-        guard WindowWitness.owner(key) else { return reject("owner-birth") }
-        guard WindowWitness.membership(key.number) == [scope.space] else { return reject("reverse-membership") }
+        else { return reject("ordinary-space-uuid", contradiction: true) }
+        let application = NSRunningApplication(processIdentifier: key.pid)
+        fact("ownerRegistered", String(application != nil))
+        guard let app = application else { return reject("owner-registration-unavailable") }
+        fact("ownerActivationPolicy", String(app.activationPolicy.rawValue))
+        fact("ownerTerminated", String(app.isTerminated))
+        fact("ownerHidden", String(app.isHidden))
+        guard !app.isTerminated else { return reject("owner-terminated", contradiction: true) }
+        guard app.activationPolicy == .regular else { return reject("owner-not-regular") }
+        guard !app.isHidden else { return reject("owner-hidden", contradiction: true) }
+        guard WindowWitness.owner(key) else { return reject("owner-birth", contradiction: true) }
+        guard let places = WindowWitness.membership(key.number) else { return reject("reverse-membership-unreadable") }
+        guard places == [scope.space] else { return reject("reverse-membership", contradiction: true) }
         guard let forward = forward(scope.space) else { return reject("forward-list-unreadable") }
-        guard forward.contains(key.number) else { return reject("forward-membership") }
+        guard forward.contains(key.number) else { return reject("forward-membership", contradiction: true) }
         guard let surface = WindowSurfaceRecord(number: key.number) else { return reject("exact-cg-record") }
-        guard surface.pid == key.pid && surface.layer == 0 else { return reject("cg-owner-or-layer") }
+        guard surface.pid == key.pid && surface.layer == 0 else { return reject("cg-owner-or-layer", contradiction: true) }
         guard surface.isDrawn else { return reject("cg-alpha") }
-        guard let list = listed(key.pid) else { return nil }
         let frame = surface.frame
         let center = CGPoint(x: frame.x + frame.width / 2, y: frame.y + frame.height / 2)
         if current {
             guard surface.isOnscreen else { return reject("current-cg-offscreen") }
             guard display.bounds.contains(center) else { return reject("current-cg-display") }
         } else if inventory.displays.contains(where: { $0.key != scope.display && $0.value.bounds.contains(center) }) {
-            return reject("background-cg-other-display")
+            return reject("background-cg-other-display", contradiction: true)
         }
-        let matches = list[key.number] ?? []
-        guard let element = Self.original(in: matches, current: current, retained: retained) else {
-            return reject(matches.isEmpty ? "missing-ax-original" : "ambiguous-or-replaced-ax-object")
+        // An empty window list and the retained object's live properties are
+        // independent reads. Collect both, even when one side is unavailable.
+        let indexed = listed(key.pid)
+        let candidates = indexed?[key.number]
+        let rows = candidates ?? []
+        fact("listMatches", indexed == nil ? "unknown" : String(rows.count))
+        fact("listedIsOriginal", retained.flatMap { old in rows.first.map { CFEqual(old,$0) ? "true" : "false" } } ?? "not-comparable")
+        let inspected = retained ?? (rows.count == 1 ? rows[0] : nil)
+        let direct = inspected.map { readOriginal($0, key: key) }
+        if diagnosing, let retained, rows.isEmpty {
+            let app = AXUIElementCreateApplication(key.pid)
+            if bounded(app) {
+                var value: CFTypeRef?
+                let status = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value)
+                fact("ownerFocusedStatus", String(status.rawValue))
+                if status == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+                    let focused = unsafeBitCast(value, to: AXUIElement.self)
+                    fact("ownerFocusedIsOriginal", String(CFEqual(focused, retained)))
+                    let n = NPReadAXWindowNumber(focused)
+                    fact("ownerFocusedNumber", n == 0 ? "unknown" : (n == key.number ? "matches" : "different"))
+                    // Keep companion diagnostic evidence for the same opaque object,
+                    // without attributing another window's state to this selection.
+                    if CFEqual(focused, retained), n == key.number, case .unavailable = direct {
+                        factPrefix = "named."
+                        _ = readOriginal(focused, key: key)
+                        factPrefix = ""
+                    }
+                }
+            }
         }
-        var pid: pid_t = 0, values: CFArray?
-        let attributes = [kAXRoleAttribute, kAXSubroleAttribute, kAXModalAttribute, kAXMinimizedAttribute, "AXFullScreen"] as CFArray
-        guard AXUIElementGetPid(element, &pid) == .success, pid == key.pid else { return reject("original-ax-pid") }
-        guard bounded(element) else { return reject("original-ax-time-budget") }
-        let status = AXUIElementCopyMultipleAttributeValues(element, attributes, [], &values)
-        guard status == .success, let fields = values as? [Any], fields.count == 5 else {
-            return reject("original-ax-attributes-" + String(status.rawValue))
+        if let direct, case .invalid(let why) = direct { return reject(why, contradiction: true) }
+        guard indexed != nil else { return nil }
+        guard let element = Self.original(in: rows, current: current, retained: retained) else {
+            return reject(rows.isEmpty ? "missing-ax-original" : "ambiguous-or-replaced-ax-object", contradiction: !rows.isEmpty)
         }
-        guard fields[0] as? String == kAXWindowRole else { return reject("original-ax-role") }
-        guard fields[1] as? String == kAXStandardWindowSubrole else { return reject("original-ax-subrole") }
-        for (index, name) in [(2, "modal"), (3, "minimized"), (4, "fullscreen")] {
-            guard let value = fields[index] as? Bool else { return reject("original-ax-" + name + "-unreadable") }
-            guard !value else { return reject("original-ax-" + name + "-true") }
-        }
-        guard NPReadAXWindowNumber(element) == key.number else { return reject("original-ax-number") }
-        guard WindowWitness.owner(key) else { return reject("final-owner-birth") }
+        guard let direct else { return reject("original-ax-unavailable") }
+        if case .unavailable(let why) = direct { return reject(why) }
+        guard WindowWitness.owner(key) else { return reject("final-owner-birth", contradiction: true) }
         return element
+    }
+
+    enum DirectEvidence: Equatable {
+        case verified, unavailable(String), invalid(String)
+    }
+
+    private func readOriginal(_ element: AXUIElement, key: NativeSpaceWindow) -> DirectEvidence {
+        guard bounded(element) else { return .unavailable("original-ax-time-budget") }
+        var pid: pid_t = 0, values: CFArray?
+        let pidStatus = AXUIElementGetPid(element, &pid)
+        let number = NPReadAXWindowNumber(element)
+        let attrs = [kAXRoleAttribute, kAXSubroleAttribute, kAXModalAttribute, kAXMinimizedAttribute, "AXFullScreen"]
+        let status = AXUIElementCopyMultipleAttributeValues(element, attrs as CFArray, [], &values)
+        let fields = values as? [Any]
+        fact("originalPIDStatus", String(pidStatus.rawValue))
+        fact("originalPIDMatches", pidStatus == .success ? String(pid == key.pid) : "unknown")
+        fact("originalNumber", number == 0 ? "unknown" : (number == key.number ? "matches" : "different"))
+        fact("originalAttributesStatus", String(status.rawValue))
+        var direct = Self.properties(status: status, fields: fields, fact: { name, value in self.fact(name, value) })
+        if case .unavailable = direct, status != .apiDisabled {
+            // Some providers omit one field from a multiple-attribute reply. A
+            // missing flag can only be established by a successful direct read
+            // on this same original AX object. Never default it to false.
+            var combined = fields ?? []
+            if combined.count != attrs.count { combined = Array(repeating: NSNull(), count: attrs.count) }
+            let names = ["role", "subrole", "modal", "minimized", "fullscreen"]
+            for i in attrs.indices {
+                let typed = i < 2 ? combined[i] is String : Self.boolean(combined[i]) != nil
+                guard !typed, bounded(element) else { continue }
+                var value: CFTypeRef?
+                let rc = AXUIElementCopyAttributeValue(element, attrs[i] as CFString, &value)
+                fact("single." + names[i] + ".status", String(rc.rawValue))
+                if rc == .invalidUIElement { return .invalid("original-ax-object-invalid") }
+                if rc == .success, let value { combined[i] = value }
+            }
+            direct = Self.properties(status: .success, fields: combined, fact: { name, value in self.fact("resolved." + name, value) })
+        }
+        if pidStatus == .invalidUIElement { return .invalid("original-ax-pid-invalid") }
+        if pidStatus == .success && pid != key.pid { return .invalid("original-ax-pid") }
+        if number != 0 && number != key.number { return .invalid("original-ax-number") }
+        if case .invalid = direct { return direct }
+        if pidStatus != .success { return .unavailable("original-ax-pid-unreadable") }
+        if number == 0 { return .unavailable("original-ax-number-unreadable") }
+        let finalNumber = NPReadAXWindowNumber(element)
+        fact("finalOriginalNumber", finalNumber == 0 ? "unknown" : (finalNumber == key.number ? "matches" : "different"))
+        if finalNumber == 0 { return .unavailable("original-ax-number-unreadable") }
+        if finalNumber != key.number { return .invalid("original-ax-number") }
+        return direct
+    }
+
+    private static func boolean(_ value: Any) -> Bool? {
+        CFGetTypeID(value as AnyObject) == CFBooleanGetTypeID() ? value as? Bool : nil
+    }
+
+    /// AXCopyMultiple returns a per-attribute AXError wrapped in an AXValue for
+    /// unsupported or unavailable properties. Such errors never mean false.
+    static func properties(status: AXError, fields: [Any]?, fact: (String, String) -> Void) -> DirectEvidence {
+        guard status == .success, let fields, fields.count == 5 else {
+            return status == .invalidUIElement ? .invalid("original-ax-object-invalid") :
+                .unavailable("original-ax-attributes-" + String(status.rawValue))
+        }
+        var missing: String?, conflicting: String?
+        let names = ["role", "subrole", "modal", "minimized", "fullscreen"]
+        for (index, value) in fields.enumerated() {
+            let name = names[index]
+            if index < 2, let role = value as? String {
+                let ok = role == (index == 0 ? kAXWindowRole : kAXStandardWindowSubrole)
+                fact("original." + name, ok ? "matches" : "different")
+                if !ok { conflicting = conflicting ?? name }
+            } else if index >= 2, let state = boolean(value) {
+                fact("original." + name, String(state))
+                if state { conflicting = conflicting ?? name }
+            } else {
+                var error = AXError.failure
+                let raw = value as AnyObject
+                let errorValue = CFGetTypeID(raw) == AXValueGetTypeID() ? unsafeBitCast(raw, to: AXValue.self) : nil
+                let hasError = errorValue.map { AXValueGetType($0) == .axError && AXValueGetValue($0, .axError, &error) } == true
+                fact("original." + name, hasError ? "ax-error-" + String(error.rawValue) : "unavailable")
+                missing = missing ?? name
+            }
+        }
+        if let conflicting { return .invalid("original-ax-" + conflicting + "-contradiction") }
+        if let missing { return .unavailable("original-ax-" + missing + "-unreadable") }
+        return .verified
     }
 
     static func original(in rows: [AXUIElement], current: Bool, retained: AXUIElement?) -> AXUIElement? {
