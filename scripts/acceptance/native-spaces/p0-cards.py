@@ -205,7 +205,7 @@ def finish_visual(module,kit,folder,pressed,ended):
         if archived.get('status')==result['status']:return result['status']
     return 'UNKNOWN'
 
-def attempt(tool,p,folder,journal,log,visual_stage=None):
+def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
     action = {}; holder = None; host = None; watch = None; recorder = None; called = False
@@ -215,7 +215,7 @@ def attempt(tool,p,folder,journal,log,visual_stage=None):
         # Feed refresh and first SwiftUI AX layout can finish asynchronously. This is a read-only wait.
         inspect = None; end = time.monotonic() + 5
         while time.monotonic() < end:
-            inspect = cmd(tool,'inspect',body=p)
+            inspect = keeper.call('inspect',p) if keeper else cmd(tool,'inspect',body=p)
             if inspect.get('ready'): break
             if inspect.get('error','').startswith('official background card'): time.sleep(.18); continue
             break
@@ -234,7 +234,7 @@ def attempt(tool,p,folder,journal,log,visual_stage=None):
             first = watch.next(); require(first.get('topology') == p['topology'] and first.get('hid') == p['hid'],'source changed before dispatch')
             log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
             item['status']='UNKNOWN'; item['invokedDriver']=True; store(folder/'result.json',item)
-            action=cmd(tool,'press',body=p,timeout=10); store(folder/'ax-dispatch.json',action); item['axIssued']=action.get('issued',False)
+            action=keeper.call('press',p) if keeper else cmd(tool,'press',body=p,timeout=10); store(folder/'ax-dispatch.json',action); item['axIssued']=action.get('issued',False)
             if not item['axIssued']:
                 item.update(status='BLOCKED',reason=action.get('error','official input refused before AXPress'));return item
             stamp=action['uptime']; end=time.monotonic()+9; landed=None; terminal_time=None
@@ -296,7 +296,8 @@ class Documents:
         state=until(lambda:json.loads((group/'windows.json').read_bytes()),lambda d:d.get('pid')==process.pid and len(set(d.get('numbers',[])))==(2 if lifecycle else 1),'owned fixture did not open exact real documents')
         live=cmd(self.kit/'p0-card','process',process.pid)
         require(live.get('executable')==str(executable) and live.get('hash')==identity(bundle)['CDHash'],'owned bundle path or signed fixture differs')
-        doc['windows']=[dict(live,number=n) for n in state['numbers']];self.log('fixture-opened',windows=doc['windows']);return doc
+        doc['windows']=[dict(live,number=n,ownerFile=None if lifecycle else str(group/'p0-generations.json')) for n in state['numbers']]
+        self.log('fixture-opened',windows=doc['windows']);return doc
     def control(self,doc,action,index):
         req=dict(nonce=str(uuid.uuid4()),action=action,index=index)
         store(doc['folder']/'request.json',req);self.log('system-fixture-command',**req)
@@ -338,6 +339,20 @@ def guard_setup(state,initial,permitted,fronts):
     require(state.get('frontPID') in fronts,'unrelated foreground app appeared before fixture operation')
 
 
+def confirmed_current_cards(read,save,control,space,timeout=10):
+    observed=[]
+    deadline=time.monotonic()+timeout
+    previous=None
+    while time.monotonic()<deadline:
+        item=read();observed.append(item);save(observed)
+        if item.get('error'):
+            raise ValueError('current card witness could not be read: '+item['error'])
+        matches=(item.get('present') is True and item.get('matches')==1 and item.get('id')==control and item.get('space')==space)
+        if matches and previous is not None and item.get('uptime',0)-previous>=.16: return
+        previous=item.get('uptime') if matches else None
+        time.sleep(.20)
+    raise ValueError('the signed installed Host did not expose the exact current-desktop window card twice before leaving its Space')
+
 def gate_status(items,expected):
     bad=next((x['status'] for x in items if x['status']!='PASS'),None)
     return bad or ('PASS' if len(items)==expected else 'BLOCKED')
@@ -354,6 +369,20 @@ def evaluate_gate(stage, name, expected):
         stage.update(status='BLOCKED',reason='10 independent navigations confirmed; absence of a black physical display was not witnessed')
     else:stage['status']=navigation
 
+class OwnedKeeper:
+    def __init__(self,tool):
+        self.proc=subprocess.Popen([tool,'keeper'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+    def call(self,mode,body,**extra):
+        self.proc.stdin.write(json.dumps(dict(mode=mode,body=body,**extra))+'\n');self.proc.stdin.flush()
+        if not select.select([self.proc.stdout],[],[],10)[0]:raise RuntimeError('independent enrolled AX keeper timed out; no action replay')
+        line=self.proc.stdout.readline()
+        require(line,'independent enrolled AX keeper exited');return json.loads(line)
+    def close(self):
+        self.proc.stdin.close()
+        try:self.proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:self.proc.terminate();self.proc.wait(timeout=3)
+        self.proc.stdout.close()
+
 class OriginalFocus:
     def __init__(self,tool):
         self.proc=subprocess.Popen([tool,'hold-original'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
@@ -365,7 +394,7 @@ class OriginalFocus:
         try:
             if self.proc.poll() is None:
                 self.proc.stdin.write((('restore '+str(ordinary) if ordinary else 'restore') if restore else 'release')+'\n');self.proc.stdin.flush()
-                return self.reply() if restore else {'issued':False}
+                return self.reply(timeout=7) if restore else {'issued':False}
             return {'issued':False}
         finally:
             self.proc.stdin.close();self.proc.stdout.close()
@@ -381,11 +410,11 @@ def run(args):
     def log(event,**data):
         with (out/'actions.jsonl').open('a') as f:
             f.write(json.dumps({'event':event,'monotonic':time.monotonic(),**data},ensure_ascii=False)+'\n');f.flush();os.fsync(f.fileno())
-    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None
+    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None;keeper=None
     with tempfile.TemporaryDirectory(dir='/private/tmp',prefix='nearpane-p0-owned-') as tmp:
         documents=Documents(args.kit,Path(tmp),log)
         state=lambda:cmd(tool,'state')
-        def witnesses(windows): return cmd(tool,'windows',body=windows).get('windows',[])
+        def witnesses(windows): return (keeper.call('windows',windows) if keeper else cmd(tool,'windows',body=windows)).get('windows',[])
         def anchored(windows,places):
             proof=witnesses(windows)
             return len(proof)==len(places) and all(r.get('standard') and r.get('forward') and r['reverse']==[place] for r,place in zip(proof,places))
@@ -397,7 +426,7 @@ def run(args):
                 observed=json.loads(f.read_bytes())
                 own.append({k:observed[k] for k in ('pid','numbers','fullscreen','zoomed','key','main','visible','minimized') if k in observed})
             w=[w for doc in documents.processes for w in doc['windows']]
-            view=dict(system=state(),owners=own,witnesses=[cmd(tool,'windows',body=[win]) for win in w])
+            view=dict(system=state(),owners=own,witnesses=[keeper.call('windows',[win]) if keeper else cmd(tool,'windows',body=[win]) for win in w])
             store(out/f'fixture-{name}.json',view)
         try:
             host,journal=freeze(args.kit,out);require(not (journal/'pending.json').exists(),'unresolved installed switch already present')
@@ -428,6 +457,7 @@ def run(args):
             result['setupRoute']=route;report()
             guard_setup(owned,initial,{a},{first['pid']})
             if route=='ordinary':
+                keeper=OwnedKeeper(tool)
                 lease=out/'ordinary-lease';lease.mkdir(mode=0o700);ws=Workspace(args.kit,lease,log)
                 require(ws.home==staging,'ordinary lease origin changed')
                 a=ws.create();one=state();require(owned_insertion(origin,one['topology'],0)==a,'first lease mismatch')
@@ -447,10 +477,23 @@ def run(args):
                     return until(state,lambda s:s.get('hid')==initial['hid'] and s.get('topology')==dict(top,current=space)
                                  and s.get('frontPID')==window['pid'] and s.get('focusedNumber')==window['number'] and anchored([window],[space]),
                                  'owned ordinary document was not independently placed and focused on its leased Space')
-                placed(first,a);checkpoint('first-document')
+                def admit(window,space,name):
+                    placed(window,space)
+                    evidence=out/f'retained-{name}.json'
+                    def enroll():
+                        receipt=keeper.call('enroll',window,space=space)
+                        store(evidence,receipt);return receipt
+                    until(enroll,lambda v:v.get('enrolled'),f'{name} foreground generation enrollment failed; see {evidence.name}')
+                    path=out/f'current-card-{name}.json'
+                    confirmed_current_cards(
+                        lambda:keeper.call('current-card',window,hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid']),
+                        lambda samples:store(path,samples),f"current-desktop-window:{window['pid']}:{window['number']}",space)
+                    log('installed-current-card-seen-twice',space=space,ownedWindow=window['number'],evidence=path.name)
+                    checkpoint(name+'-document')
+                admit(first,a,'first')
                 direct_setup(args.kit,ws,out,initial,top,a,b,log,args.setup_input)
                 second=documents.launch('Route Notes')['windows'][0]
-                placed(second,b);checkpoint('second-document')
+                admit(second,b,'second')
                 require(anchored([first,second],[a,b]),'the two ordinary documents did not remain on their separate leased Spaces')
                 initial_source=b
             else:
@@ -478,7 +521,7 @@ def run(args):
                     if sample.get('topology')!=req['topology'] or sample.get('hid')!=initial['hid']:
                         trial=dict(status='BLOCKED',reason='new input or topology changed before the next sample',hostIssued=False,axIssued=False)
                         sample_dir=out/f'{gate}-{n:02}';sample_dir.mkdir();store(sample_dir/'result.json',trial);log('card-not-issued',**trial)
-                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate)
+                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper)
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break
@@ -506,6 +549,7 @@ def run(args):
                     if current in (a,b) and current!=staging and live['topology']['records']==top['records'] and live['hid']==initial['hid'] and live['frontPID'] in {d['proc'].pid for d in documents.processes}:
                         documents.control(rootdoc,'activate',0);until(state,lambda s:s.get('topology',{}).get('current')==staging,'own staging document did not return to its original desktop',5)
                 except (ValueError,OSError,KeyError,subprocess.SubprocessError) as e:problems.append(str(e))
+            if keeper:keeper.close();keeper=None
             problems.extend(documents.close());nums=[w['number'] for d in documents.processes for w in d['windows']];clean['ownedAppsExited']=all(d['proc'].poll() is not None for d in documents.processes)
             if nums:
                 try:until(lambda:cmd(tool,'absence',*nums),lambda x:x.get('absence')==[True]*len(nums),'owned CG window numbers still present',8);clean['ownedWindowsGone']=True

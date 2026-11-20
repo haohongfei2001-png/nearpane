@@ -22,6 +22,18 @@ plutil -replace CFBundleExecutable -string Lifecycle "$app/Contents/Info.plist"
 plutil -replace CFBundleName -string 'Lifecycle Window' "$app/Contents/Info.plist"
 xcrun swiftc "$src/lifecycle-window.swift" -o "$app/Contents/MacOS/Lifecycle"
 codesign --force --sign - "$app"
+mkdir -p "$kit/p0-document-source"
+python3 - "$src/window.swift" "$kit/p0-document-source/main.swift" <<'PY'
+from pathlib import Path
+import sys
+source=Path(sys.argv[1]).read_text()
+assert source.count('app.run()')==1
+Path(sys.argv[2]).write_text(source.replace('app.run()', 'MainActor.assumeIsolated { installP0Generations(folder:run,birth:birth,windows:{windows}) }\napp.run()'))
+PY
+xcrun swiftc "$kit/p0-document-source/main.swift" "$src/p0-generation.swift" -o "$kit/Field Notes.app/Contents/MacOS/FieldNotes"
+cp "$kit/Field Notes.app/Contents/MacOS/FieldNotes" "$kit/Route Notes.app/Contents/MacOS/FieldNotes"
+codesign --force --sign - --identifier net.example.spaces-document "$kit/Field Notes.app"
+codesign --force --sign - --identifier net.example.spaces-route-witness "$kit/Route Notes.app"
 xcrun clang -fobjc-arc -c "$src/p0-hotkey.m" -o "$kit/p0-hotkey.o"
 xcrun swiftc -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-objc-header "$src/p0-reader.h" "$src/p0-card.swift" "$kit/reader.o" "$kit/p0-hotkey.o" -framework Carbon -o "$kit/p0-card.next"
 mv "$kit/p0-card.next" "$kit/p0-card"

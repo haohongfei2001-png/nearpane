@@ -39,7 +39,7 @@ func signature(_ p: pid_t) -> (String,String)? {
 }
 struct Space: Codable, Equatable { let id: UInt64; let type: Int; let uuid: UUID }
 struct Topology: Codable, Equatable { let display: UUID; let records: [Space]; let current: UInt64 }
-struct Window: Codable { let pid: pid_t; let birth: UInt64; let number: UInt32; let executable, identifier, hash: String }
+struct Window: Codable, Equatable { let pid: pid_t; let birth: UInt64; let number: UInt32; let executable, identifier, hash: String; let ownerFile: String? }
 struct Pair: Codable { let topology: Topology; let sourceWindow, targetWindow: Window; let target: UInt64; let hostPID: pid_t; let hostBirth: UInt64; let hostHash: String; let hid: [UInt32] }
 struct Arrow: Codable { let before: Topology; let topology: Topology; let sourceWindow: Window; let target: UInt64; let hid: [UInt32] }
 func object<T: Encodable>(_ item:T) throws -> Any { try JSONSerialization.jsonObject(with:JSONEncoder().encode(item)) }
@@ -80,19 +80,64 @@ func snapshot(_ detailed: Bool) throws -> Map {
     if detailed { data["focusedNumber"] = axFocus(front) as Any? ?? NSNull(); data["observerAX"] = AXIsProcessTrusted() }
     return data
 }
+func exactWindowOwner(_ n:UInt32)->(pid_t,Int)? {
+    var raw=UnsafeRawPointer(bitPattern:UInt(n))
+    guard let ids=CFArrayCreate(nil,&raw,1,nil),let rows=CGWindowListCreateDescriptionFromArray(ids) as? [Map],rows.count==1,
+          rows[0][kCGWindowNumber as String] as? UInt32==n,let pid=rows[0][kCGWindowOwnerPID as String] as? pid_t,
+          let layer=rows[0][kCGWindowLayer as String] as? Int else {return nil}
+    return (pid,layer)
+}
+func ownGeneration(_ w:Window) throws -> UUID {
+    guard let raw=w.ownerFile,raw.hasPrefix("/private/tmp/nearpane-p0-owned-"),let resolved=realpath(raw,nil) else {throw Refusal("owned generation stream unavailable")}
+    defer {free(resolved)}
+    let url=URL(fileURLWithPath:raw),group=url.deletingLastPathComponent().lastPathComponent
+    try need(String(cString:resolved)==raw && url.lastPathComponent=="p0-generations.json" && UUID(uuidString:group) != nil,"unsafe owner generation source")
+    let fd=Darwin.open(raw,O_RDONLY|O_NOFOLLOW);guard fd>=0 else {throw Refusal("owner generation stream could not be opened")}
+    let handle=FileHandle(fileDescriptor:fd,closeOnDealloc:true);defer {try? handle.close()}
+    var info=stat();try need(fstat(fd,&info)==0 && info.st_uid==getuid() && info.st_nlink==1 && info.st_mode&0o077==0 && info.st_size>0 && info.st_size<8192,"invalid owner generation file")
+    let data=handle.readDataToEndOfFile()
+    guard let state=try JSONSerialization.jsonObject(with:data) as? Map,state["session"] as? String==group,
+          state["pid"] as? pid_t==w.pid,state["birth"] as? UInt64==w.birth,let at=state["uptime"] as? Double,
+          (0...2.5).contains(ProcessInfo.processInfo.systemUptime-at),let rows=state["windows"] as? [Map],
+          rows.count==1,let own=rows.first,own["number"] as? UInt32==w.number,own["visible"] as? Bool==true,
+          own["minimized"] as? Bool==false,own["fullscreen"] as? Bool==false,let id=own["generation"] as? String,
+          let generation=UUID(uuidString:id) else {throw Refusal("live owned normal document or heartbeat not confirmed")}
+    return generation
+}
+struct RetainedWindow {let owner:Window;let generation:UUID;let element:AXUIElement;let record:Space;let display:UUID}
+var retainedWindows=[UInt32:RetainedWindow]()
 func windowProof(_ w: Window) throws -> Map {
     let allowed = ["org.nearpane.acceptance.LifecycleWindow","net.example.spaces-route-witness","net.example.spaces-document"]
     try need(allowed.contains(w.identifier) && w.executable.hasPrefix("/private/tmp/nearpane-d01.") && path(w.pid) == w.executable && birth(w.pid) == w.birth,"owned fixture executable or kernel process birth changed")
     let code = signature(w.pid)
     try need(code?.0 == w.identifier && code?.1 == w.hash,"fixture running code signature changed")
     let app = AXUIElementCreateApplication(w.pid); _ = AXUIElementSetMessagingTimeout(app,0.4)
-    let matching = array(app,kAXWindowsAttribute).filter { owner($0) == w.pid && NPReadAXWindowNumber($0) == w.number }
+    var value:CFTypeRef?
+    let listStatus=AXUIElementCopyAttributeValue(app,kAXWindowsAttribute as CFString,&value)
+    let list=listStatus == .success ? value as? [AXUIElement] : nil
+    let matching = (list ?? []).filter { owner($0) == w.pid && NPReadAXWindowNumber($0) == w.number }
     let reverse = NPReadWindowSpaces(w.number) as? [UInt64] ?? []
     let forward = reverse.count == 1 ? (NPReadCatalogSpaceWindowNumbers(reverse[0]) as? [UInt32])?.contains(w.number) : nil
     let el = matching.count == 1 ? matching[0] : nil
     let role = el.flatMap { prop($0,kAXRoleAttribute) as? String }, subrole = el.flatMap { prop($0,kAXSubroleAttribute) as? String }
+    let direct=role==kAXWindowRole && subrole==kAXStandardWindowSubrole
+    var evidence=direct ? "current AX list" : "unconfirmed", generation:String?
+    if let held=retainedWindows[w.number] {
+        let current=try topology(), g=try ownGeneration(w), windowOwner=exactWindowOwner(w.number)
+        try need(w==held.owner && current.display==held.display && current.records.contains(held.record) && held.generation==g &&
+                 windowOwner?.0==w.pid && windowOwner?.1==0 && forward==true && reverse==[held.record.id],"owner generation, signed process, WindowServer owner, or one of the membership directions changed")
+        generation=g.uuidString
+        let heldNumber=NPReadAXWindowNumber(held.element),heldRole=prop(held.element,kAXSubroleAttribute) as? String
+        try need(owner(held.element)==w.pid && (heldNumber==0 || heldNumber==w.number) && (heldRole==nil || heldRole==kAXStandardWindowSubrole) &&
+                 prop(held.element,kAXMinimizedAttribute) as? Bool != true && prop(held.element,"AXFullScreen") as? Bool != true,"retained AX reference contradicts original ordinary document")
+        let remote=current.current != held.record.id
+        try need((list != nil || (remote && listStatus == .noValue)) && matching.count<=1 && (matching.isEmpty || direct),
+                 "live AX list contradicted the retained standard window or could not be read (AX status \(listStatus.rawValue), matches \(matching.count))")
+        if matching.isEmpty && current.current != held.record.id {evidence="foreground AX enrollment + same live owner generation"}
+    }
     return ["number":w.number,"pid":w.pid,"birth":w.birth,"reverse":reverse,"forward":forward as Any? ?? NSNull(),
-            "standard":role==kAXWindowRole && subrole==kAXStandardWindowSubrole,"focused":axFocus(w.pid) as Any? ?? NSNull(),
+            "standard":evidence != "unconfirmed","roleEvidence":evidence,"ownedWindowGeneration":generation as Any? ?? NSNull(),
+            "axStandardNow":direct,"focused":axFocus(w.pid) as Any? ?? NSNull(),"axListRead":list != nil,"axWindowListStatus":listStatus.rawValue,
             "axMatches":matching.count,"axRole":role as Any? ?? NSNull(),"axSubrole":subrole as Any? ?? NSNull(),
             "axFullscreen":el.flatMap { prop($0,"AXFullScreen") as? Bool } as Any? ?? NSNull(),
             "axMinimized":el.flatMap { prop($0,kAXMinimizedAttribute) as? Bool } as Any? ?? NSNull()]
@@ -123,7 +168,7 @@ func visibleCard(_ card: AXUIElement, host: pid_t) -> Bool {
     }
     return false
 }
-func panelTarget(_ pid: pid_t, _ id:String) throws -> AXUIElement {
+func panelMatches(_ pid:pid_t,_ id:String)->([AXUIElement],Map) {
     let root = AXUIElementCreateApplication(pid); _ = AXUIElementSetMessagingTimeout(root,0.4)
     var todo = array(root,kAXWindowsAttribute) + [root]
     // Panels omitted by AXWindows can still be addressed by the owner-specific AX hit test.
@@ -138,25 +183,34 @@ func panelTarget(_ pid: pid_t, _ id:String) throws -> AXUIElement {
             }
         }
     }
-    var visited = Set<AXUIElement>(), matches = [AXUIElement]()
+    var visited = Set<AXUIElement>(), matches = [AXUIElement](), current=0, background=0
     while let n = todo.popLast(), visited.count < 6000 {
         guard owner(n) == pid, visited.insert(n).inserted else {continue}
         let i = prop(n,kAXIdentifierAttribute) as? String ?? ""
-        if i == id { matches.append(n); continue }
+        if i.hasPrefix("current-desktop-window:") {current += 1}
+        if i.hasPrefix("native-space-window:") {background += 1}
+        if i == id {matches.append(n); continue}
         if i.hasPrefix("current-desktop-window:") || i.hasPrefix("native-space-window:") {continue}
         let role = prop(n,kAXRoleAttribute) as? String ?? ""
         if !["AXTextField","AXTextArea","AXWebArea","AXStaticText","AXImage"].contains(role) { todo += array(n,kAXChildrenAttribute) }
     }
-    guard matches.count == 1 else {throw Refusal("official background card count \(matches.count)")}
+    return (matches,["matches":matches.count,"currentControls":current,"backgroundControls":background,"visited":visited.count,"scanComplete":todo.isEmpty])
+}
+func panelTarget(_ pid:pid_t,_ id:String)throws->AXUIElement {
+    let (matches,census)=panelMatches(pid,id)
+    guard matches.count == 1,census["scanComplete"] as? Bool==true else {throw Refusal("official background card census \(census)")}
     let card = matches[0]; var actions: CFArray?
     try need(prop(card,kAXRoleAttribute) as? String == kAXButtonRole && prop(card,kAXEnabledAttribute) as? Bool == true && AXUIElementCopyActionNames(card,&actions) == .success && (actions as? [String])?.contains(kAXPressAction) == true,"official background card disabled or lacks AXPress")
     try need(visibleCard(card,host:pid),"official background card is clipped, covered or absent from the visible sidebar")
     return card
 }
+func signedHost(_ pid:pid_t,_ born:UInt64,_ hash:String)throws {
+    try need(AXIsProcessTrusted() && path(pid) == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost" && birth(pid) == born,"signed installed Host path, AX or process generation changed")
+    let s=signature(pid)
+    try need(s?.0=="com.holdsnow.nearpane.alpha" && s?.1==hash,"installed running Host signature mismatch")
+}
 func guardPair(_ p:Pair) throws {
-    try need(AXIsProcessTrusted() && path(p.hostPID) == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost" && birth(p.hostPID) == p.hostBirth,"signed installed Host path, AX or process generation changed")
-    let s = signature(p.hostPID)
-    try need(s?.0 == "com.holdsnow.nearpane.alpha" && s?.1 == p.hostHash,"installed running Host signature mismatch")
+    try signedHost(p.hostPID,p.hostBirth,p.hostHash)
     try need(try topology() == p.topology && hardware() == p.hid,"Space topology, pointer display or human input changed")
     let ids = p.topology.records.map(\.id)
     guard let a = ids.firstIndex(of:p.topology.current), let b = ids.firstIndex(of:p.target), abs(a-b) == 1 else {throw Refusal("source and target are not exactly adjacent")}
@@ -184,10 +238,17 @@ func holdOriginal() throws {
     func verify(allowReturn: Bool = false) throws {
         let live=signature(pid)
         let now=try topology()
-        try need(now.display==original.display && now.records==original.records && (now.current==original.current || (allowReturn && now.current==from)) &&
-                 hardware()==input && birth(pid)==born && live?.0==signed.0 && live?.1==signed.1 &&
-                 owner(window)==pid && NPReadAXWindowNumber(window)==number && (NPReadWindowSpaces(number) as? [UInt64])?.contains(original.current)==true &&
-                 array(root,kAXWindowsAttribute).contains { CFEqual($0,window) },"original focus reference, topology or user input changed; preserved newer state")
+        try need(now.display==original.display && now.records==original.records && (now.current==original.current || (allowReturn && now.current==from)),
+                 "original display, current Space or complete UUID order changed")
+        try need(hardware()==input,"human input changed; newer focus preserved")
+        try need(birth(pid)==born && live?.0==signed.0 && live?.1==signed.1 && owner(window)==pid,"original signed process, birth, or retained AX owner changed")
+        let n=NPReadAXWindowNumber(window), reverse=NPReadWindowSpaces(number) as? [UInt64], forward=NPReadCatalogSpaceWindowNumbers(original.current) as? [UInt32]
+        try need((n==0 || n==number) && exactWindowOwner(number)?.0==pid && forward?.contains(number)==true && reverse?.contains(original.current)==true,
+                 "exact WindowServer owner, retained number or two-way membership of original window changed")
+        let listed=array(root,kAXWindowsAttribute).contains {CFEqual($0,window)}
+        let active=prop(root,kAXFocusedWindowAttribute).map {CFGetTypeID($0)==AXUIElementGetTypeID() && CFEqual($0,window)} ?? false
+        let remote=allowReturn && now.current != original.current && now.current==from && reverse==[original.current]
+        try need(listed || active || remote,"original window is neither live in AX nor exclusively associated with the retained remote Space")
     }
     try verify(allowReturn:true)
     if try topology()==original && NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":false]);return}
@@ -221,6 +282,67 @@ func holdOriginal() throws {
 }
 let arguments = Array(CommandLine.arguments.dropFirst())
 var issued = false
+func actOnCard(_ p:Pair,press:Bool)throws->Map {
+        try guardPair(p)
+        let id = "native-space-window:\(p.topology.display.uuidString):\(p.target):\(p.targetWindow.pid):\(p.targetWindow.number)"
+        let card = try panelTarget(p.hostPID,id)
+        try guardPair(p)
+        try need(prop(card,kAXIdentifierAttribute) as? String == id && prop(card,kAXEnabledAttribute) as? Bool == true && owner(card) == p.hostPID && visibleCard(card,host:p.hostPID),"target card changed before action")
+        var out:Map = ["control":id,"ready":true,"visibleHitVerified":true,"issued":false,"uptime":ProcessInfo.processInfo.systemUptime]
+        if press {
+            issued = true; out["issued"] = true; out["axError"] = AXUIElementPerformAction(card,kAXPressAction as CFString).rawValue; out["returnedUptime"] = ProcessInfo.processInfo.systemUptime
+        }
+    return out
+}
+func keepOwnedWindows() {
+    while let line=readLine() {
+        issued=false
+        do {
+            RunLoop.current.run(until:Date(timeIntervalSinceNow:0.012))
+            let data=Data(line.utf8);guard data.count<100_000,let msg=try JSONSerialization.jsonObject(with:data) as? Map,let mode=msg["mode"] as? String else {throw Refusal("invalid window witness request")}
+            let body=try JSONSerialization.data(withJSONObject:msg["body"] as Any)
+            if mode=="enroll" {
+                let w=try JSONDecoder().decode(Window.self,from:body),t=try topology()
+                guard let r=t.records.first(where:{$0.id==t.current && $0.type==0}),let expected=msg["space"] as? UInt64,expected==r.id,
+                      retainedWindows[w.number]==nil,retainedWindows.count<2 else {throw Refusal("unexpected foreground document enrollment")}
+                let proof=try bound(w,r.id),g=try ownGeneration(w),cg=exactWindowOwner(w.number)
+                let app=AXUIElementCreateApplication(w.pid), windows=array(app,kAXWindowsAttribute).filter {owner($0)==w.pid && NPReadAXWindowNumber($0)==w.number}
+                guard windows.count==1,proof["axStandardNow"] as? Bool==true,cg?.0==w.pid,cg?.1==0,
+                      NSWorkspace.shared.frontmostApplication?.processIdentifier==w.pid,axFocus(w.pid)==w.number,
+                      prop(windows[0],kAXMinimizedAttribute) as? Bool==false,prop(windows[0],"AXFullScreen") as? Bool != true else {throw Refusal("unique foreground standard window, focus and owner not confirmed together")}
+                retainedWindows[w.number]=RetainedWindow(owner:w,generation:g,element:windows[0],record:r,display:t.display)
+                emit(["enrolled":true,"space":r.id,"spaceUUID":r.uuid.uuidString,"ownerGeneration":g.uuidString,"initialAX":proof])
+            } else if mode=="current-card" {
+                let w=try JSONDecoder().decode(Window.self,from:body)
+                guard let held=retainedWindows[w.number],held.owner==w,let pid=msg["hostPID"] as? pid_t,let born=msg["hostBirth"] as? UInt64,
+                      let hash=msg["hostHash"] as? String,let initialHID=msg["hid"] as? [UInt32] else {throw Refusal("missing original current document enrollment or installed Host identity")}
+                try signedHost(pid,born,hash)
+                let current=try topology()
+                try need(current.display==held.display && current.current==held.record.id && current.records.contains(held.record) && hardware()==initialHID &&
+                         NSWorkspace.shared.frontmostApplication?.processIdentifier==w.pid && axFocus(w.pid)==w.number,"foreground, exact focus, Space, display or input changed while waiting for Host roster")
+                _=try bound(w,held.record.id)
+                let id="current-desktop-window:\(w.pid):\(w.number)",(cards,counts)=panelMatches(pid,id)
+                var receipt=counts;receipt["id"]=id;receipt["uptime"]=ProcessInfo.processInfo.systemUptime;receipt["space"]=held.record.id
+                if cards.count==1 {
+                    let c=cards[0];var actions:CFArray?
+                    receipt["role"]=prop(c,kAXRoleAttribute) as? String
+                    receipt["enabled"]=prop(c,kAXEnabledAttribute) as? Bool
+                    receipt["pressAction"]=AXUIElementCopyActionNames(c,&actions) == .success && (actions as? [String])?.contains(kAXPressAction)==true
+                    receipt["visibleHitVerified"]=visibleCard(c,host:pid)
+                }
+                receipt["present"]=cards.count==1 && receipt["scanComplete"] as? Bool==true && receipt["role"] as? String==kAXButtonRole
+                emit(receipt)
+            } else if mode=="windows" {
+                _=try topology()
+                let windows=try JSONDecoder().decode([Window].self,from:body);emit(["windows":try windows.map(windowProof)])
+            } else if mode=="inspect" || mode=="press" {
+                let pair=try JSONDecoder().decode(Pair.self,from:body)
+                try need(retainedWindows[pair.sourceWindow.number] != nil && retainedWindows[pair.targetWindow.number] != nil,"both actual owned ordinary documents must be enrolled")
+                emit(try actOnCard(pair,press:mode=="press"))
+            } else {throw Refusal("unsupported witness command")}
+        } catch {emit(["ready":false,"issued":issued,"error":(error as? Refusal)?.reason ?? String(describing:error)])}
+    }
+}
 func main() throws {
     guard let verb = arguments.first else {throw Refusal("missing mode")}
     switch verb {
@@ -230,6 +352,7 @@ func main() throws {
             do {emit(try snapshot(false))} catch {emit(["error":String(describing:error),"uptime":ProcessInfo.processInfo.systemUptime])}
             RunLoop.current.run(until:Date(timeIntervalSinceNow:0.06))
         }
+    case "keeper":keepOwnedWindows()
     case "state": emit(try snapshot(true))
     case "hold-original": try holdOriginal()
     case "process":
@@ -267,16 +390,7 @@ func main() throws {
         try need(ids.count == arguments.count-1 && !ids.isEmpty,"invalid absent-window probe"); emit(["absence":ids.map { NPReadWindowNumberPresence($0) == 0 }])
     case "inspect", "press":
         let p = try JSONDecoder().decode(Pair.self,from:FileHandle.standardInput.readDataToEndOfFile())
-        try guardPair(p)
-        let id = "native-space-window:\(p.topology.display.uuidString):\(p.target):\(p.targetWindow.pid):\(p.targetWindow.number)"
-        let card = try panelTarget(p.hostPID,id)
-        try guardPair(p)
-        try need(prop(card,kAXIdentifierAttribute) as? String == id && prop(card,kAXEnabledAttribute) as? Bool == true && owner(card) == p.hostPID && visibleCard(card,host:p.hostPID),"target card changed before action")
-        var out:Map = ["control":id,"ready":true,"visibleHitVerified":true,"issued":false,"uptime":ProcessInfo.processInfo.systemUptime]
-        if verb == "press" {
-            issued = true; out["issued"] = true; out["axError"] = AXUIElementPerformAction(card,kAXPressAction as CFString).rawValue; out["returnedUptime"] = ProcessInfo.processInfo.systemUptime
-        }
-        emit(out)
+        emit(try actOnCard(p,press:verb=="press"))
     default: throw Refusal("unknown mode")
     }
 }

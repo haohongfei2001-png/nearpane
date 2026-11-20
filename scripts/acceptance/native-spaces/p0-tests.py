@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest import mock
 
 p = Path(__file__).with_name('p0-cards.py')
 spec = importlib.util.spec_from_file_location('p0_cards',p)
@@ -58,6 +59,19 @@ class GateTests(unittest.TestCase):
         self.assertEqual(runner.confirm_lease_pair(self.top,inserted,dict(self.top,records=[*self.rows,first,second])),(81,82))
         with self.assertRaises(ValueError):
             runner.confirm_lease_pair(self.top,inserted,dict(self.top,records=[self.rows[0],second,self.rows[1],first]))
+    def test_enrollment_requires_two_real_current_controls_without_an_intervening_absence(self):
+        identifier='current-desktop-window:89:77'
+        hit=dict(present=True,matches=1,id=identifier,space=4)
+        sequence=[dict(hit,uptime=10.0),dict(hit,uptime=10.2,matches=0),dict(hit,uptime=10.4),dict(hit,uptime=10.7)]
+        it=iter(sequence);retained=[]
+        with mock.patch.object(runner.time,'sleep'):
+            runner.confirmed_current_cards(lambda:next(it),lambda samples:retained.append(list(samples)),identifier,4)
+        self.assertEqual(retained[-1],sequence)
+    def test_current_control_read_error_cannot_be_counted(self):
+        stored=[]
+        with self.assertRaisesRegex(ValueError,'original'):
+            runner.confirmed_current_cards(lambda:dict(error='original window changed'),lambda samples:stored.extend(samples),'current-desktop-window:89:77',4)
+        self.assertEqual(len(stored),1)
     def test_stops_before_larger_stage_and_exact_nearest_rank(self):
         self.assertEqual(runner.gate_status([dict(status='PASS')],2),'BLOCKED');self.assertEqual(runner.gate_status([dict(status='PASS'),dict(status='FAIL')],2),'FAIL')
         self.assertEqual(runner.gate_status([dict(status='PASS')]*10,10),'PASS');self.assertEqual(runner.percentile(list(range(1,51)),.95),48)
