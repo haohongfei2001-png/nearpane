@@ -25,6 +25,7 @@ enum PreviewPixelBudget {
         @ObservationIgnored var cost: Int
         init(value: Value, cost: Int) { self.value = value; self.cost = cost }
     }
+    @ObservationIgnored var onRemoval: ((Key) -> Void)?
     private var entries = [Key: Entry]()
     // Reads update LRU order without invalidating a SwiftUI body that just read an image.
     @ObservationIgnored private var lastUse = [Key: UInt64]()
@@ -64,6 +65,7 @@ enum PreviewPixelBudget {
     func remove(_ key: Key) {
         guard let entry = entries[key] else { return }
         entries.removeValue(forKey: key)
+        onRemoval?(key)
         bytes -= entry.cost
         lastUse.removeValue(forKey: key)
     }
@@ -72,6 +74,7 @@ enum PreviewPixelBudget {
         for (key, entry) in entries where predicate(key, entry.value) { remove(key) }
     }
     func removeAll() {
+        if let onRemoval { for key in entries.keys { onRemoval(key) } }
         entries.removeAll()
         lastUse.removeAll()
         bytes = 0
