@@ -388,6 +388,17 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         #endif
+        #if NEARPANE_P0_DIAGNOSTIC && canImport(RiftletCore) && canImport(SaytileKit)
+        if notification.userInfo?["check"] as? String == "p0-space-probe-read-only-v1" {
+            guard let profile = profileLease?.root, let panels else { return }
+            Task {
+                guard await P0HostProbe.run(nonce:nonce, profile:profile, stageOwnsDispatch:panels.systemManagesWindows) else { return }
+                DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+                    object:nonce.uuidString, userInfo:["pid":NSNumber(value:getpid()),"checked":"p0-space-probe-read-only-v1"],deliverImmediately:true)
+            }
+            return
+        }
+        #endif
         if notification.userInfo?["check"] as? String == "permissions" {
             let now = ProcessInfo.processInfo.systemUptime
             guard now - lastPermissionDiagnostic >= 1 else { return }

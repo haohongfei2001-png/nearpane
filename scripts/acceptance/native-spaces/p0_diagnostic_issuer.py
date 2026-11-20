@@ -74,6 +74,29 @@ class Issuer:
         self.response = self.home/"p0-host-one-shot-response.json"
         require(not any(os.path.lexists(p) for p in (self.request,self.response)), "this isolated profile already has a diagnostic request")
 
+    def capabilities(self,kit):
+        before=time.monotonic()
+        for attempt in range(2):
+            try:
+                nonce=subprocess.check_output([kit/"metrics",str(self.host["pid"]),"--diagnostic-space-probe"],text=True,timeout=8).strip()
+                break
+            except (subprocess.CalledProcessError,subprocess.TimeoutExpired):
+                if attempt: raise
+                # The profile lock can precede the normal Host notification receiver at startup.
+                time.sleep(.2)
+        operation=str(uuid.UUID(nonce)).upper()
+        proof_path=self.home/("p0-probe-"+operation+".json")
+        require(proof_path.resolve(strict=True)==proof_path and proof_path.stat().st_uid==os.getuid()
+                and proof_path.stat().st_nlink==1 and proof_path.stat().st_size<=4096, "untrusted probe receipt")
+        proof=json.loads(proof_path.read_bytes())
+        require(proof["nonce"]==proof["operation"]==operation and proof["action"]=="probe" and proof["state"]=="ready"
+                and proof["canSwitch"] is False and proof["submittedSteps"]==0 and proof["issued"] is False
+                and proof["pid"]==self.host["pid"] and proof["birth"]==self.host["birth"] and proof["generation"]==self.generation.name
+                and proof["revision"]==self.revision and before<=proof["at"]<=time.monotonic()
+                and type(proof["stageManagerOwnsDispatch"]) is bool and owns_profile(self.host["pid"],self.home/PROFILE),
+                "nonce-matched signed Host and native worker did not confirm closed, zero-dispatch capability")
+        return dict(ready=True,**proof)
+
     def enroll(self, window, space, topology):
         ident = {k:window[k] for k in ("pid","birth","number","executable","identifier","hash")}
         row = next(r for r in topology["records"] if r["id"]==space and r["type"]==0)

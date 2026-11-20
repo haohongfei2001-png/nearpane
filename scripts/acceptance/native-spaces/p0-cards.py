@@ -801,7 +801,7 @@ def run(args):
             'dynamicFixtureMarkerRequested':os.environ.get('NP_P0_DYNAMIC_MARKER')=='1'}
     result['through']=args.through
     isolated_key=getattr(args,'diagnostic_key',None)
-    issuer=None
+    issuer=None;stage_loan=None
     if isolated_key:
         require(args.through=='diagnostic' and args.route=='ordinary','isolated candidate only supports a single adjacent ordinary diagnostic')
         result.update(scope='DIAGNOSTIC_ONLY',officialGateEligible=False)
@@ -843,7 +843,7 @@ def run(args):
             if isolated_key:
                 from p0_diagnostic_issuer import Issuer
                 issuer=Issuer(isolated_key,host)
-            caps=native_capabilities(dict(pid=host['pid'],launch=host['birth']/1_000_000))
+            caps=[issuer.capabilities(args.kit)] if issuer else native_capabilities(dict(pid=host['pid'],launch=host['birth']/1_000_000))
             result['installedCapabilities']=caps
             report()
             if args.preflight_only:
@@ -865,6 +865,10 @@ def run(args):
             focus=focus_tools.OriginalFocus(tool);held=focus.reply();store(out/'original-focus.json',held)
             if held.get('held'):
                 require((initial['frontPID'],initial['focusedNumber'],initial['topology'],initial['hid'])==(held['pid'],held['number'],held['topology'],held['hid']),'original focus or user input changed at admission')
+            if issuer:
+                from p0_diagnostic_stage import StageLoan
+                stage_loan=StageLoan(getattr(args,"stage_kit",None) or args.kit,out,caps[-1])
+                stage_loan.existing(args,initial,log)
             user=initial['topology'];user_space=user['current'];row=next(s for s in user['records'] if s['id']==user_space)
             require(row['type'] in (0,4),'unsupported type for original foreground Space')
             before=state();guard_setup(before,initial,{user_space},{initial['frontPID']});require(before['topology']==user,'original UUID order changed')
@@ -904,6 +908,7 @@ def run(args):
                 require(confirm_lease_pair(origin,one['topology'],top)==(a,b) and top['current'] in (staging,a,b),'new lease pair differs from the registered Spaces')
                 checkpoint('second-lease')
                 direct_setup(args.kit,ws,out,initial,top,top['current'],a,log,args.setup_input)
+                if stage_loan: stage_loan.borrow(ws,a,initial['hid'])
                 first=documents.launch('Field Notes')['windows'][0]
                 def placed(window,space):
                     return until(state,lambda s:s.get('hid')==initial['hid'] and s.get('topology')==dict(top,current=space)
@@ -1038,6 +1043,13 @@ def run(args):
             if nums:
                 try:until(lambda:cmd(tool,'absence',*nums),lambda x:x.get('absence')==[True]*len(nums),'owned CG window numbers still present',8);clean['ownedWindowsGone']=True
                 except (ValueError,OSError,subprocess.SubprocessError) as e:problems.append(str(e));clean['ownedWindowsGone']=False
+            if stage_loan:
+                try:
+                    clean['stageManager']=stage_loan.restore()
+                    if clean['stageManager']['status']!='PASS':problems.append('Stage Manager restoration unconfirmed')
+                except (ValueError,OSError,KeyError,RuntimeError,subprocess.SubprocessError) as error:
+                    clean['stageManager']={'status':'UNKNOWN','reason':str(error)}
+                    problems.append('Stage Manager restoration: '+str(error))
             if ws and lease:
                 try:
                     # Recovery binds the now-current unrelated foreground if the user moved during the run.

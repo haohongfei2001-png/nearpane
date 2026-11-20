@@ -4,10 +4,13 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 import unittest
+from unittest.mock import Mock, patch
 import uuid
 
 import p0_diagnostic_issuer as issuer
+import p0_diagnostic_stage as stage
 
 cards = importlib.import_module("p0-cards")
 
@@ -46,6 +49,51 @@ class IsolatedIssuerTests(unittest.TestCase):
         self.assertFalse(stage["officialGateEligible"])
         self.assertEqual(stage["status"],"PASS")
         self.assertTrue(all(name!="diagnostic" for name,_ in cards.GATES))
+
+    def test_nonce_probe_works_without_ui_logs_and_refuses_dispatchable_capability(self):
+        with tempfile.TemporaryDirectory(dir="/private/tmp") as tmp:
+            client=issuer.Issuer.__new__(issuer.Issuer)
+            client.home=Path(tmp).resolve()
+            client.host={"pid":71,"birth":712}
+            client.generation=Path(str(uuid.uuid4()))
+            client.revision="e"*40
+            def ack(*args,**kw):
+                nonce=str(uuid.uuid4()).upper()
+                record=dict(nonce=nonce,operation=nonce,action="probe",state="ready",canSwitch=enabled,canMove=False,issued=False,
+                            submittedSteps=0,stageManagerOwnsDispatch=True,pid=71,birth=712,revision=client.revision,
+                            generation=client.generation.name,at=time.monotonic())
+                (client.home/("p0-probe-"+nonce+".json")).write_text(json.dumps(record))
+                return nonce
+            with patch.object(issuer.subprocess,"check_output",side_effect=ack),patch.object(issuer,"owns_profile",return_value=True):
+                enabled=False
+                self.assertTrue(client.capabilities(client.home)["ready"])
+                enabled=True
+                with self.assertRaises(ValueError):
+                    client.capabilities(client.home)
+
+    def test_stage_loan_never_selects_a_noncurrent_existing_desktop(self):
+        loan=stage.StageLoan.__new__(stage.StageLoan)
+        loan.original=True
+        args=Mock(stage_workspace="/prior",stage_space=5095,stage_original_checkout="/origin",stage_previous_archive="/archive",stage_install_receipt="/chain")
+        log=Mock()
+        with patch.object(stage.preview,"PreviewWorkspace") as open_lease:
+            loan.existing(args,{"topology":{"current":4}},log)
+        open_lease.assert_not_called()
+        log.assert_called_once()
+
+    def test_stage_hid_change_refuses_before_writing_and_untouched_loan_uses_readback(self):
+        loan=stage.StageLoan.__new__(stage.StageLoan)
+        loan.original=True
+        loan.transaction=None
+        loan.kit=Path("/private/tmp/kit")
+        ws=Mock(kit=loan.kit)
+        ws.hardware.return_value=[2]
+        with patch.object(stage.preview,"lease_for"),patch.object(stage,"empty_system_desktop") as empty:
+            with self.assertRaises(ValueError):
+                loan.borrow(ws,5095,[1])
+            empty.assert_not_called()
+        with patch.object(stage.preview,"states",return_value=[{"state":True}]):
+            self.assertEqual(loan.restore()["status"],"PASS")
 
     def test_no_action_receipt_is_synthesized_for_an_unacknowledged_signed_request(self):
         status,_,ms = cards.assess([],{},0,None,{"scope":issuer.SCOPE,"issued":False,"error":"fixture unavailable"})

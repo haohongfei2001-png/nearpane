@@ -12,6 +12,9 @@ if __name__ == "__main__":
     parser.add_argument("output",type=Path)
     parser.add_argument("--issuer-key",dest="diagnostic_key",required=True,type=lambda v:Path(v).absolute())
     parser.add_argument("--drift-kit",type=lambda v:Path(v).resolve(strict=True))
+    for name in ("stage-kit","stage-workspace","stage-original-checkout","stage-previous-archive","stage-install-receipt"):
+        parser.add_argument("--"+name,type=lambda v:Path(v).resolve(strict=True))
+    parser.add_argument("--stage-space",type=int)
     parser.add_argument("--preflight-only",action="store_true")
     args=parser.parse_args()
     args.through="diagnostic"
