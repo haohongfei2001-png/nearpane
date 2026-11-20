@@ -63,6 +63,7 @@ private actor SpaceActionChannel {
             if process.isRunning { process.terminate() }
         }
     }
+    private let switchJournal = NativeSwitchJournal.installed()
     private var connection: Connection?
     private var exchanging = false
     private var waiting = [CheckedContinuation<Void, Never>]()
@@ -120,6 +121,11 @@ private actor SpaceActionChannel {
         defer {
             if waiting.isEmpty { exchanging = false } else { waiting.removeFirst().resume() }
         }
+        if command.action != .move && switchJournal.suspended {
+            return .init(id: command.id, state: command.action == .probe ? .ready : .failed,
+                         detail: "此系统版本的上次切换未获确认。请使用系统桌面控制。", canSwitch: false, canMove: false)
+        }
+        var journaled = false
         var mayHaveIssued = false
         do {
             try Task.checkCancellation()
@@ -129,6 +135,10 @@ private actor SpaceActionChannel {
             request.append(10)
             let channel = try connect()
             try Task.checkCancellation()
+            if command.action == .select {
+                try switchJournal.begin(command)
+                journaled = true
+            }
             try channel.input.write(contentsOf: request)
             mayHaveIssued = command.action == .move
             let deadline = command.deadlineUptime + 0.8
@@ -136,21 +146,26 @@ private actor SpaceActionChannel {
             while true {
                 let reply = try readReply(channel, deadline: deadline)
                 guard reply.id == command.id else { throw CocoaError(.coderReadCorrupt) }
-                if reply.state != .awaitingStep { return reply }
-                guard command.action == .select, granted < 16, reply.submittedSteps == granted
+                if reply.state != .awaitingStep {
+                    if journaled { try switchJournal.finish(command, result: reply) }
+                    return reply
+                }
+                guard command.action == .select, granted == 0, reply.submittedSteps == granted
                 else { throw CocoaError(.coderReadCorrupt) }
                 let decision = await permit?.gesturePermission(for: command.id, after: granted)
                     ?? .init(id: command.id, submittedSteps: granted, proceed: false)
-                try channel.input.write(contentsOf: JSONEncoder().encode(decision) + Data([10]))
                 mayHaveIssued = mayHaveIssued || decision.proceed
+                try channel.input.write(contentsOf: JSONEncoder().encode(decision) + Data([10]))
                 granted += 1
             }
         } catch {
             connection?.close()
             connection = nil
-            return NativeSpaceReply(id: command.id, state: mayHaveIssued ? .outcomeUnknown : .failed,
+            let result = NativeSpaceReply(id: command.id, state: mayHaveIssued ? .outcomeUnknown : .failed,
                                     detail: mayHaveIssued ? "空间助手未返回可核对的结果。" : "空间助手暂时不可用。",
                                     canSwitch: false, canMove: false)
+            if journaled { try? switchJournal.finish(command, result: result) }
+            return result
         }
     }
 }

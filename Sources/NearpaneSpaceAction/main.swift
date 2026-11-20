@@ -20,18 +20,21 @@ func isBundledChild() -> Bool {
 @MainActor
 func run(_ request: NativeSpaceCommand, available: Bool,
          authorize: (NativeSpaceReply) throws -> NativeSpaceStepPermission) -> NativeSpaceReply {
-    let canSwitch = available && CGPreflightPostEventAccess()
+    let canSwitch = available && NPDockInstalledProtocol() != NPDockUnsupported && CGPreflightPostEventAccess()
     let canMove = available && AXIsProcessTrusted() && NPMoveAvailable()
     var before: ActionInventory?, after: ActionInventory?
     var oldMembership: [String]?, newMembership: [String]?
+    var trace = NativeSwitchTrace()
+    var notifications: SpaceNotificationTimes?
     var issued = false
     var issuedAt: TimeInterval?, steps = 0
     func reply(_ state: NativeSpaceReply.State, _ text: String) -> NativeSpaceReply {
-        .init(id: request.id, state: state, detail: text, canSwitch: canSwitch, canMove: canMove,
+        trace.dockNotificationUptimes = notifications?.values ?? []
+        return .init(id: request.id, state: state, detail: text, canSwitch: canSwitch && state != .outcomeUnknown, canMove: canMove,
               currentBefore: before?.currents, currentAfter: after?.currents,
               membershipBefore: oldMembership, membershipAfter: newMembership,
               issuedAtUptime: issuedAt, confirmedAtUptime: state == .confirmed ? ProcessInfo.processInfo.systemUptime : nil,
-              submittedSteps: steps)
+              submittedSteps: steps, switchTrace: request.action == .select ? trace : nil)
     }
     do {
         guard available else { throw ActionFailure("此系统构建尚不支持原生桌面动作。") }
@@ -67,55 +70,33 @@ func run(_ request: NativeSpaceCommand, available: Bool,
             if from == to { after = start; return reply(.confirmed, "已在目标桌面。") }
             guard try ActionInventory.read() == start else { throw ActionFailure("切换前显示器或空间已改变。") }
             expected[UUID(uuidString: request.display)!.uuidString] = request.target
-            let step = to > from ? 1 : -1
-            let deadline = min(request.deadlineUptime, ProcessInfo.processInfo.systemUptime + 2.5)
-            var previous = from
-            while previous != to {
-                var allowed = start.currents
-                let key = UUID(uuidString: request.display)!.uuidString
-                allowed[key] = display.spaces[previous].id
-                let immediatelyBefore = try ActionInventory.read()
-                after = immediatelyBefore
-                guard immediatelyBefore.agrees(with: start, expected: allowed), isBundledChild(),
-                      CGPreflightPostEventAccess(), ProcessInfo.processInfo.systemUptime < deadline
-                else { throw ActionFailure("下一步之前，来源桌面、授权或路由已改变。") }
-                try selectedWindow?.verify()
-                let permission = try authorize(reply(.awaitingStep, "等待确认当前选择。"))
-                guard permission.permits(request, after: steps, now: ProcessInfo.processInfo.systemUptime) else {
-                    throw ActionFailure("后续桌面动作已取消或超时。")
-                }
-                guard ProcessInfo.processInfo.systemUptime < deadline else { throw ActionFailure("桌面切换已超时。") }
-                let next = previous + step
-                let quick = next != to || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-                let submitted = ProcessInfo.processInfo.systemUptime
-                guard NPSendAdjacentSwipe(to > from, quick, display.number)
-                else { throw ActionFailure("当前屏幕无法接收桌面手势。") }
-                issued = true
-                steps += 1
-                if issuedAt == nil { issuedAt = submitted }
-                if next != to {
-                    var observations = 0
-                    var arrived = allowed
-                    arrived[key] = display.spaces[next].id
-                    repeat {
-                        Thread.sleep(forTimeInterval: 0.025)
-                        let live = try ActionInventory.read()
-                        after = live
-                        if live.agrees(with: start, expected: arrived) { observations += 1 }
-                        else if live.agrees(with: start, expected: allowed) && observations == 0 { continue }
-                        else { throw ActionFailure("中间桌面出现回弹或意外变化，已停止后续手势。") }
-                    } while observations < 2 && ProcessInfo.processInfo.systemUptime < deadline
-                    guard observations == 2 else { throw ActionFailure("中间桌面未确认，已停止后续手势。") }
-                    progress = next
-                }
-                previous = next
+            guard abs(to - from) == 1 else { throw ActionFailure("只允许单次相邻切换。") }
+            notifications = SpaceNotificationTimes()
+            let permission = try authorize(reply(.awaitingStep, "等待确认当前选择。"))
+            let now = ProcessInfo.processInfo.systemUptime
+            guard permission.permits(request, after: 0, now: now), isBundledChild(),
+                  try ActionInventory.read() == start else { throw ActionFailure("选择已取消或来源桌面已改变。") }
+            try selectedWindow?.verify()
+            trace.observations.append(.init(uptime: now, currents: start.currents,
+                frontPID: NSWorkspace.shared.frontmostApplication?.processIdentifier))
+            var dispatch = NPDockDispatch()
+            guard NPSendAdjacentSwipe(to > from, display.number, &dispatch) else {
+                throw ActionFailure("当前指针、显示器或系统版本无法接收桌面手势。")
             }
+            issued = true
+            steps = 1
+            issuedAt = now
+            trace.adapter = Int(dispatch.protocolVersion)
+            trace.phasesMachTicks = [dispatch.phaseTimes.0, dispatch.phaseTimes.1, dispatch.phaseTimes.2]
+            trace.progress = dispatch.signedProgress
+            trace.endVelocity = dispatch.endVelocity
+            trace.naturalScrolling = dispatch.natural
         }
         guard issued else { throw ActionFailure("系统动作未投递，请从目标屏幕的侧栏操作。") }
-        let deadline = min(request.deadlineUptime, ProcessInfo.processInfo.systemUptime + 1.8)
+        let deadline = min(request.deadlineUptime, ProcessInfo.processInfo.systemUptime + (request.action == .select ? 2.8 : 1.8))
         var stableSince: TimeInterval?
         repeat {
-            Thread.sleep(forTimeInterval: 0.035)
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.04))
             let view = try ActionInventory.read()
             after = view
             if let witness {
@@ -130,13 +111,28 @@ func run(_ request: NativeSpaceCommand, available: Bool,
             let now = ProcessInfo.processInfo.systemUptime
             if witness != nil, now >= deadline { break }
             if request.action == .select {
+                let owner = NSWorkspace.shared.frontmostApplication?.processIdentifier
+                if trace.observations.last?.currents != view.currents || trace.observations.last?.frontPID != owner {
+                    trace.observations.append(.init(uptime: now, currents: view.currents, frontPID: owner))
+                }
                 progress = try view.transition(from: start, request: request, previous: progress)
             } else if !view.agrees(with: start, expected: expected) {
                 throw ActionFailure("迁移期间其他桌面或显示器发生改变。")
             }
             let reached = view.currents == expected && (witness == nil || newMembership == [request.target])
             if reached {
-                if let stableSince, now - stableSince >= 0.16 {
+                if request.action == .select, request.window == nil, request.targetKind == .ordinary, trace.emptyGuard == nil {
+                    trace.emptyGuard = try EmptyLandingGuard.protect(space: request.target)
+                }
+                // A window-follow reversal can occur about 400 ms after a transient landing.
+                if let stableSince, now - stableSince >= (request.action == .select ? 0.85 : 0.16) {
+                    if request.action == .select {
+                        trace.observations.append(.init(uptime: now, currents: view.currents,
+                            frontPID: NSWorkspace.shared.frontmostApplication?.processIdentifier))
+                        if trace.emptyGuard == "windowless-activation-requested" && !NSRunningApplication.current.isActive {
+                            throw ActionFailure("空桌面前台保护尚未确认。")
+                        }
+                    }
                     try selectedWindow?.verify()
                     return reply(.confirmed, "已由系统连续确认目标。")
                 }

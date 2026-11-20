@@ -80,6 +80,25 @@ public struct NativeSpaceCommand: Codable, Sendable {
     }
 }
 
+public struct NativeSwitchTrace: Codable, Sendable {
+    public var adapter = 0
+    public var phasesMachTicks: [UInt64] = []
+    public var naturalScrolling: Bool?
+    public var progress: Double?
+    public var endVelocity: Double?
+    public var dockNotificationUptimes: [Double] = []
+    public var observations: [Observation] = []
+    public var emptyGuard: String?
+    public init() {}
+
+    public struct Observation: Codable, Sendable {
+        public let uptime: Double, currents: [String: String], frontPID: Int32?
+        public init(uptime: Double, currents: [String: String], frontPID: Int32?) {
+            self.uptime = uptime; self.currents = currents; self.frontPID = frontPID
+        }
+    }
+}
+
 public struct NativeSpaceReply: Codable, Sendable {
     public enum State: String, Codable, Sendable { case ready, awaitingStep, issued, confirmed, failed, outcomeUnknown }
     public let id: UUID
@@ -91,11 +110,13 @@ public struct NativeSpaceReply: Codable, Sendable {
     public let membershipBefore, membershipAfter: [String]?
     public let issuedAtUptime, confirmedAtUptime: TimeInterval?
     public let submittedSteps: Int
+    public let switchTrace: NativeSwitchTrace?
 
     public init(id: UUID, state: State, detail: String, canSwitch: Bool, canMove: Bool,
                 currentBefore: [String: String]? = nil, currentAfter: [String: String]? = nil,
                 membershipBefore: [String]? = nil, membershipAfter: [String]? = nil,
-                issuedAtUptime: TimeInterval? = nil, confirmedAtUptime: TimeInterval? = nil, submittedSteps: Int = 0) {
+                issuedAtUptime: TimeInterval? = nil, confirmedAtUptime: TimeInterval? = nil, submittedSteps: Int = 0,
+                switchTrace: NativeSwitchTrace? = nil) {
         self.id = id
         self.state = state
         self.detail = detail
@@ -108,5 +129,6 @@ public struct NativeSpaceReply: Codable, Sendable {
         self.issuedAtUptime = issuedAtUptime
         self.confirmedAtUptime = confirmedAtUptime
         self.submittedSteps = submittedSteps
+        self.switchTrace = switchTrace
     }
 }

@@ -46,7 +46,7 @@ struct ActionInventoryTests {
         }
         let start = sample(0, "12")
         let command = NativeSpaceCommand(id: UUID(), action: .select, display: display.uuidString,
-                                        source: "3", target: "11", sourceUUID: a, targetUUID: other)
+                                        source: "3", target: "7", sourceUUID: a, targetUUID: b)
         #expect(try sample(1, "12").transition(from: start, request: command, previous: 0) == 1)
         #expect(throws: ActionFailure.self) { try sample(0, "12").transition(from: start, request: command, previous: 1) }
         #expect(throws: ActionFailure.self) { try sample(2, "13").transition(from: start, request: command, previous: 1) }

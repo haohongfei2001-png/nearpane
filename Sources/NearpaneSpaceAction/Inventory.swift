@@ -78,19 +78,13 @@ struct ActionInventory: Equatable {
         if request.action == .select, display.current != request.source {
             throw ActionFailure("当前桌面已经改变。")
         }
-        if request.action == .select {
-            // An explicitly chosen fullscreen endpoint uses the ordinary system
-            // gesture route. Never pass through an unrelated fullscreen app.
-            let intermediates = display.spaces[min(from, to)...max(from, to)].dropFirst().dropLast()
-            guard abs(from - to) <= 16, intermediates.allSatisfy({ $0.kind == .ordinary && $0.uuid != nil }) else {
-                throw ActionFailure("该路径经过无法确认的桌面或其他全屏应用。")
-            }
+        if request.action == .select && abs(from - to) > 1 {
+            throw ActionFailure("当前版本仅验证相邻桌面。请使用系统桌面控制。")
         }
         return (display, from, to)
     }
 
-    /// Intermediate records can be observed while a nonadjacent burst settles.
-    /// The requested physical display may advance only along the original order.
+    /// A later observation may remain at the origin or advance to the adjacent target.
     func transition(from before: Self, request: NativeSpaceCommand, previous: Int) throws -> Int {
         let (_, source, target) = try before.route(request)
         guard let uuid = UUID(uuidString: request.display), let view = displays[uuid],
