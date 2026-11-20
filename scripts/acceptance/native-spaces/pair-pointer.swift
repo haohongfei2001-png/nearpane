@@ -224,7 +224,7 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
     receiver = PairPointerReceiver(host:host.processIdentifier, panel:surface.panelID, tag:tag)
     result["initialFocus"] = ["focused":before.0 as Any? ?? NSNull(), "main":before.1 as Any? ?? NSNull(),
                               "editor":before.2] as Object
-    var events = [Object](), down = false
+    var events = [Object](), down = false, previousPoint = start
     func event(_ type: CGEventType, _ point: CGPoint) -> CGEvent? {
         guard let e = CGEvent(mouseEventSource: eventSource, mouseType: type, mouseCursorPosition: point, mouseButton: .left) else { return nil }
         e.flags = []
@@ -233,12 +233,16 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
         return e
     }
     func dispatch(_ type: CGEventType, _ point: CGPoint) -> Bool {
-        guard let e = event(type, point), p2Physical() == hid else { return false }
+        guard let e = event(type, point), let movement = PairPointerMotion.apply(e, from:previousPoint, to:point),
+              p2Physical() == hid else { return false }
         let t = pairClock()
         e.timestamp = DispatchTime.now().uptimeNanoseconds
         e.post(tap: .cgSessionEventTap)
         events.append(["type":type.rawValue,"beforePost":t,"afterPost":pairClock(),"eventTimestampNS":e.timestamp,
-                       "point":[point.x,point.y]] as Object)
+                       "point":[point.x,point.y],"previousPoint":[previousPoint.x,previousPoint.y],"quartzDelta":movement,
+                       "expectedAppKitPanelPoint":[point.x-surface.panel.minX,surface.panel.maxY-point.y]] as Object)
+        previousPoint = point
+        result["motionUnits"] = "global Quartz logical points and integer kCGMouseEventDeltaX/Y"
         result["events"] = events; result["issued"] = true
         return true
     }
@@ -255,14 +259,14 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
         return abort("mouseDownAdmissionChanged")
     }
     down = true
-    PairPointerReceiver.pump( kind == "click" ? 0.035 : 0.14)
+    PairPointerReceiver.pump(kind == "click" ? 0.035 : 0.14)
     if kind != "click" {
         let waypoint = kind == "self" ? CGPoint(x: start.x + min(20, source.rect.width * 0.36), y: start.y) : end
         var path = [CGPoint]()
         func segment(_ from: CGPoint, _ to: CGPoint, _ count: Int) {
             for step in 1...count {
                 let t = CGFloat(step)/CGFloat(count)
-                path.append(CGPoint(x: from.x + (to.x-from.x)*t, y: from.y + (to.y-from.y)*t))
+                path.append(PairPointerMotion.point(from:from, to:to, fraction:t))
             }
         }
         segment(start, waypoint, 9)
@@ -271,14 +275,14 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
         for point in path {
             guard p2Physical() == hid, scopeCurrent(), admitted(point, nil, dragging: true),
                   dispatch(.leftMouseDragged, point) else { return abort("dragPathLeftQualifiedHostPanel") }
-            PairPointerReceiver.pump( 0.016)
+            PairPointerReceiver.pump(0.016)
             if kind == "self", let snapshot = pairRows() {
                 let actual = numbers.compactMap { pairBounds(snapshot, $0, pid) }
                 selfPath.append(["clock":pairClock(),"cg":actual.map(windowReceiptRect)] as Object)
             }
         }
         if kind == "self" { result["duringSelfDrag"] = selfPath }
-        PairPointerReceiver.pump( 0.06)
+        PairPointerReceiver.pump(0.06)
     }
     guard p2Physical() == hid, scopeCurrent(), admitted(end, destination, dragging: down && kind != "click"),
           dispatch(.leftMouseUp, end) else { return abort("mouseUpTargetOrScopeChanged") }
@@ -321,7 +325,7 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
             }
             first = (t,finished)
         } else { lastFalseStart = t; first = nil }
-        PairPointerReceiver.pump( 0.006)
+        PairPointerReceiver.pump(0.006)
     }
     result["focus"] = ["reads":reads,"lastNegativeSampleStarted":lastFalseStart,"deadline":deadline] as Object
     return stop("systemFocusReadbackTimedOut")

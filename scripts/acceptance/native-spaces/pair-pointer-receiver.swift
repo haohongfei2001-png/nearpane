@@ -44,6 +44,7 @@ final class PairPointerReceiver {
         }
         received.append(["type":type.rawValue,"observedAt":ProcessInfo.processInfo.systemUptime,
                          "timestampNS":event.timestamp, "point":[event.location.x,event.location.y],
+                         "quartzDelta":[event.getIntegerValueField(.mouseEventDeltaX),event.getIntegerValueField(.mouseEventDeltaY)],
                          "source":process(.eventSourceUnixProcessID,source), "destination":process(.eventTargetUnixProcessID,host),
                          "underPointer":window(.mouseEventWindowUnderMousePointer),
                          "acceptingPointer":window(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent)] as Object)

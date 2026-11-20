@@ -17,6 +17,7 @@ from pathlib import Path
 from installed_profile import PROFILE, owns_profile
 from p2_documents import RegisteredRun, Superseded, TrialStop, capture_dimensions, check_hid, coherent, digest, require
 from space_scope import private_file
+from pair_pointer_timing import HostFocusTiming, correlate
 
 
 def rect(value):
@@ -109,6 +110,13 @@ def host_route(reply):
                    "HOST_OTHER_WINDOW" if "different" in observed else "HOST_PID",
                    reportedWindow=observed, timestampPreserved=[r["timestampNS"] == e["eventTimestampNS"] for r,e in zip(ends,(posted[0],posted[-1]))],
                    taggedDragSamples=sum(r["type"] == 6 for r in rows))
+    actual = [r for r in rows if r["type"] == 6]
+    sent = [p for p in posted if p["type"] == 6]
+    if sent:
+        same = len(actual) == len(sent) and all(r.get("quartzDelta") == p.get("quartzDelta") and
+                r.get("quartzDelta") is not None and
+                math.dist(r["point"],p["point"]) <= 1 for r,p in zip(actual,sent))
+        checked["dragMotion"] = "MATCHED" if same else "COALESCED_OR_UNCONFIRMED"
     return checked
 
 
@@ -184,6 +192,11 @@ class PairPointerRun(RegisteredRun):
     def select_document(self, target, intent, attempt):
         proof = self.packet("click", target["target"], target["digests"])
         attempt["pointerIssued"] = proof.get("issued")
+        events, focus = proof.get("events",[]), proof.get("focus",{})
+        if events and "beforePost" in events[0]:
+            end = focus.get("secondPositiveEnd",focus.get("deadline",events[-1].get("afterPost")))
+            if end is not None:
+                attempt["pointerObservationRange"] = [events[0]["beforePost"],end]
         attempt["pointerStatus"] = proof.get("status")
         attempt["pointerReason"] = proof.get("reason")
         route = host_route(proof)
@@ -304,6 +317,19 @@ class PairPointerRun(RegisteredRun):
             proof["reason"] = error.reason if isinstance(error, TrialStop) else type(error).__name__
 
     def trials(self, reader):
+        home = os.environ.get("NEARPANE_TEST_HOME")
+        monitor = HostFocusTiming(self.binding["hostPID"])
+        try:
+            if not self.drag_only and home and owns_profile(self.binding["hostPID"],Path(home)/PROFILE):
+                monitor.start()
+            self.pointer_trials(reader)
+        finally:
+            state = monitor.close()
+            correlate(self.out["attempts"],monitor.records,state)
+            self.out["hostButtonTelemetry"] = {"readerStatus":state,"scope":"installed Host WindowFocusLatency category",
+                                              "matched":sum(a.get("hostButton",{}).get("status") == "OBSERVED" for a in self.out["attempts"])}
+
+    def pointer_trials(self, reader):
         texts = [f"Field Notes {name} {self.folder.name}\n" for name in ("A","B")]
         hashes = [digest(t.encode()) for t in texts]
         initial_focus = self.prepare_front(hashes)
@@ -371,6 +397,8 @@ class PairPointerRun(RegisteredRun):
                                       notAttempted=self.out["selection"]["planned"]-len(rows))
         self.out["measurement"]["statistics"] = {k:summary([row[k] for row in samples]) for k in
             ("downToFocusLowerMs","downToFocusUpperMs","upToFocusLowerMs","upToFocusUpperMs","secondPositiveAfterUpMs")}
+        callbacks = [r["hostButton"]["downToCallbackMs"] for r in rows if r.get("hostButton",{}).get("status") == "OBSERVED"]
+        self.out["measurement"]["statistics"]["downToHostButtonMs"] = summary(callbacks)
         self.out["measurement"]["percentiles"] = "sample only, median p50, nearest-rank p95"
         self.rec.write("pair-pointer.json", self.out)
         self.rec.summary["pairPointer"] = {k:self.out[k] for k in ("status","operationStatus","reason","selection","measurement","cleanup")}
