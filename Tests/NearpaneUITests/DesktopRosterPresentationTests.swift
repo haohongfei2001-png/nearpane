@@ -48,6 +48,11 @@ import NearpaneCore
                 }
             }
             // Only the intrinsic glyph interiors are fully covered. Antialiased edges naturally blend.
+            // Decode an opaque reference in the same bitmap color space as the caption.
+            let rgb = scheme == .light ? [37.0, 39, 42] : [241.0, 242, 244]
+            let swatch = Color(.sRGB, red: rgb[0]/255, green: rgb[1]/255, blue: rgb[2]/255).frame(width: 2, height: 2)
+            let referenceImage = try #require(ImageRenderer(content: swatch).cgImage)
+            let expected = try color(NSBitmapImageRep(cgImage: referenceImage), 0, 0)
             var ink = 0
             for y in 124..<(clear.pixelsHigh - 4) {
                 for x in 0..<180 {
@@ -57,7 +62,7 @@ import NearpaneCore
                         let reference = try color(solid, x, y)
                         let transparent = try color(clear, x, y)
                         #expect(pixel == reference && pixel == transparent)
-                        #expect(scheme == .light ? pixel.redComponent < 0.1 : pixel.redComponent > 0.9)
+                        #expect(pixel == expected)
                     }
                 }
             }

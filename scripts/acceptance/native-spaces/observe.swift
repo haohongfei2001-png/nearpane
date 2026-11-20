@@ -168,9 +168,10 @@ struct Sidebar {
         }.sorted { $0.minY < $1.minY }
         let all = !cards.isEmpty && cards.count == frames.count
         let onePanel = panelFrames.contains { panel in frames.allSatisfy { panel.contains($0) } }
+        let sameColumn = panelFrames.contains { panel in frames.allSatisfy { panel.minX <= $0.minX + 0.5 && panel.maxX >= $0.maxX - 0.5 } }
         let ordered = zip(frames, frames.dropFirst()).allSatisfy { $0.maxY <= $1.minY + 0.5 }
         return ["cardCount": cards.count, "measured": frames.count, "allOnscreen": all && frames.allSatisfy { screen.contains($0) },
-                "insideOnePanel": all && onePanel, "ordered": all && ordered, "scrollAreas": rosterScrollAreas]
+                "insideOnePanel": all && onePanel, "insidePanelColumns": all && sameColumn, "ordered": all && ordered, "scrollAreas": rosterScrollAreas]
     }
 }
 
@@ -336,7 +337,7 @@ func fixtureResult(_ args: [String]) -> Object {
             out["reason"] = "no measured card bounds"
             return out
         }
-        out["observed"] = true; out["value"] = pixels; out["cardY"] = point.y; out["cardHeight"] = size.height
+        out["observed"] = true; out["value"] = pixels; out["cardY"] = point.y; out["cardHeight"] = size.height; out["cardWidth"] = size.width
         out["pixelCrop"] = fixturePictureCrop(card: exact[0], bounds: CGRect(origin: point, size: size),
             text: pixels, host: givenHost, number: number, birth: birth, scope: args[8], current: sid)
         return out

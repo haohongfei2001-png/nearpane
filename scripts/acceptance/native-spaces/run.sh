@@ -52,6 +52,7 @@ if [[ ${1:-} == current-sidebar ]]; then
 fi
 if [[ ${1:-} == roster ]]; then
     [[ $# == 2 ]]
+    xcrun swiftc -parse-as-library -module-cache-path "$scratch/module-cache" scripts/acceptance/native-spaces/r4-scene.swift -o "$scratch/r4-scene"
     python3 scripts/acceptance/native-spaces/roster.py "$scratch/observe" "$2"
     exit $?
 fi

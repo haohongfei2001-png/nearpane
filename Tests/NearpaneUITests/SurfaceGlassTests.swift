@@ -5,6 +5,26 @@ import Testing
 import NearpaneCore
 
 @MainActor struct SurfaceGlassTests {
+    @Test func sidebarForegroundUsesOpaqueR4ColorsInBothAppearances() throws {
+        let cases: [(NSAppearance.Name, NSColor, [Int])] = [
+            (.aqua, SidebarTextColor.primary, [37, 39, 42]),
+            (.aqua, SidebarTextColor.secondary, [85, 89, 95]),
+            (.darkAqua, SidebarTextColor.primary, [241, 242, 244]),
+            (.darkAqua, SidebarTextColor.secondary, [204, 208, 212])
+        ]
+        for (appearance, color, expected) in cases {
+            let theme = try #require(NSAppearance(named: appearance))
+            var components: [Int] = []
+            theme.performAsCurrentDrawingAppearance {
+                if let rgb = color.usingColorSpace(.sRGB) {
+                    components = [rgb.redComponent, rgb.greenComponent, rgb.blueComponent, rgb.alphaComponent]
+                        .map { Int(($0 * 255).rounded()) }
+                }
+            }
+            #expect(components == expected + [255])
+        }
+    }
+
     @Test func fourSidedInsetsKeepTheSavedOuterFrameAndModuleRatios() {
         for width in [100.0, 180, 240, 480] {
             let layout = LayoutComposer.compose(width: width, height: 960, pinnedCount: 0, expanded: false)
@@ -68,7 +88,7 @@ import NearpaneCore
         }
     }
 
-    @Test func renderedCornerRimsFollowTheInsetAroundAllFourCorners() throws {
+    @Test func renderedTopRimTracksBothRoundedToolCorners() throws {
         let width = 240.0, height = 640.0, scale = 4
         var settings = DisplaySettings()
         for corner in [nil as Measure?, Measure(44), Measure(10, .percent)] {
@@ -79,20 +99,19 @@ import NearpaneCore
                 .frame(width: width, height: height).environment(\.colorScheme, .light))
             renderer.scale = CGFloat(scale)
             let rep = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
+            let edgeThreshold = try #require(rep.colorAt(x: 3 * scale, y: 55 * scale)).alphaComponent / 2
             for left in [false, true] {
-                for top in [true] {
                     // Follow the diagonal from outside the rounded shell, across its rim,
                     // and into the untouched card cutout. Measure thickness in points.
                     let alpha = (0..<(55 * scale)).map { step in
                         rep.colorAt(x: left ? step : rep.pixelsWide - 1 - step,
-                                    y: top ? step : rep.pixelsHigh - 1 - step)!.alphaComponent
+                                    y: step)!.alphaComponent
                     }
-                    let start = try #require(alpha.firstIndex(where: { $0 > 0.25 }))
-                    let end = try #require(alpha[start...].firstIndex(where: { $0 < 0.25 }))
+                    let start = try #require(alpha.firstIndex(where: { $0 > edgeThreshold }))
+                    let end = try #require(alpha[start...].firstIndex(where: { $0 < edgeThreshold }))
                     let thickness = Double(end - start) * 2.squareRoot() / Double(scale)
                     #expect(start > 0)
                     #expect(abs(thickness - PanelSizeMetrics.cardInset(width: width)) <= 1.5)
-                }
             }
         }
     }
@@ -153,7 +172,7 @@ import NearpaneCore
             // Both coordinate origins are covered by symmetric top/bottom sampling.
             let edges = [alpha(3, 50), alpha(236, 50), alpha(120, 3), alpha(120, 476)]
             #expect(edges.allSatisfy { abs($0 - edges[0]) < 0.01 })
-            #expect(edges[0] > 0.35)
+            #expect(abs(edges[0] - (scheme == .dark ? 0.2496 : 0.238)) < 0.01)
             for section in [layout.voice, layout.screenshots] {
                 let y = Int(section.y + section.height / 2)
                 #expect(alpha(120, y) == 0)

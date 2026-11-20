@@ -1,0 +1,214 @@
+{
+  "version": {
+    "version": "5.22",
+    "build": "90",
+    "source": "374ab3769d0e2a124eefddedb7f99fc1d55e9c48",
+    "bundleID": "com.holdsnow.nearpane.alpha",
+    "arch": "arm64",
+    "os": "27.0",
+    "osBuild": "26A428",
+    "signatureValid": true,
+    "loadedMatchesInstalled": true
+  },
+  "environment": {
+    "sipEnabled": true,
+    "displays": [
+      {
+        "bounds": [
+          0,
+          0,
+          1470,
+          956
+        ],
+        "main": true,
+        "rotation": 0,
+        "scale": 2
+      }
+    ],
+    "stageManager": true,
+    "separateSpaces": false,
+    "spaceTypes": [
+      [
+        0,
+        0,
+        4,
+        0
+      ]
+    ]
+  },
+  "installedHostPermissions": {
+    "accessibility": false,
+    "screen": false,
+    "postEvent": false
+  },
+  "independentObserverPermissions": {
+    "accessibility": true,
+    "screen": true
+  },
+  "installedHelperProbes": [
+    {
+      "canMove": false,
+      "canSwitch": false,
+      "ready": true
+    }
+  ],
+  "catalog": {
+    "highlightMatchesSystem": true,
+    "independentCount": 4,
+    "rowIdentitiesMatch": true,
+    "sidebarCount": 4
+  },
+  "roster": {
+    "currentWindowCount": 0,
+    "scrollAreas": 1,
+    "fixtureDimensions": [
+      [
+        540,
+        213
+      ],
+      [
+        240,
+        383
+      ]
+    ],
+    "observedCards": 0,
+    "geometry": "BLOCKED",
+    "pixels": "BLOCKED",
+    "cropAttempts": 0,
+    "ownedSceneCaptured": true,
+    "cleanup": {
+      "ownedProcessExited": true,
+      "ownedWindowsGone": true,
+      "frontmostPreserved": true,
+      "scopesPreserved": true,
+      "focusedWindowPreserved": true
+    }
+  },
+  "installedExactFocus": {
+    "single-window": {
+      "issued": 0,
+      "confirmed": 0,
+      "result": {
+        "reason": "installed sidebar has no unique enabled target control",
+        "status": "NOT_RUN"
+      },
+      "cleanup": {
+        "frontmostRestored": true,
+        "originalFocusedWindowRestored": true,
+        "ownedProcessExited": true,
+        "scopesRestored": true,
+        "windowNumbersGone": true
+      }
+    },
+    "controlled-window": {
+      "issued": 0,
+      "confirmed": 0,
+      "result": {
+        "reason": "installed sidebar has no unique enabled target control",
+        "status": "NOT_RUN"
+      },
+      "cleanup": {
+        "frontmostRestored": true,
+        "originalFocusedWindowRestored": true,
+        "ownedProcessExited": true,
+        "scopesRestored": true,
+        "windowNumbersGone": true
+      }
+    }
+  },
+  "nativeSwitch": {
+    "S02": "BLOCKED",
+    "S03": "NOT_RUN",
+    "R01": "BLOCKED",
+    "sent": 0,
+    "prepared": 0,
+    "unknown": 0,
+    "reason": "No fresh creation manifest for three owned ordinary test Spaces. Installed Host lacks a current positive canSwitch probe.",
+    "S03Reason": "An independent system-initiated switch and a controlled native reorder are still required."
+  },
+  "nativeMove": {
+    "inputs": 0,
+    "movementAttempts": 0,
+    "fixtureStarted": false,
+    "reason": "No positive, unexpired test-Space creation manifest.",
+    "status": "BLOCKED"
+  },
+  "hiddenCapture": {
+    "observedSeconds": 60,
+    "priorScreenPermission": false,
+    "zeroNewRequests": true,
+    "sidebarVisibilityRestored": false,
+    "subsequentNormalSessionRecovery": {
+      "visibleBefore": 0,
+      "show": {
+        "axError": 0,
+        "issued": true
+      },
+      "visibleAfter": 1,
+      "rowCountAfter": 4
+    }
+  },
+  "panelSizesInPoints": {
+    "narrow": [
+      184,
+      923
+    ],
+    "three-tools": [
+      240,
+      923
+    ],
+    "wide": [
+      368,
+      923
+    ]
+  },
+  "dimensionTestSettingsRestored": true,
+  "originalLightAppearanceRestored": true,
+  "calculation": {
+    "dismissalPreservedExpression": true,
+    "displayedExpectedResult": true,
+    "configurationRestored": true
+  },
+  "fileTestConfigurationRestored": true,
+  "regression": {
+    "integratedSwiftTests": 516,
+    "integratedSuites": 76,
+    "foundationSwiftTests": 423,
+    "foundationSuites": 60,
+    "acceptanceGuardTests": 21,
+    "signingTests": 6,
+    "dependencyTests": 8
+  },
+  "finalNormalLaunch": {
+    "canonicalPath": "/Applications/Nearpane.app",
+    "executableMatchesBundle": true,
+    "signatureValid": true,
+    "noAcceptanceArguments": true,
+    "catalog": {
+      "highlightMatchesSystem": true,
+      "independentCount": 4,
+      "rowIdentitiesMatch": true,
+      "sidebarCount": 4
+    },
+    "permissions": {
+      "accessibility": false,
+      "screen": false,
+      "postEvent": false
+    }
+  },
+  "isolatedPreviewFirstAttempt": {
+    "pass": false,
+    "reason": "foreground changed during owned fixture launch",
+    "originalForegroundRestored": true,
+    "ownedProcessesExited": true,
+    "attemptsStoppedBeforeNonactivatingLaunch": 2
+  },
+  "isolatedPreviewController": {
+    "pass": true,
+    "diagnosticOnly": true,
+    "individuallyMatchedPictures": 4,
+    "orderedOutExcluded": true,
+    "originalFrontPreserved": true,
+    "ownedProcessesExited": true
+  }
+}

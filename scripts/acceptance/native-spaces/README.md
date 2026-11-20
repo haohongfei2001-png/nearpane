@@ -1,5 +1,11 @@
 # Installed sidebar witness
 
+## R4 安装版
+
+`run.sh roster <新目录>` 在本屏建立横宽和高窄两扇测试窗，逐一核对正式侧栏身份、独立等比图槽和纵向滚动区。在安装进程具备录屏权限时再比对卡片像素。`r4-scene.swift` 使用 ScreenCaptureKit 仅纳入系统桌面层、两扇登记的测试窗及安装侧栏，把台前调度对测试窗的实际呈现保存在同一画面中。
+
+材质和布局的验收器是独立的命令行工具。各 Swift 文件使用 `xcrun swiftc -parse-as-library` 单独编译。`r4-wallpaper.swift` 采集当前壁纸与 Apple 壁纸样本，`r4-optics.py <采集目录>` 用 Pillow 对蓝黄两次实拍按相同坐标测量。`r4-foreground.py <默认目录> <调节目录> [--dark]` 比较同一壁纸上四处笔画的同坐标像素。`r4-appearance.swift` 通过正式设置切换工具与宽度，结束时复原。`r4-file-drag.swift` 建立真实的 AppKit 拖放来源与接收窗口。`r4-voice.swift` 需要一份绑定当前安装进程的空白验收配置和本地测试音频，由正式侧栏开始和暂停收音。[运行条件、结果与公开截图](../../../engineering/verification/native-spaces/5.22-90-r4/RESULTS.md)
+
 ## 本屏逐窗画面验收
 
 使用已安装的 Nearpane 助手和当前 checkout 的独立 Host 调试模块。首次使用可运行 `NEARPANE_FOUNDATION_ONLY=1 scripts/test.sh` 准备模块，再执行以下单次验收。
@@ -14,7 +20,7 @@ python3 scripts/acceptance/run-current-desktop-selection.py
 
 正式安装版运行时，`scripts/acceptance/native-spaces/run.sh compare-roster <新目录>` 会把正式卡片集合与独立系统观察中的普通窗口比对，分别报告多画、漏画、重复和未核实的数量。该比对不采集窗口标题或像素。`current-sidebar` 另外检查正式权限引导、合成文档卡片和精确选窗。
 
-默认使用不激活的自建测试面板。这个入口在私有临时目录构建两款窗口夹具和一个隔离控制器，独立验证已登记窗口的内容、比例及增减。成功或失败均会输出本次证据目录，保留日志和已生成的 JSON、局部实拍。夹具退出后按路径注销并删除。确需只编译而不执行时，仍可调用 `build-current-desktop-selection.sh`；使用者负责该目录和 Launch Services 注册的清理。正式安装版侧栏的只读测量使用 `scripts/acceptance/native-spaces/run.sh roster <新的证据目录>`。
+隔离窗口清单通过 Launch Services 以后台方式打开两个身份核对过的测试包，并记录前台是否保持。这个入口在私有临时目录构建两款窗口夹具和一个隔离控制器，独立验证已登记窗口的内容、比例及增减。成功或失败均会输出本次证据目录，保留日志和已生成的 JSON、局部实拍。夹具退出后按路径注销并删除。确需只编译而不执行时，仍可调用 `build-current-desktop-selection.sh`；使用者负责该目录和 Launch Services 注册的清理。正式安装版侧栏的只读测量使用 `scripts/acceptance/native-spaces/run.sh roster <新的证据目录>`。
 
 Run from the implementation checkout on the Mac with the installed candidate already running in its normal login session. Each output directory must be new. This developer-side procedure requires Xcode command line tools and Python; it adds no runtime dependency to Nearpane.
 
