@@ -36,11 +36,14 @@
 - 同一 macOS 26.7.2 runner 随后也完成了生产 NearpaneUI 在 foundation-only 配置下的编译。保留原主题设置行为，避免了旧 Swift 编译器的 IR 生成错误。[编译及协议收据](https://github.com/haohongfei2001-png/nearpane/actions/runs/44721534963)
 - P4 本地翻译/单词本与 Saytile 独立分支保留持久化和最终稿测试；P5 独立分支保留预热 5×20 的统计与真实进程用量采样。正式安装版的原位翻译、完整首句矩阵、多屏、Split View、睡眠恢复和性能门槛仍待实测。[P4 源码与收据](https://github.com/haohongfei2001-png/nearpane/tree/baa28fe4b40205e1014b4f702ba1bdd80c6fce46/engineering/verification/native-spaces/5.22-p4) · [P5 数据和门槛](https://github.com/haohongfei2001-png/nearpane/blob/30595b287e66c7fb79ab0bb5999509745f0eaaaa/engineering/verification/native-spaces/5.22-p5/harness.json)
 
+- P4 另在标准 macOS 26.7.2 arm64 runner 合成了三句干净语音及各自 10 dB 加噪文件。Apple 解析到中文，但系统报告设备转录器不可用、资产 unsupported。6 条均为 NOT_RUN，未取得本轮识别率，正式安装版新增冷启动为 0/60。[原始模型收据与复算](https://github.com/haohongfei2001-png/nearpane/tree/d6df4bf1e55949ca97b8a2a712a8020a25130366/engineering/verification/native-spaces/5.22-p4/hosted-speech)
 - P3 的 Riftlet 专用分支在 Chrome、Edge 和四个域的 96 个隔离场景中验证了附件与零发送，16 个可见附件、8 个取消、72 个投递前拒绝。正式 Host、已登录服务的上传完成及 Safari 标签身份尚未通过。[源码、逐案证据及回退](https://github.com/haohongfei2001-png/nearpane/blob/35940ff2917aa51ec6ad2bf19050230af7c5611a/engineering/verification/native-spaces/5.22-p3/QUALIFICATION.md)
+
+同一候选的窗口区再次取证：增强的观察器在空态、两窗分别连续两次核对了 Host 与夹具代际、当前桌面和窗口集合。关窗后正式侧栏读回超时，此次为 BLOCKED，11 帧录屏只覆盖 0→2；此前的 14 帧实拍单独保留。[双读回与超时](12-physical-probe/roster-two-censuses/results.json) · [实际录制区间](12-physical-probe/roster-two-censuses/recording.json)
 
 ## 签名候选与回退
 
-当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。[签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
+当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[源码包与实际安装比对](11-adjacent-round-trip/candidate/zip-installed-tree.json)[签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
 
 此候选的侧栏实拍 0→2→0，无占位标签和空间行，14 帧、15.69 秒。双窗时候选显示了两张身份正确的卡，独立观察器本次报告了 0 扇可证明可见窗口，故此轮窗口完整性为 BLOCKED。夹具退出后两个号码均已消失。[截图](11-adjacent-round-trip/window-roster/two-documents-sidebar.png) · [侧栏录屏](11-adjacent-round-trip/window-roster/installed-sidebar.mp4) · [完整性分项](11-adjacent-round-trip/window-roster/results.json)
 

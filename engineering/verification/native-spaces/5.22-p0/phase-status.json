@@ -56,7 +56,14 @@
     "developmentCommit": "baa28fe4b40205e1014b4f702ba1bdd80c6fce46",
     "installedTranslationWordbookAndColdVoice": "NOT_RUN",
     "systemLanguageModelForTestRunner": "supported, not installed",
-    "prerequisiteForIntegration": "P3"
+    "prerequisiteForIntegration": "P3",
+    "hostedFileASRCommit": "d6df4bf1e55949ca97b8a2a712a8020a25130366",
+    "hostedFileASRRun": 44730039447,
+    "hostedFileASR": "BLOCKED",
+    "sixSyntheticFilesCreated": 6,
+    "filesRecognized": 0,
+    "addedPhysicalColdStarts": 0,
+    "hostedAsset": "unsupported on hosted macOS 26.7.2 arm64"
   },
   "P5": {
     "status": "BLOCKED",
