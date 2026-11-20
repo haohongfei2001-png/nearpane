@@ -51,7 +51,7 @@ def measured(action):
     try:return action()
     except ERRORS as error:return {"status":"BLOCKED","reason":str(error)[:200]}
 
-def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source=None,sampler="polling"):
+def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source=None,sampler="polling",budget_only=False):
     def fresh():
         value=read(query)
         if any(value.get(k)!=before[k] for k in INVARIANT if k!="panel") or not owns_profile(host,profile):
@@ -94,6 +94,16 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
         return dict(status="MATCH" if len(samples)==2 and all(p["color"].startswith(str(i)+"/") for i,p in enumerate(samples)) else "UNCONFIRMED",
                     fixtureNumbers=ref["numbers"],crops=ref["sources"],filters=next((r["filterGeometry"] for r in rows if "filterGeometry" in r),[]),observations=samples,
                     occlusion=next((r["sourceHostOcclusionsBeforeAndAfter"] for r in rows if "sourceHostOcclusionsBeforeAndAfter" in r),[]))
+    host_id={"pid":host,"codeHash":host_hash}
+    def hidden():
+        value=required(sterile=True)
+        if not value.get("cardIdentityProven"):raise ValueError("bothInstalledCardIdentitiesUnconfirmed")
+        return with_current_streams(kit,host_id,lambda:owns_profile(host,profile),fresh,output/"hidden")
+    if budget_only:
+        result["hiddenBudget"]=measured(hidden)
+        result["status"]=result["hiddenBudget"]["status"]
+        save()
+        return
     if witness and proof.get("sourceProven"):
         result["sourceReference"]=measured(source_reference);save()
     if audit:result["auditBeforeSampling"]=measured(lambda:audit.evidence("before-sampling"))
@@ -128,7 +138,6 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
             result["metrics"]=summarize([]);result["metrics"]["status"]="NOT_MEASURED"
             result["metrics"]["sampling"]["samePanelFrame"]=None
     save()
-    host_id={"pid":host,"codeHash":host_hash}
     if witness or budget:
         result["twoCardSurface"]=measured(lambda:surface_checkpoint(kit,host_id,before["space"],False,2));save()
     if witness:
@@ -149,10 +158,6 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
                 return capture_film(kit,folder,output,proof)
             result["cardFilm"]=measured(film);save()
     if budget:
-        def hidden():
-            value=required(sterile=True)
-            if not value.get("cardIdentityProven"):raise ValueError("bothInstalledCardIdentitiesUnconfirmed")
-            return with_current_streams(kit,host_id,lambda:owns_profile(host,profile),fresh,output/"hidden")
         result["hiddenBudget"]=measured(hidden);save()
     if cross_space:
         def switch():
@@ -161,7 +166,7 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
             return cross_space(source)
         result["systemDesktopSwitch"]=measured(switch);save()
 
-def run(kit, output, preflight_only=False, expected_space=None, witness=False, budget=False, cross_space=None, sampler="polling"):
+def run(kit, output, preflight_only=False, expected_space=None, witness=False, budget=False, cross_space=None, sampler="polling",budget_only=False):
     os.umask(0o077)
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     result={'status':'BLOCKED','scope':'two synthetic ordinary documents, same active Space, actual installed Host sidebar',
@@ -183,7 +188,7 @@ def run(kit, output, preflight_only=False, expected_space=None, witness=False, b
         cmd=[kit/'paired-scope',host,host_hash]
         before=read(cmd);result['preflight']=before;save()
         if not before.get('ready'):raise ValueError(before.get('reason','incompletePreflight'))
-        if (witness or budget or cross_space) and before.get('stageManager') is not False:raise ValueError('stageOffForThisAcceptanceUnverified')
+        if (witness or budget or budget_only or cross_space) and before.get('stageManager') is not False:raise ValueError('stageOffForThisAcceptanceUnverified')
         if expected_space is not None and before['space']!=expected_space:raise ValueError('unexpectedActiveDesktop')
         if preflight_only:
             result.update(status='READY',reason='physical run not requested');return 0
@@ -230,7 +235,7 @@ def run(kit, output, preflight_only=False, expected_space=None, witness=False, b
                             or not census.get("admitted")):raise ValueError("independentTwoDocumentCleanDesktopBeforeSwitchUnconfirmed")
                     return dict(hostBirth=before["hostBirth"],hostPID=host,space=before["space"],fixturePID=fixture_pid,fixtureBirth=state["birth"],
                                 fixtureHash=fixture_hash,numbers=numbers,sourceProven=True,windowCensus=census)
-                casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source,sampler)
+                casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source,sampler,budget_only)
             finally:
                 if audit:result["hostAudit"]=measured(lambda:audit.evidence("final",release=True))
                 (folder/"close").touch();forced=False;fixture_terminated=False
@@ -270,5 +275,6 @@ if __name__=='__main__':
     parser.add_argument('--expected-space',type=int,help='require this exact already-active ordinary Space')
     parser.add_argument('--witness',action='store_true',help='retain only fully verified synthetic color patches and eligible preview media')
     parser.add_argument('--hidden-budget',action='store_true',help='reuse the one-minute installed status-menu contract while these same two windows exist')
+    parser.add_argument('--hidden-budget-only',action='store_true',help='run the one-minute visibility and stream-restoration contract independently of timing and media')
     parser.add_argument('--preview-sampler',choices=('polling','streams'),default='polling')
-    args=parser.parse_args();raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.preflight_only,args.expected_space,args.witness,args.hidden_budget,sampler=args.preview_sampler))
+    args=parser.parse_args();raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.preflight_only,args.expected_space,args.witness,args.hidden_budget,sampler=args.preview_sampler,budget_only=args.hidden_budget_only))

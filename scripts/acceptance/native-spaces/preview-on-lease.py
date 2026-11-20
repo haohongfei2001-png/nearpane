@@ -130,8 +130,9 @@ def run(args):
             proof = driver.readable_result(output / "five-windows/result.json")
             result["fiveWindows"] = dict(status=proof["status"], reason=proof.get("reason"), exit=child.returncode)
         else:
+            mode = "--hidden-budget-only" if args.scenario == "hidden-budget" else "--witness"
             child = subprocess.run([sys.executable, preview, kit, output / "preview", "--expected-space",
-                                    str(args.expected_space), "--witness", "--preview-sampler", "streams"], timeout=160)
+                                    str(args.expected_space), mode, "--preview-sampler", "streams"], timeout=160)
             proof = driver.readable_result(output / "preview/result.json")
             result["preview"] = dict(status=proof["status"], reason=proof.get("reason"), exit=child.returncode)
         result["offZeroAfter"] = driver.surface_checkpoint(kit, workspace.host, args.expected_space, False, 0)
@@ -153,7 +154,7 @@ def run(args):
                     result["cleanupReason"] = str(error)[:260]
                     result["status"] = "BLOCKED"
         save()
-        if (output / "preview/result.json").is_file():
+        if args.scenario != "hidden-budget" and (output / "preview/result.json").is_file():
             try:
                 proc = subprocess.run([sys.executable, media, output / "preview"], timeout=30)
                 result["media"] = dict(status=driver.readable_result(output / "preview/media/receipt.json")["status"],
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     parser.add_argument("workspace", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--expected-space", required=True, type=int)
-    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows", "controlled-window"), default="paired-preview")
+    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows", "controlled-window", "hidden-budget"), default="paired-preview")
     parser.add_argument("--five-window-kit", type=Path, help="signed five-application kit for the five-windows scenario")
     parser.add_argument("--previous-archive", type=Path)
     parser.add_argument("--install-receipt", type=Path)

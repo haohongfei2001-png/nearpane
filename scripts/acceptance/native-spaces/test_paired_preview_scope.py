@@ -59,6 +59,20 @@ precondition(corrected["crop"] as? [Double]==[12.5,13,4,4])
             cross.assert_not_called();self.assertEqual(result["systemDesktopSwitch"]["status"],"BLOCKED")
             self.assertIn("UnverifiedOwners", result["systemDesktopSwitch"]["reason"])
 
+    def test_hidden_only_verdict_comes_from_restored_streams(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d=Path(tmp);before=dict(hostPID=7,hostBirth=8,hostHash="hash",display="d",space=5,panel=1)
+            binding=dict(before,ready=True,sourceProven=True,cardIdentityProven=True,windowCensus={"admitted":True})
+            for verdict in ("PASS","FAIL","BLOCKED"):
+                result={}
+                with patch.object(paired,"read",return_value=binding),patch.object(paired,"owns_profile",return_value=True), \
+                        patch.object(paired,"with_current_streams",return_value={"status":verdict}) as hidden, \
+                        patch.object(paired,"collect") as capture:
+                    paired.casework(d,d,d,[],7,"hash",d,before,False,False,None,result,lambda:None,None,budget_only=True)
+                hidden.assert_called_once()
+                capture.assert_not_called()
+                self.assertEqual(result["status"],verdict)
+
     def test_host_audit_accepts_only_two_distinct_enrolled_windows_of_one_process(self):
         with tempfile.TemporaryDirectory() as tmp:
             d=Path(tmp).resolve();audit=PairedWindowAudit.__new__(PairedWindowAudit)
