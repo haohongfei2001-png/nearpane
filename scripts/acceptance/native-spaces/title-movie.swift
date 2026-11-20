@@ -8,12 +8,18 @@ struct MovieInput: Decodable { let file: URL; let time: Double }
 struct MovieError: Error {}
 @main struct TitleMovie {
     static func main() async throws {
-        guard CommandLine.arguments.count == 3 else { throw MovieError() }
+        let originalSize = CommandLine.arguments.count == 4 && CommandLine.arguments[3] == "source-size"
+        guard CommandLine.arguments.count == 3 || originalSize else { throw MovieError() }
         let manifest = URL(fileURLWithPath: CommandLine.arguments[1]), output = URL(fileURLWithPath:CommandLine.arguments[2])
         let frames = try JSONDecoder().decode([MovieInput].self,from:Data(contentsOf:manifest))
         guard frames.count >= 2, !FileManager.default.fileExists(atPath:output.path) else { throw MovieError() }
         let writer = try AVAssetWriter(outputURL:output,fileType:.mp4)
-        let width=360, height=102
+        var width=360, height=102
+        if originalSize {
+            guard let source=CGImageSourceCreateWithURL(frames[0].file as CFURL,nil), let frame=CGImageSourceCreateImageAtIndex(source,0,nil),
+                  [frame.width,frame.height].allSatisfy({ $0 > 0 && $0 <= 8192 && $0.isMultiple(of:2) }) else {throw MovieError()}
+            width=frame.width; height=frame.height
+        }
         let input = AVAssetWriterInput(mediaType:.video,outputSettings:[AVVideoCodecKey:AVVideoCodecType.h264,AVVideoWidthKey:width,AVVideoHeightKey:height]); input.expectsMediaDataInRealTime=false
         let settings:[String:Any] = [kCVPixelBufferPixelFormatTypeKey as String:kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String:width,kCVPixelBufferHeightKey as String:height]
         let sink=AVAssetWriterInputPixelBufferAdaptor(assetWriterInput:input,sourcePixelBufferAttributes:settings)
@@ -22,7 +28,7 @@ struct MovieError: Error {}
         for frame in frames {
             guard frame.file.deletingLastPathComponent().standardizedFileURL==manifest.deletingLastPathComponent().standardizedFileURL,
                   let src=CGImageSourceCreateWithURL(frame.file as CFURL,nil),let image=CGImageSourceCreateImageAtIndex(src,0,nil),
-                  let pool=sink.pixelBufferPool else {throw MovieError()}
+                  !originalSize || (image.width == width && image.height == height), let pool=sink.pixelBufferPool else {throw MovieError()}
             var buffer:CVPixelBuffer?;guard CVPixelBufferPoolCreatePixelBuffer(nil,pool,&buffer)==kCVReturnSuccess,let buffer else {throw MovieError()}
             CVPixelBufferLockBaseAddress(buffer,[])
             guard let context=CGContext(data:CVPixelBufferGetBaseAddress(buffer),width:width,height:height,bitsPerComponent:8,bytesPerRow:CVPixelBufferGetBytesPerRow(buffer),space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGBitmapInfo.byteOrder32Little.rawValue|CGImageAlphaInfo.premultipliedFirst.rawValue) else {throw MovieError()}

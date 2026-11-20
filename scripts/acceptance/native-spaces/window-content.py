@@ -1,5 +1,6 @@
 """Verify an installed window-only roster before, during and after two owned documents."""
 import argparse
+from contextlib import nullcontext
 import json
 import os
 from pathlib import Path
@@ -11,14 +12,15 @@ import uuid
 
 from acceptance import encode, identity, wait_state
 from installed_profile import APP, PROFILE, installed_pid, owns_profile
+from roster_recording import RosterRecording
 
 
-def read(command):
-    output = subprocess.check_output([str(part) for part in command], text=True, timeout=8)
+def read(command, *, timeout=8):
+    output = subprocess.check_output([str(part) for part in command], text=True, timeout=timeout)
     return json.loads(output)
 
 
-def run(kit, output, owned_stage):
+def run(kit, output, owned_stage, film=False):
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     observer = kit / "observe"
     capture = kit / "capture"
@@ -32,6 +34,7 @@ def run(kit, output, owned_stage):
                   checkpoints={}, fixtureExited=False, status="BLOCKED")
     result_path = output / "results.json"
 
+    recording = None
     def checkpoint(label, pid=0, numbers=()):
         args = ["roster-content", digest, str(pid), *map(str, numbers)]
         deadline = time.monotonic() + 12
@@ -48,16 +51,17 @@ def run(kit, output, owned_stage):
         record = {"proof": proof, "independentRoster": census}
         if proof.get("ready") and proof == previous:
             screenshot = output / (label + ".png")
-            captured = read([capture, observer, *args, screenshot])
-            record["captured"] = captured.get("ready") is True and screenshot.is_file()
-            if record["captured"]:
-                record["image"] = screenshot.name
-                panel = output / (label + "-sidebar.png")
-                panel_proof = read([capture, observer, "roster-panel", *args[1:], panel])
-                if panel_proof.get("ready") and panel.is_file():
-                    record["sidebarImage"] = panel.name
-                    record["wallpaperIncluded"] = panel_proof.get("wallpaperIncluded", False)
-                    record["isolatedProfile"] = panel_proof.get("isolatedProfile", False)
+            with recording.camera if recording else nullcontext():
+                captured = read([capture, observer, *args, screenshot], timeout=12)
+                record["captured"] = captured.get("ready") is True and screenshot.is_file()
+                if record["captured"]:
+                    record["image"] = screenshot.name
+                    panel = output / (label + "-sidebar.png")
+                    panel_proof = read([capture, observer, "roster-panel", *args[1:], panel], timeout=12)
+                    if panel_proof.get("ready") and panel.is_file():
+                        record["sidebarImage"] = panel.name
+                        record["wallpaperIncluded"] = panel_proof.get("wallpaperIncluded", False)
+                        record["isolatedProfile"] = panel_proof.get("isolatedProfile", False)
         proven = census.get("provenVisibleStandard")
         record["status"] = "PASS" if (record.get("captured") and proven == len(numbers) and
                                       census.get("missingProvenVisible") == 0 and census.get("knownWrongCards") == 0) else "BLOCKED"
@@ -65,6 +69,8 @@ def run(kit, output, owned_stage):
             record["status"] = "FAIL"
         result["checkpoints"][label] = record
         result_path.write_text(encode(result))
+        if recording:
+            recording.witness(numbers)
 
     fixture = kit / "Field Notes.app" / "Contents/MacOS/FieldNotes"
     if not fixture.is_file():
@@ -92,6 +98,8 @@ def run(kit, output, owned_stage):
                 if not documents(0):
                     raise RuntimeError("Warm-up document owner still reports windows")
                 result["warmupNumbersGoneImmediately"] = read([observer, "absence", *warmup]).get("allGone")
+                if film:
+                    recording = RosterRecording(kit, folder, proc.pid, digest, output)
                 checkpoint("empty-before")
                 (folder / "open-documents").touch()
                 state = documents(2)
@@ -110,6 +118,8 @@ def run(kit, output, owned_stage):
         finally:
             (folder / "close").touch()
             proc.wait(timeout=12)
+            if recording:
+                recording.finish()
             result["fixtureExited"] = True
             until = time.monotonic() + 5
             result["windowNumbersGone"] = False
@@ -135,5 +145,8 @@ if __name__ == "__main__":
     parser.add_argument("kit", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--owned-stage", action="store_true", help="activate only the disposable document app and keep it running while its documents close")
+    parser.add_argument("--record", action="store_true", help="record independently admitted sidebar frames throughout the owned window cycle")
     args = parser.parse_args()
-    raise SystemExit(run(args.kit.resolve(), args.output.resolve(), args.owned_stage))
+    if args.record and not args.owned_stage:
+        parser.error("--record requires --owned-stage")
+    raise SystemExit(run(args.kit.resolve(), args.output.resolve(), args.owned_stage, args.record))
