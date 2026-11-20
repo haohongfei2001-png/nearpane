@@ -1,4 +1,6 @@
 import unittest
+import importlib
+import json
 from unittest.mock import patch
 from pathlib import Path
 import split_fullscreen as fs
@@ -18,6 +20,25 @@ def tiled(member,current=FULL):
                 draw=[True,True],windowManagement=SHELL)
 
 class Tests(unittest.TestCase):
+    def test_only_one_independently_verified_offscreen_apple_surface_can_enter_the_initial_census(self):
+        driver=importlib.import_module('split-view')
+        candidate={'pid':647,'number':117}
+        def snapshot(ordinary):
+            return dict(host={'pid':1,'codeHash':'h'},installedHostCount=1,displays=[{}],stageManager=True,
+                        scopes=[{'current':LEASE,'scope':'d','records':[{'id':LEASE,'uuid':'u','type':0}]}],
+                        scopedMembers={str(LEASE):{'ordinary':ordinary,'otherMembers':0,'otherDetails':[],'unresolved':0}})
+        proof={'admitted':True,'number':117,'ownerBirth':10,'bounds':[1352,446,103,97]}
+        for ordinary_rows,replies,accepted in [([candidate],[proof,proof],True),([candidate],[{'admitted':False}],False),
+                                 ([candidate],[proof,{**proof,'ownerBirth':11}],False),([candidate,candidate],[],False)]:
+            def output(cmd,**_):
+                return b'10' if len(cmd)>1 else json.dumps(snapshot(ordinary_rows)).encode()
+            with self.subTest(ordinary=ordinary_rows,replies=replies),patch.object(driver.subprocess,'check_output',side_effect=output), \
+                 patch.object(driver,'read',side_effect=replies),patch.object(driver.time,'sleep'):
+                run=lambda:driver.fullscreen_admission(Path('/unused'),1,'h','d',LEASE,{str(LEASE):'u'})
+                if accepted:self.assertEqual(run()['inactiveStageSurface'],proof)
+                else:
+                    with self.assertRaises(ValueError):run()
+
     def test_fullscreen_entry_requires_agreeing_display_sized_live_geometry(self):
         s=dict(displayFrame=[-1000,10,1000,680],cgFrames=[[-1000,40,1000,650],None],
                axFrames=[[-1000,40,1000,650],None])

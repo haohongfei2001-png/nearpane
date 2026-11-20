@@ -319,7 +319,43 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     } else {return stop("uniqueOwnedSystemPickerEntryUnavailable")}
     return result
 }
+struct InactiveStageSurface: Decodable {
+    let space:UInt64, display:String, number:UInt32, pid:pid_t
+}
+func readInactiveStageSurface(_ r:InactiveStageSurface)->Object {
+    var out:Object=["admitted":false,"pixels":0]
+    guard stage==true,AXIsProcessTrusted(),let manager=try? OverviewProcess.current(.manager),manager.pid==r.pid,
+          let scope=inventory(requireComplete:true),scope.count==1,scope[0]["scope"] as? String==r.display,
+          scope[0]["current"] as? UInt64==r.space,NSScreen.screens.count==1,let actual=displays().first,
+          actual["uuid"] as? String==r.display,let monitor=NSScreen.screens.first,
+          let physical=monitor.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? UInt32 else{return out}
+    let screen=CGDisplayBounds(physical)
+    guard let forward=NPReadCatalogSpaceWindowNumbers(r.space) as? [UInt32],forward.contains(r.number),
+          NPReadWindowSpaces(r.number) as? [UInt64]==[r.space],
+          let rows=PreviewCensus.windowRows(r.number),rows.count==1,let row=rows.first,
+          row[kCGWindowNumber as String] as? UInt32==r.number,row[kCGWindowOwnerPID as String] as? pid_t==manager.pid,
+          row[kCGWindowLayer as String] as? Int==0,row[kCGWindowIsOnscreen as String] as? Bool != true,
+          let bounds=row[kCGWindowBounds as String] as? NSDictionary,let f=CGRect(dictionaryRepresentation:bounds),
+          screen.contains(f),f.minX>screen.minX+screen.width*0.75,f.width>2,f.height>2,
+          f.width<=screen.width*0.15,f.height<=screen.height*0.15,
+          let visible=CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [Object],
+          !visible.contains(where:{$0[kCGWindowNumber as String] as? UInt32==r.number}),
+          let publicNow=NSWindow.windowNumbers(options:.allApplications),!publicNow.contains(NSNumber(value:r.number))
+    else{return out}
+    let root=AXUIElementCreateApplication(manager.pid)
+    _=AXUIElementSetMessagingTimeout(root,0.25)
+    guard let windows=value(root,kAXWindowsAttribute) as? [AXUIElement],windows.allSatisfy({manager.owns($0) && NPReadAXWindowNumber($0) != r.number}),
+          (try? manager.verify()) != nil,NPReadWindowSpaces(r.number) as? [UInt64]==[r.space] else{return out}
+    out["admitted"]=true;out["category"]="offscreenSignedWindowManagerSurface";out["ownerBirth"]=manager.birth
+    out["number"]=r.number;out["bounds"]=numericRect(f);out["publicOnscreen"]=false;out["listedAsOwnDocument"]=false
+    return out
+}
 let input=FileHandle.standardInput.readData(ofLength:16385)
+if CommandLine.arguments.dropFirst().elementsEqual(["compare-roster","inactive-stage-surface"]),input.count<=1024 {
+    let stamp=try JSONDecoder().decode(InactiveStageSurface.self,from:input)
+    print(String(decoding:try JSONSerialization.data(withJSONObject:readInactiveStageSurface(stamp),options:.sortedKeys),as:UTF8.self))
+    exit(0)
+}
 guard CommandLine.arguments.count==3,CommandLine.arguments[1]=="compare-roster",input.count<=16384 else {exit(2)}
 let enrollment=try JSONDecoder().decode(SplitEnrollment.self,from:input)
 let output=scopedSplit(CommandLine.arguments[2],enrollment)

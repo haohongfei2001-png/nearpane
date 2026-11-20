@@ -145,7 +145,7 @@ def fixture_directory():
 
 def fullscreen_admission(kit,host,host_hash,display,target,protected):
     """Only the leased ordinary Space is inspected for ordinary documents."""
-    last=None;types=None;host_numbers=None
+    last=None;types=None;host_numbers=None;inactive_surface=None
     for _ in range(2):
         raw=subprocess.check_output([kit/'observe'],env={**os.environ,'NEARPANE_CONTRACT_SPACE_IDS':str(target)},
                                     timeout=6,stderr=subprocess.DEVNULL)
@@ -160,7 +160,17 @@ def fullscreen_admission(kit,host,host_hash,display,target,protected):
                 any(r['id']==target and r['type']==0 for r in scope['records']),'sourceIsNotEnrolledCurrentOrdinarySpace')
         c=(view.get('scopedMembers') or {}).get(str(target),{});layers=c.get('otherDetails',[])
         permitted={'com.apple.dock','com.apple.WindowManager','com.apple.WindowServer'}
-        require(c.get('ordinary')==[] and c.get('unresolved')==0 and c.get('otherMembers')==len(layers) and all(
+        candidates=c.get('ordinary')
+        require(isinstance(candidates,list) and len(candidates)<=1,'unverifiedOrdinaryDocumentOnInitialLease')
+        hidden={}
+        if candidates:
+            item=candidates[0]
+            hidden=read([kit/'split-view-read','compare-roster','inactive-stage-surface'],payload=dict(
+                display=display,space=target,pid=item['pid'],number=item['number']))
+            require(hidden.get('admitted') is True,'initialLayerZeroIsNotAnIndependentlyHiddenSignedStageSurface')
+        require(inactive_surface is None or hidden==inactive_surface,'hiddenSystemSurfaceChangedDuringAdmission')
+        inactive_surface=hidden
+        require(c.get('unresolved')==0 and c.get('otherMembers')==len(layers) and all(
             v.get('installedHost')==1 or (v.get('code',{}).get('apple') is True and v['code'].get('identifier') in permitted)
             for v in layers),'leasedFullscreenSourceNotIndependentlyEmpty')
         witnessed=split_fullscreen.host_window_numbers(layers,host,target)
@@ -170,7 +180,7 @@ def fullscreen_admission(kit,host,host_hash,display,target,protected):
         require(isinstance(stage,bool) and (last is None or stage==last),'stagePreferenceUnstable')
         last=stage;time.sleep(.18)
     birth=int(subprocess.check_output([kit/'system-workspace','birth',str(host)],timeout=4))
-    return dict(hostBirth=birth,stageManager=last,protectedTypes=types,enrolledHostWindows=host_numbers)
+    return dict(hostBirth=birth,stageManager=last,protectedTypes=types,enrolledHostWindows=host_numbers,inactiveStageSurface=inactive_surface)
 
 
 def run(kit, output, target, *, fullscreen_roundtrip=False, resume_workspace=None):
@@ -241,7 +251,7 @@ def run(kit, output, target, *, fullscreen_roundtrip=False, resume_workspace=Non
                 if fullscreen_roundtrip:
                     req.update(observedStage=clean['stageManager'],protectedTypes=clean['protectedTypes'],
                                enrolledHostWindows=clean['enrolledHostWindows'])
-                    result['enrolledHostWindows']=clean['enrolledHostWindows'];save()
+                    result['enrolledHostWindows']=clean['enrolledHostWindows'];result['inactiveStageSurface']=clean['inactiveStageSurface'];save()
                 def read_full():
                     v=sample('fullscreen-read')
                     hardware=v.get('hardware')
