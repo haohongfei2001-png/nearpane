@@ -1,0 +1,37 @@
+{
+  "source": "946afb9b32215de35481034d182255109528a8f9",
+  "hostResourceEntitlements": {
+    "com.apple.security.automation.apple-events": true,
+    "com.apple.security.device.audio-input": true
+  },
+  "dailyHostPreviouslySignedResources": {
+    "com.apple.security.automation.apple-events": false,
+    "com.apple.security.device.audio-input": false
+  },
+  "previousCandidateSignedResources": {
+    "com.apple.security.automation.apple-events": false,
+    "com.apple.security.device.audio-input": false
+  },
+  "nestedResourceEntitlements": {
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate": [],
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle": [],
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater": [],
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader": [],
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer": [],
+    "Helpers/NearpaneAutomation": [],
+    "Helpers/NearpaneDesktopReader": [],
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader": [],
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows": [],
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController": [],
+    "Helpers/NearpaneOrdinaryWindowController": [],
+    "Helpers/NearpaneSpaceAction": []
+  },
+  "bundleIdentity": "com.holdsnow.nearpane.alpha",
+  "signingTeam": "ZB9D4T66QB",
+  "bidirectionalRequirementsWithDaily": "PASS",
+  "subjects": 8,
+  "sealedBinaries": 13,
+  "slices": 18,
+  "distributionGaps": [],
+  "systemPermissionReset": false
+}

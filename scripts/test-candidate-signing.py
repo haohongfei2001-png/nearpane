@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import plistlib
 import subprocess
 import tempfile
 import unittest
@@ -81,6 +82,43 @@ class CandidateIdentityTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     signing.sign_staged(stage / "Nearpane.app", self.fingerprint)
             command.assert_not_called()
+
+    def test_only_host_merges_required_resources_and_preserves_its_existing_grants(self):
+        required = {"com.apple.security.automation.apple-events": True,
+                    "com.apple.security.device.audio-input": True}
+        original = {"example.existing": True, "com.apple.security.device.audio-input": False}
+        with tempfile.TemporaryDirectory(prefix=".nearpane-stage.") as private:
+            app = (Path(private) / "Nearpane.app").resolve()
+            app.mkdir()
+            helper = app / "helper"
+            helper.touch()
+            observed = {}
+
+            def command(*args):
+                if args[0] == "/usr/bin/security":
+                    return self.identity.replace("A012345678", signing.gate.PRODUCT_SIGNING_TEAM)
+                if "--force" in args:
+                    path = Path(args[-1])
+                    if "--entitlements" in args:
+                        observed[path] = plistlib.loads(Path(args[args.index("--entitlements") + 1]).read_bytes())
+                    else:
+                        self.assertIn("--preserve-metadata=entitlements", args)
+                        observed[path] = "preserved"
+                return ""
+
+            def seal_pair(candidate, seal):
+                self.assertEqual(candidate, app)
+                seal(helper, "helper")
+                seal(candidate, "host")
+
+            report = {"binaries": {}, "hostResourceEntitlements": required}
+            with patch.object(signing, "seal_components", side_effect=seal_pair), patch.object(
+                    signing.gate, "inspect", return_value=report), patch.object(
+                    signing.gate, "cmd", side_effect=command), patch.object(
+                    signing.gate, "entitlements", return_value=original) as current:
+                signing.sign_staged(app, self.fingerprint)
+            current.assert_called_once_with(app)
+            self.assertEqual(observed, {helper: "preserved", app: {**original, **required}})
 
     @patch.object(signing.gate, "cmd", return_value="Signature=adhoc\nTeamIdentifier=not set")
     def test_legacy_adhoc_can_migrate_once(self, command):
