@@ -62,8 +62,19 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
 }
 let timer = Timer(timeInterval: 0.08, repeats: true) { _ in
     guard windows.count == 2 else { return }
-    if FileManager.default.fileExists(atPath: folder.appendingPathComponent("close").path)
-        || ProcessInfo.processInfo.systemUptime - start > 360 {
+    let closeRequested=FileManager.default.fileExists(atPath:folder.appendingPathComponent("close").path)
+    var expired=ProcessInfo.processInfo.systemUptime-start>360
+    #if SPLIT_VIEW_FIXTURE
+    var allowClose=true
+    if FileManager.default.fileExists(atPath:folder.appendingPathComponent("normal-fullscreen-exit").path) {
+        allowClose = !windows.contains(where:{$0.styleMask.contains(.fullScreen)})
+        let retained=FileManager.default.fileExists(atPath:folder.deletingLastPathComponent().appendingPathComponent("retain-for-owned-exit").path)
+        expired=expired && !retained && allowClose
+    }
+    #else
+    let allowClose=true
+    #endif
+    if (closeRequested && allowClose) || expired {
         windows.forEach { $0.close() }; app.terminate(nil); return
     }
     if let data = try? Data(contentsOf: folder.appendingPathComponent("request.json")),

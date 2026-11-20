@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Exercise the native fullscreen tiling menu for two leased documents and read the installed sidebar."""
 import argparse
+import contextlib
+import shutil
 import json
 import math
 import os
@@ -14,6 +16,7 @@ import uuid
 from acceptance import encode, identity, wait_state
 from installed_profile import APP, PROFILE, installed_pid, owns_profile
 from space_scope import LEDGERS, private_file
+import split_fullscreen
 
 
 def require(value, reason):
@@ -132,11 +135,48 @@ def wait_ordinary_control(sample, target, *, deadline):
         time.sleep(.15)
 
 
-def run(kit, output, target):
+@contextlib.contextmanager
+def fixture_directory():
+    tmp=Path(tempfile.mkdtemp(prefix='nearpane-split-view.',dir='/private/tmp'))
+    try:yield tmp
+    finally:
+        if not (tmp/'retain-for-owned-exit').exists():shutil.rmtree(tmp)
+
+
+def fullscreen_admission(kit,host,host_hash,display,target,protected):
+    """Only the leased ordinary Space is inspected for ordinary documents."""
+    last=None;types=None
+    for _ in range(2):
+        raw=subprocess.check_output([kit/'observe'],env={**os.environ,'NEARPANE_CONTRACT_SPACE_IDS':str(target)},
+                                    timeout=6,stderr=subprocess.DEVNULL)
+        view=json.loads(raw);installed=view.get('host') or {};scopes=view.get('scopes') or []
+        require(len(scopes)==len(view.get('displays',[]))==1 and view.get('installedHostCount')==1 and
+                installed.get('pid')==host and installed.get('codeHash')==host_hash,'installedHostOrDisplayIdentityChanged')
+        scope=scopes[0];kind={str(r['id']):r['uuid'] for r in scope['records']}
+        current_types={str(r['id']):r['type'] for r in scope['records']}
+        require(types is None or current_types==types,'protectedSpaceTypesChangedDuringAdmission')
+        types=current_types
+        require(scope.get('scope')==display and scope.get('current')==target and protected==kind and
+                any(r['id']==target and r['type']==0 for r in scope['records']),'sourceIsNotEnrolledCurrentOrdinarySpace')
+        c=(view.get('scopedMembers') or {}).get(str(target),{});layers=c.get('otherDetails',[])
+        permitted={'com.apple.dock','com.apple.WindowManager','com.apple.WindowServer'}
+        require(c.get('ordinary')==[] and c.get('unresolved')==0 and c.get('otherMembers')==len(layers) and all(
+            v.get('installedHost')==1 or (v.get('code',{}).get('apple') is True and v['code'].get('identifier') in permitted)
+            for v in layers),'leasedFullscreenSourceNotIndependentlyEmpty')
+        stage=view.get('stageManager')
+        require(isinstance(stage,bool) and (last is None or stage==last),'stagePreferenceUnstable')
+        last=stage;time.sleep(.18)
+    birth=int(subprocess.check_output([kit/'system-workspace','birth',str(host)],timeout=4))
+    return dict(hostBirth=birth,stageManager=last,protectedTypes=types)
+
+
+def run(kit, output, target, *, fullscreen_roundtrip=False, resume_workspace=None):
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     result = {'status':'BLOCKED','fixtureLaunched':False, 'tile':{'issued':False}, 'pair':{'issued':False},
               'systemPair':'NOT_RUN','installedLayout':'NOT_RUN','cleanup':{'status':'NOT_RUN'},
               'observations':[], 'physicalSource':'two synthetic documents only', 'pixelsRead':0}
+    if fullscreen_roundtrip:
+        result.update(mode='fullscreen-roundtrip',fullscreen={'status':'NOT_RUN'},systemPair='NOT_RUN',installedLayout='NOT_RUN')
     save = lambda: save_receipt(output, result)
     save()
     try:
@@ -149,24 +189,32 @@ def run(kit, output, target):
         for app, identifier in [(APP, 'com.holdsnow.nearpane.alpha'), (fixture.parents[2], 'net.example.spaces-split-documents')]:
             subprocess.run(['codesign','--verify','--strict','--deep','-R=identifier "'+identifier+'"',app],
                            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
-        display, protected = lease_identity(Path(os.environ['NEARPANE_SPLIT_LEASE']), target)
+        if resume_workspace:
+            require(fullscreen_roundtrip,'resumeOnlyForOwnedSingleWindowFullscreen')
+            display,protected=split_fullscreen.resume_lease(resume_workspace,target)
+        else:
+            display,protected=lease_identity(Path(os.environ['NEARPANE_SPLIT_LEASE']),target)
         host_hash = identity(APP)['CDHash']
-        clean = read([kit/'paired-scope',host,host_hash])
-        require(clean.get('ready') and clean.get('stageManager') is False and clean.get('display')==display
-                and clean.get('space')==target and clean['ordinaryCount']==0, 'isolatedStageOffEmptyOrdinaryDesktopUnavailable')
+        if fullscreen_roundtrip:
+            clean=fullscreen_admission(kit,host,host_hash,display,target,protected)
+        else:
+            clean = read([kit/'paired-scope',host,host_hash])
+            require(clean.get('ready') and clean.get('stageManager') is False and clean.get('display')==display
+                    and clean.get('space')==target and clean['ordinaryCount']==0, 'isolatedStageOffEmptyOrdinaryDesktopUnavailable')
         info = plistlib.loads((APP/'Contents/Info.plist').read_bytes())
         result['install'] = dict(pid=host,birth=clean['hostBirth'],cdHash=host_hash,source=info.get('NearpaneSourceRevision'),
                                  build=info.get('CFBundleVersion'))
         result['lease']=dict(display=display,id=target,uuid=protected[str(target)])
         fixture_hash=identity(fixture)['CDHash']
-        with tempfile.TemporaryDirectory(prefix='nearpane-split-view.',dir='/private/tmp') as tmp:
+        with fixture_directory() as tmp:
             session=str(uuid.uuid4())
             folder=Path(tmp)/session;folder.mkdir(mode=0o700)
+            (folder/'normal-fullscreen-exit').touch(mode=0o600)
             fixture_home=Path(tmp)/'home';fixture_home.mkdir(mode=0o700)
             proc=subprocess.Popen([fixture,folder],env={**os.environ,'HOME':str(fixture_home),'CFFIXED_USER_HOME':str(fixture_home)},
                                   stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             result.update(fixtureLaunched=True,cleanup={'status':'UNKNOWN'})
-            numbers=[]; save()
+            numbers=[]; read_full=None; own=None; save()
             try:
                 state=wait_state(folder/'windows.json',lambda s:s.get('pid')==proc.pid and s.get('session')==session and
                                  (s.get('birth') or 0)>0 and len(set(s.get('numbers',[])))==2, time.monotonic()+7)
@@ -182,63 +230,106 @@ def run(kit, output, target):
                     result['observations'].append({k:x for k,x in v.items() if k!='hardware'})
                     save()
                     return v
-                before=wait_ordinary_control(sample,target,deadline=time.monotonic()+4)
+                def own():
+                    f=json.loads(private_file(folder/'windows.json'))
+                    require(f.get('pid')==proc.pid and f.get('birth')==req['fixtureBirth'] and f.get('session')==session
+                            and f.get('numbers')==numbers and proc.poll() is None,'registeredFixtureGenerationChanged')
+                    return f
+                if fullscreen_roundtrip:req.update(observedStage=clean['stageManager'],protectedTypes=clean['protectedTypes'])
+                def read_full():
+                    v=sample('fullscreen-read')
+                    hardware=v.get('hardware')
+                    if 'hardware' in req:
+                        expected=req['hardware']
+                        if result['pair'].get('mouseEvents')==2:
+                            allowed=expected.copy();allowed[1]=(allowed[1]+1)&0xffffffff
+                        else:allowed=expected
+                        require(hardware in (expected,allowed),'hardwareChangedDuringFixtureFullscreenLifecycle')
+                    return v
+                if fullscreen_roundtrip:
+                    first=read_full()
+                    require(isinstance(first.get('hardware'),list),'controlledHardwareBaselineUnavailable')
+                    req['hardware']=first['hardware']
+                    before=split_fullscreen.dwell(read_full,own,lambda s,f:split_fullscreen.ordinary(s,f,target),6)
+                else:before=wait_ordinary_control(sample,target,deadline=time.monotonic()+4)
                 req['hardware']=before['hardware']
                 request=str(uuid.uuid4())
                 tmp_request=folder/'next.json';tmp_request.write_text(json.dumps(dict(nonce=request,action='activate',index=0)))
                 os.replace(tmp_request, folder/'request.json')
                 require(wait_state(folder/'windows.json',lambda s:s.get('lastCommand')==request and s.get('key')==numbers[0],
                                    time.monotonic()+4), 'firstFixtureDocumentCouldNotBeFocused')
-                # Each system action is delivered at most once. A lost reply is an unknown outcome.
-                result['tile']={'issued':None};save()
-                tile=sample('tile');result['tile']={k:tile[k] for k in ('issued','axError','reason','menuMatches') if k in tile};save()
-                require(tile.get('issued') is True and tile.get('axError')==0,tile.get('reason','nativeLeftMenuDeliveryUnconfirmed'))
-                deadline=time.monotonic()+8; picker={}
-                while time.monotonic()<deadline:
-                    picker=sample('picker')
-                    if picker.get('ready') or picker.get('alreadyTogether') or picker.get('hardware')!=req['hardware']:break
-                    time.sleep(.18)
-                if picker.get('alreadyTogether'):
-                    result['pair']={'issued':False,'systemCompletedPairWithoutFurtherInput':True}
+                if fullscreen_roundtrip:
+                    split_fullscreen.enter(folder,own,read_full,target,result['fullscreen'],save)
                 else:
-                    if not picker.get('ready'):
-                        result['pair']={k:picker[k] for k in ('reason','pickerReason','route','labelMatches','pickerEvidence') if k in picker}
-                        result['pair']['issued']=False
-                        save()
-                    require(picker.get('ready'),picker.get('reason','uniqueOwnedSystemPickerUnavailable'))
-                    result['pair']={'issued':None};save()
-                    pair=sample('pair')
-                    result['pair']={k:pair[k] for k in ('issued','axError','mouseEvents','reason','labelMatches','route','pickerEvidence','recheckEvidence') if k in pair};save()
-                    require(pair.get('issued') is True and pair.get('axError',0)==0,pair.get('reason','secondDocumentDeliveryUnconfirmed'))
-                result.update(status='UNKNOWN',systemPair='UNKNOWN',installedLayout='UNKNOWN')
-                deadline=time.monotonic()+12; last=None; verified=0
-                while time.monotonic()<deadline:
-                    actual=sample()
-                    if system_pair(actual,target):
-                        result['systemPair']='PASS'
-                        if host_layout(actual):
-                            verified=verified+1 if last==signature(actual) else 1
-                            last=signature(actual)
-                            if verified>=2:
-                                result.update(status='PASS',installedLayout='PASS')
-                                break
+                    # Each system action is delivered at most once. A lost reply is an unknown outcome.
+                    result['tile']={'issued':None};save()
+                    tile=sample('tile');result['tile']={k:tile[k] for k in ('issued','axError','reason','menuMatches') if k in tile};save()
+                    require(tile.get('issued') is True and tile.get('axError')==0,tile.get('reason','nativeLeftMenuDeliveryUnconfirmed'))
+                    deadline=time.monotonic()+8; picker={}
+                    while time.monotonic()<deadline:
+                        picker=sample('picker')
+                        if picker.get('ready') or picker.get('alreadyTogether') or picker.get('hardware')!=req['hardware']:break
+                        time.sleep(.18)
+                    if picker.get('alreadyTogether'):
+                        result['pair']={'issued':False,'systemCompletedPairWithoutFurtherInput':True}
+                    else:
+                        if not picker.get('ready'):
+                            result['pair']={k:picker[k] for k in ('reason','pickerReason','route','labelMatches','pickerEvidence') if k in picker}
+                            result['pair']['issued']=False
+                            save()
+                        require(picker.get('ready'),picker.get('reason','uniqueOwnedSystemPickerUnavailable'))
+                        result['pair']={'issued':None};save()
+                        pair=sample('pair')
+                        result['pair']={k:pair[k] for k in ('issued','axError','mouseEvents','reason','labelMatches','route','pickerEvidence','recheckEvidence') if k in pair};save()
+                        require(pair.get('issued') is True and pair.get('axError',0)==0,pair.get('reason','secondDocumentDeliveryUnconfirmed'))
+                    result.update(status='UNKNOWN',systemPair='UNKNOWN',installedLayout='UNKNOWN')
+                    deadline=time.monotonic()+12; last=None; verified=0
+                    while time.monotonic()<deadline:
+                        actual=sample()
+                        if system_pair(actual,target):
+                            result['systemPair']='PASS'
+                            if host_layout(actual):
+                                verified=verified+1 if last==signature(actual) else 1
+                                last=signature(actual)
+                                if verified>=2:
+                                    result.update(status='PASS',installedLayout='PASS')
+                                    break
+                            else: last=None;verified=0
                         else: last=None;verified=0
-                    else: last=None;verified=0
-                    time.sleep(.24)
-                if result['status']!='PASS':
-                    result['reason']='systemPairEstablishedButInstalledGeometryUnconfirmed' if result['systemPair']=='PASS' else 'twoSystemTiledDocumentsUnconfirmed'
+                        time.sleep(.24)
+                    if result['status']!='PASS':
+                        result['reason']='systemPairEstablishedButInstalledGeometryUnconfirmed' if result['systemPair']=='PASS' else 'twoSystemTiledDocumentsUnconfirmed'
             except (OSError,ValueError,KeyError,TypeError,RuntimeError,subprocess.SubprocessError) as error:
                 result['reason']=str(error)[:220]
-                if (result['pair'].get('issued') is not False or result['tile'].get('issued') is None
+                if ((fullscreen_roundtrip and 'entryIssued' in result['fullscreen']) or result['pair'].get('issued') is not False or result['tile'].get('issued') is None
                     or result['tile'].get('axError',0)!=0):
                     result['status']='UNKNOWN'
             finally:
+                exit_proof={}
+                if (fullscreen_roundtrip and result['fullscreen'].get('entryIssued','not-attempted')!='not-attempted') or result['tile'].get('issued') is not False:
+                    result['fullscreenExit']=exit_proof
+                    try:
+                        split_fullscreen.unwind(folder,own,read_full,target,exit_proof,save)
+                    except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as error:
+                        exit_proof.update(status='UNKNOWN',reason=str(error)[:220])
+                    save()
+                if fullscreen_roundtrip and result['fullscreen'].get('entry')=='PASS':
+                    result['fullscreen']['status']='PASS' if exit_proof.get('status')=='PASS' else 'UNKNOWN'
+                    result['status']=result['fullscreen']['status']
                 try:
+                    if exit_proof and exit_proof.get('status')!='PASS' and proc.poll() is None:
+                        (Path(tmp)/'retain-for-owned-exit').touch(mode=0o600)
+                        result['cleanup']=dict(status='UNKNOWN',reason='ownedFixtureRetainedUntilVerifiedNormalExit',
+                                               directory=str(folder),fixturePID=proc.pid,forced=False)
+                        raise ValueError('ownedFixtureRetainedUntilVerifiedNormalExit')
                     (folder/'close').touch()
                     forced=False
                     try: proc.wait(timeout=7)
                     except subprocess.TimeoutExpired:
-                        forced=True;proc.terminate();proc.wait(timeout=4)
+                        (Path(tmp)/'retain-for-owned-exit').touch(mode=0o600)
+                        result['cleanup']=dict(status='UNKNOWN',reason='ownedFixtureRetainedUntilVerifiedNormalExit',
+                                               directory=str(folder),fixturePID=proc.pid,forced=False)
+                        raise ValueError('ownedFixtureDidNotConfirmNormalClose')
                     restoration={}; until=time.monotonic()+9
                     while time.monotonic()<until:
                         observation=read([kit/'observe'])
@@ -249,13 +340,16 @@ def run(kit, output, target):
                             restoration=dict(onlyOriginalRecords=live==protected,ordinaryLeaseIsCurrent=s['current']==target,
                                              sameDisplay=s['scope']==display,fixtureProcessExited=proc.returncode is not None,
                                              windowsGone=(not numbers or read([kit/'observe','absence',*numbers]).get('allGone') is True))
+                            if fullscreen_roundtrip:
+                                restoration['protectedTypesRestored']={str(r['id']):r['type'] for r in s['records']}==clean['protectedTypes']
                             if all(restoration.values()):break
                         time.sleep(.18)
-                    result['cleanup']=dict(status='PASS' if restoration and all(restoration.values()) and proc.returncode==0 and not forced else 'FAIL',
+                    result['cleanup']=dict(status='PASS' if restoration and all(restoration.values()) and proc.returncode==0 and not forced and exit_proof.get('status','PASS')=='PASS' else 'FAIL',
                                            exit=proc.returncode,forced=forced,**restoration)
                     save()
                 except (OSError,ValueError,KeyError,TypeError,RuntimeError,subprocess.SubprocessError) as error:
-                    result['cleanup']={'status':'FAIL','reason':str(error)[:220]}
+                    if result['cleanup'].get('reason')!='ownedFixtureRetainedUntilVerifiedNormalExit':
+                        result['cleanup']={'status':'FAIL','reason':str(error)[:220]}
                     save()
     except (OSError,ValueError,KeyError,TypeError,RuntimeError,subprocess.SubprocessError) as error:
         result['reason']=str(error)[:220]
@@ -277,6 +371,9 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('kit',type=Path);parser.add_argument('output',type=Path)
     parser.add_argument('--expected-space',type=int,required=True)
+    parser.add_argument('--fullscreen-roundtrip',action='store_true',help='verify the real AppKit fullscreen entry and normal exit of document A')
+    parser.add_argument('--resume-workspace',type=Path,help='validate the live original workspace and its durable creation ledgers before the fullscreen roundtrip')
     args=parser.parse_args()
     os.umask(0o077)
-    raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.expected_space))
+    raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.expected_space, fullscreen_roundtrip=args.fullscreen_roundtrip,
+                         resume_workspace=args.resume_workspace.resolve() if args.resume_workspace else None))

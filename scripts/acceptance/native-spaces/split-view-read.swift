@@ -4,6 +4,7 @@ struct SplitEnrollment: Decodable {
     let fixturePID: Int32, fixtureBirth: UInt64, fixtureHash: String, fixturePath: String
     let numbers: [UInt32], session: UUID, display: String, lease: UInt64
     let protected: [String: String], hardware: [UInt32]?
+    let observedStage: Bool?, protectedTypes: [String:Int]?
 }
 func splitInput() -> [UInt32] {
     [CGEventType.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .flagsChanged,
@@ -39,6 +40,37 @@ func supportedPress(_ el: AXUIElement) -> Bool {
     var names: CFArray?
     return AXUIElementCopyActionNames(el,&names) == .success && (names as? [String])?.contains(kAXPressAction)==true
 }
+func fullscreenShell(_ display:String,current:UInt64) -> Object {
+    var result:Object=[:]
+    if let h=dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",RTLD_LAZY) {
+        defer {dlclose(h)}
+        typealias Connection = @convention(c) () -> Int32
+        typealias Animating = @convention(c) (Int32,CFString) -> Bool
+        typealias Current = @convention(c) (Int32,CFString) -> UInt64
+        if let c=dlsym(h,"CGSMainConnectionID"),let a=dlsym(h,"CGSManagedDisplayIsAnimating"),let s=dlsym(h,"CGSManagedDisplayGetCurrentSpace") {
+            let cid=unsafeBitCast(c,to:Connection.self)()
+            if cid>0 {
+                result["animating"]=unsafeBitCast(a,to:Animating.self)(cid,display as CFString)
+                result["sameCurrent"]=unsafeBitCast(s,to:Current.self)(cid,display as CFString)==current
+            }
+        }
+    }
+    var exposed=0,queried=0
+    for (agent,id) in [(OverviewAgent.dock,"Dock"),(.manager,"WindowManager")] {
+        guard let who=try? OverviewProcess.current(agent) else {continue}
+        let root=AXUIElementCreateApplication(who.pid)
+        _=AXUIElementSetMessagingTimeout(root,0.25)
+        let list=value(root,kAXChildrenAttribute) as? [AXUIElement]
+        if let list {
+            queried+=1
+            exposed+=list.filter { who.owns($0) && ["mc","mc.display"].contains(value($0,kAXIdentifierAttribute) as? String ?? "") }.count
+        }
+        result["signed"+id]=true;result[agent == .dock ? "dockBirth":"managerBirth"]=who.birth
+    }
+    result["rootListsRead"]=queried
+    if queried>0 {result["exposedRoots"]=exposed}
+    return result
+}
 func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     var result: Object = ["uptime":ProcessInfo.processInfo.systemUptime, "verb":verb,"issued":false]
     func stop(_ reason:String)->Object { result["reason"]=reason;return result }
@@ -46,7 +78,9 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     result["hardware"]=hardware
     let session=CGSessionCopyCurrentDictionary() as? Object
     guard AXIsProcessTrusted() else{return stop("observerAccessibilityUnavailable")}
-    guard stage == false else{return stop("liveStageManagerOffUnconfirmed")}
+    if let enrolled=r.observedStage {
+        guard verb=="fullscreen-read",stage==enrolled else{return stop("enrolledStageStateChanged")}
+    } else if stage != false {return stop("liveStageManagerOffUnconfirmed")}
     guard session?[kCGSessionOnConsoleKey as String] as? Bool==true,session?["CGSSessionScreenIsLocked"] as? Bool != true,
           session?[kCGSessionUserIDKey as String] as? NSNumber==NSNumber(value:getuid()) else{return stop("actualUnlockedConsoleUnavailable")}
     let installed="/Applications/Nearpane.app/Contents/MacOS/NearpaneHost"
@@ -79,6 +113,12 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
           r.protected.allSatisfy({ pair in recordPairs.contains(where:{$0.0==pair.key && $0.1==pair.value.uppercased()}) }),
           records.contains(where:{$0["id"] as? UInt64==r.lease && $0["type"] as? Int==0})
     else {return stop("leaseOrPreservedDesktopIdentitiesChanged")}
+    if let enrolledTypes=r.protectedTypes {
+        guard Set(enrolledTypes.keys)==Set(r.protected.keys),records.allSatisfy({ rec in
+            guard let id=rec["id"] as? UInt64 else {return false}
+            return enrolledTypes[String(id)].map{$0 == rec["type"] as? Int} ?? true
+        }) else {return stop("protectedSpaceTypeChanged")}
+    }
     let extras=records.filter { rec in (rec["id"] as? UInt64).map {r.protected[String($0)]==nil} ?? true }
     let extra=extras.first?["id"] as? UInt64
     guard extras.count<=1, extras.isEmpty || extras[0]["type"] as? Int==4 else {return stop("unexpectedNativeTopologyChange")}
@@ -163,7 +203,18 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     }
     let trustedState=CGEventSource.buttonState(.combinedSessionState,button:.left)==false && NSEvent.pressedMouseButtons==0 &&
         r.hardware==hardware && splitInput()==hardware && birthMicroseconds(r.fixturePID)==r.fixtureBirth
-    guard ["read","tile","picker","pair"].contains(verb) else {return stop("unknownOperation")}
+    guard ["read","fullscreen-read","tile","picker","pair"].contains(verb) else {return stop("unknownOperation")}
+    if verb=="fullscreen-read" {
+        result["frontIsFixture"]=NSWorkspace.shared.frontmostApplication?.processIdentifier==r.fixturePID
+        result["focusedFixtureNumber"]=focusedNumber(r.fixturePID) as Any? ?? NSNull()
+        result["axFullscreen"]=ax.map { bucket -> Any in
+            guard bucket.count==1,let node=bucket.first,let flag=value(node,"AXFullScreen") as? Bool else{return NSNull()}
+            return flag
+        }
+        result["windowManagement"]=fullscreenShell(r.display,current:current)
+        if let extra,let ids=NPReadCatalogSpaceWindowNumbers(extra) as? [UInt32] {result["fullscreenForward"]=r.numbers.map(ids.contains)}
+        result["ready"]=true;return result
+    }
     if verb=="read" {
         let index=Sidebar(host,rows:rows), groupID="current-split-view:"+r.display+":"+String(current)
         let groups=index.visited.filter {value($0,kAXIdentifierAttribute) as? String==groupID}
