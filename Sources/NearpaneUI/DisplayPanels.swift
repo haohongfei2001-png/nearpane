@@ -47,6 +47,7 @@ import NearpaneCore
         self.host = host
         self.primary = primary
         pointer.windowPreviews = domains?.windowPreviews
+        pointer.windowPreviews?.currentDesktop?.splitPresentationChanged = { [weak self] in self?.refresh?() }
         primary.usePointer(pointer)
         host.glassPreviewChanged = { [weak self] id in
             self?.primary.refreshGlass(on: id)
@@ -94,6 +95,18 @@ import NearpaneCore
         for screen in screens {
             demand[screen.id] = host.bus.desktop?.presentationDemand(for: screen.id, now: now, uptime: uptime) ?? .init()
         }
+        let canDispatch = !suspended && !host.configuration.surfaceHidden && !systemManagesWindows &&
+            prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
+        let feed = pointer.windowPreviews?.currentDesktop
+        let fullscreenHint = demand.values.contains { $0.blocked }
+        feed?.configureSplitObservation(allowed: canDispatch, fullscreenHint: canDispatch && fullscreenHint)
+        let paired = canDispatch ? feed?.pairedDisplays ?? [] : []
+        for id in paired {
+            // The fullscreen management hold still applies. Only the read-only surface
+            // may be presented for two positively identified, system-managed panes.
+            demand[id] = DisplayDemand(spaces: 1, windows: 2, blocked: false, complete: true)
+            demand[id]?.hasCurrentDesktopWindows = true
+        }
         let ordinary = coordinator.resolve(
             screens: screens, preferred: host.configuration.preferredDisplayID,
             settings: host.configuration.displays, demand: demand, hidden: host.configuration.surfaceHidden || suspended,
@@ -111,7 +124,9 @@ import NearpaneCore
         let hasTools = prefs.contains { $0.enabled && BuiltinCatalog.sidebarTools.contains($0.id) } || !host.registry.pinnedModules.isEmpty
         let plans = ordinary.map { plan -> DisplaySurfacePlan in
             let content: PanelContent
-            if suppressed.contains(plan.id) || suspended || host.configuration.surfaceHidden { content = .hidden }
+            if paired.contains(plan.id) {
+                content = plan.content == .full || plan.content == .spacesOnly ? .spacesOnly : .hidden
+            } else if suppressed.contains(plan.id) || suspended || host.configuration.surfaceHidden { content = .hidden }
             else if systemManagesWindows {
                 content = plan.primary && hasTools && demand[plan.id]?.blocked != true ? .toolsOnly : .hidden
             } else { return plan }
@@ -153,10 +168,11 @@ import NearpaneCore
         observeClicksIfNeeded()
         if let screen = screens.first(where: { $0.id == main.id }),
            displayID == nil || main.id == displayID {
-            fullscreen.present(on: screen, allowed: !suspended && !primary.captureSuppressed)
+            fullscreen.present(on: screen, allowed: !suspended && !paired.contains(screen.id) && !primary.captureSuppressed)
         } else { fullscreen.hide() }
 
         func place(_ controller: EdgeWindowController, on screen: ScreenGeometry, plan: DisplaySurfacePlan) {
+            controller.presentInSplitView(paired.contains(screen.id))
             controller.place(on: screen, primary: main.id, content: plan.content)
             if explicitOpenings.contains(screen.id), plan.content == .full || plan.content == .spacesOnly,
                !controller.temporarilyExpanded {
@@ -208,6 +224,7 @@ import NearpaneCore
 
     public func stop() {
         stageMonitor?.invalidate(); stageMonitor = nil
+        pointer.windowPreviews?.currentDesktop?.configureSplitObservation(allowed: false, fullscreenHint: false)
         pendingSpaceOpenings.removeAll()
         stopObservingClicks()
         fullscreen.hide()

@@ -77,6 +77,7 @@ struct NativeWindowGroupCard: View {
     let select: (NativeSidebarMember?) -> Void
     let id: UUID
     let windows: [WindowObservation]
+    let snapshot: DesktopSnapshot
     let dissolve: () -> Void
     @Environment(\.colorScheme) private var scheme
 
@@ -98,10 +99,11 @@ struct NativeWindowGroupCard: View {
                     let dx = (proxy.size.width - (canvas?.width ?? 0) * scale) / 2
                     let dy = (proxy.size.height - (canvas?.height ?? 0) * scale) / 2
                     ZStack(alignment: .topLeading) {
-                        ForEach(ordered.reversed()) { window in
+                        ForEach(DesktopWindowRow.rows(ordered).reversed()) { row in
+                            let window = row.window
                             if let canvas, let frame = projectedFrame(window, canvas: canvas),
                                let member = NativeSidebarMember(window, source: destination) {
-                                miniature(member, name: badges[window.id]?.name ?? "窗口", icon: badges[window.id]?.icon,
+                                miniature(member, window: window, name: badges[window.id]?.name ?? "窗口", icon: badges[window.id]?.icon,
                                           width: frame.width * scale, height: frame.height * scale)
                                     .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
                             }
@@ -172,15 +174,18 @@ struct NativeWindowGroupCard: View {
         return frame.geometry.intersection(canvas.geometry) == nil ? nil : frame
     }
 
-    private func miniature(_ member: NativeSidebarMember, name: String, icon: NSImage?,
+    private func miniature(_ member: NativeSidebarMember, window: WindowObservation, name: String, icon: NSImage?,
                            width: CGFloat, height: CGFloat) -> some View {
         let dest = member.source
-        let history = gallery?.imageForMap(key: member.key, display: dest.display, space: dest.space,
+        let target = isCurrent ? DesktopWindowTarget.preview(window, in: snapshot) : nil
+        let history = isCurrent ? nil : gallery?.imageForMap(key: member.key, display: dest.display, space: dest.space,
             session: dest.session, topology: dest.topology, permitted: permitted)
         return Button { select(member) } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
-                if let history {
+                if let target {
+                    WindowPanePicture(gallery: gallery, target: target, permitted: permitted)
+                } else if let history {
                     Image(decorative: history, scale: 1).resizable().scaledToFit()
                 } else if let icon, min(width, height) > 11 {
                     Image(nsImage: icon).resizable().scaledToFit().frame(width: min(16, width), height: min(16, height))
@@ -192,6 +197,7 @@ struct NativeWindowGroupCard: View {
         }
         .buttonStyle(.plain)
         .disabled(!isCurrent && !canSwitch)
+        .modifier(GalleryCardExposure(gallery: gallery, target: target))
         .help(name + (history == nil ? "" : " · 最近画面"))
         .accessibilityLabel(name + (history == nil ? "" : "，最近画面"))
         .accessibilityIdentifier("native-space-window:\(dest.display):\(dest.space):\(member.key.pid):\(member.key.number)")

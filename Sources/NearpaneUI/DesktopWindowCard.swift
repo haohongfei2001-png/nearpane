@@ -41,6 +41,7 @@ struct DesktopWindowCard: View {
     let pictureSize: CGSize?
     var borderWidth: CGFloat = 0.8
     var labelSize: CGFloat = 10
+    var unavailable: String? = nil
     var currentImage: (@MainActor () -> CGImage?)?
 
     var body: some View {
@@ -76,6 +77,11 @@ struct DesktopWindowCard: View {
                 }
             }
             .frame(width: size.width, height: size.height)
+            .overlay {
+                if image == nil, let unavailable {
+                    Text(unavailable).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }

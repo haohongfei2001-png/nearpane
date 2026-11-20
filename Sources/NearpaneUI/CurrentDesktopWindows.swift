@@ -20,6 +20,48 @@ import OSLog
     @ObservationIgnored private let windowAudit = NativeSidebarWindowAudit()
     @ObservationIgnored private var pendingAudit: NativeSidebarWindowAudit.Sample?
     let groups = ExplicitWindowGroups()
+    @ObservationIgnored var splitPresentationChanged: (() -> Void)?
+    private(set) var pairedDisplays = Set<String>()
+    @ObservationIgnored private var splitObservationAllowed = false
+    @ObservationIgnored private var fullscreenHint = false
+    @ObservationIgnored private var nativeFullscreenSeen = false
+    @ObservationIgnored private var sampleNextSpace = false
+
+    // A native fullscreen transition can withdraw every ordinary panel. Keep a
+    // metadata-only lease long enough to recognize a pair without starting a capture.
+    func configureSplitObservation(allowed: Bool, fullscreenHint: Bool) {
+        guard allowed != splitObservationAllowed || fullscreenHint != self.fullscreenHint else { return }
+        if allowed && !splitObservationAllowed { sampleNextSpace = true }
+        splitObservationAllowed = allowed
+        self.fullscreenHint = allowed && fullscreenHint
+        if !allowed {
+            sampleNextSpace = false
+            nativeFullscreenSeen = false
+            publishPairs([])
+        }
+        updateObservation()
+    }
+
+    private func publishPairs(_ displays: Set<String>) {
+        guard displays != pairedDisplays else { return }
+        pairedDisplays = displays
+        Task { [weak self] in self?.splitPresentationChanged?() }
+    }
+
+    private func sampleSplitPresentation(_ snapshot: DesktopSnapshot?) {
+        guard splitObservationAllowed else { return }
+        let uptime = ProcessInfo.processInfo.systemUptime
+        let fresh = snapshot.flatMap { $0.nativeIsFresh(now: .now, uptime: uptime) ? $0 : nil }
+        nativeFullscreenSeen = fresh?.scopes.contains { $0.records.contains { $0.isCurrent && $0.nativeKind == .fullscreen } } == true
+        let pairs = fresh.map { value in
+            Set(value.displays.compactMap { display in
+                value.currentSplitView(on: display.id, now: .now, uptime: uptime) == nil ? nil : display.id
+            })
+        } ?? []
+        publishPairs(pairs)
+        sampleNextSpace = false
+        if !observationRequested { updateObservation() }
+    }
 
     func tracks(_ token: UUID, at location: NativeSidebarWindowLocation) -> Bool {
         panelRequested && sidebarWindows.tracks(token, at: location)
@@ -68,6 +110,12 @@ import OSLog
         pending?.1.cancel()
         pending = nil
         snapshot = nil
+        nativeFullscreenSeen = false
+        publishPairs([])
+        if preservingOriginalWindows && splitObservationAllowed {
+            sampleNextSpace = true
+            updateObservation()
+        }
         lifetimes.removeAll()
         retry?.cancel(); retry = nil; failures = 0
         didSample?()
@@ -86,9 +134,13 @@ import OSLog
         updateObservation()
     }
 
+    private var observationRequested: Bool {
+        panelRequested || managementRequested || (splitObservationAllowed && (fullscreenHint || sampleNextSpace || nativeFullscreenSeen))
+    }
+
     private func updateObservation() {
-        let enable = panelRequested || managementRequested
-        if !enable {
+        if !observationRequested {
+            guard loop != nil || events != nil || snapshot != nil else { return }
             events?.finish(); events = nil
             loop?.cancel(); loop = nil
             invalidate()
@@ -131,6 +183,8 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                sampleSplitPresentation(next)
+                guard !Task.isCancelled, expected == epoch else { continue }
                 if let next, pendingAudit?.revision == next.revision { pendingAudit?.snapshot(next, stage: "publish") }
                 retry?.cancel()
                 retry = nil
@@ -201,7 +255,7 @@ import OSLog
             }
             audit?.snapshot(result, stage: "reader")
             self.pendingAudit = audit
-            if self.panelRequested {
+            if self.panelRequested && (NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil) {
                 var history = self.sidebarWindows
                 let sampleWindows = self.readSidebarWindows ?? { await NativeSpaceActionClient.shared.observe($0, audit: audit) }
                 await history.update(&result, audit: audit, read: sampleWindows)

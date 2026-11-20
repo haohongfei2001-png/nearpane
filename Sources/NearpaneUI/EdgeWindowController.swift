@@ -170,6 +170,12 @@ public final class EdgeWindowController: NSWindowController {
         updateInteraction(hidden: true)
     }
 
+    func presentInSplitView(_ enabled: Bool) {
+        guard let window else { return }
+        let behavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, enabled ? .fullScreenAuxiliary : .fullScreenNone, .transient, .ignoresCycle]
+        if window.collectionBehavior != behavior { window.collectionBehavior = behavior }
+    }
+
     func usePointer(_ registry: WorkspacePointerRegistry) { display.pointer = registry }
     func refreshGlass(on id: String) {
         guard let placement, placement.screen.id == id else { return }

@@ -48,7 +48,8 @@ public final class EmbeddedModules {
                 "gallerySessions": NSNumber(value: gallery.activeCaptureLoops),
                 "windowManagementBusy": NSNumber(value: workRect?.updateRequiresManagementToFinish ?? false),
                 "chargedPixelBytes": NSNumber(value: windowPreviews.cacheBytes),
-                "activeStreams": 0] // Both capture paths use SCScreenshotManager one-shots.
+                "activeStreams": NSNumber(value: gallery.activeStreamCount),
+                "deliveredFrames": NSNumber(value: gallery.deliveredFrameCount)]
     }
     public func desktopWindowsChanged() { windowPreviews.currentDesktop?.changed() }
 
