@@ -349,16 +349,26 @@
       "confirmedAXPress": 0,
       "confirmedMarkers": 0,
       "evidence": "installed-same-space-focus/independent-readback.json"
+    },
+    "currentFallbackFocus": {
+      "source": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
+      "confirmedAXPress": 1,
+      "confirmedInputMarkers": 0,
+      "status": "UNKNOWN",
+      "reason": "enrolled TextEdit is not registered with Launch Services",
+      "evidence": "quarantined-build-candidate/window-and-focus/w01-W01-system-documents.json"
     }
   },
   "P3": {
     "status": "BLOCKED",
-    "developmentCommit": "35940ff2917aa51ec6ad2bf19050230af7c5611a",
+    "developmentCommit": "c886b3c1baad2e72099ace80ba5b718afe450699",
     "isolatedChromeEdgeCases": 96,
     "isolatedSendEvents": 0,
     "realAuthenticatedBrowserServiceCasesPassed": 0,
     "realAuthenticatedBrowserServiceCasesBlocked": 12,
-    "prerequisiteForIntegration": "P2"
+    "prerequisiteForIntegration": "P2",
+    "headlessColdRestartsPassed": 2,
+    "actualAuthenticatedOnline": "BLOCKED"
   },
   "P4": {
     "status": "BLOCKED",

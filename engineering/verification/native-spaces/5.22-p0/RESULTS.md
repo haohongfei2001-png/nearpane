@@ -45,6 +45,8 @@
 - P4 另在标准 macOS 26.7.2 arm64 runner 合成了三句干净语音及各自 10 dB 加噪文件。Apple 解析到中文，但系统报告设备转录器不可用、资产 unsupported。6 条均为 NOT_RUN，未取得本轮识别率，正式安装版新增冷启动为 0/60。[原始模型收据与复算](https://github.com/haohongfei2001-png/nearpane/tree/d6df4bf1e55949ca97b8a2a712a8020a25130366/engineering/verification/native-spaces/5.22-p4/hosted-speech)
 - P3 的 Riftlet 专用分支在 Chrome、Edge 和四个域的 96 个隔离场景中验证了附件与零发送，16 个可见附件、8 个取消、72 个投递前拒绝。正式 Host、已登录服务的上传完成及 Safari 标签身份尚未通过。[源码、逐案证据及回退](https://github.com/haohongfei2001-png/nearpane/blob/35940ff2917aa51ec6ad2bf19050230af7c5611a/engineering/verification/native-spaces/5.22-p3/QUALIFICATION.md)
 
+P3 随后让两款签名无界面浏览器都实际退出并重启。新旧进程的内核出生时间不同，即使逻辑窗口号与标签号相同，Riftlet 仍拒绝旧意图。四个进程的文件写入及发送事件计数均为 0；96 个已有场景及两个真实重启夹具均通过。12 个在线组合保持 BLOCKED。[真实重启、旧意图拒绝及两次清理失败](https://github.com/haohongfei2001-png/nearpane/tree/c886b3c1baad2e72099ace80ba5b718afe450699/engineering/verification/native-spaces/5.22-p3)
+
 同一候选的窗口区再次取证：增强的观察器在空态、两窗分别连续两次核对了 Host 与夹具代际、当前桌面和窗口集合。关窗后正式侧栏读回超时，此次为 BLOCKED，11 帧录屏只覆盖 0→2。此前另一次实拍有 14 帧。[双读回与超时](12-physical-probe/roster-two-censuses/results.json) · [实际录制区间](12-physical-probe/roster-two-censuses/recording.json)
 
 使用同一安装包按顺序读侧栏和截图后，三状态完整通过。空态、两扇文档、关闭后分别由两个独立进程确认 0、2、0 张卡，三次均无空间行、占位文字或重复卡。夹具退出，系统窗口编号已消失，日常配置已恢复。此轮关窗后保留了窗口区域截图。[空态侧栏](12-physical-probe/roster-serialized/empty-before-sidebar.png) · [两扇窗口](12-physical-probe/roster-serialized/two-documents-sidebar.png) · [关闭后](12-physical-probe/roster-serialized/empty-after.png) · [六次独立系统读回](12-physical-probe/roster-serialized/results.json)
@@ -56,6 +58,8 @@
 ## 签名候选与回退
 
 当前内部候选 `b55ed96` 已在原路径安装并正常启动。针对第 18 轮的晚到变化，该版关闭原先唯一启用的 26A428 手势适配。正式 Host 独立读回 ready=true、canSwitch=false、canMove=false，既有辅助功能、录屏与事件投递权限全部延续。539 项 Swift 测试通过。下载的 GitHub 草稿 ZIP 与安装包 248 个路径逐项一致，SHA-256 为 `c671f70f48a4422fe86101b34bd505b6e3de9e13a524589d2c72e7fe28090052`。本次换装前后的桌面和精确焦点一致。包内 13 个二进制未满足完整发布签名要求，公证和干净首装未验。[正式进程及系统登记](quarantined-build-candidate/local-verification.json) · [Mac 安装记录](quarantined-build-candidate/installation.json) · [实际下载回读](quarantined-build-candidate/github-binary-readback.json) · [包内发布检查](quarantined-build-candidate/package-gate.json)
+
+在这个关闭切换的安装版上，实际系统 TextEdit 首次取得正式侧栏 AXPress 成功回执。准备输入标记时 Launch Services 未解析出同一进程，0 个标记获证，W01 为 UNKNOWN。测试进程正常退出，日常配置与焦点恢复。原有桌面上另有窗口，侧栏截图在采集前被保护条件拒绝，当轮空态为 BLOCKED。[选窗、输入和内核收尾](quarantined-build-candidate/window-and-focus/w01-W01-system-documents.json) · [原桌面窗口清点](quarantined-build-candidate/window-and-focus/roster-results.json)
 
 此前测量切换的候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json) · [签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
 
