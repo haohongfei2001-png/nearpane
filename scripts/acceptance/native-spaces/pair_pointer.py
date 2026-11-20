@@ -181,7 +181,7 @@ class PairPointerRun(RegisteredRun):
         if kind=="click" and isinstance(presentation,dict):
             name = f"window-presentation-{self.trial:02}.json"
             self.rec.write(name,presentation)
-            compact = {k:presentation[k] for k in ("status","reason","downToVisibleMS","upToVisibleMS","firstTargetDisplayUptime",
+            compact = {k:presentation[k] for k in ("status","reason","evidenceKind","downToVisibleMS","upToVisibleMS","confirmedByUptime","firstTargetDisplayUptime",
                        "firstTargetPresentationMachTicks","targetFrameObserved","retainedPixelBytes") if k in presentation}
             compact["file"] = name
             logged = {**proof,"presentation":compact}
@@ -498,6 +498,12 @@ class PairPointerRun(RegisteredRun):
         self.out["measurement"]["displayPresentation"] = (
             "OBSERVED" if observed and len(observed)==len(rows)==10 else "PARTIAL" if observed else "UNKNOWN" if present else "NOT_RUN")
         self.out["measurement"]["presentationCounts"] = {"attempts":len(rows),"sampled":len(present),"observed":len(observed)}
+        bounded = [p for p in present if p.get("status") == "BOUNDED_SCREENSHOT"]
+        self.out["measurement"]["boundedStaticScreenshots"] = {
+            "count": len(bounded),
+            "downToConfirmedByUpperMs": summary([p["downToVisibleMS"]["upper"] for p in bounded]),
+            "upToConfirmedByUpperMs": summary([p["upToVisibleMS"]["upper"] for p in bounded]),
+        }
         for origin in ("down","up"):
             for bound in ("lower","upper"):
                 field = origin + "ToVisibleMS"

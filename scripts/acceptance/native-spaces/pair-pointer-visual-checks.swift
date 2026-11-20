@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import CoreVideo
 
 @main
 struct PairPointerVisualChecks {
@@ -77,6 +78,39 @@ struct PairPointerVisualChecks {
         bad=orange;bad[85]=160
         check("oneOffPalettePixel", slot(bad) == nil)
         check("blankIsNotTarget", slot(patch([0,0,0,255])) == nil)
+        // Padding, Retina scaling and origin translation use the same whole-display transform as the film.
+        func buffer(_ width: Int, _ height: Int, _ type: OSType = kCVPixelFormatType_32BGRA) -> CVPixelBuffer {
+            var out: CVPixelBuffer?
+            precondition(CVPixelBufferCreate(nil, width, height, type, nil, &out) == kCVReturnSuccess)
+            return out!
+        }
+        let signedTile = buffer(140, 116)
+        let aperture = CGRect(x: 4, y: 2, width: 128, height: 112)
+        let offsetDisplay = CGRect(x: -42, y: 11, width: 64, height: 56)
+        let patchRect = CGRect(x: -18, y: 31, width: 8, height: 8)
+        func paint(_ x: Int, _ y: Int, _ p: [UInt8]) {
+            precondition(CVPixelBufferLockBaseAddress(signedTile, []) == kCVReturnSuccess)
+            let base = CVPixelBufferGetBaseAddress(signedTile)!.assumingMemoryBound(to: UInt8.self)
+            let dst = base + y * CVPixelBufferGetBytesPerRow(signedTile) + x * 4
+            for i in 0..<4 { dst[i] = p[i] }
+            CVPixelBufferUnlockBaseAddress(signedTile, [])
+        }
+        // Every byte outside this exact controlled ROI is unrelated zero-initialized data.
+        for y in 42..<58 { for x in 52..<68 { paint(x,y,[204,123,45,255]) } }
+        func measured() -> PairFocusRaster.Reading { PairFocusRaster.measure(signedTile,display:offsetDisplay,crop:patchRect,clean:aperture) }
+        let measuredA = measured()
+        check("realBufferScaleAndCleanAperture", measuredA.slot == 0 && measuredA.record["pixelRect"] as? [Int] == [52,42,16,16])
+        check("onlyMappedPixelsCounted", measuredA.record["opaqueBySlot"] as? [Int] == [256,0])
+        paint(52,42,[204,123,45,22])
+        check("transparentDistinguished", measured().issue == .transparentMarker && measured().record["nonOpaque"] as? Int == 1)
+        paint(52,42,[0,0,0,255])
+        check("offPaletteDistinguished", measured().issue == .offPaletteMarker && measured().record["opaqueOffPalette"] as? Int == 1)
+        paint(52,42,[53,139,227,255])
+        check("mixedOwnedColorsDistinguished", measured().issue == .mixedMarker && measured().record["opaqueBySlot"] as? [Int] == [255,1])
+        check("unmappedAspectRefused", PairFocusRaster.measure(signedTile,display:offsetDisplay,crop:patchRect,clean:CGRect(x:0,y:0,width:110,height:50)).issue == .invalidRasterGeometry)
+        check("nativeAcceptanceRequiresAtLeast64RealPixels", PairFocusRaster.measure(signedTile,display:offsetDisplay,crop:patchRect,clean:CGRect(x:0,y:0,width:32,height:28)).issue == .insufficientROISamples)
+        check("unsupportedFormatDistinct", PairFocusRaster.measure(buffer(32,28,kCVPixelFormatType_32ARGB),display:offsetDisplay,crop:patchRect,clean:aperture).issue == .wrongPixelFormat)
+
         func sample(_ s:Int,_ a:Double,_ b:Double)->PairPhysicalSample { .init(from:a,to:b,slot:s) }
         let source=sample(0,1,1.003), destination=sample(1,1.020,1.024)
         func eligible(_ s:Int,_ b:PairPhysicalSample,_ a:PairPhysicalSample)->Bool {
@@ -86,7 +120,8 @@ struct PairPointerVisualChecks {
         check("stableTargetRequiresTargetPixels", !eligible(0,sample(1,1,1.002),destination))
         check("reverseHandoffRefused", !eligible(0,sample(1,1,1.002),sample(0,1.020,1.024)))
         check("noBracketingReadRefused", !eligible(1,source,sample(1,1.010,1.012)))
-        check("lateObserverRefused", !eligible(1,source,sample(1,1.070,1.074)))
+        check("broadOrderedBracketRetainsItsUncertainty", eligible(1,source,sample(1,1.070,1.074)))
+        check("broadBracketWithoutSourcePixelsRefused", !eligible(0,source,sample(1,1.070,1.074)))
         func frame(_ s:Int,_ t:Double,_ n:UInt64)->PairVisualFrame {
             .init(slot:s,ticks:n,time:t,callback:t+0.001,before:sample(s,t-0.010,t-0.006),after:sample(s,t+0.005,t+0.009))
         }
@@ -105,6 +140,17 @@ struct PairPointerVisualChecks {
         check("duplicatePresentationNotNewTarget", receipt([old,frame(1,1.08,1)])["status"] as? String == "UNKNOWN")
         check("earlyFrameClockMustAgree", PreviewClock.presentationBounds(display:1.005,pts:1.050,callback:1.001) == nil)
         check("earlyFrameWithMatchedClocksBounded", PreviewClock.presentationBounds(display:1.005,pts:1.005,callback:1.001) != nil)
+        let terminal = sample(1,1.26,1.28)
+        func snapshot(_ measuredSlot: Int, _ before: PairPhysicalSample) -> [String: Any]? {
+            PairVisualEvidence.snapshotInterval(baseline: old, source: holding, target:1, measured:measuredSlot,
+                before:before, after:terminal, uncertainty:0.0002, down:1.03...1.031, up:1.065...1.066)
+        }
+        let endpoint = snapshot(1, sample(1,1.20,1.203))
+        check("stampedSourcePlusActualTerminalImageBoundsOnly", endpoint?["status"] as? String == "BOUNDED_SCREENSHOT" &&
+              endpoint?["firstTargetPresentationMachTicks"] == nil && endpoint?["firstTargetDisplayUptime"] == nil)
+        check("terminalBoundsPreserveFullObservedInterval", ((endpoint?["downToVisibleMS"] as? [String:Double])?["upper"] ?? -1) >= 249.9)
+        check("terminalStackCannotSubstituteForWrongPicture", snapshot(0,sample(1,1.20,1.203)) == nil)
+        check("terminalScreenshotRequiresBothPhysicalReadbacks", snapshot(1,sample(0,1.20,1.203)) == nil)
         let data=try JSONSerialization.data(withJSONObject:["status":"PASS","mode":"offline","checks":passed],options:[.sortedKeys])
         print(String(decoding:data,as:UTF8.self))
     }

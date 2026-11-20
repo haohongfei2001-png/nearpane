@@ -183,6 +183,17 @@ class PointerTests(unittest.TestCase):
         self.assertEqual(result["statistics"]["downToVisibleMSUpper"]["p50"],27)
         self.assertEqual(result["statistics"]["upToVisibleMSLower"]["p50"],-1)
 
+    def test_real_static_endpoint_keeps_its_bound_separate_from_native_frame_statistics(self):
+        self.run.out["operationStatus"] = "UNKNOWN"
+        self.run.out["attempts"] = [{"presentation": {"status": "BOUNDED_SCREENSHOT",
+            "downToVisibleMS": {"lower": 0, "upper": 220}, "upToVisibleMS": {"lower": -35, "upper": 185}}}]
+        self.run.publish()
+        result = self.run.out["measurement"]
+        self.assertEqual(result["displayPresentation"], "UNKNOWN")
+        self.assertEqual(result["presentationCounts"]["observed"], 0)
+        self.assertEqual(result["boundedStaticScreenshots"]["count"], 1)
+        self.assertEqual(result["boundedStaticScreenshots"]["downToConfirmedByUpperMs"]["p50"], 220)
+
     def test_protected_transaction_optional_scenario_leaves_enrolled_lease_intact(self):
         lease=dict(documentKit="/private/old",workspace="w",expectedSpace=99,originalCheckout="c",originArchive="a")
         record=dict(focusLease=lease,kit="/kit",focusScenario="pair-focus",pairKit="/private/pointer")

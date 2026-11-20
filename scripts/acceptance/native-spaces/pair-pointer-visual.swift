@@ -8,7 +8,9 @@ enum PairVisualFailure: String, Error {
     case invalidBinding, inaccessibleDisplay, displayOrSpaceChanged, enrollmentChanged, userSuperseded
     case foregroundIntersectsCrop, foregroundCoverageUnknown, obscuredOrUncertainCrop, geometryChanged, displayStreamUnavailable
     case noSourcePresentationBeforeClick, streamInterrupted, clockChanged, presentationUnbounded
-    case missingOpaqueMarker, ambiguousSurface, noTargetPresentation, inputTimesUnavailable, targetPrecededClick
+    case pixelBufferUnavailable, wrongPixelFormat, invalidRasterGeometry, insufficientROISamples, pixelBufferUnreadable
+    case transparentMarker, offPaletteMarker, mixedMarker, ambiguousSurface, noTargetPresentation
+    case inputTimesUnavailable, targetPrecededClick, nativeClockUnavailable, noBracketedPresentation
 }
 
 // Totals over front-to-back snapshots. No identifying information about other windows is retained.
@@ -38,6 +40,69 @@ struct PairVisualFrame {
     }
 }
 
+// The stream contains the two signed fixture windows over a transparent background. Map only
+// the common 8-point square, using the actual output raster and its top-left clean aperture.
+enum PairFocusRaster {
+    struct Reading {
+        var slot: Int?, issue: PairVisualFailure?, record: [String: Any] = [:]
+    }
+
+    static func measure(_ buffer: CMSampleBuffer, display: CGRect, crop: CGRect) -> Reading {
+        guard let image = buffer.imageBuffer, let format = buffer.formatDescription else {
+            return Reading(issue: .pixelBufferUnavailable)
+        }
+        let clean = CMVideoFormatDescriptionGetCleanAperture(format, originIsAtTopLeft: true)
+        return measure(image, display: display, crop: crop, clean: clean)
+    }
+
+    static func measure(_ image: CVPixelBuffer, display: CGRect, crop: CGRect, clean: CGRect, minimumSide: Int = 8) -> Reading {
+        let w = CVPixelBufferGetWidth(image), h = CVPixelBufferGetHeight(image)
+        let format = CVPixelBufferGetPixelFormatType(image)
+        var info: [String: Any] = ["size": [w, h], "pixelFormat": format]
+        func reject(_ issue: PairVisualFailure) -> Reading { Reading(issue: issue, record: info) }
+        guard format == kCVPixelFormatType_32BGRA, !CVPixelBufferIsPlanar(image) else { return reject(.wrongPixelFormat) }
+        guard w > 0, h > 0, w <= 16384, h <= 16384, !clean.isEmpty,
+              CGRect(x: 0, y: 0, width: w, height: h).contains(clean),
+              display.width > 0, display.height > 0, display.contains(crop), crop.width == 8, crop.height == 8 else {
+            return reject(.invalidRasterGeometry)
+        }
+        let sx = clean.width / display.width, sy = clean.height / display.height
+        // Permit the at-most-one-pixel rounding from the capture's even dimensions.
+        guard abs(clean.height - clean.width * display.height / display.width) <= 1.01 else { return reject(.invalidRasterGeometry) }
+        let x0 = Int(ceil(clean.minX + (crop.minX - display.minX) * sx))
+        let x1 = Int(floor(clean.minX + (crop.maxX - display.minX) * sx))
+        let y0 = Int(ceil(clean.minY + (crop.minY - display.minY) * sy))
+        let y1 = Int(floor(clean.minY + (crop.maxY - display.minY) * sy))
+        info["cleanAperture"] = [clean.minX, clean.minY, clean.width, clean.height]
+        info["pixelsPerPoint"] = [sx, sy]
+        info["pixelRect"] = [x0, y0, x1 - x0, y1 - y0]
+        guard x0 >= 0, y0 >= 0, x1 <= w, y1 <= h, x1 - x0 >= minimumSide, y1 - y0 >= minimumSide,
+              x1 - x0 <= 64, y1 - y0 <= 64 else { return reject(.insufficientROISamples) }
+        guard CVPixelBufferGetBytesPerRow(image) >= w * 4, CVPixelBufferLockBaseAddress(image, .readOnly) == kCVReturnSuccess else {
+            return reject(.pixelBufferUnreadable)
+        }
+        defer { CVPixelBufferUnlockBaseAddress(image, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(image)?.assumingMemoryBound(to: UInt8.self) else { return reject(.pixelBufferUnreadable) }
+        let stride = CVPixelBufferGetBytesPerRow(image)
+        var count = [0, 0], alpha = 0, other = 0
+        for y in y0..<y1 {
+            for x in x0..<x1 {
+                let p = base + y * stride + x * 4
+                if p[3] != 255 { alpha += 1 }
+                else if let slot = PairPointerPalette.slot(red: p[2], green: p[1], blue: p[0], alpha: p[3]) { count[slot] += 1 }
+                else { other += 1 }
+            }
+        }
+        info["opaqueBySlot"] = count
+        info["nonOpaque"] = alpha
+        info["opaqueOffPalette"] = other
+        if alpha > 0 { return reject(.transparentMarker) }
+        if other > 0 { return reject(.offPaletteMarker) }
+        guard let slot = count.firstIndex(of: (x1-x0)*(y1-y0)) else { return reject(.mixedMarker) }
+        return Reading(slot: slot, record: info)
+    }
+}
+
 enum PairVisualEvidence {
     static func crop(frames: [CGRect], display: CGRect) -> CGRect? {
         guard frames.count == 2 else { return nil }
@@ -55,8 +120,8 @@ enum PairVisualEvidence {
                          before: PairPhysicalSample, after: PairPhysicalSample) -> Bool {
         guard (0...1).contains(slot), (0...1).contains(target), (0...1).contains(before.slot), (0...1).contains(after.slot),
               uncertainty >= 0, uncertainty <= 0.005, before.from <= before.to, after.from <= after.to,
-              before.to <= presentation - uncertainty, after.from >= presentation + uncertainty,
-              after.to - before.from <= 0.050 else { return false }
+              presentation.isFinite, before.from.isFinite, after.to.isFinite,
+              before.to <= presentation - uncertainty, after.from >= presentation + uncertainty else { return false }
         if before.slot == after.slot { return slot == before.slot }
         // A compositor/WindowServer notification can straddle presentation. Only a positively read
         // target color and source -> target stack transition can establish the first target frame.
@@ -86,8 +151,25 @@ enum PairVisualEvidence {
         fromDown["lower"] = max(0, fromDown["lower"]!)
         return ["status":"OBSERVED", "sourceSlot":1 - target, "targetSlot":target,
                 "lastSourceDisplayUptime":last.time, "firstTargetDisplayUptime":first.time,
+                "evidenceKind":"firstObservedNativeFrame", "firstTargetPhysicalBracketSeconds":first.after.to-first.before.from,
                 "firstTargetPresentationMachTicks":first.ticks, "clickDownUptime":[down.lowerBound,down.upperBound],
                 "clickUpUptime":[up.lowerBound,up.upperBound], "downToVisibleMS":fromDown, "upToVisibleMS":latency(up)]
+    }
+
+    static func snapshotInterval(baseline: PairVisualFrame, source: PairVisualFrame, target: Int, measured: Int,
+                                 before: PairPhysicalSample, after: PairPhysicalSample, uncertainty: Double,
+                                 down: ClosedRange<Double>, up: ClosedRange<Double>) -> [String: Any]? {
+        guard baseline.slot == 1-target, source.slot == baseline.slot, measured == target, before.slot == target, after.slot == target,
+              (0...0.005).contains(uncertainty), baseline.time + uncertainty < down.lowerBound,
+              baseline.time <= source.time, source.time + uncertainty <= before.from,
+              down.upperBound <= up.lowerBound, up.upperBound <= before.from,
+              before.from <= before.to, before.to <= after.from, after.from <= after.to else { return nil }
+        let earliest = max(source.time - uncertainty, down.lowerBound)
+        return ["status": "BOUNDED_SCREENSHOT", "evidenceKind": "windowFilteredNativeScreenshotAfterInput",
+                "sourceSlot": source.slot, "targetSlot": target,
+                "lastSourceDisplayUptime": source.time, "confirmedByUptime": after.to,
+                "downToVisibleMS": ["lower": max(0,(earliest-down.upperBound)*1000), "upper": (after.to-down.lowerBound)*1000],
+                "upToVisibleMS": ["lower": (earliest-up.upperBound)*1000, "upper": (after.to-up.lowerBound)*1000]]
     }
 
     static func physicalTop(rows: [[String: Any]], frames: [CGRect], numbers: [UInt32], pid: pid_t,
@@ -158,6 +240,10 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
     private var delivered = 0, idle = 0, beforeBaseline = 0, lastTicks: UInt64 = 0
     private var guardDurations = [Double](), seenTargetInStack = false
     private var stackAttempts = 0, coverage = PairStackCoverage()
+    private var frameDiagnostics = [VisualRow](), startedWithoutPixels = 0, startedWithoutClock = 0
+    private var lastIdleTick: UInt64?, lastIdleAnchor: UInt64?
+    private var endpoint: VisualRow?, endpointPending = false
+    private var displayFilter: SCContentFilter?, displayConfig: SCStreamConfiguration?
 
     private init(request: P2Request, numbers: [UInt32], target: UInt32, frames: [CGRect], displayUUID: String) {
         self.request = request; self.numbers = numbers; self.frames = frames; self.displayUUID = displayUUID
@@ -249,7 +335,7 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
 
     private func configure(_ content: SCShareableContent?) {
         guard !stopped else { return }
-        guard let crop, let pid = request.pid, let content, content.displays.count == 1, let screen = content.displays.first,
+        guard crop != nil, let pid = request.pid, let content, content.displays.count == 1, let screen = content.displays.first,
               screen.displayID == display, screen.frame == displayBounds else { fail(.inaccessibleDisplay); return }
         let pair = content.windows.filter { numbers.contains($0.windowID) && $0.owningApplication?.processID == pid && $0.isOnScreen }
         guard pair.count == 2, Set(pair.map(\.windowID)) == Set(numbers),
@@ -261,10 +347,15 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
         guard Set(filter.includedWindows.map(\.windowID)) == Set(numbers),
               Set(filter.includedApplications.map(\.processID)).isSubset(of:[pid]) else { fail(.enrollmentChanged); return }
         let cfg = SCStreamConfiguration()
-        cfg.sourceRect = crop.offsetBy(dx:-screen.frame.minX, dy:-screen.frame.minY)
-        cfg.width = 8; cfg.height = 8; cfg.colorSpaceName = CGColorSpace.sRGB; cfg.pixelFormat = kCVPixelFormatType_32BGRA
+        cfg.sourceRect = CGRect(origin: .zero, size: screen.frame.size)
+        // Nine pixels for eight points leaves at least eight whole pixels at fractional origins.
+        cfg.width = Int(ceil(screen.frame.width * 9 / 8))
+        cfg.height = Int((CGFloat(cfg.width) * screen.frame.height / screen.frame.width).rounded())
+        cfg.preservesAspectRatio = false; cfg.ignoreShadowsDisplay = true; cfg.showMouseClicks = false
+        cfg.colorSpaceName = CGColorSpace.sRGB; cfg.pixelFormat = kCVPixelFormatType_32BGRA
         cfg.minimumFrameInterval = .zero; cfg.queueDepth = 3; cfg.showsCursor = false; cfg.captureMicrophone = false
         cfg.capturesAudio = false; cfg.includeChildWindows = false; cfg.shouldBeOpaque = false
+        displayFilter = filter; displayConfig = cfg
         let stream = SCStream(filter:filter,configuration:cfg,delegate:self)
         do { try stream.addStreamOutput(self,type:.screen,sampleHandlerQueue:queue) } catch { fail(.displayStreamUnavailable); return }
         capture = stream
@@ -282,45 +373,98 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
         let callback = visualNow()
         let meta = (CMSampleBufferGetSampleAttachmentsArray(buffer,createIfNecessary:false) as? [[SCStreamFrameInfo: Any]])?.first
         let status = (meta?[.status] as? NSNumber).flatMap { SCFrameStatus(rawValue:$0.intValue) }
-        guard status == .complete || status == .started else {
-            if status == .idle { idle += 1 } else { fail(.streamInterrupted) }
+        if status == .idle {
+            idle += 1
+            if let ticks = (meta?[.displayTime] as? NSNumber)?.uint64Value, ticks > lastTicks, lastTicks > 0 {
+                lastIdleTick = ticks; lastIdleAnchor = lastTicks
+            }
             return
         }
+        guard status == .complete || status == .started else { fail(.streamInterrupted); return }
+        let ticks = (meta?[.displayTime] as? NSNumber)?.uint64Value
+        let pts = buffer.presentationTimeStamp
+        if status == .started && buffer.imageBuffer == nil { startedWithoutPixels += 1; return }
+        if status == .started && ((ticks ?? 0) == 0 || !pts.isNumeric) { startedWithoutClock += 1; return }
         delivered += 1
-        guard delivered <= 400, buffer.isValid, let ticks = (meta?[.displayTime] as? NSNumber)?.uint64Value,
-              ticks > lastTicks, ticks != 0 else { fail(.presentationUnbounded); return }
+        guard delivered <= 400 else { fail(.presentationUnbounded); return }
+        var diag: VisualRow = ["callback": callback, "status": status?.rawValue as Any]
+        if let ticks { diag["machTicks"] = ticks; diag["displayUptime"] = clock.mapped(ticks) }
+        if pts.isNumeric { diag["ptsUptime"] = pts.seconds + clock.hostOffset }
+        if let image = buffer.imageBuffer {
+            diag["size"] = [CVPixelBufferGetWidth(image), CVPixelBufferGetHeight(image)]
+            diag["pixelFormat"] = CVPixelBufferGetPixelFormatType(image)
+        }
+        frameDiagnostics.append(diag)
+        let index = frameDiagnostics.count - 1
+        guard buffer.isValid, let ticks, ticks > lastTicks, ticks != 0, pts.isNumeric else { fail(.nativeClockUnavailable); return }
         lastTicks = ticks
-        let time = clock.mapped(ticks), pts = CMTimeGetSeconds(buffer.presentationTimeStamp) + clock.hostOffset
-        guard PreviewClock.presentationBounds(display:time,pts:pts,callback:callback) != nil,
-              time >= callback - 0.050 else { fail(.presentationUnbounded); return }
-        let wait = max(0,time + clock.uncertainty - visualNow()) + 0.0001
-        queue.asyncAfter(deadline:.now()+wait) { [weak self] in self?.observe(buffer,ticks:ticks,time:time,callback:callback) }
+        let time = clock.mapped(ticks)
+        guard PreviewClock.presentationBounds(display: time, pts: pts.seconds + clock.hostOffset, callback: callback) != nil else {
+            fail(.nativeClockUnavailable); return
+        }
+        // Stream delivery may precede the compositor timestamp. Do not read pixels until the same
+        // enrolled physical stack is checked after the calibrated presentation.
+        let wait = max(0, time + clock.uncertainty - visualNow()) + 0.0001
+        queue.asyncAfter(deadline:.now()+wait) { [weak self] in self?.observe(buffer,ticks:ticks,time:time,callback:callback,index:index) }
     }
 
-    private func observe(_ buffer: CMSampleBuffer, ticks: UInt64, time: Double, callback: Double) {
-        guard !stopped, let clock else { return }
+    private func observe(_ buffer: CMSampleBuffer, ticks: UInt64, time: Double, callback: Double, index: Int) {
+        guard !stopped, let clock, let crop else { return }
         readStack()
-        guard !stopped, let after = stack.last, let before = stack.last(where: { $0.to <= time - clock.uncertainty }) else {
-            if samples.isEmpty { beforeBaseline += 1 } else { fail(.presentationUnbounded) }
+        guard !stopped, let after = stack.last else { return }
+        guard let before = stack.last(where: { $0.to <= time - clock.uncertainty }), after.from >= time + clock.uncertainty else {
+            frameDiagnostics[index]["bracket"] = "missingBeforeOrAfter"
+            if samples.isEmpty { beforeBaseline += 1 } else { fail(.noBracketedPresentation) }
             return
         }
+        frameDiagnostics[index]["physicalBracket"] = [before.from, before.to, after.from, after.to]
         let covered = stack.filter { $0.from >= before.from && $0.to <= after.to }.map(\.slot)
         let progress = covered.map { $0 == target ? 1 : 0 }
-        guard progress == progress.sorted(), after.from >= time + clock.uncertainty, after.to - before.from <= 0.050 else {
-            if samples.isEmpty, before.slot == 1 - target, after.slot == 1 - target { beforeBaseline += 1; return }
-            fail(.presentationUnbounded); return
-        }
-        guard let image = buffer.imageBuffer, CVPixelBufferGetPixelFormatType(image) == kCVPixelFormatType_32BGRA,
-              CVPixelBufferGetWidth(image) == 8, CVPixelBufferGetHeight(image) == 8,
-              CVPixelBufferLockBaseAddress(image,.readOnly) == kCVReturnSuccess else { fail(.missingOpaqueMarker); return }
-        defer { CVPixelBufferUnlockBaseAddress(image,.readOnly) }
-        guard let ptr = CVPixelBufferGetBaseAddress(image)?.assumingMemoryBound(to:UInt8.self),
-              let slot = PairPointerPalette.slot(bgra:ptr,stride:CVPixelBufferGetBytesPerRow(image),side:8) else {
-            fail(.missingOpaqueMarker); return
-        }
+        guard progress == progress.sorted() else { fail(.ambiguousSurface); return }
+        let read = PairFocusRaster.measure(buffer, display: displayBounds, crop: crop)
+        frameDiagnostics[index]["raster"] = read.record
+        guard let slot = read.slot else { fail(read.issue ?? .pixelBufferUnavailable); return }
         guard PairVisualEvidence.eligible(slot:slot,target:target,presentation:time,uncertainty:clock.uncertainty,
                                           before:before,after:after) else { fail(.ambiguousSurface); return }
         samples.append(PairVisualFrame(slot:slot,ticks:ticks,time:time,callback:callback,before:before,after:after))
+    }
+
+    // A static filtered display can emit only idle notifications after the click. One real
+    // checked screenshot may bound visibility; it cannot give the first changed frame's time.
+    private func captureEndpoint(down: ClosedRange<Double>, up: ClosedRange<Double>) {
+        guard !stopped, !endpointPending, endpoint == nil, let clock, let crop, let filter = displayFilter, let cfg = displayConfig,
+              let baseline = samples.first, let source = samples.last, source.slot == 1 - target, !samples.contains(where: { $0.slot == target }) else { return }
+        readStack()
+        guard !stopped, let before = stack.last, before.slot == target, before.from >= up.upperBound else {
+            endpoint = ["status":"UNKNOWN", "reason":"terminalTargetStackUnconfirmed"]
+            return
+        }
+        endpointPending = true
+        SCScreenshotManager.captureSampleBuffer(contentFilter: filter, configuration: cfg) { [weak self] buffer, _ in
+            guard let self else { return }
+            self.queue.async {
+                defer { self.endpointPending = false }
+                guard !self.stopped else { return }
+                self.readStack()
+                var report: VisualRow = ["status":"UNKNOWN", "reason":"terminalImageOrPhysicalStackUnconfirmed",
+                                         "requestAfterUptime":before.to]
+                defer { self.endpoint = report }
+                guard !self.stopped, let after = self.stack.last, after.slot == self.target,
+                      let buffer, buffer.isValid else { return }
+                report["completedBeforeUptime"] = after.to
+                let read = PairFocusRaster.measure(buffer, display: self.displayBounds, crop: crop)
+                report["raster"] = read.record
+                guard let measured = read.slot else {
+                    report["reason"] = (read.issue ?? .pixelBufferUnavailable).rawValue
+                    return
+                }
+                if let interval = PairVisualEvidence.snapshotInterval(baseline: baseline, source: source, target: self.target, measured: measured,
+                       before: before, after: after, uncertainty: clock.uncertainty, down: down, up: up) {
+                    report.removeValue(forKey: "reason")
+                    report.merge(interval) { _, rhs in rhs }
+                }
+            }
+        }
     }
 
     private func stop() {
@@ -342,8 +486,19 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             return before...after
         }
         let down = post(.leftMouseDown), up = post(.leftMouseUp)
-        if down != nil, up != nil { wait(seconds:0.65) { observer in observer.failure != nil || observer.samples.contains(where: { $0.slot == observer.target }) } }
+        if let down, let up {
+            wait(seconds:0.4) { observer in observer.failure != nil || observer.samples.contains(where: { $0.slot == observer.target }) }
+            queue.sync { captureEndpoint(down: down, up: up) }
+            wait(seconds:0.25) { observer in
+                observer.failure != nil || observer.samples.contains(where: { $0.slot == observer.target }) ||
+                    (observer.endpoint != nil && !observer.endpointPending)
+            }
+        }
         return queue.sync {
+            if endpointPending && endpoint == nil {
+                endpoint = ["status":"UNKNOWN", "reason": samples.contains { $0.slot == target } ?
+                    "streamTargetArrivedBeforeScreenshot" : "terminalScreenshotDeadline"]
+            }
             if !stopped {
                 readStack()
                 if samples.contains(where:{ $0.slot == target }), stack.last?.slot != target { fail(.ambiguousSurface) }
@@ -356,7 +511,15 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             var result: VisualRow = ["status":"UNKNOWN", "reason": PairVisualFailure.inputTimesUnavailable.rawValue]
             if let failure { result["reason"] = failure.rawValue }
             else if let down, let up, let clock { result = PairVisualEvidence.receipt(frames:samples,target:target,uncertainty:clock.uncertainty,down:down,up:up) }
-            result["method"] = "twoEnrolledWindowDisplayCropWithIndependentVisibleWindowServerStack"
+            if failure == nil, result["reason"] as? String == PairVisualFailure.noTargetPresentation.rawValue,
+               let endpoint, endpoint["status"] as? String == "BOUNDED_SCREENSHOT" {
+                for key in ["status", "evidenceKind", "sourceSlot", "targetSlot", "lastSourceDisplayUptime", "confirmedByUptime",
+                            "downToVisibleMS", "upToVisibleMS"] { result[key] = endpoint[key] }
+                result.removeValue(forKey: "reason")
+            }
+            result["method"] = "twoEnrolledWindowDisplayRasterWithPhysicalStackAtEightPointCrop"
+            result["displayPointBounds"] = [displayBounds.minX,displayBounds.minY,displayBounds.width,displayBounds.height]
+            if let cfg = displayConfig { result["requestedRaster"] = [cfg.width,cfg.height] }
             result["fixtureWindows"] = numbers; result["spaceUUID"] = request.spaceUUID
             if let crop { result["cropPoints"] = [crop.minX,crop.minY,crop.width,crop.height] }
             result["frames"] = samples.map(\.receipt); result["completeDeliveries"] = delivered; result["idleDeliveries"] = idle
@@ -366,6 +529,14 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             result["stackQueryCount"] = guardDurations.count
             result["stackQueryAttempts"] = stackAttempts
             result["physicalStackCoverageTotals"] = coverage.receipt
+            result["frameDiagnostics"] = frameDiagnostics
+            result["startedWithoutPixels"] = startedWithoutPixels
+            result["startedWithoutClock"] = startedWithoutClock
+            result["lastIdleTicks"] = lastIdleTick
+            result["lastIdleHeldCompleteTicks"] = lastIdleAnchor
+            result["streamObservation"] = samples.contains { $0.slot == target } ? "targetFrameObserved" :
+                (samples.isEmpty ? "noQualifiedSourceFrame" : (idle > 0 ? "sourceAndIdleOnly" : "sourceWithoutNewTarget"))
+            if let endpoint { result["terminalScreenshot"] = endpoint }
             result["retainedPixelBytes"] = 0
             return result
         }

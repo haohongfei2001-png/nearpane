@@ -18,7 +18,7 @@ class PointerVisualReplay(unittest.TestCase):
                             *(str(HERE / name) for name in sources), "-o", str(tool)], check=True)
             result = json.loads(subprocess.check_output([tool]))
             self.assertEqual(result["status"], "PASS")
-            self.assertGreaterEqual(len(result["checks"]), 46)
+            self.assertGreaterEqual(len(result["checks"]), 60)
             self.assertTrue({
                 "foreignOrdinaryInFrontDisjointAccepted",
                 "opaqueDocumentHidesIntersectingAndUnknownBackground",
@@ -26,6 +26,9 @@ class PointerVisualReplay(unittest.TestCase):
                 "unknownForegroundBoundsRefused",
                 "missingEnrolledOwnerBehindOpaqueRefused",
                 "overlayMovesInFrontOfKnownSurfaceRefused",
+                "realBufferScaleAndCleanAperture",
+                "terminalStackCannotSubstituteForWrongPicture",
+                "broadOrderedBracketRetainsItsUncertainty",
             }.issubset(result["checks"]))
 
 
