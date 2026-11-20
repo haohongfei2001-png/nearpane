@@ -1,0 +1,38 @@
+{
+  "actualHistoricalPixelAvailable": false,
+  "evaluatorSHA256": "8fbf0871b164fd789ad3ffdfb8d2f8265992babe9035ac5f8adc7a63db6b6e55",
+  "frameFileSHA256": "7992a17550e07c400496baa1b9679409d6e66e92404cf8ee1aea92149d295548",
+  "genuineDisplayTime": 251734.14955125,
+  "method": "offline review of preserved ownership metadata; no sample or image was acquired",
+  "monotoneMetadata": {
+    "metadataEligible": true,
+    "pixelRead": false,
+    "spaceChanged": true,
+    "surfaceChanged": false
+  },
+  "nativeOwnershipChecks": [
+    {
+      "from": 251734.15191433334,
+      "reason": "exactOpaqueFixture",
+      "sameDisplayAndInput": true,
+      "space": 5019,
+      "to": 251734.15356508334,
+      "visible": "target"
+    },
+    {
+      "from": 251734.15729870833,
+      "reason": "exactOpaqueFixture",
+      "sameDisplayAndInput": true,
+      "space": 5018,
+      "to": 251734.17478983334,
+      "visible": "target"
+    }
+  ],
+  "originalCause": "twoPostPresentationSurfacesDisagree",
+  "originalFrameIndex": 23,
+  "originalMaxGapMS": 16.666791666666665,
+  "originalNativeFrames": 193,
+  "originalStatus": "UNKNOWN",
+  "reverseReadCount": 0,
+  "reviewSHA256": "8973fca12c81bd2ee3bd2dc07b02e5d72ba214a20d84d766b9020adcab633075"
+}

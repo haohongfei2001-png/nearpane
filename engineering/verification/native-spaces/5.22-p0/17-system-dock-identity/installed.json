@@ -1,0 +1,16 @@
+{
+  "build": "90",
+  "host": {
+    "birth": 1795178797065577,
+    "executable": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "hash": "a07b87640e8845a59cdd1488dc79bc0f423fae65",
+    "identifier": "com.holdsnow.nearpane.alpha",
+    "pid": 69905
+  },
+  "isolatedProfile": true,
+  "osbuild": "26A428",
+  "path": "/Applications/Nearpane.app",
+  "source": "96a3e3d1e74ea490dee798385cbef207a6013609",
+  "team": "ZB9D4T66QB",
+  "version": "5.22"
+}

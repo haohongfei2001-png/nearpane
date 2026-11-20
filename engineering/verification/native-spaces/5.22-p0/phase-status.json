@@ -25,10 +25,10 @@
     "tenBlackout": "UNKNOWN",
     "latestSignedSource": "96a3e3d1e74ea490dee798385cbef207a6013609",
     "repeatRoundTrip": "PASS",
-    "mostRecentTenGate": "UNKNOWN",
-    "mostRecentTenAttempted": 1,
-    "mostRecentTenCoverage": "Independent terminal target and real stream target confirmed. 193 native presentation events, longest 16.667 ms, one frame withheld as active Space changed while the same verified target surface remained in view. Original visual UNKNOWN.",
-    "mostRecentEvidence": "16-handoff-frame/results.json",
+    "mostRecentTenGate": "NOT_RUN",
+    "mostRecentTenAttempted": 0,
+    "mostRecentTenCoverage": "Last measured signed run #16: real stream and independent terminal target confirmed. One of 193 native events had no acquired pixel. Setup #17 issued zero product actions.",
+    "mostRecentEvidence": "17-system-dock-identity/results.json",
     "candidateRuns": [
       {
         "evidence": "11-adjacent-round-trip/results.json",
@@ -233,6 +233,42 @@
             "independentlyLanded": 1,
             "observedBlackoutFree": 0,
             "visualUnknown": 1
+          },
+          "fifty": {
+            "status": "NOT_RUN",
+            "requested": 50,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          }
+        }
+      },
+      {
+        "evidence": "17-system-dock-identity/results.json",
+        "cleanup": "PASS",
+        "stages": {
+          "roundTrip": {
+            "status": "BLOCKED",
+            "requested": 2,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
+          },
+          "ten": {
+            "status": "NOT_RUN",
+            "requested": 10,
+            "attempts": 0,
+            "productionAXPress": 0,
+            "gestureSequences": 0,
+            "independentlyLanded": 0,
+            "observedBlackoutFree": 0,
+            "visualUnknown": 0
           },
           "fifty": {
             "status": "NOT_RUN",

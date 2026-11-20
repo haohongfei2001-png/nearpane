@@ -30,6 +30,7 @@
 | [真实窗口动态色标](14-moving-documents/results.json) | 正式侧栏往返 2/2，再发第 1 次交替并独立确认落点。两扇受控文档在自己的窗口内改变颜色。真实显示流的 196 个呈现均有窗口与时序证明，最长间隔 16.667 毫秒，持续可见、零原生空白、目标色均已确认。终点最后一次独立清点发现额外的层 0 窗口，身份未证实，取证在另一份截图前停止。整轮视觉继续为 UNKNOWN，两个临时桌面、日常焦点和配置均已恢复。[分项结果](14-moving-documents/target-check.json) · [每次真实按压](14-moving-documents/per-action.jsonl) |
 | [额外窗口身份查明](15-fixture-auxiliary/owned-auxiliary-diagnosis.json) | 同一安装版再次往返 2/2，第 1 次交替实际到达。显示时序、持续亮度及目标色均通过。20 次独立清点证实额外窗号 50369 属于受控 Field Notes 的同一签名进程，其 AX 子角色为非标准、非主窗，位于取样区外。目标文档窗号为 50319。此轮按旧规则停在末端交叉截图之前，整体仍为 UNKNOWN。[全部原始收据](15-fixture-auxiliary/original-receipts.tar.gz) |
 | [切换过程中的一次系统通知](16-handoff-frame/handoff-readback.json) | 正式侧栏往返 2/2，第 1 次交替落点已确认。辅助窗资格、两次终点清点、真实显示流目标色和独立终点截图全部通过。193 个呈现中有一帧的两次元数据都确认了同一受控目标表面，但活动 Space 在两读之间由源变为目标。当时的观察器没有读取此帧像素，持续亮度保留 UNKNOWN，后续选择已停止。[原始收据](16-handoff-frame/original-receipts.tar.gz) |
+| [系统 Dock 身份读取中断](17-system-dock-identity/results.json) | 建场进程从内核和 Apple 签名确认了原 Dock，但读取概览控件时又通过 Launch Services 查找 Dock，第二次查找未得到唯一结果。系统“添加桌面”按钮与正式侧栏均未按下。此轮新建桌面 0 个、真实切换 0 次。原有两个桌面的身份及顺序、原始焦点和日常配置均已核实恢复。[原始事件](17-system-dock-identity/actions.jsonl) · [独立复算](17-system-dock-identity/readback.json) |
 
 以上建场成功次数和历史版本的尝试均不计入本候选的往返、10 次或 50 次门槛。
 
@@ -49,7 +50,7 @@
 
 ## 签名候选与回退
 
-当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json)[签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
+当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json) · [签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
 
 此候选的侧栏实拍 0→2→0，无占位标签和空间行，14 帧、15.69 秒。双窗时候选显示了两张身份正确的卡，独立观察器本次报告了 0 扇可证明可见窗口，故此轮窗口完整性为 BLOCKED。夹具退出后两个号码均已消失。[截图](11-adjacent-round-trip/window-roster/two-documents-sidebar.png) · [侧栏录屏](11-adjacent-round-trip/window-roster/installed-sidebar.mp4) · [完整性分项](11-adjacent-round-trip/window-roster/results.json)
 
