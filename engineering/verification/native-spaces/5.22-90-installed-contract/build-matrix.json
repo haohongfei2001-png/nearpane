@@ -1,0 +1,25 @@
+{
+  "acceptancePython": {
+    "command": "python3 -m unittest discover -s scripts/acceptance/native-spaces",
+    "result": "................................\n----------------------------------------------------------------------\nRan 32 tests in 0.048s\n\nOK"
+  },
+  "installedProductSourceSwiftSerial": {
+    "failedTests": [],
+    "logSHA256": "e9dcb17d4dd59e99d73da656729984dd2b6c91a5966ca65d0a114824c81fafec",
+    "result": "✔ Test run with 518 tests in 76 suites passed after 19.686 seconds."
+  },
+  "intermediateSwiftParallel": {
+    "failedTests": [
+      "aCompletedDragWakesTheManagerAndUsesOnlyTheTargetsFreeSlot",
+      "expiredOrdinaryPreviewWithdrawsConfirmationWithoutClearingSelectedWindows"
+    ],
+    "logSHA256": "e734b76ad74061d5f57c2a219e266cd2a62a02d2044443dc10b40fe9cc39baf3",
+    "result": "✘ Test run with 517 tests in 76 suites failed after 7.134 seconds with 5 issues."
+  },
+  "intermediateSwiftSerial": {
+    "failedTests": [],
+    "logSHA256": "2240c8d7ffcd46f9a9b5d41890898847c954a5a711f48bfcca8c19f8b01428c7",
+    "result": "✔ Test run with 517 tests in 76 suites passed after 23.250 seconds."
+  },
+  "retainedRowDriverCompiled": true
+}

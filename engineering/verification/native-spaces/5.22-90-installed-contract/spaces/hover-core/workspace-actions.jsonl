@@ -1,0 +1,8 @@
+{"event":"recovery-protected-order","monotonic":236320.87094675,"ids":[4,2000,6,5],"originalOrderMatches":true}
+{"event":"cleanup-host-bound","monotonic":236320.901090083,"original":{"codeHash":"25362e7db5d7d290d18ce6ceaaa9678fa6acc1c1","launch":1795162831.655715,"pid":68600},"current":{"codeHash":"25362e7db5d7d290d18ce6ceaaa9678fa6acc1c1","launch":1795162846.130968,"pid":68739}}
+{"event":"recovery-protected-order","monotonic":236321.771510541,"ids":[4,2000,6,5],"originalOrderMatches":true}
+{"event":"system-fixture-intent","monotonic":236322.152542375,"operation":"remove","current":4,"target":4930,"other":null}
+{"event":"system-fixture-result","monotonic":236323.058460166,"operation":"remove","target":4930,"acknowledged":true,"issued":true,"overviewDismissed":true,"windowServerConfirmedBeforeClose":true,"overviewComposite":{"newSinceOverview":true,"pid":647,"owner":"com.apple.WindowManager","number":46731,"otherOrdinary":0},"overviewCloseAction":"native launcher"}
+{"event":"system-fixture-removal-reconciled","monotonic":236323.414436625,"target":4930}
+{"event":"system-fixture-removed","monotonic":236323.414500083,"target":4930}
+{"event":"workspace-cleanup","monotonic":236323.530679875,"topologyRestored":true,"focusRestored":false,"originalCurrent":2000,"cleanupCurrent":4,"originalOrderRestored":true,"preservedLatestOrder":true,"retainedUserSelectedSpace":true,"created":1,"removed":1,"outstanding":[],"errors":[]}

@@ -1,0 +1,13 @@
+{"event":"scenario-result","monotonic":236226.941909,"scenario":"D01","status":"BLOCKED","reason":"Installed Host move capability is false or unknown; zero drag inputs dispatched."}
+{"event":"creation-ledger","monotonic":236227.028385,"path":"$CHECKOUT/build/verification/secondary-route-followup/d792c468-5719-4c4b-b555-a53cbd9ad7e2/provision","operation":"b89c8ade-a441-40ae-bf99-d7391030015c"}
+{"event":"system-fixture-intent","monotonic":236227.149273208,"operation":"add","current":2000,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":236228.131838,"operation":"add","target":null,"windowServerConfirmedBeforeClose":true,"overviewCloseAction":"native launcher","issued":true,"overviewDismissed":true,"acknowledged":true}
+{"event":"system-fixture-created","monotonic":236228.486777,"desktop":{"id":4930,"type":0,"uuid":"6B0FEA9B-BBBA-8BC7-B9B0-C5E5B1008366"},"oldCurrent":2000,"newCurrent":4}
+{"event":"scenario-result","monotonic":236236.494042208,"scenario":"W02","status":"BLOCKED","reason":"system overview did not settle on its origin or a created desktop"}
+{"event":"scenario-result","monotonic":236236.494115083,"scenario":"W01","status":"BLOCKED","reason":"system overview did not settle on its origin or a created desktop"}
+{"event":"scenario-result","monotonic":236236.494152,"scenario":"R01","status":"BLOCKED","reason":"system overview did not settle on its origin or a created desktop"}
+{"event":"scenario-result","monotonic":236236.49418225,"scenario":"S03","status":"BLOCKED","reason":"system overview did not settle on its origin or a created desktop"}
+{"event":"scenario-result","monotonic":236236.494209625,"scenario":"N01","status":"BLOCKED","reason":"system overview did not settle on its origin or a created desktop"}
+{"event":"scenario-result","monotonic":236236.494235458,"scenario":"S01","status":"BLOCKED","reason":"system overview did not settle on its origin or a created desktop"}
+{"event":"scenario-result","monotonic":236236.494262,"scenario":"S02","status":"BLOCKED","reason":"system overview did not settle on its origin or a created desktop"}
+{"event":"suite-stopped","monotonic":236236.494289291,"reason":"system overview did not settle on its origin or a created desktop"}

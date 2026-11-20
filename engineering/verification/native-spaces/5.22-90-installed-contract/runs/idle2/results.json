@@ -1,0 +1,89 @@
+{
+  "fullN01": "NOT_RUN",
+  "kind": "unwarmed production idle process-tree observation on the visible ordinary sidebar",
+  "minimumIdleSeconds": 30,
+  "samples": [
+    {
+      "elapsedSeconds": 0.08848637499613687,
+      "metrics": {
+        "activeStreams": 0,
+        "cacheEntries": 1,
+        "captureRequests": 1,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 494080,
+        "gallerySessions": 1,
+        "pid": 67910,
+        "surfaceHidden": 0,
+        "visibilityRevision": 236020069399625,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      "physicalBytes": 135792824,
+      "processes": [
+        {
+          "birthSec": 1795162628,
+          "birthUsec": 503479,
+          "parent": 1,
+          "physFootprint": 111871056,
+          "pid": 67910
+        },
+        {
+          "birthSec": 1795162628,
+          "birthUsec": 630814,
+          "parent": 67910,
+          "physFootprint": 20087312,
+          "pid": 67912
+        },
+        {
+          "birthSec": 1795162629,
+          "birthUsec": 35052,
+          "parent": 67910,
+          "physFootprint": 3834456,
+          "pid": 67927
+        }
+      ],
+      "transientReads": []
+    },
+    {
+      "elapsedSeconds": 30.12314037498436,
+      "metrics": {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 14,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "gallerySessions": 0,
+        "pid": 67910,
+        "surfaceHidden": 0,
+        "visibilityRevision": 236020069399625,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      "physicalBytes": 81463504,
+      "processes": [
+        {
+          "birthSec": 1795162628,
+          "birthUsec": 503479,
+          "parent": 1,
+          "physFootprint": 63030376,
+          "pid": 67910
+        },
+        {
+          "birthSec": 1795162628,
+          "birthUsec": 630814,
+          "parent": 67910,
+          "physFootprint": 14565904,
+          "pid": 67912
+        },
+        {
+          "birthSec": 1795162629,
+          "birthUsec": 35052,
+          "parent": 67910,
+          "physFootprint": 3867224,
+          "pid": 67927
+        }
+      ],
+      "transientReads": []
+    }
+  ]
+}

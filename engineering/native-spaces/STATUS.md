@@ -1,6 +1,8 @@
 # 当前安装与专项状态
 
-**当前安装为 5.22（91），2026-11-20。** 从 GitHub 下载后原位升级，系统只登记一份 Nearpane。Host 和七个权限助手与 90 双向验签通过。两条仅匹配旧构建的系统授权已清理，正式 Host 的辅助功能、录屏和事件投递仍未放行。侧栏 4 个 Space 与系统匹配，精确键盘聚焦、真实切换及迁移待验。[91 升级、权限与实机截图](../verification/native-spaces/5.22-91-permissions/RESULTS.md)
+**现装候选为 5.22（90），原生源码 `0777130`，2026-11-20。** 正式 Host 原位换装后继续持有辅助功能、屏幕录制和事件投递授权，系统选词服务仅由 `/Applications/Nearpane.app` 提供。三桌面合同为 0/50，另有 9 次正式行选择均未确认到达。双窗输入两次中一次符合预期；正式 Host 报告不可迁移。侧栏进入受控原生全屏、两句语音最终稿及隐藏后自动显示已实测。PR #15 保持 Draft。[完整验收、失败样本与候选](../verification/native-spaces/5.22-90-installed-contract/RESULTS.md)
+
+**此前的权限迁移候选 5.22（91），2026-11-20。** 从 GitHub 下载后原位升级，系统只登记一份 Nearpane。Host 和七个权限助手与 90 双向验签通过。两条仅匹配旧构建的系统授权已清理，正式 Host 的辅助功能、录屏和事件投递仍未放行。侧栏 4 个 Space 与系统匹配，精确键盘聚焦、真实切换及迁移待验。[91 升级、权限与实机截图](../verification/native-spaces/5.22-91-permissions/RESULTS.md)
 
 **历史安装版 5.22（90），2026-11-20，专项部分通过。** 正式侧栏与系统的 4 个 Space 及当前高亮一致。日常安装身份的辅助功能、事件投递、录屏均未获准，精确键盘聚焦、真实切换及迁窗仍待验。浅、深色下四处前景笔画已在同壁纸的两档玻璃设置间保持稳定。各项正式与隔离证据分别列出。[90 实机记录](../verification/native-spaces/5.22-90-r4/RESULTS.md) · [89 的首次校准、签名与失败项](../verification/native-spaces/5.22-89-r4/RESULTS.md)
 
@@ -24,10 +26,10 @@
 | WP4 系统组合与体验 | 后台采集有上限，允许保留已验证身份的历史图。独立的正常动效与减少动态效果路径，过期意图可中止。 | 一分钟隐藏采样零新增捕获，限于产品无录屏权限的状态。未取得可评价的切换录像、延时与稳态内存数据，缺第二块物理显示器。 |
 | WP5 交付 | 统一安装位置、正常 Launch Services 启动，源码版本、Host/helper 身份和回退档均有收据。 | 构建、验签、解包回读通过。核心安装验收仍有未通过项；PR 保持草稿。 |
 
-## 现场结论与接续
+## 5.21（77）现场结论与本轮接续
 
-正式安装进程的辅助功能、屏幕录制均未授权。负责取证的独立进程有自己的权限。只对本次创建的测试窗口投递正式侧栏点击，未将现有三个桌面认作专用 A/B/C。两次选窗后均验证了原桌面、前台、焦点及测试窗口清理。[最终安装版取证](../verification/native-spaces/5.21-77-final/RESULTS.md) · [完整矩阵、安装包与回退](../verification/native-spaces/5.21-77-delivery/RESULTS.md)
+当时正式安装进程的辅助功能、屏幕录制均未授权。负责取证的独立进程有自己的权限。只对本次创建的测试窗口投递正式侧栏点击，未将现有三个桌面认作专用 A/B/C。两次选窗后均验证了原桌面、前台、焦点及测试窗口清理。[最终安装版取证](../verification/native-spaces/5.21-77-final/RESULTS.md) · [完整矩阵、安装包与回退](../verification/native-spaces/5.21-77-delivery/RESULTS.md)
 
-账户所有者可在「系统设置 → 隐私与安全性」为已安装的 Nearpane 授予「辅助功能」与「屏幕与系统音频录制」。下轮由工程验收器从正式侧栏复测。先运行 `scripts/acceptance/native-spaces/run.sh preflight build/verification/ns12-next-preflight`（使用新的输出目录）核对实际 Host 的能力，再建立并清理可确认归属的临时桌面并执行受控输入。单屏场景可独立继续。M01 另需第二块物理显示器及对应的登录会话设置。[验收入口](../../scripts/acceptance/native-spaces/README.md)
+此前记录中的系统授权现已在正式 Host 读回为允许。复测从正式侧栏发起。先运行 `scripts/acceptance/native-spaces/run.sh preflight build/verification/ns12-next-preflight`（使用新的输出目录）核对实际 Host 的能力，再建立并清理可确认归属的临时桌面并执行受控输入。单屏场景可独立继续。M01 另需第二块物理显示器及对应的登录会话设置。[验收入口](../../scripts/acceptance/native-spaces/README.md)
 
 5.20 的同一桌面跨应用双窗平分与恢复保留其原验证范围，最大几何误差为 0 pt。该结果没有纳入 5.21 跨桌面成功计数。[5.20 实机记录](../verification/P5.20-DESKTOP-OVERVIEW-AND-AUTO-TILING.md)

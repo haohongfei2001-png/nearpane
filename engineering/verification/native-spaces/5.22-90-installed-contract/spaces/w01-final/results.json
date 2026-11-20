@@ -1,0 +1,109 @@
+{
+  "allRequiredPassed": false,
+  "attemptCount": 1,
+  "cleanup": {
+    "cleanupCurrent": 4,
+    "created": 0,
+    "errors": [],
+    "focusRestored": true,
+    "originalCurrent": 4,
+    "originalOrderRestored": true,
+    "outstanding": [],
+    "preservedLatestOrder": true,
+    "removed": 0,
+    "retainedUserSelectedSpace": false,
+    "topologyRestored": true
+  },
+  "failedAttempts": 0,
+  "performancePercentiles": null,
+  "productAttempts": [
+    {
+      "application": "com.apple.TextEdit",
+      "inputAcknowledged": null,
+      "scenario": "W01",
+      "status": "UNKNOWN",
+      "target": 46613,
+      "trial": 1
+    }
+  ],
+  "scenarios": {
+    "C01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "D01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "F01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "I01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "M01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "N01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "P01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "R01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "R02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S03": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "V01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W01": {
+      "cleanup": {
+        "reason": "TextEdit has not exposed exactly the two enrolled document windows"
+      },
+      "issued": 0,
+      "passes": 0,
+      "reason": "Owned TextEdit cleanup is incomplete.",
+      "status": "FAIL"
+    },
+    "W02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W03": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    }
+  },
+  "unknownAttempts": 1
+}

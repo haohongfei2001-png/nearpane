@@ -1,0 +1,11 @@
+{
+  "acknowledged": true,
+  "issued": true,
+  "overviewComposite": {
+    "newSinceOverview": true,
+    "number": 45366,
+    "otherOrdinary": 0,
+    "owner": "com.apple.WindowManager",
+    "pid": 647
+  }
+}

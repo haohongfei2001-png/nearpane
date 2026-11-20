@@ -1,0 +1,14 @@
+[
+  {
+    "archiveSHA256": "33d4059aa55f10bf06bade5cbc91d41eabdb7eaf12b6587e3db60840fa016e8b",
+    "exportRemoved": true,
+    "lsUnregister": 0,
+    "source": "00efb8b2fc6478cf842eea0c304608a946f0548e"
+  },
+  {
+    "archiveSHA256": "f5bafe650ca73fc1b92b038b55818d3cf3571dc4b558501cac9658fe6640439f",
+    "exportRemoved": true,
+    "lsUnregister": 0,
+    "source": "0777130ffd7bdaade0b634ede26fb70d811e06b5"
+  }
+]
