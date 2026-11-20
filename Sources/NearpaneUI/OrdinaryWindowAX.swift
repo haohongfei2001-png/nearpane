@@ -61,6 +61,9 @@ private actor OrdinaryWindowChannel {
         }
     }
 
+    nonisolated var pid: pid_t { process.processIdentifier }
+    nonisolated var isRunning: Bool { process.isRunning }
+
     nonisolated func interrupt() {
         if process.isRunning { process.terminate() }
     }
@@ -72,7 +75,8 @@ private actor OrdinaryWindowChannel {
         try? output.close()
     }
 
-    func call(_ command: OrdinaryWindowRequest, permit: NativeSelectionPermit? = nil) throws -> OrdinaryWindowReply {
+    func call(_ command: OrdinaryWindowRequest, permit: NativeSelectionPermit? = nil,
+              timeout: TimeInterval = 8) throws -> OrdinaryWindowReply {
         guard process.isRunning else { throw OrdinaryWindowFailure("窗口助手已结束，原授权失效。") }
         let reply: OrdinaryWindowReply
         do {
@@ -80,7 +84,7 @@ private actor OrdinaryWindowChannel {
             bytes.append(10)
             try input.write(contentsOf: bytes)
             var nextStep = 0
-            let deadline = ProcessInfo.processInfo.systemUptime + 8
+            let deadline = ProcessInfo.processInfo.systemUptime + timeout
             while true {
                 var result = Data()
                 while result.count <= 64_000 {
@@ -124,12 +128,72 @@ private actor OrdinaryWindowChannel {
 }
 
 @MainActor final class OrdinaryWindowDirectory {
+    private struct UnboundFocusWorker: Sendable {
+        let channel: OrdinaryWindowChannel
+        let alerts: BoundaryAlerts
+        let hostImage, helperImage: OrdinaryProcessImage
+
+        func belongsToCurrentInstall() -> Bool {
+            channel.isRunning && (try? OrdinaryProcessImage.read(getpid())) == hostImage &&
+                (try? OrdinaryProcessImage.read(channel.pid)) == helperImage
+        }
+    }
+
+    private static let focusStandby = FocusWorkerStandby<UnboundFocusWorker>()
+
+    private static func startUnboundFocusWorker() -> Task<UnboundFocusWorker, Error> {
+        let alerts = BoundaryAlerts()
+        return Task.detached(priority:.userInitiated) {
+            try Task.checkCancellation()
+            let host = try OrdinaryProcessImage.read(getpid())
+            let channel = try OrdinaryWindowChannel(alerts:alerts)
+            // This read-only readiness request has neither an owner nor a window.
+            // Discard the permission value. The worker checks AX trust again when the real
+            // click lists its owner and when the Host approves each individual write.
+            let ready = try await channel.call(.init(.checkFocusPermission, pid:0, launch:0, bundle:""), timeout:1)
+            try Task.checkCancellation()
+            guard ready.focusPermission != nil, try OrdinaryProcessImage.read(getpid()) == host else {
+                throw OrdinaryWindowFailure("窗口控制助手的安装代际已变化。")
+            }
+            return try UnboundFocusWorker(channel:channel, alerts:alerts, hostImage:host,
+                                          helperImage:OrdinaryProcessImage.read(channel.pid))
+        }
+    }
+
+    @discardableResult static func prepareSidebarFocus() -> Bool { focusStandby.prepare(startUnboundFocusWorker) }
+
+    static func forSidebarFocus(_ app: AdmissionApplication) async throws -> OrdinaryWindowDirectory {
+        let worker: UnboundFocusWorker
+        do { worker = try await focusStandby.take(startUnboundFocusWorker) }
+        catch is CancellationError { throw CancellationError() }
+        catch { return try OrdinaryWindowDirectory(app) }
+        // A short-lived empty process carries no target. If its code image was replaced,
+        // discard it and run the ordinary signed startup for this selection.
+        guard worker.belongsToCurrentInstall() else {
+            worker.channel.interrupt()
+            return try OrdinaryWindowDirectory(app)
+        }
+        return OrdinaryWindowDirectory(app, worker:worker)
+    }
+
     /// Ask the signed process that actually selects windows. This channel never lists or binds a window.
     static func focusPermission(prompt: Bool) async -> Bool? {
         do {
-            let channel = try OrdinaryWindowChannel(alerts: BoundaryAlerts())
+            let alerts = BoundaryAlerts()
+            let channel = try OrdinaryWindowChannel(alerts:alerts)
             let action: OrdinaryWindowRequest.Action = prompt ? .requestFocusPermission : .checkFocusPermission
-            return try await channel.call(.init(action, pid: 0, launch: 0, bundle: "")).focusPermission
+            let response = try await channel.call(.init(action, pid:0, launch:0, bundle:""))
+            if response.focusPermission != nil {
+                // The settings probe already has a signed, nonce-checked empty channel. Only
+                // its process is reusable; the original permission answer is returned to Settings.
+                focusStandby.prepare {
+                    Task {
+                        try UnboundFocusWorker(channel:channel, alerts:alerts, hostImage:OrdinaryProcessImage.read(getpid()),
+                                               helperImage:OrdinaryProcessImage.read(channel.pid))
+                    }
+                }
+            }
+            return response.focusPermission
         } catch { return nil }
     }
 
@@ -137,6 +201,12 @@ private actor OrdinaryWindowChannel {
     private let channel: OrdinaryWindowChannel
     private let alerts: BoundaryAlerts
     private(set) var handles = [UUID: OrdinaryWindowAX]()
+
+    private init(_ app: AdmissionApplication, worker: UnboundFocusWorker) {
+        self.app = app
+        alerts = worker.alerts
+        channel = worker.channel
+    }
 
     init(_ app: AdmissionApplication, previewWindow: UInt32? = nil) throws {
         self.app = app

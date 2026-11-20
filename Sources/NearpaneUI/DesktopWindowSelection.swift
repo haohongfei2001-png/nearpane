@@ -99,6 +99,7 @@ extension DesktopWindowTarget {
 
 @MainActor enum DesktopWindowSelection {
     private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowSelection")
+    private static var recentWorkerFocus: RecentWorkerFocus?
 
     static func refusedCurrentCard(_ gate: StaticString) -> Bool {
         log.notice("selection card no longer current: \(String(describing: gate), privacy: .public)")
@@ -127,8 +128,11 @@ extension DesktopWindowTarget {
         return try await bind(key, bundle: bundle)
     }
 
-    private static func bind(_ key: DesktopWindowKey, bundle: String) async throws -> OrdinaryWindowAX {
-        let directory = try OrdinaryWindowDirectory(.init(pid: key.pid, launch: key.birth, bundle: bundle, name: ""))
+    private static func bind(_ key: DesktopWindowKey, bundle: String, sidebar: Bool = false,
+                             timing: WindowFocusTiming? = nil) async throws -> OrdinaryWindowAX {
+        let app = AdmissionApplication(pid:key.pid, launch:key.birth, bundle:bundle, name:"")
+        let directory = sidebar ? try await OrdinaryWindowDirectory.forSidebarFocus(app) : try OrdinaryWindowDirectory(app)
+        timing?.prepared(.controllerReady)
         let choices = try await directory.choices(initial: true).filter { $0.number == key.number }
         guard choices.count == 1, let choice = choices.first, let handle = directory.handles[choice.id] else {
             throw OrdinaryWindowFailure("无法唯一确认这扇窗口的辅助功能身份。")
@@ -153,8 +157,10 @@ extension DesktopWindowTarget {
 
     /// The exact original has already been bound by read-only AX. Bracket its use
     /// with two independent fresh rosters and stop promptly on a newer choice.
-    static func focusBoundCard(verify: (() async -> Bool)?, current: () -> Bool, focus: () async throws -> Void) async throws {
-        try await verifyCurrentSpace(verify, current: current)
+    static func focusBoundCard(verify: (() async -> Bool)?, current: () -> Bool,
+                               opening: (() async throws -> Void)? = nil, focus: () async throws -> Void) async throws {
+        if let opening { try await opening() }
+        else { try await verifyCurrentSpace(verify, current: current) }
         try await focus()
         try await verifyCurrentSpace(verify, current: current)
     }
@@ -184,31 +190,67 @@ extension DesktopWindowTarget {
             log.notice("selection admission: foreground owner independently verified")
         }
         guard target.overviewSpace == nil || verifySpace != nil else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
-        if bound == nil, permit == nil, target.publiclyVisible {
-            let host = HostCurrentWindowFocus(target: target, bundle: bundle, application: app)
-            if await host.bind() {
-                try await focusBoundCard(verify: verifySpace, current: current) {
-                    try await host.focus(deadline: deadline, current: stillCurrent, timing: timing)
-                }
-                timing?.completed(.host)
-                return .accessibility
+        let sidebar = bound == nil && permit == nil
+        let scopeRead = sidebar ? verifySpace.map { verify in
+            CurrentCardScopeRead {
+                let result = await verify()
+                timing?.prepared(.rosterReadFinished)
+                return result
             }
+        } : nil
+        defer { scopeRead?.cancel() }
+        let focusOwner = AdmissionApplication(pid:target.key.pid, launch:target.key.birth, bundle:bundle, name:"")
+        let ready = sidebar && OrdinaryWindowDirectory.prepareSidebarFocus()
+        let workerFirst = ready && recentWorkerFocus?.prefers(focusOwner, session:target.session) == true
+        if sidebar { timing?.prepared(workerFirst ? .controllerPreferred : (ready ? .controllerStandby : .controllerCold)) }
+        func verifyOpeningScope(after binding: ContinuousClock.Instant) async throws {
+            if let scopeRead { try await scopeRead.confirm(boundAt:binding, current:current) }
+            else { try await verifyCurrentSpace(verifySpace, current:current) }
+            timing?.prepared(.rosterConfirmed)
         }
+        func usePublicHostBinding() async throws -> Bool {
+            guard sidebar, target.publiclyVisible else { return false }
+            let host = HostCurrentWindowFocus(target:target, bundle:bundle, application:app)
+            guard await host.bind() else {
+                timing?.prepared(.publicBindingUnavailable)
+                return false
+            }
+            let boundAt = ContinuousClock.now
+            timing?.prepared(.hostBindingFinished)
+            try await focusBoundCard(verify:verifySpace, current:current, opening:{ try await verifyOpeningScope(after:boundAt) }) {
+                try await host.focus(deadline:deadline, current:stillCurrent, timing:timing)
+            }
+            recentWorkerFocus = nil
+            timing?.completed(.host)
+            return true
+        }
+        if !workerFirst, try await usePublicHostBinding() { return .accessibility }
         let retained: OrdinaryWindowAX?
         if let bound {
             retained = bound
         } else {
-            do { retained = try await bind(target.key, bundle: bundle) }
-            catch AdmissionReadFailure.permission { retained = nil }
+            do { retained = try await bind(target.key, bundle:bundle, sidebar:sidebar, timing:timing) }
+            catch {
+                // The worker has only listed windows. Fallback here cannot replay an AX action.
+                if workerFirst, current(), try await usePublicHostBinding() { return .accessibility }
+                if case AdmissionReadFailure.permission = error { retained = nil }
+                else { throw error }
+            }
         }
         if let handle = retained {
-            try await verifyCurrentSpace(verifySpace, current: current)
+            let boundAt = ContinuousClock.now
+            timing?.prepared(.workerBindingFinished)
+            try await verifyOpeningScope(after:boundAt)
             guard current(), handle.id.pid == target.key.pid, handle.id.launch == target.key.birth,
                   handle.id.number == target.key.number else { throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。") }
             try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline,
                                           space: target.overviewSpace, permit: permit ?? NativeSelectionPermit(current: stillCurrent), timing: timing)
             guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
             timing?.completed(.worker)
+            if sidebar {
+                recentWorkerFocus = RecentWorkerFocus(application:focusOwner, session:target.session, completed:.now)
+                OrdinaryWindowDirectory.prepareSidebarFocus()
+            }
             return .accessibility
         }
         let scoped = target.overviewSpace != nil
