@@ -1,6 +1,6 @@
 import json
 import unittest
-from pair_pointer_timing import correlate, parse
+from pair_pointer_timing import correlate, pair_phase, parse
 
 
 class HostCallbackTests(unittest.TestCase):
@@ -27,3 +27,17 @@ class HostCallbackTests(unittest.TestCase):
         attempt = {"kind":"right"}
         correlate([attempt],[parse(json.dumps(self.row),51)],"OBSERVED")
         self.assertNotIn("hostButton",attempt)
+
+    def test_pair_refusal_has_only_checked_stage_and_reason_from_enrolled_host(self):
+        row = {**self.row,"category":"SidebarPointer"}
+        message = "phase=pairTransactionRefused stage=verifyRightBeforeWrite reason=stale"
+        def read(msg, pid=51):
+            return pair_phase(json.dumps({**row,"eventMessage":msg}),pid)
+        self.assertEqual(read(message),{"phase":"pairTransactionRefused","stage":"verifyRightBeforeWrite","reason":"stale"})
+        self.assertEqual(read("phase=pairBoundEvidenceRevoked reason=membershipChanged"),
+                         {"phase":"pairBoundEvidenceRevoked","reason":"membershipChanged"})
+        self.assertEqual(read("phase=pairUsingBoundWindows"),{"phase":"pairUsingBoundWindows"})
+        for invalid in (message+" extra",message.replace("stale","arbitrary"),message.replace("verifyRightBeforeWrite","arbitrary"),
+                        "phase=pairBoundEvidenceRevoked reason=arbitrary","pairUsingBoundWindows"):
+            self.assertIsNone(read(invalid))
+        self.assertIsNone(read(message,52))

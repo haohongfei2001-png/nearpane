@@ -1,6 +1,7 @@
 import Foundation
 import NearpaneCore
 import Observation
+import OSLog
 
 enum CreatedWindowResult {
     case none, skipped(String), window(any OrdinaryWindowObserving)
@@ -56,7 +57,7 @@ struct OrdinaryWindowReview {
     let current, proposed: [ManagedWindowID: SurfaceRect]
 }
 
-enum OrdinaryRefusal: LocalizedError {
+enum OrdinaryRefusal: String, LocalizedError {
     case busy, scope, stale, lost, noGrant, ownership, ambiguous, minimum, storage
     var errorDescription: String? {
         switch self {
@@ -437,6 +438,28 @@ enum OrdinaryRefusal: LocalizedError {
     func placeSidebarPair(left: any OrdinaryWindowObserving, right: any OrdinaryWindowObserving,
                           desktop: OrdinaryDesktopIdentity, context: AdmissionContext,
                           current: @escaping @MainActor () -> Bool) async throws {
+        var stage = "admission"
+        do {
+            try await applySidebarPair(left: left, right: right, desktop: desktop, context: context, current: current,
+                                       stage: { stage = $0 })
+        } catch {
+            let reason: String
+            switch error {
+            case let e as OrdinaryRefusal: reason = e.rawValue
+            case let e as WorkspaceFailure: reason = e.rawValue
+            case is IncompletePairWrite: reason = "workerWriteUnconfirmed"
+            case is OrdinaryWindowFailure: reason = "workerRefused"
+            case is CancellationError: reason = "cancelled"
+            default: reason = "other"
+            }
+            DesktopAutomaticTiling.pairLog.info("phase=pairTransactionRefused stage=\(stage, privacy: .public) reason=\(reason, privacy: .public)")
+            throw error
+        }
+    }
+
+    private func applySidebarPair(left: any OrdinaryWindowObserving, right: any OrdinaryWindowObserving,
+                                  desktop: OrdinaryDesktopIdentity, context: AdmissionContext,
+                                  current: @escaping @MainActor () -> Bool, stage: (String) -> Void) async throws {
         try enter()
         defer { busy = false }
         guard !paused, current(), left.id.number != right.id.number, desktop.display == context.display,
@@ -466,22 +489,29 @@ enum OrdinaryRefusal: LocalizedError {
             return .init(h.id, minimumWidth: unreported ? 1 : minimum.width,
                          minimumHeight: unreported ? 1 : minimum.height, canResize: true)
         }
-        let lhs = try await member(left), rhs = try await member(right)
+        stage("prepareLeft")
+        let lhs = try await member(left)
+        stage("prepareRight")
+        let rhs = try await member(right)
+        stage("layout")
         let ratio = samePair ? Double(pairSlots?.percent ?? 50) / 100 : 0.5
         let base = samePair ? tiler : ManagedWindowTiler(workspace: nil)
         let layout = try base.placingPair(left: lhs, right: rhs, ratio: ratio, in: work)
         let frames = try layout.frames(in: work, wholePoints: true)
         guard let l = frames[left.id], let r = frames[right.id] else { throw OrdinaryRefusal.minimum }
         let placement = OrdinaryWindowPairPlacement(desktop: desktop, left: left.id, right: right.id, leftFrame: l, rightFrame: r)
+        stage("lock")
         let disk = try journalLease ?? journal.lock()
         guard journalLease != nil || !journal.exists else { throw OrdinaryRefusal.ownership }
         var extra = [ManagedWindowID: OrdinaryFileLease]()
         for h in [left, right] {
+            stage(h === left ? "verifyLeftBeforeWrite" : "verifyRightBeforeWrite")
             if leases[h.id] == nil { extra[h.id] = try OrdinaryFileLease.forWindow(h.id) }
             guard current(), let frame = originals[h.id],
                   try sample(await h.verify(expected: frame), for: h, in: context) == frame else { throw OrdinaryRefusal.stale }
             try checkedScope(context, grant: h, explicitDesktop: desktop)
         }
+        stage("acquire")
         guard current(), !closing else { throw OrdinaryRefusal.stale }
         journalLease = disk
         leases.merge(extra) { existing, _ in existing }
@@ -496,16 +526,19 @@ enum OrdinaryRefusal: LocalizedError {
         do {
             try save()
             for (h, frame) in [(left, l), (right, r)] {
+                stage(h === left ? "placeLeft" : "placeRight")
                 try await move(h.id, to: frame, context: context, kind: "sidebar-pair", placement: placement, current: current)
             }
             var verified = [ManagedMember]()
             for (h, frame) in [(left, l), (right, r)] {
+                stage(h === left ? "verifyLeftAfterWrite" : "verifyRightAfterWrite")
                 guard current() else { throw OrdinaryRefusal.stale }
                 let readback = try await h.verify(expected: frame)
                 guard try sample(readback, for: h, in: context) == frame else { throw OrdinaryRefusal.lost }
                 let minimum = readback.second.usesWitnessedSize == true ? frame : readback.second.minimum ?? frame
                 verified.append(.init(h.id, minimumWidth: minimum.width, minimumHeight: minimum.height, canResize: true))
             }
+            stage("record")
             if cohort.isEmpty {
                 try finishRecord("sidebar-pair-placed")
             } else {

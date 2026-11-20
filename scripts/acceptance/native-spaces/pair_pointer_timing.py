@@ -31,7 +31,18 @@ def parse(line, pid):
         return None
 
 
-PAIR_PHASES = {"cardDown","cardDrop","pairScopeRefused","pairAdmissionRefused","pairResolving","pairPlacing","pairVerified","pairBindingIncomplete","pairListed","pairScopeChangedAfterBinding","cardClick"}
+PAIR_PHASES = {"cardDown","cardDrop","pairScopeRefused","pairAdmissionRefused","pairResolving","pairPlacing",
+               "pairVerified","pairBindingIncomplete","pairListed","pairScopeChangedAfterBinding","cardClick",
+               "pairUsingBoundWindows","pairFinalInventoryUnconfirmed"}
+PAIR_STAGES = {"admission","prepareLeft","prepareRight","layout","lock","verifyLeftBeforeWrite",
+               "verifyRightBeforeWrite","acquire","placeLeft","placeRight","verifyLeftAfterWrite",
+               "verifyRightAfterWrite","record"}
+PAIR_REFUSALS = {"busy","scope","stale","lost","noGrant","ownership","ambiguous","minimum","storage",
+                 "unavailable","identity","membership","display","permission","conflict","recoveryRequired",
+                 "invalidLayout","minimumSize","excluded","incompleteInventory","unmanaged","workerWriteUnconfirmed",
+                 "workerRefused","cancelled","other"}
+PAIR_LOSSES = {"feedInvalidated","intentUnavailable","topologyChanged","permissionDenied","stageEnabled",
+               "spaceChanged","windowAbsent","identityChanged","membershipChanged","noLongerOrdinary"}
 
 
 def pair_phase(line, pid):
@@ -40,8 +51,16 @@ def pair_phase(line, pid):
         if (raw.get("processID") != pid or raw.get("category") != "SidebarPointer" or
                 raw.get("subsystem") != "com.holdsnow.nearpane.alpha"):
             return None
-        name = raw.get("eventMessage","").removeprefix("phase=")
-        return name if name in PAIR_PHASES else None
+        name = raw.get("eventMessage","")
+        if name.startswith("phase=") and name[6:] in PAIR_PHASES:
+            return {"phase":name[6:]}
+        refused = re.fullmatch(r"phase=pairTransactionRefused stage=([a-zA-Z]+) reason=([a-zA-Z]+)",name)
+        if refused and refused[1] in PAIR_STAGES and refused[2] in PAIR_REFUSALS:
+            return {"phase":"pairTransactionRefused","stage":refused[1],"reason":refused[2]}
+        loss = re.fullmatch(r"phase=pairBoundEvidenceRevoked reason=([a-zA-Z]+)",name)
+        if loss and loss[1] in PAIR_LOSSES:
+            return {"phase":"pairBoundEvidenceRevoked","reason":loss[1]}
+        return None
     except (AttributeError,TypeError,ValueError):
         return None
 
@@ -95,7 +114,7 @@ class HostFocusTiming:
                     continue
                 phase = pair_phase(line,self.pid)
                 if phase and len(self.phases) < 192:
-                    self.phases.append({"phase":phase,"readAt":time.monotonic()})
+                    self.phases.append({**phase,"readAt":time.monotonic()})
                 row = parse(line,self.pid)
                 if row:
                     if len(self.records) < 256:

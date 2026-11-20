@@ -18,6 +18,7 @@ import OSLog
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
+    @ObservationIgnored weak var boundSidebarPair: BoundSidebarPair?
     @ObservationIgnored private var sidebarWindows = NativeSidebarWindowHistory()
     private let readSidebarWindows: NativeSidebarWindowHistory.Read?
     @ObservationIgnored let windowAudit = NativeSidebarWindowAudit()
@@ -106,6 +107,7 @@ import OSLog
     }
 
     func invalidate(preservingOriginalWindows: Bool = false, reason: String = "invalidate") {
+        boundSidebarPair?.revoke(.feedInvalidated)
         windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("invalidate",
             ["reason": reason, "keepsOriginals": preservingOriginalWindows, "panelRequested": panelRequested])
         if !preservingOriginalWindows { sidebarWindows = .init() }
@@ -231,6 +233,7 @@ import OSLog
 
     func readNow() async -> DesktopSnapshot? {
         guard events != nil, sessionAvailable() else {
+            boundSidebarPair?.revoke(.feedInvalidated)
             lifetimes.removeAll()
             sidebarWindows = .init()
             return nil
@@ -253,9 +256,13 @@ import OSLog
                 audit?.event("reader-rejected", ["reply": readback != nil, "sessionAvailable": self.sessionAvailable(),
                     "structurallyValid": readback?.isStructurallyValid == true])
                 self.lifetimes.removeAll()
-                if !self.sessionAvailable() { self.sidebarWindows = .init() }
+                if !self.sessionAvailable() {
+                    self.boundSidebarPair?.revoke(.feedInvalidated)
+                    self.sidebarWindows = .init()
+                }
                 return nil
             }
+            self.boundSidebarPair?.observe(result)
             audit?.snapshot(result, stage: "reader")
             self.pendingAudit = audit
             let ordinaryObservation = NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil

@@ -31,8 +31,62 @@ struct DesktopTilingRoster: Equatable {
     }
 }
 
+/// Lives only between a single same-owner drop's second admission and its final readback.
+/// The signed worker holds both original AX objects and checks them and the Space before every write.
+@MainActor final class BoundSidebarPair {
+    enum Loss: String {
+        case feedInvalidated, intentUnavailable, topologyChanged, permissionDenied, stageEnabled
+        case spaceChanged, windowAbsent, identityChanged, membershipChanged, noLongerOrdinary
+    }
+    let pair: SidebarPairDrop
+    private(set) var loss: Loss?
+    init(_ pair: SidebarPairDrop) { self.pair = pair }
+
+    func revoke(_ reason: Loss) {
+        guard loss == nil else { return }
+        loss = reason
+        DesktopAutomaticTiling.pairLog.info("phase=pairBoundEvidenceRevoked reason=\(reason.rawValue, privacy: .public)")
+    }
+
+    /// A missing reader reply has no facts about either window. A positive contradiction,
+    /// even if followed immediately by the old card numbers reappearing, ends the gesture.
+    func observe(_ sample: DesktopSnapshot) {
+        guard loss == nil else { return }
+        let source = pair.dragged.source
+        guard sample.sessionID == source.session, sample.topologyFingerprint == source.topology,
+              sample.displays.contains(where: { $0.id == source.display }) else { return revoke(.topologyChanged) }
+        if sample.native?.accessibility == .denied { return revoke(.permissionDenied) }
+        if sample.native?.stageManagerEnabled == true { return revoke(.stageEnabled) }
+        if sample.native?.spaces == .observed {
+            let current = sample.scopes.filter { $0.displayID == source.display }.flatMap(\.records).filter(\.isCurrent)
+            guard current.count == 1, current[0].id == source.space, current[0].ordinaryUUID == source.uuid
+            else { return revoke(.spaceChanged) }
+        }
+        for key in [pair.dragged.key, pair.target.key] {
+            let matches = sample.windows.filter { $0.metadata?.number == key.number }
+            guard let window = matches.first, let m = window.metadata else {
+                if sample.native?.catalogComplete == true && sample.native?.windowLimitReached == false { return revoke(.windowAbsent) }
+                continue
+            }
+            guard matches.count == 1, m.pid == key.pid, m.launchMicroseconds == key.birth else { return revoke(.identityChanged) }
+            if window.displayID != source.display || m.activeFullscreenSpaceID != nil ||
+                m.overviewSpaceID.map({ $0 != source.space }) == true {
+                return revoke(.membershipChanged)
+            }
+            if case .known(let ids) = window.membership, ids != [source.space] { return revoke(.membershipChanged) }
+            // An AXWindows omission alone can produce role=false with no read attributes;
+            // onActiveDesktop also requires two positive AppKit enumeration results.
+            // The retained worker verifies role, visibility and membership itself.
+            let observedOtherRole = m.overviewOrdinaryRole == false && (m.minimized != nil || m.fullScreen != nil)
+            if m.isOnscreen == false || m.minimized == true || m.fullScreen == true || observedOtherRole {
+                return revoke(.noLongerOrdinary)
+            }
+        }
+    }
+}
+
 @MainActor @Observable final class DesktopAutomaticTiling {
-    private static let pairLog = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "SidebarPointer")
+    static let pairLog = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "SidebarPointer")
     typealias Resolve = @MainActor ([DesktopWindowKey], OrdinaryDesktopIdentity, WorkspacePreferences) async throws -> [any OrdinaryWindowObserving]
     private let manager: OrdinaryWindowManager
     private let resolve: @MainActor ([DesktopWindowKey], OrdinaryDesktopIdentity, WorkspacePreferences, Bool) async throws -> [any OrdinaryWindowObserving]
@@ -141,10 +195,10 @@ struct DesktopTilingRoster: Equatable {
             Self.pairLog.info("phase=pairScopeRefused")
             throw OrdinaryRefusal.scope
         }
-        func current() -> Bool {
-            allowed() && !ending && nativeModeAvailable() && feed.lifetime(of: a.key) == pair.draggedLifetime &&
-                feed.lifetime(of: b.key) == pair.targetLifetime
+        func cardsMatch() -> Bool {
+            feed.lifetime(of: a.key) == pair.draggedLifetime && feed.lifetime(of: b.key) == pair.targetLifetime
         }
+        func current() -> Bool { allowed() && !ending && nativeModeAvailable() && cardsMatch() }
         func membersPresent(_ snapshot: DesktopSnapshot?) -> Bool {
             guard let snapshot, source.resolve(snapshot)?.current.ordinaryUUID == source.uuid,
                   snapshot.native?.stageManagerEnabled != true else { return false }
@@ -171,10 +225,32 @@ struct DesktopTilingRoster: Equatable {
                 Self.pairLog.info("phase=pairScopeChangedAfterBinding")
                 throw OrdinaryRefusal.stale
             }
+            // A shared worker has both *original* AX handles only when we just resolved both
+            // windows of this process together. Existing grants and cross-owner drops keep their card checks.
+            let sameWorker = manager.activeIDs.isEmpty && missing.count == 2 && new.count == 2 &&
+                a.key.pid == b.key.pid && a.key.birth == b.key.birth &&
+                selected.allSatisfy { handle in handle.desktopBinding == desktop && new.contains { $0 === handle } }
+            let bound = sameWorker ? BoundSidebarPair(pair) : nil
+            feed.boundSidebarPair = bound
+            defer { feed.boundSidebarPair = nil }
+            var usedBoundWindows = false
+            @MainActor func placementCurrent() -> Bool {
+                guard let bound else { return current() }
+                guard allowed(), !ending, nativeModeAvailable() else { bound.revoke(.intentUnavailable); return false }
+                guard bound.loss == nil else { return false }
+                if !cardsMatch() && !usedBoundWindows {
+                    usedBoundWindows = true
+                    Self.pairLog.info("phase=pairUsingBoundWindows")
+                }
+                return true
+            }
             Self.pairLog.info("phase=pairPlacing")
             try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
-                                               context: ctx, current: current)
-            guard current(), membersPresent(await feed.readNow()), current() else { throw OrdinaryRefusal.stale }
+                                               context: ctx, current: placementCurrent)
+            guard placementCurrent(), membersPresent(await feed.readNow()), placementCurrent() else {
+                Self.pairLog.info("phase=pairFinalInventoryUnconfirmed")
+                throw OrdinaryRefusal.stale
+            }
             Self.pairLog.info("phase=pairVerified")
             feed.changed()
         }

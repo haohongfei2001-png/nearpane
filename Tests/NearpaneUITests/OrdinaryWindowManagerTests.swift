@@ -119,6 +119,9 @@ import Testing
         var windows = [WindowDouble]()
         var offStage = Set<UInt32>()
         var sticky = Set<UInt32>()
+        var readable = true
+        var catalogComplete: Bool?
+        var missingFromAX = Set<UInt32>(), nonOrdinary = Set<UInt32>()
         init() { current = space }
         func snapshot(_ request: DesktopReadRequest) -> DesktopSnapshot {
             let now = Date(), time = ProcessInfo.processInfo.systemUptime
@@ -128,18 +131,24 @@ import Testing
                 return WindowObservation(id: String(id.number), displayID: "side", bounds: h.frame,
                     membership: .known(recordIDs: sticky.contains(id.number) ? [current.record, "900"] : [current.record]),
                     confidence: .unknown, metadata: .init(number: id.number, pid: id.pid, launchMicroseconds: id.launch,
-                        element: nil, globalFrame: h.frame, frontToBack: index, minimized: false, fullScreen: nil,
-                        isOnscreen: visible, onActiveDesktop: visible, overviewSpaceID: current.record, overviewIsPresented: true))
+                        element: nil, globalFrame: h.frame, frontToBack: index, minimized: missingFromAX.contains(id.number) ? nil : false,
+                        fullScreen: nil, isOnscreen: visible, onActiveDesktop: visible && !missingFromAX.contains(id.number),
+                        overviewSpaceID: current.record, overviewIsPresented: true,
+                        overviewOrdinaryRole: nonOrdinary.contains(id.number) || missingFromAX.contains(id.number) ? false : nil))
             }
             return .observed(request, from: now, to: now, build: "test", topology: "one-display", consistent: true, separateSpaces: true,
                 displays: [.init(id: "side", frame: f, rotationDegrees: 0, backingScale: 2, usable: f)],
                 scopes: [.init(id: "scope", displayID: "side", records: [.init(id: current.record, isCurrent: true, ordinaryUUID: current.uuid),
                     .init(id: "900", isCurrent: false)])], windows: members,
                 evidence: .init(population: .workWindows, accessibility: .available, spaces: .observed, rows: [],
-                    windowLimitReached: false, beganUptime: time, endedUptime: time))
+                    windowLimitReached: false, beganUptime: time, endedUptime: time, catalogComplete: catalogComplete))
+        }
+        func read(_ request: DesktopReadRequest) throws -> DesktopSnapshot {
+            guard readable else { throw WorkspaceFailure.unavailable }
+            return snapshot(request)
         }
         func feed() -> CurrentDesktopWindows {
-            CurrentDesktopWindows(read: { request in await self.snapshot(request) }, sessionAvailable: { true }, fingerprint: { 0 })
+            CurrentDesktopWindows(read: { request in try await self.read(request) }, sessionAvailable: { true }, fingerprint: { 0 })
         }
         func until(_ predicate: () -> Bool) async throws {
             let limit = ContinuousClock.now.advanced(by: .seconds(4))
@@ -191,6 +200,79 @@ import Testing
         world.sticky.insert(a.id.number)
         await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: xLife), allowed: { true }) }
         #expect(a.writes == 2 && b.writes == 2)
+    }
+
+    enum SwapChange: CaseIterable {
+        case unreadableSidebar, omittedFromAX, disappeared, changedMembership, replaced, changedRole
+        case inputAfterDrop, feedInvalidated, workerLost, crossOwner, finalInventoryUnavailable
+    }
+
+    @Test(arguments: SwapChange.allCases)
+    func swappingAfterRightPlacementKeepsOnlyTheProvenOriginalPair(_ change: SwapChange) async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        let feed = world.feed(), tiling = world.automation(manager, feed)
+        let birth = UInt64.random(in: 2000...UInt64.max)
+        let a = WindowDouble(launch: birth, pid: 301), b = WindowDouble(launch: birth, pid: change == .crossOwner ? 302 : 301)
+        world.windows = [a,b]
+        feed.observeManagement(true)
+        defer { feed.observeManagement(false) }
+        let sample = try #require(await feed.readNow())
+        let map = try #require(NativeSpaceCatalog(sample, displayID: world.space.display, now: .now, uptime: ProcessInfo.processInfo.systemUptime))
+        let row = try #require(map.rows.first { $0.id == world.space.record })
+        let space = try #require(NativeSidebarDestination(row, in: map))
+        let first = try #require(NativeSidebarMember(sample.windows[0], source: space))
+        let second = try #require(NativeSidebarMember(sample.windows[1], source: space))
+        let firstLife = try #require(feed.lifetime(of: first.key)), secondLife = try #require(feed.lifetime(of: second.key))
+        func drop(left: Bool) -> SidebarPairDrop {
+            .init(dragged: first, target: second, draggedLifetime: firstLife, targetLifetime: secondLife, draggedOnLeft: left)
+        }
+        try await tiling.place(drop(left: false), allowed: { true })
+        let originalRight = a.frame, originalLeft = b.frame
+        var intentCurrent = true
+        // Both original worker handles are now bound. Force a real feed read from inside
+        // the manager's awaited verification and restore the roster before its next poll.
+        a.nextVerify = {
+            switch change {
+            case .disappeared:
+                world.catalogComplete = true
+                world.windows = [a]
+            case .changedMembership: world.sticky.insert(b.id.number)
+            case .replaced:
+                world.windows = [a,WindowDouble(pid: b.id.pid, number: b.id.number)]
+            case .omittedFromAX: world.missingFromAX.insert(b.id.number)
+            case .changedRole: world.nonOrdinary.insert(b.id.number)
+            case .feedInvalidated: feed.invalidate()
+            case .inputAfterDrop: intentCurrent = false
+            case .workerLost: b.valid = false
+            case .unreadableSidebar, .crossOwner: world.readable = false
+            case .finalInventoryUnavailable: b.immediatelyBeforeWrite = { world.readable = false }
+            }
+            let during = await feed.readNow()
+            if change == .unreadableSidebar || change == .crossOwner {
+                #expect(during == nil && feed.lifetime(of: first.key) == nil)
+            } else if [.disappeared,.changedMembership,.replaced,.changedRole].contains(change) {
+                #expect(during != nil && feed.boundSidebarPair?.loss != nil)
+            }
+            world.catalogComplete = nil; world.readable = true
+            world.windows = [a,b]; world.sticky.removeAll()
+            world.missingFromAX.removeAll(); world.nonOrdinary.removeAll()
+            _ = await feed.readNow()
+        }
+        if change == .unreadableSidebar || change == .omittedFromAX {
+            try await tiling.place(drop(left: true), allowed: { intentCurrent })
+            #expect(a.frame == originalLeft && b.frame == originalRight)
+            #expect(a.writes == 2 && b.writes == 2)
+        } else {
+            await #expect(throws: (any Error).self) { try await tiling.place(drop(left: true), allowed: { intentCurrent }) }
+            if change == .finalInventoryUnavailable {
+                #expect(a.frame == originalLeft && b.frame == originalRight)
+                #expect(a.writes == 2 && b.writes == 2)
+            } else {
+                #expect(a.frame == originalRight && b.frame == originalLeft)
+                #expect(a.writes == 1 && b.writes == 1)
+            }
+        }
+        #expect(feed.boundSidebarPair == nil)
     }
 
     @Test func localDropPreservesGrantedRatioAndLeavesAnUnselectedManagedSiblingInPlace() async throws {
