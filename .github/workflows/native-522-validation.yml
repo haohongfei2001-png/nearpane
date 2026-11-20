@@ -7,8 +7,10 @@ on:
       - 'Sources/CNativeSpaceActions/**'
       - 'Sources/NearpaneSpaceAction/**'
       - 'Sources/NearpaneCore/**'
+      - 'Sources/NearpaneHost/**'
       - 'Sources/NearpaneUI/**'
       - 'Tests/NearpaneSpaceActionTests/**'
+      - 'Tests/NearpaneUITests/NativeSidebarWindowHistoryTests.swift'
       - 'scripts/acceptance/native-spaces/**'
 permissions:
   contents: read
