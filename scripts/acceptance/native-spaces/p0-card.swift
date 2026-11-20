@@ -74,10 +74,37 @@ func axFocus(_ pid: pid_t) -> UInt32? {
     guard let value = prop(app,kAXFocusedWindowAttribute), CFGetTypeID(value) == AXUIElementGetTypeID() else {return nil}
     let n = NPReadAXWindowNumber(value); return n > 0 ? n : nil
 }
+struct ActualFocus {
+    let pid:pid_t, element:AXUIElement?, number:UInt32?
+    var fields:Map {["pid":pid,"number":number as Any? ?? NSNull()]}
+}
+func actualFocus() -> ActualFocus? {
+    let system=AXUIElementCreateSystemWide()
+    _=AXUIElementSetMessagingTimeout(system,0.24)
+    func foreground()->AXUIElement? {
+        guard let app=prop(system,kAXFocusedApplicationAttribute),CFGetTypeID(app)==AXUIElementGetTypeID() else {return nil}
+        return (app as! AXUIElement)
+    }
+    guard let app=foreground() else {return nil}
+    let pid=owner(app);guard pid>1 else {return nil}
+    _=AXUIElementSetMessagingTimeout(app,0.24)
+    let value=prop(app,kAXFocusedWindowAttribute)
+    let window:AXUIElement?
+    if let value,CFGetTypeID(value)==AXUIElementGetTypeID(),owner(value as! AXUIElement)==pid {window=(value as! AXUIElement)}
+    else {window=nil}
+    guard let again=foreground(),owner(again)==pid else {return nil}
+    let n=window.map{NPReadAXWindowNumber($0)} ?? 0
+    return ActualFocus(pid:pid,element:window,number:n>0 ? n : nil)
+}
 func snapshot(_ detailed: Bool) throws -> Map {
-    let t = try topology(), front = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
-    var data: Map = ["uptime":ProcessInfo.processInfo.systemUptime,"topology":try object(t),"hid":hardware(),"frontPID":front]
-    if detailed { data["focusedNumber"] = axFocus(front) as Any? ?? NSNull(); data["observerAX"] = AXIsProcessTrusted() }
+    let t=try topology(),workspace=NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+    var data:Map=["uptime":ProcessInfo.processInfo.systemUptime,"topology":try object(t),"hid":hardware(),"frontPID":workspace]
+    if detailed {
+        let observed=actualFocus()
+        data["workspaceFrontPID"]=workspace;data["systemFocus"]=observed?.fields as Any? ?? NSNull()
+        data["frontPID"]=observed?.pid ?? workspace;data["focusedNumber"]=observed?.number as Any? ?? NSNull()
+        data["observerAX"]=AXIsProcessTrusted()
+    }
     return data
 }
 func exactWindowOwner(_ n:UInt32)->(pid_t,Int)? {
@@ -218,67 +245,109 @@ func guardPair(_ p:Pair) throws {
     try need(NSWorkspace.shared.frontmostApplication?.processIdentifier == p.sourceWindow.pid && axFocus(p.sourceWindow.pid) == p.sourceWindow.number,"owned source window is not precisely foreground and focused")
 }
 func holdOriginal() throws {
-    let original = try topology(), input = hardware()
-    guard AXIsProcessTrusted(), let app = NSWorkspace.shared.frontmostApplication else {throw Refusal("no original foreground application")}
-    let pid=app.processIdentifier, root=AXUIElementCreateApplication(pid)
-    _=AXUIElementSetMessagingTimeout(root,0.35)
-    guard let born=birth(pid), let signed=signature(pid), let raw=prop(root,kAXFocusedWindowAttribute),
-          CFGetTypeID(raw)==AXUIElementGetTypeID() else {throw Refusal("no exact original AX window to retain")}
-    let window=raw as! AXUIElement, number=NPReadAXWindowNumber(raw)
-    guard number>0,owner(window)==pid,(NPReadWindowSpaces(number) as? [UInt64])?.contains(original.current)==true else {throw Refusal("original focus has no positive current-Space membership")}
-    emit(["held":true,"pid":pid,"number":number,"birth":born,"topology":try object(original),"hid":input])
+    let original=try topology(),input=hardware()
+    guard AXIsProcessTrusted(),let initial=actualFocus(),let number=initial.number,let window=initial.element else {
+        throw Refusal("no exact original system-wide AX foreground window to retain")
+    }
+    let pid=initial.pid,root=AXUIElementCreateApplication(pid),originalApp=NSRunningApplication(processIdentifier:pid)
+    _=AXUIElementSetMessagingTimeout(root,0.28)
+    guard let born=birth(pid),let signed=signature(pid),owner(window)==pid,exactWindowOwner(number)?.0==pid,
+          (NPReadCatalogSpaceWindowNumbers(original.current) as? [UInt32])?.contains(number)==true,
+          (NPReadWindowSpaces(number) as? [UInt64])?.contains(original.current)==true else {
+        throw Refusal("original signed focus lacks positively matched WindowServer owner and two-way membership")
+    }
+    emit(["held":true,"source":"system-wide AXFocusedApplication","pid":pid,"number":number,"birth":born,"topology":try object(original),"hid":input])
     let command=readLine()?.split(separator:" ") ?? []
-    guard command.first=="restore", command.count<=2 else {return}
-    let from=command.count==2 ? UInt64(command[1]) : nil
+    guard command.first=="restore" else {return}
+    guard command.count==4,let expectedPID=pid_t(command[2]),expectedPID>1,let expectedNumber=UInt32(command[3]) else {
+        throw Refusal("missing latest independently witnessed foreground for restoration")
+    }
+    let from=UInt64(command[1])
     if let from {
-        try need(original.records.contains { $0.id==from && $0.type==0 } &&
-                 (NPReadWindowSpaces(number) as? [UInt64]) == [original.current],
-                 "the original retained window is not exclusively assigned to the original Space")
+        try need(original.records.contains{$0.id==from && $0.type==0} && (NPReadWindowSpaces(number) as? [UInt64])==[original.current],
+                 "the retained original window is not exclusively assigned to its original Space")
     }
-    func verify(allowReturn: Bool = false) throws {
-        let live=signature(pid)
-        let now=try topology()
-        try need(now.display==original.display && now.records==original.records && (now.current==original.current || (allowReturn && now.current==from)),
-                 "original display, current Space or complete UUID order changed")
-        try need(hardware()==input,"human input changed; newer focus preserved")
-        try need(birth(pid)==born && live?.0==signed.0 && live?.1==signed.1 && owner(window)==pid,"original signed process, birth, or retained AX owner changed")
-        let n=NPReadAXWindowNumber(window), reverse=NPReadWindowSpaces(number) as? [UInt64], forward=NPReadCatalogSpaceWindowNumbers(original.current) as? [UInt32]
+    // This process held its AX reference while blocked on stdin. Always ask the window server and
+    // system-wide AX for the current focus after the wait; a per-process remembered focus is insufficient.
+    RunLoop.current.run(until:Date(timeIntervalSinceNow:0.08))
+    func verify(_ remoteAllowed:Bool) throws {
+        let live=signature(pid),now=try topology()
+        try need(now.display==original.display && now.records==original.records && (now.current==original.current || (remoteAllowed && now.current==from)),
+                 "original physical display, current Space or complete UUID order changed")
+        try need(hardware()==input,"human input changed during restoration")
+        try need(birth(pid)==born && live?.0==signed.0 && live?.1==signed.1 && owner(window)==pid,"original signed process, birth or retained AX owner changed")
+        let n=NPReadAXWindowNumber(window),reverse=NPReadWindowSpaces(number) as? [UInt64],forward=NPReadCatalogSpaceWindowNumbers(original.current) as? [UInt32]
         try need((n==0 || n==number) && exactWindowOwner(number)?.0==pid && forward?.contains(number)==true && reverse?.contains(original.current)==true,
-                 "exact WindowServer owner, retained number or two-way membership of original window changed")
-        let listed=array(root,kAXWindowsAttribute).contains {CFEqual($0,window)}
-        let active=prop(root,kAXFocusedWindowAttribute).map {CFGetTypeID($0)==AXUIElementGetTypeID() && CFEqual($0,window)} ?? false
-        let remote=allowReturn && now.current != original.current && now.current==from && reverse==[original.current]
-        try need(listed || active || remote,"original window is neither live in AX nor exclusively associated with the retained remote Space")
+                 "the original window's retained number, WindowServer owner or two-way membership changed")
+        let listed=array(root,kAXWindowsAttribute).contains{CFEqual($0,window)}
+        let focused=prop(root,kAXFocusedWindowAttribute).map {CFGetTypeID($0)==AXUIElementGetTypeID() && CFEqual($0,window)} ?? false
+        let remote=remoteAllowed && now.current != original.current && now.current==from && reverse==[original.current]
+        try need(listed || focused || remote,"the original AX window reference is no longer present or exclusively associated with its original remote Space")
     }
-    try verify(allowReturn:true)
-    if try topology()==original && NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":false]);return}
-    var changed=false
-    if try topology() != original || NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
-        try verify(allowReturn:true);changed=app.activate(options:[])
-        let until=Date(timeIntervalSinceNow:2)
-        while try topology() != original && Date()<until {try verify(allowReturn:true);RunLoop.current.run(until:Date(timeIntervalSinceNow:0.06))}
-        try verify()
+    func exact(_ focus:ActualFocus?)->Bool {
+        guard focus?.pid==pid,focus?.number==number,let element=focus?.element else {return false}
+        return owner(element)==pid && (CFEqual(element,window) || NPReadAXWindowNumber(window)==number)
     }
-    if axFocus(pid) != number {
-        try verify()
-        let raised=AXUIElementPerformAction(window,kAXRaiseAction as CFString)
-        changed=changed || raised == .success
-        if axFocus(pid) != number {
-            try verify()
-            var settable=DarwinBoolean(false)
-            if AXUIElementIsAttributeSettable(root,kAXFocusedWindowAttribute as CFString,&settable) == .success && settable.boolValue {
-                let status=AXUIElementSetAttributeValue(root,kAXFocusedWindowAttribute as CFString,window)
-                changed=changed || status == .success
+    var observations=[Map](),actions=[String](),attempted=false
+    func observe()->ActualFocus? {
+        let reading=actualFocus()
+        observations.append(["uptime":ProcessInfo.processInfo.systemUptime,"systemFocus":reading?.fields as Any? ?? NSNull()])
+        return reading
+    }
+    func answer(_ restored:Bool,_ reason:String?=nil) {
+        var receipt:Map=["restored":restored,"issued":attempted,"actions":actions,"observations":observations]
+        if let reason {receipt["reason"]=reason};emit(receipt)
+    }
+    do {
+        try verify(true)
+        let first=observe(),startSpace=try topology()
+        if !exact(first) || startSpace != original {
+            guard let first,first.pid==expectedPID, (first.number ?? 0)==expectedNumber else {
+                answer(false,"foreground changed after the independent pre-restoration read");return
+            }
+            if first.pid != pid || startSpace != original {
+                try verify(true)
+                guard let app=originalApp,app.processIdentifier==pid,!app.isTerminated else {answer(false,"original running application handle was unavailable");return}
+                attempted=true
+                actions.append(app.activate(options:[]) ? "activation accepted" : "activation declined")
+                let deadline=Date(timeIntervalSinceNow:1.8)
+                while Date()<deadline {
+                    try verify(true)
+                    let foreground=observe()
+                    if let changed=foreground?.pid,changed != pid && changed != expectedPID {
+                        answer(false,"another foreground owner appeared during the original-window activation");return
+                    }
+                    if (try topology())==original && foreground?.pid==pid {break}
+                    RunLoop.current.run(until:Date(timeIntervalSinceNow:0.09))
+                }
+            }
+            try verify(false)
+            let beforeRaise=observe()
+            guard let beforeRaise,beforeRaise.pid==pid || beforeRaise.pid==expectedPID else {
+                answer(false,"the system-wide foreground changed before the retained window could be raised");return
+            }
+            if !exact(beforeRaise) {
+                attempted=true
+                actions.append("retained AXRaise = "+String(AXUIElementPerformAction(window,kAXRaiseAction as CFString).rawValue))
+                RunLoop.current.run(until:Date(timeIntervalSinceNow:0.14));try verify(false)
+                if let current=observe(),current.pid==pid,!exact(current) {
+                    var settable=DarwinBoolean(false)
+                    if AXUIElementIsAttributeSettable(root,kAXFocusedWindowAttribute as CFString,&settable) == .success && settable.boolValue {
+                        actions.append("exact AXFocusedWindow = "+String(AXUIElementSetAttributeValue(root,kAXFocusedWindowAttribute as CFString,window).rawValue))
+                    }
+                }
             }
         }
-    }
-    let deadline=Date(timeIntervalSinceNow:1.25)
-    repeat {
-        try verify()
-        if NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":changed]);return}
-        RunLoop.current.run(until:Date(timeIntervalSinceNow:0.05))
-    } while Date()<deadline
-    emit(["restored":false,"issued":changed,"reason":"the retained original reference did not regain focus"])
+        var consecutive=0
+        let deadline=Date(timeIntervalSinceNow:1.4)
+        repeat {
+            try verify(false)
+            consecutive=exact(observe()) ? consecutive+1:0
+            if consecutive>=2 {answer(true);return}
+            RunLoop.current.run(until:Date(timeIntervalSinceNow:0.11))
+        } while Date()<deadline
+        answer(false,"the original window did not hold system-wide focus for two independent reads")
+    } catch {answer(false,(error as? Refusal)?.reason ?? String(describing:error))}
 }
 let arguments = Array(CommandLine.arguments.dropFirst())
 var issued = false

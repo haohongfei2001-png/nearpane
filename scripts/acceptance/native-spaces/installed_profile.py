@@ -1,6 +1,7 @@
 """Run a command with the ordinary signed application and a new, private macOS data home."""
 import argparse
 import hashlib
+import importlib
 import json
 import os
 from pathlib import Path
@@ -101,6 +102,7 @@ def daily_state():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--p0-focus-kit",type=Path,help="record the user foreground across a P0 installed-profile session")
     parser.add_argument("output", type=Path, help="a new directory for the isolation/cleanup receipt")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -125,6 +127,11 @@ def main():
     def save():
         (output / "profile-session.json").write_text(json.dumps(receipt, indent=2) + "\n")
     save()
+    p0_focus = None
+    if args.p0_focus_kit or any(Path(value).name=="p0-cards.py" for value in command):
+        module=importlib.import_module("p0-focus")
+        tool=module.kit_for(command,args.p0_focus_kit)
+        if tool is not None:p0_focus=module.DailyFocus(tool,output,original)
     stopped = False
     try:
         if original:
@@ -138,25 +145,33 @@ def main():
         receipt["commandExit"] = result.returncode
         return result.returncode
     finally:
-        current = installed_pid()
-        if current and owns_profile(current, home / PROFILE):
-            quit_host(current)
-        current = installed_pid()
-        if stopped and not current:
-            subprocess.run(["/usr/bin/open", "-g", str(APP)], check=True)
-            deadline = time.monotonic() + 20
-            while not owns_profile(installed_pid(), daily_root) and time.monotonic() < deadline:
-                time.sleep(.2)
-        current = installed_pid()
-        receipt["dailyHostRestored"] = owns_profile(current, daily_root) if original else current is None
-        receipt["dailyProfileAndConfigurationUnchanged"] = daily_state() == before
-        receipt["isolatedHomeRemoved"] = False
-        if receipt["dailyHostRestored"] and (not current or not owns_profile(current, home / PROFILE)):
-            shutil.rmtree(container)
-            receipt["isolatedHomeRemoved"] = True
-        save()
-        if not receipt["dailyHostRestored"] or not receipt["dailyProfileAndConfigurationUnchanged"]:
-            raise RuntimeError("Daily state readback incomplete. See profile-session.json")
+        try:
+            current = installed_pid()
+            if p0_focus:p0_focus.before_daily(current if current and owns_profile(current,home/PROFILE) else None)
+            if current and owns_profile(current, home / PROFILE):
+                quit_host(current)
+            current = installed_pid()
+            if stopped and not current:
+                subprocess.run(["/usr/bin/open", "-g", str(APP)], check=True)
+                deadline = time.monotonic() + 20
+                while not owns_profile(installed_pid(), daily_root) and time.monotonic() < deadline:
+                    time.sleep(.2)
+            current = installed_pid()
+            receipt["dailyHostRestored"] = owns_profile(current, daily_root) if original else current is None
+            receipt["dailyProfileAndConfigurationUnchanged"] = daily_state() == before
+            receipt["isolatedHomeRemoved"] = False
+            if receipt["dailyHostRestored"] and (not current or not owns_profile(current, home / PROFILE)):
+                shutil.rmtree(container)
+                receipt["isolatedHomeRemoved"] = True
+            save()
+            if not receipt["dailyHostRestored"] or not receipt["dailyProfileAndConfigurationUnchanged"]:
+                raise RuntimeError("Daily state readback incomplete. See profile-session.json")
+        finally:
+            if p0_focus:
+                p0_focus.finish(receipt.get("dailyHostRestored") is True)
+                receipt["dailyFocusReceipt"]="daily-focus.json"
+                receipt["dailyFocusStatus"]=p0_focus.info["status"]
+                save()
 
 
 if __name__ == "__main__":

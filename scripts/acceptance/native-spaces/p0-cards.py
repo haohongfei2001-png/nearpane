@@ -561,24 +561,7 @@ class OwnedKeeper:
         except subprocess.TimeoutExpired:self.proc.terminate();self.proc.wait(timeout=3)
         self.proc.stdout.close()
 
-class OriginalFocus:
-    def __init__(self,tool):
-        self.proc=subprocess.Popen([tool,'hold-original'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
-    def reply(self,timeout=3):
-        if not select.select([self.proc.stdout],[],[],timeout)[0]:return {'error':'original AX reference timed out'}
-        line=self.proc.stdout.readline()
-        return json.loads(line) if line else {'error':'original AX reference unavailable'}
-    def finish(self,restore,ordinary=None):
-        try:
-            if self.proc.poll() is None:
-                self.proc.stdin.write((('restore '+str(ordinary) if ordinary else 'restore') if restore else 'release')+'\n');self.proc.stdin.flush()
-                return self.reply(timeout=7) if restore else {'issued':False}
-            return {'issued':False}
-        finally:
-            self.proc.stdin.close();self.proc.stdout.close()
-            if self.proc.poll() is None:
-                try:self.proc.wait(timeout=2)
-                except subprocess.TimeoutExpired:self.proc.terminate();self.proc.wait(timeout=3)
+focus_tools=importlib.import_module('p0-focus')
 
 
 def run(args):
@@ -609,7 +592,7 @@ def run(args):
         try:
             host,journal=freeze(args.kit,out);require(not (journal/'pending.json').exists(),'unresolved installed switch already present')
             initial=state();require(initial.get('observerAX') and initial.get('topology'),'independent metadata or AX permission unavailable');store(out/'original.json',initial)
-            focus=OriginalFocus(tool);held=focus.reply();store(out/'original-focus.json',held)
+            focus=focus_tools.OriginalFocus(tool);held=focus.reply();store(out/'original-focus.json',held)
             if held.get('held'):
                 require((initial['frontPID'],initial['focusedNumber'],initial['topology'],initial['hid'])==(held['pid'],held['number'],held['topology'],held['hid']),'original focus or user input changed at admission')
             user=initial['topology'];user_space=user['current'];row=next(s for s in user['records'] if s['id']==user_space)
@@ -754,11 +737,15 @@ def run(args):
                         end=last.get('topology',{})
                         same_inventory=end.get('display')==initial['topology']['display'] and end.get('records')==initial['topology']['records']
                         safe=bool(held.get('held') and needs_focus and same_inventory and end.get('current') in (initial['topology']['current'],staging) and last.get('hid')==initial['hid'])
-                        clean['originalFocusRestoration']=focus.finish(safe,staging if end.get('current')!=initial['topology']['current'] else None);focus=None
-                        if safe:last=state()
+                        clean['originalFocusRestoration']=focus.finish(safe,staging if end.get('current')!=initial['topology']['current'] else None,expected=last);focus=None
+                        if safe:
+                            first=state();time.sleep(.11);last=state()
+                            clean['independentFocusReadbacks']=[first.get('systemFocus'),last.get('systemFocus')]
+                            clean['retainedFocusConfirmedTwice']=all(focus_tools.exact_focus(s,held) and s.get('hid')==held.get('hid') for s in (first,last))
+                            if not clean['retainedFocusConfirmedTwice'] and last.get('hid')==initial['hid']:problems.append('exact original focus did not pass two independent post-restoration AX reads')
                     store(out/'final.json',last);end=last.get('topology',{})
                     clean.update(originalOrderAndUUIDsRestored=end.get('records')==initial['topology']['records'] and end.get('display')==initial['topology']['display'],
-                                 originalCurrentRestored=end.get('current')==initial['topology']['current'],originalForegroundRestored=last.get('frontPID')==initial.get('frontPID'),
+                                 originalCurrentRestored=end.get('current')==initial['topology']['current'],originalForegroundRestored=bool(initial.get('systemFocus') and last.get('systemFocus') and last['systemFocus']['pid']==initial['systemFocus']['pid']),
                                  originalFocusedWindowRestored=last.get('focusedNumber')==initial.get('focusedNumber') if initial.get('focusedNumber') else None,
                                  newerHumanInput=last.get('hid')!=initial.get('hid'))
                     if not clean['originalOrderAndUUIDsRestored']:problems.append('original Space topology was not restored')

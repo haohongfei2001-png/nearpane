@@ -100,6 +100,26 @@ class GateTests(unittest.TestCase):
         runner.evaluate_gate(first,'roundTrip',2);self.assertEqual(first['status'],'PASS')
         ten=dict(samples=[dict(status='PASS')]*10,blankScreen='UNKNOWN')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['status']),('PASS','BLOCKED'))
+    def test_actual_system_focus_overrides_a_stale_workspace_owner(self):
+        held=dict(held=True,pid=89,number=77,topology=self.top,hid=[8])
+        sample=dict(topology=self.top,hid=[8],frontPID=89,systemFocus=dict(pid=34,number=20))
+        self.assertFalse(runner.focus_tools.exact_focus(sample,held))
+        self.assertTrue(runner.focus_tools.exact_focus(dict(sample,systemFocus=dict(pid=89,number=77)),held))
+        self.assertEqual(runner.focus_tools.restore_context(dict(sample,hid=[9]),held),(False,None))
+        self.assertEqual(runner.focus_tools.restore_context(dict(sample,topology=dict(self.top,current=5)),held),(True,5))
+        full=dict(self.top,current=5,records=[self.rows[0],dict(self.rows[1],type=4)])
+        self.assertEqual(runner.focus_tools.restore_context(dict(sample,topology=full),dict(held,topology=dict(full,current=4))),(False,None))
+        self.assertIsNone(runner.focus_tools.kit_for(['ordinary-acceptance.py','/tmp']))
+    def test_daily_restoration_preserves_user_input_since_the_newer_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tools=runner.focus_tools;daily=object.__new__(tools.DailyFocus);daily.file=Path(tmp)/'focus.json';daily.original_host=0
+            original=dict(topology=self.top,hid=[8],systemFocus=dict(pid=9,number=10))
+            held=dict(held=True,pid=15,number=22,topology=self.top,hid=[9])
+            handle=mock.Mock();daily.anchors={'newerUser':(handle,held)}
+            daily.info={'original':{'independent':original},'status':'UNKNOWN'}
+            daily.state=lambda:dict(original,hid=[10],systemFocus=dict(pid=39,number=36))
+            daily.finish(True)
+            self.assertEqual(daily.info['status'],'NEWER_INPUT_PRESERVED');handle.finish.assert_called_once_with(False)
     def test_host_audit_preserves_exact_complete_metadata_records_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             audit=object.__new__(runner.InstalledWindowAudit);audit.stream=Path(tmp)/'p0-window-audit.jsonl';audit.host={'pid':23}
