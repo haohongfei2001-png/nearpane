@@ -53,6 +53,21 @@ class CardFilmTests(unittest.TestCase):
             altered=copy.deepcopy(film);change(altered)
             with self.assertRaises((RuntimeError,ValueError)):verify(altered,proof,data)
 
+    def test_only_a_closed_contiguous_prefix_can_survive_a_later_unknown_marker(self):
+        proof,film,data=self.example()
+        film.update(coverage="certifiedPrefix",markerRefusal=dict(site="hostCard",document=1,reason="unexpectedFixtureMarker",
+                    cutoffUptime=23.2,callbackUptime=23.22,pixelsRetained=False))
+        film["sourceObservations"].pop()
+        film["scopeReads"].insert(0,[18.7,18.8])
+        for f in film["frames"]:
+            f["scopeReads"]=[i+1 for i in f["scopeReads"]]
+        verify(film,proof,data)
+        for key,value in (("cutoffUptime",22.65),("pixelsRetained",True),("reason","filmPanelOrPhysicalInputChanged")):
+            altered=copy.deepcopy(film);altered["markerRefusal"][key]=value
+            with self.assertRaises(ValueError):verify(altered,proof,data)
+        film["sourceObservations"][1]["samples"]=[[23.5,23.6],[23.5,23.6]]
+        with self.assertRaises(ValueError):verify(film,proof,data)
+
     @unittest.skipUnless(sys.platform=="darwin" and shutil.which("xcrun"),"requires macOS native movie encoder")
     def test_native_vfr_timeline_decodes_without_a_screen_or_audio(self):
         with tempfile.TemporaryDirectory(dir="/private/tmp",prefix="nearpane-card-film-test.") as tmp:

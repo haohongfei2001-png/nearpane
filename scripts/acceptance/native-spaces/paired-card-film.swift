@@ -37,17 +37,33 @@ private func exactPanel(_ n:UInt32,_ host:pid_t,_ expected:CGRect)->Bool {
           let dict=r[kCGWindowBounds as String] as? NSDictionary,CGRect(dictionaryRepresentation:dict)==expected else{return false}
     return true
 }
+private struct UnreadFilmMarker {
+    let site:String,document:Int?,reason:String,uptime:Double,callback:Double
+    var receipt:FilmRow {["site":site,"document":document as Any? ?? NSNull(),"reason":reason,
+                          "cutoffUptime":uptime,"callbackUptime":callback,"pixelsRetained":false]}
+    static func accepts(_ reason:String)->Bool {
+        ["unexpectedFixtureMarker","unconfirmedPixelsInFixtureBody"].contains(reason)
+    }
+}
+
 private final class FilmReceiver:NSObject,SCStreamOutput,SCStreamDelegate,@unchecked Sendable {
     let queue=DispatchQueue(label:"nearpane.acceptance.card-film",qos:.userInitiated)
     let region:WindowSampleRegion,scale:Int,area:CGRect,bodies:[CGRect],window:SCWindow,host:pid_t,hid:[UInt32],clock:FilmClock
     private let lock=NSLock()
-    private var active=true,frames=[FilmFrame](),idle=0,fault:String?
+    private var active=true,frames=[FilmFrame](),idle=0,fault:String?,markerFault:UnreadFilmMarker?
     let began:Double
     init(region:WindowSampleRegion,scale:Int,area:CGRect,pictures:[CGRect],window:SCWindow,host:pid_t,hid:[UInt32],clock:FilmClock,began:Double) {
         self.region=region;self.scale=scale;self.area=area;self.window=window;self.host=host;self.hid=hid;self.clock=clock;self.began=began
         bodies=pictures.map{CGRect(x:$0.minX+$0.width*0.12,y:$0.minY+$0.height*0.38,width:$0.width*0.76,height:$0.height*0.48)}
     }
     func state()->(Int,String?) {lock.withLock{(frames.count,fault)}}
+    func unknownMarker()->UnreadFilmMarker? {lock.withLock{markerFault}}
+    func transitionHeld(_ source:[Int],_ next:Int)->Bool {lock.withLock {
+        guard let head=frames.first,let tail=frames.last,head.epochs==source,
+              tail.stamp.uptime-head.stamp.uptime>=2.4,frames.count>=5 else{return false}
+        let held=frames.suffix(3)
+        return held.allSatisfy{$0.epochs==[next,next]} && tail.stamp.uptime-held.first!.stamp.uptime>=0.12
+    }}
     func seal(){lock.withLock{active=false}}
     func result()->([FilmFrame],Int) {lock.withLock{(frames,idle)}}
     func stop(_ why:String){lock.withLock{if active && fault==nil {fault=why;active=false}}}
@@ -79,7 +95,18 @@ private final class FilmReceiver:NSObject,SCStreamOutput,SCStreamDelegate,@unche
             guard let address=CVPixelBufferGetBaseAddress(image) else{throw OverviewRefusal("filmEmptyFrame")}
             let bytes=try region.copyBGRA(from:address,stride:CVPixelBufferGetBytesPerRow(image))
             let picture=ImageRead(pixels:bytes,width:region.width,height:region.height,area:area,scale:scale,start:uptime,end:callback)
-            let epochs=try bodies.enumerated().map{try picture.marker($0.element,document:$0.offset)}
+            var epochs=[Int]()
+            for (i,body) in bodies.enumerated() {
+                do {epochs.append(try picture.marker(body,document:i))}
+                catch let e as OverviewRefusal where UnreadFilmMarker.accepts(e.reason) {
+                    guard currentInput()==hid else{throw OverviewRefusal("filmPhysicalInputDuringFrame")}
+                    lock.withLock {if active {
+                        markerFault=UnreadFilmMarker(site:"hostCard",document:i,reason:e.reason,uptime:uptime,callback:callback)
+                        fault=e.reason;active=false
+                    }}
+                    return
+                }
+            }
             guard currentInput()==hid else{throw OverviewRefusal("filmPhysicalInputDuringFrame")}
             let frame=FilmFrame(stamp:FilmStamp(ticks:ticks,uptime:uptime,callback:callback,pts:pts),epochs:epochs,bytes:bytes)
             lock.withLock{if active{frames.append(frame)}}
@@ -127,21 +154,26 @@ enum PairedCardFilm {
         let sink=FilmReceiver(region:region,scale:scale,area:area,pictures:pictures,window:window,host:host,hid:hid,clock:clock,began:guards.last!.end)
         let stream=SCStream(filter:filter,configuration:config,delegate:sink)
         try stream.addStreamOutput(sink,type:.screen,sampleHandlerQueue:sink.queue)
-        var issued:Double?,observedNext=false,ownsMarker=false
+        var issued:Double?,observedNext=false,ownsMarker=false,transitionHeld=false
+        var truncation:UnreadFilmMarker?
         func describeFailure(_ error:Error)->CardFilmFailure {
             let (seen,idle)=sink.result()
             let reason=(error as? OverviewRefusal)?.reason ?? "filmCaptureServiceFailed"
             return CardFilmFailure(reason:reason,details:["status":"BLOCKED","reason":reason,"timingMeasurement":false,"publicFileSaved":false,
                 "eligibleFramesBeforeStop":seen.count,"systemIdleCallbacks":idle,"scopeReads":guards.map{[$0.start,$0.end]},"sourceObservations":refs,
-                "fixtureMarkerIssued":issued != nil,"secondSourceColorObserved":observedNext])
+                "fixtureMarkerIssued":issued != nil,"secondSourceColorObserved":observedNext,
+                "markerRefusal":(truncation ?? sink.unknownMarker()).map{$0.receipt} as Any? ?? NSNull()])
         }
         defer{if ownsMarker{try? FileManager.default.removeItem(at:command)}}
         do {
             try await stream.startCapture()
             let start=captureUptime(),until=start+5.5
             while captureUptime()<until {
+                if sink.unknownMarker() != nil {break}
                 if let error=sink.state().1 {throw OverviewRefusal(error)}
                 try guardScope()
+                if sink.unknownMarker() != nil {break}
+                if observedNext,sink.transitionHeld(first,next) {transitionHeld=true;break}
                 if issued==nil,sink.state().0>=3,captureUptime()-start>=1 {
                     let t=captureUptime(),mark=PairedFilmMarker(session:folder.lastPathComponent,pid:fixture,birth:birth,numbers:ids.map(Int.init),epoch:next,issued:t)
                     try JSONEncoder().encode(mark).write(to:command,options:.withoutOverwriting)
@@ -161,12 +193,37 @@ enum PairedCardFilm {
             throw describeFailure(error)
         }
         do {
-        guard sink.state().1==nil else{throw OverviewRefusal(sink.state().1!)}
-        try guardScope()
-        let last=try await reference("terminal")
-        try guardScope()
-        guard let issued,observedNext,last==[next,next] else{throw OverviewRefusal("filmChangedFixturePixelsUnconfirmed")}
-        let (frames,idles)=sink.result()
+        truncation=sink.unknownMarker()
+        if let refusal=sink.state().1,truncation==nil {throw OverviewRefusal(refusal)}
+        let (collected,idles)=sink.result()
+        var frames=collected
+        if truncation==nil {
+            try guardScope()
+            let start=captureUptime()
+            do {
+                let terminal=try await reference("terminal")
+                try guardScope()
+                guard terminal==[next,next] else{throw OverviewRefusal("filmChangedFixturePixelsUnconfirmed")}
+            } catch let e as OverviewRefusal where UnreadFilmMarker.accepts(e.reason) {
+                truncation=UnreadFilmMarker(site:"terminalSource",document:nil,reason:e.reason,uptime:start,callback:captureUptime())
+            }
+        }
+        guard let issued,observedNext else{throw OverviewRefusal("filmChangedFixturePixelsUnconfirmed")}
+        if let bad=truncation {
+            // No new capture after an uncertain picture. Export only an earlier
+            // contiguous prefix already closed by an independent scope read.
+            guards=Array(guards.prefix{$0.end<bad.uptime})
+            guard let lastGuard=guards.last else{throw OverviewRefusal("filmNoClosedPrefixBeforeRefusal")}
+            frames=Array(collected.prefix{$0.stamp.uptime<bad.uptime && $0.stamp.callback<=lastGuard.start})
+            func bracketedReference(_ r:FilmRow)->Bool {
+                guard let samples=r["samples"] as? [[Double]],samples.count==2 else{return false}
+                return samples.allSatisfy{$0.count==2 && cardFilmBracket($0[0],$0[1],guards) != nil}
+            }
+            refs=Array(refs.prefix(while:bracketedReference))
+            guard refs.first?["stage"] as? String=="initial",refs.contains(where:{
+                $0["stage"] as? String=="postCommand" && $0["epochs"] as? [Int]==[next,next]
+            }) else{throw OverviewRefusal("filmPrefixSourcesNotIndependentlyClosed")}
+        }
         guard frames.count>=5,let head=frames.first,let end=frames.last,end.stamp.uptime-head.stamp.uptime>=2,
               head.epochs==first else{throw OverviewRefusal("filmInitialMarkersOrRealDurationUnconfirmed")}
         var evidence=[FilmRow](),lastTime=head.stamp.uptime,maxGap=0.0
@@ -193,6 +250,12 @@ enum PairedCardFilm {
                    "bothChangedInEncodedFrames":frames.dropLast().contains{$0.epochs==[next,next]},"timingMeasurement":false,
                    "scale":scale,"width":region.width,"height":region.height,"maximumPresentationGapSeconds":maxGap,
                    "systemIdleCallbacks":idles,"frames":evidence,"container":movie] as FilmRow){_,v in v}
+        row["coverage"]=truncation==nil ? "completeInterval":"certifiedPrefix"
+        row["stopReason"]=truncation?.reason ?? (transitionHeld ? "twoCardChangeHeld":"boundedIntervalEnded")
+        if let bad=truncation {
+            row["markerRefusal"]=bad.receipt
+            row["knownFramesAfterLastClosedGuardExcluded"]=collected.count-frames.count
+        }
         return row
         } catch {throw describeFailure(error)}
     }

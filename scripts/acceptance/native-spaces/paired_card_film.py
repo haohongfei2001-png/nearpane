@@ -43,11 +43,22 @@ def verify(film, proof, data):
             and frames[0]["cardEpochs"]==[base,base] and finite(film["fixtureChangedAt"]),"filmFixtureEpochUnconfirmed")
     references=film["sourceObservations"]
     require(references[0]["stage"]=="initial" and references[0]["epochs"]==[base,base] and
-            references[-1]["stage"]=="terminal" and references[-1]["epochs"]==[new,new] and
             any(r["stage"]=="postCommand" and r["epochs"]==[new,new] for r in references),"filmMissingIndependentSourceRead")
     for r in references:
         require(len(r["samples"])==2 and all(len(times)==2 and all(finite(t) for t in times) and times[0]<=times[1] for times in r["samples"]),
                 "filmUnclockedSourceRead")
+    coverage=film.get("coverage","completeInterval")
+    if coverage=="certifiedPrefix":
+        cut=film.get("markerRefusal",{})
+        require(cut.get("reason") in ("unexpectedFixtureMarker","unconfirmedPixelsInFixtureBody") and
+                cut["site"] in ("hostCard","terminalSource") and (cut["document"] in (0,1) if cut["site"]=="hostCard" else cut["document"] is None) and
+                cut.get("pixelsRetained") is False and finite(cut["cutoffUptime"]) and finite(cut["callbackUptime"]) and
+                cut["cutoffUptime"]<=cut["callbackUptime"]+.01 and checks[-1][1]<cut["cutoffUptime"] and frames[-1]["callbackUptime"]<=checks[-1][0] and
+                all(any(c[1]<=a for c in checks) and any(c[0]>=b for c in checks) for r in references for a,b in r["samples"]),
+                "filmUnverifiedFrameOrReferenceInPrefix")
+    else:
+        require(coverage=="completeInterval" and "markerRefusal" not in film and references[-1]["stage"]=="terminal" and
+                references[-1]["epochs"]==[new,new],"filmTerminalSourceUnconfirmed")
     max_gap=0
     for i,f in enumerate(frames):
         before,after=f["scopeReads"];t=f["presentationUptime"];callback=f["callbackUptime"]
