@@ -85,6 +85,51 @@ struct SidebarBackgroundWindows: Identifiable {
     }
 }
 
+struct SelectionForeground: Equatable {
+    let pid: Int32
+    let birth: UInt64
+
+    static func read(_ pid: Int32?) -> Self? {
+        guard let pid, let owner = AdmissionBirth.read(pid), owner.start > 0 else { return nil }
+        return .init(pid: pid, birth: owner.start)
+    }
+}
+
+struct CrossSpaceFocusContinuity {
+    let source: SelectionForeground
+    let target: SelectionForeground
+    private(set) var reachedTarget = false
+    private(set) var revoked = false
+
+    mutating func observe(_ owner: SelectionForeground?) -> Bool {
+        guard !revoked else { return false }
+        if owner == target { reachedTarget = true }
+        else if owner != source || reachedTarget { revoked = true }
+        return !revoked
+    }
+}
+
+@MainActor private final class CrossSpaceFocusWatch {
+    var continuity: CrossSpaceFocusContinuity
+    private var observer: NSObjectProtocol?
+    init(source: SelectionForeground, target: SelectionForeground) {
+        continuity = .init(source: source, target: target)
+        observer = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            MainActor.assumeIsolated { _ = self?.continuity.observe(.read(app?.processIdentifier)) }
+        }
+    }
+    func current() -> Bool {
+        continuity.observe(.read(NSWorkspace.shared.frontmostApplication?.processIdentifier))
+    }
+    func stop() {
+        if let observer { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
+        observer = nil
+    }
+}
+
 @MainActor @Observable final class NativeSidebarNavigation {
     // All displays share the action lane. A superseded switch can finish, but cannot
     // subsequently focus a window after a newer explicit choice.
@@ -138,10 +183,14 @@ struct SidebarBackgroundWindows: Identifiable {
     func select(_ destination: NativeSidebarDestination, member: NativeSidebarMember?, feed: CurrentDesktopWindows,
                 allowed: @escaping @MainActor () -> Bool) {
         let userInput = NativeSelectionPermit.inputCounters()
+        let originalFront = SelectionForeground.read(NSWorkspace.shared.frontmostApplication?.processIdentifier)
         let lifetime = member.flatMap { feed.lifetime(of: $0.key) }
         submit { [weak self] token in
+            var watch: CrossSpaceFocusWatch?
+            defer { watch?.stop() }
             @MainActor func valid() -> Bool {
                 guard self?.isCurrent(token) == true, allowed(), WindowContentPreview.sessionAvailable(),
+                      watch?.current() != false,
                       NativeSelectionPermit.inputCounters() == userInput else { return false }
                 if let member, let original = member.originalWindow, let location = member.location {
                     return feed.tracks(original, at: location)
@@ -153,6 +202,11 @@ struct SidebarBackgroundWindows: Identifiable {
                 throw OrdinaryWindowFailure("桌面或窗口已变化，请重新选择。")
             }
             let original = map.current.id != destination.space ? member?.originalWindow : nil
+            if map.current.id != destination.space, let member {
+                guard let originalFront else { throw OrdinaryWindowFailure("无法确认原前台进程。") }
+                watch = .init(source: originalFront, target: .init(pid: member.key.pid, birth: member.key.birth))
+                guard valid() else { return }
+            }
             var bound: OrdinaryWindowAX?
             if map.current.id != destination.space, let member, original == nil {
                 // Retain the exact AX element across the switch and focus operation.

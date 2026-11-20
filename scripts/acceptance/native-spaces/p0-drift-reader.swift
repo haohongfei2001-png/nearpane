@@ -116,7 +116,7 @@ func ownerMembership(_ owner:ProcessGeneration, scopes:inout ScopeRead)->Map {
     return result
 }
 
-func observeDrift(seconds:Double, expectedPID:pid_t, expectedBirth:UInt64, expectedHash:String)throws {
+func observeDrift(seconds:Double, expectedPID:pid_t, expectedBirth:UInt64, expectedHash:String, managed:Bool)throws {
     let uptime={ProcessInfo.processInfo.systemUptime}
     var cache=SigningCache()
     guard path(expectedPID)=="/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
@@ -143,6 +143,10 @@ func observeDrift(seconds:Double, expectedPID:pid_t, expectedBirth:UInt64, expec
     publish("started",start,["host":host,"hid":initial,"additionalHID":extra,"diagnosticSeconds":seconds])
     var census: Map?, censusTop:Topology?, last:ProcessGeneration?, reason="duration"
     while uptime()<start+seconds {
+        if managed {
+            var fd = pollfd(fd: STDIN_FILENO, events: Int16(POLLIN | POLLHUP), revents: 0)
+            if poll(&fd, 1, 0) > 0 { reason = "driverClosed"; break }
+        }
         let began=uptime(), hid=hardware(), additional=extraInput()
         if initial != hid || extra != additional {
             publish("userSuperseded",began,["hid":hid,"additionalHID":additional]);reason="userSuperseded";break
@@ -201,7 +205,7 @@ do {
        let s=signature(pid),s.0=="com.holdsnow.nearpane.alpha" {
         emit(["pid":pid,"birth":born,"cdhash":s.1,"signingIdentifier":s.0]);exit(0)
     }
-    guard a.count==4, let seconds=Double(a[0]), seconds.isFinite, (12...900).contains(seconds),
+    guard a.count==4 || (a.count==5 && a[4]=="managed"), let seconds=Double(a[0]), seconds.isFinite, (12...3600).contains(seconds),
           let pid=Int32(a[1]), let born=UInt64(a[2]), born>0, a[3].count==40 else {throw Refusal("invalid diagnostic request")}
-    try observeDrift(seconds:seconds,expectedPID:pid,expectedBirth:born,expectedHash:a[3])
+    try observeDrift(seconds:seconds,expectedPID:pid,expectedBirth:born,expectedHash:a[3],managed:a.count==5)
 } catch {emit(["event":"refused","uptime":ProcessInfo.processInfo.systemUptime,"reason":"monitorAdmissionUnavailable"]);exit(2)}

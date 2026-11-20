@@ -15,7 +15,7 @@ import time
 import threading
 import uuid
 
-from p0_drift_classification import MAX_GAP, action_record, classify
+from p0_drift_classification import MAX_GAP, action_record, checkpoint_identity, classify, observer_coverage
 
 ROOT=Path(__file__).resolve().parents[3]
 HISTORY=ROOT/'engineering/verification/native-spaces/5.22-p0'
@@ -74,10 +74,10 @@ def journal_value(path):
     return json.loads(raw),hashlib.sha256(raw).hexdigest()
 
 
-def capture(kit,out,seconds):
+def capture(kit,out,seconds,managed=False):
     from acceptance import identity
     from installed_profile import APP, PROFILE, installed_pid, owns_profile, validate_home
-    require(12<=seconds<=900,'diagnosticDurationMustBe12To900Seconds')
+    require(12<=seconds<=3600,'diagnosticDurationMustBe12To3600Seconds')
     require(kit.parent==Path('/private/tmp') and kit.name.startswith('nearpane-p0-drift.') and kit.is_dir() and
             kit.resolve()==kit and kit.stat().st_uid==os.getuid() and not kit.stat().st_mode&0o077,'unqualifiedReadOnlyKit')
     reader=kit/'p0-drift-reader'
@@ -122,26 +122,38 @@ def capture(kit,out,seconds):
                 except (OSError,KeyError,TypeError,ValueError):
                     invalid[path.name]='incompleteOrMalformedHostJournal'
         with (out/'events.jsonl').open('x') as log:
-            proc=subprocess.Popen([reader,str(seconds),str(host),str(generation['birth']),generation['cdhash']],
-                                  stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+            proc=subprocess.Popen([reader,str(seconds),str(host),str(generation['birth']),generation['cdhash'],*(['managed'] if managed else [])],
+                                  stdin=subprocess.PIPE if managed else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
             def watch_time():
                 if proc.poll() is None:
                     timeout.set();proc.kill()
             watchdog=threading.Timer(seconds+8,watch_time)
             watchdog.daemon=True;watchdog.start()
             scanned=started
+            revision=0
             for line in proc.stdout:
                 r=json.loads(line);events.append(r);log.write(json.dumps(r,separators=(',',':'))+'\n');log.flush()
                 if r.get('event')=='started':
                     session=r['session'];initial_inputs=(r['hid'],r['additionalHID'])
+                if managed and not proc.stdin.closed and (out/'finish.json').is_file():
+                    if json.loads((out/'finish.json').read_bytes()).get('session')==session:
+                        proc.stdin.close()
+                if r.get('event') in ('workspaceNotification','notificationLoss','readUnavailable'):
+                    revision+=1
+                    latest_state.update(open=False,revision=revision,reason=r['event'])
+                    write(out/'active.json',latest_state)
                 if r.get('event')=='sample' and r.get('session')==session:
                     scan()
                     pending=(journal/'pending.json').exists()
+                    binding=checkpoint_identity(r)
+                    if binding!=latest_state.get('binding'):
+                        revision+=1
                     latest_state=dict(session=session,writer=os.getpid(),reader=proc.pid,
                         seq=r['seq'],uptime=r['uptime'],spaceStable=r['spaceStable'],current=r['current'],display=r['display'],
                         spaceUUID=r['spaceUUID'],hid=r['hid'],additionalHID=r['additionalHID'],
                         pendingInstalledIntent=pending,unresolvedJournalCount=len(invalid),
-                        open=(r['hid'],r['additionalHID'])==initial_inputs and not pending and not invalid)
+                        binding=binding,revision=revision,host=generation,
+                        open=binding is not None and (r['hid'],r['additionalHID'])==initial_inputs and not pending and not invalid)
                     write(out/'active.json',latest_state)
                 if r.get('event') in ('ended','userSuperseded','refused','readUnavailable'):
                     latest_state.update(session=session,writer=os.getpid(),open=False,reason=r.get('reason',r['event']),stopUptime=r.get('uptime'))
@@ -162,7 +174,7 @@ def capture(kit,out,seconds):
         summary.update(confirmedOperations=len(actions),incompleteJournals=invalid,otherOperations=ignored,
                        observerSession=session,eventCount=len(events),stableSpaceReads=stable,admissionCount=len(checks),readerTimedOut=timeout.is_set(),
                        stopReason=events[-1].get('reason') if events else 'noEvents',observationComplete=bool(intact),
-                       observations=course(events,actions,checks))
+                       observations=course(events,actions,checks),observerCoverage=observer_coverage(events))
         if not intact or invalid:summary['status']='UNKNOWN'
         elif actions:
             summary['status']='OBSERVED'
@@ -188,9 +200,10 @@ def admission(out):
     id=str(uuid.uuid4())
     value=dict(id=id,session=session,requestedUptime=requested,sourceSequence=state.get('seq'),
                observedUptime=state.get('uptime'),display=state.get('display'),current=state.get('current'),spaceUUID=state.get('spaceUUID'),
+               binding=state.get('binding'),host=state.get('host'),revision=state.get('revision'),
                dispatchAuthorized=False,state='pending')
     latest=state.get('uptime')
-    if (not state.get('open') or not isinstance(session,str) or state.get('spaceStable') is not True or
+    if (not state.get('open') or not state.get('binding') or not isinstance(session,str) or state.get('spaceStable') is not True or
         type(latest) not in (int,float) or not 0<=requested-latest<=MAX_GAP):
         value.update(state='refused',reason=state.get('reason','observerUnavailableOrSuperseded'))
         write(out/'admissions'/(id+'.json'),value);return value
@@ -207,7 +220,7 @@ def admission(out):
         if not last.get('open') or last['session']!=session or last.get('uptime',0)>=requested:break
         time.sleep(.02)
     valid=(last.get('open') and last['session']==session and last.get('uptime',0)>=requested and last.get('spaceStable') and
-           all(state[k]==last.get(k) for k in ('current','display','spaceUUID','hid','additionalHID')))
+           all(state[k]==last.get(k) for k in ('current','display','spaceUUID','hid','additionalHID','host','binding','revision')))
     value['state']='observed' if valid else 'refused'
     value['closingSequence']=last.get('seq')
     prior=[json.loads(path.read_bytes()) for path in (out/'operations').glob('*.json')]
@@ -267,13 +280,14 @@ if __name__=='__main__':
     h=subs.add_parser('replay');h.add_argument('--output',type=Path)
     live=subs.add_parser('observe');live.add_argument('kit',type=Path);live.add_argument('output',type=Path)
     live.add_argument('--seconds',type=float,default=45)
+    live.add_argument('--managed',action='store_true')
     marker=subs.add_parser('admission');marker.add_argument('output',type=Path)
     inspect=subs.add_parser('summarize');inspect.add_argument('output',type=Path)
     a=p.parse_args()
     if a.mode=='replay':
         value=history()
         if a.output:write(a.output,value)
-    elif a.mode=='observe':value=capture(a.kit.resolve(),a.output.resolve(),a.seconds)
+    elif a.mode=='observe':value=capture(a.kit.resolve(),a.output.resolve(),a.seconds,a.managed)
     elif a.mode=='summarize':
         folder=a.output.resolve();log=read_rows(folder/'events.jsonl')
         session=next((r.get('session') for r in log if r.get('event')=='started'),None)

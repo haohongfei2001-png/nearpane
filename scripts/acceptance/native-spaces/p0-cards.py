@@ -20,7 +20,8 @@ import threading
 import time
 import uuid
 
-from acceptance import identity
+from acceptance import identity, native_capabilities
+from p0_session import ActionObserver
 from contract_workspace import Workspace
 from installed_profile import APP, PROFILE, installed_pid, owns_profile, validate_home
 from space_scope import require
@@ -481,7 +482,7 @@ def physical_admission(started,request):
     return False,started.get("reason") or ", ".join(reasons) or "an independently visible lit source frame was not verified before dispatch"
 
 
-def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,admission=None):
+def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,admission=None,observer=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     if admission is not None:store(folder/'admission-before.json',admission)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
@@ -505,25 +506,24 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
         if audit and not inspect.get('ready') and inspect.get('error','').startswith('official background card'):
             audit.snapshot('unavailable-'+folder.name,dict(source=p['topology']['current'],target=p['target'],control=inspect))
         require(inspect.get('ready'),inspect.get('error','installed background card unavailable'))
-        if visual_stage in ('roundTrip','ten'):
+        if visual_stage is not None:
             try:
                 recorder=visual_module()
-                if recorder and visual_stage=='roundTrip':
-                    store(folder/'visual-enrollment.json',recorder.enroll(tool.parent,folder,p,**observer_options))
-                elif recorder:
+                if recorder:
                     called=True;started=recorder.start(tool.parent,folder,p,**observer_options);store(folder/'visual-start.json',started)
             except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,ImportError,AttributeError,TypeError) as error:
                 started=dict(status='UNKNOWN',reason=str(error))
-                store(folder/('visual-enrollment.json' if visual_stage=='roundTrip' else 'visual-start.json'),started)
-            if visual_stage=='ten':
-                allowed,reason=physical_admission(started,p)
-                if not allowed:
-                    item.update(status='BLOCKED',navigationStatus='NOT_RUN',reason=reason,visualAdmissionBlocked=True)
-                    return item
+                store(folder/'visual-start.json',started)
+            allowed,reason=physical_admission(started,p)
+            if not allowed:
+                item.update(status='BLOCKED',navigationStatus='NOT_RUN',reason=reason,visualAdmissionBlocked=True)
+                return item
         watch=lifetime.enter_context(Watch(tool))
         first=admission_sample(watch.next(),p)
         store(folder/'admission-before-dispatch.json',first)
         require(first['admitted'],'source changed before dispatch: '+', '.join(first['mismatches']))
+        require(observer is not None,'continuous independent observer unavailable')
+        store(folder/'continuous-admission.json',observer.before(p))
         log('card-intent',space=p['target'],number=p['targetWindow']['number'],folder=folder.name)
         item.update(status='UNKNOWN',invokedDriver=True,axIssued=None);store(folder/'result.json',item)
         action=keeper.call('press',p) if keeper else cmd(tool,'press',body=p,timeout=10); store(folder/'ax-dispatch.json',action); item['axIssued']=action.get('issued')
@@ -608,12 +608,25 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
                     item.update(status='UNKNOWN',reason=focus['reason'])
             if item['blankScreen']=='FAIL':
                 item.update(status='FAIL',reason='visual observer reported a black physical display during this action')
-            elif visual_stage=='ten' and item['status']=='PASS' and item['blankScreen']!='PASS':
+            elif visual_stage is not None and item['status']=='PASS' and item['blankScreen']!='PASS':
                 receipt=folder/'visual'/'receipt.json'
                 reason=json.loads(receipt.read_bytes()).get('reason') if receipt.exists() else None
                 item.update(status='UNKNOWN',reason=reason or 'physical display coverage is unknown after the navigation')
         finally:
             lifetime.close()
+        if host and host['confirmed'] and observer:
+            try:
+                verdict=observer.after(host['id'])
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                verdict=dict(classification='unknown',reason=str(error))
+            store(folder/'continuous-readback.json',verdict)
+            item['continuousClassification']=verdict['classification']
+            if verdict['classification'] in ('unexpectedForegroundHandoff','unexpectedSpaceDrift'):
+                item.update(status='FAIL',reason=verdict['classification'])
+            elif verdict['classification']=='userSuperseded':
+                item.update(status='BLOCKED',reason='userSuperseded')
+            elif verdict['classification']!='settled' and item['status']=='PASS':
+                item.update(status='UNKNOWN',reason='continuous ten-second settled target not demonstrated')
         for name,rows in [('windowserver.jsonl',primary),('windowserver-finalization.jsonl',after)]:
             if rows:
                 with (folder/name).open('w') as f:
@@ -703,21 +716,22 @@ def evaluate_gate(stage, name, expected):
     stage['navigationStatus']=navigation
     stage['navigationConfirmed']=sum(s.get('navigationStatus',s['status'])=='PASS' for s in samples)
     stage['navigationDispatched']=sum(s.get('axIssued') is True for s in samples)
-    if name=='ten' and samples and samples[-1].get('visualAdmissionBlocked'):
+    if samples and samples[-1].get('visualAdmissionBlocked'):
         if stage['navigationConfirmed']:stage['navigationStatus']='BLOCKED'
         stage.update(status='BLOCKED',blankScreen='UNKNOWN',reason=samples[-1]['reason']);return
     if any(s.get('blankScreen')=='FAIL' for s in samples):
         stage.update(status='FAIL',blankScreen='FAIL',reason='black physical display observed during a navigation');return
-    if name=='ten':
-        stage['blankScreen']='PASS' if len(samples)==expected and all(s.get('blankScreen')=='PASS' for s in samples) else 'UNKNOWN'
+    stage['blankScreen']='PASS' if len(samples)==expected and all(s.get('blankScreen')=='PASS' for s in samples) else 'UNKNOWN'
     stage['targetFocusConfirmed']=sum((s.get('retainedTargetFocus') or {}).get('status')=='PASS' for s in samples)
     failed=next((sample for sample in samples if sample['status']!='PASS'),None)
     if failed:
         stage.update(status=failed['status'],reason=failed.get('reason','installed card trial did not pass'));return
     if any((s.get('retainedTargetFocus') or {}).get('status') != 'PASS' for s in samples):
         stage.update(status='UNKNOWN',reason='exact target-document focus retention was not established');return
-    if name=='ten' and navigation=='PASS' and stage['blankScreen']!='PASS':
-        stage.update(status='BLOCKED',reason='10 independent navigations confirmed; absence of a black physical display was not witnessed')
+    if navigation=='PASS' and stage['blankScreen']!='PASS':
+        stage.update(status='BLOCKED',reason='physical display coverage was not established for every selection')
+    elif navigation=='PASS' and any(s.get('continuousClassification')!='settled' for s in samples):
+        stage.update(status='UNKNOWN',reason='independent continuity through the installed actions was not established')
     else:stage['status']=navigation
 
 class OwnedKeeper:
@@ -741,11 +755,14 @@ def run(args):
     out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False);tool=args.kit/'p0-card'
     result={'status':'BLOCKED','stages':{n:{'status':'NOT_RUN','navigationStatus':'NOT_RUN','blankScreen':'UNKNOWN','requested':c,'samples':[]} for n,c in GATES},'blankScreen':'UNKNOWN','privateContentCaptured':False,
             'dynamicFixtureMarkerRequested':os.environ.get('NP_P0_DYNAMIC_MARKER')=='1'}
+    result['through']=args.through
+    if args.through=='diagnostic':
+        result['stages']['diagnostic']=dict(status='NOT_RUN',requested=1,samples=[])
     report=lambda:store(out/'results.json',result)
     def log(event,**data):
         with (out/'actions.jsonl').open('a') as f:
             f.write(json.dumps({'event':event,'monotonic':time.monotonic(),**data},ensure_ascii=False)+'\n');f.flush();os.fsync(f.fileno())
-    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None;keeper=None;audit=None
+    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None;keeper=None;audit=None;observer=None;superseded=False
     with tempfile.TemporaryDirectory(dir='/private/tmp',prefix='nearpane-p0-owned-') as tmp:
         documents=Documents(args.kit,Path(tmp),log)
         state=lambda:cmd(tool,'state')
@@ -774,6 +791,20 @@ def run(args):
             store(out/f'fixture-{name}.json',view)
         try:
             host,journal=freeze(args.kit,out);require(not (journal/'pending.json').exists(),'unresolved installed switch already present')
+            caps=native_capabilities(dict(pid=host['pid'],launch=host['birth']/1_000_000))
+            result['installedCapabilities']=caps
+            report()
+            if args.preflight_only:
+                result['preflightOnly']=True
+                result['capabilityRead']='PASS' if caps else 'UNKNOWN'
+                result['reason']='read-only preflight: no product or fixture actions requested'
+                return 0 if caps else 2
+            require(caps and caps[-1]['ready'] and caps[-1]['canSwitch'],
+                    'installed Host switch capability is closed or unavailable; no fixtures or product inputs issued')
+            drift_kit=args.drift_kit
+            if drift_kit is None:
+                path=subprocess.check_output([Path(__file__).with_name('build-p0-drift.sh')],text=True,timeout=90).strip()
+                drift_kit=Path(path).resolve(strict=True)
             initial=state();require(initial.get('observerAX') and initial.get('topology'),'independent metadata or AX permission unavailable');store(out/'original.json',initial)
             focus=focus_tools.OriginalFocus(tool);held=focus.reply();store(out/'original-focus.json',held)
             if held.get('held'):
@@ -859,16 +890,40 @@ def run(args):
             guard_setup(start,initial,{initial_source},{enrolled[initial_source]['pid']});require(compatible(top,a,b),'owned endpoints not adjacent')
             store(out/'enrolled.json',dict(topology=top,windows={str(k):v for k,v in enrolled.items()},witnesses=witnesses([first,second])))
             source=initial_source
-            for gate,how_many in GATES:
+            def request(source,target):
+                return dict(topology={**top,'current':source},sourceWindow=enrolled[source],targetWindow=enrolled[target],target=target,
+                            hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid'])
+            # Both endpoints must be physically calibrated before the first formal press.
+            # The preparation activation addresses only a window created by this harness.
+            for i in range(2):
+                target=b if source==a else a
+                req=request(source,target);folder=out/f'endpoint-{source}';folder.mkdir(mode=0o700)
+                require(admission_sample(state(),req)['admitted'],'endpoint focus or membership changed before visual calibration')
+                options={'window_witness':lambda w:keeper.call('windows',w)} if keeper else {}
+                calibration=visual_module().enroll(args.kit,folder,req,**options)
+                store(folder/'visual-enrollment.json',calibration)
+                require(calibration.get('status')=='READY',calibration.get('reason','physical endpoint not calibrated'))
+                if i==0:
+                    require(admission_sample(state(),req)['admitted'] and anchored([first,second],[a,b]),'endpoint changed before fixture setup')
+                    dest=enrolled[target]
+                    doc=next(d for d in documents.processes if dest in d['windows'])
+                    log('setup-owned-endpoint-activation',source=source,target=target,countsAsProductInput=False)
+                    if doc is rootdoc:documents.control(doc,'activate',doc['windows'].index(dest))
+                    else:(doc['folder']/'activate-first').touch(exist_ok=False)
+                    until(state,lambda s:admission_sample(s,request(target,source))['admitted'],'owned calibration endpoint did not become current',6)
+                    source=target
+            gates=(('diagnostic',1),) if args.through=='diagnostic' else GATES[:1+next(i for i,(name,_) in enumerate(GATES) if name==args.through)]
+            observer=ActionObserver(drift_kit,out/'continuous-observer',min(3600,30+sum(n for _,n in gates)*45))
+            observer.ready()
+            for gate,how_many in gates:
                 stage=result['stages'][gate];stage['status']='BLOCKED';report()
                 for n in range(1,how_many+1):
                     try:sample=state()
                     except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as error:sample={'error':str(error) or type(error).__name__}
                     target=b if source==a else a
-                    req=dict(topology={**top,'current':source},sourceWindow=enrolled[source],targetWindow=enrolled[target],target=target,
-                             hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid'])
+                    req=request(source,target)
                     trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper,audit=audit,
-                                  admission=admission_sample(sample,req))
+                                  admission=admission_sample(sample,req),observer=observer)
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break
@@ -880,18 +935,28 @@ def run(args):
                 if gate=='fifty':
                     times=[x['latencyMS'] for x in stage['samples']];stage['latencyMS']={k:percentile(times,p) for k,p in [('p50',.50),('p95',.95),('p99',.99)]}
                     stage['latencyDefinition']='AXPress dispatch uptime to first independent target observation, nearest-rank statistics';result['status']='PASS'
+                elif gate==args.through:result['status']='PASS'
                 report()
         except (OSError,RuntimeError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as e:
             result['reason']=str(e);log('stopped',reason=str(e))
-            try:checkpoint('stopped')
-            except (ValueError,OSError,KeyError,subprocess.SubprocessError) as diagnostic:log('fixture-diagnostics-unavailable',reason=str(diagnostic))
-            if result['stages']['roundTrip']['status']=='NOT_RUN':
-                result['stages']['roundTrip'].update(status='BLOCKED',reason=str(e))
+            if initial:
+                try:checkpoint('stopped')
+                except (ValueError,OSError,KeyError,subprocess.SubprocessError) as diagnostic:log('fixture-diagnostics-unavailable',reason=str(diagnostic))
+            active='diagnostic' if args.through=='diagnostic' else 'roundTrip'
+            if result['stages'][active]['status']=='NOT_RUN':
+                result['stages'][active].update(status='BLOCKED',reason=str(e))
         finally:
             problems=[];clean={}
+            if observer:
+                evidence=observer.close()
+                superseded=evidence.get('stopReason')=='userSuperseded' or evidence.get('status')=='userSuperseded'
+                result['observer']=dict(status=evidence.get('status'),complete=evidence.get('observationComplete'),stop=evidence.get('stopReason'))
+                if result['status']=='PASS' and (not evidence.get('observationComplete') or evidence.get('incompleteJournals') or
+                        not evidence.get('observations') or any(x.get('classification')!='settled' for x in evidence['observations'])):
+                    result.update(status='UNKNOWN',reason='final continuous observation did not confirm every settled operation')
             if audit and audit.targets:audit.snapshot('before-cleanup',dict(stageStatus=result['status']),final=True)
             # Only a positively held fixture may return its own document to its original ordinary Space.
-            if rootdoc and initial and top and a and b:
+            if not superseded and rootdoc and initial and top and a and b:
                 try:
                     live=state(); current=live['topology']['current']
                     if current in (a,b) and current!=staging and live['topology']['records']==top['records'] and live['hid']==initial['hid'] and live['frontPID'] in {d['proc'].pid for d in documents.processes}:
@@ -906,7 +971,7 @@ def run(args):
                 try:
                     # Recovery binds the now-current unrelated foreground if the user moved during the run.
                     live=state();recovery=Workspace(args.kit,lease,log,resume=True)
-                    if live.get('hid')!=initial['hid'] and live.get('topology',{}).get('current') in recovery.ids():
+                    if superseded or (live.get('hid')!=initial['hid'] and live.get('topology',{}).get('current') in recovery.ids()):
                         clean['ordinary']={'outstanding':recovery.ids(),'reason':'latest human input on a leased desktop; foreground preserved'}
                     else:clean['ordinary']=recovery.cleanup()
                     if clean['ordinary']['outstanding']:problems.append('ordinary lease still outstanding')
@@ -919,7 +984,7 @@ def run(args):
                     if focus:
                         end=last.get('topology',{})
                         same_inventory=end.get('display')==initial['topology']['display'] and end.get('records')==initial['topology']['records']
-                        safe=bool(held.get('held') and needs_focus and same_inventory and end.get('current') in (initial['topology']['current'],staging) and last.get('hid')==initial['hid'])
+                        safe=bool(not superseded and held.get('held') and needs_focus and same_inventory and end.get('current') in (initial['topology']['current'],staging) and last.get('hid')==initial['hid'])
                         clean['originalFocusRestoration']=focus.finish(safe,staging if end.get('current')!=initial['topology']['current'] else None,expected=last);focus=None
                         if safe:
                             first=state();time.sleep(.11);last=state()
@@ -944,6 +1009,10 @@ def run(args):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('kit',type=lambda s:Path(s).resolve());parser.add_argument('output',type=Path)
     parser.add_argument('--route',choices=['auto','ordinary','fullscreen'],default='auto')
+    parser.add_argument('--through',choices=['diagnostic','roundTrip','ten','fifty'],default='diagnostic',
+                        help='diagnostic allows at most one formal action; larger gates require all preceding subchecks')
+    parser.add_argument('--drift-kit',type=lambda s:Path(s).resolve(strict=True))
+    parser.add_argument('--preflight-only',action='store_true',help='read signed running Host capability before creating any fixtures')
     parser.add_argument('--setup-input',choices=['ax','click'],default='ax',help='choose one native setup input before the run; never replay an issued input')
     args=parser.parse_args();os.umask(0o077)
     def terminate(signum,frame):raise RuntimeError('received termination signal '+str(signum))

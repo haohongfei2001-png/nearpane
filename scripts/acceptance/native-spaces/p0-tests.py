@@ -98,9 +98,9 @@ class GateTests(unittest.TestCase):
     def test_stops_before_larger_stage_and_exact_nearest_rank(self):
         self.assertEqual(runner.gate_status([dict(status='PASS')],2),'BLOCKED');self.assertEqual(runner.gate_status([dict(status='PASS'),dict(status='FAIL')],2),'FAIL')
         self.assertEqual(runner.gate_status([dict(status='PASS')]*10,10),'PASS');self.assertEqual(runner.percentile(list(range(1,51)),.95),48)
-    def test_missing_physical_visual_does_not_prevent_one_round_trip_but_blocks_fifty(self):
+    def test_missing_physical_visual_blocks_the_round_trip_and_larger_gates(self):
         first=dict(samples=[dict(status='PASS',retainedTargetFocus=dict(status='PASS'))]*2,blankScreen='UNKNOWN')
-        runner.evaluate_gate(first,'roundTrip',2);self.assertEqual(first['status'],'PASS')
+        runner.evaluate_gate(first,'roundTrip',2);self.assertEqual(first['status'],'BLOCKED')
         ten=dict(samples=[dict(status='PASS',retainedTargetFocus=dict(status='PASS'))]*10,blankScreen='UNKNOWN')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['status']),('PASS','BLOCKED'))
     def test_actual_system_focus_overrides_a_stale_workspace_owner(self):
@@ -130,7 +130,7 @@ class GateTests(unittest.TestCase):
         partial=dict(samples=[dict(status="UNKNOWN",navigationStatus="PASS",axIssued=True,blankScreen="UNKNOWN",reason="physical coverage gap")])
         runner.evaluate_gate(partial,"ten",10)
         self.assertEqual((partial["status"],partial["navigationConfirmed"],partial["reason"]),("UNKNOWN",1,"physical coverage gap"))
-        trip=dict(samples=[dict(status="PASS",navigationStatus="PASS",axIssued=True,retainedTargetFocus=dict(status="PASS"))]*2)
+        trip=dict(samples=[dict(status="PASS",navigationStatus="PASS",axIssued=True,blankScreen="PASS",continuousClassification="settled",retainedTargetFocus=dict(status="PASS"))]*2)
         runner.evaluate_gate(trip,"roundTrip",2);self.assertEqual(trip["status"],"PASS")
         qualified=dict(status="READY",ready=True,physicalReady=True,physicalAdmission={"sourceSpace":4,"targetSpace":5,"failed":[],
                        "physicalStreamArmed":True,"sourceFrameReadyBeforePress":True,"endpointCalibration":{"sourceEnrolled":True,"targetEnrolled":True}})
@@ -220,12 +220,15 @@ class GateTests(unittest.TestCase):
                 self.assertLess(ended,12.6)
                 return 'PASS'
             keeper.call.side_effect=call
+            monitor=mock.Mock()
+            monitor.before.return_value={'state':'observed'}
+            monitor.after.return_value={'classification':'settled'}
             with mock.patch.object(runner,'Watch',return_value=watch),mock.patch.object(runner,'visual_module',return_value=recorder), \
                  mock.patch.object(runner,'physical_admission',return_value=(True,None)), \
                  mock.patch.object(runner,'finish_visual',side_effect=finish), \
                  mock.patch.object(runner,'cmd',return_value=self.detailed(13.03,5,self.win)):
                 trial=runner.attempt(root/'tool',self.req,folder,journal,lambda *a,**kw:None,'ten',keeper,
-                                     admission=runner.admission_sample(input_rows[0],self.req))
+                                     admission=runner.admission_sample(input_rows[0],self.req),observer=monitor)
             primary=[json.loads(l) for l in (folder/'windowserver.jsonl').read_text().splitlines()]
             tail=[json.loads(l) for l in (folder/'windowserver-finalization.jsonl').read_text().splitlines()]
         self.assertTrue(watch.closed)
@@ -277,7 +280,7 @@ class GateTests(unittest.TestCase):
             runner.store(folder/'visual/frames.json',dict(nonce=self.operation))
             receipt['target']=4;runner.store(folder/'visual/receipt.json',receipt);self.assertEqual(check(),'UNKNOWN')
     def test_real_black_fails_without_misrepresenting_navigation(self):
-        ten=dict(samples=[dict(status='PASS',navigationStatus='PASS',blankScreen='PASS',retainedTargetFocus=dict(status='PASS')) for _ in range(10)])
+        ten=dict(samples=[dict(status='PASS',navigationStatus='PASS',blankScreen='PASS',continuousClassification='settled',retainedTargetFocus=dict(status='PASS')) for _ in range(10)])
         runner.evaluate_gate(ten,'ten',10);self.assertEqual(ten['status'],'PASS')
         ten['samples'][-1].update(status='FAIL',blankScreen='FAIL')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['blankScreen'],ten['status']),('PASS','FAIL','FAIL'))

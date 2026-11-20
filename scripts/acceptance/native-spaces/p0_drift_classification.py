@@ -58,6 +58,46 @@ def exact_focus(sample,w):
             and focus.get('spaces')==[sample['current']])
 
 
+def observed_identity(sample):
+    window=sample.get('focus') or {}
+    target={k:window.get(k) for k in ('pid','birth','number')}
+    owner=sample.get('foreground')
+    spaces=window.get('spaces')
+    if (not sample.get('spaceStable') or not sample.get('topologyHash') or not system_identity(sample) or
+        not all(type(n) is int and n>0 for n in target.values()) or
+        not (sample.get('foregroundStable') and sample.get('focusStable') and signed(owner) and owner==window.get('process') and
+             owner['pid']==target['pid'] and owner['birth']==target['birth'] and isinstance(spaces,list) and spaces and
+             all(type(n) is int and n>0 for n in spaces))):
+        return None
+    return dict(window=target,spaces=spaces,foregroundCDHash=owner['cdhash'],topology=sample['topologyHash'],
+                agents=[{k:sample[role][k] for k in ('pid','birth','cdhash')} for role in ('dock','windowManager')])
+
+
+def checkpoint_identity(sample):
+    observed=observed_identity(sample)
+    return observed if observed and observed['spaces']==[sample['current']] else None
+
+
+def observer_coverage(events):
+    samples=[r for r in events if r.get('event')=='sample']
+    continuous=0.; longest=0.; maximum_gap=0.; previous=None
+    full=0
+    for r in samples:
+        gap=r['uptime']-previous['uptime'] if previous else 0.
+        maximum_gap=max(maximum_gap,gap,r['uptime']-r['began'])
+        qualified=observed_identity(r) is not None
+        if qualified:full+=1
+        contiguous=(previous and qualified and observed_identity(previous) is not None and 0<gap<=MAX_GAP and
+                    0<=r['uptime']-r['began']<=MAX_GAP and previous['hid']==r['hid'] and previous['additionalHID']==r['additionalHID'])
+        continuous=continuous+gap if contiguous else 0.
+        longest=max(longest,continuous);previous=r
+    lost=any(r.get('event') in ('notificationLoss','readUnavailable','userSuperseded') for r in events)
+    complete=(events and events[0].get('event')=='started' and events[-1].get('event')=='ended' and events[-1].get('reason') in ('duration','driverClosed') and
+              [r.get('seq') for r in events]==list(range(len(events))) and len({r.get('session') for r in events})==1)
+    return dict(status='PASS' if complete and not lost and longest>=POST_CONFIRMATION and maximum_gap<=MAX_GAP else 'UNKNOWN',
+                signedFocusAndMembershipReads=full,systemSamples=len(samples),longestQualifiedSeconds=round(longest,6),
+                maxSampleGapSeconds=round(maximum_gap,6),inputOrReadLoss=lost,actionEvidence=False)
+
 def correlate(change,sample,drift,notifications):
     proc=sample.get('foreground') or {}
     census=sample.get('ownerWindows') or {}
@@ -157,12 +197,23 @@ def classify(log, action, boundary=None, historical=False):
     if wrong_focus is not None:issue('confirmedTargetDocumentFocusNotRetainedOrUnreadable')
     if changed:
         correlate(changed[0],changed[1],drift,[r for r in relevant if r.get('event')=='workspaceNotification'])
+    transient=None
+    if not historical and not changed and expected and first_focus is not None:
+        for notification in relevant:
+            if notification.get('kind')!='didActivateApplication' or notification['uptime']<first_focus:
+                continue
+            owner=notification.get('process')
+            if not signed(owner):
+                issue('activationNotificationIdentityUnconfirmed')
+            elif (owner['pid'],owner['birth'])!=(expected['pid'],expected['birth']):
+                transient=event('activatedOtherApplication',notification,foregroundIdentity=owner)
+                break
     out['coverage']=dict(fromUptime=baseline['uptime'],throughUptime=last,maxGapSeconds=round(largest,6),
                          afterConfirmationSeconds=round(max(0,last-confirmed),6),nextAdmissionUptime=boundary,
                          activeSpaceChangeNotifications=[r['uptime'] for r in relevant if r.get('kind')=='activeSpaceDidChange'])
     if superseded:out['classification']='userSuperseded'
     elif drift:out['classification']='unexpectedSpaceDrift'
-    elif changed:out['classification']='unexpectedForegroundHandoff'
+    elif changed or transient:out['classification']='unexpectedForegroundHandoff'
     elif issues:out['classification']='unknown'
     elif first and last>=max(confirmed,first['uptime'])+POST_CONFIRMATION and captured:
         out['classification']='settled';out['postConfirmationTenSeconds']=True;event('settled',captured[-1])

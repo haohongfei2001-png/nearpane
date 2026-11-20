@@ -4,6 +4,18 @@ import NearpaneCore
 import Testing
 
 @MainActor struct NativeSidebarNavigationTests {
+    @Test func externalActivationRetiresOnlyThePendingCrossSpaceFocus() {
+        let source = SelectionForeground(pid: 100, birth: 10)
+        let target = SelectionForeground(pid: 200, birth: 20)
+        for superseding in [nil, source, SelectionForeground(pid: 200, birth: 21), SelectionForeground(pid: 300, birth: 30)] {
+            var continuity = CrossSpaceFocusContinuity(source: source, target: target)
+            let sequence = [source, target, superseding, target].map { continuity.observe($0) }
+            #expect(sequence == [true, true, false, false])
+        }
+        var related = CrossSpaceFocusContinuity(source: target, target: target)
+        let sameApp = [target, target].map { related.observe($0) }
+        #expect(sameApp == [true, true])
+    }
     let a = UUID(), b = UUID(), c = UUID(), session = UUID()
     let frame = SurfaceRect(x: 10, y: 20, width: 300, height: 200)
 

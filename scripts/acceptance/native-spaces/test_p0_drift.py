@@ -5,7 +5,7 @@ import unittest
 import tempfile
 import json
 
-from p0_drift_classification import classify, action_record
+from p0_drift_classification import classify, action_record, checkpoint_identity, observer_coverage
 
 src=Path(__file__).with_name('p0-drift.py')
 spec=importlib.util.spec_from_file_location('p0_drift',src)
@@ -38,6 +38,39 @@ def trace(last=113):
     return [sample(100.95,1)]+[sample(101.15+i*0.2) for i in range(round((last-101.15)/.2)+1)]
 
 class DriftTests(unittest.TestCase):
+    def test_activation_between_matching_window_reads_survives_a_return_to_target(self):
+        rows=trace()
+        rows.insert(12,dict(event='workspaceNotification',kind='didActivateApplication',uptime=103.20,process=OTHER))
+        observed=classify(events(rows),INTENT)
+        self.assertEqual(observed['classification'],'unexpectedForegroundHandoff')
+        self.assertFalse(observed['postConfirmationTenSeconds'])
+        rows[12].pop('process')
+        self.assertEqual(classify(events(rows),INTENT)['classification'],'unknown')
+
+    def test_next_press_binds_both_signed_generations_full_window_and_space(self):
+        from p0_session import matches_source
+        host=dict(pid=93,birth=932,cdhash='b'*40)
+        request=dict(hostPID=93,hostBirth=932,hostHash=host['cdhash'],sourceWindow=dict(W,hash=P['cdhash']),
+                     topology=dict(display=DISPLAY,current=2,records=[dict(id=2,uuid=B)]))
+        check=dict(state='observed',current=2,spaceUUID=B,display=DISPLAY,host=host,binding=checkpoint_identity(sample(105)))
+        self.assertTrue(matches_source(check,request))
+        for mutate in [lambda c:c['host'].update(birth=933),lambda c:c.update(spaceUUID=C),
+                       lambda c:c['binding']['window'].update(number=999),lambda c:c.update(state='refused')]:
+            stale=copy.deepcopy(check);mutate(stale)
+            self.assertFalse(matches_source(stale,request))
+
+    def test_external_foreground_with_unchanged_hid_cannot_authorize_off_space_focus(self):
+        rows=trace(114)
+        for r in rows:
+            r['focus']['spaces']=[3]
+        log=events([dict(event='started'),*rows,dict(event='ended',reason='duration')])
+        self.assertEqual(observer_coverage(log)['status'],'PASS')
+        self.assertIsNone(checkpoint_identity(rows[-1]))
+        rows[-1]['focus']['spaces']=[2]
+        self.assertEqual(checkpoint_identity(rows[-1])['window'],W)
+        rows[-1]['focus']['process']=OTHER
+        self.assertIsNone(checkpoint_identity(rows[-1]))
+        self.assertEqual(observer_coverage(events([*log[:-1],dict(event='notificationLoss'),log[-1]]))['status'],'UNKNOWN')
     def test_landed_is_distinct_from_ten_seconds_after_confirmation(self):
         small=classify(events(trace(106)),INTENT);self.assertEqual(small['classification'],'landed')
         self.assertFalse(small['postConfirmationTenSeconds'])
