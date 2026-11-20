@@ -29,6 +29,16 @@ struct DesktopWindowTarget: Equatable {
         self.init(surface: window, in: snapshot)
     }
 
+    /// This constructor admits read-only pictures of native fullscreen surfaces. Input callers use the ordinary initializer.
+    static func preview(_ window: WindowObservation, in snapshot: DesktopSnapshot, now: Date = .now,
+                        uptime: Double = ProcessInfo.processInfo.systemUptime) -> Self? {
+        let active = snapshot.scopes.first { $0.displayID == window.displayID }?.records.first(where: \.isCurrent)
+        if active?.fullscreenUUID == nil { return Self(window, in: snapshot) }
+        guard window.metadata?.activeFullscreenSpaceID == active?.id,
+              snapshot.activeSpaceWindows(on: window.displayID, now: now, uptime: uptime).contains(window) else { return nil }
+        return Self(surface: window, in: snapshot, fullscreenPicture: true)
+    }
+
     /// For the tiler's separately authorized AX resolver. No gallery or input target escapes.
     static func tilingCandidate(_ window: WindowObservation, in snapshot: DesktopSnapshot) -> (key: DesktopWindowKey, visible: Bool)? {
         guard let target = Self(surface: window, in: snapshot), let current = target.overviewSpace,
@@ -36,26 +46,29 @@ struct DesktopWindowTarget: Equatable {
         return (target.key, target.publiclyVisible)
     }
 
-    private init?(surface window: WindowObservation, in snapshot: DesktopSnapshot) {
-        guard snapshot.isCurrentDesktopSurface(window), let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
-              m.number > 0, m.fullScreen != true, m.globalFrame.geometry.isValid,
+    private init?(surface window: WindowObservation, in snapshot: DesktopSnapshot, fullscreenPicture: Bool = false) {
+        guard fullscreenPicture || snapshot.isCurrentDesktopSurface(window), let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0,
+              m.number > 0, fullscreenPicture || m.fullScreen != true, m.globalFrame.geometry.isValid,
               window.confidence != .synthetic,
               window.confidence != .ambiguous || (m.element == nil && m.axFrame == nil && m.axStandardWindowNumber == nil),
               m.axFrame == nil || m.presentation == .confirmed,
               m.axStandardWindowNumber == nil || m.axStandardWindowNumber == m.number else { return nil }
         let active = snapshot.scopes.filter { $0.displayID == window.displayID }.flatMap(\.records).filter(\.isCurrent)
-        guard active.count <= 1 else { return nil }
-        publiclyVisible = m.isOnscreen == true && m.onActiveDesktop == true && m.minimized != true
-        if let space = m.overviewSpaceID {
+        guard active.count <= 1, fullscreenPicture || active.first?.fullscreenUUID == nil else { return nil }
+        publiclyVisible = m.isOnscreen == true && (fullscreenPicture || m.onActiveDesktop == true) && m.minimized != true
+        if fullscreenPicture {
+            guard let space = m.activeFullscreenSpaceID, active.first?.id == space, active.first?.fullscreenUUID != nil,
+                  window.membership == .known(recordIDs: [space]), publiclyVisible else { return nil }
+        } else if let space = m.overviewSpaceID {
             guard active.first?.id == space, active.first?.ordinaryUUID != nil,
                   case .known(let members) = window.membership, members.contains(space) else { return nil }
         } else if !publiclyVisible { return nil }
-        overviewSpace = m.overviewSpaceID
+        overviewSpace = fullscreenPicture ? m.activeFullscreenSpaceID : m.overviewSpaceID
         key = .init(pid: m.pid, birth: birth, number: m.number)
         session = snapshot.sessionID; topology = snapshot.topologyFingerprint
         display = window.displayID; current = active.first?.id
         membership = window.membership; frame = m.globalFrame
-        desktopUUID = active.first?.ordinaryUUID
+        desktopUUID = fullscreenPicture ? active.first?.fullscreenUUID : active.first?.ordinaryUUID
         stageEnabled = snapshot.native?.stageManagerEnabled == true
         catalogSize = m.catalogLogicalFrame.map { CGSize(width: $0.width, height: $0.height) }
     }
@@ -66,14 +79,15 @@ struct DesktopWindowTarget: Equatable {
         if self == other { return true }
         return overviewSpace != nil && overviewSpace == other.overviewSpace && key == other.key &&
             session == other.session && topology == other.topology && display == other.display && desktopUUID == other.desktopUUID &&
+            current == other.current && membership == other.membership && stageEnabled == other.stageEnabled &&
             frame.width == other.frame.width && frame.height == other.frame.height && catalogSize == other.catalogSize
     }
 
     func present(in snapshot: DesktopSnapshot?, now: Date = .now, uptime: Double = ProcessInfo.processInfo.systemUptime) -> Bool {
         guard let snapshot, snapshot.sessionID == session, snapshot.topologyFingerprint == topology else { return false }
-        let matched = snapshot.currentDesktopWindows(on: display, now: now, uptime: uptime)
+        let matched = snapshot.activeSpaceWindows(on: display, now: now, uptime: uptime)
             .filter { $0.metadata?.number == key.number }
-        return matched.count == 1 && matched.first.flatMap { DesktopWindowTarget($0, in: snapshot) }.map(samePicture(as:)) == true
+        return matched.count == 1 && matched.first.flatMap { DesktopWindowTarget.preview($0, in: snapshot, now: now, uptime: uptime) }.map(samePicture(as:)) == true
     }
 
     func liveOwner() -> NSRunningApplication? {
@@ -91,9 +105,12 @@ struct DesktopWindowTarget: Equatable {
     /// Never read window titles. Require the same shared layer-zero surface, its on-screen
     /// frame and the public current-desktop list on both sides of an asynchronous capture.
     @MainActor func isVisibleSurface(for purpose: SurfacePurpose = .picture) -> Bool {
-        guard liveOwner() != nil,
-              (NSWindow.windowNumbers(options: .allApplications) ?? []).contains(NSNumber(value: key.number)) else { return false }
+        guard inPublicActiveList() else { return false }
         return sharedSurface(visible: true, matchFrame: true, for: purpose)
+    }
+
+    @MainActor func inPublicActiveList() -> Bool {
+        liveOwner() != nil && (NSWindow.windowNumbers(options: .allApplications) ?? []).contains(NSNumber(value: key.number))
     }
 
     enum SurfacePurpose {
@@ -135,7 +152,7 @@ struct DesktopWindowTarget: Equatable {
         let lifetime: UUID
         let capture: Capture
         let time: TimeInterval
-        enum Use { case current, previous, mapOnly }
+        enum Use { case current, previous, recent, mapOnly }
         var use: Use = .current
 
         /// Only reuse a full-size original. The transformed presentation alone
@@ -155,7 +172,10 @@ struct DesktopWindowTarget: Equatable {
         }
 
         func canShowPrevious(_ candidate: DesktopWindowTarget, lifetime current: UUID?, now: TimeInterval) -> Bool {
-            canRetainPrevious(candidate, lifetime: current, now: now) && candidate.catalogSize == capture.logicalSize &&
+            if use == .recent {
+                return lifetime == current && target.samePicture(as: candidate) && now >= time && now - time < 60
+            }
+            return canRetainPrevious(candidate, lifetime: current, now: now) && candidate.catalogSize == capture.logicalSize &&
                 (use == .previous || candidate.presentedSize != capture.logicalSize)
         }
 
@@ -163,6 +183,41 @@ struct DesktopWindowTarget: Equatable {
             use == .current && current == lifetime && target.samePicture(as: candidate) && now >= time && now - time < 12
         }
     }
+    @MainActor private final class Live {
+        let target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream
+        let needsMembership: Bool
+        var task: Task<Void, Never>?
+        let acquired = ProcessInfo.processInfo.systemUptime
+        var sequence: UInt64 = 0
+        var publishedEpoch: UInt64?
+        var checkedRevision: UInt64?
+        var cancelled = false
+        init(_ target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream, needsMembership: Bool) {
+            self.target = target; self.incarnation = incarnation; self.run = run; self.stream = stream
+            self.needsMembership = needsMembership
+        }
+        func cancel() {
+            cancelled = true
+            stream.finishOutput()
+            task?.cancel()
+        }
+    }
+    @ObservationIgnored private var streams = [DesktopWindowKey: Live]()
+    @ObservationIgnored private(set) var deliveredFrameCount: UInt64 = 0
+    // Includes asynchronously stopping streams until ScreenCaptureKit acknowledges teardown.
+    var activeStreamCount: Int { streams.count }
+    func frameSequence(for target: DesktopWindowTarget) -> UInt64 {
+        guard stills.peek(target.key) != nil, let live = streams[target.key], !live.cancelled, live.target.samePicture(as: target),
+              live.incarnation == lifetime(target.key), live.publishedEpoch == live.stream.epoch else { return 0 }
+        return live.sequence
+    }
+    private struct MeasuredSize: Equatable {
+        let target: DesktopWindowTarget
+        let incarnation: UUID
+        let size: CGSize
+    }
+    // Parent layout observes sizes only. Each card observes its own cached image.
+    private var sizes = [DesktopWindowKey: MeasuredSize]()
     private let stills = PreviewPixelCache<DesktopWindowKey, Still>()
     @ObservationIgnored private(set) var captureRequests: UInt64 = 0
     @ObservationIgnored private(set) var capturesInFlight = 0
@@ -175,6 +230,19 @@ struct DesktopWindowTarget: Equatable {
     @ObservationIgnored private var operations = [String: UUID]()
     @ObservationIgnored private var changes = [String: AsyncStream<Void>.Continuation]()
     private var visible = [String: Set<DesktopWindowKey>]()
+    @ObservationIgnored private var viewport = [String: [DesktopWindowKey: Bool]]()
+    @ObservationIgnored private var lastService = [DesktopWindowKey: TimeInterval]()
+
+    func setViewport(_ key: DesktopWindowKey, on display: String, visible: Bool) {
+        if viewport[display]?[key] != visible {
+            viewport[display, default: [:]][key] = visible
+            changes[display]?.yield(())
+        }
+    }
+    private func priority(_ target: DesktopWindowTarget) -> Int {
+        switch viewport[target.display]?[target.key] { case true: return 2; case false: return 0; case nil: return 1 }
+    }
+
     private let permitsWindow: (DesktopWindowKey) -> Bool
     private let lifetime: (DesktopWindowKey) -> UUID?
 
@@ -189,8 +257,12 @@ struct DesktopWindowTarget: Equatable {
         }
         else {
             visible[display]?.remove(key)
+            viewport[display]?.removeValue(forKey: key)
+            lastService.removeValue(forKey: key)
+            let live = streams[key]
+            if live?.target.display == display { live?.cancel() }
             if var still = stills.peek(key) {
-                if still.use == .previous || still.target.overviewSpace == nil { stills.remove(key) }
+                if (live != nil && live?.publishedEpoch != live?.stream.epoch) || still.use == .previous || still.target.overviewSpace == nil { stills.remove(key) }
                 else if let cost = PreviewPixelBudget.charge(still.capture.image) {
                     still.use = .mapOnly
                     stills.store(still, for: key, cost: cost)
@@ -201,14 +273,16 @@ struct DesktopWindowTarget: Equatable {
     }
 
     func clear(display: String? = nil) {
+        for live in streams.values where display == nil || display == live.target.display { live.cancel() }
         if let display {
             operations.removeValue(forKey: display)
             changes.removeValue(forKey: display)?.finish()
             stills.remove { _, still in still.target.display == display }
+            sizes = sizes.filter { $0.value.target.display != display }
             missingPictures = missingPictures.filter { $0.value != display }
         } else {
             generation &+= 1
-            operations.removeAll(); stills.removeAll(); missingPictures.removeAll()
+            operations.removeAll(); stills.removeAll(); sizes.removeAll(); missingPictures.removeAll(); lastService.removeAll()
             for events in changes.values { events.finish() }
             changes.removeAll()
         }
@@ -216,8 +290,11 @@ struct DesktopWindowTarget: Equatable {
 
     func image(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
         guard permitted, permitsWindow(target.key), visible[target.display]?.contains(target.key) == true,
-              let still = stills.peek(target.key), still.matches(target, lifetime: lifetime(target.key), now: now),
-              WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return nil }
+              let still = stills.peek(target.key), let live = streams[target.key],
+              !live.cancelled, live.sequence > 0, live.publishedEpoch == live.stream.epoch, still.matches(target, lifetime: lifetime(target.key), now: now),
+              WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed(),
+              live.needsMembership ? (target.liveOwner() != nil && target.sharedSurface(visible: false, matchFrame: true)) : target.isVisibleSurface()
+        else { return nil }
         stills.touch(target.key)
         return still.capture.image
     }
@@ -237,7 +314,7 @@ struct DesktopWindowTarget: Equatable {
     /// with a changed target must never supply pixels for this fallback.
     private func keepPreviousIfEligible(for key: DesktopWindowKey, as target: DesktopWindowTarget?) {
         guard let target, permitsWindow(key), visible[target.display]?.contains(key) == true,
-              var still = stills.peek(key),
+              streams[key].map({ $0.publishedEpoch == $0.stream.epoch }) != false, var still = stills.peek(key),
               still.canRetainPrevious(target, lifetime: lifetime(key), now: ProcessInfo.processInfo.systemUptime),
               target.liveOwner() != nil, target.sharedSurface(visible: false, matchFrame: false),
               let cost = PreviewPixelBudget.charge(still.capture.image) else {
@@ -254,14 +331,14 @@ struct DesktopWindowTarget: Equatable {
     /// dimensions with the same identity, lifetime and membership as its captured image.
     func capturedSizes(for windows: [WindowObservation], in snapshot: DesktopSnapshot, permitted: Bool) -> [UInt32: CGSize] {
         guard permitted else { return [:] }
-        let now = ProcessInfo.processInfo.systemUptime
-        var sizes = [UInt32: CGSize]()
+        var result = [UInt32: CGSize]()
         for window in windows {
-            guard let target = DesktopWindowTarget(window, in: snapshot), permitsWindow(target.key),
-                  let still = stills.peek(target.key), still.matches(target, lifetime: lifetime(target.key), now: now) else { continue }
-            sizes[target.key.number] = still.capture.logicalSize
+            guard let target = DesktopWindowTarget.preview(window, in: snapshot), permitsWindow(target.key),
+                  let known = sizes[target.key], stills.contains(target.key), known.incarnation == lifetime(target.key),
+                  known.target.samePicture(as: target) else { continue }
+            result[target.key.number] = known.size
         }
-        return sizes
+        return result
     }
 
     /// The caller resolves this exact key from fresh membership in the requested map row.
@@ -289,7 +366,14 @@ struct DesktopWindowTarget: Equatable {
         }
     }
 
-    /// Scope checks are batched. Each image uses a filter for exactly one shared window.
+    static func shouldYieldStream(serving: Int, waiting: Int, servingSince: TimeInterval, delivered: Bool,
+                                  lastServedWaiting: TimeInterval?, now: TimeInterval) -> Bool {
+        if serving != waiting { return serving < waiting }
+        let minimum = delivered ? (lastServedWaiting == nil ? 0.35 : 2.0) : 3.0
+        return now - servingSince >= minimum && (lastServedWaiting ?? -.infinity) < servingSince
+    }
+
+    /// The timer reconciles the roster and retries unavailable windows. The compositor drives picture updates.
     func run(on display: String, snapshot: @escaping () -> DesktopSnapshot?, allowed: @escaping () -> Bool,
              recheck: (() async -> DesktopSnapshot?)? = nil) async {
         let token = UUID(), (stream, events) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
@@ -306,173 +390,209 @@ struct DesktopWindowTarget: Equatable {
             timer.cancel()
             if operations[display] == token { clear(display: display) }
         }
-        var attempted = [DesktopWindowKey: TimeInterval]()
-        var misses = [DesktopWindowKey: Int]()
-        var lastTargets = [DesktopWindowKey: DesktopWindowTarget]()
+        var retry = [DesktopWindowKey: TimeInterval]()
         func permitted() -> Bool {
             !Task.isCancelled && operations[display] == token && allowed() &&
                 WindowContentPreview.sessionAvailable() && WindowPermissionProbe.screen.allowed()
         }
         for await _ in stream {
             guard permitted() else { return }
-            guard let sample = snapshot() else { continue }
-            let members = sample.currentDesktopWindows(on: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
-            let targets = members.compactMap { DesktopWindowTarget($0, in: sample) }
-                .filter { permitsWindow($0.key) && visible[display]?.contains($0.key) == true }
-            let active = Dictionary(uniqueKeysWithValues: targets.map { ($0.key, $0) })
-            for target in targets {
-                if let old = lastTargets[target.key], old.publiclyVisible != target.publiclyVisible || !old.samePicture(as: target) {
-                    attempted.removeValue(forKey: target.key)
-                    misses.removeValue(forKey: target.key)
-                    if !old.samePicture(as: target) {
-                        keepPreviousIfEligible(for: target.key, as: target)
-                        missingPictures.removeValue(forKey: target.key)
-                    }
+            let sample = snapshot()
+            let targets = sample.map { sample in
+                sample.activeSpaceWindows(on: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
+                    .compactMap { DesktopWindowTarget.preview($0, in: sample) }
+                    .filter { permitsWindow($0.key) && visible[display]?.contains($0.key) == true }
+            } ?? []
+            let active = Dictionary(grouping: targets, by: \.key).compactMapValues { $0.count == 1 ? $0.first : nil }
+            for (key, live) in streams where live.target.display == display && !live.cancelled {
+                guard live.run == token, live.incarnation == lifetime(key), let target = active[key],
+                      live.target == target else {
+                    live.cancel()
+                    keepPreviousIfEligible(for: key, as: active[key])
+                    retry.removeValue(forKey: key)
+                    continue
                 }
             }
-            lastTargets = active
-            let observed = Dictionary(grouping: sample.windows, by: { $0.metadata?.number })
+            let now = ProcessInfo.processInfo.systemUptime
+            for live in streams.values where live.target.display == display && !live.cancelled && live.sequence == 0 && now - live.acquired > 2 {
+                if missingPictures[live.target.key] == nil { missingPictures[live.target.key] = display }
+                if now - live.acquired > 5 { live.cancel(); retry[live.target.key] = now + 2 }
+            }
             stills.remove { key, still in
-                if still.lifetime != lifetime(key) { return true }
-                if still.use == .previous && still.target.display == display {
-                    guard let member = active[key],
-                          still.canRetainPrevious(member, lifetime: lifetime(key), now: ProcessInfo.processInfo.systemUptime),
-                          member.sharedSurface(visible: false, matchFrame: false) else { return true }
-                    return false
+                guard still.target.display == display else { return false }
+                guard let sample, still.lifetime == lifetime(key) else { return true }
+                if let target = active[key] {
+                    if still.use == .previous {
+                        return !still.canRetainPrevious(target, lifetime: lifetime(key), now: now)
+                            || !target.sharedSurface(visible: false, matchFrame: false)
+                    }
+                    if still.target.samePicture(as: target) { return false }
                 }
                 let old = still.target
-                guard old.display == display, active[key]?.samePicture(as: old) != true else { return false }
                 guard let space = old.overviewSpace, old.session == sample.sessionID, old.topology == sample.topologyFingerprint,
-                      ProcessInfo.processInfo.systemUptime - still.time < 60, let matches = observed[key.number], matches.count == 1,
-                      let row = matches.first, row.displayID == display, row.metadata?.pid == key.pid,
-                      row.metadata?.launchMicroseconds == key.birth, case .known(let members) = row.membership,
-                      members.contains(space) else { return true }
+                      now - still.time < 60 else { return true }
+                let matches = sample.windows.filter { $0.metadata?.number == key.number }
+                guard matches.count == 1, let row = matches.first, row.displayID == display, row.metadata?.pid == key.pid,
+                      row.metadata?.launchMicroseconds == key.birth, case .known(let membership) = row.membership,
+                      membership.contains(space), old.membership == row.membership else { return true }
                 return false
             }
-            attempted = attempted.filter { active[$0.key] != nil }
-            misses = misses.filter { active[$0.key] != nil }
-            let now = ProcessInfo.processInfo.systemUptime
-            func hasFreshPicture(_ target: DesktopWindowTarget) -> Bool {
-                stills.peek(target.key)?.matches(target, lifetime: lifetime(target.key), now: now) == true
+            for (key, measurement) in sizes where measurement.target.display == display && !stills.contains(key) {
+                sizes.removeValue(forKey: key)
             }
-            let due = targets.filter { target in
-                // Newly mapped windows may be registered before SCK can deliver a surface.
-                let firstPicture = !hasFreshPicture(target) && (misses[target.key] ?? 0) < 4
-                let interval: TimeInterval = firstPicture ? 0.20 : (target.publiclyVisible ? 1 : 2)
-                return now - (attempted[target.key] ?? -.infinity) >= interval
-            }
-                .sorted { (attempted[$0.key] ?? 0) < (attempted[$1.key] ?? 0) }
-            guard !due.isEmpty else { continue }
-            // Freeze the observed generation before awaiting ScreenCaptureKit's catalogue.
-            // Window numbers can be reused by a still-running owner.
-            let issued = Dictionary(uniqueKeysWithValues: due.compactMap { target in
-                lifetime(target.key).map { (target.key, $0) }
-            })
-            guard !issued.isEmpty else { continue }
-            // An on-screen card can verify public presentation synchronously. Only
-            // off-stage members need extra membership samples around their pixels.
-            let includeOffstage = due.contains { $0.overviewSpace != nil }
-            guard permitted() else { return }
-            for target in due {
-                attempted[target.key] = now
-                if !hasFreshPicture(target) { misses[target.key, default: 0] += 1 }
-            }
-            // Enumeration itself can fail even after a positive TCC preflight.
-            // Apply the same bounded retry and feedback as a per-surface failure.
-            func noteUnavailable(_ targets: [DesktopWindowTarget]) {
-                for target in targets where (misses[target.key] ?? 0) >= 2 &&
-                    visible[display]?.contains(target.key) == true && missingPictures[target.key] == nil {
-                    missingPictures[target.key] = display
+            retry = retry.filter { active[$0.key] != nil }
+            let due = targets.filter { active[$0.key] != nil && streams[$0.key] == nil && now >= (retry[$0.key] ?? 0) }
+                .sorted { a, b in
+                    if priority(a) != priority(b) { return priority(a) > priority(b) }
+                    let left = lastService[a.key] ?? -.infinity, right = lastService[b.key] ?? -.infinity
+                    return left == right ? a.key.number < b.key.number : left < right
                 }
-            }
-            guard let content = try? await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: !includeOffstage)
-            else {
-                if permitted() { noteUnavailable(due) }
+            guard let next = due.first else { continue }
+            if streams.count >= WindowFrameStream.limit {
+                for target in due where stills.peek(target.key) == nil && missingPictures[target.key] == nil { missingPictures[target.key] = display }
+                // Give newly visible cards an exact first frame. Retire at most one lease until its OS stop completes.
+                if !streams.values.contains(where: { $0.cancelled }),
+                   let victim = streams.values.filter({ live in
+                       Self.shouldYieldStream(serving: priority(live.target), waiting: priority(next),
+                           servingSince: live.acquired, delivered: live.sequence > 0,
+                           lastServedWaiting: lastService[next.key], now: now)
+                   }).min(by: { a, b in
+                       let left = priority(a.target), right = priority(b.target)
+                       return left == right ? a.acquired < b.acquired : left < right
+                   }) {
+                    if victim.publishedEpoch == victim.stream.epoch, var still = stills.peek(victim.target.key), still.use == .current,
+                       let cost = PreviewPixelBudget.charge(still.capture.image) {
+                        still.use = .recent; stills.store(still, for: victim.target.key, cost: cost)
+                    }
+                    victim.cancel()
+                }
                 continue
             }
+            let issued = Dictionary(uniqueKeysWithValues: due.compactMap { target in lifetime(target.key).map { (target.key, $0) } })
+            guard !issued.isEmpty else { continue }
+            for target in due { retry[target.key] = now + 1 }
+            guard let content = try? await SCShareableContent.excludingDesktopWindows(true,
+                    onScreenWindowsOnly: !due.contains(where: { $0.overviewSpace != nil })) else {
+                if permitted() { for target in due { missingPictures[target.key] = display } }
+                continue
+            }
+            guard permitted() else { return }
             let shared = Dictionary(grouping: content.windows, by: \.windowID)
-            let viaMembership = Set(due.compactMap { target -> DesktopWindowKey? in
-                guard target.overviewSpace != nil, let source = shared[target.key.number]?.first else { return nil }
-                return target.publiclyVisible && source.isOnScreen && target.matches(source.frame) ? nil : target.key
+            // Admit immediately verifiable public surfaces first. Off-stage membership checks can take a reader round-trip.
+            let membership = Set(due.compactMap { target -> DesktopWindowKey? in
+                guard target.overviewSpace != nil, let window = shared[target.key.number]?.first else { return nil }
+                return target.publiclyVisible && window.isOnScreen && target.matches(window.frame) && target.isVisibleSurface() ? nil : target.key
             })
-            for batch in Self.captureBatches(due, membership: viaMembership) {
+            for batch in Self.captureBatches(due, membership: membership) {
+                let offstage = membership.contains(batch[0].key)
+                let before = offstage ? await recheck?() : snapshot()
                 guard permitted() else { return }
-                let requiresMembership = viaMembership.contains(batch[0].key)
-                let before = requiresMembership ? await recheck?() : snapshot()
-                guard permitted() else { return }
-                guard let before else { noteUnavailable(batch); continue }
-                var jobs = [(DesktopWindowTarget, Task<Capture?, Never>)]()
                 for target in batch {
-                    guard let generation = issued[target.key], generation == lifetime(target.key),
-                          target.present(in: before), target.present(in: snapshot()), visible[display]?.contains(target.key) == true,
-                          let candidates = shared[target.key.number], candidates.count == 1, let window = candidates.first,
-                          target.liveOwner() != nil, window.owningApplication?.processID == target.key.pid,
-                          window.windowLayer == 0 else { continue }
-                    if requiresMembership {
-                        guard target.sharedSurface(visible: false, matchFrame: true) else { continue }
-                    } else {
-                        guard window.isOnScreen, target.matches(window.frame), target.isVisibleSurface() else { continue }
-                    }
-                    jobs.append((target, Task {
-                        guard permitted(), generation == lifetime(target.key), visible[display]?.contains(target.key) == true else { return nil }
-                        return await self.capture(window, target: target)
-                    }))
-                }
-                var pictures = [(DesktopWindowTarget, Capture)]()
-                for (target, job) in jobs {
-                    if let capture = await job.value { pictures.append((target, capture)) }
-                }
-                guard permitted() else { return }
-                let returned = Set(pictures.map { $0.0.key })
-                noteUnavailable(batch.filter { !returned.contains($0.key) })
-                guard !pictures.isEmpty, permitted() else { continue }
-                // A window can be moved to another Space without the user changing desktops.
-                // A fresh independent membership read protects the publication of those pixels.
-                let after = requiresMembership ? await recheck?() : snapshot()
-                guard permitted() else { return }
-                for (target, capture) in pictures {
-                    guard let generation = issued[target.key], generation == lifetime(target.key),
-                          target.present(in: after), target.present(in: snapshot()), permitsWindow(target.key),
-                          visible[display]?.contains(target.key) == true, target.liveOwner() != nil,
-                          (requiresMembership ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
-                        func member(in latest: DesktopSnapshot?) -> DesktopWindowTarget? {
-                            guard let latest else { return nil }
-                            let rows = latest.currentDesktopWindows(on: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
-                                .filter { $0.metadata?.number == target.key.number }
-                            return rows.count == 1 ? rows.first.flatMap { DesktopWindowTarget($0, in: latest) } : nil
-                        }
-                        if let independent = member(in: after), let still = stills.peek(target.key),
-                           still.canRetainPrevious(independent, lifetime: lifetime(target.key), now: ProcessInfo.processInfo.systemUptime) {
-                            keepPreviousIfEligible(for: target.key, as: member(in: snapshot()))
-                        } else { stills.remove(target.key) }
-                        noteUnavailable([target])
+                    let key = target.key
+                    guard streams.count < WindowFrameStream.limit, streams[key] == nil,
+                          let incarnation = issued[key], lifetime(key) == incarnation, permitsWindow(key),
+                          visible[display]?.contains(key) == true, target.present(in: before), target.present(in: snapshot()),
+                          let windows = shared[key.number], windows.count == 1, let window = windows.first,
+                          target.liveOwner() != nil, (offstage ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()),
+                          let pipe = WindowFrameStream(window: window, target: target) else {
+                        if streams[key] == nil && visible[display]?.contains(key) == true { missingPictures[key] = display }
                         continue
                     }
-                    guard let cost = PreviewPixelBudget.charge(capture.image) else { continue }
-                    let still = Still(target: target, lifetime: generation, capture: capture, time: ProcessInfo.processInfo.systemUptime)
-                    stills.store(still, for: target.key, cost: cost)
-                    misses.removeValue(forKey: target.key)
-                    missingPictures.removeValue(forKey: target.key)
+                    let live = Live(target, incarnation: incarnation, run: token, stream: pipe, needsMembership: offstage)
+                    streams[key] = live
+                    lastService[key] = live.acquired
+                    captureRequests &+= 1
+                    live.task = Task { await self.consume(live, snapshot: snapshot, allowed: allowed, recheck: recheck) }
                 }
             }
         }
     }
 
-    private func capture(_ window: SCWindow, target: DesktopWindowTarget) async -> Capture? {
-        let filter = SCContentFilter(desktopIndependentWindow: window)
-        let rect = filter.contentRect
-        guard target.acceptsContentSize(rect.size) else { return nil }
-        let scale = min(1, 420 / max(rect.width, rect.height))
-        let config = SCStreamConfiguration()
-        config.width = max(1, Int((rect.width * scale).rounded()))
-        config.height = max(1, Int((rect.height * scale).rounded()))
-        config.showsCursor = false; config.capturesAudio = false; config.ignoreShadowsSingleWindow = true
-        config.ignoreGlobalClipSingleWindow = true; config.preservesAspectRatio = true
-        if #available(macOS 14.2, *) { config.includeChildWindows = false }
-        captureRequests &+= 1
+    private func admitted(_ live: Live, snapshot: DesktopSnapshot?, allowed: () -> Bool) -> Bool {
+        let target = live.target
+        guard !live.cancelled, !Task.isCancelled, streams[target.key] === live, operations[target.display] == live.run,
+              allowed(), visible[target.display]?.contains(target.key) == true, permitsWindow(target.key),
+              lifetime(target.key) == live.incarnation, WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed(),
+              let snapshot, snapshot.sessionID == target.session, snapshot.topologyFingerprint == target.topology,
+              snapshot.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return false }
+        if live.checkedRevision != snapshot.revision {
+            guard target.present(in: snapshot) else { return false }
+            live.checkedRevision = snapshot.revision
+        }
+        return live.needsMembership ? (target.liveOwner() != nil && target.sharedSurface(visible: false, matchFrame: true)) : target.isVisibleSurface()
+    }
+
+    private func consume(_ live: Live, snapshot: @escaping () -> DesktopSnapshot?, allowed: @escaping () -> Bool,
+                         recheck: (() async -> DesktopSnapshot?)?) async {
+        let target = live.target, key = target.key, pipe = live.stream
         capturesInFlight += 1
-        defer { capturesInFlight -= 1 }
-        guard let image = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) else { return nil }
-        return Capture(image: image, logicalSize: rect.size)
+        var started = false
+        if admitted(live, snapshot: snapshot(), allowed: allowed) {
+            do { try await pipe.start(); started = true } catch {}
+        }
+        capturesInFlight -= 1
+        if started {
+            for await update in pipe.updates {
+                guard admitted(live, snapshot: snapshot(), allowed: allowed) else { break }
+                if case .unavailable = update {
+                    stills.remove(key)
+                    if missingPictures[key] != target.display { missingPictures[key] = target.display }
+                    continue
+                }
+                let received: TimeInterval, epoch: UInt64
+                switch update {
+                case let .frame(frame): received = frame.received; epoch = frame.epoch
+                case let .idle(value): received = ProcessInfo.processInfo.systemUptime; epoch = value
+                case .unavailable: continue
+                }
+                guard pipe.epoch == epoch else { continue }
+                let publicMembership = live.needsMembership && target.inPublicActiveList()
+                if live.needsMembership && !publicMembership {
+                    // A covered or staged window can be absent from AppKit's public current-only list.
+                    // A coalesced read may already have begun before this delivery. Join a fresh one then.
+                    var after = await recheck?()
+                    if let began = after?.native?.beganUptime, began < received, !live.cancelled { after = await recheck?() }
+                    guard let after, let began = after.native?.beganUptime, began >= received,
+                          target.present(in: after), admitted(live, snapshot: snapshot(), allowed: allowed) else { continue }
+                }
+                let capture: Capture
+                switch update {
+                case let .frame(frame):
+                    guard let image = frame.image() else {
+                        stills.remove(key); missingPictures[key] = target.display
+                        continue
+                    }
+                    capture = Capture(image: image, logicalSize: pipe.logicalSize)
+                case .idle:
+                    // An idle notification can only extend the time of this same stream's last image.
+                    guard live.sequence > 0, live.publishedEpoch == epoch, let last = stills.peek(key), last.use == .current,
+                          last.lifetime == live.incarnation, last.target == target else { continue }
+                    capture = last.capture
+                case .unavailable: continue
+                }
+                guard admitted(live, snapshot: snapshot(), allowed: allowed),
+                      let cost = PreviewPixelBudget.charge(capture.image) else { break }
+                guard pipe.epoch == epoch, !publicMembership || target.inPublicActiveList() else { continue }
+                if case .frame = update { live.sequence &+= 1; live.publishedEpoch = epoch; deliveredFrameCount &+= 1 }
+                stills.store(Still(target: target, lifetime: live.incarnation, capture: capture,
+                                  time: ProcessInfo.processInfo.systemUptime), for: key, cost: cost)
+                let measurement = MeasuredSize(target: target, incarnation: live.incarnation, size: capture.logicalSize)
+                if sizes[key] != measurement { sizes[key] = measurement }
+                if missingPictures[key] != nil { missingPictures.removeValue(forKey: key) }
+            }
+        }
+        let failedWhileCurrent = !live.cancelled && operations[target.display] == live.run
+        live.cancelled = true
+        pipe.finishOutput()
+        if started { await pipe.stop() }
+        if streams[key] === live {
+            streams.removeValue(forKey: key)
+            if failedWhileCurrent, operations[target.display] == live.run, lifetime(key) == live.incarnation,
+               visible[target.display]?.contains(key) == true {
+                stills.remove(key); missingPictures[key] = target.display
+            }
+            changes[target.display]?.yield(())
+        }
+        live.task = nil
     }
 }

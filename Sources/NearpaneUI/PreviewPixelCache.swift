@@ -20,9 +20,10 @@ enum PreviewPixelBudget {
 }
 
 @MainActor @Observable final class PreviewPixelCache<Key: Hashable, Value> {
-    private struct Entry {
-        let value: Value
-        let cost: Int
+    @Observable fileprivate final class Entry {
+        var value: Value
+        @ObservationIgnored var cost: Int
+        init(value: Value, cost: Int) { self.value = value; self.cost = cost }
     }
     private var entries = [Key: Entry]()
     // Reads update LRU order without invalidating a SwiftUI body that just read an image.
@@ -37,6 +38,7 @@ enum PreviewPixelBudget {
         self.maxBytes = maxBytes
     }
 
+    func contains(_ key: Key) -> Bool { entries[key] != nil }
     func peek(_ key: Key) -> Value? { entries[key]?.value }
     func touch(_ key: Key) {
         guard entries[key] != nil else { return }
@@ -45,19 +47,24 @@ enum PreviewPixelBudget {
     }
 
     func store(_ value: Value, for key: Key, cost: Int) {
-        remove(key)
-        guard cost > 0, cost <= maxBytes, maxCount > 0 else { return }
-        while entries.count >= maxCount || bytes > maxBytes - cost {
-            guard let oldest = lastUse.min(by: { $0.value < $1.value })?.key else { return }
+        guard cost > 0, cost <= maxBytes, maxCount > 0 else { remove(key); return }
+        let existing = entries[key], prior = existing?.cost ?? 0
+        while (existing == nil && entries.count >= maxCount) || bytes - prior > maxBytes - cost {
+            guard let oldest = lastUse.filter({ $0.key != key }).min(by: { $0.value < $1.value })?.key else { return }
             remove(oldest)
         }
-        entries[key] = Entry(value: value, cost: cost)
-        bytes += cost
+        if let existing {
+            existing.value = value
+            existing.cost = cost
+        } else { entries[key] = Entry(value: value, cost: cost) }
+        if cost != prior { bytes += cost - prior }
         touch(key)
     }
 
     func remove(_ key: Key) {
-        if let entry = entries.removeValue(forKey: key) { bytes -= entry.cost }
+        guard let entry = entries[key] else { return }
+        entries.removeValue(forKey: key)
+        bytes -= entry.cost
         lastUse.removeValue(forKey: key)
     }
 
