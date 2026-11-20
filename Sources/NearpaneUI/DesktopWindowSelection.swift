@@ -144,10 +144,26 @@ extension DesktopWindowTarget {
         }
     }
 
+    private static func verifyCurrentSpace(_ verify: (() async -> Bool)?, current: () -> Bool) async throws {
+        guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+        if let verify {
+            guard await verify(), current() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
+        }
+    }
+
+    /// The exact original has already been bound by read-only AX. Bracket its use
+    /// with two independent fresh rosters and stop promptly on a newer choice.
+    static func focusBoundCard(verify: (() async -> Bool)?, current: () -> Bool, focus: () async throws -> Void) async throws {
+        try await verifyCurrentSpace(verify, current: current)
+        try await focus()
+        try await verifyCurrentSpace(verify, current: current)
+    }
+
     @discardableResult
     static func select(_ target: DesktopWindowTarget, deadline: Double,
                        verifySpace: (() async -> Bool)? = nil, stillCurrent: @escaping @MainActor @Sendable () -> Bool,
-                       bound: OrdinaryWindowAX? = nil, permit: NativeSelectionPermit? = nil) async throws -> SelectionPath {
+                       bound: OrdinaryWindowAX? = nil, permit: NativeSelectionPermit? = nil,
+                       timing: WindowFocusTiming? = nil) async throws -> SelectionPath {
         func current() -> Bool {
             stillCurrent() && WindowContentPreview.sessionAvailable() && ProcessInfo.processInfo.systemUptime <= deadline
         }
@@ -167,21 +183,14 @@ extension DesktopWindowTarget {
         if owner.evidence == .applicationLookupRecovered {
             log.notice("selection admission: foreground owner independently verified")
         }
-        if target.overviewSpace != nil {
-            guard let verifySpace, await verifySpace(), current() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
-        }
+        guard target.overviewSpace == nil || verifySpace != nil else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
         if bound == nil, permit == nil, target.publiclyVisible {
             let host = HostCurrentWindowFocus(target: target, bundle: bundle, application: app)
             if await host.bind() {
-                if let verifySpace {
-                    guard await verifySpace() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
+                try await focusBoundCard(verify: verifySpace, current: current) {
+                    try await host.focus(deadline: deadline, current: stillCurrent, timing: timing)
                 }
-                guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
-                try await host.focus(deadline: deadline, current: stillCurrent)
-                if let verifySpace {
-                    guard await verifySpace() else { throw OrdinaryWindowFailure("无法确认焦点仍在所选桌面。") }
-                }
-                guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+                timing?.completed(.host)
                 return .accessibility
             }
         }
@@ -193,10 +202,13 @@ extension DesktopWindowTarget {
             catch AdmissionReadFailure.permission { retained = nil }
         }
         if let handle = retained {
+            try await verifyCurrentSpace(verifySpace, current: current)
             guard current(), handle.id.pid == target.key.pid, handle.id.launch == target.key.birth,
                   handle.id.number == target.key.number else { throw OrdinaryWindowFailure("这扇窗口的系统身份已变化。") }
             try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline,
-                                          space: target.overviewSpace, permit: permit ?? NativeSelectionPermit(current: stillCurrent))
+                                          space: target.overviewSpace, permit: permit ?? NativeSelectionPermit(current: stillCurrent), timing: timing)
+            guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+            timing?.completed(.worker)
             return .accessibility
         }
         let scoped = target.overviewSpace != nil
@@ -209,14 +221,17 @@ extension DesktopWindowTarget {
             log.notice("selection refused: surface identity changed")
             throw OrdinaryWindowFailure("系统没有确认原窗口仍然可选。")
         }
+        try await verifyCurrentSpace(verifySpace, current: current)
         if scoped {
-            guard let verifySpace, await verifySpace(), target.selectionOwner().app != nil,
+            guard target.selectionOwner().app != nil,
                   soleWindow(target, requireVisible: false),
                   target.sharedSurface(visible: false, matchFrame: false, for: .windowSelection) else {
                 throw OrdinaryWindowFailure("窗口或桌面已变化，请重新选择。")
             }
         }
-        guard current(), app.activate(options: []) else {
+        guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+        timing?.beforeApplicationActivation()
+        guard app.activate(options: []) else {
             log.notice("selection refused: application activation unavailable")
             throw OrdinaryWindowFailure("macOS 未允许这个应用置前。")
         }
@@ -228,8 +243,8 @@ extension DesktopWindowTarget {
                let front = rows.first(where: { $0[kCGWindowLayer as String] as? Int == 0 && ($0[kCGWindowAlpha as String] as? Double ?? 0) > 0 }),
                front[kCGWindowNumber as String] as? UInt32 == target.key.number,
                front[kCGWindowOwnerPID as String] as? Int32 == target.key.pid {
-                if !scoped && current() { return .soleWindowApplication }
-                if let verifySpace, await verifySpace(), current() { return .soleWindowApplication }
+                if !scoped && current() { timing?.completed(.application); return .soleWindowApplication }
+                if let verifySpace, await verifySpace(), current() { timing?.completed(.application); return .soleWindowApplication }
                 break
             }
             try await Task.sleep(for: .milliseconds(35))

@@ -5,8 +5,10 @@ import NearpaneCore
 
 /// A direct, single user selection. No frame setters, keyboard shortcuts or Space actions.
 func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: OrdinaryOwnerIdentity,
-                        bundle: String, frame: SurfaceRect, display: String, deadline: TimeInterval, space: String? = nil, permit: () throws -> Void) throws {
+                        bundle: String, frame: SurfaceRect, display: String, deadline: TimeInterval, space: String? = nil,
+                        timing: WindowFocusTiming? = nil, permit: () throws -> Void) throws {
     let app = AXUIElementCreateApplication(id.pid)
+    var writes = WindowFocusTiming.Writes(timing, .worker)
     try require(AXUIElementSetMessagingTimeout(app, 0.18) == .success, "无法及时核对应用。")
     func activeNumbers() -> Set<UInt32> {
         // The worker services its command pipe on the main CFRunLoop.
@@ -30,13 +32,10 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         try require(deadline >= now && deadline - now <= 12, "桌面已变化，请重新选择。")
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         let matches = try windows(id.pid).filter { number($0) == id.number }
-        try require(matches.count == 1 && CFEqual(matches[0], element) &&
-                    attribute(element, kAXRoleAttribute) as? String == kAXWindowRole &&
-                    attribute(element, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole &&
-                    attribute(element, kAXModalAttribute) as? Bool == false &&
-                    (allowMinimized || attribute(element, kAXMinimizedAttribute) as? Bool == false) &&
-                    attribute(element, "AXFullScreen") as? Bool == false, "原窗口已关闭、重建或进入其他状态。")
-        let ax = try axRect(element)
+        guard matches.count == 1 && CFEqual(matches[0], element), let fields = OrdinaryFocusAttributes(element),
+              allowMinimized || fields.minimized == false else { throw Refusal("原窗口已关闭、重建或进入其他状态。") }
+        let rect = fields.frame
+        let ax = SurfaceRect(x: rect.origin.x, y: rect.origin.y, width: rect.width, height: rect.height)
         let screen = try displayID(ax)
         guard screen == display, space == nil || isMember(id.number),
               let row = WindowSurfaceRecord(number: id.number), row.pid == id.pid, row.layer == 0 else {
@@ -61,27 +60,37 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
     }
     func waitFor(_ seconds: Double, until condition: () -> Bool) -> Bool {
         let end = min(deadline, ProcessInfo.processInfo.systemUptime + seconds)
-        while !condition(), ProcessInfo.processInfo.systemUptime < end {
+        while true {
+            if condition() { return true }
+            let remaining = end - ProcessInfo.processInfo.systemUptime
+            guard remaining > 0 else { return false }
             // The command pipe is re-enabled only after this handler returns.
-            CFRunLoopRunInMode(.defaultMode, 0.018, false)
+            CFRunLoopRunInMode(.defaultMode, min(0.018, remaining), false)
         }
-        return condition()
     }
     func focused() -> Bool { frontPID() == id.pid && exact(kAXFocusedWindowAttribute) }
-    try validate(allowMinimized: space != nil)
     if space != nil, attribute(element, kAXMinimizedAttribute) as? Bool == true {
+        try validate(allowMinimized: true)
         try permit()
+        writes.before(.unminimize)
         try require(AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, kCFBooleanFalse) == .success &&
                     waitFor(0.7) { attribute(element, kAXMinimizedAttribute) as? Bool == false },
                     "应用未能展开这扇最小化的窗口。")
         try validate()
     }
-    if focused() { try validate(presented: true); return }
+    if focused() {
+        try validate(presented: true)
+        try require(focused(), "焦点已离开所选窗口。")
+        timing?.confirmed(.worker)
+        return
+    }
     guard let origin = frontPID() else { throw Refusal("系统未提供当前前台应用。") }
     if origin != id.pid {
         if !exact(kAXMainWindowAttribute) {
             try validate()
             try permit()
+            try require(frontPID() == origin, "前台已变化，请重新选择。")
+            writes.before(.main)
             try require(AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue) == .success,
                         "应用未允许选中这扇窗口。")
         }
@@ -97,6 +106,8 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         if before != id.pid {
             try validate()
             try permit()
+            try require(frontPID() == origin && exact(kAXMainWindowAttribute), "前台已变化，请重新选择。")
+            writes.before(.frontmost)
             try require(AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue) == .success,
                         "系统未允许所选应用成为前台。")
         }
@@ -108,6 +119,8 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
     try require(frontPID() == id.pid, "前台已变化，请重新选择。")
     if !focused() {
         try permit()
+        try require(frontPID() == id.pid, "前台已变化，请重新选择。")
+        writes.before(.raise)
         try require(AXUIElementPerformAction(element, kAXRaiseAction as CFString) == .success, "此窗口不支持置前。")
         if !waitFor(0.12, until: focused) {
             try validate()
@@ -116,20 +129,23 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
             if AXUIElementIsAttributeSettable(app, kAXFocusedWindowAttribute as CFString, &writable) == .success && writable.boolValue {
                 try validate()
                 try permit()
+                try require(frontPID() == id.pid, "前台已变化，请重新选择。")
+                writes.before(.focusedWindow)
                 try require(AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, element) == .success,
                             "应用拒绝将焦点交给所选窗口。")
             } else if !exact(kAXMainWindowAttribute) {
                 try validate()
                 try permit()
+                try require(frontPID() == id.pid, "前台已变化，请重新选择。")
+                writes.before(.main)
                 try require(AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue) == .success,
                             "应用未允许选中这扇窗口。")
             }
         }
     }
     let confirmed = waitFor(0.65, until: focused)
-    if confirmed, space != nil {
-        _ = waitFor(0.8) { (try? validate(presented: true)) != nil }
-    }
-    try validate(presented: true)
+    let presented = confirmed && space != nil && waitFor(0.8) { (try? validate(presented: true)) != nil }
+    if !presented { try validate(presented: true) }
     try require(confirmed && focused(), "应用已在前台，但系统未确认这扇窗口获得焦点。")
+    timing?.confirmed(.worker)
 }

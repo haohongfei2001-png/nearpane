@@ -55,20 +55,10 @@ actor HostCurrentWindowFocus {
             throw OrdinaryWindowFailure("应用未提供可核对的唯一窗口编号。")
         }
         let w = windows[index]
-        guard element.map({ CFEqual(w, $0) }) ?? true,
-              value(w, kAXRoleAttribute) as? String == kAXWindowRole,
-              value(w, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
-              value(w, kAXModalAttribute) as? Bool == false,
-              value(w, kAXMinimizedAttribute) as? Bool == false,
-              value(w, "AXFullScreen") as? Bool == false,
-              let p = value(w, kAXPositionAttribute), CFGetTypeID(p) == AXValueGetTypeID(),
-              let s = value(w, kAXSizeAttribute), CFGetTypeID(s) == AXValueGetTypeID() else {
+        guard element.map({ CFEqual(w, $0) }) ?? true, let fields = OrdinaryFocusAttributes(w), fields.minimized == false else {
             throw OrdinaryWindowFailure("原窗口已关闭或状态已变化。")
         }
-        var point = CGPoint.zero, size = CGSize.zero
-        guard AXValueGetValue(p as! AXValue, .cgPoint, &point),
-              AXValueGetValue(s as! AXValue, .cgSize, &size),
-              target.matches(.init(origin: point, size: size)),
+        guard target.matches(fields.frame),
               target.sharedSurface(visible: true, matchFrame: true, for: .windowSelection) else {
             throw OrdinaryWindowFailure("系统未确认所选窗口的实际位置。")
         }
@@ -96,9 +86,24 @@ actor HostCurrentWindowFocus {
         return AXUIElementGetPid(current as! AXUIElement, &pid) == .success && pid > 0 ? pid : nil
     }
 
-    func focus(deadline: Double, current: @escaping @MainActor @Sendable () -> Bool) async throws {
+    static func observe(until end: Double, interval: Double = 0.012,
+                        now: () -> Double = { ProcessInfo.processInfo.systemUptime },
+                        pause: (Double) async throws -> Void = { try await Task.sleep(for: .seconds($0)) },
+                        isolatedTo _: isolated (any Actor)? = #isolation,
+                        condition: () -> Bool) async throws -> Bool {
+        while true {
+            try Task.checkCancellation()
+            if condition() { return true }
+            let remaining = end - now()
+            guard remaining > 0 else { return false }
+            try await pause(min(interval, remaining))
+        }
+    }
+
+    func focus(deadline: Double, current: @escaping @MainActor @Sendable () -> Bool, timing: WindowFocusTiming?) async throws {
         guard let original = element, let origin = frontPID() else { throw OrdinaryWindowFailure("系统未确认所选窗口或当前焦点。") }
         let pid = target.key.pid
+        var writes = WindowFocusTiming.Writes(timing, .host)
         func validate() async throws {
             guard ProcessInfo.processInfo.systemUptime < deadline, WindowContentPreview.sessionAvailable(),
                   CFEqual(try verifiedElement(), original) else { throw OrdinaryWindowFailure("窗口已变化，请重新选择。") }
@@ -111,50 +116,55 @@ actor HostCurrentWindowFocus {
         func focused() -> Bool { frontPID() == pid && same(app, kAXFocusedWindowAttribute, original) }
         func wait(_ condition: () -> Bool) async throws {
             let until = min(deadline, ProcessInfo.processInfo.systemUptime + 0.75)
-            while !condition() && ProcessInfo.processInfo.systemUptime < until {
-                try await Task.sleep(for: .milliseconds(25))
-            }
-            guard condition() else { throw OrdinaryWindowFailure("系统未确认所选窗口获得焦点。") }
+            guard try await Self.observe(until: until, interval: 0.025, condition: condition) else { throw OrdinaryWindowFailure("系统未确认所选窗口获得焦点。") }
         }
-        try await validate()
         if origin != pid {
             if !same(app, kAXMainWindowAttribute, original) {
-                guard frontPID() == origin, AXUIElementSetAttributeValue(original, kAXMainAttribute as CFString, kCFBooleanTrue) == .success
+                try await validate()
+                guard frontPID() == origin else { throw OrdinaryWindowFailure("前台已变化，请重新选择。") }
+                writes.before(.main)
+                guard AXUIElementSetAttributeValue(original, kAXMainAttribute as CFString, kCFBooleanTrue) == .success
                 else { throw OrdinaryWindowFailure("应用未允许选中这扇窗口。") }
                 try await wait { same(app, kAXMainWindowAttribute, original) }
             }
-            try await validate()
             if frontPID() != pid {
-                guard frontPID() == origin, same(app, kAXMainWindowAttribute, original),
-                      AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue) == .success
+                try await validate()
+                guard frontPID() == origin, same(app, kAXMainWindowAttribute, original) else { throw OrdinaryWindowFailure("前台已变化，请重新选择。") }
+                writes.before(.frontmost)
+                guard AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue) == .success
                 else { throw OrdinaryWindowFailure("应用未允许将所选窗口带到前台。") }
                 try await wait { frontPID() == pid }
             }
         }
         if !focused() {
             try await validate()
-            guard frontPID() == pid, AXUIElementPerformAction(original, kAXRaiseAction as CFString) == .success
+            guard frontPID() == pid else { throw OrdinaryWindowFailure("前台已变化，请重新选择。") }
+            writes.before(.raise)
+            guard AXUIElementPerformAction(original, kAXRaiseAction as CFString) == .success
             else { throw OrdinaryWindowFailure("此窗口未能置前。") }
             // Some applications raise z-order without moving the keyboard. A focused-
             // window setter is allowed only for the same retained element and active app.
-            try await Task.sleep(for: .milliseconds(100))
-            if !focused() {
+            let raisedFocus = try await Self.observe(until: min(deadline, ProcessInfo.processInfo.systemUptime + 0.1), condition: focused)
+            if !raisedFocus {
                 var settable = DarwinBoolean(false)
                 if AXUIElementIsAttributeSettable(app, kAXFocusedWindowAttribute as CFString, &settable) == .success && settable.boolValue {
                     try await validate()
-                    guard frontPID() == pid,
-                          AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, original) == .success
+                    guard frontPID() == pid else { throw OrdinaryWindowFailure("前台已变化，请重新选择。") }
+                    writes.before(.focusedWindow)
+                    guard AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, original) == .success
                     else { throw OrdinaryWindowFailure("应用拒绝将键盘焦点交给所选窗口。") }
                 } else if !same(app, kAXMainWindowAttribute, original) {
                     try await validate()
-                    guard frontPID() == pid,
-                          AXUIElementSetAttributeValue(original, kAXMainAttribute as CFString, kCFBooleanTrue) == .success
+                    guard frontPID() == pid else { throw OrdinaryWindowFailure("前台已变化，请重新选择。") }
+                    writes.before(.main)
+                    guard AXUIElementSetAttributeValue(original, kAXMainAttribute as CFString, kCFBooleanTrue) == .success
                     else { throw OrdinaryWindowFailure("应用未允许将所选窗口设为主窗口。") }
                 }
+                try await wait(focused)
             }
-            try await wait(focused)
         }
         try await validate()
         guard focused() else { throw OrdinaryWindowFailure("焦点已离开所选窗口。") }
+        timing?.confirmed(.host)
     }
 }

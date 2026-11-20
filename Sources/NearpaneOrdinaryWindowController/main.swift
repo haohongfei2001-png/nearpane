@@ -100,7 +100,8 @@ final class Worker {
                           r.destination == nil else { throw Refusal("缺少当前桌面的选窗凭据。") }
                     var nextStep = 0
                     try focusCurrentWindow(id: id, element: m.element, owner: owner, bundle: r.bundle,
-                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace) {
+                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace,
+                                           timing: r.focusTimingID.map(WindowFocusTiming.init(id:))) {
                         var challenge = OrdinaryWindowReply(r.nonce)
                         challenge.focusStep = nextStep
                         let decision: NativeSpaceStepPermission

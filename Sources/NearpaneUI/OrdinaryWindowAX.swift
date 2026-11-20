@@ -239,10 +239,12 @@ private actor OrdinaryWindowChannel {
         return !closed && choices.compactMap { $0 }.filter { $0.number == id.number } == [id]
     }
 
-    func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval, space: String?, permit: NativeSelectionPermit) async throws {
+    func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval, space: String?, permit: NativeSelectionPermit,
+                      timing: WindowFocusTiming? = nil) async throws {
         guard !closed else { throw OrdinaryWindowFailure("窗口已关闭。") }
         _ = try await channel.call(.init(.focusCurrent, pid: id.pid, launch: id.launch, bundle: bundle, id: id,
-                                         expected: frame, focusDisplay: display, focusDeadline: deadline, focusSpace: space), permit: permit)
+                                         expected: frame, focusDisplay: display, focusDeadline: deadline, focusSpace: space,
+                                         focusTimingID: timing?.id), permit: permit)
     }
 
     func verify(expected: SurfaceRect) async throws -> AdmissionPair { try await sample(.verify, from: expected) }
