@@ -11,7 +11,7 @@ python3 scripts/acceptance/native-spaces/installed_profile.py "$out/profile" -- 
 python3 scripts/acceptance/native-spaces/acceptance.py cleanup-contract "$out/core"
 ```
 
-`run-lifecycle.sh` 使用同一个测试资料入口验证原生全屏、平铺与重启。`r4-voice-cold.py --file-readback` 在每次全新 Host 中核对真实麦克风首句和音频文件。[翻译、截图、单词本与官方草稿](TOOL-TRIALS.md)
+`same-space-documents OUTPUT` 可在一个普通桌面单独执行同应用精确选窗。`run-lifecycle.sh` 使用同一个测试资料入口验证原生全屏、平铺与重启。`r4-voice-cold.py --file-readback` 在每次全新 Host 中核对真实麦克风首句和音频文件。[翻译、截图、单词本与官方草稿](TOOL-TRIALS.md)
 
 ## R4 安装版
 

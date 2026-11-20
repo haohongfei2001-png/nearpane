@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/../../.."
-if [[ ${1:-} == core-contract || ${1:-} == cleanup-contract ]]; then
+if [[ ${1:-} == core-contract || ${1:-} == cleanup-contract || ${1:-} == same-space-documents ]]; then
     umask 077
     mode="$1"
     shift
@@ -11,6 +11,8 @@ if [[ ${1:-} == core-contract || ${1:-} == cleanup-contract ]]; then
     "$src/build-contract.sh" "$kit"
     if [[ "$mode" == cleanup-contract ]]; then
         python3 "$src/contract_workspace.py" --kit "$kit" --cleanup "$@"
+    elif [[ "$mode" == same-space-documents ]]; then
+        python3 "$src/same-space-documents.py" "$kit" "$@"
     else
         python3 "$src/core_contract.py" --kit "$kit" "$@"
     fi

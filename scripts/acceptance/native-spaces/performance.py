@@ -28,13 +28,22 @@ def children(root):
 
 
 def snapshot(pid, reader, metrics):
-    processes = children(pid)
-    raw = checked([str(reader), *map(str, processes)])
-    rows = [dict(zip(("pid", "parent", "birthSec", "birthUsec", "physFootprint"), map(int, line.split())))
-            for line in raw.splitlines()]
-    require(children(pid) == processes, "Process tree changed during physical footprint read")
-    return {"processes": rows, "physicalBytes": sum(r["physFootprint"] for r in rows),
-            "metrics": json.loads(checked([str(metrics), str(pid)]))}
+    changes = []
+    for _ in range(6):
+        processes = children(pid)
+        measured = subprocess.run([str(reader), *map(str, processes)], capture_output=True, text=True, timeout=5)
+        after = children(pid)
+        if after != processes or measured.returncode == 3:
+            changes.append({'before':processes, 'after':after, 'kernelExit':measured.returncode})
+            time.sleep(.12)
+            continue
+        require(measured.returncode == 0, "Kernel physical footprint read failed")
+        rows = [dict(zip(("pid", "parent", "birthSec", "birthUsec", "physFootprint"), map(int, line.split())))
+                for line in measured.stdout.splitlines()]
+        require([row['pid'] for row in rows] == processes, "Incomplete physical footprint read")
+        return {"processes":rows, "physicalBytes":sum(row['physFootprint'] for row in rows),
+                "transientReads":changes, "metrics":json.loads(checked([str(metrics), str(pid)]))}
+    raise ScopeError("No complete, stable kernel process tree in six observations")
 
 
 def run(*, workspace, scope, observer, driver, output):

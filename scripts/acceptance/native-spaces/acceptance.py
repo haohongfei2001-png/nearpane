@@ -367,7 +367,7 @@ def main():
     contracts = {"S01", "S02", "S03", "W01", "W02", "D01", "R01"}
     args = sys.argv[1:]
     entry = Path(__file__).with_name("run.sh")
-    if args and args[0] in {"core-contract", "cleanup-contract"}:
+    if args and args[0] in {"core-contract", "cleanup-contract", "same-space-documents"}:
         raise SystemExit(subprocess.call([entry, *args]))
     if len(args) == 2 and args[0].upper() in contracts:
         raise SystemExit(subprocess.call([entry, "core-contract", args[1], "--scenarios", args[0].upper()]))
