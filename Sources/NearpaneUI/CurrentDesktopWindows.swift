@@ -17,7 +17,7 @@ import OSLog
     @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
     @ObservationIgnored private var sidebarWindows = NativeSidebarWindowHistory()
     private let readSidebarWindows: NativeSidebarWindowHistory.Read?
-    @ObservationIgnored private let windowAudit = NativeSidebarWindowAudit()
+    @ObservationIgnored let windowAudit = NativeSidebarWindowAudit()
     @ObservationIgnored private var pendingAudit: NativeSidebarWindowAudit.Sample?
     let groups = ExplicitWindowGroups()
     @ObservationIgnored var splitPresentationChanged: (() -> Void)?

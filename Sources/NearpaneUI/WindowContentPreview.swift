@@ -103,7 +103,7 @@ struct PreviewWindowBinding: Equatable {
     init(readOverview: NativeDesktopProvider.Read? = nil, permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
         let feed = readOverview.map { CurrentDesktopWindows(read: $0) }
         currentDesktop = feed
-        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, lifetime: { key in feed?.lifetime(of: key) })
+        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, audit: feed?.windowAudit?.previewTrace, lifetime: { key in feed?.lifetime(of: key) })
     }
     private(set) var choosing = false
     private(set) var notice = ""

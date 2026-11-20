@@ -71,7 +71,10 @@ def launch_isolated(home):
         raise RuntimeError("An installed Host is already running")
     root = home / PROFILE
     root.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["/usr/bin/open", "-g", "--env", "CFFIXED_USER_HOME=" + str(home), str(APP)], check=True)
+    arguments = ["/usr/bin/open", "-g", "--env", "CFFIXED_USER_HOME=" + str(home)]
+    if os.environ.get("NEARPANE_PREVIEW_DIAGNOSTICS") == "1":
+        arguments += ["--env", "NEARPANE_TEST_HOME=" + str(home), "--env", "NEARPANE_PREVIEW_DIAGNOSTICS=1"]
+    subprocess.run([*arguments, str(APP)], check=True)
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         pid = installed_pid()

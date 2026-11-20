@@ -60,6 +60,7 @@ struct CurrentWindowCard: View {
         let image = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
         let picked = image == nil ? selected() : nil
         let previous = image == nil && picked == nil ? target.flatMap { gallery?.previousImage(for: $0, permitted: permitted) } : nil
+        let _ = gallery?.recordCardSource(key, image != nil ? .liveImage : picked != nil ? .selectedImage : previous != nil ? .previousImage : .outline)
         let missing = permitted && target.map { gallery?.lacksPicture($0) == true } == true
         let caption = previous == nil ? label : "上次画面 · " + label
         let source = image != nil ? "窗口画面" : picked != nil ? "所选快照" : previous != nil ? "上次画面" : "窗口轮廓"

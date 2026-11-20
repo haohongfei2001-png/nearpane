@@ -5,10 +5,12 @@ import NearpaneCore
 /// An isolated acceptance home can request evidence about its two fixture window
 /// identities. No process arguments, bundle names, titles, geometry or pixels are read here.
 @MainActor final class NativeSidebarWindowAudit {
-    private struct Manifest: Decodable { let version: Int, targets: [NativeSpaceWindow] }
+    private struct Manifest: Decodable { let version: Int, targets: [NativeSpaceWindow]; let previewTrace: PreviewPipelineAudit.Request? }
     private let directory: Int32
+    let previewTrace: PreviewPipelineAudit?
 
-    init?(environment: [String: String] = ProcessInfo.processInfo.environment, cachesForTesting: URL? = nil) {
+    init?(environment: [String: String] = ProcessInfo.processInfo.environment, cachesForTesting: URL? = nil,
+          verifyTrace: @escaping @Sendable (PreviewPipelineAudit.Request, [NativeSpaceWindow]) -> Bool = PreviewPipelineAudit.verifyGenerations) {
         guard let raw = environment["CFFIXED_USER_HOME"], let pw = getpwuid(getuid()) else { return nil }
         let home = URL(fileURLWithPath: raw, isDirectory: true)
         let parent = home.deletingLastPathComponent()
@@ -22,6 +24,8 @@ import NearpaneCore
         guard fd >= 0 else { return nil }
         guard fstat(fd, &info) == 0, info.st_uid == getuid(), info.st_mode & 0o077 == 0 else { close(fd); return nil }
         directory = fd
+        previewTrace = environment["NEARPANE_PREVIEW_DIAGNOSTICS"] == "1" && environment["NEARPANE_TEST_HOME"] == raw
+            ? PreviewPipelineAudit(directory: fd, verify: verifyTrace) : nil
     }
 
     deinit { close(directory) }
@@ -38,6 +42,8 @@ import NearpaneCore
     }
 
     func sample(feed: UUID, epoch: UUID, revision: UInt64) -> Sample? {
+        var accepted = false
+        defer { if !accepted { previewTrace?.revoke() } }
         let fd = openat(directory, "p0-window-audit-targets.json", O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         guard fd >= 0 else { return nil }
         defer { close(fd) }
@@ -47,6 +53,13 @@ import NearpaneCore
         guard length > 0, let m = try? JSONDecoder().decode(Manifest.self, from: Data(bytes.prefix(length))),
               m.version == 1, (1...2).contains(m.targets.count), Set(m.targets).count == m.targets.count,
               m.targets.allSatisfy({ $0.pid > 1 && $0.birth > 0 && $0.number > 0 }) else { return nil }
+        if let previewTrace {
+            var status = stat()
+            if fstat(fd, &status) == 0 {
+                previewTrace.enroll(m.previewTrace, targets: m.targets, stamp: .init(status), feed: feed, epoch: epoch, revision: revision)
+                accepted = true
+            }
+        }
         return Sample(sink: self, targets: m.targets, feed: feed, epoch: epoch, revision: revision)
     }
 

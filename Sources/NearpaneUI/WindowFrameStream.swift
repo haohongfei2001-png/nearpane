@@ -28,46 +28,57 @@ import os
         case idle(UInt64)
         case unavailable
     }
+    struct OutputAudit: Sendable {
+        let audit: PreviewPipelineAudit, key: DesktopWindowKey
+        func note(_ reason: PreviewPipelineAudit.Reason, epoch: UInt64, uptime: TimeInterval?) {
+            audit.record(key, .stream, reason, epoch: epoch, uptime: uptime)
+        }
+    }
     final class Output: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
         let events: AsyncStream<Update>.Continuation
         // Accessed only by this stream's serial sample queue.
         private var lastSignal = -Double.infinity
         private let validity = OSAllocatedUnfairLock(initialState: UInt64(0))
         var epoch: UInt64 { validity.withLock { $0 } }
-        private func unavailable() {
-            validity.withLock { $0 &+= 1 }
+        private let diagnostic: OutputAudit?
+        private func unavailable(_ reason: PreviewPipelineAudit.Reason, now: TimeInterval? = nil) {
+            let epoch = validity.withLock { $0 &+= 1; return $0 }
+            diagnostic?.note(reason, epoch: epoch, uptime: now)
             events.yield(.unavailable)
         }
         let width: Int, height: Int
-        init(_ events: AsyncStream<Update>.Continuation, width: Int, height: Int) {
-            self.events = events; self.width = width; self.height = height
+        init(_ events: AsyncStream<Update>.Continuation, width: Int, height: Int, diagnostic: OutputAudit? = nil) {
+            self.events = events; self.width = width; self.height = height; self.diagnostic = diagnostic
         }
         func stream(_ stream: SCStream, didOutputSampleBuffer sample: CMSampleBuffer, of type: SCStreamOutputType) {
             guard type == .screen else { return }
             guard sample.isValid, let rows = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false)
                     as? [[SCStreamFrameInfo: Any]], let value = rows.first?[.status] as? Int,
-                  let status = SCFrameStatus(rawValue: value) else { unavailable(); return }
+                  let status = SCFrameStatus(rawValue: value) else { unavailable(.invalidMetadata); return }
             receive(sample, status: status, now: ProcessInfo.processInfo.systemUptime)
         }
         func receive(_ sample: CMSampleBuffer, status: SCFrameStatus, now: TimeInterval) {
             switch status {
             case .complete, .started:
                 guard let pixel = sample.imageBuffer, CVPixelBufferGetWidth(pixel) == width,
-                      CVPixelBufferGetHeight(pixel) == height else { unavailable(); return }
+                      CVPixelBufferGetHeight(pixel) == height else { unavailable(.invalidBuffer, now: now); return }
+                diagnostic?.note(status == .started ? .started : .complete, epoch: epoch, uptime: now)
                 lastSignal = now
                 events.yield(.frame(Frame(sample: sample, received: now, epoch: epoch)))
             case .idle:
+                diagnostic?.note(.idle, epoch: epoch, uptime: now)
                 // The compositor reports unchanged content. Avoid waking the UI for repeated identical frames.
                 if now - lastSignal >= 3 { lastSignal = now; events.yield(.idle(epoch)) }
             case .stopped:
-                unavailable()
+                unavailable(.stopped, now: now)
                 events.finish()
-            default:
-                unavailable()
+            case .blank: unavailable(.blank, now: now)
+            case .suspended: unavailable(.suspended, now: now)
+            @unknown default: unavailable(.unknownStatus, now: now)
             }
         }
         func stream(_ stream: SCStream, didStopWithError error: any Error) {
-            unavailable()
+            unavailable(.streamError)
             events.finish()
         }
     }
@@ -97,7 +108,7 @@ import os
         return config
     }
 
-    init?(window: SCWindow, target: DesktopWindowTarget) {
+    init?(window: SCWindow, target: DesktopWindowTarget, audit: PreviewPipelineAudit? = nil) {
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let size = filter.contentRect.size
         guard window.windowID == target.key.number, window.windowLayer == 0,
@@ -118,7 +129,8 @@ import os
         if #available(macOS 14.2, *) { config.includeChildWindows = false }
         let (events, continuation) = AsyncStream<Update>.makeStream(bufferingPolicy: .bufferingNewest(1))
         updates = events
-        output = Output(continuation, width: config.width, height: config.height)
+        output = Output(continuation, width: config.width, height: config.height,
+                        diagnostic: audit.map { OutputAudit(audit: $0, key: target.key) })
         stream = SCStream(filter: filter, configuration: config, delegate: output)
         do {
             try stream.addStreamOutput(output, type: .screen,
