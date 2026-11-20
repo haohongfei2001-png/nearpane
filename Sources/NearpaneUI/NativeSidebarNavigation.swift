@@ -53,6 +53,28 @@ struct NativeSidebarMember: Equatable {
     }
 }
 
+/// One presentation of each background window, with its actual Space retained for dispatch.
+struct SidebarBackgroundWindows: Identifiable {
+    let destination: NativeSidebarDestination
+    let windows: [WindowObservation]
+    var id: UUID { destination.uuid }
+
+    static func sections(in catalog: NativeSpaceCatalog) -> [Self] {
+        var seen = Set<DesktopWindowKey>()
+        return catalog.rows.compactMap { row in
+            guard !row.record.isCurrent, let destination = NativeSidebarDestination(row, in: catalog) else { return nil }
+            let windows = row.windows.filter { window in
+                guard let metadata = window.metadata, metadata.minimized != true,
+                      metadata.overviewOrdinaryRole ?? window.canWitnessCurrentSpace,
+                      case .known(let spaces) = window.membership, !spaces.contains(catalog.current.id),
+                      let member = NativeSidebarMember(window, source: destination) else { return false }
+                return seen.insert(member.key).inserted
+            }
+            return windows.isEmpty ? nil : Self(destination: destination, windows: windows)
+        }
+    }
+}
+
 @MainActor @Observable final class NativeSidebarNavigation {
     // All displays share the action lane. A superseded switch can finish, but cannot
     // subsequently focus a window after a newer explicit choice.

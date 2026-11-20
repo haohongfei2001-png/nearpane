@@ -46,135 +46,106 @@ struct NativeWindowDragSource: ViewModifier {
     }
 }
 
-/// The current window list is also a return drop target, without a second picture of the current Space.
-struct CurrentSpaceRegion: ViewModifier {
+/// A list of actual windows also accepts a drop into their verified ordinary Space.
+struct NativeWindowDropTarget: ViewModifier {
     let destination: NativeSidebarDestination?
     let canMove: Bool
     let drag: NativeSidebarDrag
     let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
 
     @ViewBuilder func body(content: Content) -> some View {
-        if let destination {
-            content.accessibilityElement(children: .contain)
-                .accessibilityLabel("当前桌面").accessibilityAddTraits(.isSelected)
-                .accessibilityIdentifier("native-space-row:\(destination.display):\(destination.space)")
-                .onDrop(of: [NativeSidebarDrag.type], isTargeted: nil) { items in
-                    guard canMove, destination.kind == .ordinary else { return false }
-                    return drag.receive(items) { move($0, destination, $1) }
-                }
+        if canMove, let destination, destination.kind == .ordinary {
+            content.onDrop(of: [NativeSidebarDrag.type], isTargeted: nil) { items in
+                drag.receive(items) { move($0, destination, $1) }
+            }
         } else { content }
     }
 }
 
-struct NativeSpaceNavigator: View {
-    let catalog: NativeSpaceCatalog
+/// Only an explicit multiwindow group uses a desktop-shaped canvas.
+struct NativeWindowGroupCard: View {
+    let destination: NativeSidebarDestination
+    let display: DisplayObservation
+    let isCurrent: Bool
     let drag: NativeSidebarDrag
-    let feed: CurrentDesktopWindows?
+    let feed: CurrentDesktopWindows
     let badges: [String: WindowAppBadges.Badge]
     let gallery: DesktopWindowGallery?
     let permitted: Bool
     let canSwitch, canMove: Bool
     let workArea: SurfaceRect?
-    let select: (NativeSidebarDestination, NativeSidebarMember?) -> Void
-    let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
-    struct WindowGroup {
-        let id: UUID
-        let windows: [WindowObservation]
-        let dissolve: () -> Void
-    }
-    var group: WindowGroup? = nil
+    let select: (NativeSidebarMember?) -> Void
+    let id: UUID
+    let windows: [WindowObservation]
+    let dissolve: () -> Void
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            ForEach(Array(catalog.rows.enumerated().filter { $0.element.record.isCurrent == (group != nil) }), id: \.element.id) { index, row in
-                let destination = NativeSidebarDestination(row, in: catalog)
-                let display = catalog.display
-                let canvas = row.record.fullscreenUUID == nil ? workArea : SurfaceRect(width: display.frame.width, height: display.frame.height)
-                let windows = group.map { $0.windows.sorted { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) } } ?? row.windows
-                let unplaced = windows.filter { projectedFrame($0, canvas: canvas) == nil }
-                let title = group != nil ? "窗口组合" : row.record.fullscreenUUID == nil ? "桌面 \(index + 1)" : "全屏"
-                VStack(spacing: 0) {
-                    ZStack(alignment: .topLeading) {
-                        Button {
-                            if let destination { select(destination, nil) }
-                        } label: {
-                            Color.clear.contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain).disabled(destination == nil || (!canSwitch && !row.record.isCurrent))
-                        .accessibilityLabel(title)
-                        .accessibilityIdentifier(group.map { "native-window-group:\($0.id)" } ?? "native-space-row:\(catalog.display.id):\(row.id)")
+        let ordered = windows.sorted { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }
+        let canvas = workArea
+        let unplaced = ordered.filter { projectedFrame($0, canvas: canvas) == nil }
+        VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                Button { select(nil) } label: {
+                    Color.clear.contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).disabled(!isCurrent && !canSwitch)
+                .accessibilityLabel("窗口组合")
+                .accessibilityIdentifier("native-window-group:\(id)")
 
-                        GeometryReader { proxy in
-                            let scale = canvas.map { min(proxy.size.width / $0.width, proxy.size.height / $0.height) } ?? 0
-                            let dx = (proxy.size.width - (canvas?.width ?? 0) * scale) / 2
-                            let dy = (proxy.size.height - (canvas?.height ?? 0) * scale) / 2
-                            ZStack(alignment: .topLeading) {
-                                if windows.isEmpty {
-                                    Text(row.regularWindowListComplete ? "未发现普通窗口" : "窗口归属尚未读全")
-                                        .font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary))
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity).allowsHitTesting(false)
-                                }
-                                ForEach(windows.reversed()) { window in
-                                    if let canvas, let frame = projectedFrame(window, canvas: canvas),
-                                       let dest = destination, let member = NativeSidebarMember(window, source: dest) {
-                                        miniature(member, name: badges[window.id]?.name ?? "窗口", icon: badges[window.id]?.icon,
-                                                  width: frame.width * scale, height: frame.height * scale)
-                                            .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
-                                    }
-                                }
-                            }
-                            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
-                        }
-                        .clipped()
-                        if let destination, !unplaced.isEmpty {
-                            // An unlocated window is still selectable from its own identity.
-                            // The menu stays outside the scaled desktop geometry.
-                            HStack {
-                                Spacer()
-                                Menu {
-                                    ForEach(unplaced) { window in
-                                        if let member = NativeSidebarMember(window, source: destination) {
-                                            Button(badges[window.id]?.name ?? "窗口") { select(destination, member) }
-                                        }
-                                    }
-                                } label: {
-                                    Image(systemName: "macwindow.on.rectangle").font(.caption2)
-                                }
-                                .menuStyle(.borderlessButton).fixedSize().padding(3)
-                                .disabled(!canSwitch && destination.space != catalog.current.id)
-                                .accessibilityLabel("另有 " + String(unplaced.count) + " 扇窗口的位置尚未确认")
+                GeometryReader { proxy in
+                    let scale = canvas.map { min(proxy.size.width / $0.width, proxy.size.height / $0.height) } ?? 0
+                    let dx = (proxy.size.width - (canvas?.width ?? 0) * scale) / 2
+                    let dy = (proxy.size.height - (canvas?.height ?? 0) * scale) / 2
+                    ZStack(alignment: .topLeading) {
+                        ForEach(ordered.reversed()) { window in
+                            if let canvas, let frame = projectedFrame(window, canvas: canvas),
+                               let member = NativeSidebarMember(window, source: destination) {
+                                miniature(member, name: badges[window.id]?.name ?? "窗口", icon: badges[window.id]?.icon,
+                                          width: frame.width * scale, height: frame.height * scale)
+                                    .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
                             }
                         }
                     }
-                    .frame(maxWidth: .infinity).aspectRatio(canvas.map { $0.width / $0.height } ?? 1.9, contentMode: .fit)
-                    .background(.primary.opacity(row.record.isCurrent ? 0.09 : 0.035), in: RoundedRectangle(cornerRadius: 7))
-                    .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(.primary.opacity(row.record.isCurrent ? 0.4 : 0.16)).allowsHitTesting(false) }
-                    HStack(spacing: 3) {
-                        ForEach(Array(appIcons(for: windows).prefix(4).enumerated()), id: \.offset) { _, badge in
-                            Image(nsImage: badge.icon).resizable().scaledToFit().frame(width: 12, height: 12)
-                        }
-                        Text(title).font(.caption2).lineLimit(1)
-                    }.frame(height: 18).accessibilityHidden(true)
+                    .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
                 }
-                .contextMenu {
-                    if let group { Button("解散窗口组合", action: group.dissolve) }
-                    if let destination {
-                        ForEach(windows) { w in
-                            if let m = NativeSidebarMember(w, source: destination) {
-                                let sameApp = windows.filter { $0.metadata?.pid == m.key.pid }
-                                let ordinal = sameApp.firstIndex(of: w).map { " · \($0 + 1)" } ?? ""
-                                Button((badges[w.id]?.name ?? "窗口") + (sameApp.count > 1 ? ordinal : "")) {
-                                    select(destination, m)
+                .clipped()
+                if !unplaced.isEmpty {
+                    HStack {
+                        Spacer()
+                        Menu {
+                            ForEach(unplaced) { window in
+                                if let member = NativeSidebarMember(window, source: destination) {
+                                    Button(badges[window.id]?.name ?? "窗口") { select(member) }
                                 }
-                                .disabled(!canSwitch && destination.space != catalog.current.id)
                             }
+                        } label: {
+                            Image(systemName: "macwindow.on.rectangle").font(.caption2)
                         }
+                        .menuStyle(.borderlessButton).fixedSize().padding(3)
+                        .disabled(!isCurrent && !canSwitch)
+                        .accessibilityLabel("另有 " + String(unplaced.count) + " 扇窗口的位置尚未确认")
                     }
                 }
-                .onDrop(of: [NativeSidebarDrag.type], isTargeted: nil) { items in
-                    guard canMove, let destination, destination.kind == .ordinary else { return false }
-                    return drag.receive(items) { move($0, destination, $1) }
+            }
+            .frame(maxWidth: .infinity).aspectRatio(canvas.map { $0.width / $0.height } ?? 1.9, contentMode: .fit)
+            .background(.primary.opacity(isCurrent ? 0.09 : 0.035), in: RoundedRectangle(cornerRadius: 7))
+            .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(.primary.opacity(isCurrent ? 0.4 : 0.16)).allowsHitTesting(false) }
+            HStack(spacing: 3) {
+                ForEach(Array(appIcons(for: ordered).prefix(4).enumerated()), id: \.offset) { _, badge in
+                    Image(nsImage: badge.icon).resizable().scaledToFit().frame(width: 12, height: 12)
+                }
+                Text("窗口组合").font(.caption2).lineLimit(1)
+            }.frame(height: 18).accessibilityHidden(true)
+        }
+        .contextMenu {
+            Button("解散窗口组合", action: dissolve)
+            ForEach(ordered) { window in
+                if let member = NativeSidebarMember(window, source: destination) {
+                    let siblings = ordered.filter { $0.metadata?.pid == member.key.pid }
+                    let index = siblings.firstIndex(of: window).map { " · \($0 + 1)" } ?? ""
+                    Button((badges[window.id]?.name ?? "窗口") + (siblings.count > 1 ? index : "")) { select(member) }
+                        .disabled(!isCurrent && !canSwitch)
                 }
             }
         }
@@ -192,7 +163,7 @@ struct NativeSpaceNavigator: View {
         guard let canvas, let meta = window.metadata else { return nil }
         let frame: SurfaceRect
         if let logical = meta.catalogLogicalFrame {
-            frame = .init(x: logical.x - catalog.display.frame.x, y: logical.y - catalog.display.frame.y,
+            frame = .init(x: logical.x - display.frame.x, y: logical.y - display.frame.y,
                           width: logical.width, height: logical.height)
         } else {
             guard meta.hasCatalogGeometry == true else { return nil }
@@ -206,7 +177,7 @@ struct NativeSpaceNavigator: View {
         let dest = member.source
         let history = gallery?.imageForMap(key: member.key, display: dest.display, space: dest.space,
             session: dest.session, topology: dest.topology, permitted: permitted)
-        return Button { select(dest, member) } label: {
+        return Button { select(member) } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
                 if let history {
@@ -220,7 +191,7 @@ struct NativeSpaceNavigator: View {
             .frame(width: width, height: height).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(dest.space != catalog.current.id && !canSwitch)
+        .disabled(!isCurrent && !canSwitch)
         .help(name + (history == nil ? "" : " · 最近画面"))
         .accessibilityLabel(name + (history == nil ? "" : "，最近画面"))
         .accessibilityIdentifier("native-space-window:\(dest.display):\(dest.space):\(member.key.pid):\(member.key.number)")
