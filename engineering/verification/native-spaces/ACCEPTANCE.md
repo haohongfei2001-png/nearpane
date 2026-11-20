@@ -23,4 +23,6 @@ kit="$(scripts/acceptance/native-spaces/p0-build.sh)"
 scripts/acceptance/native-spaces/run.sh p0-adjacent "$kit" build/verification/adjacent-run-01
 ```
 
+为测量操作期间的呈现时序，可在第二条命令前设 `NP_P0_DYNAMIC_MARKER=1`。两扇夹具文档各自在同一色系内交替绘制，显示流仍须读到实际呈现的帧和正确的末端颜色。测试收据同时保留启用条件和屏幕实测结果。
+
 `profile/profile-session.json` 记录实际运行的安装包、隔离目录和日常配置恢复。`actions/results.json` 给出往返、10 次、50 次的各自终态。每次按压均有正式 Host 意图及独立 WindowServer 时间线，10 次阶段单独校验物理显示结果。未达门槛即停。逐次操作结果和临时桌面回收记录可从 [5.22 实机收据](5.22-p0/RESULTS.md) 复核。

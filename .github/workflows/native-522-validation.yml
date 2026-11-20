@@ -39,6 +39,9 @@ jobs:
           if test -f scripts/acceptance/native-spaces/p0-tests.py; then
             python3 scripts/acceptance/native-spaces/p0-tests.py
           fi
+          src=scripts/acceptance/native-spaces
+          xcrun swiftc -parse-as-library "$src/p0-generation.swift" "$src/p0-marker-tests.swift" -o "$RUNNER_TEMP/p0-marker-tests"
+          "$RUNNER_TEMP/p0-marker-tests"
       - name: Build production helper and run no-input protocol tests
         run: |
           swift build --target NearpaneSpaceAction
