@@ -456,7 +456,7 @@ class Transaction:
                 return
             home = self.home
             generation = self.start_home(home)
-            if self.rec.get("trialScope") == "p4-service":
+            if self.rec.get("trialScope") in ("p4-service","p3,p4"):
                 stamp=self.mac.bound(self.mac.pid(),home/profile.PROFILE,self.rec["candidate"])
                 perms=dict(status="UNKNOWN",pid=stamp[0],birth=stamp[1]*1_000_000+stamp[2],
                            sourceRevision=self.rec["candidate"]["source"],cdhash=self.rec["candidate"]["cdhash"],
@@ -604,7 +604,7 @@ class Transaction:
                 (args.kit/"tool-selection").is_file() and (args.kit/"Nearpane Tool Fixture.app").is_dir(),
                 "Missing P3/P4 tools")
         only=getattr(args,"only",None)
-        require(only in (None,"p4-service") and not (only and args.wordbook_driver),"P4-only accepts only the Services driver")
+        require(only in (None,"p4-service","p3,p4") and not (only and args.wordbook_driver),"Scoped qualification/Services trials exclude the wordbook driver")
         require(bool(args.wordbook_driver) == bool(args.wordbook_kit), "Supply both independent wordbook inputs")
         if args.wordbook_driver:
             require(args.wordbook_driver.name == "p4-wordbook-recovery.py" and args.wordbook_driver.is_file()
@@ -617,10 +617,11 @@ class Transaction:
         output.mkdir(mode=0o700)
         owned_dir(output)
         home = mac.new_home()
+        chosen_trials={"p4-service":("P4",),"p3,p4":("P3","P4"),None:("P3","P4","P4-wordbook")}[only]
         tx = cls(mac,dict(schema=1,transaction=str(uuid.uuid4()),home=str(home),output=str(output),
                           metrics=str(args.metrics.resolve(strict=True)),kit=str(args.kit.resolve(strict=True)),
                           sessions=str(args.sessions.resolve()),restoration="PENDING",trialScope=only or "all",
-                          trials={k:dict(status="NOT_RUN") for k in (("P4",) if only else ("P3","P4","P4-wordbook"))},events=[]))
+                          trials={k:dict(status="NOT_RUN") for k in chosen_trials},events=[]))
         if args.wordbook_driver:
             tx.wordbook_home = mac.new_home()
             tx.rec.update(wordbookHome=str(tx.wordbook_home), wordbookHomeIdentity=inode(tx.wordbook_home),
@@ -716,7 +717,8 @@ def main():
     run.add_argument("--metrics",required=True,type=Path)
     run.add_argument("--kit",required=True,type=Path)
     run.add_argument("--sessions",type=Path,default=HERE.parents[2]/"build/native-acceptance")
-    run.add_argument("--only",choices=("p4-service",),help="one installed Host permission sample and the P4 Services case")
+    run.add_argument("--only",type=str.lower,choices=("p4-service","p3,p4"),
+                     help="one installed Host permission sample and the selected cases in a single isolated home")
     run.add_argument("--wordbook-driver",type=Path)
     run.add_argument("--wordbook-kit",type=Path)
     commands.add_parser("recover")
@@ -732,7 +734,7 @@ def main():
         report = supervise(Mac(),args,lambda: caught[0] if caught else 0)
         print(json.dumps({k:report.get(k) for k in ("transaction","stage","restoration","cleanup","trials","hostPermissions","operationError","output")},
                          ensure_ascii=False,indent=2))
-        missing_permissions = report.get("trialScope") == "p4-service" and report.get("hostPermissions",{}).get("status") != "OBSERVED"
+        missing_permissions = report.get("trialScope") in ("p4-service","p3,p4") and report.get("hostPermissions",{}).get("status") != "OBSERVED"
         if args.action == "run" and (missing_permissions or any(x["status"] != "PASS" for x in report["trials"].values())):
             return 128+caught[0] if caught else 2
         return 128+caught[0] if caught else 0

@@ -212,6 +212,17 @@ class TestTemporaryInstall(unittest.TestCase):
         self.assertEqual(permissions["sourceRevision"],report["candidate"]["source"])
         self.assertEqual(report["restoration"],"PASS")
 
+    def test_scoped_p3_and_service_share_one_registered_home_skip_wordbook_and_restore(self):
+        self.args.only="p3,p4"
+        report=tool.supervise(self.mac,self.args,lambda:0)
+        self.assertEqual(list(report["trials"]),["P3","P4"])
+        self.assertEqual(self.mac.actions,["quit-daily","launch-isolated","installed-permissions","P3","P4","quit-isolated","launch-daily"])
+        self.assertEqual(report["trials"]["P3"]["status"],"BLOCKED")
+        self.assertEqual(report["trials"]["P4"]["status"],"PASS")
+        self.assertNotIn("wordbookHome",report)
+        self.assertEqual(report["restoration"],"PASS")
+        self.assertEqual(report["cleanup"],"PASS")
+
     def test_missing_installed_permission_response_remains_unknown_and_services_still_runs(self):
         self.args.only="p4-service"
         def missing(*args):

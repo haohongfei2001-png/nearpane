@@ -28,11 +28,17 @@
   "local": {
     "orderedProofChecks": "8 ordered and identity-bound Services proof checks passed",
     "windowAndTimelineChecks": "30 single-sample identity, chronology, contents, source and occlusion checks passed",
-    "isolatedInstallSupervisorTests": 16,
+    "isolatedInstallSupervisorTests": 17,
     "testFailures": 0,
     "testErrors": 0,
     "kitSelectionSHA256": "739bb60ce29021523b6424b288b7dcb38017a5c0546dffd2415b50deac0807e5",
-    "kitFixtureExecutableSHA256": "a25ffd299dc03a1e86e1810631d38a9a7d29c979c24e1098cfe8dc743986b212"
+    "kitFixtureExecutableSHA256": "a25ffd299dc03a1e86e1810631d38a9a7d29c979c24e1098cfe8dc743986b212",
+    "combinedP3P4SingleHomeTrialOrder": [
+      "permissions",
+      "P3",
+      "P4"
+    ],
+    "separateWordbookDispatchedInCombinedScope": false
   },
   "candidateHostPermissionRead": "NOT_RUN",
   "newInstalledServicesTrial": "NOT_RUN"
