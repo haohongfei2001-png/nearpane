@@ -83,5 +83,22 @@
     "cleanInstall26And27": "NOT_TESTED",
     "publicRelease": false,
     "prerequisite": "core contracts"
+  },
+  "windowRoster": {
+    "status": "PASS",
+    "cases": [
+      0,
+      2,
+      0
+    ],
+    "independentMatchingReadsPerCheckpoint": [
+      2,
+      2,
+      2
+    ],
+    "spacePlaceholders": 0,
+    "duplicateCards": 0,
+    "bothPreviewImages": "NOT_PROVEN",
+    "evidence": "12-physical-probe/roster-serialized/results.json"
   }
 }

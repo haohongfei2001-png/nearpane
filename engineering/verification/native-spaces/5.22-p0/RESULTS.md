@@ -39,7 +39,9 @@
 - P4 另在标准 macOS 26.7.2 arm64 runner 合成了三句干净语音及各自 10 dB 加噪文件。Apple 解析到中文，但系统报告设备转录器不可用、资产 unsupported。6 条均为 NOT_RUN，未取得本轮识别率，正式安装版新增冷启动为 0/60。[原始模型收据与复算](https://github.com/haohongfei2001-png/nearpane/tree/d6df4bf1e55949ca97b8a2a712a8020a25130366/engineering/verification/native-spaces/5.22-p4/hosted-speech)
 - P3 的 Riftlet 专用分支在 Chrome、Edge 和四个域的 96 个隔离场景中验证了附件与零发送，16 个可见附件、8 个取消、72 个投递前拒绝。正式 Host、已登录服务的上传完成及 Safari 标签身份尚未通过。[源码、逐案证据及回退](https://github.com/haohongfei2001-png/nearpane/blob/35940ff2917aa51ec6ad2bf19050230af7c5611a/engineering/verification/native-spaces/5.22-p3/QUALIFICATION.md)
 
-同一候选的窗口区再次取证：增强的观察器在空态、两窗分别连续两次核对了 Host 与夹具代际、当前桌面和窗口集合。关窗后正式侧栏读回超时，此次为 BLOCKED，11 帧录屏只覆盖 0→2；此前的 14 帧实拍单独保留。[双读回与超时](12-physical-probe/roster-two-censuses/results.json) · [实际录制区间](12-physical-probe/roster-two-censuses/recording.json)
+同一候选的窗口区再次取证：增强的观察器在空态、两窗分别连续两次核对了 Host 与夹具代际、当前桌面和窗口集合。关窗后正式侧栏读回超时，此次为 BLOCKED，11 帧录屏只覆盖 0→2。此前另一次实拍有 14 帧。[双读回与超时](12-physical-probe/roster-two-censuses/results.json) · [实际录制区间](12-physical-probe/roster-two-censuses/recording.json)
+
+使用同一安装包按顺序读侧栏和截图后，三状态完整通过。空态、两扇文档、关闭后分别由两个独立进程确认 0、2、0 张卡，三次均无空间行、占位文字或重复卡。夹具退出，系统窗口编号已消失，日常配置已恢复。此轮关窗后保留了窗口区域截图。[空态侧栏](12-physical-probe/roster-serialized/empty-before-sidebar.png) · [两扇窗口](12-physical-probe/roster-serialized/two-documents-sidebar.png) · [关闭后](12-physical-probe/roster-serialized/empty-after.png) · [六次独立系统读回](12-physical-probe/roster-serialized/results.json)
 
 ## 签名候选与回退
 
