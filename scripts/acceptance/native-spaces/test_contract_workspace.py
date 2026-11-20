@@ -25,6 +25,7 @@ class WorkspaceTests(unittest.TestCase):
         w = Workspace.__new__(Workspace)
         w.home, w.display, w.record, w.host = 2000, self.display, Mock(), self.live["host"]
         w.original = self.snapshot(self.originals, 2000)
+        w.protected = w.original["scopes"][0]["records"]
         w.closed, w.ledgers, w.boot = [], [self.ledger], "boot-fixture"
         w.cleanup_current, w.cleanup_focus, w.recovering = 5, self.live, False
         w.read = lambda: deepcopy(self.live)
@@ -52,6 +53,16 @@ class WorkspaceTests(unittest.TestCase):
         for key, value in [("ordinary",[{"number":990,"pid":400}]),("unresolved",1),("otherMembers",2)]:
             c=deepcopy(sample); c["scopedMembers"]["4829"][key]=value
             self.assertFalse(occupancy_matches(c,{4829:[]}))
+
+    def test_cleanup_preserves_latest_personal_order_and_rejects_reused_ids(self):
+        live=self.snapshot([self.originals[1],self.originals[0],self.originals[2],self.extra], 5)
+        self.ws.bind_protected_order(live)
+        self.assertEqual([r["id"] for r in self.ws.protected],[2000,4,5])
+        self.ws.check(live)
+        damaged=deepcopy(live)
+        damaged["scopes"][0]["records"][-1]["uuid"]="different"
+        with self.assertRaisesRegex(ScopeError,"reused"):
+            self.ws.bind_protected_order(damaged)
 
     def test_unknown_dispatched_removal_is_not_replayed(self):
         pending=self.root/"remove-intent.json"

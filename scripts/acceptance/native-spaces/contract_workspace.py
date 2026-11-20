@@ -23,7 +23,7 @@ def write_owned(path, obj):
 def row(o):
     require(len(o["scopes"] or []) == len(o["displays"]) == 1, "contract fixture needs one physical display")
     s = o["scopes"][0]
-    require(s["scope"] == o["displays"][0]["uuid"] and len({r["id"] for r in s["records"]}) == len(s["records"])
+    require(s["scope"] == o["displays"][0]["uuid"] and len({r["id"] for r in s["records"]}) == len({r["uuid"] for r in s["records"]}) == len(s["records"])
             and all(r.get("uuid") and r["type"] in (0, 4) for r in s["records"]), "incomplete real display/Space identity")
     return s
 
@@ -71,9 +71,11 @@ class Workspace:
         # A recovered inactive lease must not override a newer user-selected original Space.
         self.cleanup_current = self.home
         self.cleanup_focus = self.original
+        self.protected = s["records"]
         if resume:
+            self.bind_protected_order(live)
             current = row(live)["current"]
-            if current in {r["id"] for r in s["records"]}:
+            if current in {r["id"] for r in self.protected}:
                 self.cleanup_current = current
                 self.cleanup_focus = live
         require(any(r["id"] == self.home and r["type"] in (0, 4) for r in s["records"]), "original active Space identity unavailable")
@@ -95,6 +97,18 @@ class Workspace:
             self.reconcile_removed(live)
         self.check(self.read())
 
+    def bind_protected_order(self, observation):
+        live = row(observation)["records"]
+        original = row(self.original)["records"]
+        leases = {int(made["target"]): made["after"]["spaceUUIDs"][made["target"]]
+                  for made in (json.loads(private_file(p)) for p in self.ledgers)}
+        require(all(r in live for r in original), "a pre-existing Space ID, UUID or type changed")
+        require(all(r["type"]==0 and r["uuid"]==leases[r["id"]] and r["id"] not in self.closed
+                    for r in live if r["id"] in leases), "a leased Space ID was reused")
+        self.protected = [r for r in live if r["id"] not in leases]
+        self.record("recovery-protected-order",ids=[r["id"] for r in self.protected],
+                    originalOrderMatches=self.protected==original)
+
     def hardware(self):
         return [int(x) for x in checked([str(self.kit/"system-workspace"),"hid"]).strip().split(",")]
 
@@ -110,7 +124,7 @@ class Workspace:
     def check(self, o):
         require(o["host"] == self.host and o["displays"] == self.original["displays"], "installed Host or physical displays changed")
         s = row(o)
-        existing = row(self.original)["records"]
+        existing = self.protected
         leased = {int(v["target"]):v["after"]["spaceUUIDs"][v["target"]]
                   for v in (json.loads(private_file(p)) for p in self.ledgers) if int(v["target"]) not in self.closed}
         require([r for r in s["records"] if r["id"] not in leased] == existing
@@ -207,7 +221,7 @@ class Workspace:
     def bind_quiet_cleanup(self):
         """Wait for a quiet pre-dispatch interval and preserve the user's actual foreground."""
         deadline = time.monotonic() + 20
-        original_ids = {r["id"] for r in row(self.original)["records"]}
+        original_ids = {r["id"] for r in self.protected}
         while time.monotonic() < deadline:
             counters = self.hardware()
             first = self.read()
@@ -263,9 +277,12 @@ class Workspace:
         except (OSError,ValueError,KeyError,subprocess.SubprocessError) as exc:
             failures.append(str(exc))
         end=self.read()
-        ok = row(end)["records"] == row(self.original)["records"] and row(end)["current"] == self.cleanup_current and self.original["displays"] == end["displays"]
+        preserved = row(end)["records"] == self.protected
+        original_order = row(end)["records"] == row(self.original)["records"]
+        ok = preserved and row(end)["current"] == self.cleanup_current and self.original["displays"] == end["displays"]
         focus = (self.cleanup_focus.get("frontmostPID"),self.cleanup_focus.get("focusedNumber"))==(end.get("frontmostPID"),end.get("focusedNumber"))
         return dict(topologyRestored=ok, focusRestored=focus, originalCurrent=self.home, cleanupCurrent=self.cleanup_current,
+                    originalOrderRestored=original_order, preservedLatestOrder=preserved,
                     retainedUserSelectedSpace=self.cleanup_current != self.home, created=len(self.ledgers), removed=len(self.closed),
                     outstanding=self.ids(),errors=failures)
 
