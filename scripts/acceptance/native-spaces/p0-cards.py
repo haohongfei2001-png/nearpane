@@ -67,6 +67,13 @@ def compatible(topology, a, b):
     ids = [s['id'] for s in topology['records']]
     return a in ids and b in ids and abs(ids.index(a) - ids.index(b)) == 1
 
+def assigned_ordinary(original, candidate, numbers, claims):
+    require(original['display']==candidate['display'] and original['records']==candidate['records'],
+            'original Space UUIDs or order changed while the owner activated its own window')
+    current=candidate['current']
+    return (any(row['id']==current and row['type']==0 for row in original['records'])
+            and len(numbers)==len(claims) and all(p.get('number')==n and p.get('standard') and p.get('forward')
+            and p.get('reverse')==[current] for n,p in zip(numbers,claims)))
 
 def journal_files(root):
     if not root.exists(): return set()
@@ -266,6 +273,13 @@ def gate_status(items,expected):
     bad=next((x['status'] for x in items if x['status']!='PASS'),None)
     return bad or ('PASS' if len(items)==expected else 'BLOCKED')
 
+def evaluate_gate(stage, name, expected):
+    navigation=gate_status(stage['samples'],expected)
+    stage['navigationStatus']=navigation
+    if name=='ten' and navigation=='PASS' and stage.get('blankScreen')!='PASS':
+        stage.update(status='BLOCKED',reason='10 independent navigations confirmed; absence of a black physical display was not witnessed')
+    else:stage['status']=navigation
+
 class OriginalFocus:
     def __init__(self,tool):
         self.proc=subprocess.Popen([tool,'hold-original'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
@@ -273,10 +287,10 @@ class OriginalFocus:
         if not select.select([self.proc.stdout],[],[],timeout)[0]:return {'error':'original AX reference timed out'}
         line=self.proc.stdout.readline()
         return json.loads(line) if line else {'error':'original AX reference unavailable'}
-    def finish(self,restore):
+    def finish(self,restore,ordinary=None):
         try:
             if self.proc.poll() is None:
-                self.proc.stdin.write('restore\n' if restore else 'release\n');self.proc.stdin.flush()
+                self.proc.stdin.write((('restore '+str(ordinary) if ordinary else 'restore') if restore else 'release')+'\n');self.proc.stdin.flush()
                 return self.reply() if restore else {'issued':False}
             return {'issued':False}
         finally:
@@ -288,7 +302,7 @@ class OriginalFocus:
 
 def run(args):
     out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False);tool=args.kit/'p0-card'
-    result={'status':'BLOCKED','stages':{n:{'status':'NOT_RUN','requested':c,'samples':[]} for n,c in GATES},'blankScreen':'UNKNOWN','privateContentCaptured':False}
+    result={'status':'BLOCKED','stages':{n:{'status':'NOT_RUN','navigationStatus':'NOT_RUN','blankScreen':'UNKNOWN','requested':c,'samples':[]} for n,c in GATES},'blankScreen':'UNKNOWN','privateContentCaptured':False}
     report=lambda:store(out/'results.json',result)
     def log(event,**data):
         with (out/'actions.jsonl').open('a') as f:
@@ -307,18 +321,29 @@ def run(args):
             focus=OriginalFocus(tool);held=focus.reply();store(out/'original-focus.json',held)
             if held.get('held'):
                 require((initial['frontPID'],initial['focusedNumber'],initial['topology'],initial['hid'])==(held['pid'],held['number'],held['topology'],held['hid']),'original focus or user input changed at admission')
-            origin=initial['topology'];a=origin['current'];row=next(s for s in origin['records'] if s['id']==a)
-            require(row['type']==0,'original foreground is a private fullscreen; creating ordinary windows there would not keep the source under fixture control')
+            user=initial['topology'];user_space=user['current'];row=next(s for s in user['records'] if s['id']==user_space)
+            require(row['type'] in (0,4),'unsupported type for original foreground Space')
+            before=state();guard_setup(before,initial,{user_space},{initial['frontPID']});require(before['topology']==user,'original UUID order changed')
+            rootdoc=documents.launch('Lifecycle Window');first,second=rootdoc['windows']
+            before=state();require(before.get('hid')==initial['hid'] and before['topology']['records']==user['records'] and before['topology']['display']==user['display'],
+                                   'human input or topology changed while launching the dedicated document owner')
+            if before['topology']['current']!=user_space:
+                # A new regular app can already have brought its existing ordinary Space forward.
+                require(assigned_ordinary(user,before['topology'],[first['number'],second['number']],witnesses([first,second])),
+                        'unrelated foreground or Space arrived before the owned activation')
+            documents.control(rootdoc,'activate',0)
+            def confirmed_source(s):
+                require(s['hid']==initial['hid'] and s['topology']['records']==user['records'] and s['topology']['display']==user['display'],
+                        'human input or topology changed while macOS activated the own ordinary document')
+                if s.get('frontPID')!=first['pid'] or s.get('focusedNumber')!=first['number']:return False
+                return assigned_ordinary(user,s['topology'],[first['number'],second['number']],witnesses([first,second]))
+            owned=until(state,confirmed_source,'normal AppKit activation did not place both owned documents and exact focus together on an ordinary Space',9)
+            origin=owned['topology'];a=origin['current'];store(out/'owned-source.json',dict(origin=origin,originalUserSpace=user_space,owned=first,witnesses=witnesses([first,second])))
+            log('owned-ordinary-source',source=a,originalUserSpace=user_space,macOSAssigned=a!=user_space)
             tail=origin['records'][-1]['id']==a
             route='ordinary' if args.route=='auto' and tail else ('fullscreen' if args.route=='auto' else args.route)
             require(route!='ordinary' or tail,'new ordinary Space would not be adjacent to the original ordinary Space')
             result['setupRoute']=route;report()
-            before=state();guard_setup(before,initial,{a},{initial['frontPID']});require(before['topology']==origin,'original UUID order changed')
-            rootdoc=documents.launch('Lifecycle Window');first,second=rootdoc['windows']
-            until(lambda:anchored([first,second],[a,a]),bool,'source ordinary documents lack independent AX + WindowServer membership')
-            before=state();guard_setup(before,initial,{a},{initial['frontPID'],first['pid']});require(before['topology']==origin,'initial topology changed')
-            documents.control(rootdoc,'activate',0)
-            owned=until(state,lambda s:s.get('frontPID')==first['pid'] and s.get('focusedNumber')==first['number'] and s['topology']==origin,'owned ordinary source is not foreground')
             guard_setup(owned,initial,{a},{first['pid']})
             if route=='ordinary':
                 lease=out/'ordinary-lease';lease.mkdir(mode=0o700);ws=Workspace(args.kit,lease,log)
@@ -375,10 +400,13 @@ def run(args):
                         trial=dict(status='BLOCKED',reason='new input or topology changed before the next sample',hostIssued=False,axIssued=False)
                         sample_dir=out/f'{gate}-{n:02}';sample_dir.mkdir();store(sample_dir/'result.json',trial);log('card-not-issued',**trial)
                     else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log)
-                    stage['samples'].append(dict(index=n,source=source,target=target,**trial));stage['status']=gate_status(stage['samples'],how_many);report()
+                    stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if trial['status']!='PASS':break
                     source=target
-                if stage['status']!='PASS':result['status']=stage['status'];break
+                if stage['status']!='PASS':
+                    result['status']=stage['status']
+                    if gate=='ten':result['stages']['fifty']['reason']='10-switch gate did not pass every required subcheck'
+                    break
                 if gate=='fifty':
                     times=[x['latencyMS'] for x in stage['samples']];stage['latencyMS']={k:percentile(times,p) for k,p in [('p50',.50),('p95',.95),('p99',.99)]}
                     stage['latencyDefinition']='AXPress dispatch uptime to first independent target observation, nearest-rank statistics';result['status']='PASS'
@@ -403,17 +431,22 @@ def run(args):
             if ws and lease:
                 try:
                     # Recovery binds the now-current unrelated foreground if the user moved during the run.
-                    recovery=Workspace(args.kit,lease,log,resume=True);clean['ordinary']=recovery.cleanup()
+                    live=state();recovery=Workspace(args.kit,lease,log,resume=True)
+                    if live.get('hid')!=initial['hid'] and live.get('topology',{}).get('current') in recovery.ids():
+                        clean['ordinary']={'outstanding':recovery.ids(),'reason':'latest human input on a leased desktop; foreground preserved'}
+                    else:clean['ordinary']=recovery.cleanup()
                     if clean['ordinary']['outstanding']:problems.append('ordinary lease still outstanding')
                 except (ValueError,OSError,subprocess.SubprocessError) as e:problems.append(str(e))
             if initial:
                 try:
                     last=state();deadline=time.monotonic()+7
                     while last.get('topology',{}).get('records')!=initial['topology']['records'] and time.monotonic()<deadline:time.sleep(.15);last=state()
-                    needs_focus=(last.get('frontPID'),last.get('focusedNumber'))!=(initial.get('frontPID'),initial.get('focusedNumber'))
+                    needs_focus=(last.get('frontPID'),last.get('focusedNumber'),last.get('topology'))!=(initial.get('frontPID'),initial.get('focusedNumber'),initial.get('topology'))
                     if focus:
-                        safe=bool(held.get('held') and needs_focus and last.get('topology')==initial['topology'] and last.get('hid')==initial['hid'])
-                        clean['originalFocusRestoration']=focus.finish(safe);focus=None
+                        end=last.get('topology',{})
+                        same_inventory=end.get('display')==initial['topology']['display'] and end.get('records')==initial['topology']['records']
+                        safe=bool(held.get('held') and needs_focus and same_inventory and end.get('current') in (initial['topology']['current'],a) and last.get('hid')==initial['hid'])
+                        clean['originalFocusRestoration']=focus.finish(safe,a if end.get('current')!=initial['topology']['current'] else None);focus=None
                         if safe:last=state()
                     store(out/'final.json',last);end=last.get('topology',{})
                     clean.update(originalOrderAndUUIDsRestored=end.get('records')==initial['topology']['records'] and end.get('display')==initial['topology']['display'],

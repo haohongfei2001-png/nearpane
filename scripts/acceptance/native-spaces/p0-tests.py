@@ -43,9 +43,22 @@ class GateTests(unittest.TestCase):
         extra=dict(id=99,type=4,uuid=self.operation)
         self.assertEqual(runner.owned_insertion(self.top,dict(self.top,records=[*self.rows,extra]),4),99)
         with self.assertRaises(ValueError):runner.owned_insertion(self.top,dict(self.top,records=[*reversed(self.rows),extra]),4)
+    def test_system_assigned_ordinary_requires_both_exact_window_memberships(self):
+        original=dict(self.top,records=[dict(self.rows[0],type=4),self.rows[1]])
+        assigned=dict(original,current=5)
+        claims=[dict(number=n,standard=True,forward=True,reverse=[5]) for n in (77,78)]
+        self.assertTrue(runner.assigned_ordinary(original,assigned,[77,78],claims))
+        self.assertFalse(runner.assigned_ordinary(original,original,[77,78],claims))
+        claims[1]['reverse']=[4,5]
+        self.assertFalse(runner.assigned_ordinary(original,assigned,[77,78],claims))
     def test_stops_before_larger_stage_and_exact_nearest_rank(self):
         self.assertEqual(runner.gate_status([dict(status='PASS')],2),'BLOCKED');self.assertEqual(runner.gate_status([dict(status='PASS'),dict(status='FAIL')],2),'FAIL')
         self.assertEqual(runner.gate_status([dict(status='PASS')]*10,10),'PASS');self.assertEqual(runner.percentile(list(range(1,51)),.95),48)
+    def test_missing_physical_visual_does_not_prevent_one_round_trip_but_blocks_fifty(self):
+        first=dict(samples=[dict(status='PASS')]*2,blankScreen='UNKNOWN')
+        runner.evaluate_gate(first,'roundTrip',2);self.assertEqual(first['status'],'PASS')
+        ten=dict(samples=[dict(status='PASS')]*10,blankScreen='UNKNOWN')
+        runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['status']),('PASS','BLOCKED'))
 
 
 if __name__=='__main__':unittest.main()

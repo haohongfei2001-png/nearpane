@@ -168,17 +168,31 @@ func holdOriginal() throws {
     let window=raw as! AXUIElement, number=NPReadAXWindowNumber(raw)
     guard number>0,owner(window)==pid,(NPReadWindowSpaces(number) as? [UInt64])?.contains(original.current)==true else {throw Refusal("original focus has no positive current-Space membership")}
     emit(["held":true,"pid":pid,"number":number,"birth":born,"topology":try object(original),"hid":input])
-    guard readLine()=="restore" else {return}
-    func verify() throws {
+    let command=readLine()?.split(separator:" ") ?? []
+    guard command.first=="restore", command.count<=2 else {return}
+    let from=command.count==2 ? UInt64(command[1]) : nil
+    if let from {
+        try need(original.records.contains { $0.id==from && $0.type==0 } &&
+                 (NPReadWindowSpaces(number) as? [UInt64]) == [original.current],
+                 "the original retained window is not exclusively assigned to the original Space")
+    }
+    func verify(allowReturn: Bool = false) throws {
         let live=signature(pid)
-        try need(try topology()==original && hardware()==input && birth(pid)==born && live?.0==signed.0 && live?.1==signed.1 &&
+        let now=try topology()
+        try need(now.display==original.display && now.records==original.records && (now.current==original.current || (allowReturn && now.current==from)) &&
+                 hardware()==input && birth(pid)==born && live?.0==signed.0 && live?.1==signed.1 &&
                  owner(window)==pid && NPReadAXWindowNumber(window)==number && (NPReadWindowSpaces(number) as? [UInt64])?.contains(original.current)==true &&
                  array(root,kAXWindowsAttribute).contains { CFEqual($0,window) },"original focus reference, topology or user input changed; preserved newer state")
     }
-    try verify()
-    if NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":false]);return}
+    try verify(allowReturn:true)
+    if try topology()==original && NSWorkspace.shared.frontmostApplication?.processIdentifier==pid && axFocus(pid)==number {emit(["restored":true,"issued":false]);return}
     var changed=false
-    if NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {try verify();changed=app.activate(options:[.activateIgnoringOtherApps])}
+    if try topology() != original || NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
+        try verify(allowReturn:true);changed=app.activate(options:[.activateIgnoringOtherApps])
+        let until=Date(timeIntervalSinceNow:2)
+        while try topology() != original && Date()<until {try verify(allowReturn:true);RunLoop.current.run(until:Date(timeIntervalSinceNow:0.06))}
+        try verify()
+    }
     if axFocus(pid) != number {
         try verify()
         let raised=AXUIElementPerformAction(window,kAXRaiseAction as CFString)
