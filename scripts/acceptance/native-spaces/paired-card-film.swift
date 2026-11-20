@@ -268,7 +268,7 @@ enum PairedCardFilm {
 
     // The last actual presentation closes the movie interval. No extra repeated
     // picture or guessed terminal hold is added to the writer timeline.
-    private static func encode(_ frames:[FilmFrame],width:Int,height:Int,ratio:Double,output:URL) async throws->FilmRow {
+    static func encode(_ frames:[FilmFrame],width:Int,height:Int,ratio:Double,output:URL) async throws->[String:Any] {
         let writer=try AVAssetWriter(outputURL:output,fileType:.mp4)
         writer.movieTimeScale=60_000
         let input=AVAssetWriterInput(mediaType:.video,outputSettings:[AVVideoCodecKey:AVVideoCodecType.h264,
