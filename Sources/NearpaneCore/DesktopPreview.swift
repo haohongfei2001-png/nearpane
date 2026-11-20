@@ -228,17 +228,39 @@ public struct NativeSplitViewLayout: Equatable, Sendable {
 }
 
 public extension DesktopSnapshot {
+    private func currentPreviewRecord(on displayID: String) -> SpaceRecord? {
+        let scopesOnDisplay = scopes.filter { $0.displayID == displayID }
+        guard scopesOnDisplay.count == 1, let record = scopesOnDisplay[0].records.first(where: \.isCurrent),
+              let uuid = record.nativeUUID,
+              scopes.flatMap(\.records).filter({ $0.nativeUUID == uuid }).count == 1 else { return nil }
+        return record
+    }
+
     /// Current regular windows for presentation. Native fullscreen members stay outside
     /// the ordinary-window selection, capture authorization and tiling contracts.
     func activeSpaceWindows(on displayID: String, now: Date, uptime: Double) -> [WindowObservation] {
         guard isStructurallyValid, nativeIsFresh(now: now, uptime: uptime),
               let native, native.population == .workWindows, !native.windowLimitReached,
-              let display = displays.first(where: { $0.id == displayID }),
-              displays.count == 1 || separateSpaces == true else { return [] }
+              let display = displays.first(where: { $0.id == displayID }) else { return [] }
+        if displays.count > 1 && separateSpaces != true {
+            guard native.accessibility != .denied else { return [] }
+            let current = scopes.first(where: { $0.displayID == displayID })?.records.first(where: \.isCurrent)
+            guard current?.nativeKind != .fullscreen else { return [] }
+            return windows.filter { w in
+                guard w.displayID == displayID, let m = w.metadata, m.activeFullscreenSpaceID == nil,
+                      m.onActiveDesktop == true && m.isOnscreen == true, m.minimized == false && m.fullScreen == false,
+                      display.frame.geometry.intersection(m.globalFrame.geometry) == m.globalFrame.geometry,
+                      !displays.contains(where: { $0.id != displayID && $0.frame.geometry.intersection(m.globalFrame.geometry) != nil })
+                else { return false }
+                if let current, case let .known(ids) = w.membership, !ids.contains(current.id) { return false }
+                if native.catalogComplete == nil { return w.canWitnessCurrentSpace }
+                return m.overviewIsPresented == true && m.overviewOrdinaryRole == true && m.hasCatalogGeometry == true
+            }.sorted { ($0.metadata?.number ?? 0) < ($1.metadata?.number ?? 0) }
+        }
         guard native.spaces == .observed, native.catalogComplete != nil else {
             return currentDesktopWindows(on: displayID, now: now, uptime: uptime)
         }
-        guard let current = scopes.first(where: { $0.displayID == displayID })?.records.first(where: \.isCurrent) else { return [] }
+        guard let current = currentPreviewRecord(on: displayID) else { return [] }
         if current.nativeKind == .ordinary { return currentDesktopWindows(on: displayID, now: now, uptime: uptime) }
         guard current.nativeKind == .fullscreen, native.accessibility != .denied else { return [] }
         return windows.filter { w in
@@ -251,8 +273,7 @@ public extension DesktopSnapshot {
     }
 
     func currentSplitView(on displayID: String, now: Date, uptime: Double) -> NativeSplitViewLayout? {
-        guard let current = scopes.first(where: { $0.displayID == displayID })?.records.first(where: \.isCurrent),
-              let uuid = current.fullscreenUUID, let display = displays.first(where: { $0.id == displayID }) else { return nil }
+        guard let current = currentPreviewRecord(on: displayID), let uuid = current.fullscreenUUID, let display = displays.first(where: { $0.id == displayID }) else { return nil }
         let active = activeSpaceWindows(on: displayID, now: now, uptime: uptime)
         guard active.count == 2, active.allSatisfy({ $0.metadata?.activeFullscreenSpaceID == current.id &&
               $0.metadata?.hasCatalogGeometry == true }) else { return nil }

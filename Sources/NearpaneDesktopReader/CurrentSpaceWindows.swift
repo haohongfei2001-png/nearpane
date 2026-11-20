@@ -97,9 +97,10 @@ extension Reader {
         let others = Self.roleTargets(first, active: activeBefore, currentIDs: otherIDs,
                                       memberships: firstBoundary?.membership ?? [:], background: true)
         let currentNumbers = Set(targets.flatMap(\.numbers))
+        let sharedSpaces = topology.displays.count > 1 && !topology.separateSpaces
         let otherNumbers = Set(others.flatMap(\.numbers)).subtracting(currentNumbers)
         let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8,
-                                                     frameNumbers: fullscreenNumbers) : [:]
+                                                     frameNumbers: sharedSpaces ? currentNumbers : fullscreenNumbers) : [:]
         // Preserve the entire current-desktop budget. Spend a separate bounded slice
         // on known background members for the other Space cards.
         let otherRoles = trusted ? OverviewWindowRole.read(targets: others, revision: request.revision,
@@ -184,8 +185,9 @@ extension Reader {
                 tiles.count == 2 && tiles.contains { $0.pid == entry.process.pid && $0.number == entry.windowID &&
                     ($0.frame.componentError(from: local.geometry) <= 2 || $0.frame.componentError(from: entry.frame) <= 2) }
             }
-            let fullGeometry = fullPresented && before.frame == entry.frame &&
-                (geometry.usualPresentation || tile == true || role?.frame.map { $0.componentError(from: entry.frame) <= 2 } == true)
+            let axConfirmsFrame = role?.frame.map { $0.componentError(from: entry.frame) <= 2 } == true
+            let fullGeometry = fullPresented && before.frame == entry.frame && (geometry.usualPresentation || tile == true || axConfirmsFrame)
+            let publicGeometry = sharedSpaces && visible && before.frame == entry.frame && axConfirmsFrame
             let presented = fullPresented || Self.presentedInOverview(publiclyVisible: visible,
                 orderedAcrossSpaces: first.orderedAcrossSpaces.contains(entry.windowID) && second.orderedAcrossSpaces.contains(entry.windowID),
                 currentMember: proof != nil, onDisplay: afterSlices.contains { $0.displayID == display.id } &&
@@ -198,7 +200,7 @@ extension Reader {
                 frontToBack: windows.count, minimized: role?.minimized, fullScreen: role?.fullscreen, isOnscreen: entry.isOnscreen,
                 onActiveDesktop: visible, overviewSpaceID: proof,
                 hasCatalogGeometry: fullID != nil ? fullGeometry :
-                    geometry.usualPresentation && afterSlices.contains(where: { $0.displayID == display.id }),
+                    (geometry.usualPresentation || publicGeometry) && afterSlices.contains(where: { $0.displayID == display.id }),
                 catalogLogicalFrame: geometry.logical.map(SurfaceRect.init), overviewIsPresented: presented,
                 overviewOrdinaryRole: OverviewWindowRole.classification(of: entry.windowID, owner: ownerRoles, current: proof != nil || fullID != nil),
                 activeFullscreenSpaceID: fullID, matchesNativeTile: tile)
