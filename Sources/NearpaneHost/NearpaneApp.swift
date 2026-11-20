@@ -237,6 +237,17 @@ struct NearpaneApp {
     }
 }
 
+enum HostOpenIntent: String {
+    case unmarked, service, login, background
+
+    init(event: NSAppleEventDescriptor?, backgroundLaunch: Bool = false) {
+        if event?.paramDescriptor(forKeyword: keyAELaunchedAsServiceItem) != nil { self = .service }
+        else if event?.paramDescriptor(forKeyword: keyAELaunchedAsLogInItem) != nil { self = .login }
+        else if backgroundLaunch { self = .background }
+        else { self = .unmarked }
+    }
+}
+
 @MainActor
 final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     #if canImport(RiftletCore) && canImport(SaytileKit)
@@ -304,16 +315,24 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Finder can deliver the open or reopen event before the asynchronous profile lease is ready.
     // A background relaunch used for an update must stay out of the foreground.
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        guard !CommandLine.arguments.contains("--background") else { return false }
-        let event = NSAppleEventManager.shared().currentAppleEvent
-        if event?.paramDescriptor(forKeyword: keyAELaunchedAsLogInItem) != nil ||
-            event?.paramDescriptor(forKeyword: keyAELaunchedAsServiceItem) != nil { return false }
+        guard permitsSettingsOpen(reopen: false) else { return false }
         return requestMainWindow()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        _ = requestMainWindow()
+        if permitsSettingsOpen(reopen: true) { _ = requestMainWindow() }
         return false
+    }
+
+    private func permitsSettingsOpen(reopen: Bool) -> Bool {
+        let intent = HostOpenIntent(event: NSAppleEventManager.shared().currentAppleEvent,
+                                    backgroundLaunch: !reopen && CommandLine.arguments.contains("--background"))
+        // Monotonic phase evidence for whether Services delivery actually passed through the Host open delegate.
+        // No Apple event contents, source application, window, or document is logged.
+        let phase = reopen ? "reopen" : "open"
+        Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "HostOpen")
+            .notice("hostOpen phase=\(phase, privacy: .public) marker=\(intent.rawValue, privacy: .public) uptime=\(ProcessInfo.processInfo.systemUptime, privacy: .public)")
+        return intent == .unmarked
     }
 
     @discardableResult private func requestMainWindow() -> Bool {
@@ -898,6 +917,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func applyDesktopSessionState() {
+        if sessionUnavailable { selectionService?.invalidateSelectionContext() }
         if sessionUnavailable { modules?.stopWindowContentPreview(reason: "session-unavailable") }
         #if canImport(SaytileKit)
         if sessionUnavailable {
@@ -914,6 +934,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func desktopChanged(_ note: Notification) {
+        if note.name == NSWorkspace.didActivateApplicationNotification {
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            selectionService?.foregroundChanged(to: app?.processIdentifier)
+        }
         switch note.name {
         case NSWorkspace.willSleepNotification: desktopAvailabilityChanged(.willSleep)
         case NSWorkspace.didWakeNotification: desktopAvailabilityChanged(.didWake, settling: true)
@@ -922,6 +946,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case NSWorkspace.sessionDidResignActiveNotification: desktopAvailabilityChanged(.resigned)
         case NSWorkspace.sessionDidBecomeActiveNotification: desktopAvailabilityChanged(.becameActive, settling: true)
         case NSWorkspace.activeSpaceDidChangeNotification:
+            selectionService?.invalidateSelectionContext()
             modules?.stopWindowContentPreview(spaceChanged: true, reason: "active-space")
             host?.invalidateDesktop()
         default:
@@ -948,6 +973,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func screensChanged() {
+        selectionService?.invalidateSelectionContext()
         modules?.stopWindowContentPreview(reason: "screen-parameters")
         let before = desktopAvailability
         readDesktopAvailability(.sample)

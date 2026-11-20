@@ -5,6 +5,8 @@ import OSLog
 /// Only fixed stage names, a correlation ID, content digests and monotonic time leave a tool.
 public enum LocalToolStage: String, Sendable {
     case serviceRegistered, serviceCallback, requestQueued, hostReceived, modelInstalled, modelMissing, modelUnsupported
+    case serviceOriginBound, serviceCallerUnverified, serviceSelectionUnverified, anchorFeedbackPointer
+    case feedbackPointerUnavailable, feedbackPointerRevoked
     case translated, translationFailed, anchorSelection, anchorPointer, panelVisible, panelUnavailable, wordCommitted, wordReopened
     case firstPCM, voiceStarted, voicePaused, voiceInterrupted, voiceRecordingLinked, voiceAudioPersisted
     case voiceFinal, voiceRecoverable, voiceDiscarded, voiceUnverified
