@@ -44,7 +44,7 @@ def stats(s, display):
 
 
 class Workspace:
-    def __init__(self, kit, output, record, resume=False):
+    def __init__(self, kit, output, record, resume=False, previous_archive=None, install_receipt=None):
         self.kit, self.output, self.record = kit, output, record
         self.recovering = resume
         self.boot = checked(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"]).strip()
@@ -80,8 +80,13 @@ class Workspace:
         require(self.original.get("observerAX") is True and self.original.get("host") and self.original.get("installedHostCount") == 1,
                 "installed Host and observer AX required")
         self.host = live.get("host") or {}
-        require(live.get("installedHostCount") == 1 and self.host.get("codeHash") == self.original["host"].get("codeHash")
-                and self.host.get("codeHash"), "cleanup requires the same installed Host code signature")
+        require(live.get("installedHostCount") == 1 and self.host.get("codeHash"), "cannot identify the installed Host")
+        old_hash=self.original["host"].get("codeHash")
+        if self.host["codeHash"] != old_hash:
+            require(resume, "installed Host changed during test admission")
+            from contract_signing import continuity
+            proof=continuity(previous_archive,install_receipt,old_hash,self.host["codeHash"])
+            self.record("signed-install-continuity",**proof)
         if resume:
             checked(["/usr/bin/codesign", "--verify", "--strict", "/Applications/Nearpane.app"])
             self.record("cleanup-host-bound", original=self.original["host"], current=self.host)
@@ -269,6 +274,8 @@ if __name__ == "__main__":
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kit",required=True,type=Path)
     parser.add_argument("output",type=Path)
+    parser.add_argument("--previous-archive",type=Path)
+    parser.add_argument("--install-receipt",type=Path)
     parser.add_argument("--cleanup",action="store_true",help="reconcile a saved run instead of creating a test desktop")
     args=parser.parse_args()
     os.umask(0o077)
@@ -277,7 +284,8 @@ if __name__ == "__main__":
         def event(kind, **detail):
             stream.write(json.dumps(dict(event=kind,monotonic=time.monotonic(),**detail))+"\n")
             stream.flush();os.fsync(stream.fileno())
-        work=Workspace(args.kit.resolve(),args.output.resolve(),event,resume=args.cleanup)
+        work=Workspace(args.kit.resolve(),args.output.resolve(),event,resume=args.cleanup,
+                       previous_archive=args.previous_archive,install_receipt=args.install_receipt)
         try:
             if not args.cleanup:work.create()
         finally:

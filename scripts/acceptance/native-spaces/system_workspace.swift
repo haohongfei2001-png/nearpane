@@ -37,17 +37,41 @@ func live(_ r: WorkspaceRequest) throws -> (UInt64, [Record]) {
     }
     return (current,records)
 }
-func guardState(_ r: WorkspaceRequest) throws {
+@discardableResult
+func guardState(_ r: WorkspaceRequest, stage: String = "initial", expected: UInt64? = nil,
+                admitFullscreenOverview: Bool = false) throws -> UInt64 {
     let (current, records) = try live(r)
-    guard let session = CGSessionCopyCurrentDictionary() as? [String:Any], session[kCGSessionOnConsoleKey as String] as? Bool == true,
-          session[kCGSessionUserIDKey as String] as? NSNumber == NSNumber(value:getuid()),
-          session["CGSSessionScreenIsLocked"] as? Bool != true, AXIsProcessTrusted(),
-          hardware() == r.hid, NSEvent.pressedMouseButtons == 0, current == r.current, records == r.records,
-          Set([r.original] + r.owned).count == r.owned.count + 1, !r.owned.contains(r.original),
-          let host = NSRunningApplication(processIdentifier:r.hostPID), !host.isTerminated,
-          host.bundleURL?.standardizedFileURL.path == "/Applications/Nearpane.app",
-          host.bundleIdentifier == "com.holdsnow.nearpane.alpha"
-    else { throw Refusal("physical input, session, Host, current desktop or original inventory changed") }
+    let expect = expected ?? r.current
+    func fail(_ reason: String) -> Refusal { Refusal("\(stage): \(reason) (current=\(current), expected=\(expect))") }
+    guard let session = CGSessionCopyCurrentDictionary() as? [String:Any] else { throw fail("console session unavailable") }
+    guard session[kCGSessionOnConsoleKey as String] as? Bool == true else {throw fail("session is off console")}
+    guard session[kCGSessionUserIDKey as String] as? NSNumber == NSNumber(value:getuid()) else {throw fail("console user changed")}
+    guard session["CGSSessionScreenIsLocked"] as? Bool != true else {throw fail("screen locked")}
+    guard AXIsProcessTrusted() else {throw fail("AX trust lost")}
+    let types=["leftDown","rightDown","otherDown","keyDown","scroll"]
+    let counts=hardware()
+    guard counts==r.hid else {
+        let delta=types.indices.compactMap { i -> String? in
+            guard i<counts.count && i<r.hid.count else {return types[i]+"=unavailable"}
+            return counts[i] == r.hid[i] ? nil : "\(types[i])=\(counts[i] &- r.hid[i])"
+        }
+        throw fail("HID changed "+delta.joined(separator:","))
+    }
+    guard NSEvent.pressedMouseButtons == 0 else {throw fail("mouse buttons down: \(NSEvent.pressedMouseButtons)")}
+    guard records == r.records else {throw fail("id/type/UUID order changed from \(r.records.map(\.id)) to \(records.map(\.id))")}
+    guard Set([r.original]+r.owned).count==r.owned.count+1 else {throw fail("origin and leased identities collide")}
+    guard let app=NSRunningApplication(processIdentifier:r.hostPID), !app.isTerminated,
+          app.bundleURL?.standardizedFileURL.path=="/Applications/Nearpane.app",app.bundleIdentifier=="com.holdsnow.nearpane.alpha"
+    else {throw fail("installed Host process/path changed from PID \(r.hostPID)")}
+    if current != expect {
+        // Opening the system overview at a fullscreen origin can display an existing
+        // ordinary Space. Bind that observed transition only for inactive-desktop recovery.
+        guard admitFullscreenOverview, r.command=="remove", try overviewVisible(),
+              r.records.contains(where:{$0.id==expect && $0.type==4}),
+              r.records.contains(where:{$0.id==current && $0.type==0}),
+              !r.owned.contains(current), current != r.target else {throw fail("current Space changed")}
+    }
+    return current
 }
 func overviewVisible() throws -> Bool {
     let running = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
@@ -202,7 +226,8 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         usleep(80_000)
     } while ProcessInfo.processInfo.systemUptime < deadline
     guard let tiles else {throw Refusal(detail)}
-    try guardState(r)
+    let overviewCurrent=try guardState(r,stage:"overview-admission",admitFullscreenOverview:true)
+    if overviewCurrent != r.current { proof["overviewChangedCurrent"]=["from":r.current,"to":overviewCurrent] }
     let second=try Tiles(r,uuid)
     try demand(second.bar.owner.processIdentifier==tiles.bar.owner.processIdentifier &&
                CFEqual(second.bar.add,tiles.bar.add) && zip(second.elements,tiles.elements).allSatisfy { CFEqual($0,$1) },"system desktop controls changed")
@@ -227,12 +252,12 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
     var choices: CFArray?
     guard AXUIElementCopyActionNames(el,&choices) == .success, (choices as? [String])?.contains(action)==true,
           attr(el,kAXEnabledAttribute) as? Bool == true else {throw Refusal("system desktop action unavailable")}
-    try guardState(r)
+    try guardState(r,stage:"before-system-action",expected:overviewCurrent)
     if r.command=="remove", let target=r.target, let beforeOverview {
         if let surface = try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {
             proof["overviewComposite"] = surface
         }
-        try guardState(r)
+        try guardState(r,stage:"after-empty-read",expected:overviewCurrent)
     }
     issued=true
     let err=AXUIElementPerformAction(el,action as CFString)
