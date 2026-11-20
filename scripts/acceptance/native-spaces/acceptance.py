@@ -317,7 +317,15 @@ def hidden_budget(observer, initial, frozen, rec):
     counters = lambda: json.loads(checked([str(observer.parent / "metrics"), str(pid)]))
     before = counters()
     rec.log("metrics-visible", sample=before)
-    if before["visibleDisplays"] > 1 or before["gallerySessions"]:
+    # A visible R4 sidebar runs one window-gallery capture loop on this display.
+    # In an owned fresh profile that loop is the subject of the hide measurement.
+    from installed_profile import PROFILE, owns_profile, validate_home
+    home = os.environ.get("NEARPANE_TEST_HOME")
+    owns_gallery = False
+    if home and before["visibleDisplays"] == 1 and before["gallerySessions"] == 1:
+        validate_home(Path(home))
+        owns_gallery = owns_profile(pid, Path(home) / PROFILE)
+    if before["visibleDisplays"] > 1 or (before["gallerySessions"] and not owns_gallery):
         return "Multiple preview surfaces open; user-owned presentation preserved."
     was_visible = before["visibleDisplays"] == 1
     if was_visible and ("visibilityRevision" not in before or before.get("surfaceHidden") != 0):

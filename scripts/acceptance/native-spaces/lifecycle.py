@@ -60,7 +60,7 @@ def run(kit, output):
             # Keep only system identities, counts and flags. The two fixture documents contain generated content.
             return {k:v for k,v in data.items() if k!="sidebarRows"}
         def checkpoint(name):
-            sample=observe();metrics=json.loads(subprocess.check_output([kit/"metrics",str(host)]))
+            sample=until(observe,lambda view:bool(view.get("scopes")),4);metrics=json.loads(subprocess.check_output([kit/"metrics",str(host)]))
             out["checkpoints"][name]={"system":sample,"fixture":state(),"hostMetrics":metrics}
             record("checkpoint",name=name,current=sample["current"],membership=sample["memberships"]);save()
             return sample
@@ -74,6 +74,8 @@ def run(kit, output):
             out["zoomInOrdinarySpace"] = (zoom["current"]==ordinary and not state()["fullscreen"][0] and
                                          state()["frames"][0] != out["checkpoints"]["ordinary"]["fixture"]["frames"][0])
             send("unzoom")
+            send("activate",0)
+            until(observe,lambda o:o["frontmostFixture"] and o["current"]==ordinary,5)
             film=output/"owned-window.mp4"
             movie=subprocess.Popen([kit/"film",str(proc.pid),str(numbers[0]),"6",film],
                                    stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
@@ -127,9 +129,16 @@ def run(kit, output):
         except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as error:
             out["issue"]=str(error);record("stopped",reason=str(error))
         finally:
-            if movie and movie.poll() is None:
-                try:movie.communicate(timeout=12)
-                except subprocess.TimeoutExpired:movie.terminate();movie.wait(timeout=5)
+            if movie and "movie" not in out and "movieError" not in out:
+                try:
+                    message,error=movie.communicate(timeout=12)
+                    if movie.returncode==0:
+                        out["movie"]=json.loads(message)
+                        (output/"owned-window.mp4.ready").unlink(missing_ok=True)
+                    else: out["movieError"]=error.strip()
+                except (subprocess.TimeoutExpired, ValueError) as error:
+                    if movie.poll() is None:movie.terminate();movie.wait(timeout=5)
+                    out["movieError"]=str(error)
             try:
                 if proc and proc.poll() is None and folder and (folder/"windows.json").is_file():
                     oldpid=proc.pid; oldnumbers=state()["numbers"]; stop()

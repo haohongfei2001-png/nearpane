@@ -30,7 +30,10 @@ final class MovieEvents: NSObject, SCRecordingOutputDelegate {
         catch { fputs("Fixture recording: \(error.localizedDescription)\n", stderr); exit(2) }
     }
 
-    static func capture() async throws {
+    @MainActor static func capture() async throws {
+        // Initialize this standalone observer's WindowServer connection on the main thread.
+        _ = NSApplication.shared
+        _ = NSScreen.screens
         let args = CommandLine.arguments
         guard args.count == 5, let pid = Int32(args[1]), let wid = UInt32(args[2]),
               let seconds = Int(args[3]), (2...45).contains(seconds), CGPreflightScreenCaptureAccess(),
