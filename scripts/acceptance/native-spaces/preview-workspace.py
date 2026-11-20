@@ -93,6 +93,33 @@ def validate_script(path, name):
     return path
 
 
+class PreviewWorkspace(Workspace):
+    fixture=None
+
+    def select(self,n):
+        original=self.read();top=self.check(original);current=top["current"]
+        if n==current or any(r["id"] in (n,current) and r["type"]!=0 for r in top["records"]):
+            return super().select(n)
+        require(n in self.ids() or n==self.cleanup_current,"system selection outside preview lease")
+        hid=self.hardware();fresh=self.read()
+        require(self.check(fresh)==top and hid==self.hardware() and
+                (fresh.get("frontmostPID"),fresh.get("focusedNumber"))==(original.get("frontmostPID"),original.get("focusedNumber")),
+                "hardware focus or Space changed before direct system AX selection")
+        if n==self.cleanup_current:kind="daily-origin"
+        else:kind="two-documents" if self.fixture and self.fixture["space"]==n else "empty"
+        request=dict(command="select",display=self.display,records=top["records"],current=current,original=self.cleanup_current,
+                     owned=self.ids(),target=n,hostPID=self.host["pid"],hostHash=self.host["codeHash"],hostBirth=self.host_birth,
+                     hid=hid,kind=kind,fixture=self.fixture if kind=="two-documents" else None)
+        self.record("system-AX-tile-intent",source=current,target=n,occupancy=kind)
+        r=subprocess.run([self.kit/"preview-space-select"],input=json.dumps(request),text=True,capture_output=True,timeout=24)
+        reply=json.loads(r.stdout)
+        self.record("system-AX-tile-result",source=current,target=n,proof=reply)
+        require(r.returncode==0 and reply.get("issued") is True and reply.get("acknowledged") is True and reply.get("action")=="AXPress"
+                and reply.get("targetConfirmedBeforeOwnedOverviewClosed") is True and reply.get("overviewDismissed") is True and not reply.get("error"),
+                reply.get("error","semanticSystemDesktopSelectionNotIndependentlyConfirmed"))
+        return self.settled(lambda o:self.check(o)["current"]==n and self.check(o)["records"]==top["records"],"systemSelectionArrivalNotStable")
+
+
 def system_switch(ws, a, fixture, folder):
     """System selection A → empty B → A. Every read is bound to the original two window numbers."""
     folder.mkdir(mode=0o700)
@@ -135,7 +162,7 @@ def system_switch(ws, a, fixture, folder):
             rows.append({k:report[k] for k in ("ready","reason","space","numbers","fixtureBirth","hostBirth","kinds","present") if k in report})
         return {"reads":rows,"exact":all(r.get("ready") and r.get("space")==a and r.get("numbers")==windows and
                       r.get("fixtureBirth")==fixture["fixtureBirth"] and r.get("hostBirth")==fixture["hostBirth"] for r in rows)}
-    b=None;baseline=ws.hardware();persist()
+    b=None;baseline=ws.hardware();persist();ws.fixture=fixture
     try:
         require(a in ws.ids() and ws.check(ws.read())["current"]==a and states(ws.kit)[-1]["state"] is False,"requiresStageOffOwnedSpaceA")
         check_members(a,None);result["beforeA"]=card_pair();require(result["beforeA"]["exact"],"exactSourceCardsBeforeSystemSwitchMissing")
@@ -168,6 +195,7 @@ def system_switch(ws, a, fixture, folder):
         except (OSError,ValueError,KeyError,RuntimeError,subprocess.SubprocessError) as e:
             result["returnReason"]=str(e)[:220]
             if result["status"]!="FAIL":result["status"]="BLOCKED"
+        ws.fixture=None
         persist()
     return result
 
@@ -249,7 +277,7 @@ def run(args):
     try:
         require(kit.parent==Path("/private/tmp") and kit.name.startswith("nearpane-d01.") and kit.stat().st_uid==os.getuid()
                 and not kit.stat().st_mode&0o077,"unqualifiedPrivateKit")
-        for tool in ("preview-stage-control","preview-surface","paired-scope","paired-capture","observe","system-workspace","metrics"):
+        for tool in ("preview-stage-control","preview-surface","preview-space-select","paired-scope","paired-capture","observe","system-workspace","metrics"):
             subprocess.run(["/usr/bin/codesign","--verify","--strict",kit/tool],check=True,timeout=6)
         split=validate_script(args.split_command,"split-view.py")
         media=validate_script(args.media_command,"live-preview-media.py")
@@ -265,7 +293,7 @@ def run(args):
         home=Path(test);validate_home(home);pid=installed_pid()
         require(owns_profile(pid,home/PROFILE),"installedHostDoesNotOwnIsolatedWriterLock")
         desktop=output/"workspace";desktop.mkdir(mode=0o700)
-        ws=Workspace(kit,desktop,record)
+        ws=PreviewWorkspace(kit,desktop,record)
         require(ws.host["pid"]==pid,"workspaceHostDoesNotMatchIsolatedInstalledHost")
         target=ws.create();result["leasedSpace"]=target;save()
         ws.select(target);result["initialEmptyScope"]=empty(ws,target)

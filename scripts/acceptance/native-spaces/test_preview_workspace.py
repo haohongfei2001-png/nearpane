@@ -60,4 +60,18 @@ class PreviewWorkspaceTests(unittest.TestCase):
         self.assertEqual(result["status"],"PASS")
         self.assertEqual([r["surface"]["windowCards"] for r in result["observations"]],[2,0,0])
 
+    def test_system_ax_action_needs_independent_arrival_and_overview_dismissal(self):
+        ws=w.PreviewWorkspace.__new__(w.PreviewWorkspace)
+        ws.kit=Path("/x");ws.display="D";ws.host={"pid":4,"codeHash":"x"};ws.host_birth=8;ws.cleanup_current=1
+        top={"current":1,"records":[{"id":1,"type":0},{"id":2,"type":0}]}
+        ws.read=Mock(return_value={"frontmostPID":3,"focusedNumber":4});ws.check=Mock(return_value=top)
+        ws.ids=Mock(return_value=[2]);ws.hardware=Mock(return_value=[0]*5);ws.record=Mock();ws.settled=Mock(return_value="arrived")
+        for reached in (False,True):
+            reply=dict(issued=True,acknowledged=True,action="AXPress",targetConfirmedBeforeOwnedOverviewClosed=reached,overviewDismissed=True)
+            with patch.object(w.subprocess,"run",return_value=Mock(returncode=0,stdout=json.dumps(reply))) as issued:
+                if reached:self.assertEqual(ws.select(2),"arrived")
+                else:
+                    with self.assertRaisesRegex(ValueError,"IndependentlyConfirmed"):ws.select(2)
+                issued.assert_called_once()
+
 if __name__=="__main__":unittest.main()

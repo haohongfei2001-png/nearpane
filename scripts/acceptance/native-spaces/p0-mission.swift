@@ -2,7 +2,10 @@
 import AppKit
 import ApplicationServices
 import Foundation
-@main enum P0MissionControl {
+#if !PREVIEW_SCOPE_SELECTOR
+@main
+#endif
+enum P0MissionControl {
     struct TileSample {
         let proxy:AXUIElement, owner:pid_t, birth:UInt64?, role:String?, enabled:Bool?, names:[String]
         let actionRead:Bool, parentList:Bool, parentStrip:Bool, parentContainer:Bool, listCount:Int
@@ -46,14 +49,19 @@ import Foundation
                     "hitPoint":hitPoint.map {[$0.x,$0.y]} as Any? ?? NSNull()]
         }
     }
-    static func select(_ r: WorkspaceRequest, requestedClick:Bool, issued: inout Bool, report: inout [String:Any]) throws {
+    static func select(_ r: WorkspaceRequest, requestedClick:Bool, issued: inout Bool, report: inout [String:Any],
+                       allowOriginal:Bool=false, validateOccupancy:((Set<UInt32>?) throws -> [String:Any]?)?=nil) throws {
         guard r.command=="select",let display=UUID(uuidString:r.display),let target=r.target,
-              r.owned.contains(target),target != r.current,
+              (r.owned.contains(target) || (allowOriginal && target==r.original)),target != r.current,
               let index=r.records.firstIndex(where:{$0.id==target && $0.type==0}),
               r.records.contains(where:{$0.id==r.current && $0.type==0}) else {throw Refusal("enrolled ordinary destination and ordinary setup source required")}
         report["tile"]=["index":index,"id":target,"uuid":r.records[index].uuid,"source":r.current]
         try guardState(r,stage:"before-direct-AX-setup")
-        _=try requireEmpty(target,host:r.hostPID)
+        func occupants(_ prior:Set<UInt32>?) throws -> [String:Any]? {
+            if let validateOccupancy {return try validateOccupancy(prior)}
+            return try requireEmpty(target,host:r.hostPID,beforeOverview:prior)
+        }
+        _=try occupants(nil)
         let beforeOverview=try publicWindowNumbers()
         if try overviewVisible() {guard try awaitDismissal(of:nil,request:r,timeout:1.5) else {throw Refusal("unowned Mission Control already open")}}
         try guardState(r,stage:"opening-system-overview");try runOverviewLauncher()
@@ -123,7 +131,7 @@ import Foundation
         try demand(complete && a.parentList && b.parentList,"the two complete, owner-bound AX space lists disagree")
         try demand(a.role==kAXButtonRole && b.role==kAXButtonRole && a.enabled != false && b.enabled != false,"tile is not a system button or is explicitly disabled")
         try demand(sameTarget,"no stable target proxy, unique geometry, or independent same-point system hit")
-        if let transient=try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {report["overviewComposite"]=transient}
+        if let transient=try occupants(beforeOverview) {report["overviewComposite"]=transient}
         try guardState(r,stage:"immediately-before-system-input")
         func verifyHeldTile() throws {
             try openedBy.verify();try right.owner.verify()

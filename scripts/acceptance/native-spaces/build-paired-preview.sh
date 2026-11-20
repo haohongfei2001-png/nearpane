@@ -26,4 +26,5 @@ xcrun swiftc "${flags[@]}" -parse-as-library "$src/paired-preview-palette.swift"
 xcrun swiftc "${flags[@]}" "$src/preview-stage-control.swift" "${link[@]}" -o "$kit/preview-stage-control"
 codesign --verify --strict "$kit/Field Notes.app"
 for tool in "$kit/paired-scope" "$kit/paired-capture" "$kit/preview-stage-control" "$kit/preview-surface"; do codesign --verify --strict "$tool"; done
+bash "$src/build-preview-selector.sh" "$kit"
 printf '%s\n' "$kit"
