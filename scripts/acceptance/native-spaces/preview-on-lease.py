@@ -5,11 +5,12 @@ import importlib
 import json
 import os
 from pathlib import Path
+import plistlib
 import subprocess
 import sys
 import time
 
-from installed_profile import PROFILE, owns_profile
+from installed_profile import APP, PROFILE, owns_profile
 from acceptance import Receipt
 from contract_document import run as run_documents
 from space_scope import require
@@ -103,6 +104,17 @@ def run(args):
                 result["documents"] = {k: proof[k] for k in ("status", "operationStatus", "reason", "issued", "passes", "cleanup")}
             finally:
                 document_receipt.finish()
+        elif args.scenario == "five-windows":
+            five_script = driver.validate_script(Path(__file__).resolve().with_name("five-preview.py"), "five-preview.py")
+            require(args.five_window_kit is not None, "the five-window fixture kit is required")
+            installed = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
+            require(installed.get("NearpaneSourceState") == "clean", "five-window trial requires a frozen candidate")
+            child = subprocess.run([sys.executable, five_script, args.five_window_kit, output / "five-windows",
+                                    "--expected-space", str(args.expected_space), "--expected-display", workspace.display,
+                                    "--expected-space-uuid", space_uuid, "--expected-source", installed["NearpaneSourceRevision"]],
+                                   timeout=150)
+            proof = driver.readable_result(output / "five-windows/result.json")
+            result["fiveWindows"] = dict(status=proof["status"], reason=proof.get("reason"), exit=child.returncode)
         else:
             child = subprocess.run([sys.executable, preview, kit, output / "preview", "--expected-space",
                                     str(args.expected_space), "--witness", "--preview-sampler", "streams"], timeout=160)
@@ -120,7 +132,7 @@ def run(args):
                 result["stageRestore"] = dict(status="BLOCKED", reason=str(error)[:260])
             if result["stageRestore"]["status"] != "PASS":
                 result["status"] = "BLOCKED"
-            elif result["preview"]["status"] != "NOT_RUN" or "documents" in result:
+            elif result["preview"]["status"] != "NOT_RUN" or "documents" in result or "fiveWindows" in result:
                 try:
                     result["afterFixture"] = empty_system_desktop(workspace, args.expected_space)
                 except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
@@ -144,7 +156,8 @@ if __name__ == "__main__":
     parser.add_argument("workspace", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--expected-space", required=True, type=int)
-    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents"), default="paired-preview")
+    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows"), default="paired-preview")
+    parser.add_argument("--five-window-kit", type=Path, help="signed five-application kit for the five-windows scenario")
     parser.add_argument("--previous-archive", type=Path)
     parser.add_argument("--install-receipt", type=Path)
     parser.add_argument("--original-checkout", type=Path)
