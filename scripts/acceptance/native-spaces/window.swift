@@ -14,6 +14,9 @@ guard UUID(uuidString: session) != nil else { exit(2) }
 let policy = app.activationPolicy()
 if policy != .regular { _ = app.setActivationPolicy(.regular) }
 let presentation = ProcessInfo.processInfo.environment["NP_FIXTURE_PRESENTATION"]
+#if P2_DOCUMENT_FIXTURE
+if presentation == "p2-documents" { _ = umask(0o077) }
+#endif
 #if FIVE_PREVIEW
 guard presentation == "five-preview", expected == 1,
       let fiveSlot = (0..<5).first(where: { Bundle.main.bundleIdentifier == FivePreviewWindow.identifier($0) }),
@@ -33,8 +36,15 @@ var editors = [NSTextView]()
 var lastState = Data()
 var withdrew = false, minimized = false
 NSWindow.allowsAutomaticWindowTabbing = false
+#if P2_DOCUMENT_FIXTURE
+let registeredDocuments = presentation == "p2-documents"
+let p2LaunchHID = registeredDocuments ? p2Physical() : []
+var documentFiles = [FieldDocumentFile]()
+#else
+let registeredDocuments = false
+#endif
 #if W01_MARKER_WITNESS
-if expected == 2 && (presentation == nil || presentation == "ordinary") {
+if expected == 2 && (presentation == nil || presentation == "ordinary" || registeredDocuments) {
     MainActor.assumeIsolated {
         FieldMarkerWitness.active = FieldMarkerWitness(folder:run,session:session,birth:birth) { (windows,editors) }
     }
@@ -108,6 +118,19 @@ final class SharedFixtureWindow: NSPanel {
         w.colorSpace = .sRGB
         editor.backgroundColor = FivePreviewWindow.color(slot: fiveSlot, phase: 0)
         #endif
+        #if P2_DOCUMENT_FIXTURE
+        if registeredDocuments {
+            guard let file=FieldDocumentFile(folder:run,slot:i,session:session) else { exit(5) }
+            let name = i == 0 ? "A" : "B"
+            w.representedURL=file.url
+            w.setAccessibilityDocument(file.url.absoluteString)
+            w.setAccessibilityIdentifier("p2-document-window-"+name)
+            editor.setAccessibilityIdentifier("p2-document-editor-"+name)
+            editor.string=file.seed
+            editor.setSelectedRange(NSRange(location:file.seed.utf16.count,length:0))
+            documentFiles.append(file); editor.delegate=file
+        }
+        #endif
         if roster { editor.backgroundColor = i == 0 ? NSColor.systemGreen : NSColor.systemPurple }
         editor.autoresizingMask = [.width,.height]
         editor.font = .systemFont(ofSize: 16)
@@ -145,8 +168,18 @@ DispatchQueue.main.asyncAfter(deadline:.now()+0.3) {
 }
 let start = ProcessInfo.processInfo.systemUptime
 let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
-    if FileManager.default.fileExists(atPath: run.appendingPathComponent("close").path) ||
-       ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : (presentation=="paired-preview" ? 240 : 150)) {
+    let inactiveCleanup = registeredDocuments && FileManager.default.fileExists(atPath:run.appendingPathComponent("close-when-inactive").path)
+    let closing = inactiveCleanup || FileManager.default.fileExists(atPath:run.appendingPathComponent("close").path) ||
+        ProcessInfo.processInfo.systemUptime - start > (presentation?.hasPrefix("contract") == true ? 900 : (presentation=="paired-preview" ? 240 : 150))
+    var yieldToUser = inactiveCleanup
+    #if P2_DOCUMENT_FIXTURE
+    if closing && registeredDocuments && (p2Physical() != p2LaunchHID || NSEvent.pressedMouseButtons != 0) {
+        yieldToUser=true
+        let flag=run.appendingPathComponent("p2-user-superseded")
+        if !FileManager.default.fileExists(atPath:flag.path) { _=FileManager.default.createFile(atPath:flag.path,contents:Data(),attributes:[.posixPermissions:0o600]) }
+    }
+    #endif
+    if closing && (!yieldToUser || (!app.isActive && NSWorkspace.shared.frontmostApplication?.processIdentifier != getpid())) {
         #if W01_MARKER_WITNESS
         MainActor.assumeIsolated { FieldMarkerWitness.active?.tick(final:true) }
         #endif
@@ -234,6 +267,9 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
         "editorsFocused": zip(windows, editors).map { $0.firstResponder === $1 },
         "sha256": editors.map { SHA256.hash(data: Data($0.string.utf8)).map { String(format: "%02x", $0) }.joined() }
     ]
+    #if P2_DOCUMENT_FIXTURE
+    if registeredDocuments { payload["filesSaved"] = MainActor.assumeIsolated { documentFiles.map { $0.saved } } }
+    #endif
     #if FIVE_PREVIEW
     payload["slot"] = fiveSlot
     payload["phase"] = fivePhase

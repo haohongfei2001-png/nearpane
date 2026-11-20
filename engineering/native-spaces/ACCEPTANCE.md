@@ -130,3 +130,21 @@ Codex 应实现一条工程验收入口（建议 `scripts/acceptance/native-spac
 
 一个可运行的 Nearpane 候选、实现 PR、当前能力与支持矩阵、上述实机结果、可重跑入口、简短实际演示、回退方法及剩余真实阻塞。Codex 的最终回复应说明“用户现在能完成什么操作”和证据，而非只汇报新增多少测试。
 
+
+### W01 同桌面双文档
+
+在已有空普通桌面的所有权收据下，使用正式安装、已绑定隔离资料的 Nearpane 侧栏。为独立文档 App 和读取器编译同团队 Developer ID 工具包。正式候选无需重新编译。
+
+```sh
+src=scripts/acceptance/native-spaces
+document_kit=$(mktemp -d /private/tmp/nearpane-d01.p2-documents.XXXXXXXX)
+"$src/build-marker-witness.sh" "$document_kit" --registered-documents
+NP_P2_DOCUMENT_KIT="$document_kit" python3 "$src/installed_profile.py" --p0-focus-kit "$full_kit" "$output/profile" -- \
+  python3 "$src/preview-on-lease.py" "$full_kit" "$workspace" "$output/native" \
+    --expected-space "$space_id" --scenario controlled-window \
+    --previous-archive "$previous_archive" --install-receipt "$install_receipt" --original-checkout "$checkout"
+```
+
+`full_kit`、`workspace`、`space_id` 和最后三个参数沿用同一已登记租约的入口，`output` 为新的输出目录。Launch Services 在后台新开同一 App 的两个普通文件窗。签名、进程生辰、两个 AXDocument/CGID 和每个编辑器均与夹具绑定后才允许向正式侧栏发起选窗。每轮标记随机，单次定向投递，前后连续两次交叉检查两个文件的 AX、AppKit 和落盘摘要。首次不一致即终止后续试次。新的物理按键、点击或拖动会使验收标记为 `userSuperseded` 并释放焦点。若用户停留在夹具内，夹具等失去前台后才关闭。
+
+`native/controlled-window/registered-documents.json` 记录 10 次是否完成、签名、登记身份与清理。`actions.jsonl` 记录每个意图、真实 AXPress 和定向事件是否已发出，以及两份文件各自的独立读回。`marker-witness-NN.json` 记录该随机标记的 AppKit 事件来源。`profile/profile-session.json` 记录日常资料恢复；夹具准备、正式 Host 选窗和其他应用的覆盖分别判定。

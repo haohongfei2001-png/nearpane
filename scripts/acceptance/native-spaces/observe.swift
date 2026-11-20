@@ -226,7 +226,7 @@ func focusedNumber(_ pid: pid_t?) -> UInt32? {
 let stage = CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString) as? Bool
 // A scoped census reads its own AX roster and memberships. Avoid traversing the
 // whole workspace a second time between its CG snapshot and its independent AX read.
-let comparingRoster = observerCommand == "compare-roster"
+let comparingRoster = ["compare-roster","p2-document"].contains(observerCommand)
 var report: Object = comparingRoster ? [:] : ["timestamp": Date().timeIntervalSince1970, "uptime": ProcessInfo.processInfo.systemUptime,
                       "observerAX": AXIsProcessTrusted(), "observerScreenRead": CGPreflightScreenCaptureAccess(),
                       "separateSpaces": NSScreen.screensHaveSeparateSpaces, "displays": displays(),
@@ -324,7 +324,7 @@ func fixturePictureCrop(card: AXUIElement, bounds: CGRect, text: String, host: p
             "fixtureNumber": number, "fixtureBirth": birth, "crop": coordinates]
 }
 
-func fixtureResult(_ args: [String]) -> Object {
+func fixtureResult(_ args: [String], gate: (() -> Object?)? = nil) -> Object {
     let cross = args.count == 12 && args[1] == "press-cross"
     guard args.count == 11 || cross, let host, let givenHost = Int32(args[2]), host.processIdentifier == givenHost,
           runningCodeHash(host.processIdentifier) == args[3], let fixturePID = Int32(args[4]),
@@ -436,6 +436,7 @@ func fixtureResult(_ args: [String]) -> Object {
               value(exact[0], kAXEnabledAttribute) as? Bool == true else {
             return ["issued": false, "reason": "installed sidebar has no unique enabled target control"]
         }
+        if let refusal=gate?() { return refusal }
         let result = AXUIElementPerformAction(exact[0], kAXPressAction as CFString)
         return ["issued": true, "control": target, "axError": result.rawValue]
     }
@@ -499,6 +500,7 @@ func fixtureResult(_ args: [String]) -> Object {
         }
         proof["beforePost"] = ProcessInfo.processInfo.systemUptime
     }
+    if let refusal=gate?() { return refusal }
     down.postToPid(fixturePID); up.postToPid(fixturePID)
     if proof["tagged"] as? Bool == true { proof["afterPost"] = ProcessInfo.processInfo.systemUptime }
     return proof
@@ -796,7 +798,14 @@ func rosterContent(_ args: [String]) -> Object {
     return result
 }
 if CommandLine.arguments.count > 1 {
-    if ["roster-content", "roster-panel"].contains(CommandLine.arguments[1]) {
+    if CommandLine.arguments[1] == "p2-document" {
+        #if P2_DOCUMENT_FIXTURE
+        if let req=try? JSONDecoder().decode(P2Request.self,from:FileHandle.standardInput.readDataToEndOfFile()) { report=p2DocumentReport(req) }
+        else { report=["status":"BLOCKED","reason":"invalidP2ReadRequest"] }
+        #else
+        report=["status":"BLOCKED","reason":"observerDoesNotIncludeRegisteredDocumentWitness"]
+        #endif
+    } else if ["roster-content", "roster-panel"].contains(CommandLine.arguments[1]) {
         report = rosterContent(CommandLine.arguments)
     } else if CommandLine.arguments[1] == "compare-roster" {
         report = compareCurrentRoster(CommandLine.arguments)

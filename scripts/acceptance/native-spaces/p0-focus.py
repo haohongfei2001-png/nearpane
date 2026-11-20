@@ -103,8 +103,11 @@ class DailyFocus:
                 self.capture('newerUser',excluded=isolated_pid)
         except (OSError,ValueError,subprocess.SubprocessError) as error:self.info['beforeStoppingError']=str(error)
         self.save()
-    def finish(self,daily_restored):
+    def finish(self,daily_restored,*,preserve_new_input=False):
         try:
+            if preserve_new_input:
+                self.info.update(status='NEWER_INPUT_PRESERVED',reason='registered document trial yielded to physical input',restorationRequested=False)
+                return
             last=self.state();self.info['afterDailyHost']=last
             original=self.info.get('original',{}).get('independent') or {}
             newer=last.get('hid')!=original.get('hid')

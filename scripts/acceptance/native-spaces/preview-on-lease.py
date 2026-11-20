@@ -109,11 +109,18 @@ def run(args):
             try:
                 before = workspace.read()
                 require(workspace.check(before)["current"] == args.expected_space, "leased desktop changed")
-                reason = controlled_window(kit / "observe", before, manifest(before, kit / "metrics"), fixture_receipt, 2)
+                frozen = manifest(before, kit / "metrics")
+                fixture_receipt.write("installed-manifest.json", frozen)
+                reason = controlled_window(kit / "observe", before, frozen, fixture_receipt, 2, lease_hid=workspace.hid)
                 verdicts = [attempt["status"] for attempt in fixture_receipt.attempts]
                 complete = len(verdicts) == 10 and all(v == "PASS" for v in verdicts)
                 status = "PASS" if complete else "FAIL" if "FAIL" in verdicts else "UNKNOWN" if verdicts else "BLOCKED"
                 proof = {"status": status, "reason": reason, "trials": len(verdicts), "confirmed": verdicts.count("PASS")}
+                bound = fixture_receipt.summary.get("registeredDocuments")
+                if bound:
+                    proof.update(status=bound["status"], reason=bound["reason"], confirmed=bound["passes"],
+                                 operationStatus=bound["operationStatus"], superseded=bound["superseded"], cleanup=bound["cleanup"])
+                fixture_receipt.scenarios["W01"] = proof
                 result["controlledWindow"] = proof
                 fixture_receipt.summary["controlledWindowSubtest"] = proof
             finally:

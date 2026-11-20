@@ -62,6 +62,12 @@ private struct FieldMarkerCommand: Decodable { let mode: String, grant: FieldMar
               physical(folder) == "/private/tmp/"+kit.lastPathComponent+"/"+session else { return nil }
         self.folder=folder; self.session=session; self.pid=getpid(); self.birth=birth; self.objects=objects
     }
+    #if P2_DOCUMENT_FIXTURE
+    func enrolledDocumentEdit(_ addition: String) -> Bool {
+        guard let grant, status == "ARMED", ProcessInfo.processInfo.systemUptime < grant.expires else { return false }
+        return grant.matches(addition)
+    }
+    #endif
     private func read<T:Decodable>(_ name:String, as type:T.Type) -> T? {
         let fd = open(folder.appendingPathComponent(name).path,O_RDONLY|O_NOFOLLOW|O_CLOEXEC)
         guard fd >= 0 else { return nil }

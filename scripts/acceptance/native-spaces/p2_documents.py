@@ -1,0 +1,311 @@
+"""W01 against the signed, Launch Services-registered two-document fixture on the current lease."""
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import time
+import uuid
+from pathlib import Path
+
+from acceptance import identity
+from field_marker_witness import MarkerWatch
+from installed_profile import PROFILE, owns_profile
+from space_scope import private_file
+
+
+class TrialStop(ValueError):
+    def __init__(self, reason, status="BLOCKED"):
+        self.reason, self.status = reason, status
+        super().__init__(reason)
+
+
+class Superseded(TrialStop):
+    def __init__(self):
+        super().__init__("userSuperseded")
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def require(condition, reason, status="BLOCKED"):
+    if not condition:
+        raise TrialStop(reason, status)
+
+
+def static_part(path, identifier):
+    requirement = (f'anchor apple generic and identifier "{identifier}" and certificate leaf[subject.OU] = "ZB9D4T66QB" '
+                   'and certificate leaf[field.1.2.840.113635.100.6.1.13] exists')
+    require(path.resolve(strict=True) == path and subprocess.run(
+        ["/usr/bin/codesign","--verify","--strict","--deep","-R="+requirement,path], capture_output=True, timeout=5).returncode == 0,
+        "fixtureOrObserverDeveloperIDInvalid")
+    signed = identity(path)
+    require(signed["Identifier"] == identifier and signed["TeamIdentifier"] == "ZB9D4T66QB" and
+            len(signed.get("CDHash") or "") == 40, "stableSigningIdentityUnavailable")
+    return signed
+
+
+def open_documents(app, folder):
+    home = folder / "home"
+    home.mkdir(mode=0o700)
+    for name in ("A","B"):
+        fd = os.open(folder/(name+".txt"), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd,"wb") as f:
+            f.write(f"Field Notes {name} {folder.name}\n".encode())
+    # -g requests a background launch. The original sidebar makes every selection.
+    return subprocess.Popen(["/usr/bin/open","-n","-g","-W","-a",str(app),"--env","HOME="+str(home),
+                             "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_FIXTURE_PRESENTATION=p2-documents",
+                             "--env","NP_W01_MARKER_WITNESS=1","--args",str(folder),"2"],
+                            stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+
+
+def check_hid(proof, baseline):
+    if proof.get("reason") == "userSuperseded" or proof.get("userSuperseded") or (
+            baseline is not None and proof.get("hidAfter", proof.get("hid")) is not None and proof.get("hidAfter", proof.get("hid")) != baseline):
+        raise Superseded()
+
+
+def coherent(q, state, disk):
+    return (q.get("status") == "READ" and state.get("pid") == q["registration"]["pid"]
+            and state.get("birth") == q["registration"]["birth"] and state.get("numbers") == q["numbers"]
+            and state.get("filesSaved") == [True, True] and q["axSHA256"] == state.get("sha256") == disk)
+
+
+def classify_read(q, state, disk, target, hashes, expect_focus):
+    if not coherent(q, state, disk) or disk != hashes:
+        return False
+    if not expect_focus:
+        return True
+    index = q["numbers"].index(target)
+    return (q.get("focused") == q.get("main") == state.get("key") == state.get("main") == target
+            and q.get("editorFocused") is True and state.get("editorsFocused",[])[index:index+1] == [True])
+
+
+class RegisteredRun:
+    def __init__(self, observer, initial, rec, lease_hid):
+        override = os.environ.get("NP_P2_DOCUMENT_KIT") or os.environ.get("NP_W01_MARKER_KIT")
+        self.kit = Path(override) if override else observer.parent
+        self.observer = self.kit/"observe"
+        self.app = self.kit/"Field Notes.app"
+        self.folder = self.kit/str(uuid.uuid4())
+        self.rec, self.initial, self.lease_hid = rec, initial, lease_hid
+        scope = initial["scopes"][0]
+        self.binding = dict(hostPID=initial["host"]["pid"],hostHash=initial["host"]["codeHash"],display=scope["scope"],space=scope["current"])
+        self.baseline = None
+        self.launcher = None
+        self.watch = None
+        self.trial = 0
+        self.attempt = None
+        self.samples = []
+        self.out = dict(status="BLOCKED",reason="notStarted",passes=0,launch="Launch Services open -n -g -W",
+                        registration=None,superseded=False,focusRestoreRequested=False,attempts=[],cleanup={"status":"NOT_RUN"})
+
+    def call(self, mode, extra=None, env=None, timeout=6):
+        request = {**self.binding, **(extra or {}), "mode":mode}
+        proc = subprocess.run([self.observer,"p2-document"],input=json.dumps(request),capture_output=True,text=True,timeout=timeout,env=env)
+        require(proc.returncode == 0, "witnessProcessFailed","UNKNOWN")
+        q = json.loads(proc.stdout)
+        require(isinstance(q,dict), "invalidWitnessReply","UNKNOWN")
+        return q
+
+    def opened(self):
+        until = time.monotonic()+8
+        while time.monotonic()<until:
+            check_hid(self.call("baseline"),self.baseline)
+            try:
+                startup=json.loads(private_file(self.folder/"startup.json"))
+                if (startup.get("session")==self.folder.name and startup.get("bundle")=="net.example.spaces-document" and
+                        startup.get("policy")==0 and type(startup.get("pid")) is int and startup["pid"]>1 and
+                        type(startup.get("birth")) is int and startup["birth"]>0 and startup["pid"]!=self.launcher.pid):
+                    self.binding.update(pid=startup["pid"],birth=startup["birth"])
+                    s=json.loads(private_file(self.folder/"windows.json"))
+                    numbers=s.get("numbers")
+                    if (s.get("session")==self.folder.name and s.get("pid")==startup["pid"] and s.get("birth")==startup["birth"] and
+                            isinstance(numbers,list) and len(numbers)==2 and all(type(n) is int and n>0 for n in numbers) and
+                            numbers[0]!=numbers[1] and s.get("presentation")=="p2-documents"):
+                        self.binding["numbers"]=numbers
+                        return
+            except (OSError,ValueError):
+                pass
+            if self.launcher.poll() is not None:
+                break
+            time.sleep(.06)
+        raise TrialStop("noFreshLaunchServicesFixtureEnrollment")
+
+    def read_until(self, target, hashes, stage, *, focus=False, ready=False, seconds=4):
+        deadline=time.monotonic()+seconds
+        good=0
+        last, mismatch, consistent_mismatches = {}, None, 0
+        recent = []
+        while (remaining:=deadline-time.monotonic())>=.12:
+            try:
+                q=self.call("read",timeout=remaining)
+                check_hid(q,self.baseline)
+                last = {k:q[k] for k in ("status","reason","clock","hostBirth","reportedWindows","copiedWindows","ownedLayerZero","slot",
+                                            "urlMatches","roleMatches","identifierMatches","editorCount","registrationStage") if k in q}
+                if q.get("registration"):
+                    self.out["registration"]=q["registration"]
+                if q.get("status")=="READ":
+                    state=json.loads(private_file(self.folder/"windows.json"))
+                    disk=[digest(private_file(self.folder/(x+".txt"),limit=4096)) for x in ("A","B")]
+                    require(state.get("session")==self.folder.name,"fixtureFileGenerationChanged")
+                    ok=classify_read(q,state,disk,target,hashes,focus) and (not ready or q.get("cards")==[True,True])
+                    last.update(axSHA256=q["axSHA256"],fixtureSHA256=state.get("sha256"),fileSHA256=disk,
+                                focused=q.get("focused"),main=q.get("main"),editorFocused=q.get("editorFocused"),
+                                localKey=state.get("key"),localMain=state.get("main"),cards=q.get("cards"))
+                    recent = (recent+[last])[-2:]
+                    if not ok and coherent(q,state,disk):
+                        observed=(tuple(disk), q.get("focused"), q.get("main"), q.get("editorFocused"),state.get("key"),state.get("main"))
+                        consistent_mismatches=consistent_mismatches+1 if observed==mismatch else 1
+                        mismatch=observed
+                    else:
+                        mismatch,consistent_mismatches=None,0
+                    good=good+1 if ok else 0
+                    if good>=2:
+                        self.rec.log("P2-independent-document-read",trial=self.trial,stage=stage,confirmed=True,expectedSHA256=hashes,reads=recent)
+                        return q
+                else:
+                    good=0
+                    mismatch,consistent_mismatches=None,0
+                    if q.get("reason") in ("installedHostOrLeasedSpaceChanged","kernelExecutableIdentityChanged",
+                                          "generationChangedAtReadback","wrongFixtureOrSession","unsupportedFixtureKit"):
+                        raise TrialStop(q["reason"],"UNKNOWN")
+            except TrialStop:
+                raise
+            except (OSError,ValueError,subprocess.SubprocessError) as e:
+                good=0
+                mismatch,consistent_mismatches=None,0
+                if not last: last={"reason":type(e).__name__}
+            time.sleep(max(0,min(.09,deadline-time.monotonic())))
+        self.rec.log("P2-independent-document-read",trial=self.trial,stage=stage,confirmed=False,expectedSHA256=hashes,reads=recent,last=last)
+        raise TrialStop("independent"+stage+"Unconfirmed","FAIL" if consistent_mismatches>=2 and focus else "UNKNOWN" if self.attempt else "BLOCKED")
+
+    def seal(self):
+        if self.watch is None:
+            return
+        watch=self.watch
+        self.watch=None
+        result=watch.seal()
+        self.rec.write(f"marker-witness-{self.trial:02}.json",result)
+        self.rec.log("P2-fixture-event-closure",trial=self.trial,intent=watch.identity["intent"],status=result["status"],
+                     closureConfirmed=result["closureConfirmed"],steps=[v["step"] for v in result["events"]])
+        return result
+
+    def trials(self, reader):
+        texts=[f"Field Notes {n} {self.folder.name}\n" for n in ("A","B")]
+        hashes=[digest(t.encode()) for t in texts]
+        first=self.read_until(None,hashes,"Initial",ready=True,seconds=6)
+        numbers=self.binding["numbers"]
+        first_slot=1 if first.get("focused")==numbers[0] else 0
+        for turn in range(10):
+            self.trial=turn+1; self.attempt=None
+            slot=(first_slot+turn)%2; n=numbers[slot]
+            before=self.read_until(None,hashes,"BeforeSelection",ready=True)
+            require(before.get("focused")!=n,"targetAlreadyFocusedBeforeNewSelection")
+            target={"target":n,"digests":hashes,"allowedFront":self.initial.get("frontmostPID") if turn==0 else self.binding["pid"]}
+            intent=str(uuid.uuid4()); marker="NP"+uuid.uuid4().hex[:10]
+            self.watch=MarkerWatch(self.folder,self.folder.name,intent,self.binding["pid"],self.binding["birth"],numbers,n,marker,reader)
+            require(self.watch.arm(),"postReceiverEnrollmentUnavailable")
+            attempt=dict(id=intent,kind="window",trial=self.trial,target=n,sibling=numbers[1-slot],status="UNKNOWN",markerIssued=None)
+            self.attempt=attempt; self.rec.attempts.append(attempt);self.out["attempts"].append(attempt)
+            self.rec.log("P2-window-intent",**attempt)
+            click=self.call("press",target)
+            self.rec.log("sidebar-press",intent=intent,result=click)
+            attempt["pressIssued"]=click.get("issued")
+            check_hid(click,self.baseline)
+            require(click.get("issued") is True,"installedSidebarPressRefused","BLOCKED" if click.get("issued") is False else "UNKNOWN")
+            require(type(click.get("axError")) is int and click["axError"]==0,"installedSidebarRejectedAXPress","FAIL")
+            self.read_until(n,hashes,"Focus",focus=True)
+            env=dict(os.environ,NP_W01_MARKER_WITNESS="1",NP_TRIAL_MARKER=marker,NP_TRIAL_MARKER_TAG=str(self.watch.grant["tag"]),
+                     NP_TRIAL_MARKER_SESSION=self.folder.name,NP_TRIAL_MARKER_INTENT=intent,NP_TRIAL_MARKER_READER=reader)
+            require(time.monotonic()<self.watch.grant["expires"],"markerEnrollmentExpired")
+            self.watch.submitted()
+            sent=self.call("marker",target,env)
+            tagged=self.watch.dispatched(sent)
+            attempt["markerIssued"]=sent.get("issued")
+            self.rec.log("pid-targeted-marker",intent=intent,result=sent)
+            check_hid(sent,self.baseline)
+            require(sent.get("issued") is True,"targetedMarkerNotAdmitted","UNKNOWN")
+            texts[slot]+=marker
+            hashes=[digest(t.encode()) for t in texts]
+            self.read_until(n,hashes,"Input",focus=True,seconds=2.5)
+            receipt=self.seal()
+            require(tagged and receipt["closureConfirmed"] and not receipt["truncated"],"fixtureMarkerProvenanceIncomplete","UNKNOWN")
+            attempt.update(status="PASS",siblingUnchanged=True)
+            self.out["passes"]+=1
+        self.out.update(status="PASS",reason="tenExactAlternatingWindowsAndInputs")
+
+    def cleanup(self):
+        if self.launcher is None:
+            return
+        # Closing an active fixture after real input would change the user's new focus.
+        token="close-when-inactive" if self.out["superseded"] else "close"
+        (self.folder/token).touch(mode=0o600,exist_ok=True)
+        if "numbers" not in self.binding:
+            self.out["cleanup"]={"status":"UNKNOWN","signal":token,"reason":"fixtureGenerationNotFullyEnrolled"}
+            return
+        end=time.monotonic()+2.5
+        latest={}
+        while time.monotonic()<end:
+            latest=self.call("exit",timeout=2)
+            if (self.folder/"p2-user-superseded").is_file():
+                self.out.update(superseded=True,status="BLOCKED",reason="userSuperseded")
+            if latest.get("status")=="EXITED":break
+            if self.out["superseded"] and latest.get("frontIsFixture"):break
+            time.sleep(.12)
+        self.out["cleanup"]={"status":"PASS" if latest.get("status")=="EXITED" else
+                             "DEFERRED_UNTIL_INACTIVE" if self.out["superseded"] and latest.get("frontIsFixture") else "UNKNOWN",
+                             "signal":token,"readback":latest,"launcherExit":self.launcher.poll()}
+        if (latest.get("status")=="EXITED" and self.folder.parent==self.kit
+                and self.folder.name==self.binding.get("session") and self.folder.resolve()==self.folder):
+            shutil.rmtree(self.folder)
+            self.out["cleanup"]["ownedSessionRemoved"]=not self.folder.exists()
+
+    def run(self):
+        try:
+            require(isinstance(self.lease_hid,list) and len(self.lease_hid)==5 and all(type(v) is int for v in self.lease_hid),
+                    "verifiedExistingOrdinarySpaceLeaseRequired")
+            require(self.kit.resolve(strict=True)==self.kit and self.kit.parent==Path("/private/tmp") and self.kit.name.startswith("nearpane-d01.")
+                    and self.kit.stat().st_uid==os.getuid() and not self.kit.stat().st_mode & 0o077,"unqualifiedRegisteredFixtureKit")
+            home=os.environ.get("NEARPANE_TEST_HOME")
+            require(home and owns_profile(self.binding["hostPID"],Path(home)/PROFILE),"formalHostIsolatedProfileUnavailable")
+            fixture=static_part(self.app,"net.example.spaces-document")
+            reader=static_part(self.observer,"net.example.nearpane.p2-observer")
+            self.out["fixtureSigning"]=fixture;self.out["observerSigning"]=reader
+            base=self.call("baseline")
+            check_hid(base,None)
+            require(base.get("status")=="READY" and len(base.get("hid",[]))==13,"hardwareOrHostBaselineUnavailable")
+            self.baseline=base["hid"]
+            self.out["scope"]={**self.binding,"hostBirth":base["hostBirth"],"leaseHardwareCounters":self.lease_hid}
+            if self.lease_hid is not None and self.baseline[:5]!=self.lease_hid: raise Superseded()
+            self.binding.update(hostBirth=base["hostBirth"],hid=self.baseline,folder=str(self.folder),app=str(self.app),hash=fixture["CDHash"],session=self.folder.name)
+            self.folder.mkdir(mode=0o700)
+            self.launcher=open_documents(self.app,self.folder)
+            self.rec.log("P2-launch-services-open",session=self.folder.name,launcherPID=self.launcher.pid,background=True)
+            self.opened()
+            self.rec.log("P2-fixture-app-bound",session=self.folder.name,launcherPID=self.launcher.pid,fixturePID=self.binding["pid"],
+                         birth=self.binding["birth"],numbers=self.binding["numbers"])
+            self.trials(reader["CDHash"])
+        except (OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as e:
+            self.out.update(status=e.status if isinstance(e,TrialStop) else "UNKNOWN",reason=e.reason if isinstance(e,TrialStop) else type(e).__name__)
+            self.out["superseded"]=isinstance(e,Superseded)
+            if self.attempt is not None and self.attempt["status"]!="PASS": self.attempt.update(status=self.out["status"],reason=self.out["reason"])
+        finally:
+            if self.baseline is not None:
+                try:check_hid(self.call("baseline"),self.baseline)
+                except Superseded:self.out.update(superseded=True,status="BLOCKED",reason="userSuperseded")
+                except (OSError,ValueError,subprocess.SubprocessError):pass
+            try:self.seal()
+            except (OSError,ValueError,subprocess.SubprocessError):self.out["witnessClosure"]="UNKNOWN"
+            try:self.cleanup()
+            except (OSError,ValueError,subprocess.SubprocessError):self.out["cleanup"]={"status":"UNKNOWN","reason":"ownedCleanupReadbackUnavailable"}
+            if self.out["superseded"] and os.environ.get("NEARPANE_TEST_HOME"):
+                (Path(os.environ["NEARPANE_TEST_HOME"])/"p2-user-superseded").touch(mode=0o600,exist_ok=True)
+            self.out["operationStatus"]=self.out["status"]
+            if self.out["status"]=="PASS" and self.out["cleanup"]["status"]!="PASS":self.out.update(status="UNKNOWN",reason="ownedCleanupUnconfirmed")
+            self.rec.write("registered-documents.json",self.out)
+            self.rec.summary["controlledWindowTrials"]=self.out["passes"]
+            self.rec.scenarios["W01"]={"status":self.out["status"],"reason":self.out["reason"]}
+            self.rec.summary["registeredDocuments"]={k:self.out[k] for k in ("status","operationStatus","reason","passes","superseded","focusRestoreRequested","cleanup")}
+        return self.out["reason"]

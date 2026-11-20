@@ -136,6 +136,7 @@ def main():
         tool=module.kit_for(command,args.p0_focus_kit)
         if tool is not None:p0_focus=module.DailyFocus(tool,output,original)
     stopped = False
+    suppress_focus_restore = False
     try:
         if original:
             quit_host(original)
@@ -150,7 +151,11 @@ def main():
     finally:
         try:
             current = installed_pid()
-            if p0_focus:p0_focus.before_daily(current if current and owns_profile(current,home/PROFILE) else None)
+            suppress_focus_restore = (home/"p2-user-superseded").is_file()
+            if suppress_focus_restore:
+                receipt["focusRestoreSuppressed"] = "P2 userSuperseded"
+            elif p0_focus:
+                p0_focus.before_daily(current if current and owns_profile(current,home/PROFILE) else None)
             if current and owns_profile(current, home / PROFILE):
                 quit_host(current)
             current = installed_pid()
@@ -171,7 +176,7 @@ def main():
                 raise RuntimeError("Daily state readback incomplete. See profile-session.json")
         finally:
             if p0_focus:
-                p0_focus.finish(receipt.get("dailyHostRestored") is True)
+                p0_focus.finish(receipt.get("dailyHostRestored") is True, preserve_new_input=suppress_focus_restore)
                 receipt["dailyFocusReceipt"]="daily-focus.json"
                 receipt["dailyFocusStatus"]=p0_focus.info["status"]
                 save()
