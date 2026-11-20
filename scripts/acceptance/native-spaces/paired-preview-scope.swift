@@ -62,6 +62,10 @@ func pairedPreviewProof(_ args: [String]) -> Object {
     }
     let cardRects=pictures.map { CGRect(x:$0[0],y:$0[1],width:4,height:4) },strip=cardRects[0].union(cardRects[1])
     guard !cardRects[0].intersects(cardRects[1]),strip.width<=8,strip.height<=400,regionFrame.contains(strip) else{return stop("pairedCardStripOutsideControlledRoster")}
+    #if PAIRED_OVERVIEW
+    out["overview"] = pairedOverviewScope(index,region:region,regionFrame:regionFrame,panel:panel,display:display,
+                                         space:space,ids:ids,windows:nums,fixture:fixture,hostPID:pid,pictures:pictures)
+    #endif
     out["sources"]=sources;out["pictures"]=pictures;out["kinds"]=kinds;out["ready"]=true;return out
 }
 print(String(decoding:try JSONSerialization.data(withJSONObject:pairedPreviewProof(CommandLine.arguments),options:.sortedKeys),as:UTF8.self))
