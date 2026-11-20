@@ -100,13 +100,15 @@ def archive_app(app, dest):
     gate.cmd("/usr/bin/ditto", "-c", "-k", "--keepParent", "--sequesterRsrc", str(app), str(dest))
 
 
-def code_slice(path, arch):
+def code_slice(path, arch, *, previous_archive=False):
     output = gate.cmd("/usr/bin/codesign", "--display", "--architecture", arch, "--verbose=4", str(path))
     fields = dict(line.split("=", 1) for line in output.splitlines() if "=" in line)
     require("Authority=Developer ID Application:" in output and fields.get("TeamIdentifier") == gate.PRODUCT_SIGNING_TEAM
-            and bool(fields.get("Timestamp")) and re.search(r"flags=0x[0-9a-f]+\([^)]*\bruntime\b", output)
-            and re.fullmatch(r"[0-9A-Fa-f]{40}", fields.get("CDHash","")), "incomplete distribution signature for "+arch)
-    return dict(cdhash=fields["CDHash"].lower(), secureTimestamp=fields["Timestamp"], team=fields["TeamIdentifier"])
+            and re.fullmatch(r"[0-9A-Fa-f]{40}", fields.get("CDHash", "")), "invalid product signature for "+arch)
+    runtime = bool(re.search(r"flags=0x[0-9a-f]+\([^)]*\bruntime\b", output))
+    if not previous_archive:
+        require(fields.get("Timestamp") and runtime, "incomplete distribution signature for "+arch)
+    return dict(cdhash=fields["CDHash"].lower(), secureTimestamp=fields.get("Timestamp"), team=fields["TeamIdentifier"])
 
 
 def helper_pins(app, info):
@@ -126,14 +128,16 @@ def helper_pins(app, info):
     return pins
 
 
-def fingerprint(app, revision):
+def fingerprint(app, revision, *, previous_archive=False):
     require(re.fullmatch(r"[a-f0-9]{40}", revision), "expected a full frozen source revision")
     info = plistlib.loads((app/"Contents/Info.plist").read_bytes())
     require((info.get("CFBundleShortVersionString"), info.get("CFBundleVersion"), info.get("NearpaneSourceState"),
              info.get("NearpaneSourceRevision")) == ("5.22", "90", "clean", revision), "version, build or frozen source differs")
     package = gate.inspect(app)
     gate.verify_install_identity(app)
-    require(not package["missingDistributionSignatures"], "at least one binary lacks its distribution signature")
+    if not previous_archive:
+        require(not package["missingDistributionSignatures"], "at least one binary lacks its distribution signature")
+        require(all(package["hostResourceEntitlements"].values()), "Host lacks its signed automation or audio resource access")
     expected = set(gate.update_runtime.EXECUTABLES)
     for name in gate.PRODUCT_IDENTIFIERS:
         item = app/name
@@ -150,7 +154,7 @@ def fingerprint(app, revision):
                        'and certificate leaf[field.1.2.840.113635.100.6.1.13] exists')
         gate.cmd("/usr/bin/codesign", "--verify", "--strict", "--all-architectures", "-R="+requirement, str(path))
         inventory[rel] = dict(sha256=meta["sha256"], designatedRequirement=meta["designatedRequirement"],
-                              slices={a:code_slice(path,a) for a in meta["architectures"]})
+                              slices={a:code_slice(path,a,previous_archive=previous_archive) for a in meta["architectures"]})
     return dict(source=revision, version="5.22", build="90", bundle=info["CFBundleIdentifier"], binaries=inventory,
                 helperResourcePins=helper_pins(app,info),sparklePublicKeyConfigured=bool(info.get("SUPublicEDKey")))
 
@@ -321,7 +325,9 @@ def rollback_check(session, previous, previous_hash, revision):
         (work/"new").mkdir();(work/"old").mkdir()
         prepared,new=verified(session,work/"new")
         old=unpack(previous,work/"old")
-        before=fingerprint(old,revision)
+        # Its enrolled archive digest and exact Developer ID identities are mandatory.
+        # Older private builds can predate the shipping runtime and timestamp policy.
+        before=fingerprint(old,revision,previous_archive=True)
         require(before["source"]!=prepared["candidate"]["source"], "rollback needs two distinct source revisions")
         signing.check_continuity(old,new)
         for relative,_ in gate.update_runtime.COMPONENTS:
@@ -333,7 +339,7 @@ def rollback_check(session, previous, previous_hash, revision):
             require(same_code(fingerprint(old,prepared["candidate"]["source"]),prepared["candidate"]),"private replacement differs")
         finally:
             publisher.rename(old,new,2)
-        require(same_code(fingerprint(old,revision),before) and same_code(fingerprint(new,prepared["candidate"]["source"]),prepared["candidate"]),
+        require(same_code(fingerprint(old,revision,previous_archive=True),before) and same_code(fingerprint(new,prepared["candidate"]["source"]),prepared["candidate"]),
                 "previous and candidate identities did not recover")
         result=dict(status="PRIVATE_PACKAGE_ROUNDTRIP_VERIFIED",scope="two non-running private unpacked bundles",
                     previousSource=revision, previousSHA256=previous_hash,currentSHA256=prepared["sha256"],

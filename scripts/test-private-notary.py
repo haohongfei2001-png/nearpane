@@ -49,6 +49,17 @@ class PrivateNotaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             n.reconciliation(self.prepared,self.sub,self.info|{"status":"Invalid"},self.log)
 
+    def test_archived_rollback_still_requires_the_product_signer_and_cdhash(self):
+        legacy = ("Authority=Developer ID Application: Product\n"
+                  "TeamIdentifier=" + n.gate.PRODUCT_SIGNING_TEAM + "\nCDHash=" + "c"*40 + "\n")
+        with patch.object(n.gate, "cmd", return_value=legacy):
+            with self.assertRaisesRegex(ValueError, "incomplete distribution"):
+                n.code_slice(self.root, "arm64")
+            self.assertIsNone(n.code_slice(self.root, "arm64", previous_archive=True)["secureTimestamp"])
+        for invalid in (legacy.replace(n.gate.PRODUCT_SIGNING_TEAM, "FOREIGNTEAM"), legacy.replace("c"*40, "bad")):
+            with patch.object(n.gate, "cmd", return_value=invalid), self.assertRaisesRegex(ValueError, "invalid product"):
+                n.code_slice(self.root, "arm64", previous_archive=True)
+
     def test_source_digest_checked_before_unpack_and_resumption_retains_input(self):
         src=self.root/self.name
         src.write_bytes(b"original")
