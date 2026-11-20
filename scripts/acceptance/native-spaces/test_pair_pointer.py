@@ -122,6 +122,47 @@ class PointerTests(unittest.TestCase):
                 self.run.drag("self",["a","b"],self.root,self.root["cg"],self.root["cg"])
             self.assertEqual(self.run.packet.call_count,1)
 
+    def test_process_scoped_receipt_distinguishes_post_only_panel_and_other_window(self):
+        old = click_receipt()
+        self.assertEqual(p.host_route(old)["receiver"],"NOT_IN_THIS_TOOL")
+        old["events"][0].update(point=[7,8],eventTimestampNS=600)
+        old["events"][1].update(point=[7,8],eventTimestampNS=1900)
+        seen = [dict(type=r["type"], timestampNS=r["eventTimestampNS"], point=[7,8], destination="bound", source="bound",
+                     acceptingPointer="boundPanel", underPointer="boundPanel") for r in old["events"]]
+        old["hostRouting"] = dict(status="OBSERVED",events=seen)
+        self.assertEqual(p.host_route(old)["status"],"HOST_PANEL")
+        seen[0]["acceptingPointer"]="different"
+        self.assertEqual(p.host_route(old)["status"],"HOST_OTHER_WINDOW")
+        seen[0]["source"]="different"
+        self.assertEqual(p.host_route(old)["status"],"UNCONFIRMED")
+
+    def test_unreceived_click_timeout_is_unknown_and_does_not_repeat(self):
+        reply = dict(status="BLOCKED",issued=True,reason="systemFocusReadbackTimedOut",events=[])
+        self.run.packet=Mock(return_value=reply)
+        self.run.terminal_focus_reads=Mock(return_value=[dict(status="READ")]*2)
+        attempt={}
+        with self.assertRaises(p.TrialStop) as denied:
+            self.run.select_document({"target":409,"digests":["a","b"]},"intent",attempt)
+        self.assertEqual(denied.exception.status,"UNKNOWN")
+        self.assertEqual(self.run.packet.call_count,1)
+        self.assertEqual(len(attempt["terminalFocusReads"]),2)
+
+    def test_drag_only_prepares_a_fresh_bound_pair_and_sends_no_click_or_marker(self):
+        self.run.drag_only=True
+        self.run.prepare_front=Mock(return_value=409)
+        self.run.selection_trials=Mock(side_effect=AssertionError("input in drag-only"))
+        self.run.read_until=Mock(return_value={"focused":409})
+        self.run.geometry=Mock(return_value=self.root)
+        self.run.profile_policy=Mock(return_value={"edge":"right","explicit":None})
+        def checked(kind,*_):
+            self.run.out["drags"][kind].update(status="PASS",issued=True)
+        self.run.drag=Mock(side_effect=checked)
+        self.run.capture_pair=Mock()
+        self.run.trials("reader")
+        self.run.selection_trials.assert_not_called()
+        self.assertEqual([c.args[0] for c in self.run.drag.call_args_list],["self","right","left"])
+        self.assertEqual(self.run.out["selection"]["status"],"NOT_RUN")
+
     def test_protected_transaction_optional_scenario_leaves_enrolled_lease_intact(self):
         lease=dict(documentKit="/private/old",workspace="w",expectedSpace=99,originalCheckout="c",originArchive="a")
         record=dict(focusLease=lease,kit="/kit",focusScenario="pair-focus",pairKit="/private/pointer")

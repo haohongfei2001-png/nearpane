@@ -58,7 +58,7 @@ def run(args):
         result["lease"] = dict(space=args.expected_space, uuid=space_uuid, original=workspace.cleanup_current)
         result["admission"] = empty_system_desktop(workspace, args.expected_space)
         original_stage = driver.states(kit)[-1]["state"]
-        if args.scenario in ("controlled-window", "pair-pointer", "pair-focus"):
+        if args.scenario in ("controlled-window", "pair-pointer", "pair-focus", "pair-drag"):
             result["stageSurfaceEnrollment"] = lease_enrollment(
                 workspace, args.expected_space, space_uuid, original_stage, result["admission"])
             save()
@@ -79,7 +79,7 @@ def run(args):
                 result["documents"] = {k: proof[k] for k in ("status", "operationStatus", "reason", "issued", "passes", "cleanup")}
             finally:
                 document_receipt.finish()
-        elif args.scenario in ("pair-pointer", "pair-focus"):
+        elif args.scenario in ("pair-pointer", "pair-focus", "pair-drag"):
             from pair_pointer import PairPointerRun
             receipt = Receipt(output / "pair-pointer")
             try:
@@ -88,6 +88,7 @@ def run(args):
                 receipt.write("installed-manifest.json", manifest(before, kit / "metrics"))
                 pair = PairPointerRun(kit / "observe", before, receipt, workspace.hid, workspace, result["stageSurfaceEnrollment"])
                 pair.focus_only = args.scenario == "pair-focus"
+                pair.drag_only = args.scenario == "pair-drag"
                 pair.run()
                 proof = receipt.summary["pairPointer"]
                 result["pairPointer"] = proof
@@ -168,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument("workspace", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--expected-space", required=True, type=int)
-    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows", "controlled-window", "pair-pointer", "pair-focus", "hidden-budget"), default="paired-preview")
+    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows", "controlled-window", "pair-pointer", "pair-focus", "pair-drag", "hidden-budget"), default="paired-preview")
     parser.add_argument("--five-window-kit", type=Path, help="signed five-application kit for the five-windows scenario")
     parser.add_argument("--previous-archive", type=Path)
     parser.add_argument("--install-receipt", type=Path)

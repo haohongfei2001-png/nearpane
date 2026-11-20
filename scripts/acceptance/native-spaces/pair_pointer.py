@@ -15,7 +15,8 @@ import uuid
 from pathlib import Path
 
 from installed_profile import PROFILE, owns_profile
-from p2_documents import RegisteredRun, Superseded, TrialStop, capture_dimensions, check_hid, digest, require
+from p2_documents import RegisteredRun, Superseded, TrialStop, capture_dimensions, check_hid, coherent, digest, require
+from space_scope import private_file
 
 
 def rect(value):
@@ -87,6 +88,30 @@ def geometry_agrees(proof, expected, anchor, numbers):
                for stream in ("ax", "cg"))
 
 
+def host_route(reply):
+    """Only our tagged events are visible at the process-scoped passive receiver."""
+    route = reply.get("hostRouting") or {}
+    checked = {"receiver":route.get("status", "NOT_IN_THIS_TOOL"), "status":"UNCONFIRMED",
+               "AppKitCallback":"NOT_OBSERVED"}
+    if route.get("status") != "OBSERVED":
+        return checked
+    rows = route.get("events", [])
+    posted = reply.get("events", [])
+    if len(posted) < 2 or posted[0]["type"] != 1 or posted[-1]["type"] != 2:
+        return checked
+    ends = [r for r in rows if r["type"] in (1,2)]
+    if ([r["type"] for r in ends] != [1,2] or
+            any(v.get("source") == "different" or v.get("destination") == "different" for v in ends) or
+            any(math.dist(r["point"], p["point"]) > 1 for r,p in zip(ends, (posted[0],posted[-1])))):
+        return checked
+    observed = [v["acceptingPointer"] if v["acceptingPointer"] != "unreported" else v["underPointer"] for v in ends]
+    checked.update(status="HOST_PANEL" if observed == ["boundPanel"]*2 else
+                   "HOST_OTHER_WINDOW" if "different" in observed else "HOST_PID",
+                   reportedWindow=observed, timestampPreserved=[r["timestampNS"] == e["eventTimestampNS"] for r,e in zip(ends,(posted[0],posted[-1]))],
+                   taggedDragSamples=sum(r["type"] == 6 for r in rows))
+    return checked
+
+
 def click_timing(reply):
     events, f = reply.get("events", []), reply.get("focus", {})
     require([e.get("type") for e in events] == [1, 2] and reply.get("status") == "FOCUSED", "missingClickOrFocusClock", "UNKNOWN")
@@ -116,6 +141,7 @@ class PairPointerRun(RegisteredRun):
     def __init__(self, *args):
         super().__init__(*args)
         self.focus_only = False
+        self.drag_only = False
         self.out["layoutCapture"] = {"status":"NOT_RUN","reason":"twoVerifiedOrdinaryWindowFramesUnavailable"}
         self.out["drags"] = {k:{"status":"NOT_RUN"} for k in ("self", "right", "left")}
         self.out["selection"] = {"status":"NOT_RUN","planned":10}
@@ -129,20 +155,47 @@ class PairPointerRun(RegisteredRun):
         proof = self.call("pair-pointer", {"pointerKind":kind,"target":target,"digests":hashes}, timeout=7)
         self.rec.log("pair-pointer-system-proof", trial=self.trial, kind=kind, proof=proof)
         if kind in self.out["drags"]:
-            self.out["drags"][kind].update(issued=proof.get("issued"), events=proof.get("events", []))
+            self.out["drags"][kind].update(issued=proof.get("issued"), events=proof.get("events", []), hostRouting=host_route(proof))
         elif kind == "click" and self.attempt is not None:
             self.attempt["pointerIssued"] = proof.get("issued")
         check_hid(proof, self.baseline)
         return proof
+
+    def terminal_focus_reads(self):
+        samples = []
+        for _ in range(2):
+            try:
+                read = self.call("read",timeout=1.3)
+                check_hid(read,self.baseline)
+                sample = {k:read[k] for k in ("clock","status","reason","focused","main","editorFocused","frontIsFixture",
+                                              "knownIssueMessages","cards") if k in read}
+                if read.get("status") == "READ":
+                    local = json.loads(private_file(self.folder/"windows.json"))
+                    files = [digest(private_file(self.folder/(slot+".txt"),limit=4096)) for slot in "AB"]
+                    require(local.get("session")==self.folder.name, "fixtureFileGenerationChanged")
+                    sample.update(digestsAgree=coherent(read,local,files), key=local.get("key"), localMain=local.get("main"))
+                samples.append(sample)
+            except Superseded:
+                raise
+            except (ValueError,OSError,subprocess.SubprocessError,KeyError) as error:
+                samples.append({"status":"UNKNOWN","reason":type(error).__name__})
+        return samples
 
     def select_document(self, target, intent, attempt):
         proof = self.packet("click", target["target"], target["digests"])
         attempt["pointerIssued"] = proof.get("issued")
         attempt["pointerStatus"] = proof.get("status")
         attempt["pointerReason"] = proof.get("reason")
+        route = host_route(proof)
+        attempt["hostRouting"] = route
+        if proof.get("issued") is True and proof.get("status") != "FOCUSED":
+            attempt["terminalFocusReads"] = self.terminal_focus_reads()
+        if route["status"] == "HOST_OTHER_WINDOW":
+            raise TrialStop("taggedEventsRoutedToOtherHostWindow", "UNKNOWN")
         require(proof.get("issued") is True, proof.get("reason") or "sessionClickUnconfirmed", "BLOCKED")
         require(proof.get("status") == "FOCUSED", proof.get("reason") or "twoExactFocusReadsUnavailable",
-                "FAIL" if proof.get("reason") == "systemFocusReadbackTimedOut" else "UNKNOWN")
+                "FAIL" if proof.get("reason") == "systemFocusReadbackTimedOut" and
+                route["status"] in ("HOST_PANEL", "HOST_PID") else "UNKNOWN")
         attempt["timing"] = click_timing(proof)
 
     def geometry(self, target, hashes):
@@ -254,21 +307,24 @@ class PairPointerRun(RegisteredRun):
         texts = [f"Field Notes {name} {self.folder.name}\n" for name in ("A","B")]
         hashes = [digest(t.encode()) for t in texts]
         initial_focus = self.prepare_front(hashes)
-        self.out["selection"]["status"] = "UNKNOWN"
         selection_error = None
-        try:
-            self.selection_trials(reader, texts, hashes, initial_focus)
-            self.out["selection"]["status"] = "PASS"
-        except Superseded:
-            raise
-        except TrialStop as error:
-            if self.attempt is not None and self.attempt["status"] != "PASS":
-                self.attempt.update(status=error.status, reason=error.reason)
-            self.out["selection"].update(status=error.status, reason=error.reason)
-            self.seal()
-            if self.focus_only or error.reason in ("mouseUpTargetOrScopeChanged", "mouseDownAdmissionChanged"):
+        if self.drag_only:
+            self.out["selection"].update(status="NOT_RUN",planned=0,reason="independentDragOnlyFreshFixture")
+        else:
+            self.out["selection"]["status"] = "UNKNOWN"
+            try:
+                self.selection_trials(reader, texts, hashes, initial_focus)
+                self.out["selection"]["status"] = "PASS"
+            except Superseded:
                 raise
-            selection_error = error
+            except TrialStop as error:
+                if self.attempt is not None and self.attempt["status"] != "PASS":
+                    self.attempt.update(status=error.status, reason=error.reason)
+                self.out["selection"].update(status=error.status, reason=error.reason)
+                self.seal()
+                if self.focus_only or error.reason in ("mouseUpTargetOrScopeChanged", "mouseDownAdmissionChanged"):
+                    raise
+                selection_error = error
         if self.focus_only:
             self.out.update(status="PASS",reason="tenExactAlternatingPointerSelectionsAndInputs")
             return
@@ -300,18 +356,19 @@ class PairPointerRun(RegisteredRun):
             raise selection_error
         statuses = [e["status"] for e in self.out["drags"].values()]
         self.out.update(status="PASS" if statuses == ["PASS"]*3 else next(s for s in statuses if s != "PASS"),
-                        reason="tenExactPointerInputsAndThreeOrdinaryDragChecks" if statuses == ["PASS"]*3 else "dragPhaseIncomplete")
+                        reason=("threeIndependentlyObservedOrdinaryDragChecks" if self.drag_only else "tenExactPointerInputsAndThreeOrdinaryDragChecks")
+                        if statuses == ["PASS"]*3 else "dragPhaseIncomplete")
 
     def publish(self):
         rows = self.out["attempts"]
-        self.out["scenario"] = "pair-focus" if self.focus_only else "pair-pointer"
+        self.out["scenario"] = "pair-drag" if self.drag_only else "pair-focus" if self.focus_only else "pair-pointer"
         if any(v.get("issued") for v in self.out["drags"].values()) and self.out["operationStatus"] == "NOT_RUN":
             self.out["operationStatus"] = self.out["status"]
         if self.out["selection"]["status"] == "UNKNOWN":
             self.out["selection"].update(status=self.out["operationStatus"],reason=self.out["reason"])
         samples = [v["timing"] for v in rows if v.get("timing")]
         self.out["selection"].update(attempted=len(rows), inputsConfirmed=self.out["passes"], focusTimed=len(samples),
-                                      notAttempted=10-len(rows))
+                                      notAttempted=self.out["selection"]["planned"]-len(rows))
         self.out["measurement"]["statistics"] = {k:summary([row[k] for row in samples]) for k in
             ("downToFocusLowerMs","downToFocusUpperMs","upToFocusLowerMs","upToFocusUpperMs","secondPositiveAfterUpMs")}
         self.out["measurement"]["percentiles"] = "sample only, median p50, nearest-rank p95"

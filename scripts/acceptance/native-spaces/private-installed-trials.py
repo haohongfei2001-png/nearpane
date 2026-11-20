@@ -621,7 +621,7 @@ class Transaction:
         only=getattr(args,"only",None)
         focus_mode = getattr(args, "focus_scenario", "controlled-window")
         require(focus_mode == "controlled-window" or args.only == "p2", "Pointer scenarios require --only p2")
-        require(not getattr(args, "pair_kit", None) or focus_mode in ("pair-focus", "pair-pointer"), "Select a pointer scenario for --pair-kit")
+        require(not getattr(args, "pair_kit", None) or focus_mode in ("pair-focus", "pair-pointer", "pair-drag"), "Select a pointer scenario for --pair-kit")
         choices = {"p0-diagnostic":("P0-diagnostic",), "p2":("P2",), "p4-service":("P4",), "p2,p4-service":("P2","P4"),
                    "p3,p4":("P3","P4"), None:("P3","P4","P4-wordbook")}
         require(only in choices and not (only and args.wordbook_driver), "Invalid protected trial selection")
@@ -776,7 +776,7 @@ def main():
     run.add_argument("--kit",required=True,type=Path)
     run.add_argument("--sessions",type=Path,default=HERE.parents[2]/"build/native-acceptance")
     run.add_argument("--only",type=str.lower,choices=("p4-service","p3,p4","p2","p0-diagnostic","p2,p4-service"))
-    run.add_argument("--focus-scenario", choices=("controlled-window", "pair-focus", "pair-pointer"), default="controlled-window",
+    run.add_argument("--focus-scenario", choices=("controlled-window", "pair-focus", "pair-pointer", "pair-drag"), default="controlled-window",
                      help="with --only p2, measure pointer selection alone or selection plus three actual card drags")
     run.add_argument("--pair-kit", type=Path, help="signed --pair-pointer kit, leaving the enrolled lease immutable")
     run.add_argument("--focus-lease",type=Path, help="owned lease and archive chain for a registered two-document test")

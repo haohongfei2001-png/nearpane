@@ -159,9 +159,15 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
                  numbers: [UInt32], windows: [AXUIElement], focus: () -> (UInt32?, UInt32?, Bool)) -> Object {
     var result: Object = ["status":"BLOCKED", "issued":false, "dispatch":"WindowServer.cgSessionEventTap",
                           "kind":kind, "target":target, "events":[], "hid":p2Physical()]
+    var receiver: PairPointerReceiver?
+    defer { receiver?.close() }
+    func finish() -> Object {
+        if let receiver { result["hostRouting"] = receiver.receipt() }
+        return result
+    }
     func stop(_ reason: String) -> Object {
         result["reason"] = reason; result["hidAfter"] = p2Physical()
-        return result
+        return finish()
     }
     guard let pid = request.pid, let slot = numbers.firstIndex(of: target),
           let hostBirth = request.hostBirth, let birth = request.birth, let hid = request.hid,
@@ -214,19 +220,22 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
         return stop("differentExactEditorNotFocusedBeforeClick")
     }
 
-    let tag = Int64.random(in: 1...Int64(Int32.max))
+    let tag = Int64.random(in: 1...Int64.max)
+    receiver = PairPointerReceiver(host:host.processIdentifier, panel:surface.panelID, tag:tag)
+    result["initialFocus"] = ["focused":before.0 as Any? ?? NSNull(), "main":before.1 as Any? ?? NSNull(),
+                              "editor":before.2] as Object
     var events = [Object](), down = false
     func event(_ type: CGEventType, _ point: CGPoint) -> CGEvent? {
         guard let e = CGEvent(mouseEventSource: eventSource, mouseType: type, mouseCursorPosition: point, mouseButton: .left) else { return nil }
         e.flags = []
         e.setIntegerValueField(.eventSourceUserData, value: tag)
         e.setIntegerValueField(.mouseEventClickState, value: 1)
-        e.setIntegerValueField(.mouseEventNumber, value: tag)
         return e
     }
     func dispatch(_ type: CGEventType, _ point: CGPoint) -> Bool {
         guard let e = event(type, point), p2Physical() == hid else { return false }
         let t = pairClock()
+        e.timestamp = DispatchTime.now().uptimeNanoseconds
         e.post(tap: .cgSessionEventTap)
         events.append(["type":type.rawValue,"beforePost":t,"afterPost":pairClock(),"eventTimestampNS":e.timestamp,
                        "point":[point.x,point.y]] as Object)
@@ -246,7 +255,7 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
         return abort("mouseDownAdmissionChanged")
     }
     down = true
-    Thread.sleep(forTimeInterval: kind == "click" ? 0.035 : 0.14)
+    PairPointerReceiver.pump( kind == "click" ? 0.035 : 0.14)
     if kind != "click" {
         let waypoint = kind == "self" ? CGPoint(x: start.x + min(20, source.rect.width * 0.36), y: start.y) : end
         var path = [CGPoint]()
@@ -262,14 +271,14 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
         for point in path {
             guard p2Physical() == hid, scopeCurrent(), admitted(point, nil, dragging: true),
                   dispatch(.leftMouseDragged, point) else { return abort("dragPathLeftQualifiedHostPanel") }
-            Thread.sleep(forTimeInterval: 0.016)
+            PairPointerReceiver.pump( 0.016)
             if kind == "self", let snapshot = pairRows() {
                 let actual = numbers.compactMap { pairBounds(snapshot, $0, pid) }
                 selfPath.append(["clock":pairClock(),"cg":actual.map(windowReceiptRect)] as Object)
             }
         }
         if kind == "self" { result["duringSelfDrag"] = selfPath }
-        Thread.sleep(forTimeInterval: 0.06)
+        PairPointerReceiver.pump( 0.06)
     }
     guard p2Physical() == hid, scopeCurrent(), admitted(end, destination, dragging: down && kind != "click"),
           dispatch(.leftMouseUp, end) else { return abort("mouseUpTargetOrScopeChanged") }
@@ -277,18 +286,29 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
     result["hardwareUnchangedAtRelease"] = p2Physical() == hid
     if kind != "click" {
         result["status"] = "DISPATCHED"
-        return result
+        PairPointerReceiver.pump(0.025)
+        return finish()
     }
 
     // First and second persistent system observations use the same monotonic clock as
     // posting. Poll intervals also include the AX calls and are retained as bounds.
     let released = events.last!["beforePost"] as! Double
     var lastFalseStart = released, first: (Double,Double)?, reads = 0
+    var states = [String:Int](), transitions = [Object](), previous = ""
     let deadline = released + 3
     while pairClock() < deadline {
         guard p2Physical() == hid else { return stop("userSuperseded") }
         let t = pairClock(), f = focus(), finished = pairClock()
         reads += 1
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let frontKind = front == pid ? "fixture" : front == host.processIdentifier ? "host" : "otherOrUnavailable"
+        func slotOf(_ n: UInt32?) -> String { n == target ? "target" : n == numbers[1-slot] ? "sibling" : "unavailable" }
+        let state = [frontKind,slotOf(f.0),slotOf(f.1),f.2 ? "exactEditor":"otherEditor"].joined(separator:"/")
+        states[state, default:0] += 1
+        if state != previous && transitions.count < 24 {
+            transitions.append(["state":state,"start":t,"end":finished]); previous = state
+        }
+        result["focusStates"] = ["counts":states,"firstTransitions":transitions] as Object
         if f.0 == target && f.1 == target && f.2 {
             if let first {
                 result["focus"] = ["lastNegativeSampleStarted":lastFalseStart,"firstPositiveStart":first.0,
@@ -296,11 +316,12 @@ func pairPointer(kind: String, target: UInt32, host: NSRunningApplication, reque
                                    "target":target,"clock":"systemUptime","method":"systemAndAppAXFocusedWindowMainExactEditor"] as Object
                 guard scopeCurrent() else { return stop("leasedScopeChangedDuringFocusRead") }
                 result["status"] = "FOCUSED"
-                return result
+                PairPointerReceiver.pump(0.015)
+                return finish()
             }
             first = (t,finished)
         } else { lastFalseStart = t; first = nil }
-        Thread.sleep(forTimeInterval: 0.006)
+        PairPointerReceiver.pump( 0.006)
     }
     result["focus"] = ["reads":reads,"lastNegativeSampleStarted":lastFalseStart,"deadline":deadline] as Object
     return stop("systemFocusReadbackTimedOut")
