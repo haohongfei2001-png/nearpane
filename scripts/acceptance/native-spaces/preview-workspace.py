@@ -430,7 +430,7 @@ def run(args):
         require(ws.hardware()==quiet and ws.check(ws.read())["current"]==target,"newPhysicalInputBeforeOpeningOwnedDocuments")
         preview=output/"preview"
         callback=(lambda binding:system_switch(ws,target,binding,output/"system-switch")) if args.system_switch else None
-        code=importlib.import_module("paired-preview").run(kit,preview,expected_space=target,witness=True,budget=args.hidden_budget,cross_space=callback)
+        code=importlib.import_module("paired-preview").run(kit,preview,expected_space=target,witness=True,budget=args.hidden_budget,cross_space=callback,sampler=args.preview_sampler)
         proof=readable_result(preview/"result.json")
         result["preview"]={"status":proof["status"],"exit":code,"receipt":"preview/result.json","reason":proof.get("reason")}
         result["hiddenBudget"]=proof.get("hiddenBudget",{"status":"NOT_RUN"})
@@ -513,6 +513,7 @@ if __name__=="__main__":
     p.add_argument("--stage-method",choices=("settings-ui","temporary-preference"),default="settings-ui",
                    help="explicit temporary-preference mode loans just the proved existing logged-in Stage Manager boolean and verifies production runtime independently")
     p.add_argument("--hidden-budget",action="store_true",help="measure the existing one-minute budget once while the same positive preview is open")
+    p.add_argument("--preview-sampler",choices=("polling","streams"),default="polling")
     p.add_argument("--system-switch",action="store_true",help="while both enrolled A windows exist, select an additional system-created empty B and return to A")
     args=p.parse_args()
     def interrupt(signum,frame): raise KeyboardInterrupt()

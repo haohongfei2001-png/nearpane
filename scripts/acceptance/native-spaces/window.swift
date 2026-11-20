@@ -30,7 +30,23 @@ if paired {
     let home=run.deletingLastPathComponent().appendingPathComponent("home").path
     guard ProcessInfo.processInfo.environment["HOME"]==home,ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"]==home else {exit(4)}
 }
+let streaming=paired && ProcessInfo.processInfo.environment["NP_PAIRED_STREAM_FIXTURE"]=="1"
 var previewStarted: TimeInterval?, previewEpoch = -1
+@MainActor final class StreamPulse:NSObject {
+    var phase=0
+    @objc func draw(_ link:CADisplayLink) {
+        guard editors.count==2,windows.allSatisfy({$0.isVisible}) else{return}
+        phase ^= 1
+        let epoch=max(0,previewEpoch)
+        for (i,color) in PairedPreviewPalette.epochs[epoch].enumerated() {
+            let rgb=color.map {min(255,max(0,$0+(phase==0 ? -5:5)))}
+            editors[i].backgroundColor=NSColor(srgbRed:CGFloat(rgb[0])/255,green:CGFloat(rgb[1])/255,blue:CGFloat(rgb[2])/255,alpha:1)
+            editors[i].needsDisplay=true
+        }
+    }
+}
+let pulse=MainActor.assumeIsolated{StreamPulse()}
+var pulseLink:CADisplayLink?
 #endif
 final class SharedFixtureWindow: NSPanel {
     override var canBecomeKey: Bool { false }
@@ -74,6 +90,12 @@ final class SharedFixtureWindow: NSPanel {
 DispatchQueue.main.asyncAfter(deadline:.now()+0.3) {
     for i in 0..<(presentation == "contract-split" ? 1 : expected) { addDocument(i) }
     #if PAIRED_PREVIEW
+    if streaming,windows.count==2 {
+        for w in windows {w.colorSpace = .sRGB}
+        let link=editors[0].displayLink(target:pulse,selector:#selector(StreamPulse.draw(_:)))
+        link.preferredFrameRateRange=CAFrameRateRange(minimum:30,maximum:60,preferred:60)
+        link.add(to:.main,forMode:.common);pulseLink=link
+    }
     if paired,windows.count==2 {
         // These two owned documents have just opened on the preverified empty lease. Normal
         // AppKit activation publishes a real key/standard AX window for the production roster.
@@ -106,9 +128,9 @@ let timer = Timer(timeInterval: 0.045, repeats: true) { _ in
     if paired && editors.count == 2 {
         let now = ProcessInfo.processInfo.systemUptime
         if previewStarted == nil && FileManager.default.fileExists(atPath: run.appendingPathComponent("preview-start").path) { previewStarted = now }
-        let epoch = previewStarted.map { min(PairedPreviewPalette.epochs.count-1, 1+Int((now-$0)/PairedPreviewPalette.seconds)) } ?? 0
+        let epoch = previewStarted.map { min(PairedPreviewPalette.epochs.count-1, 1+Int((now-$0)/(streaming ? 3.6:PairedPreviewPalette.seconds))) } ?? 0
         if epoch != previewEpoch {
-            for (index, rgb) in PairedPreviewPalette.epochs[epoch].enumerated() {
+            for (index, rgb) in PairedPreviewPalette.epochs[epoch].enumerated() where !streaming {
                 editors[index].backgroundColor = NSColor(srgbRed: CGFloat(rgb[0])/255, green: CGFloat(rgb[1])/255,
                                                          blue: CGFloat(rgb[2])/255, alpha: 1)
                 editors[index].needsDisplay = true

@@ -50,3 +50,11 @@ Field Notes 由 Launch Services 以独立实例启动，使用临时 HOME。两�
 
 
 计时采样在每张已核准的正式卡按钮内取中央 4×4 pt，避开 18 pt 标题栏。收据保留 AX 数值类型、识别到的状态、子元素几何与采样坐标。动态预览必须由同一正式面板帧中的两个不同色标及后续真实变化证明。单独的 `sourceReference` 只读取两扇夹具窗口。系统选择与隐藏预算分别按两次真实卡片身份读回、两条生产流及实际交付计数判定。
+
+## 持续流呈现时间
+
+`--preview-sampler streams` 为两扇夹具和正式侧栏各开启一个常驻 ScreenCaptureKit 过滤器，请求 60 Hz。两卡位于侧栏的同一幅采样窄条。两扇源窗的色标每阶段维持 3.6 秒，在原 sRGB 色值附近作 ±5 通道值的刷新，颜色识别使用原阈值。生产 Host 的缩略图仍由正式应用自行取得和显示。
+
+`presentation-frames.jsonl` 保存三路各自的序列、SC 显示时间、样本 PTS、回调时间和同帧色块统计。只有位于受控身份与遮挡读回之间的 4×4 pt 色块才能留下 RGBA 范围与中位数。缺少 SC 显示时间的帧可另报 PTS。只有与 SC 显示时间实际校准过的 PTS 可以参与时延分位数。每次变化以独立源和卡片上的前一色及连续两次新色确定时间上下界。完整性、同帧匹配及精度分别见 `metrics`，普通轮询仍可选 `--preview-sampler polling`。
+
+已归档结果可运行 `python3 scripts/acceptance/native-spaces/paired_stream_metrics.py <本轮的 preview 目录>` 复算；同时校验原始帧文件的 SHA-256。

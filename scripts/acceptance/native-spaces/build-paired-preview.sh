@@ -28,12 +28,13 @@ flags=(-D NATIVE_CONTRACT -Xcc -I -Xcc Sources/CReadOnlySpaces/include -import-o
 link=("$kit/reader.o" "$kit/members.o" -framework ColorSync)
 xcrun swiftc "${flags[@]}" "$kit/paired-scope.swift" "${link[@]}" -o "$kit/paired-scope"
 xcrun swiftc "${flags[@]}" "$kit/preview-surface.swift" "${link[@]}" -o "$kit/preview-surface"
-xcrun swiftc "${flags[@]}" -parse-as-library "$src/paired-preview-census.swift" "$src/paired-preview-palette.swift" "$src/paired-preview-capture.swift" "${link[@]}" -o "$kit/paired-capture"
+xcrun swiftc -O "${flags[@]}" -parse-as-library "$src/paired-preview-census.swift" "$src/paired-preview-palette.swift" "$src/paired-preview-streams.swift" "$src/paired-preview-capture.swift" "${link[@]}" -o "$kit/paired-capture"
 xcrun swiftc "${flags[@]}" "$src/preview-stage-control.swift" "${link[@]}" -o "$kit/preview-stage-control"
 codesign --verify --strict "$kit/Field Notes.app"
 for tool in "$kit/paired-scope" "$kit/paired-capture" "$kit/preview-stage-control" "$kit/preview-surface"; do codesign --verify --strict "$tool"; done
 xcrun swiftc "${flags[@]}" -parse-as-library "$src/paired-preview-census.swift" "$src/paired-preview-census-checks.swift" "${link[@]}" -o "$kit/paired-census-checks"
 codesign --verify --strict "$kit/paired-census-checks"
 "$kit/paired-census-checks" "$kit"
+"$kit/paired-capture" --stream-self-test
 bash "$src/build-preview-selector.sh" "$kit"
 printf '%s\n' "$kit"

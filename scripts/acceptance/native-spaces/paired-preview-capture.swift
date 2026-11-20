@@ -3,14 +3,14 @@ import CoreMedia
 import CryptoKit
 import ScreenCaptureKit
 
-private struct Request: Decodable, Equatable {
+struct Request: Decodable, Equatable {
     let display: String, space: UInt64, hostPID: pid_t, hostBirth: UInt64, panel: UInt32
     let fixturePID: pid_t, fixtureBirth: UInt64, numbers: [UInt32], sources: [[Double]], pictures: [[Double]]
     let hostHash: String, fixtureHash: String
 }
-private struct Refusal: Error { let reason:String; init(_ reason:String) {self.reason=reason} }
-private struct Crop { let number: UInt32, pid: pid_t, rect: CGRect, patches:[CGRect], filter: SCContentFilter, config: SCStreamConfiguration }
-private struct Observation: Encodable {
+struct Refusal: Error { let reason:String; init(_ reason:String) {self.reason=reason} }
+struct Crop { let number: UInt32, pid: pid_t, rect: CGRect, patches:[CGRect], filter: SCContentFilter, config: SCStreamConfiguration }
+struct Observation: Encodable {
     let start:Double,end:Double,color:String,displayTime:Double?,frameStatus:Int?
     var patch:Data? = nil
     private enum CodingKeys:String,CodingKey {case start,end,color,displayTime,frameStatus}
@@ -19,20 +19,20 @@ private struct FilterGeometry:Encodable {
     let window:UInt32,frame:[Double],filterRect:[Double],requested:[Double],includedWindowCount:Int,nativePointPixelScale:Float
 }
 private func numbers(_ r:CGRect)->[Double] {[r.minX,r.minY,r.width,r.height]}
-private struct PendingWitness {let batch:Int,epoch:Int,uptime:Double,data:Data}
-private struct Witness:Encodable {
+struct PendingWitness {let batch:Int,epoch:Int,uptime:Double,data:Data}
+struct Witness:Encodable {
     let file:String,sha256:String,epoch:Int,batch:Int,hostPID:pid_t,fixturePID:pid_t,numbers:[UInt32],panel:UInt32
     let uptime:Double,bindingBefore:Double,bindingAfter:Double,cardKinds:[String],physicalFourPatch:Bool
 }
-private func now() -> Double { ProcessInfo.processInfo.systemUptime }
-private func emit<T:Encodable>(_ value:T) throws { FileHandle.standardOutput.write(try JSONEncoder().encode(value)+Data([10])) }
+func now() -> Double { ProcessInfo.processInfo.systemUptime }
+func emit<T:Encodable>(_ value:T) throws { FileHandle.standardOutput.write(try JSONEncoder().encode(value)+Data([10])) }
 private func birth(_ pid:pid_t) -> UInt64? {
     var info=proc_bsdinfo();let size=Int32(MemoryLayout.size(ofValue:info))
     guard pid>1,proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),info.pbi_uid==getuid(),info.pbi_start_tvsec>0 else{return nil}
     return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
 }
-private func hardware() -> [UInt32] { [.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map{CGEventSource.counterForEventType(.hidSystemState,eventType:$0)} }
-private func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> String? {
+func hardware() -> [UInt32] { [.leftMouseDown,.rightMouseDown,.otherMouseDown,.keyDown,.scrollWheel].map{CGEventSource.counterForEventType(.hidSystemState,eventType:$0)} }
+func scope(_ r:Request,_ crops:[Crop],_ input:[UInt32]) -> String? {
     guard hardware()==input,NSEvent.pressedMouseButtons==0,birth(r.hostPID)==r.hostBirth,birth(r.fixturePID)==r.fixtureBirth,
           let scopes=NPReadInventory() as? [[String:Any]],scopes.count==1,scopes[0]["Display Identifier"] as? String==r.display,
           (scopes[0]["Current Space"] as? [String:Any])?["id64"] as? UInt64==r.space,
@@ -99,12 +99,16 @@ private func observe(_ crop:Crop,witness requestedWitness:Bool) async -> [Observ
 }
 @main struct PairedCapture {
     static func main() async {
-        do{try await capture()}catch{try? emit(["refusal":(error as? Refusal)?.reason ?? "captureUnavailable"]);exit(2)}
+        do{
+            if CommandLine.arguments.count==2 && CommandLine.arguments[1]=="--stream-self-test" {try PairedStreams.offlineChecks();return}
+            try await capture()
+        }catch{try? emit(["refusal":(error as? Refusal)?.reason ?? "captureUnavailable"]);exit(2)}
     }
     static func capture() async throws {
         let data=FileHandle.standardInput.readDataToEndOfFile();let r=try JSONDecoder().decode(Request.self,from:data)
         let sourceOnly=CommandLine.arguments.count==3 && CommandLine.arguments[2]=="--sources"
-        guard CommandLine.arguments.count==2 || sourceOnly,CGPreflightScreenCaptureAccess(),NPReadOnlySpacesOpen()==1,
+        let streams=CommandLine.arguments.count==3 && CommandLine.arguments[2]=="--streams"
+        guard CommandLine.arguments.count==2 || sourceOnly || streams,CGPreflightScreenCaptureAccess(),NPReadOnlySpacesOpen()==1,
               Set(r.numbers).count==2,r.numbers.count==2,(r.pictures.count==2 || sourceOnly),r.sources.count==2 else{throw Refusal("invalidCaptureAdmission")}
         guard let folder=PreviewCensus.ownedTemporaryURL(CommandLine.arguments[1]) else{throw Refusal("unownedTriggerDirectory")}
         let temp=folder.deletingLastPathComponent();var info=stat()
@@ -156,6 +160,10 @@ private func observe(_ crop:Crop,witness requestedWitness:Bool) async -> [Observ
             let config=SCStreamConfiguration();config.sourceRect=rect.offsetBy(dx:-display.frame.minX,dy:-display.frame.minY)
             config.width=Int(rect.width)*2;config.height=Int(rect.height)*2;config.pixelFormat=kCVPixelFormatType_32BGRA;config.colorSpaceName=CGColorSpace.sRGB
             config.showsCursor=false;config.capturesAudio=false;config.captureMicrophone=false;config.includeChildWindows=false
+            if streams {
+                config.minimumFrameInterval=CMTime(value:1,timescale:60);config.queueDepth=5
+                if #available(macOS 15.0,*) {config.captureDynamicRange = .SDR}
+            }
             filterGeometry.append(FilterGeometry(window:id,frame:numbers(window.frame),filterRect:numbers(filter.contentRect),requested:numbers(config.sourceRect),
                                                  includedWindowCount:filter.includedWindows.count,nativePointPixelScale:filter.pointPixelScale))
             crops.append(Crop(number:id,pid:pid,rect:rect,patches:patches,filter:filter,config:config))
@@ -170,6 +178,7 @@ private func observe(_ crop:Crop,witness requestedWitness:Bool) async -> [Observ
             _=try confirmCards();try emit(["sources":samples]);return
         }
         let witness=ProcessInfo.processInfo.environment["NEARPANE_PAIRED_EVIDENCE"]=="1"
+        if streams {try await PairedStreams.run(r,regions,input,folder,confirmCards,witness:witness);return}
         var triggered=false,batches=0,pending=[PendingWitness]()
         func validateAndSave() throws {
             let kinds=try confirmCards(),after=now()

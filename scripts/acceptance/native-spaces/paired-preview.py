@@ -16,6 +16,7 @@ from acceptance import encode, identity, wait_state
 from installed_profile import APP, PROFILE, installed_pid, owns_profile
 from paired_preview_audit import PairedWindowAudit
 from paired_preview_metrics import summarize
+from paired_stream_metrics import integrate
 from preview_support import copy_witnesses, overview, with_current_streams, surface_checkpoint
 
 
@@ -23,11 +24,11 @@ def read(args, timeout=6):
     return json.loads(subprocess.check_output([str(a) for a in args], text=True, timeout=timeout))
 
 
-def collect(command, proof, folder, retain=False):
-    proc = subprocess.Popen([command, folder], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+def collect(command, proof, folder, retain=False, streams=False):
+    proc = subprocess.Popen([command, folder]+(["--streams"] if streams else []), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                             text=True, start_new_session=True,env={**os.environ,"NEARPANE_PAIRED_EVIDENCE":"1" if retain else "0"})
     try:
-        raw, _ = proc.communicate(input=json.dumps(proof), timeout=32)
+        raw, _ = proc.communicate(input=json.dumps(proof), timeout=49 if streams else 32)
         timed_out = False
     except subprocess.TimeoutExpired:
         if proc.poll() is None and os.getpgid(proc.pid)==proc.pid:
@@ -50,7 +51,7 @@ def measured(action):
     try:return action()
     except ERRORS as error:return {"status":"BLOCKED","reason":str(error)[:200]}
 
-def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source=None):
+def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source=None,sampler="polling"):
     def fresh():
         value=read(query)
         if any(value.get(k)!=before[k] for k in INVARIANT if k!="panel") or not owns_profile(host,profile):
@@ -99,10 +100,14 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
     try:
         if not proof.get("ready"):raise ValueError(proof.get("reason") or last_error or "noBoundSourceAndSidebarGeometry")
         proof=required(cards=True);result["binding"]=proof;result["captureAttempted"]=True;save()
-        events,exit_code,timed_out=collect(kit/"paired-capture",proof,folder,witness)
-        batches=[e["batch"] for e in events if "batch" in e];result["samples"]=batches
+        events,exit_code,timed_out=collect(kit/"paired-capture",proof,folder,witness,streams=sampler=="streams")
+        if sampler=="streams":
+            result["metrics"],batches,events,result["presentation"]=integrate(events,folder,output,proof)
+        else:
+            batches=[e["batch"] for e in events if "batch" in e]
+            result["metrics"]=summarize(batches)
+        result["samples"]=batches
         result["sampler"]={"exit":exit_code,"timedOut":timed_out,"events":[e for e in events if "batch" not in e]}
-        result["metrics"]=summarize(batches)
         after=required(cards=True);result["finalBinding"]=after
         keys=(*INVARIANT,"numbers","fixtureBirth","fixtureHash","fixturePID","sources","pictures")
         if any(after.get(k)!=proof[k] for k in keys):raise ValueError("finalIdentityOrGeometryChanged")
@@ -143,11 +148,11 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
             return cross_space(source)
         result["systemDesktopSwitch"]=measured(switch);save()
 
-def run(kit, output, preflight_only=False, expected_space=None, witness=False, budget=False, cross_space=None):
+def run(kit, output, preflight_only=False, expected_space=None, witness=False, budget=False, cross_space=None, sampler="polling"):
     os.umask(0o077)
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     result={'status':'BLOCKED','scope':'two synthetic ordinary documents, same active Space, actual installed Host sidebar',
-            'preflightOnly':preflight_only,'fixtureLaunched':False,'captureAttempted':False,'cleanup':{'status':'NOT_RUN'},
+            'samplerMode':sampler,'preflightOnly':preflight_only,'fixtureLaunched':False,'captureAttempted':False,'cleanup':{'status':'NOT_RUN'},
             'nativeStageManagerComparison':{'status':'NOT_MEASURED','latencyMs':None},'samples':[]}
     receipt=output/'result.json'
     def save():
@@ -176,7 +181,7 @@ def run(kit, output, preflight_only=False, expected_space=None, witness=False, b
             folder=Path(temporary)/str(uuid.uuid4());folder.mkdir(mode=0o700)
             home=Path(temporary)/'home';home.mkdir(mode=0o700)
             proc=subprocess.Popen(["/usr/bin/open","-n","-W","-g","-a",str(app),"--env","HOME="+str(home),
-                                   "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_FIXTURE_PRESENTATION=paired-preview",
+                                   "--env","CFFIXED_USER_HOME="+str(home),"--env","NP_FIXTURE_PRESENTATION=paired-preview","--env","NP_PAIRED_STREAM_FIXTURE="+("1" if sampler=="streams" else "0"),
                                    "--args",str(folder),"2"],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             result["fixtureLaunched"]=True;result["cleanup"]={"status":"UNKNOWN"};numbers=[];state={};audit=None;expected=None
             try:
@@ -209,7 +214,7 @@ def run(kit, output, preflight_only=False, expected_space=None, witness=False, b
                             or not census.get("admitted")):raise ValueError("independentTwoDocumentCleanDesktopBeforeSwitchUnconfirmed")
                     return dict(hostBirth=before["hostBirth"],hostPID=host,space=before["space"],fixturePID=fixture_pid,fixtureBirth=state["birth"],
                                 fixtureHash=fixture_hash,numbers=numbers,sourceProven=True,windowCensus=census)
-                casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source)
+                casework(kit,output,folder,query,host,host_hash,profile,before,budget,witness,cross_space,result,save,audit,independent_source,sampler)
             finally:
                 if audit:result["hostAudit"]=measured(lambda:audit.evidence("final",release=True))
                 (folder/"close").touch();forced=False;fixture_terminated=False
@@ -249,4 +254,5 @@ if __name__=='__main__':
     parser.add_argument('--expected-space',type=int,help='require this exact already-active ordinary Space')
     parser.add_argument('--witness',action='store_true',help='retain only fully verified synthetic color patches and eligible preview media')
     parser.add_argument('--hidden-budget',action='store_true',help='reuse the one-minute installed status-menu contract while these same two windows exist')
-    args=parser.parse_args();raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.preflight_only,args.expected_space,args.witness,args.hidden_budget))
+    parser.add_argument('--preview-sampler',choices=('polling','streams'),default='polling')
+    args=parser.parse_args();raise SystemExit(run(args.kit.resolve(),args.output.resolve(),args.preflight_only,args.expected_space,args.witness,args.hidden_budget,sampler=args.preview_sampler))
