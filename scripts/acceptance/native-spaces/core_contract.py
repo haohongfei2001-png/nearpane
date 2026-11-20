@@ -210,8 +210,12 @@ def main():
                 try:
                     reason=controlled_window(kit/"observe",ws.read(),frozen,child,2)
                 finally:child.finish()
-                receipt.attempts.extend(child.attempts)
+                receipt.attempts.extend({**attempt,"scenario":"W01","application":"net.example.spaces-document"}
+                                        for attempt in child.attempts)
                 count=child.summary.get("controlledWindowTrials",0)
+                if any(attempt["status"]=="FAIL" for attempt in child.attempts):
+                    mark("W01","FAIL",reason,systemDocument=actual["reason"],trials=len(child.attempts))
+                    return
                 require(count==10 and len(child.attempts)==10 and all(r["status"]=="PASS" for r in child.attempts)
                         and child.summary["cleanup"].get("windowNumbersGone"),reason)
                 mark("W01","PARTIAL","Ten ordinary AppKit fixture selections verified. System TextEdit: "+actual["reason"],fixturePasses=count)

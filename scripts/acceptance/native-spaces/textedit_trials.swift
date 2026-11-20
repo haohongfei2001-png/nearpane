@@ -15,16 +15,30 @@ func textInputCounters() -> [UInt32] {
         CGEventSource.counterForEventType(.hidSystemState, eventType:$0)
     }
 }
+func physicalDocumentPath(_ path: String) -> String? {
+    guard let resolved=realpath(path,nil) else {return nil}
+    defer {free(resolved)}
+    return String(cString:resolved)
+}
+func ownedDocumentNode(_ path: String, directory: Bool) -> Bool {
+    var info=stat()
+    guard lstat(path,&info)==0,info.st_uid==getuid(),info.st_mode & 0o077 == 0 else {return false}
+    return info.st_mode & S_IFMT == (directory ? S_IFDIR : S_IFREG) && (directory || info.st_nlink==1)
+}
 func textDocuments(_ request: DocumentRequest) throws -> Object {
-    let folder = URL(fileURLWithPath:request.folder, isDirectory:true).resolvingSymlinksInPath().standardizedFileURL
+    let folder = URL(fileURLWithPath:request.folder, isDirectory:true)
     let kit = folder.deletingLastPathComponent()
     let manager = FileManager.default
     let appURL = URL(fileURLWithPath:"/System/Applications/TextEdit.app", isDirectory:true)
     let wanted = ["A.txt", "B.txt"].map { folder.appendingPathComponent($0) }
     let receiptURL = folder.appendingPathComponent("instance.json")
-    guard UUID(uuidString:folder.lastPathComponent) != nil, folder.path == request.folder,
-          kit.deletingLastPathComponent().path == "/private/tmp", kit.lastPathComponent.hasPrefix("nearpane-d01."),
-          AXIsProcessTrusted(), NPReadOnlySpacesOpen() == 1 else { throw DocumentRefusal("private test folder or observer unavailable") }
+    guard UUID(uuidString:folder.lastPathComponent) != nil, let rootPath=physicalDocumentPath("/private/tmp"),
+          physicalDocumentPath(kit.deletingLastPathComponent().path)==rootPath,kit.lastPathComponent.hasPrefix("nearpane-d01."),
+          physicalDocumentPath(folder.path)==rootPath+"/"+kit.lastPathComponent+"/"+folder.lastPathComponent,
+          ownedDocumentNode(kit.path,directory:true),ownedDocumentNode(folder.path,directory:true),
+          wanted.allSatisfy({ownedDocumentNode($0.path,directory:false)}) else {throw DocumentRefusal("directory, owner or file mode differs from private test enrollment")}
+    guard AXIsProcessTrusted() else {throw DocumentRefusal("test observer does not have Accessibility")}
+    guard NPReadOnlySpacesOpen()==1 else {throw DocumentRefusal("system Space readback unavailable")}
     func guardInput() throws {
         let active = inventory()?.first { $0["scope"] as? String == request.display }
         guard let host, host.processIdentifier == request.hostPID, runningCodeHash(host.processIdentifier) == request.hostHash,
@@ -43,7 +57,7 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     if request.mode == "open" {
         try guardInput()
         guard !manager.fileExists(atPath:receiptURL.path), NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.TextEdit").isEmpty,
-              wanted.allSatisfy({ $0.resolvingSymlinksInPath()==$0 && (try? Data(contentsOf:$0)) == Data() })
+              wanted.allSatisfy({ (try? Data(contentsOf:$0)) == Data() })
         else { throw DocumentRefusal("TextEdit is already in use or test inputs are not fresh") }
         let home=folder.appendingPathComponent("home",isDirectory:true)
         try manager.createDirectory(at:home,withIntermediateDirectories:false)
@@ -83,13 +97,15 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         guard let windows=value(root,kAXWindowsAttribute) as? [AXUIElement], windows.count==2 else {
             throw DocumentRefusal("TextEdit has not exposed exactly the two enrolled document windows")
         }
-        var result=[URL:AXUIElement]()
+        let paths=wanted.compactMap {physicalDocumentPath($0.path)}
+        guard paths.count==2,Set(paths).count==2 else {throw DocumentRefusal("synthetic files disappeared")}
+        var result=[String:AXUIElement]()
         for window in windows {
-            guard let raw=value(window,kAXDocumentAttribute) as? String, let url=URL(string:raw)?.standardizedFileURL,
-                  wanted.contains(url), result[url]==nil else {throw DocumentRefusal("a window is not bound to the disposable document URLs")}
-            result[url]=window
+            guard let raw=value(window,kAXDocumentAttribute) as? String, let url=URL(string:raw),url.isFileURL,
+                  let path=physicalDocumentPath(url.path), paths.contains(path), result[path]==nil else {throw DocumentRefusal("a window is not bound to the disposable document URLs")}
+            result[path]=window
         }
-        return try wanted.map { guard let w=result[$0] else {throw DocumentRefusal("test document missing")}; return w }
+        return try paths.map { guard let w=result[$0] else {throw DocumentRefusal("test document missing")}; return w }
     }
     let windows=try boundWindows()
     if request.mode=="close" {
