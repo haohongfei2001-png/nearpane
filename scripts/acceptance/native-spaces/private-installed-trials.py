@@ -308,6 +308,12 @@ class Mac:
             original = self.canonical.parent/(".nearpane-installed-trials." + str(os.getuid()))/rec["transaction"]/"bundle.slot"
             chain = spaces_trials.extend_focus_chain(rec, self.canonical, original, out, gate, persist)
         if name == "P2":
+            context = dict(context)
+            context.pop("NP_P2_FOCUS_SCOPE_PREFLIGHT", None)
+            if rec.get("focusScopePreflight") is True:
+                require(rec.get("focusScenario") in ("pair-focus","pair-pointer","pair-drag"),
+                        "Scope probe belongs to the same-application pair")
+                context["NP_P2_FOCUS_SCOPE_PREFLIGHT"] = "1"
             cmd = spaces_trials.focus_command(HERE, rec, out, chain, context)
             result = out/"p2/result.json"
         elif name == "P0-diagnostic":
@@ -626,6 +632,10 @@ class Transaction:
                    "p3,p4":("P3","P4"), None:("P3","P4","P4-wordbook")}
         require(only in choices and not (only and args.wordbook_driver), "Invalid protected trial selection")
         inputs = {}
+        if getattr(args, "focus_scope_preflight", False):
+            require(only == "p2" and focus_mode in ("pair-focus","pair-pointer","pair-drag"),
+                    "Focus scope preflight requires a same-application registered pair scenario")
+            inputs["focusScopePreflight"] = True
         if only == "p0-diagnostic":
             require((HERE/"p0-host-diagnostic.py").is_file() and args.issuer_key and args.issuer_key.is_file()
                     and (args.kit/"system-workspace").is_file(), "Missing single-run diagnostic kit or issuer")
@@ -782,6 +792,8 @@ def main():
     run.add_argument("--only",type=str.lower,choices=("p4-service","p3,p4","p2","p0-diagnostic","p2,p4-service"))
     run.add_argument("--focus-scenario", choices=("controlled-window", "pair-focus", "pair-pointer", "pair-drag", "pair-cross"), default="controlled-window",
                      help="with --only p2, measure pointer selection alone or selection plus three actual card drags")
+    run.add_argument("--focus-scope-preflight", action="store_true",
+                     help="require read-only installed Host scope evidence for both registered same-app documents before any pointer action")
     run.add_argument("--pair-kit", type=Path, help="signed --pair-pointer kit, leaving the enrolled lease immutable")
     run.add_argument("--focus-lease",type=Path, help="owned lease and archive chain for a registered two-document test")
     run.add_argument("--issuer-key",type=Path, help="one-run issuer for the separately compiled isolated diagnostic")

@@ -157,12 +157,47 @@ def summary(values):
     return {"n":len(values), "p50":statistics.median(values), "p95":values[math.ceil(.95*len(values))-1], "max":values[-1]}
 
 
+def scope_label(value):
+    return isinstance(value, str) and 0 < len(value) <= 96 and value.isascii() and all(
+        c.isalnum() or c in "._-" for c in value)
+
+
+def scope_probe_gate(proof, binding):
+    """Authorize this diagnostic only for both exact, independently inspected fixture windows."""
+    if not isinstance(proof, dict):
+        return "UNKNOWN", "focusScopeProbeMalformedReceipt"
+    if proof.get("issued") is not False or type(proof.get("actualAXWrites")) is not int or proof["actualAXWrites"] != 0:
+        return "UNKNOWN", "focusScopeProbeReadOnlyUnconfirmed"
+    status, cause = proof.get("status"), proof.get("reason")
+    # The probe supplies an enumerated cause. Never relay arbitrary subprocess text.
+    if not scope_label(cause):
+        return "UNKNOWN", "focusScopeProbeMissingNamedCause"
+    if status in ("BLOCKED", "UNKNOWN"):
+        return status, cause
+    numbers, windows = binding.get("numbers"), proof.get("windows")
+    if (status != "CONFIRMED" or not isinstance(numbers, list) or len(numbers) != 2 or
+            not all(type(v) is int and v > 0 for v in [binding.get("hostPID"), binding.get("pid"), binding.get("birth"), *numbers]) or
+            numbers[0] == numbers[1] or type(proof.get("hostPID")) is not int or proof["hostPID"] != binding["hostPID"] or
+            not isinstance(windows, list) or len(windows) != 2):
+        return "UNKNOWN", "focusScopeProbeExactPairUnconfirmed"
+    for number, row in zip(numbers, windows):
+        if not isinstance(row, dict) or row.get("state") != "confirmed" or any(
+                type(row.get(k)) is not int or row[k] != value
+                for k, value in (("pid",binding["pid"]), ("birth",binding["birth"]), ("number",number))):
+            return "UNKNOWN", "focusScopeProbeExactPairUnconfirmed"
+    return status, cause
+
+
 class PairPointerRun(RegisteredRun):
     def __init__(self, *args):
         super().__init__(*args)
         self.phase_monitor = None
         self.focus_only = False
         self.drag_only = False
+        self.focus_scope_preflight = os.environ.get("NP_P2_FOCUS_SCOPE_PREFLIGHT") == "1"
+        if self.focus_scope_preflight:
+            self.out["runScope"] = "DIAGNOSTIC_WITH_FOCUS_SCOPE_PREFLIGHT"
+            self.out["focusScopePreflight"] = {"status":"NOT_RUN", "reason":"enrolledForegroundFixtureRequired"}
         self.out["layoutCapture"] = {"status":"NOT_RUN","reason":"twoVerifiedOrdinaryWindowFramesUnavailable"}
         self.out["drags"] = {k:{"status":"NOT_RUN"} for k in ("self", "right", "left")}
         self.out["selection"] = {"status":"NOT_RUN","planned":10}
@@ -423,10 +458,55 @@ class PairPointerRun(RegisteredRun):
             self.out["hostButtonTelemetry"] = {"readerStatus":state,"scope":"installed Host WindowFocusLatency category",
                                               "matched":sum(a.get("hostButton",{}).get("status") == "OBSERVED" for a in self.out["attempts"])}
 
+    def inspect_focus_scope(self):
+        name = "focus-scope-probe.json"
+        status, reason, verified = "UNKNOWN", "focusScopeProbeUnavailable", False
+        detail = raw = None
+        try:
+            from focus_scope_probe import inspect_pair
+            binding = {**self.binding, "numbers": list(self.binding["numbers"])}
+            detail = inspect_pair(binding, self.folder, self.rec.output)
+            # Bind qualification to the durable readback that will be reviewed after cleanup.
+            raw = json.loads(private_file(self.rec.output/name))
+            if raw == detail:
+                verified = True
+                status, reason = scope_probe_gate(raw, self.binding)
+            else:
+                reason = "focusScopeProbePersistedResultMismatch"
+        except Superseded:
+            status, reason = "BLOCKED", "userSuperseded"
+        except subprocess.TimeoutExpired:
+            reason = "focusScopeProbeDeadline"
+        except (ImportError, OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError):
+            reason = "focusScopeProbeReceiptUnavailable" if detail is not None else "focusScopeProbeUnavailable"
+        gate = {"status":status, "reason":reason, "rawReceiptVerified":verified, "pointerOrLayoutIssued":False}
+        if raw is not None:
+            gate["probeFile"] = name
+        if verified and status == "BLOCKED" and isinstance(raw.get("windows"), list):
+            causes = []
+            for row in raw["windows"]:
+                if (not isinstance(row, dict) or row.get("number") not in self.binding["numbers"]
+                        or not isinstance(row.get("findings"), list)):
+                    continue
+                for finding in row["findings"]:
+                    if (isinstance(finding, dict) and finding.get("state") in ("changed","fullRosterRequired") and
+                            scope_label(finding.get("point")) and scope_label(finding.get("reason"))):
+                        causes.append({key:finding[key] for key in ("point","reason","state")} | {"number":row["number"]})
+            gate["windowCauses"] = causes
+        self.out["focusScopePreflight"] = gate
+        self.rec.write("focus-scope-preflight.json", gate)
+        self.rec.log("focus-scope-preflight", **gate)
+        if reason == "userSuperseded":
+            raise Superseded()
+        if status != "CONFIRMED":
+            raise TrialStop(reason, status)
+
     def pointer_trials(self, reader):
         texts = [f"Field Notes {name} {self.folder.name}\n" for name in ("A","B")]
         hashes = [digest(t.encode()) for t in texts]
         initial_focus = self.prepare_front(hashes)
+        if self.focus_scope_preflight:
+            self.inspect_focus_scope()
         selection_error = None
         if self.drag_only:
             self.out["selection"].update(status="NOT_RUN",planned=0,reason="independentDragOnlyFreshFixture")
@@ -510,6 +590,14 @@ class PairPointerRun(RegisteredRun):
                 values = [p[field][bound] for p in observed]
                 self.out["measurement"]["statistics"][field+bound.capitalize()] = summary(values)
         self.out["measurement"]["percentiles"] = "sample only, median p50, nearest-rank p95"
+        if self.focus_scope_preflight:
+            gate = self.out["focusScopePreflight"]
+            if "rawReceiptVerified" not in gate:
+                gate.update(rawReceiptVerified=False, pointerOrLayoutIssued=False)
+                self.rec.write("focus-scope-preflight.json", gate)
         self.rec.write("pair-pointer.json", self.out)
         self.rec.summary["pairPointer"] = {k:self.out[k] for k in ("status","operationStatus","reason","selection","measurement","cleanup")}
-        self.rec.scenarios["ordinary-pair-pointer"] = {"status":self.out["status"],"reason":self.out["reason"]}
+        if self.focus_scope_preflight:
+            self.rec.summary["pairPointer"].update(runScope=self.out["runScope"],focusScopePreflight=gate)
+        scenario = "focus-scope-pair-diagnostic" if self.focus_scope_preflight else "ordinary-pair-pointer"
+        self.rec.scenarios[scenario] = {"status":self.out["status"],"reason":self.out["reason"]}
