@@ -6,6 +6,7 @@ public final class EdgePanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
+    let cardPointer = SidebarPanelPointer()
     var floatBounds: NSRect? { didSet { if floatBounds != oldValue { floatDrag = nil } } }
     var floatMoved: ((NSPoint) -> Void)?
     fileprivate var draggingFloating: Bool { floatDrag != nil }
@@ -27,6 +28,7 @@ public final class EdgePanel: NSPanel {
                 return
             }
         }
+        if cardPointer.receive(event, in: self) { return }
         if event.type == .leftMouseDown, !isKeyWindow, let content = contentView,
            let text = content.hitTest(content.convert(event.locationInWindow, from: nil)) as? NSTextView,
            text.isEditable {
@@ -164,6 +166,7 @@ public final class EdgeWindowController: NSWindowController {
     private func endPlacementInteractions() {
         placementGeneration += 1
         if let panel = window as? EdgePanel {
+            panel.cardPointer.cancel()
             panel.cancelFloatingDrag()
             panel.floatBounds = nil
             panel.floatMoved = nil

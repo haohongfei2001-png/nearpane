@@ -1,6 +1,7 @@
 import AppKit
 import NearpaneCore
 import Observation
+import OSLog
 
 /// Switching windows may include covered, minimized or all-desktops windows.
 /// Automatic frame writes require a single ordinary desktop and a currently presented window.
@@ -31,6 +32,7 @@ struct DesktopTilingRoster: Equatable {
 }
 
 @MainActor @Observable final class DesktopAutomaticTiling {
+    private static let pairLog = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "SidebarPointer")
     typealias Resolve = @MainActor ([DesktopWindowKey], OrdinaryDesktopIdentity, WorkspacePreferences) async throws -> [any OrdinaryWindowObserving]
     private let manager: OrdinaryWindowManager
     private let resolve: Resolve
@@ -132,7 +134,10 @@ struct DesktopTilingRoster: Equatable {
         let desktop = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
         guard let feed, !ending, nativeModeAvailable(), !starting, source.kind == .ordinary, source == b.source,
               a.key != b.key, !a.selectionOnly, !b.selectionOnly, permitsOwner(a.key), permitsOwner(b.key),
-              scope == nil || scope == desktop else { throw OrdinaryRefusal.scope }
+              scope == nil || scope == desktop else {
+            Self.pairLog.info("phase=pairScopeRefused")
+            throw OrdinaryRefusal.scope
+        }
         func current() -> Bool {
             allowed() && !ending && nativeModeAvailable() && feed.lifetime(of: a.key) == pair.draggedLifetime &&
                 feed.lifetime(of: b.key) == pair.targetLifetime
@@ -148,14 +153,21 @@ struct DesktopTilingRoster: Equatable {
         }
         try await manager.performUserAction {
             guard current(), membersPresent(await feed.readNow()), current(),
-                  let ctx = manager.liveContext?(source.display) else { throw OrdinaryRefusal.stale }
+                  let ctx = manager.liveContext?(source.display) else {
+                Self.pairLog.info("phase=pairAdmissionRefused")
+                throw OrdinaryRefusal.stale
+            }
+            Self.pairLog.info("phase=pairResolving")
             let keys = pair.draggedOnLeft ? [a.key, b.key] : [b.key, a.key]
             let missing = keys.filter { manager.retainedWindow($0) == nil }
             let new = missing.isEmpty ? [] : try await resolve(missing, desktop, ctx.preferences)
             let selected = keys.compactMap { key in manager.retainedWindow(key) ?? new.first { key.matches($0.id) } }
             guard selected.count == 2, current(), membersPresent(await feed.readNow()), current() else { throw OrdinaryRefusal.stale }
+            Self.pairLog.info("phase=pairPlacing")
             try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
                                                context: ctx, current: current)
+            guard current(), membersPresent(await feed.readNow()), current() else { throw OrdinaryRefusal.stale }
+            Self.pairLog.info("phase=pairVerified")
             feed.changed()
         }
     }

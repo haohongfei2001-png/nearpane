@@ -74,21 +74,24 @@ struct SidebarWindowDragAndDrop: ViewModifier {
     let drag: NativeSidebarDrag
     let feed: CurrentDesktopWindows?
     let canMove: Bool
+    let select: () -> Void
     let place: (SidebarPairDrop) -> Void
     let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
 
     @ViewState private var highlightedSide: Bool?
 
     @ViewBuilder func body(content: Content) -> some View {
-        if let member, let lifetime, let feed, member.source.kind == .ordinary, !member.selectionOnly {
-            content
-                .modifier(NativeWindowDragSource(member: member, drag: drag, feed: feed))
-                .overlay(alignment: highlightedSide == true ? .leading : .trailing) {
-                    if highlightedSide != nil {
-                        RoundedRectangle(cornerRadius: 4).fill(Color.accentColor.opacity(0.18))
-                            .frame(width: width / 2).allowsHitTesting(false).accessibilityHidden(true)
-                    }
-                }
+        if let member, let lifetime, let feed, member.source.kind == .ordinary {
+            if !canMove {
+                content
+                    .background(SidebarCardPointer(member: member, lifetime: lifetime,
+                        current: { feed.lifetime(of: member.key) == lifetime }, select: select, place: place,
+                        highlight: { highlightedSide = $0 }).accessibilityHidden(true))
+                    .overlay(alignment: highlightedSide == true ? .leading : .trailing) { indicator }
+                    .accessibilityHint(member.selectionOnly ? "将这扇窗口切换到前台" : "拖到另一扇窗口预览的左半或右半可在本屏分屏")
+            } else if !member.selectionOnly {
+                content.modifier(NativeWindowDragSource(member: member, drag: drag, feed: feed))
+                    .overlay(alignment: highlightedSide == true ? .leading : .trailing) { indicator }
                 .onDrop(of: [NativeSidebarDrag.type], delegate: CardDrop(member: member, width: width,
                     drag: drag, highlighted: $highlightedSide, accepts: { source in
                         feed.lifetime(of: member.key) == lifetime && source.key != member.key &&
@@ -101,7 +104,15 @@ struct SidebarWindowDragAndDrop: ViewModifier {
                         } else if canMove { move(source, member.source, birth) }
                     }))
                 .accessibilityHint("拖到另一扇窗口预览的左半或右半可在本屏分屏")
+            } else { content }
         } else { content }
+    }
+
+    @ViewBuilder private var indicator: some View {
+        if highlightedSide != nil {
+            RoundedRectangle(cornerRadius: 4).fill(Color.accentColor.opacity(0.18))
+                .frame(width: width / 2).allowsHitTesting(false).accessibilityHidden(true)
+        }
     }
 
     @MainActor private struct CardDrop: DropDelegate {
@@ -288,6 +299,6 @@ struct NativeWindowGroupCard: View {
         .accessibilityLabel(name + (history == nil ? "" : "，最近画面"))
         .accessibilityIdentifier("native-space-window:\(dest.display):\(dest.space):\(member.key.pid):\(member.key.number)")
         .modifier(SidebarWindowDragAndDrop(member: isCurrent || canMove ? member : nil, lifetime: feed.lifetime(of: member.key),
-            width: width, drag: drag, feed: feed, canMove: canMove, place: place, move: move))
+            width: width, drag: drag, feed: feed, canMove: canMove, select: { select(member) }, place: place, move: move))
     }
 }

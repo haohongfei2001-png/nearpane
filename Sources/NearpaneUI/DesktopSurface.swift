@@ -233,6 +233,7 @@ struct DesktopSurface: View {
                         selectable: target != nil)
                     .modifier(SidebarWindowDragAndDrop(member: canNavigate ? member : nil, lifetime: lifetime,
                         width: width, drag: drag, feed: feed, canMove: canNavigate && navigation.canMove,
+                        select: { if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) } },
                         place: { pair in if let feed { place(pair, feed: feed) } },
                         move: { source, dest, birth in if let feed { move(source, to: dest, lifetime: birth, feed: feed) } }))
                     .contextMenu {
