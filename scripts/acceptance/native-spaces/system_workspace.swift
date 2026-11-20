@@ -97,13 +97,56 @@ func guardState(_ r: WorkspaceRequest, stage: String = "initial", expected: UInt
     }
     return current
 }
-func overviewVisible() throws -> Bool {
+func overviewGroup() throws -> AXUIElement? {
     let running = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
     guard running.count == 1, let dock = running.first, overviewHost(dock.processIdentifier) == "com.apple.dock" else {throw Refusal("system Dock unavailable")}
     let root = AXUIElementCreateApplication(dock.processIdentifier)
     _ = AXUIElementSetMessagingTimeout(root,0.5)
-    return try !children(root,named:"mc").isEmpty
+    let groups=try children(root,named:"mc")
+    guard groups.count<=1 else {throw Refusal("multiple system overview roots")}
+    return groups.first
 }
+func overviewVisible() throws -> Bool {try overviewGroup() != nil}
+
+func awaitDismissal(of owned: AXUIElement?, request: WorkspaceRequest, timeout: Double) throws -> Bool {
+    let stop=ProcessInfo.processInfo.systemUptime+timeout
+    var absent=0
+    repeat {
+        guard hardware()==request.hid else {throw Refusal("user input changed during overview dismissal")}
+        if let actual=try overviewGroup() {
+            if let owned, !CFEqual(actual,owned) {throw Refusal("a new overview owner replaced the enrolled root")}
+            absent=0
+        } else {
+            absent+=1
+            if absent>=2 {return true}
+        }
+        usleep(80_000)
+    } while ProcessInfo.processInfo.systemUptime<stop
+    return false
+}
+func finishOverview(_ owned: AXUIElement, request: WorkspaceRequest, proof: inout [String:Any]) {
+    do {
+        if try awaitDismissal(of:owned,request:request,timeout:request.command=="select" ? 0.8 : 0.28) {
+            proof["overviewDismissed"]=true;return
+        }
+        guard let actual=try overviewGroup(),CFEqual(owned,actual),hardware()==request.hid else {throw Refusal("owned overview changed before dismissal")}
+        var names:CFArray?
+        if AXUIElementCopyActionNames(owned,&names) == .success, (names as? [String])?.contains(kAXCancelAction)==true {
+            let result=AXUIElementPerformAction(owned,kAXCancelAction as CFString)
+            proof["overviewCloseAction"]="AXCancel"
+            proof["overviewCloseAXResult"]=result.rawValue
+        } else {
+            // One toggle, only after resolving the same open system-owned root.
+            try runOverviewLauncher()
+            proof["overviewCloseAction"]="native launcher"
+        }
+        proof["overviewDismissed"]=try awaitDismissal(of:owned,request:request,timeout:3.0)
+    } catch {
+        proof["overviewDismissed"]=false
+        proof["overviewCloseReason"]=(error as? Refusal)?.reason ?? "overview dismissal unavailable"
+    }
+}
+
 func runOverviewLauncher() throws {
     let p = Process()
     p.executableURL = URL(fileURLWithPath:"/usr/bin/open")
@@ -234,19 +277,24 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         _=try requireEmpty(target,host:r.hostPID)
         beforeOverview=try publicWindowNumbers()
     }
-    let prior = try overviewVisible()
-    try demand(!prior, "Mission Control was already open")
+    if try overviewVisible() {
+        // A prior operation's close animation may still expose its accessibility root.
+        guard try awaitDismissal(of:nil,request:r,timeout:1.5) else {throw Refusal("Mission Control was already open")}
+    }
+    try guardState(r,stage:"before-opening-overview")
     try runOverviewLauncher()
+    var ownedOverview: AXUIElement?
     defer {
-        if hardware()==r.hid, (try? overviewVisible()) == true {
-            try? runOverviewLauncher()
-        }
+        if let ownedOverview {finishOverview(ownedOverview,request:r,proof:&proof)}
     }
     var tiles: Tiles?
     let deadline = ProcessInfo.processInfo.systemUptime + 3.5
     var detail = "system overview unavailable"
     repeat {
-        do { tiles=try Tiles(r,uuid);break } catch let e as Refusal {detail=e.reason}
+        do {
+            if ownedOverview==nil {ownedOverview=try overviewGroup()}
+            tiles=try Tiles(r,uuid);break
+        } catch let e as Refusal {detail=e.reason}
         usleep(80_000)
     } while ProcessInfo.processInfo.systemUptime < deadline
     guard let tiles else {throw Refusal(detail)}
@@ -294,6 +342,10 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         if CommandLine.arguments.count==3,CommandLine.arguments[1]=="birth",let pid=Int32(CommandLine.arguments[2]) {
             guard let birth=operatorBirth(pid) else {exit(2)}
             print(birth);return
+        }
+        if CommandLine.arguments.dropFirst().elementsEqual(["overview"]) {
+            guard let active=try? overviewVisible() else {exit(2)}
+            print(active ? "open" : "closed");return
         }
         if CommandLine.arguments.dropFirst().elementsEqual(["hid"]) {
             print(hardware().map(String.init).joined(separator:","))

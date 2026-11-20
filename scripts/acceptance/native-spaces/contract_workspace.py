@@ -252,6 +252,33 @@ class Workspace:
             return
         raise ScopeError("No quiet interval available to recycle the inactive desktop")
 
+    def confirm_no_removal_effect(self, previous, reply, receipt):
+        require(self.recovering and reply.get("issued") is True and reply.get("acknowledged") is True,
+                "previous removal has an unknown delivery; retaining its journal and desktop")
+        require(not previous.get("recoveryOf"),"one explicit no-effect recovery already exhausted")
+        n=previous["target"]
+        # A completed acknowledged call can have had no effect. Before a single fresh
+        # click, independently prove the same, last tile still exists and has no successor
+        # that could inherit its position. No replay is permitted on a missing/uncertain reply.
+        require(time.time()-receipt.with_name("remove-intent.json").stat().st_mtime>=8,
+                "acknowledged removal is still within its observation interval")
+        samples=[]
+        for i in range(4):
+            require(checked([str(self.kit/"system-workspace"),"overview"]).strip()=="closed","system overview remains open")
+            sample=self.read()
+            state=self.check(sample)
+            expected=[r for r in state["records"] if r["id"]!=n]
+            occ=(sample.get("scopedMembers") or {}).get(str(n),{})
+            require(state["current"]==self.cleanup_current and state["current"]!=n and state["records"][-1]["id"]==n and
+                    expected==previous["expected"] and occ.get("ordinary")==[] and occ.get("otherMembers")==0 and
+                    occ.get("unresolved")==0 and self.hardware()==self.hid,
+                    "pending target is not the same empty inactive last desktop with unchanged siblings")
+            samples.append(dict(current=state["current"],record=state["records"][-1],uptime=sample["uptime"]))
+            if i<3:time.sleep(.65)
+        require(samples[-1]["uptime"]-samples[0]["uptime"]>=1.8,"insufficient independent no-effect observation")
+        self.record("acknowledged-removal-no-effect",previous=previous["operation"],target=n,samples=samples)
+        return samples
+
     def cleanup(self):
         failures = []
         try:
@@ -274,14 +301,21 @@ class Workspace:
                         f"independent inventory does not establish empty desktop {n}: {occupancy or report}")
                 expected = [r for r in state["records"] if r["id"] != n]
                 pending = receipt.with_name("remove-intent.json")
+                recovery_of = None
                 if pending.exists():
                     previous = json.loads(private_file(pending))
                     reply = receipt.with_name("remove-reply-" + previous["operation"] + ".json")
-                    require(reply.exists() and json.loads(private_file(reply)).get("issued") is False,
-                            "previous removal has an unknown delivery; retaining its journal and desktop")
-                    pending.rename(receipt.with_name("remove-refused-" + previous["operation"] + ".json"))
+                    require(reply.exists(), "previous removal has an unknown delivery; retaining its journal and desktop")
+                    response = json.loads(private_file(reply))
+                    if response.get("issued") is False:
+                        label="refused"
+                    else:
+                        self.confirm_no_removal_effect(previous,response,receipt)
+                        label="no-effect"
+                        recovery_of=previous["operation"]
+                    pending.rename(receipt.with_name("remove-" + label + "-" + previous["operation"] + ".json"))
                 operation = str(uuid.uuid4())
-                intent = dict(operation=operation, boot=self.boot, target=n, expected=expected)
+                intent = dict(operation=operation, boot=self.boot, target=n, expected=expected, recoveryOf=recovery_of)
                 self.command("remove", before, n,
                              before_send=lambda: write_owned(pending,intent),
                              after_reply=lambda data: write_owned(receipt.with_name("remove-reply-"+operation+".json"),data))
