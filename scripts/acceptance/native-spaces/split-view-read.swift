@@ -125,20 +125,31 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
     let hardware=splitInput()
     result["hardware"]=hardware
     let session=CGSessionCopyCurrentDictionary() as? Object
-    guard AXIsProcessTrusted(), stage == false, session?[kCGSessionOnConsoleKey as String] as? Bool == true,
-          session?["CGSSessionScreenIsLocked"] as? Bool != true, let host, host.processIdentifier==r.hostPID,
-          birthMicroseconds(r.hostPID)==r.hostBirth, runningCodeHash(r.hostPID)==r.hostHash,
-          let fixture=NSRunningApplication(processIdentifier:r.fixturePID), fixture.bundleIdentifier=="net.example.spaces-split-documents",
-          fixture.executableURL?.standardizedFileURL.path==r.fixturePath, r.fixturePath.hasPrefix("/private/tmp/nearpane-d01."),
-          r.fixturePath.hasSuffix("/Split Notes.app/Contents/MacOS/SplitNotes"),
-          birthMicroseconds(r.fixturePID)==r.fixtureBirth, runningCodeHash(r.fixturePID)==r.fixtureHash,
-          r.numbers.count==2, Set(r.numbers).count==2, r.numbers.allSatisfy({$0>0}),
-          let table=inventory(requireComplete:true), table.count==1, table[0]["scope"] as? String==r.display,
-          let current=table[0]["current"] as? UInt64, let records=table[0]["records"] as? [Object],
-          let record=records.first(where:{$0["id"] as? UInt64==current}), let kind=record["type"] as? Int,
-          let currentUUID=record["uuid"] as? String, let screen=NSScreen.screens.first, NSScreen.screens.count==1,
+    guard AXIsProcessTrusted() else{return stop("observerAccessibilityUnavailable")}
+    guard stage == false else{return stop("liveStageManagerOffUnconfirmed")}
+    guard session?[kCGSessionOnConsoleKey as String] as? Bool==true,session?["CGSSessionScreenIsLocked"] as? Bool != true,
+          session?[kCGSessionUserIDKey as String] as? NSNumber==NSNumber(value:getuid()) else{return stop("actualUnlockedConsoleUnavailable")}
+    let installed="/Applications/Nearpane.app/Contents/MacOS/NearpaneHost"
+    guard splitProcessPath(r.hostPID)==installed else{return stop("installedHostKernelPathChanged")}
+    guard birthMicroseconds(r.hostPID)==r.hostBirth else{return stop("installedHostBirthChanged")}
+    guard splitSignedPID(r.hostPID,identifier:"com.holdsnow.nearpane.alpha"),runningCodeHash(r.hostPID)==r.hostHash else{return stop("installedHostSignatureChanged")}
+    guard let host=NSRunningApplication(processIdentifier:r.hostPID) else{return stop("installedHostAXHandleUnavailable")}
+    // Foundation standardizes /private/tmp to /tmp on this SDK. Pin the live kernel
+    // executable, its code and its process birth to the adjacent, private fixture kit.
+    guard let observer=splitProcessPath(getpid()),let fixturePath=splitFixturePath(r.fixturePath,observerExecutable:observer) else{return stop("enrolledFixturePathOutsideReaderKit")}
+    guard splitProcessPath(r.fixturePID)==fixturePath else{return stop("fixtureKernelExecutableChanged")}
+    guard birthMicroseconds(r.fixturePID)==r.fixtureBirth else{return stop("fixtureProcessBirthChanged")}
+    guard splitSignedPID(r.fixturePID,identifier:"net.example.spaces-split-documents") else{return stop("fixtureSigningIdentifierChanged")}
+    guard runningCodeHash(r.fixturePID)==r.fixtureHash else{return stop("fixtureCDHashChanged")}
+    guard r.numbers.count==2,Set(r.numbers).count==2,r.numbers.allSatisfy({$0>0}) else{return stop("twoDistinctEnrolledWindowNumbersRequired")}
+    guard let table=inventory(requireComplete:true),table.count==1,table[0]["scope"] as? String==r.display,
+          let current=table[0]["current"] as? UInt64,let records=table[0]["records"] as? [Object] else{return stop("leasedDisplayInventoryChanged")}
+    guard let record=records.first(where:{$0["id"] as? UInt64==current}),let kind=record["type"] as? Int,
+          let currentUUID=record["uuid"] as? String else{return stop("currentSystemSpaceIdentityUnavailable")}
+    guard NSScreen.screens.count==1,let screen=NSScreen.screens.first,
           let displayNumber=screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? UInt32,
-          displays().first?["uuid"] as? String==r.display else {return stop("enrolledSessionHostFixtureOrDisplayChanged")}
+          displays().first?["uuid"] as? String==r.display else{return stop("physicalDisplayNoLongerMatchesLease")}
+    result["kernelCodeIdentitiesVerified"]=true
     let screenFrame=CGDisplayBounds(displayNumber), currentMembers=NPReadCatalogSpaceWindowNumbers(current) as? [UInt32]
     let recordPairs=records.compactMap { rec -> (String,String)? in
         guard let id=rec["id"] as? UInt64,let uuid=rec["uuid"] as? String else {return nil}
@@ -198,6 +209,12 @@ func scopedSplit(_ verb: String, _ r: SplitEnrollment) -> Object {
         return Set(list.compactMap{$0["number"]?.uint32Value})==Set(numbers)
     }
     result["onlyTwoInLease"]=exactly(r.numbers)
+    if let normal=stats?["ordinary"] as? [[String:NSNumber]] {
+        result["leaseOrdinaryCount"]=normal.count
+        result["enrolledOrdinaryCount"]=normal.filter{$0["pid"]?.int32Value==r.fixturePID && r.numbers.contains($0["number"]?.uint32Value ?? 0)}.count
+    }
+    result["unresolvedLeaseMembership"]=stats?["unresolved"]
+    result["otherLeaseMembers"]=stats?["otherMembers"]
     guard ["read","tile","picker","pair"].contains(verb) else {return stop("unknownOperation")}
     if verb=="read" {
         let index=Sidebar(host,rows:rows), groupID="current-split-view:"+r.display+":"+String(current)

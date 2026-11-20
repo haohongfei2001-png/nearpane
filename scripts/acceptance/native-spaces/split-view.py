@@ -101,6 +101,35 @@ def signature(state):
                                    'hostGroupFrame','hostPaneFrames')]
 
 
+def ordinary_control(state, target):
+    if state.get('reason'):
+        return state['reason']
+    checks=(
+        ('systemReadUnavailable',state.get('ready') is True),
+        ('ordinaryLeaseIsNoLongerCurrent',state.get('space')==target and state.get('type')==0 and state.get('newFullscreenIDs')==[]),
+        ('leaseDoesNotContainExactlyTwoEnrolledDocuments',state.get('onlyTwoInLease') is True),
+        ('oneOrBothDocumentsHaveDifferentNativeMembership',state.get('memberships')==[[target],[target]]),
+        ('notTwoLiveStandardAXDocuments',state.get('axStandard')==[True,True]),
+        ('ordinaryWindowsAlreadyShownAsNativeSplit',state.get('hostGroupCount')==0))
+    return next((name for name,ok in checks if not ok),None)
+
+
+def wait_ordinary_control(sample, target, *, deadline):
+    # Inventory and AX publication can lag the fixture's own windows.json. Repeat reads
+    # only, retain their real denials, and never dispatch anything while a check is unresolved.
+    transient={'exactWindowIdentityOrMembershipUnavailable','leaseDoesNotContainExactlyTwoEnrolledDocuments',
+               'notTwoLiveStandardAXDocuments','oneOrBothDocumentsHaveDifferentNativeMembership','installedHostAXHandleUnavailable'}
+    baseline=None
+    while True:
+        state=sample()
+        require(baseline is None or state.get('hardware')==baseline,'physicalInputChangedWhileWaitingForOrdinaryDocuments')
+        baseline=state.get('hardware')
+        reason=ordinary_control(state,target)
+        if reason is None:return state
+        if reason not in transient or time.monotonic()>=deadline:raise ValueError(reason)
+        time.sleep(.15)
+
+
 def run(kit, output, target):
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     result = {'status':'BLOCKED','fixtureLaunched':False, 'tile':{'issued':False}, 'pair':{'issued':False},
@@ -151,10 +180,7 @@ def run(kit, output, target):
                     result['observations'].append({k:x for k,x in v.items() if k!='hardware'})
                     save()
                     return v
-                before=sample()
-                require(before.get('onlyTwoInLease') and before.get('space')==target and before.get('type')==0 and
-                        before.get('memberships')==[[target],[target]] and before.get('newFullscreenIDs')==[] and
-                        before.get('axStandard')==[True,True] and before.get('hostGroupCount')==0,'twoOrdinaryDocumentsAndNegativeControlRequired')
+                before=wait_ordinary_control(sample,target,deadline=time.monotonic()+4)
                 req['hardware']=before['hardware']
                 request=str(uuid.uuid4())
                 tmp_request=folder/'next.json';tmp_request.write_text(json.dumps(dict(nonce=request,action='activate',index=0)))
