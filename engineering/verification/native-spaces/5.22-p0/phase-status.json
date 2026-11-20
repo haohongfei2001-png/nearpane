@@ -8,7 +8,7 @@
     "P5",
     "P6"
   ],
-  "candidate": "96a3e3d1e74ea490dee798385cbef207a6013609",
+  "candidate": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
   "testOS": "macOS 27.0 (26A428)",
   "version": "5.22 (90)",
   "draft": true,
@@ -328,7 +328,11 @@
       "26.0-26.5 enhanced gesture": "unsupported"
     },
     "runtimeDisposition": "26A428 quarantined after late change; use native Mission Control",
-    "bestQualifiedBlackoutFreeSwitchesInOneTenRun": 1
+    "bestQualifiedBlackoutFreeSwitchesInOneTenRun": 1,
+    "evidenceCandidate": "96a3e3d1e74ea490dee798385cbef207a6013609",
+    "installedFallbackSource": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
+    "currentInstalledSwitching": false,
+    "currentReleaseQualifiedBuilds": []
   },
   "P1": {
     "installedMoves": 0,
@@ -391,7 +395,8 @@
     "staple": "NOT_TESTED",
     "cleanInstall26And27": "NOT_TESTED",
     "publicRelease": false,
-    "prerequisite": "core contracts"
+    "prerequisite": "core contracts",
+    "candidateEvidence": "quarantined-build-candidate/candidate.json"
   },
   "windowRoster": {
     "status": "PASS",

@@ -55,7 +55,9 @@
 
 ## 签名候选与回退
 
-当前候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json) · [签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
+当前内部候选 `b55ed96` 已在原路径安装并正常启动。针对第 18 轮的晚到变化，该版关闭原先唯一启用的 26A428 手势适配。正式 Host 独立读回 ready=true、canSwitch=false、canMove=false，既有辅助功能、录屏与事件投递权限全部延续。539 项 Swift 测试通过。下载的 GitHub 草稿 ZIP 与安装包 248 个路径逐项一致，SHA-256 为 `c671f70f48a4422fe86101b34bd505b6e3de9e13a524589d2c72e7fe28090052`。本次换装前后的桌面和精确焦点一致。包内 13 个二进制未满足完整发布签名要求，公证和干净首装未验。[正式进程及系统登记](quarantined-build-candidate/local-verification.json) · [Mac 安装记录](quarantined-build-candidate/installation.json) · [实际下载回读](quarantined-build-candidate/github-binary-readback.json) · [包内发布检查](quarantined-build-candidate/package-gate.json)
+
+此前测量切换的候选 `96a3e3d` 的 SHA-256 为 `5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e`。本机全量 538 项 Swift 测试、82 套件通过。托管 macOS 26.7.2 编译生产 UI、执行 18 项协议测试，另在完整 UI 测试可执行文件中实跑 7 项窗口引用和空 AX 数组测试。本机安装保留三项授权。草稿 ZIP 的 141 个文件、11 个符号链接和 96 个目录逐项与安装包相符。[GitHub 下载回读](11-adjacent-round-trip/candidate/github-binary-readback.json) · [包与实际安装逐项比对](11-adjacent-round-trip/candidate/zip-installed-tree.json) · [签名及实际权限](11-adjacent-round-trip/candidate/live.json) · [内部下载与校验值](11-adjacent-round-trip/candidate/candidate.json) · [CI 日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44728228718)
 
 此候选的侧栏实拍 0→2→0，无占位标签和空间行，14 帧、15.69 秒。双窗时候选显示了两张身份正确的卡，独立观察器本次报告了 0 扇可证明可见窗口，故此轮窗口完整性为 BLOCKED。夹具退出后两个号码均已消失。[截图](11-adjacent-round-trip/window-roster/two-documents-sidebar.png) · [侧栏录屏](11-adjacent-round-trip/window-roster/installed-sidebar.mp4) · [完整性分项](11-adjacent-round-trip/window-roster/results.json)
 

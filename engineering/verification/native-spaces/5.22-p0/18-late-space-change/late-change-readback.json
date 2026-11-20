@@ -29,5 +29,13 @@
   },
   "causalAttribution": "UNKNOWN",
   "disposition": "Disable the only previously admitted OS build, 26A428, in the normal signed Host. Stop the remaining ten / fifty and dependent migration.",
-  "limit": "No continuous independent record between the first completed observation and the next admission. Eight unchanged counters do not identify a trigger."
+  "limit": "No continuous independent record between the first completed observation and the next admission. Eight unchanged counters do not identify a trigger.",
+  "lateForeground": {
+    "timeAfterAXPressSeconds": 2.377519,
+    "targetFirstForegroundAfterAXPressSeconds": 0.165819,
+    "spaceStillTarget": true,
+    "unrelatedPIDWasNotHostOrEitherFixture": true,
+    "persistedThroughLastIndependentReadSeconds": 3.179823,
+    "attribution": "UNKNOWN"
+  }
 }
