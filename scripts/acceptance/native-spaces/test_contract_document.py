@@ -164,7 +164,8 @@ class DocumentTests(unittest.TestCase):
     def test_textedit_signature_and_scoped_focus_without_gui(self):
         source = Path(__file__).resolve().parent
         executable = self.kit / "check-identity"
-        subprocess.run(["xcrun", "swiftc", source/"textedit_identity.swift", source/"test_textedit_identity.swift",
+        subprocess.run(["xcrun", "swiftc", source.parents[2]/"Sources/NearpaneCore/AXWindowList.swift",
+                        source/"textedit_window_list.swift", source/"textedit_identity.swift", source/"test_textedit_identity.swift",
                         "-o", executable], check=True, timeout=60)
         system = Path("/System/Applications/TextEdit.app/Contents/MacOS/TextEdit")
         names = subprocess.check_output(["xcrun", "lipo", "-archs", system], text=True).split()
@@ -230,6 +231,46 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual(bad["status"], "UNKNOWN")
         self.assertIsNone(bad["terminated"])
         action.assert_not_called()
+
+    def test_issued_press_and_every_read_refusal_keep_their_own_safe_metadata(self):
+        item = dict(phase="initial", start=10.001, end=10.02, rootAXError=0, status="emptyArray",
+                    binding="notChecked", valueKind="array", countAXError=0, copyAXError=0, reportedCount=0, copiedCount=0)
+        seen = []
+        def capture(mode, coverage, rows):
+            seen.append((mode, coverage, rows))
+        replies = [{"issued": True, "control": "x", "axError": 0, "windowReads": [dict(item, status="twoAXWindows", copiedCount=2, reportedCount=2)]},
+                   {"issued": False, "reason": "empty", "windowReads": [item]},
+                   {"issued": False, "reason": "copy failed", "windowReads": [dict(item, status="arrayAXError", copyAXError=-25204)]},
+                   {"issued": False, "reason": "unavailable", "windowReads": [dict(item, title="private")]}]
+        processes = [subprocess.CompletedProcess([], int(i != 0) * 2, stdout=json.dumps(v)) for i, v in enumerate(replies)]
+        with patch.object(doc.subprocess, "run", side_effect=processes) as runner:
+            action = lambda mode, **kw: doc.document_action(self.workspace, self.kit, 47, mode, record_reads=capture, **kw)
+            self.assertEqual(doc.press_once(action, 0, "x")["pressDisposition"], "ISSUED")
+            for _ in range(3):
+                with self.assertRaises(doc.ScopeError):
+                    action("sample")
+        self.assertEqual(runner.call_count, 4)
+        self.assertEqual([x[0] for x in seen], ["press", "sample", "sample", "sample"])
+        self.assertEqual([x[2][0]["status"] for x in seen[:3]], ["twoAXWindows", "emptyArray", "arrayAXError"])
+        self.assertEqual(seen[-1][1:], ("INVALID", []))
+
+    def test_lost_replies_and_unusable_diagnostics_never_reissue_an_accepted_press(self):
+        malformed = {"phase": "initial", "start": 1, "end": 2, "binding": [], "status": {"unexpected": 1}}
+        accepted = subprocess.CompletedProcess([], 0, stdout=json.dumps(
+            {"issued": True, "control": "x", "axError": 0, "windowReads": [malformed]}))
+        lost = subprocess.CompletedProcess([], 1, stdout="truncated reply")
+        tracked = Mock()
+        def action(mode, **kwargs):
+            return doc.document_action(self.workspace, self.kit, 47, mode, record_reads=tracked, **kwargs)
+        with patch.object(doc.subprocess, "run", side_effect=[accepted, lost, subprocess.TimeoutExpired("test-witness", 13)]) as runner:
+            self.assertIs(doc.press_once(action, 0, "x")["inputAcknowledged"], True)
+            with self.assertRaises(doc.ScopeError):
+                action("sample")
+            with self.assertRaises(subprocess.TimeoutExpired):
+                action("sample")
+        self.assertEqual([json.loads(call.kwargs["input"])["mode"] for call in runner.call_args_list], ["press", "sample", "sample"])
+        self.assertEqual([call.args for call in tracked.call_args_list],
+                         [("press", "INVALID", []), ("sample", "NO_REPLY", []), ("sample", "NO_REPLY", [])])
 
     def test_helper_exit_envelope_distinguishes_guard_from_unknown(self):
         record = subprocess.CompletedProcess([], 2, stdout='{"issued":false,"reason":"guard refused"}')

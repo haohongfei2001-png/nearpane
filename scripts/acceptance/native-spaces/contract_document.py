@@ -19,16 +19,49 @@ class DocumentIdentityError(ScopeError):
         super().__init__(reason)
 
 
-def document_action(workspace, folder, desktop, mode, **extra):
+def window_reads(value):
+    """Export only bounded AX metadata from the signed helper, including a failed final recheck."""
+    statuses = {"wrongOrUnreadableRoot", "additionalWindowsReported", "windowCountRefused", "arrayAXError", "missingArrayValue",
+                "nonArrayValue", "countChanged", "emptyArray", "oneWindow", "additionalWindowsReturned", "invalidArrayMembers", "twoAXWindows"}
+    bindings = {"notChecked", "wrongOrUnreadableWindowOwner", "roleAXError", "wrongWindowRole", "documentAXError", "documentValueNotString",
+                "foreignOrDuplicateURL", "bothEnrolledURLs"}
+    numeric = {"rootAXError", "countAXError", "copyAXError", "reportedCount", "copiedCount", "roleAXError", "documentAXError"}
+    if value is None:
+        return "NOT_REPORTED", []
+    if not isinstance(value, list) or not 1 <= len(value) <= 2:
+        return "INVALID", []
+    for row in value:
+        if (not isinstance(row, dict) or row.keys() - (numeric | {"phase", "start", "end", "binding", "status", "valueKind"}) or
+                row.get("phase") not in ("initial", "recheck") or
+                not isinstance(row.get("status"), str) or row["status"] not in statuses or
+                not isinstance(row.get("binding"), str) or row["binding"] not in bindings or
+                row.get("valueKind") not in (None, "notRead", "error", "noValue", "array", "otherCFType") or
+                not all(type(row.get(k)) in (float, int) and 0 < row[k] < 2**53 for k in ("start", "end")) or
+                not 0 < row["start"] <= row["end"] or any(type(row[k]) is not int for k in numeric & row.keys())):
+            return "INVALID", []
+    return "RECORDED", value
+
+
+def document_action(workspace, folder, desktop, mode, *, record_reads=None, **extra):
     request = dict(mode=mode, folder=str(folder), display=workspace.display, space=desktop,
                    hostPID=workspace.host["pid"], hostHash=workspace.host["codeHash"], hid=workspace.hid, **extra)
-    cmd = subprocess.run([str(workspace.kit/"textedit")], input=json.dumps(request),
-                         capture_output=True, text=True, timeout=13)
+    track = record_reads is not None and mode in ("sample", "press", "marker", "close")
+    try:
+        cmd = subprocess.run([str(workspace.kit/"textedit")], input=json.dumps(request),
+                             capture_output=True, text=True, timeout=13)
+    except (OSError, subprocess.SubprocessError):
+        if track:
+            record_reads(mode, "NO_REPLY", [])
+        raise
     try:
         data = json.loads(cmd.stdout)
         require(isinstance(data, dict), "document witness reply was not an object")
     except ValueError as exc:
+        if track:
+            record_reads(mode, "NO_REPLY", [])
         raise ScopeError(f"TextEdit {mode} witness returned no valid reply (exit {cmd.returncode})") from exc
+    if track:
+        record_reads(mode, *window_reads(data.get("windowReads")))
     if mode == "press":
         # A guard refusal on exit 2 is evidence. Losing the reply is a different outcome.
         return {**data, "exitCode": cmd.returncode}
@@ -176,8 +209,20 @@ def run(workspace, receipt, desktop):
     for name in ("A.txt", "B.txt"):
         (folder/name).touch(mode=0o600, exist_ok=False)
 
+    read_summary = {"recorded": 0, "unreported": 0, "invalid": 0, "noReply": 0, "observations": 0, "outcomes": {}}
+
+    def record_reads(mode, coverage, readings):
+        key = {"RECORDED": "recorded", "NOT_REPORTED": "unreported", "INVALID": "invalid", "NO_REPLY": "noReply"}[coverage]
+        read_summary[key] += 1
+        read_summary["observations"] += len(readings)
+        for row in readings:
+            name = row["status"]
+            read_summary["outcomes"][name] = read_summary["outcomes"].get(name, 0) + 1
+        receipt.log("W01-AX-window-read", operationStage="cleanup" if mode == "close" else stage, mode=mode,
+                    trial=attempt["trial"] if attempt else None, coverage=coverage, reads=readings)
+
     def action(mode, **extra):
-        return document_action(workspace, folder, desktop, mode, **extra)
+        return document_action(workspace, folder, desktop, mode, record_reads=record_reads, **extra)
 
     def wait(predicate, marker=None, seconds=5):
         deadline = time.monotonic() + seconds
@@ -279,5 +324,6 @@ def run(workspace, receipt, desktop):
             try:
                 receipt.log("W01-system-document-cleanup", **cleanup)
             finally:
+                status["axWindowReads"] = read_summary
                 receipt.write("W01-system-documents.json", status)
     return status

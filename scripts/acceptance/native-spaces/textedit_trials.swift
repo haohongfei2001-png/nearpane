@@ -34,7 +34,7 @@ func ownedDocumentNode(_ path: String, directory: Bool) -> Bool {
     guard lstat(path,&info)==0,info.st_uid==getuid(),info.st_mode & 0o077 == 0 else {return false}
     return info.st_mode & S_IFMT == (directory ? S_IFDIR : S_IFREG) && (directory || info.st_nlink==1)
 }
-func textDocuments(_ request: DocumentRequest) throws -> Object {
+func textDocuments(_ request: DocumentRequest, reads: inout [Object]) throws -> Object {
     let folder = URL(fileURLWithPath:request.folder, isDirectory:true)
     let kit = folder.deletingLastPathComponent()
     let manager = FileManager.default
@@ -141,24 +141,57 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         guard let raw=value(source,key),CFGetTypeID(raw)==AXUIElementGetTypeID() else {return nil}
         return (raw as! AXUIElement)
     }
-    func boundWindows() throws -> [AXUIElement] {
+    func boundWindows(_ phase: String) throws -> [AXUIElement] {
         guard wanted.allSatisfy({ ownedDocumentNode($0.path,directory:false) }) else {throw DocumentRefusal("synthetic file ownership changed")}
-        guard let windows=value(root,kAXWindowsAttribute) as? [AXUIElement], windows.count==2 else {
-            throw DocumentRefusal("TextEdit has not exposed exactly the two enrolled document windows")
+        var note: Object = ["phase": phase, "start": ProcessInfo.processInfo.systemUptime, "binding": "notChecked"]
+        defer { note["end"] = ProcessInfo.processInfo.systemUptime; reads.append(note) }
+        var rootPID: pid_t = 0
+        let rootError = AXUIElementGetPid(root, &rootPID)
+        note["rootAXError"] = rootError.rawValue
+        guard rootError == .success, rootPID == enrolled.pid else {
+            note["status"] = "wrongOrUnreadableRoot"
+            throw DocumentRefusal("TextEdit AXWindows root ownership unavailable")
+        }
+        let observed = TextEditWindowList.read(root)
+        note.merge(observed.evidence) { _, new in new }
+        guard let windows = observed.windows else {
+            throw DocumentRefusal("TextEdit AXWindows \(phase) read: \(observed.status)")
         }
         let paths=wanted.compactMap {physicalDocumentPath($0.path)}
-        guard paths.count==2,Set(paths).count==2 else {throw DocumentRefusal("synthetic files disappeared")}
+        guard paths.count==2, Set(paths).count==2 else {throw DocumentRefusal("synthetic files disappeared")}
         var result=[String:AXUIElement]()
         for window in windows {
-            guard owner(window)==enrolled.pid,let raw=value(window,kAXDocumentAttribute) as? String, let url=URL(string:raw),url.isFileURL,
-                  (url.host ?? "").isEmpty || url.host=="localhost",
-                  let path=physicalDocumentPath(url.path), paths.contains(path), result[path]==nil else {throw DocumentRefusal("a window is not bound to the disposable document URLs")}
+            guard owner(window)==enrolled.pid else {
+                note["binding"] = "wrongOrUnreadableWindowOwner"
+                throw DocumentRefusal("AX window is not bound to the enrolled TextEdit PID")
+            }
+            var role: CFTypeRef?
+            let roleError = AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &role)
+            guard roleError == .success, let role, CFGetTypeID(role) == CFStringGetTypeID(), role as? String == kAXWindowRole else {
+                note["binding"] = roleError == .success ? "wrongWindowRole" : "roleAXError"
+                note["roleAXError"] = roleError.rawValue
+                throw DocumentRefusal("AX window role unavailable for the enrolled TextEdit process")
+            }
+            var document: CFTypeRef?
+            let code = AXUIElementCopyAttributeValue(window, kAXDocumentAttribute as CFString, &document)
+            guard code == .success, let document, CFGetTypeID(document) == CFStringGetTypeID(), let raw = document as? String else {
+                note["binding"] = code == .success ? "documentValueNotString" : "documentAXError"
+                note["documentAXError"] = code.rawValue
+                throw DocumentRefusal("could not verify the local AX document URL")
+            }
+            guard let url=URL(string:raw), url.isFileURL, (url.host ?? "").isEmpty || url.host=="localhost",
+                  let path=physicalDocumentPath(url.path), paths.contains(path), result[path]==nil else {
+                note["binding"] = "foreignOrDuplicateURL"
+                throw DocumentRefusal("a window is not bound to the disposable document URLs")
+            }
             result[path]=window
         }
-        return try paths.map { guard let w=result[$0] else {throw DocumentRefusal("test document missing")}; return w }
+        let ordered = try paths.map { guard let w=result[$0] else {throw DocumentRefusal("test document missing")}; return w }
+        note["binding"] = "bothEnrolledURLs"
+        return ordered
     }
     if request.mode != "close" {try guardInput()}
-    let windows=try boundWindows()
+    let windows=try boundWindows("initial")
     if request.mode=="close" {
         // A new user document in our process revokes permission to terminate it.
         guard let app=NSRunningApplication(processIdentifier:enrolled.pid),app.processIdentifier==live.pid,!app.isTerminated,
@@ -193,7 +226,7 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
         return result
     }
     func verifyWindows() throws {
-        let current=try boundWindows()
+        let current=try boundWindows("recheck")
         guard zip(current,windows).allSatisfy({ CFEqual($0,$1) }),current.map({ NPReadAXWindowNumber($0) })==numbers,
               numbers.allSatisfy({ NPReadWindowSpaces($0) as? [UInt64] == [request.space] }) else {
             throw DocumentRefusal("enrolled document windows or Space changed")
@@ -258,16 +291,19 @@ func textDocuments(_ request: DocumentRequest) throws -> Object {
     return ["issued":true,"number":numbers[i],"focusWitness":"systemAX"]
 }
 
+var documentWindowReads = [Object]()
 do {
     let request=try JSONDecoder().decode(DocumentRequest.self,from:FileHandle.standardInput.readDataToEndOfFile())
-    let result=try textDocuments(request)
+    var result=try textDocuments(request, reads: &documentWindowReads)
+    if !documentWindowReads.isEmpty { result["windowReads"] = documentWindowReads }
     FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject:result)+Data([10]))
 } catch {
     // Only our explicit guards prove that this invocation stopped before AXPress.
     let refusal = error as? DocumentRefusal
     let identity = error as? TextEditIdentityRefusal
-    let reply: Object = ["issued": refusal == nil && identity == nil ? NSNull() as Any : false,
+    var reply: Object = ["issued": refusal == nil && identity == nil ? NSNull() as Any : false,
                          "stage":identity?.stage as Any? ?? NSNull(),
                          "reason": identity?.reason ?? refusal?.reason ?? "system document helper did not produce a confirmed reply"]
+    if !documentWindowReads.isEmpty { reply["windowReads"] = documentWindowReads }
     FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject:reply)+Data([10]));exit(2)
 }

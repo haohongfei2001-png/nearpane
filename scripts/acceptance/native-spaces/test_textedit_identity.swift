@@ -44,6 +44,26 @@ private final class Fixture {
             precondition(hash == parts[2], "verified disk slice must agree with codesign for that architecture")
         }
         precondition((try? TextEditProcessIdentity.read(getpid())) == nil, "test process must never satisfy TextEdit enrollment")
+        // Construct opaque AX identities for nonexistent PIDs without sending an AX request.
+        let pair = [AXUIElementCreateApplication(2_100_000_000), AXUIElementCreateApplication(2_100_000_001)] as CFArray
+        func read(_ count: (AXError, Int), _ copy: (AXError, CFTypeRef?)) -> TextEditWindowList {
+            TextEditWindowList.inspect(count: { count }, copy: { copy })
+        }
+        precondition(read((.success, 2), (.success, pair)).windows?.count == 2)
+        precondition(read((.attributeUnsupported, 0), (.success, pair)).windows?.count == 2)
+        let emptyRead = read((.success, 0), (.success, [] as CFArray))
+        precondition(emptyRead.status == "emptyArray" && emptyRead.windows == nil)
+        precondition(read((.success, 1), (.success, [AXUIElementCreateApplication(2_100_000_000)] as CFArray)).status == "oneWindow")
+        precondition(read((.success, 2), (.cannotComplete, nil)).status == "arrayAXError")
+        precondition(read((.success, 2), (.success, nil)).status == "missingArrayValue")
+        precondition(read((.success, 2), (.success, "not an array" as CFString)).status == "nonArrayValue")
+        precondition(read((.success, 2), (.success, ["wrong", "type"] as CFArray)).status == "invalidArrayMembers")
+        precondition(read((.success, 1), (.success, pair)).status == "countChanged")
+        precondition(read((.cannotComplete, 0), (.success, ["a", "b", "c"] as CFArray)).status == "additionalWindowsReturned")
+        for (count, label) in [((AXError.success, 3), "additionalWindowsReported"), ((.apiDisabled, 0), "windowCountRefused"), ((.invalidUIElement, 0), "windowCountRefused")] {
+            let omitted = TextEditWindowList.inspect(count: { count }, copy: { fatalError("must not enumerate unqualified windows") })
+            precondition(omitted.status == label && omitted.evidence["copyAXError"] == nil)
+        }
         let fixture = Fixture()
         precondition(fixture.indices()?.focused == 0 && fixture.indices(editor: 4)?.main == 0)
         precondition(fixture.indices(editor: 5) == nil)

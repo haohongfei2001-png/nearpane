@@ -22,7 +22,7 @@ import sys
 src=Path("scripts/acceptance/native-spaces")
 before,after=(src/"observe.swift").read_text().split("if CommandLine.arguments.count > 1 {")
 Path(sys.argv[1]).write_text(before+"\n"+(src/"row_trials.swift").read_text())
-Path(sys.argv[2]).write_text(before+"\n"+(src/"textedit_identity.swift").read_text()+"\n"+(src/"textedit_trials.swift").read_text())
+Path(sys.argv[2]).write_text(before+"\n"+Path("Sources/NearpaneCore/AXWindowList.swift").read_text()+"\n"+(src/"textedit_window_list.swift").read_text()+"\n"+(src/"textedit_identity.swift").read_text()+"\n"+(src/"textedit_trials.swift").read_text())
 Path(sys.argv[3]).write_text(before+"\n"+(src/"leased-row.swift").read_text())
 PY
 xcrun swiftc "${swift_flags[@]}" "$kit/main.swift" "${link[@]}" -o "$kit/row-driver"
