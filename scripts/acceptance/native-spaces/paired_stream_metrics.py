@@ -7,6 +7,7 @@ import math
 from statistics import median
 
 from paired_preview_metrics import percentiles
+from preview_continuity import measured_intervals
 from space_scope import private_file
 
 def finite(n):
@@ -226,7 +227,8 @@ def integrate(events,folder,output,binding):
                            hostPID=binding["hostPID"],fixturePID=binding["fixturePID"],numbers=binding["numbers"],panel=binding["panel"],
                            bindingBefore=before,bindingAfter=after,cardKinds=["unreported"]*2)})
     info={"frames":file.name,"sha256":hashlib.sha256(file.read_bytes()).hexdigest(),"count":len(frames),"session":session,
-          "compactBatches":len(batches),"maximumSourceToPanelJoinSeconds":1/60}
+          "compactBatches":len(batches),"maximumSourceToPanelJoinSeconds":1/60,
+          "neutralCardIntervals":measured_intervals(streams,1/60)}
     auxiliary=[e for e in events if not any(k in e for k in ("streamFrame","streamGuard","streamClock"))]+witnesses
     if session and not session.get("reason") and session.get("stopped")==[True]*3:auxiliary.append({"completedBatches":len(batches)})
     return stats,batches,auxiliary,info
@@ -237,6 +239,7 @@ if __name__=="__main__":
     from pathlib import Path
     cli=argparse.ArgumentParser(description="Recompute the installed two-card presentation-clock metrics from qualified captured samples.")
     cli.add_argument("output",type=Path)
+    cli.add_argument("--continuity",action="store_true",help="Report observed neutral intervals separately from eventual color changes.")
     args=cli.parse_args()
     saved=json.loads((args.output/"result.json").read_bytes())
     info=saved["presentation"]
@@ -251,4 +254,10 @@ if __name__=="__main__":
     series,clock=qualified([json.loads(line) for line in raw.splitlines()],info["session"])
     derived=metrics(series or [[],[],[]],clock,info["session"])
     if derived!=saved["metrics"]:raise SystemExit("presentation metrics differ from the original receipt")
-    print(json.dumps({"status":"REPLAY_MATCH","original":derived["status"],"latencyMs":derived["latencyMs"]},indent=2))
+    if args.continuity:
+        continuity=measured_intervals(series or [[],[],[]],info["maximumSourceToPanelJoinSeconds"])
+        if "neutralCardIntervals" in info and continuity!=info["neutralCardIntervals"]:
+            raise SystemExit("card continuity intervals differ from the original receipt")
+        print(json.dumps(continuity,indent=2))
+    else:
+        print(json.dumps({"status":"REPLAY_MATCH","original":derived["status"],"latencyMs":derived["latencyMs"]},indent=2))

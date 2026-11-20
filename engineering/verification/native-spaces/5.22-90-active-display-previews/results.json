@@ -70,7 +70,9 @@
         "p50ms": 36.9,
         "p95ms": 46.48,
         "p95UpperMs": 63.8,
-        "simultaneousStates": 7
+        "simultaneousStates": 7,
+        "continuousNeutralCheck": "FAIL",
+        "neutralEvidence": "physical-08/continuity.json"
       },
       {
         "evidence": "physical-09/result.json",
@@ -80,7 +82,9 @@
         "p50ms": 33.18,
         "p95ms": 44.1,
         "p95UpperMs": 61.36,
-        "simultaneousStates": 7
+        "simultaneousStates": 7,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-09/continuity.json"
       },
       {
         "evidence": "physical-10/result.json",
@@ -90,7 +94,9 @@
         "p50ms": 33.99,
         "p95ms": 212.35,
         "p95UpperMs": 229.18,
-        "simultaneousStates": 7
+        "simultaneousStates": 7,
+        "continuousNeutralCheck": "FAIL",
+        "neutralEvidence": "physical-10/continuity.json"
       }
     ],
     "totalConfirmedChanges": 36,

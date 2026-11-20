@@ -117,7 +117,10 @@ def casework(kit,output,folder,query,host,host_hash,profile,before,budget,witnes
         if exit_code or timed_out or not any(e.get("completedBatches")==len(batches) for e in events):
             reasons=[e["refusal"] for e in events if "refusal" in e]
             raise ValueError(reasons[-1] if reasons else "samplerDidNotComplete")
-        result["status"]=result["metrics"]["status"];result["sampler"]["status"]=result["status"]
+        result["sampler"]["status"]=result["metrics"]["status"]
+        result["status"]=result["sampler"]["status"]
+        if result.get("presentation",{}).get("neutralCardIntervals",{}).get("status")=="FAIL":
+            result["status"]="FAIL"
     except ERRORS as error:
         result["reason"]=str(error)[:220]
         result.setdefault("sampler",{})["status"]="BLOCKED"
