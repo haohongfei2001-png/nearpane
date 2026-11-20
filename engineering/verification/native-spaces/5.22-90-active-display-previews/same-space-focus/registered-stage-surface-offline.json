@@ -1,0 +1,88 @@
+{
+  "qualification": "offline fixture readiness",
+  "installedW01": "NOT_RUN",
+  "localGUIActions": 0,
+  "localLaunchServicesOpens": 0,
+  "previous": {
+    "run": "p2-registered-06",
+    "status": "BLOCKED",
+    "operationStatus": "NOT_RUN",
+    "launchIssued": false,
+    "productPresses": 0,
+    "reason": "emptyOrdinaryLeaseUnconfirmed:leased desktop has an ordinary application window",
+    "admissionClocks": [
+      278988.69848295837,
+      278989.14012425
+    ],
+    "stageOnNumbers": [
+      117,
+      19015
+    ],
+    "stageOnBounds": [
+      [
+        1355,
+        446,
+        99,
+        97
+      ],
+      [
+        1352,
+        446,
+        103,
+        97
+      ]
+    ],
+    "matchingStageOnBirthNumberAndBounds": true,
+    "recordedOwnerPID": false,
+    "originalReceiptSHA256": {
+      "result.json": "71c4bcf743e07a3f63e786e724eaab434aecbe4bd070d11f734d79d6f70228eb",
+      "controlled-window/registered-documents.json": "0d16b20803e2b7ceed647e1e27024355d94a683573f554a092fc7b46b0226eef"
+    }
+  },
+  "offline": {
+    "pythonUnittestCount": 89,
+    "pythonResult": "PASS",
+    "suite": "test_p2_stage_surfaces test_p2_documents test_field_marker_witness test_contract_document test_acceptance test_contract_workspace test_preview_workspace test_split_view test_split_fullscreen",
+    "directSwiftAssertions": 11,
+    "swiftResult": "PASS",
+    "signedReaderInvalidRequests": [
+      {
+        "input": "invalidJSON",
+        "status": "BLOCKED",
+        "reason": "invalidBoundStageSurfaceRequest",
+        "pixels": 0
+      },
+      {
+        "input": "emptyRequest",
+        "status": "BLOCKED",
+        "reason": "invalidBoundStageSurfaceRequest",
+        "pixels": 0
+      },
+      {
+        "input": "oversizeRequest",
+        "status": "BLOCKED",
+        "reason": "invalidBoundStageSurfaceRequest",
+        "pixels": 0
+      }
+    ]
+  },
+  "signedKit": {
+    "observe": {
+      "Identifier": "net.example.nearpane.p2-observer",
+      "CDHash": "4675e7b6cb4062bebeff60f0ad5f00681c98f0cc",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "sha256": "fbe5d34eea4836e1c6d8ff7747a7f353c9edefbcadec79eb19e014924da09d81"
+    },
+    "Field Notes.app": {
+      "Identifier": "net.example.spaces-document",
+      "CDHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "sha256": "18a7e2616df6bc50ddfa74044d6b6edd16046c32772c7e83fe8cf849a8dfdf11"
+    }
+  },
+  "freshRequiredEvidence": [
+    "native/result.json stageSurfaceEnrollment",
+    "controlled-window/actions.jsonl P2-stage-off-ordinary-census twice",
+    "registered-documents.json fixturePreparation, attempts, passes, cleanup"
+  ]
+}

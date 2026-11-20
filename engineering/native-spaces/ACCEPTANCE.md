@@ -156,3 +156,5 @@ NP_P2_DOCUMENT_KIT="$document_kit" python3 "$src/installed_profile.py" --p0-focu
 `marker-witness-NN.json` 的 `receiverDisposition` 和 `keyDelivery` 区分夹具内没有看到按键、看到无法归属的按键、仅收到部分已归属事件和确认完整序列。校验继续使用两个文件的 AX、AppKit 和落盘摘要。首个确认的输入另行尝试保存 `first-registered-document.png`；截图前后复核同一进程/窗口、物理输入计数和两个文件的摘要。收据中的 `firstDocumentCapture` 记录是否成功。
 
 W01 从同一 App 已有一个受控文档取得键盘焦点开始。启动前在同一租约上连续两次复核空普通桌面，随即检查正式 Host、原前台进程生辰、桌面 UUID 和物理输入计数。签名夹具通过一次 `/usr/bin/open -n -W -a` 正常进入前台，创建首个文件窗时建立默认 key/main，随后呈现同一 App 的兄弟窗。产品样本开始前再连续两次确认系统 AX、CGID、AppKit key/main、真实编辑器和两个文件的摘要。第一个侧栏选择总是指向当前焦点的兄弟窗。若 Launch Services 前台启动仍未取得文档焦点，准备阶段标记 BLOCKED，正式操作标记 NOT_RUN。真实窗口状态与侧栏固定错误文案分别写入收据。
+
+Stage 开启时若空租约上留下 WindowManager 的合成表面，入场两次记录其 Apple 签名身份、PID、生辰、窗口号和精确边框。关闭 Stage 后，两次新读回逐个核对双向桌面归属、Quartz 和 AppKit 当前可见窗口名单及该进程的 AX 窗口。已从系统消失的表面单独记录。新增普通窗口、可见性、几何或进程代际变化均阻止前台启动。收据中的 `P2-stage-off-ordinary-census` 包含实读的时间、桌面和结果。

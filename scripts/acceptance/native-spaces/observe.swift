@@ -211,6 +211,14 @@ struct Sidebar {
     }
 }
 
+#if P2_DOCUMENT_FIXTURE
+if CommandLine.arguments.dropFirst().elementsEqual(["p2-stage-surface"]) {
+    let data = FileHandle.standardInput.readData(ofLength: 8193)
+    let proof = p2StageSurfaceReport(data)
+    print(String(decoding: try JSONSerialization.data(withJSONObject: proof, options: .sortedKeys), as: UTF8.self))
+    exit(0)
+}
+#endif
 let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
     .filter { !$0.isTerminated && $0.bundleURL?.standardizedFileURL == installed.standardizedFileURL }
 let host = apps.count == 1 ? apps.first : nil

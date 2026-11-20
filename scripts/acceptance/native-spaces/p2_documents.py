@@ -15,6 +15,7 @@ from pathlib import Path
 from acceptance import identity
 from field_marker_witness import MarkerWatch
 from installed_profile import PROFILE, owns_profile
+from p2_stage_surfaces import fresh_ordinary_reader
 from space_scope import ScopeError, private_file
 
 
@@ -114,7 +115,7 @@ def classify_read(q, state, disk, target, hashes, expect_focus):
 
 
 class RegisteredRun:
-    def __init__(self, observer, initial, rec, lease_hid, lease_workspace=None):
+    def __init__(self, observer, initial, rec, lease_hid, lease_workspace=None, lease_admission=None):
         override = os.environ.get("NP_P2_DOCUMENT_KIT") or os.environ.get("NP_W01_MARKER_KIT")
         self.kit = Path(override) if override else observer.parent
         self.observer = self.kit/"observe"
@@ -122,6 +123,7 @@ class RegisteredRun:
         self.folder = self.kit/str(uuid.uuid4())
         self.rec, self.initial, self.lease_hid = rec, initial, lease_hid
         self.workspace=lease_workspace
+        self.lease_admission=lease_admission
         scope = initial["scopes"][0]
         self.binding = dict(hostPID=initial["host"]["pid"],hostHash=initial["host"]["codeHash"],display=scope["scope"],space=scope["current"],allowedFront=initial.get("frontmostPID"))
         self.baseline = None
@@ -295,7 +297,9 @@ class RegisteredRun:
         require(space in ws.ids() and ws.host["pid"]==self.binding["hostPID"] and ws.host["codeHash"]==self.binding["hostHash"]
                 and ws.host_birth==self.binding["hostBirth"],"foregroundLaunchHostGenerationOrLeaseChanged")
         try:
-            empty=empty_system_desktop(ws,space)
+            checker=fresh_ordinary_reader(ws, self.binding, self.lease_admission, self.observer, self.rec.log)
+            empty=empty_system_desktop(ws,space,check_ordinary=checker)
+            require(len(empty)==2 and empty[1]["uptime"]>empty[0]["uptime"],"independentEmptyLeaseReadsUnavailable")
         except ScopeError as error:
             raise TrialStop("emptyOrdinaryLeaseUnconfirmed:"+str(error)) from error
         proof=self.call("launch-admission",timeout=2)

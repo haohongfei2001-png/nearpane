@@ -308,6 +308,12 @@ CFArrayRef NPContractPublicWindowNumbers(void) {
     } @catch (NSException *exception) { return NULL; } }
 }
 
+CFArrayRef NPContractOnscreenWindowNumbers(void) {
+    @autoreleasepool { @try {
+        return CFBridgingRetain(windowNumbers(kCGWindowListOptionOnScreenOnly).allObjects);
+    } @catch (NSException *exception) { return NULL; } }
+}
+
 static NSArray *contractTopology(NSArray *inventory) {
     need(inventory.count == 1, @"one physical display required");
     NSDictionary *scope = inventory[0];

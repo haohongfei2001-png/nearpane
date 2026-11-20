@@ -108,15 +108,16 @@ class DocumentsTests(unittest.TestCase):
             self.run.trials("f"*40)
 
     def test_guard_checks_empty_lease_owned_host_original_foreground_and_all_physical_counters(self):
-        ws=Mock(host={"pid":41,"codeHash":"code"},host_birth=101)
+        ws=Mock(host={"pid":41,"codeHash":"code"},host_birth=101,boot="boot",display="Main")
         ws.ids.return_value=[9]
         self.run.workspace=ws
         self.run.binding.update(hostBirth=101,allowedFront=23,allowedFrontBirth=99,spaceUUID="u")
         proof=dict(status="LAUNCH_ADMITTED",frontMatchesOriginal=True,protectedFrontBirth=99,hid=[0]*13,clock=87,spaceUUID="u")
-        with patch("contract_workspace.empty_system_desktop",return_value=["first","second"]) as read,patch.object(self.run,"call",return_value=proof) as native:
+        with patch("contract_workspace.empty_system_desktop",return_value=[{"uptime":1},{"uptime":2}]) as read,patch.object(self.run,"call",return_value=proof) as native:
             got=self.run.admit_foreground_launch()
             self.assertEqual((got["originalFront"],got["hardware"]),(23,[0]*13))
-            read.assert_called_once_with(ws,9)
+            self.assertEqual(read.call_args.args,(ws,9))
+            self.assertTrue(callable(read.call_args.kwargs["check_ordinary"]))
             native.assert_called_once_with("launch-admission",timeout=2)
             with self.assertRaisesRegex(p2.TrialStop,"foregroundLaunchNotFreshOrUnleased"):self.run.admit_foreground_launch()
 

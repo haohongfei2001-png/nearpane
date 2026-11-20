@@ -13,6 +13,7 @@ import time
 from installed_profile import APP, PROFILE, owns_profile
 from acceptance import Receipt, controlled_window, manifest
 from contract_document import run as run_documents
+from p2_stage_surfaces import lease_enrollment
 from contract_workspace import empty_system_desktop
 from space_scope import require
 
@@ -57,6 +58,10 @@ def run(args):
         result["lease"] = dict(space=args.expected_space, uuid=space_uuid, original=workspace.cleanup_current)
         result["admission"] = empty_system_desktop(workspace, args.expected_space)
         original_stage = driver.states(kit)[-1]["state"]
+        if args.scenario == "controlled-window":
+            result["stageSurfaceEnrollment"] = lease_enrollment(
+                workspace, args.expected_space, space_uuid, original_stage, result["admission"])
+            save()
         stage = driver.PreferenceStage(kit, output, workspace, args.expected_space)
         require(stage.runtime(original_stage)["status"] == "PASS", "initial installed state not independently confirmed")
         if original_stage:
@@ -81,7 +86,8 @@ def run(args):
                 require(workspace.check(before)["current"] == args.expected_space, "leased desktop changed")
                 frozen = manifest(before, kit / "metrics")
                 fixture_receipt.write("installed-manifest.json", frozen)
-                reason = controlled_window(kit / "observe", before, frozen, fixture_receipt, 2, lease_hid=workspace.hid, lease_workspace=workspace)
+                reason = controlled_window(kit / "observe", before, frozen, fixture_receipt, 2,
+                                           lease_hid=workspace.hid, lease_workspace=workspace, lease_admission=result["stageSurfaceEnrollment"])
                 verdicts = [attempt["status"] for attempt in fixture_receipt.attempts]
                 complete = len(verdicts) == 10 and all(v == "PASS" for v in verdicts)
                 status = "PASS" if complete else "FAIL" if "FAIL" in verdicts else "UNKNOWN" if verdicts else "BLOCKED"

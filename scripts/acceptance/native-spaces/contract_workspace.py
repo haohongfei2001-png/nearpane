@@ -56,7 +56,7 @@ def stats(s, display):
                 spaceUUIDs={str(r["id"]):r["uuid"] for r in s["records"]}, fullscreenIDs=[str(r["id"]) for r in s["records"] if r["type"] == 4])
 
 
-def empty_system_desktop(workspace, target):
+def empty_system_desktop(workspace, target, *, check_ordinary=None):
     observations = []
     prior_surfaces = None
     for _ in range(2):
@@ -64,14 +64,19 @@ def empty_system_desktop(workspace, target):
         state = workspace.check(inventory)
         census = inventory["scopedMembers"][str(target)]
         require(state["current"] == target and census["unresolved"] == 0, "leased desktop has an unidentified member")
-        surfaces = []
-        for member in census["ordinary"]:
-            query = dict(display=workspace.display, space=target, pid=member["pid"], number=member["number"])
-            proof = json.loads(subprocess.check_output(
-                [workspace.kit / "split-view-read", "compare-roster", "inactive-stage-surface"],
-                input=json.dumps(query), text=True, timeout=4))
-            require(proof.get("admitted") is True, "leased desktop has an ordinary application window")
-            surfaces.append(proof)
+        if check_ordinary is not None:
+            surfaces = check_ordinary(census["ordinary"])
+        else:
+            surfaces = []
+            for member in census["ordinary"]:
+                query = dict(display=workspace.display, space=target, pid=member["pid"], number=member["number"])
+                proof = json.loads(subprocess.check_output(
+                    [workspace.kit / "split-view-read", "compare-roster", "inactive-stage-surface"],
+                    input=json.dumps(query), text=True, timeout=4))
+                require(proof.get("admitted") is True and proof.get("number") == query["number"],
+                        "leased desktop has an ordinary application window")
+                # The Stage-ON reader verified this exact PID against the signed WindowManager.
+                surfaces.append({**proof, "pid": query["pid"]})
         surfaces.sort(key=lambda entry: entry["number"])
         require(prior_surfaces is None or prior_surfaces == surfaces, "inactive Stage Manager surfaces changed")
         prior_surfaces = surfaces

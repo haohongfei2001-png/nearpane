@@ -19,10 +19,10 @@ observer_sources=("$src/observe.swift")
 fixture_sources=("$work/main.swift" "$src/field-marker-witness.swift")
 flags=(-D NATIVE_MARKER_KIT)
 if [[ "$flavor" == --registered-documents ]]; then
-    flags=(-D P2_DOCUMENT_FIXTURE)
+    flags=(-D P2_DOCUMENT_FIXTURE -D SECONDARY_FOCUS_OBSERVER)
     mkdir "$work/observer"
     cp "$src/observe.swift" "$work/observer/main.swift"
-    observer_sources=("$work/observer/main.swift" "$src/p2-document-scope.swift" "$src/p2-document-post.swift" "$src/p2-keypad.swift" "$src/p2-document-physical.swift" Sources/NearpaneCore/AXWindowList.swift)
+    observer_sources=("$work/observer/main.swift" "$src/p2-document-scope.swift" "$src/p2-stage-surface.swift" scripts/acceptance/observe-secondary-space-controls.swift "$src/p2-document-post.swift" "$src/p2-keypad.swift" "$src/p2-document-physical.swift" Sources/NearpaneCore/AXWindowList.swift)
     fixture_sources+=("$src/p2-keypad.swift" "$src/p2-document-files.swift" "$src/p2-document-physical.swift")
 fi
 xcrun swiftc -D NATIVE_CONTRACT "${flags[@]}" -module-cache-path "$work/cache" -Xcc -I -Xcc "$inc" -import-objc-header "$src/contract_members.h" \
