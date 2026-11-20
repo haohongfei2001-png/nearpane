@@ -40,13 +40,7 @@ func live(_ r: WorkspaceRequest) throws -> (UInt64, [Record]) {
     }
     return (current,records)
 }
-func operatorBirth(_ pid: pid_t) -> UInt64? {
-    var info=proc_bsdinfo()
-    let size=Int32(MemoryLayout<proc_bsdinfo>.size)
-    guard pid>1,proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),
-          info.pbi_uid==getuid(),info.pbi_start_tvsec>0,info.pbi_start_tvusec<1_000_000 else {return nil}
-    return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
-}
+func operatorBirth(_ pid:pid_t)->UInt64? { OverviewProcess.kernelBirth(pid) }
 func operatorIdentity(_ pid: pid_t) -> (String,String)? {
     var code:SecCode?, selected:SecStaticCode?, info:CFDictionary?
     guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid:NSNumber(value:pid)] as CFDictionary,[],&code)==errSecSuccess,
@@ -97,46 +91,14 @@ func guardState(_ r: WorkspaceRequest, stage: String = "initial", expected: UInt
     }
     return current
 }
-enum SystemDock {
-    static let executable = "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
-    private static var enrollment: (pid:pid_t,birth:UInt64)?
-
-    private static func kernelPath(_ pid:pid_t) -> String? {
-        var name = [CChar](repeating:0,count:4096)
-        return proc_pidpath(pid,&name,UInt32(name.count)) > 0 ? String(cString:name) : nil
-    }
-    static func identity() throws -> (pid:pid_t,birth:UInt64) {
-        if enrollment == nil {
-            let bytes=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),nil,0)
-            guard bytes>0,bytes<1_000_000 else {throw Refusal("kernel user-process enumeration unavailable")}
-            var ids=[pid_t](repeating:0,count:Int(bytes)/MemoryLayout<pid_t>.size+64)
-            let capacity=Int32(ids.count*MemoryLayout<pid_t>.size)
-            let used=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),&ids,capacity)
-            guard used>0,used<capacity else {throw Refusal("kernel user-process inventory changed")}
-            let matches=ids.prefix(Int(used)/MemoryLayout<pid_t>.size).filter { $0>1 && kernelPath($0)==executable }
-            guard matches.count==1,let pid=matches.first,let born=operatorBirth(pid) else {
-                throw Refusal("expected one signed-in user's Dock executable, found \(matches.count)")
-            }
-            enrollment=(pid,born)
-        }
-        guard let dock=enrollment,kernelPath(dock.pid)==executable,operatorBirth(dock.pid)==dock.birth else {
-            throw Refusal("the enrolled kernel Dock executable or process generation changed")
-        }
-        var code:SecCode?,requirement:SecRequirement?
-        guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid:NSNumber(value:dock.pid)] as CFDictionary,[],&code)==errSecSuccess,
-              let code,SecRequirementCreateWithString("anchor apple and identifier \"com.apple.dock\"" as CFString,[],&requirement)==errSecSuccess,
-              let requirement,SecCodeCheckValidity(code,[],requirement)==errSecSuccess else {
-            throw Refusal("running Dock failed the Apple anchor and identifier requirement")
-        }
-        return dock
-    }
-}
 func overviewGroup() throws -> AXUIElement? {
     let dock=try SystemDock.identity()
     let root = AXUIElementCreateApplication(dock.pid)
+    try demand(dock.owns(root),"Dock AX root has a different owner")
     _ = AXUIElementSetMessagingTimeout(root,0.5)
     let groups=try children(root,named:"mc")
     guard groups.count<=1 else {throw Refusal("multiple system overview roots")}
+    if let group=groups.first {try dock.verify();try demand(dock.owns(group),"Dock overview root owner changed")}
     return groups.first
 }
 func overviewVisible() throws -> Bool {try overviewGroup() != nil}
@@ -260,12 +222,13 @@ struct Tiles {
     let elements: [AXUIElement]
     let listFrame: CGRect
     init(_ r: WorkspaceRequest, _ uuid: UUID) throws {
-        guard let bar = try secondarySpacesBar(uuid,currentDisplay:true) else { throw Refusal("system overview is not exposed") }
+        guard let bar = try secondarySpacesBar(uuid,currentDisplay:true,enrolledDock:SystemDock.identity()) else { throw Refusal("system overview is not exposed") }
         let list = try only(children(bar.spaces,named:"mc.spaces.list"),"desktop list")
+        try bar.verify(list)
         guard let items = attr(list,kAXChildrenAttribute) as? [AXUIElement], items.count == r.records.count,
               let bounds = frame(list), CGDisplayBounds(bar.side).contains(bounds),
               Set(items).count == items.count, items.allSatisfy({
-                  belongs($0,to:list,owner:bar.owner.processIdentifier) && attr($0,kAXRoleAttribute) as? String == kAXButtonRole
+                  belongs($0,to:list,owner:bar.owner.pid) && attr($0,kAXRoleAttribute) as? String == kAXButtonRole
               })
         else { throw Refusal("system desktop controls do not corroborate the complete Space inventory") }
         // If tiles have geometry, their horizontal order must agree with the AX list.
@@ -276,7 +239,7 @@ struct Tiles {
         self.bar = bar; elements = items; listFrame = bounds
     }
     func point(_ index: Int, fraction: CGFloat) throws -> CGPoint {
-        let el = elements[index], pid = bar.owner.processIdentifier
+        let el = elements[index], pid = bar.owner.pid
         if let f = frame(el), listFrame.contains(f) {
             for y in [0.5,0.7,0.3] {
                 let p = CGPoint(x:f.minX+f.width*fraction,y:f.minY+f.height*y)
@@ -305,7 +268,7 @@ func tileBodyRole(_ p: CGPoint, tile: AXUIElement, owner: pid_t) -> String? {
 }
 
 func expandedBody(_ tiles: Tiles, index: Int) throws -> (CGPoint,String,CGRect) {
-    let tile=tiles.elements[index], owner=tiles.bar.owner.processIdentifier
+    let tile=tiles.elements[index], owner=tiles.bar.owner.pid
     guard tiles.listFrame.height>=48 else {throw Refusal("signed Space strip still exposes compact titles")}
     if let f=frame(tile),tiles.listFrame.contains(f),f.width>=44,f.height>=40 {
         // The central/lower interior excludes the close button and the caption.
@@ -337,7 +300,8 @@ func mouseReorder(_ tiles: Tiles, from: Int, to: Int, _ r: WorkspaceRequest) thr
     let start = try tiles.point(from,fraction:0.5), end = try tiles.point(to,fraction:from<to ? 0.84 : 0.16)
     let pointer = CGEvent(source:nil)?.location
     try guardState(r)
-    try demand(hit(start,tiles.elements[from],tiles.bar.owner.processIdentifier) && hit(end,tiles.elements[to],tiles.bar.owner.processIdentifier),"desktop hit changed")
+    try tiles.bar.verify(tiles.elements[from]);try demand(tiles.bar.owner.owns(tiles.elements[to]),"destination AX owner changed")
+    try demand(hit(start,tiles.elements[from],tiles.bar.owner.pid) && hit(end,tiles.elements[to],tiles.bar.owner.pid),"desktop hit changed")
     var last = start
     try sendMouse(.leftMouseDown,start)
     defer {
@@ -435,8 +399,10 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
     var overviewCurrent=try guardState(r,stage:"overview-admission",admitFullscreenOverview:true)
     if overviewCurrent != r.current { proof["overviewChangedCurrent"]=["from":r.current,"to":overviewCurrent] }
     let second=try Tiles(r,uuid)
-    try demand(second.bar.owner.processIdentifier==tiles.bar.owner.processIdentifier &&
+    try demand(second.bar.dock==tiles.bar.dock && second.bar.owner==tiles.bar.owner &&
                CFEqual(second.bar.add,tiles.bar.add) && zip(second.elements,tiles.elements).allSatisfy { CFEqual($0,$1) },"system desktop controls changed")
+    proof["overviewControlsIdentity"]=["dockPID":second.bar.dock.pid,"dockBirth":second.bar.dock.birth,
+        "ownerPID":second.bar.owner.pid,"ownerBirth":second.bar.owner.birth,"ownerID":second.bar.owner.identifier]
     let action: String, el: AXUIElement
     switch r.command {
     case "add": el=tiles.bar.add;action=kAXPressAction
@@ -468,7 +434,7 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         guard CGPreflightPostEventAccess() else {throw Refusal("event access unavailable for system tile selection")}
         let provisional=try second.point(index,fraction:0.5)
         let before=CGEvent(source:nil)?.location
-        guard hit(provisional,second.elements[index],second.bar.owner.processIdentifier),let before else {throw Refusal("signed tile hover is unavailable")}
+        guard hit(provisional,second.elements[index],second.bar.owner.pid),let before else {throw Refusal("signed tile hover is unavailable")}
         pointerBeforeHover=before;hovered=provisional
         proof["compactOrExpandedStripHeightBeforeHover"]=second.listFrame.height
         CGWarpMouseCursorPosition(provisional)
@@ -480,7 +446,7 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
             usleep(100_000)
             do {
                 let updated=try Tiles(r,uuid)
-                guard CFEqual(second.elements[index],updated.elements[index]) && updated.bar.owner.processIdentifier==second.bar.owner.processIdentifier else {
+                guard CFEqual(second.elements[index],updated.elements[index]) && updated.bar.dock==second.bar.dock,updated.bar.owner==second.bar.owner else {
                     throw Refusal("enrolled system tile changed while expanding thumbnails")
                 }
                 let candidate=try expandedBody(updated,index:index)
@@ -491,7 +457,8 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         guard settledBody,let (point,role,thumb)=body else {throw Refusal(detail)}
         overviewCurrent=try guardState(r,stage:"before-system-tile-click",expected:overviewCurrent,
                                        admitFullscreenOverview:overviewCurrent==r.current)
-        guard tileBodyRole(point,tile:second.elements[index],owner:second.bar.owner.processIdentifier)==role else {throw Refusal("system tile body changed")}
+        try second.bar.verify(second.elements[index])
+        guard tileBodyRole(point,tile:second.elements[index],owner:second.bar.owner.pid)==role else {throw Refusal("system tile body changed")}
         proof["tileHit"]=["index":index,"role":role,"point":[point.x,point.y],
                           "bodyOrStrip":[thumb.minX,thumb.minY,thumb.width,thumb.height]]
         hovered=point
@@ -514,6 +481,7 @@ func perform(_ r: WorkspaceRequest, issued: inout Bool, proof: inout [String:Any
         }
         try guardState(r,stage:"after-empty-read",expected:overviewCurrent,admitFullscreenOverview:overviewCurrent==r.current)
     }
+    try second.bar.verify(el)
     issued=true
     let err=AXUIElementPerformAction(el,action as CFString)
     try demand(err == .success,"system control did not acknowledge input: \(err.rawValue)")

@@ -4,47 +4,8 @@ import AppKit
 import ApplicationServices
 import Security
 
-struct P0OverviewOwner: Equatable {
-    let pid:pid_t, birth:UInt64, identifier:String
-    private static let wmPath="/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager"
-    private static var cachedWM:Self?
-    private static func executable(_ pid:pid_t)->String? {
-        var chars=[CChar](repeating:0,count:4096)
-        return proc_pidpath(pid,&chars,UInt32(chars.count))>0 ? String(cString:chars) : nil
-    }
-    static func owners() throws -> [Self] {
-        let dock=try SystemDock.identity()
-        var result=[Self(pid:dock.pid,birth:dock.birth,identifier:"com.apple.dock")]
-        if cachedWM==nil {
-            let size=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),nil,0)
-            guard size>0,size<1_000_000 else {throw Refusal("kernel WindowManager process list unavailable")}
-            var ids=[pid_t](repeating:0,count:Int(size)/MemoryLayout<pid_t>.size+64)
-            let capacity=Int32(ids.count*MemoryLayout<pid_t>.size)
-            let used=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),&ids,capacity)
-            guard used>0,used<capacity else {throw Refusal("kernel WindowManager list changed")}
-            let matches=ids.prefix(Int(used)/MemoryLayout<pid_t>.size).filter{$0>1 && executable($0)==wmPath}
-            guard matches.count<=1 else {throw Refusal("multiple WindowManager processes for the console user")}
-            if let pid=matches.first,let b=operatorBirth(pid) {cachedWM=Self(pid:pid,birth:b,identifier:"com.apple.WindowManager")}
-        }
-        if let wm=cachedWM {try wm.verify();result.append(wm)}
-        return result
-    }
-    func verify() throws {
-        if identifier=="com.apple.dock" {
-            let dock=try SystemDock.identity()
-            try demand(dock.pid==pid && dock.birth==birth,"signed Dock generation changed")
-            return
-        }
-        var code:SecCode?,req:SecRequirement?
-        guard identifier=="com.apple.WindowManager",Self.executable(pid)==Self.wmPath,operatorBirth(pid)==birth,
-              SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:pid] as CFDictionary,[],&code)==errSecSuccess,let code,
-              SecRequirementCreateWithString("anchor apple and identifier \"com.apple.WindowManager\"" as CFString,[],&req)==errSecSuccess,let req,
-              SecCodeCheckValidity(code,[],req)==errSecSuccess else {throw Refusal("WindowManager kernel path, generation, or Apple signature changed")}
-    }
-}
-
 struct P0Tiles {
-    let owner:P0OverviewOwner
+    let owner:OverviewProcess
     let container,spaces,list:AXUIElement
     let elements:[AXUIElement]
     let listFrame:CGRect
@@ -64,7 +25,7 @@ struct P0Tiles {
               let id=CGDisplayCreateUUIDFromDisplayID(physical)?.takeRetainedValue(),UUID(uuidString:CFUUIDCreateString(nil,id) as String)==display else {
             throw Refusal("requested physical display is no longer the one active unmirrored display")
         }
-        let bounds=CGDisplayBounds(physical),owners=try P0OverviewOwner.owners()
+        let bounds=CGDisplayBounds(physical),owners=try OverviewProcess.owners(dock:SystemDock.identity())
         diagnostics["physicalDisplay"]=physical;diagnostics["bounds"]=box(bounds);diagnostics["expectedTiles"]=request.records.count
         var candidates=[Self](),sourceDiagnostics=[[String:Any]]()
         for owner in owners {

@@ -125,6 +125,11 @@ import Foundation
         try demand(sameTarget,"no stable target proxy, unique geometry, or independent same-point system hit")
         if let transient=try requireEmpty(target,host:r.hostPID,beforeOverview:beforeOverview) {report["overviewComposite"]=transient}
         try guardState(r,stage:"immediately-before-system-input")
+        func verifyHeldTile() throws {
+            try openedBy.verify();try right.owner.verify()
+            try demand(try SystemDock.identity()==openedBy && right.owner.owns(b.proxy),"Dock generation or target AX owner changed before system input")
+        }
+        try verifyHeldTile()
         if !requestedClick {
             try demand(press,"the two reads did not both advertise AXPress for the owned target")
             report["action"]="AXPress";issued=true;let result=AXUIElementPerformAction(b.proxy,kAXPressAction as CFString)
@@ -154,6 +159,7 @@ import Foundation
             } while ProcessInfo.processInfo.systemUptime<until
             guard stable,let (point,role,rect)=seen else {throw Refusal(detail)}
             try guardState(r,stage:"before-verified-native-tile-click")
+            try verifyHeldTile()
             guard let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:point,mouseButton:.left),
                   let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:point,mouseButton:.left) else {throw Refusal("system tile click unavailable")}
             down.setIntegerValueField(.mouseEventClickState,value:1);up.setIntegerValueField(.mouseEventClickState,value:1)

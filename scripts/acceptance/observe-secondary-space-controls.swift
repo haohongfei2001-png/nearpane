@@ -48,20 +48,97 @@ func children(_ parent: AXUIElement, named id: String) throws -> [AXUIElement] {
   return children.filter { attr($0, kAXIdentifierAttribute) as? String == id }
 }
 
-// Verify the live hit-test owner's Apple code requirement before examining its AX metadata.
-func overviewHost(_ pid:pid_t) -> String? {
-  guard let app=NSRunningApplication(processIdentifier:pid), !app.isTerminated,
-        let id=app.bundleIdentifier, let actual=app.executableURL?.resolvingSymlinksInPath().path else {return nil}
-  let hosts=["com.apple.dock":"/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock",
-             "com.apple.WindowManager":"/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager",
-             "com.apple.exposelauncher":"/System/Applications/Mission Control.app/Contents/MacOS/Mission Control"]
-  guard hosts[id]==actual else {return nil}
-  var code:SecCode?, requirement:SecRequirement?
-  guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid: NSNumber(value:pid)] as CFDictionary,[],&code)==errSecSuccess,
-        let code, SecRequirementCreateWithString(("anchor apple and identifier \""+id+"\"") as CFString,[],&requirement)==errSecSuccess,
-        let requirement, SecCodeCheckValidity(code,[],requirement)==errSecSuccess else {return nil}
-  return id
+// Lock the live Apple process generation once for this operation. A launch-services proxy is unnecessary for AX.
+enum OverviewAgent: String, CaseIterable {
+  case dock="com.apple.dock", manager="com.apple.WindowManager", launcher="com.apple.exposelauncher"
+  var executable:String {
+    switch self {
+    case .dock:return "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
+    case .manager:return "/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager"
+    case .launcher:return "/System/Applications/Mission Control.app/Contents/MacOS/Mission Control"
+    }
+  }
 }
+struct OverviewProcess:Equatable {
+  let agent:OverviewAgent,pid:pid_t,birth:UInt64
+  var identifier:String {agent.rawValue}
+  private static var enrolled=[OverviewAgent:Self]()
+  private static func path(_ pid:pid_t)->String? {
+    var bytes=[CChar](repeating:0,count:4096)
+    return proc_pidpath(pid,&bytes,UInt32(bytes.count))>0 ? String(cString:bytes):nil
+  }
+  static func kernelBirth(_ pid:pid_t)->UInt64? {
+    var info=proc_bsdinfo()
+    let size=Int32(MemoryLayout.size(ofValue:info))
+    guard pid>1,proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),
+          info.pbi_uid==getuid(),info.pbi_start_tvsec>0,info.pbi_start_tvusec<1_000_000 else {return nil}
+    return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
+  }
+  static func current(_ agent:OverviewAgent) throws -> Self? {
+    if let held=enrolled[agent] {try held.verify();return held}
+    let bytes=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),nil,0)
+    guard bytes>0,bytes<1_000_000 else {throw Refusal("kernel process inventory unavailable for "+agent.rawValue)}
+    var ids=[pid_t](repeating:0,count:Int(bytes)/MemoryLayout<pid_t>.size+64)
+    let capacity=Int32(ids.count*MemoryLayout<pid_t>.size)
+    let used=proc_listpids(UInt32(PROC_UID_ONLY),getuid(),&ids,capacity)
+    guard used>0,used<capacity,Int(used)%MemoryLayout<pid_t>.size==0 else {throw Refusal("kernel process inventory changed for "+agent.rawValue)}
+    let matches=ids.prefix(Int(used)/MemoryLayout<pid_t>.size).filter{$0>1 && path($0)==agent.executable}
+    guard matches.count<=1 else {throw Refusal("ambiguous current user's "+agent.rawValue)}
+    guard let pid=matches.first else {return nil}
+    guard let birth=kernelBirth(pid) else {throw Refusal("kernel process generation unavailable for "+agent.rawValue)}
+    let identity=Self(agent:agent,pid:pid,birth:birth)
+    try identity.verify();enrolled[agent]=identity;return identity
+  }
+  func verify() throws {
+    guard let session=CGSessionCopyCurrentDictionary() as? [String:Any],session[kCGSessionOnConsoleKey as String] as? Bool==true,
+          session[kCGSessionUserIDKey as String] as? NSNumber==NSNumber(value:getuid()),
+          session["CGSSessionScreenIsLocked"] as? Bool != true else {throw Refusal("unlocked current-user console unavailable")}
+    guard Self.path(pid)==agent.executable,Self.kernelBirth(pid)==birth else {throw Refusal("enrolled kernel path or generation changed for "+identifier)}
+    var code:SecCode?,req:SecRequirement?
+    guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:pid] as CFDictionary,[],&code)==errSecSuccess,let code,
+          SecRequirementCreateWithString(("anchor apple and identifier \""+identifier+"\"") as CFString,[],&req)==errSecSuccess,let req,
+          SecCodeCheckValidity(code,[],req)==errSecSuccess,Self.kernelBirth(pid)==birth,Self.path(pid)==agent.executable else {
+      throw Refusal("running Apple signature or kernel generation changed for "+identifier)
+    }
+  }
+  func owns(_ element:AXUIElement)->Bool {
+    var owner:pid_t=0
+    return AXUIElementGetPid(element,&owner) == .success && owner==pid
+  }
+  var verifiedBirthDate:Date? {
+    guard (try? verify()) != nil else {return nil}
+    return Date(timeIntervalSince1970:Double(birth/1_000_000)+Double(birth%1_000_000)/1_000_000)
+  }
+  #if SECONDARY_OVERVIEW_DRIVER
+  // Only older, short-lived standalone recovery receipts could contain a Launch Services date.
+  // Discovery, new receipts and the installed acceptance path always use the authenticated kernel generation.
+  func matchesRecordedBirth(_ saved:Date)->Bool {
+    guard let kernelDate=verifiedBirthDate else {return false}
+    if kernelDate==saved {return true}
+    guard let legacy=NSRunningApplication(processIdentifier:pid),!legacy.isTerminated,legacy.kernelBirth==kernelDate,
+          legacy.launchDate==saved else {return false}
+    return (try? verify()) != nil
+  }
+  #endif
+  static func owners(dock:Self) throws -> [Self] {
+    try dock.verify()
+    guard dock.agent == .dock else {throw Refusal("AX root was not the enrolled Dock")}
+    return [dock]+(try current(.manager).map{[$0]} ?? [])
+  }
+  static func name(of pid:pid_t)->String? {
+    guard let actual=path(pid),let agent=OverviewAgent.allCases.first(where:{$0.executable==actual}),
+          let identity=try? current(agent),identity.pid==pid else {return nil}
+    return identity.identifier
+  }
+}
+enum SystemDock {
+  static let executable=OverviewAgent.dock.executable
+  static func identity() throws -> OverviewProcess {
+    guard let dock=try OverviewProcess.current(.dock) else {throw Refusal("signed-in user's kernel Dock unavailable")}
+    return dock
+  }
+}
+func overviewHost(_ pid:pid_t)->String? {OverviewProcess.name(of:pid)}
 
 func only(_ elements: [AXUIElement], _ label: String) throws -> AXUIElement {
   guard elements.count == 1 else { throw Refusal("missing or ambiguous " + label) }
@@ -69,14 +146,20 @@ func only(_ elements: [AXUIElement], _ label: String) throws -> AXUIElement {
 }
 
 struct SecondarySpacesBar {
-  let dock: NSRunningApplication
-  let owner: NSRunningApplication
+  let dock: OverviewProcess
+  let owner: OverviewProcess
   let side: CGDirectDisplayID
   let spaces: AXUIElement
   let add: AXUIElement
   let container: AXUIElement
   fileprivate let addProof: AddProof
   let primaryContainer: Bool
+  func verify(_ element:AXUIElement?=nil) throws {
+    try dock.verify()
+    if dock != owner {try owner.verify()}
+    let controls=[container,spaces,add]+(element.map{[$0]} ?? [])
+    guard controls.allSatisfy(owner.owns) else {throw Refusal("enrolled system AX control changed owner")}
+  }
 }
 
 private func reportedFrames(_ el:AXUIElement) -> (direct:CGRect?,split:CGRect?) {
@@ -401,7 +484,7 @@ private func newlyAddedDesktop(before: [String], after: [String], source: String
   return target
 }
 
-func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> SecondarySpacesBar? {
+func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false, enrolledDock:OverviewProcess? = nil) throws -> SecondarySpacesBar? {
   guard AXIsProcessTrusted(), let state = CGSessionCopyCurrentDictionary() as? [String: Any],
     state["kCGSSessionOnConsoleKey"] as? Bool == true,
     state["CGSSessionScreenIsLocked"] as? Bool != true
@@ -409,27 +492,23 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
   guard let side = provisionDisplay(displayUUID, currentDisplay: currentDisplay) else {
     throw Refusal("authorized display identity or topology changed")
   }
-  let apps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
-  guard apps.count == 1, let dock = apps.first, !dock.isTerminated,
-    dock.executableURL?.resolvingSymlinksInPath().path
-      == "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
-  else {
-    throw Refusal("unique running system Dock unavailable")
-  }
-  let root = AXUIElementCreateApplication(dock.processIdentifier)
-  AXUIElementSetMessagingTimeout(root, 1)
-  let groups = try children(root, named: "mc")
-  guard !groups.isEmpty else { return nil }
-  let group = try only(groups, "overview")
-  guard overviewHost(dock.processIdentifier)=="com.apple.dock" else { throw Refusal("system Dock identity changed") }
-  var roots:[(NSRunningApplication,AXUIElement)]=[(dock,group)]
-  let wm=NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.WindowManager")
-  if wm.count==1, let host=wm.first, overviewHost(host.processIdentifier)=="com.apple.WindowManager" {
-    let hostRoot=AXUIElementCreateApplication(host.processIdentifier)
+  let dock=try enrolledDock ?? SystemDock.identity()
+  let owners=try OverviewProcess.owners(dock:dock)
+  let root=AXUIElementCreateApplication(dock.pid)
+  AXUIElementSetMessagingTimeout(root,1)
+  guard dock.owns(root) else {throw Refusal("Dock AX application owner changed")}
+  let groups=try children(root,named:"mc")
+  guard !groups.isEmpty else {return nil}
+  let group=try only(groups,"overview")
+  guard dock.owns(group) else {throw Refusal("Dock AX overview owner changed")}
+  var roots:[(OverviewProcess,AXUIElement)]=[(dock,group)]
+  for host in owners where host.agent == .manager {
+    let hostRoot=AXUIElementCreateApplication(host.pid)
     AXUIElementSetMessagingTimeout(hostRoot,0.3)
+    guard host.owns(hostRoot) else {throw Refusal("WindowManager AX application owner changed")}
     roots.append((host,hostRoot))
     let mc=try children(hostRoot,named:"mc")
-    if mc.count==1 {roots.append((host,mc[0]))}
+    if mc.count==1,host.owns(mc[0]) {roots.append((host,mc[0]))}
   }
   var bars:[SecondarySpacesBar]=[]
   var displayContainers: [AXUIElement] = []
@@ -437,13 +516,14 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
     let containers=try children(scope,named:"mc.display")
     for c in containers where !displayContainers.contains(where:{ CFEqual($0,c) }) { displayContainers.append(c) }
     guard displayContainers.count <= (currentDisplay ? 1 : 2) else { throw Refusal("conflicting overview display containers") }
-    for container in containers where (attr(container,"AXDisplayID") as? NSNumber)?.uint32Value==side {
+    for container in containers where owner.owns(container) && (attr(container,"AXDisplayID") as? NSNumber)?.uint32Value==side {
       let spaces=try only(children(container,named:"mc.spaces"),"secondary spaces bar")
       let add=try only(children(spaces,named:"mc.spaces.add"),"secondary add button")
+      guard owner.owns(spaces),owner.owns(add) else {throw Refusal("Space strip or Add AX owner changed")}
       let nodes=[container,spaces,add]
       guard nodes.allSatisfy({element in
         var pid:pid_t=0
-        return AXUIElementGetPid(element,&pid) == .success && pid==owner.processIdentifier
+        return AXUIElementGetPid(element,&pid) == .success && pid==owner.pid
       }), let strip=systemControlFrame(spaces), !strip.isEmpty, CGDisplayBounds(side).contains(strip),
           systemControlFrame(container)==CGDisplayBounds(side),
           childOf(add,spaces), childOf(spaces,container),
@@ -454,7 +534,7 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
       guard AXUIElementCopyActionNames(add,&actions) == .success,
             (actions as? [String])?.contains(kAXPressAction as String)==true else {throw Refusal("no affirmative add action")}
       let proof: AddProof
-      if let location = locate(add,owner:owner.processIdentifier,in:strip,add:true) {
+      if let location = locate(add,owner:owner.pid,in:strip,add:true) {
         proof = .located(location)
       } else {
         let frames = reportedFrames(add)
@@ -464,14 +544,14 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
           primary = nil
         } else {
           primary = try primaryControls(containers,scope:scope,side:side,sideContainer:container,
-                                        sideStrip:spaces,sideAdd:add,owner:owner.processIdentifier)
+                                        sideStrip:spaces,sideAdd:add,owner:owner.pid)
         }
-        guard let birth = owner.verifiedSystemBirth else { throw Refusal("Add owner has no process start time") }
+        guard let birth = owner.verifiedBirthDate else { throw Refusal("Add owner has no process start time") }
         if let direct = frames.direct, let split = frames.split, direct != split {
           throw Refusal("system Add frame readings disagree")
         }
         try requireVisibleWhenExposed(add,in:spaces)
-        guard let point = semanticStripPoint(in:strip,hit:{hitsSpacesStrip($0,spaces:spaces,container:container,owner:owner.processIdentifier)})
+        guard let point = semanticStripPoint(in:strip,hit:{hitsSpacesStrip($0,spaces:spaces,container:container,owner:owner.pid)})
         else { throw Refusal("same system desktop strip was not hit twice") }
         proof = .semantic(stripPoint:point,ownerBirth:birth,primary:primary)
       }
@@ -482,7 +562,8 @@ func secondarySpacesBar(_ displayUUID: UUID, currentDisplay: Bool = false) throw
     }
   }
   guard bars.count==1 else {throw Refusal("missing or ambiguous secondary display group")}
-  return bars[0]
+  let bar=bars[0];try bar.verify()
+  return bar
 }
 
 func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [String: Any] {
@@ -494,7 +575,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
   ]
   if let bar {
     report["primaryOverviewContainerPresent"]=bar.primaryContainer
-    report["systemControlOwner"]=bar.owner.bundleIdentifier
+    report["systemControlOwner"]=bar.owner.identifier
     report["secondaryCommandProof"]=bar.addProof.method
     switch bar.addProof {
     case .located(.frame): break
@@ -510,14 +591,21 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     static func main() {
       do {
         if CommandLine.arguments.dropFirst().elementsEqual(["--check-system-owners"]) {
-          for id in ["com.apple.WindowManager", "com.apple.dock"] {
-            let apps = NSRunningApplication.runningApplications(withBundleIdentifier:id)
-            guard apps.count == 1, let app = apps.first, overviewHost(app.processIdentifier) == id,
-                  let birth = app.verifiedSystemBirth, app.verifiedSystemBirth == birth
-            else { throw Refusal("system process generation unavailable: " + id) }
-            print(id + " process identity and start time confirmed")
+          for kind in [OverviewAgent.manager,.dock] {
+            guard let held=try OverviewProcess.current(kind),try OverviewProcess.current(kind)==held,held.verifiedBirthDate != nil else {
+              throw Refusal("system process generation unavailable: "+kind.rawValue)
+            }
+            print(kind.rawValue+" process identity and start time confirmed")
           }
           return
+        }
+        if CommandLine.arguments.dropFirst().elementsEqual(["--test-overview-owner-generation"]) {
+          let dock=try SystemDock.identity()
+          let cases=[OverviewProcess(agent:.dock,pid:dock.pid,birth:dock.birth &+ 1),
+                     OverviewProcess(agent:.manager,pid:dock.pid,birth:dock.birth),
+                     OverviewProcess(agent:.dock,pid:getpid(),birth:OverviewProcess.kernelBirth(getpid()) ?? 0)]
+          guard cases.allSatisfy({(try? $0.verify())==nil}),try SystemDock.identity()==dock else {throw Refusal("stale or substituted system identity admitted")}
+          print("kernel Dock retained; wrong PID, birth and Apple executable rejected; zero system inputs");return
         }
         if CommandLine.arguments.dropFirst().elementsEqual(["--test-provision-record-types"]) {
           let ids = [UUID(), UUID(), UUID()]
@@ -842,11 +930,9 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
           state?["CGSSessionScreenIsLocked"] as? Bool != true else { report["state"]="consoleUnavailable"; return report }
     guard let side = provisionDisplay(display, currentDisplay: currentDisplay)
     else { report["state"]="displayMismatch"; return report }
-    let docks = NSRunningApplication.runningApplications(withBundleIdentifier:"com.apple.dock")
-    guard docks.count == 1, let dock=docks.first, !dock.isTerminated,
-          dock.executableURL?.resolvingSymlinksInPath().path == "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
-    else { report["state"]="dockUnavailable"; return report }
-    let root = AXUIElementCreateApplication(dock.processIdentifier)
+    guard let dock=try? SystemDock.identity() else {report["state"]="dockUnavailable";return report}
+    let root=AXUIElementCreateApplication(dock.pid)
+    guard dock.owns(root) else {report["state"]="dockAXOwnerChanged";return report}
     AXUIElementSetMessagingTimeout(root,0.20)
     let safeIDs: Set<String> = ["mc","mc.display","mc.spaces","mc.spaces.list","mc.spaces.add","mc.spaces.space","mc.windows"]
     let safeRoles: Set<String> = ["AXGroup","AXRadioGroup","AXList","AXButton","AXRadioButton","AXScrollArea","AXWindow"]
@@ -865,7 +951,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         let id=attr(el,kAXIdentifierAttribute) as? String ?? ""
         guard depth > 0 || id=="mc" else { continue }
         var owner:pid_t=0
-        guard AXUIElementGetPid(el,&owner) == .success, owner == dock.processIdentifier else { continue }
+        guard AXUIElementGetPid(el,&owner) == .success, owner == dock.pid else { continue }
         let role=attr(el,kAXRoleAttribute) as? String ?? ""
         var entry:[String:Any]=["id":safeIDs.contains(id) ? id : "unrecognized", "role": safeRoles.contains(role) ? role : "other"]
         let screen=(attr(el,"AXDisplayID") as? NSNumber)?.uint32Value
@@ -974,7 +1060,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
           var chain:[[String:Any]]=[]
           for _ in 0..<8 {
             var owner:pid_t=0
-            guard AXUIElementGetPid(el,&owner) == .success, owner==dock.processIdentifier else {break}
+            guard AXUIElementGetPid(el,&owner) == .success, owner==dock.pid else {break}
             let id=attr(el,kAXIdentifierAttribute) as? String ?? ""
             let role=attr(el,kAXRoleAttribute) as? String ?? ""
             var node:[String:Any]=["id":safeIDs.contains(id) ? id : "unrecognized",
@@ -1049,7 +1135,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     init(display: UUID, count: Int, currentDisplay: Bool) throws {
       identifiedAt = ProcessInfo.processInfo.systemUptime
       self.display = display
-      guard let observed = try secondarySpacesBar(display, currentDisplay: currentDisplay), !observed.dock.isTerminated, !observed.owner.isTerminated
+      guard let observed = try secondarySpacesBar(display, currentDisplay: currentDisplay), (try? observed.dock.verify()) != nil, (try? observed.owner.verify()) != nil
       else { throw Refusal("secondary add button frame or Dock identity unavailable") }
       let list = try only(
         children(observed.spaces, named: "mc.spaces.list"), "secondary desktop list")
@@ -1063,7 +1149,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       let placements = try items.map { tile -> ControlLocation in
         var pid:pid_t=0
         guard childOf(tile,list), AXUIElementGetPid(tile,&pid) == .success,
-              pid==observed.owner.processIdentifier,
+              pid==observed.owner.pid,
               attr(tile,kAXRoleAttribute) as? String == kAXButtonRole,
               attr(tile, kAXEnabledAttribute) as? Bool == true,
               (try actionsOf(tile)).contains(kAXPressAction as String),
@@ -1093,9 +1179,9 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     // Repeat the affirmative evidence on the same live objects after the durable
     // one-shot intent, just before dispatch. Never reselect a tile or use a fallback point.
     func recheckBeforeInput() throws {
-      let owner = bar.owner.processIdentifier
-      guard !bar.owner.isTerminated, !bar.dock.isTerminated,
-            overviewHost(owner) == bar.owner.bundleIdentifier,
+      let owner = bar.owner.pid
+      guard (try? bar.owner.verify()) != nil, (try? bar.dock.verify()) != nil,
+            overviewHost(owner) == bar.owner.identifier,
             (attr(bar.container,"AXDisplayID") as? NSNumber)?.uint32Value == bar.side,
             systemControlFrame(bar.container) == CGDisplayBounds(bar.side),
             let strip = systemControlFrame(bar.spaces), !strip.isEmpty, CGDisplayBounds(bar.side).contains(strip),
@@ -1113,7 +1199,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         guard location.recheck(bar.add,owner:owner,in:strip) else { throw Refusal("add lost its physical proof") }
       case .semantic(let p,let birth,let primary):
         guard let current = try secondarySpacesBar(display,currentDisplay:primary == nil),
-              current.owner.processIdentifier == owner, current.owner.verifiedSystemBirth == birth,
+              current.owner.pid == owner, current.owner.verifiedBirthDate == birth,
               current.dock == bar.dock, CFEqual(current.container,bar.container), CFEqual(current.spaces,bar.spaces),
               CFEqual(current.add,bar.add),
               strip.contains(p), hitsSpacesStrip(p,spaces:bar.spaces,container:bar.container,owner:owner)
@@ -1163,7 +1249,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       boot = try currentBoot()
       guard admitsCurrentTileOrder(state.sideOrder, source: source, created: created),
             let bar = try secondarySpacesBar(display), bar.primaryContainer,
-            let ownerBirth = bar.owner.verifiedSystemBirth, let dockBirth = bar.dock.verifiedSystemBirth else {
+            let ownerBirth = bar.owner.verifiedBirthDate, let dockBirth = bar.dock.verifiedBirthDate else {
         throw Refusal("current secondary desktop or overview generation unavailable")
       }
       self.bar = bar
@@ -1172,12 +1258,12 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       let list = try only(children(bar.spaces, named: "mc.spaces.list"), "secondary desktop list")
       var pid: pid_t = 0
       guard childOf(list, bar.spaces), AXUIElementGetPid(list, &pid) == .success,
-            pid == bar.owner.processIdentifier, attr(list, kAXRoleAttribute) as? String == kAXListRole,
+            pid == bar.owner.pid, attr(list, kAXRoleAttribute) as? String == kAXListRole,
             let listFrame = systemControlFrame(list), let strip = systemControlFrame(bar.spaces),
             strip.contains(listFrame), let items = attr(list, kAXChildrenAttribute) as? [AXUIElement],
             items.count == state.sideOrder.count, let tile = items.first,
             !items.dropFirst().contains(where: { CFEqual($0, tile) }), !CFEqual(tile, bar.add),
-            childOf(tile, list), AXUIElementGetPid(tile, &pid) == .success, pid == bar.owner.processIdentifier,
+            childOf(tile, list), AXUIElementGetPid(tile, &pid) == .success, pid == bar.owner.pid,
             attr(tile, kAXRoleAttribute) as? String == kAXButtonRole,
             attr(tile, kAXEnabledAttribute) as? Bool == true, try actionsOf(tile).contains(kAXPressAction as String)
       else { throw Refusal("current secondary desktop has no unique actionable tile") }
@@ -1187,7 +1273,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       let points: [CGPoint]
       if items.count == 2 {
         let pair = try ProvisionControls(display: display, count: 2, currentDisplay: false)
-        guard pair.bar.owner.processIdentifier == pid, pair.bar.side == bar.side,
+        guard pair.bar.owner.pid == pid, pair.bar.side == bar.side,
               CFEqual(list, pair.list), items.indices.allSatisfy({ CFEqual(items[$0], pair.tiles[$0]) })
         else { throw Refusal("secondary source tile or its ordered sibling changed") }
         points = pairedSourceProbes(list:listFrame, display:bounds, location:pair.locations[0],
@@ -1206,15 +1292,15 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       let current = try Self(display: display, source: source, created: created)
       guard state.sideOrder == [source], current.state.primaryScope == state.primaryScope,
             current.state.geometry == state.geometry, current.boot == boot,
-            bar.owner.processIdentifier == current.bar.owner.processIdentifier, current.ownerBirth == ownerBirth,
-            bar.dock.processIdentifier == current.bar.dock.processIdentifier, current.dockBirth == dockBirth,
+            bar.owner.pid == current.bar.owner.pid, current.ownerBirth == ownerBirth,
+            bar.dock.pid == current.bar.dock.pid, current.dockBirth == dockBirth,
             bar.side == current.bar.side, CFEqual(bar.container, current.bar.container),
             CFEqual(bar.spaces, current.bar.spaces), CFEqual(list, current.list), CFEqual(tile, current.tile),
             created != nil || point == current.point else {
         throw Refusal("current desktop tile or its display changed before overview dismissal")
       }
       try confirmGrant()
-      guard exactHit(tile, owner: current.bar.owner.processIdentifier)(current.point),
+      guard exactHit(tile, owner: current.bar.owner.pid)(current.point),
             try ProvisionState(display, source:source, currentDisplay:false) == current.state
       else { throw Refusal("source desktop lost its final AX hit or membership") }
       let status = AXUIElementPerformAction(tile, kAXPressAction as CFString)
@@ -1267,14 +1353,14 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         throw Refusal("source must be the last ordinary desktop in the authorized original inventory")
       }
       let initialUI = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
-      guard let birth = initialUI.bar.dock.verifiedSystemBirth, let ownerBirth = initialUI.bar.owner.verifiedSystemBirth, let ownerID = initialUI.bar.owner.bundleIdentifier else {
+      guard let birth = initialUI.bar.dock.verifiedBirthDate, let ownerBirth = initialUI.bar.owner.verifiedBirthDate else {
         throw Refusal("missing Dock generation")
       }
       try requireSafeOccupancy(nil)
       let intent = ProvisionIntent(
         operation: UUID(), display: display, source: source, initial: original,
         sourceTileLabel: initialUI.labels[sourceIndex], boot: boot,
-        issuedUptime: ProcessInfo.processInfo.systemUptime, dockBirth: birth, ownerID:ownerID, ownerBirth:ownerBirth)
+        issuedUptime: ProcessInfo.processInfo.systemUptime, dockBirth: birth, ownerID:initialUI.bar.owner.identifier, ownerBirth:ownerBirth)
       let ui = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
       guard CFEqual(initialUI.bar.add, ui.bar.add), initialUI.labels == ui.labels,
         (try state()) == original
@@ -1295,7 +1381,7 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
       if let pair = try? ProvisionControls(display: display, count: after.sideOrder.count, currentDisplay: currentDisplay),
         let a = after.sideOrder.firstIndex(of: source),
         let b = after.sideOrder.firstIndex(of: target),
-        pair.bar.dock.verifiedSystemBirth == birth, CFEqual(ui.tiles[sourceIndex], pair.tiles[a]),
+        pair.bar.dock.verifiedBirthDate == birth, CFEqual(ui.tiles[sourceIndex], pair.tiles[a]),
         !CFEqual(ui.tiles[sourceIndex], pair.tiles[b])
       {
         try folder.put(
@@ -1321,8 +1407,8 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
         "created desktop receipt no longer matches original display, boot, order or source")
     }
     let first = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
-    guard first.bar.dock.verifiedSystemBirth == intent.dockBirth, first.bar.owner.verifiedSystemBirth==intent.ownerBirth,
-          first.bar.owner.bundleIdentifier==intent.ownerID else {
+    guard first.bar.dock.matchesRecordedBirth(intent.dockBirth), first.bar.owner.matchesRecordedBirth(intent.ownerBirth),
+          first.bar.owner.identifier==intent.ownerID else {
       throw Refusal("original system Dock restarted")
     }
     // Match A across the two overviews, using either its unchanged unique label or the
@@ -1340,8 +1426,8 @@ func observe(_ displayUUID: UUID, currentDisplay: Bool = false) throws -> [Strin
     let ui = try ProvisionControls(display: display, count: original.sideOrder.count, currentDisplay: currentDisplay)
     var actions: CFArray?
     let remove = "AXRemoveDesktop"
-    guard ui.bar.dock.verifiedSystemBirth == intent.dockBirth, ui.bar.owner.verifiedSystemBirth==intent.ownerBirth,
-          ui.bar.owner.bundleIdentifier==intent.ownerID, ui.labels == first.labels,
+    guard ui.bar.dock.matchesRecordedBirth(intent.dockBirth), ui.bar.owner.matchesRecordedBirth(intent.ownerBirth),
+          ui.bar.owner.identifier==intent.ownerID, ui.labels == first.labels,
       CFEqual(first.tiles[b], ui.tiles[b]), (try state()) == original,
       AXUIElementCopyActionNames(ui.tiles[b], &actions) == .success,
       (actions as? [String])?.contains(remove) == true
