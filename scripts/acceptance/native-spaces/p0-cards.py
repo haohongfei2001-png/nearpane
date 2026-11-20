@@ -734,6 +734,34 @@ def evaluate_gate(stage, name, expected):
         stage.update(status='UNKNOWN',reason='independent continuity through the installed actions was not established')
     else:stage['status']=navigation
 
+def close_observed_gates(result,evidence):
+    """The next admission can invalidate an earlier ten-second per-action readback."""
+    observed={row['operation'].upper():row for row in evidence.get('observations',[])}
+    bound=set()
+    for name,stage in result['stages'].items():
+        if not stage['samples']:continue
+        for trial in stage['samples']:
+            proof=trial.get('hostProof') or {}
+            if not proof.get('confirmed'):continue
+            operation=proof['id'].upper()
+            prior=observed.get(operation)
+            state=prior['classification'] if prior and operation not in bound else 'unknown'
+            bound.add(operation)
+            trial['continuousClassification']=state
+            if state in ('unexpectedForegroundHandoff','unexpectedSpaceDrift'):
+                trial.update(status='FAIL',reason=state)
+            elif state=='userSuperseded':
+                trial.update(status='BLOCKED',reason=state)
+            elif state!='settled' and trial['status']=='PASS':
+                trial.update(status='UNKNOWN',reason='independent reader did not confirm the closing boundary')
+        evaluate_gate(stage,name,stage['requested'])
+    failed=next((s for s in result['stages'].values() if s['samples'] and s['status']!='PASS'),None)
+    if failed:
+        result.update(status=failed['status'],reason=failed['reason'])
+    elif result['status']=='PASS' and (not evidence.get('observationComplete') or evidence.get('incompleteJournals') or
+                                       evidence.get('otherOperations') or not bound or bound!=set(observed)):
+        result.update(status='UNKNOWN',reason='formal journal set or final independent observation was incomplete')
+
 class OwnedKeeper:
     def __init__(self,tool):
         self.proc=subprocess.Popen([tool,'keeper'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
@@ -958,9 +986,7 @@ def run(args):
                     store(Path(os.environ['NEARPANE_TEST_HOME'])/'p0-preserve-foreground.json',
                           {'reason':'externalActivationOrSpaceDrift' if changed_foreground else 'userSuperseded'})
                 result['observer']=dict(status=evidence.get('status'),complete=evidence.get('observationComplete'),stop=evidence.get('stopReason'))
-                if result['status']=='PASS' and (not evidence.get('observationComplete') or evidence.get('incompleteJournals') or
-                        not evidence.get('observations') or any(x.get('classification')!='settled' for x in evidence['observations'])):
-                    result.update(status='UNKNOWN',reason='final continuous observation did not confirm every settled operation')
+                close_observed_gates(result,evidence)
             if audit and audit.targets:audit.snapshot('before-cleanup',dict(stageStatus=result['status']),final=True)
             # Only a positively held fixture may return its own document to its original ordinary Space.
             if not superseded and rootdoc and initial and top and a and b:

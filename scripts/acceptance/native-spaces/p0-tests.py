@@ -285,5 +285,15 @@ class GateTests(unittest.TestCase):
         ten['samples'][-1].update(status='FAIL',blankScreen='FAIL')
         runner.evaluate_gate(ten,'ten',10);self.assertEqual((ten['navigationStatus'],ten['blankScreen'],ten['status']),('PASS','FAIL','FAIL'))
 
+    def test_late_handoff_revises_the_preceding_stage_after_next_admission(self):
+        sample=dict(status='PASS',navigationStatus='PASS',blankScreen='PASS',continuousClassification='settled',
+                    retainedTargetFocus=dict(status='PASS'),hostProof=dict(confirmed=True,id=self.operation))
+        stage=dict(samples=[sample],status='PASS',requested=1)
+        result=dict(status='PASS',stages=dict(diagnostic=stage))
+        runner.close_observed_gates(result,dict(observationComplete=True,observations=[
+            dict(operation=self.operation,classification='unexpectedForegroundHandoff')]))
+        self.assertEqual((sample['status'],stage['status'],result['status']),('FAIL','FAIL','FAIL'))
+        self.assertEqual(stage['navigationConfirmed'],1)
+
 
 if __name__=='__main__':unittest.main()
