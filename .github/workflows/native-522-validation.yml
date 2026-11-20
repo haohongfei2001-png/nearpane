@@ -42,3 +42,7 @@ jobs:
           bash scripts/acceptance/native-spaces/protocol-tests.sh
       - name: Compile the foundation-only production UI on the hosted SDK
         run: swift build --target NearpaneUI
+      - name: Verify retained windows in the complete production UI module
+        run: |
+          swift test --disable-xctest --enable-swift-testing --filter NativeSidebarWindowHistoryTests 2>&1 | tee "$RUNNER_TEMP/retained-tests.log"
+          grep -F 'Suite NativeSidebarWindowHistoryTests passed' "$RUNNER_TEMP/retained-tests.log"

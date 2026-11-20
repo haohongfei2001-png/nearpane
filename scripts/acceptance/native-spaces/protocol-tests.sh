@@ -37,7 +37,8 @@ fi
 python3 - "$work/tests.log" <<'PY'
 import pathlib, re, sys
 report = pathlib.Path(sys.argv[1]).read_text()
-for suite in ["DockGestureTests", "ActionInventoryTests", "NativeSwitchJournalTests", "WindowWitnessTests"]:
+for suite in ["DockGestureTests", "ActionInventoryTests", "NativeSwitchJournalTests", "WindowWitnessTests",
+              "SidebarWindowWitnessTests"]:
     if not re.search(r"Suite " + suite + r" passed", report):
         raise SystemExit("Missing completed test suite: " + suite)
 if not re.search(r"Test run with [1-9][0-9]* tests? .*passed", report):
