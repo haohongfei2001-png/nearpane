@@ -60,7 +60,40 @@
         2
       ],
       "independentPhysicalDisplays": "BLOCKED"
-    }
+    },
+    "tests": [
+      {
+        "evidence": "physical-08/result.json",
+        "status": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4327,
+        "p50ms": 36.9,
+        "p95ms": 46.48,
+        "p95UpperMs": 63.8,
+        "simultaneousStates": 7
+      },
+      {
+        "evidence": "physical-09/result.json",
+        "status": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4295,
+        "p50ms": 33.18,
+        "p95ms": 44.1,
+        "p95UpperMs": 61.36,
+        "simultaneousStates": 7
+      }
+    ],
+    "totalConfirmedChanges": 24,
+    "pooledConfirmedPresentationDifferenceMs": {
+      "count": 24,
+      "p50": 34.764,
+      "p95": 46.003,
+      "p99": 46.477,
+      "p95UpperMs": 63.575,
+      "method": "nearest-rank across independent signed-Host trials"
+    },
+    "readableCurrentCandidatePhoto": "physical-09/media/paired-overview.png",
+    "mostRecentCompleteLeaseTrial": "physical-09/lease.json"
   },
   "permissions": {
     "installed": "PASS",
@@ -111,9 +144,10 @@
   "P4": {
     "status": "BLOCKED",
     "realTranslationLanguageAssets": "supported but not installed for test runner",
-    "wordbookFilePersistence": "see installed isolated prior recording",
+    "wordbookFilePersistence": "Offline storage checks are independent. Installed real-translation relaunch comparison BLOCKED while no translated row was available.",
     "hardwareColdUtterances": 0,
-    "requiredUtterances": 60
+    "requiredUtterances": 60,
+    "installedWordbookEvidence": "../5.22-90-installed-contract/runs/tools-final/wordbook/result.json"
   },
   "P5": {
     "status": "PARTIAL",
