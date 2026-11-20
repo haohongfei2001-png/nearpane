@@ -174,7 +174,6 @@ def main():
                 if args.performance:
                     def n01():
                         import performance
-                        ws.select(a);fa.activate()
                         data=performance.run(workspace=ws,scope=live_scope(path),observer=kit/"observe",driver=kit/"row-driver",output=out/"performance")
                         mark("N01",data["status"],data["reason"])
                     run_case("N01",n01)

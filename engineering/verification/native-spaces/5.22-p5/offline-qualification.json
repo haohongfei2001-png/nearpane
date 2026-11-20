@@ -1,0 +1,105 @@
+{
+  "benchmarkTests": [
+    "test_performance.ArrivalDistributionTests.test_first_batch_excluded_and_exactly_five_complete_batches_required",
+    "test_performance.ArrivalDistributionTests.test_kernel_cpu_units_agree_with_this_test_process_mach_clock",
+    "test_performance.ArrivalDistributionTests.test_native_requires_twenty_actual_readbacks",
+    "test_performance.ArrivalDistributionTests.test_process_tree_cannot_mask_replacement_reparenting_or_a_counter_rollback",
+    "test_performance.ArrivalDistributionTests.test_real_gate_precedes_any_system_or_product_action",
+    "test_performance.ArrivalDistributionTests.test_receipt_requires_the_exact_three_phase_host_operation_and_fixture"
+  ],
+  "measuredGeometryOnDesktop": "NOT_RUN",
+  "nativeReferenceOperations": 0,
+  "newPhysicalOperations": 0,
+  "osBuild": "26A428",
+  "physicalFrameDrops": null,
+  "physicalWakeRecoveryMs": null,
+  "plannedWindowCounts": [
+    1,
+    2,
+    3,
+    4,
+    8
+  ],
+  "previousInstalledEvidence": {
+    "hiddenMinute": {
+      "newStreamsDuringHidden": "NOT_MEASURED",
+      "noNewDeliveredFramesAcrossMinute": true,
+      "path": "engineering/verification/native-spaces/5.22-90-active-display-previews/installed-hidden-minute/result.json",
+      "sha256": "09ee6075855c83da741a8c0a78ada8145e3790e13da5882b33b69813a5be4068",
+      "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+      "status": "PASS"
+    },
+    "lifecycle": {
+      "F01": "PARTIAL",
+      "M01": "BLOCKED",
+      "R02": "PARTIAL",
+      "path": "engineering/verification/native-spaces/5.22-90-installed-contract/runs/final-lifecycle/results.json",
+      "sha256": "8f7627482037c815744f6477842809d3f167a5bec16d34e003561e61f3972a78",
+      "splitView": "BLOCKED"
+    }
+  },
+  "productArrivalPercentilesMs": null,
+  "sourceSHA256": {
+    "Sources/NearpaneCore/DesktopPreview.swift": "76cc91688236ff94bac0c8d090d4a54b3259573f8648b3a19ab3683a8d9855b0",
+    "Sources/NearpaneCore/HostSession.swift": "05a3b69e8e403f3472c84e2160174d74aed911decc41ec7fdf1e3f1c7099437a",
+    "Sources/NearpaneCore/ManagedWindowTiler.swift": "d69bed764bc562a4ce7242895ca4fdfdd34462f7971f3e0a909e6981a5669c5f",
+    "Sources/NearpaneUI/NativeDesktopProvider.swift": "d51d4940ee9f74c9525b404a3de526f28b2c9e562d2f3e5999e85af07b038ea7",
+    "Tests/NearpaneCoreTests/ActiveSpaceLayoutTests.swift": "6bfc080c41a8b19115c577929e9a3ea574c277857af5b9af4fde99fa5ed319a6",
+    "Tests/NearpaneCoreTests/HostLifecycleTests.swift": "b9de20a44c861456b9d73ab42bc6fb9956d6da3c6abbb310e22f995c0dd937b7",
+    "Tests/NearpaneCoreTests/WorkspaceLayoutTests.swift": "ba0c519bde08b09311b887b0055ce7c3b045ed7621299e1a07f13ba29dc05aea",
+    "Tests/NearpaneUITests/NativeDesktopProviderTests.swift": "104e686233798554ff1b4a07fd03982f81abf7a20d7023e04152ce8daff906c3",
+    "scripts/acceptance/native-spaces/core_contract.py": "23b4714df920d6731305a919037c230b49c316f40f4cc3cd583d581f70e23f91",
+    "scripts/acceptance/native-spaces/footprint.c": "95f69b1f47a1b8110ee9b379538da8a492b627499ec7f0598f07aa821aa04080",
+    "scripts/acceptance/native-spaces/performance.py": "6e70e7ed9651dc6e4deadcc1b1f1d0168adc455bcd81d656c6a2398d0bd3b906",
+    "scripts/acceptance/native-spaces/test_performance.py": "1e46b058b26acf962101113c4dd3686123f1e8af6a4d3bca8f92343263c30c2c"
+  },
+  "status": "OFFLINE_PASS",
+  "swiftTests": {
+    "ActiveSpaceLayoutTests": [
+      "absentManagerRequiresTwoAXFullscreenRolesCompleteGeometryAndNoAmbiguousThirdSurface()",
+      "catalogueMapUsesCurrentPresentedRectsAndRetainsUnknownPhysicalOcclusion()",
+      "exactSystemTilesKeepUnequalWidthsDividerAndDisplayCoordinates()",
+      "linkedDisplaysUseOnlyTwicePubliclyActiveOrdinaryWindowsWhollyOnTheirPhysicalScreen()",
+      "ordinarySideBySideAndSingleFullscreenRemainIndependentWindows()",
+      "untrustedStaleWrongSpaceAndLinkedScreensCannotPublishATilePair()"
+    ],
+    "HostLifecycleTests": [
+      "sameSessionRestartReadsDefaultsAndDropsOldSubscriptionsAndGrants()",
+      "testDisablingDesktopInvalidatesInFlightObservation()",
+      "testFixtureSelectionPersistsAndTransientRetainsStableData()",
+      "testOlderConcurrentRefreshCannotReplaceNewerResult()",
+      "testProviderFailureDoesNotStopModulesAndRetainsLastKnownSnapshot()",
+      "testSnapshotCompletingAfterShutdownIsIgnored()",
+      "testStartStopAreIdempotentAndRestorePreferencesWithFreshRuntimeIDs()",
+      "testStoppedHostRejectsActions()"
+    ],
+    "NativeDesktopProviderTests": [
+      "aRelockDuringWakeRejectsBothOldGenerationsBeforePublishingTheFreshInventory()",
+      "accessibleWindowPositionUsesTheClippedDrawingWithinItsDisplay()",
+      "cancellationResistantReadCannotPublishAfterDisableHideOrShutdown()",
+      "closedOutputWhileChildIsAliveStillHonorsCancellationAndReaps()",
+      "foreignActiveListWitnessMustStillBePubliclyActiveAtDelivery()",
+      "hangingProcessTimesOutAndIsReapedBeforeReturning()",
+      "malformedOrMismatchedSubprocessResponseNeverPublishes()",
+      "onlyHardwareChangeCanRetryUnavailableInventoryWithoutOptInChurn()",
+      "openingAProfileWhileLockedDoesNotStartObservationUntilWakeAndUnlock()",
+      "packagedReaderAcceptsSystemPathAliasButRejectsLinkInsideBundle()",
+      "privacyBoundariesClearRememberedDesktopsWhileSpaceChangeMayRetainWitnesses()",
+      "privateCrashFallsBackToPublicAndStaysLatchedUntilOptInChanges()",
+      "rejectsUnrequestedSpaceProofAndExpiredOwnerWitness()",
+      "sleepAndInactiveSessionRequireBothReasonsToClearBeforeASingleFreshRead()"
+    ],
+    "WorkspaceLayoutTests": [
+      "endingAnOnDemandRequestRetainsThePersistentDisplayPolicyAndReservation()",
+      "everyAdmissionCoversWorkRectIncludingNinthThroughSeventeenth()",
+      "insufficientMinimumOrPermissionRejectsWholePlan()",
+      "requestedSingleDesktopHonorsDismissalFullscreenAndChangesOfResidentDisplay()",
+      "singleResidenceAndSecondaryPoliciesRemainIndependent()",
+      "specifiedCountsMatchExactWindowSlotsOnAnOffsetOddSizedWorkArea()",
+      "systemFramesPartitionOnlyTheIntegralInteriorAndRecheckMinimums()",
+      "userPartitionPersistsButJoiningThirdResetsTemplate()",
+      "workRectSurvivesEveryPresentationAndInternalEdit()"
+    ]
+  },
+  "warmedProductBatches": 0
+}

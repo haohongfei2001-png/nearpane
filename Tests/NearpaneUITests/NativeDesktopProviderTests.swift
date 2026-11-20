@@ -30,8 +30,8 @@ private actor Attempts {
     func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot {
         await withCheckedContinuation { waiting = $0 }
     }
-    func finish() {
-        let request = DesktopReadRequest(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: nil, anchors: [], experimentalSpaces: false)
+    func finish(revision: UInt64 = 1) {
+        let request = DesktopReadRequest(session: UUID(), revision: revision, parentPID: getpid(), fixtureWindows: nil, anchors: [], experimentalSpaces: false)
         waiting?.resume(returning: sample(request, status: .disabled)); waiting = nil
     }
 }
@@ -220,6 +220,33 @@ private actor Attempts {
         gate.finish()
         await shutdown.value
         #expect(drained && host.bus.desktop == nil)
+    }
+
+    @Test func aRelockDuringWakeRejectsBothOldGenerationsBeforePublishingTheFreshInventory() async throws {
+        let provider = DelayedRead()
+        let host = HostSession(store: MemoryConfigurationStore(), provider: provider)
+        func awaitRead() async throws {
+            for _ in 0..<100 where provider.waiting == nil { try await Task.sleep(for: .milliseconds(2)) }
+            try #require(provider.waiting != nil)
+        }
+        await host.start()
+        defer { host.stop(); provider.finish() }
+        try await awaitRead()
+        host.setDesktopPause(.screensAsleep, paused: true)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.screensAsleep, paused: false)
+        host.setDesktopPause(.inactiveSession, paused: false)
+        provider.finish(revision: 1)  // The pre-sleep request returned after unlock.
+        try await awaitRead()
+        #expect(host.bus.desktop == nil)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.inactiveSession, paused: false)
+        provider.finish(revision: 2)  // The first wake request crossed the second lock.
+        try await awaitRead()
+        #expect(host.bus.desktop == nil)
+        provider.finish(revision: 3)
+        for _ in 0..<100 where host.bus.desktop == nil { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(host.bus.desktop?.revision == 3)
     }
 
     @Test func hangingProcessTimesOutAndIsReapedBeforeReturning() async throws {
