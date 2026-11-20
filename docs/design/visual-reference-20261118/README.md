@@ -1,73 +1,77 @@
-# Nearpane — R3 视觉基准提案
+# Nearpane · R4 视觉设计与实施参考
 
-2026-11-18 · **Designed / 原生实现与光学校准待完成**
+2026-11-18（北京时间） · **Designed / 设计交付完成，原生光学校准待完成**
 
-本包保留原始设计的无标题纵向白色玻璃侧栏，补齐默认宽度、透明底板、工具组合、窗口次序与真实 Spaces 的视觉规则。它是一套可以复现、测量、逐状态对照的设计提案，不代表用户已逐项批准或原生程序已经实现。
+本包是此次 Nearpane 外观设计的当前入口。R4 延续无标题的窄纵向白色玻璃侧栏，在 R3 上完成表面层次、窗口密度、真实使用构图及关键交互状态的细化。它用于指导原生实现与对照验收；不表示用户已逐项批准参数，也不将静态图当作原生产品完成的证明。
 
-## 先看什么
+## 先看这三项
 
-1. [完整设计图册](Nearpane_Visual_Reference_R3.pdf)：默认母稿、原图对照、关键状态和参数摘要。
-2. [SPEC.md](SPEC.md)：对象定义、布局规则、更新依据、保留约束、原生验收与实施入口。
-3. [design-tokens.json](design-tokens.json)：默认宽公式、尺寸、材质与前景参数。
+1. [完整 R4 设计图册](Nearpane_Visual_Reference_R4.pdf)：实际占屏比例、两/三工具、玻璃、托盘与交互状态。
+2. [SPEC.md](SPEC.md)：当前视觉规则、精确替代范围和原生验收标准。
+3. [HANDOFF.md](HANDOFF.md)：交给 Codex 的实施顺序与证据要求。
 
-![默认桌面，1440×900逻辑点、240点侧栏](assets/01-default-desktop.png)
+本轮已经收尾：三处末次精修已同步到生成源、SVG、PNG 和 18 页图册；旧视觉权威入口已指向 R4。完整交付与后续衔接见 [RECOVERY.md](RECOVERY.md)。无需再次开始一轮设计恢复。
 
-## 核心决定
+![自然工作场景，1440×900逻辑点、240点侧栏](assets/00-lived-desktop.png)
 
-| 项目 | 本轮方案 |
+R3 对应历史提交 [`4521fb7`](https://github.com/haohongfei2001-png/nearpane/tree/4521fb7e3118ff2caea6016823c8af292fe49039/docs/design/visual-reference-20261118)。该版本保留在 Git 历史供对照；当前实现使用 R4，不混用两版图稿或参数。[REVIEW-CHANGES.md](REVIEW-CHANGES.md)解释本轮保留和调整的理由。
+
+## 已完成的设计裁决
+
+| 项目 | R4 参考 |
 | --- | --- |
-| 默认宽度 | 常见横屏约16%，受可读性点数上下限及12.5%–25%区间约束；1440pt屏宽默认240pt |
-| 玻璃 | 外壳保留环境透色，文字底板更白；默认参考覆盖率0.58 / 0.88 |
-| 前景 | 正文、图标和窗口画面alpha恒为1；透明度只影响背景 |
-| 工具 | 实际高度优先占位；两/三个工具均完整显示，调度列表紧接其后 |
-| 预览 | 单列、顶部对齐、稳定打开顺序；关窗后补位；超出视口滚动 |
-| 对象 | 当前独立窗口与明确组合混排，其他真实Space随后；不凭同桌面自动合组 |
-| 比例 | 独立窗按源窗口比例；普通组合按WorkRect；原生全屏/分屏按完整显示器 |
-| 新功能 | 统一截图/文件托盘；备忘内计算；翻译在原词附近；待办可选 |
+| 默认宽度 | 保留受可读性约束的宽度公式；1440 pt 屏宽使用 240 pt；常用调整区间约 12.5%–25% |
+| 浅色玻璃 | 外壳白色覆盖率 0.58，内容底板 0.88；环境色留在外沿，文字底板更稳定 |
+| 深色玻璃 | 独立深色参数：外壳 `#24272B` / 0.72，内容 `#202226` / 0.94 |
+| 前景 | 文字、图标及窗口图像 alpha 为 1；玻璃调节只改变背景 |
+| 边界 | 外壳圆角 28 pt，工具内卡 16 pt，内距 12 pt；参考 2× 输出的细边为 0.5 pt，选中轮廓为 0.75 pt |
+| 工具占位 | 按实际状态和高度计算；窗口列表紧接最后一个工具，使用全部剩余高度 |
+| 窗口密度 | 独立窗口按源图比例 Fit，预览槽最大高度为可用图宽的 0.50 倍；徽标尾部 18 pt，行间距 11 pt |
+| 组合与 Space | 共用真实 WorkRect 坐标变换；全屏与 Split View 使用完整显示器边界；不从相邻或平铺推断成组 |
+| 新功能 | 统一截图/文件托盘；备忘内计算；原词附近翻译；待办为可选工具 |
 
-材质数值是SVG渲染器中的遮蔽覆盖率，不是旧版原生设置中三个透明度滑杆的值。真实AppKit材质应按同一壁纸和窗口内容对照校准。
+覆盖率是参考渲染器的光学参数，不是原生设置中的透明度滑杆值。原生需按同一背景与内容校准。较密的独立窗口预览换来更多可见对象，也会减小高窄窗口的画面；它不是“所有状态必须同时显示四窗”的承诺，用户可继续在现有独立设置中调整行密度。
 
 ## 图稿索引
 
 | 图稿 | 用途 |
 | --- | --- |
-| [01 默认桌面](assets/01-default-desktop.png) | 判断真实占屏比例；四个独立窗口与两个工具 |
-| [02 布局对照](assets/02-layout-comparison.png) | 两工具、三工具、主动暂停、明确双窗组合 |
-| [03 宽度对照](assets/03-width-comparison.png) | 同一1440pt屏幕上的180 / 240 / 360pt侧栏 |
-| [04 材质对照](assets/04-material-comparison.png) | 完全相同背景与内容上的清透、标准、清晰、深色 |
-| [05 状态参考](assets/05-state-reference.png) | 窗口、组合、不对称、高窄、其他桌面、预览不可用及工具状态 |
-| [06 标注细节](assets/06-annotated-detail.png) | 放大查看工具与预览关系；不用于判断默认宽度 |
-| [07 三工具桌面](assets/07-three-tools-desktop.png) | 1440×900场景里第三个工具的实际占位 |
-| [08 双窗与Spaces](assets/08-split-workspace-desktop.png) | 普通明确组合与其他真实Space的连续列表 |
-| [09 原生与辅助显示](assets/09-native-and-accessibility.png) | 原生Split View、空态、降低透明度 |
+| [00 自然工作场景](assets/00-lived-desktop.png) | 不同比例与自然重叠的窗口，检视侧栏在实际工作构图中的关系 |
+| [01 四窗默认桌面](assets/01-default-desktop.png) | 1440×900 pt、240 pt 侧栏、两工具与四个独立窗口 |
+| [02 布局对照](assets/02-layout-comparison.png) | 两工具、三工具、明确暂停、双窗组合 |
+| [03 宽度对照](assets/03-width-comparison.png) | 同一内容、同一托盘高度的 180 / 240 / 360 pt 对照 |
+| [04 材质对照](assets/04-material-comparison.png) | 同背景和内容的清透、标准、清晰与独立深色材质 |
+| [05 对象状态](assets/05-state-reference.png) | 独立窗口、组合、高窄窗口、其他桌面、无画面与可选工具 |
+| [06 标注细节](assets/06-annotated-detail.png) | 主要尺寸和表面关系；不用于判断默认占屏宽度 |
+| [07 三工具桌面](assets/07-three-tools-desktop.png) | 第三个工具实际占位，调度列表继续向下接续 |
+| [08 双窗与 Spaces](assets/08-split-workspace-desktop.png) | 明确组合与其他真实 Space 的连续列表 |
+| [09 原生与辅助显示](assets/09-native-and-accessibility.png) | 原生全屏、Split View、空态与降低透明度 |
+| [10 托盘流转](assets/10-tray-flow.png) | 空入口、截图进入、文件进入和容量变化 |
+| [11 语音与备忘](assets/11-voice-and-memo.png) | 连续正文、暂停及备忘内计算等工具状态 |
+| [12 原处翻译](assets/12-inline-translation.png) | 原词附近的临时结果及独立单词本语义 |
+| [13 交互状态](assets/13-interaction-states.png) | 悬停、选中、焦点等反馈与稳定命中区域 |
+| [14 背景压力对照](assets/14-background-stress.png) | 浅、深及复杂背景中的文字底板与图像保真 |
+| [15 密度对照](assets/15-density-comparison.png) | 同宽、同源内容的 R3 / R4 窗口密度与辨识度取舍 |
 
-每张PNG都有同名SVG。正文与控件来自确定性的矢量场景，不使用生成式效果图；窗口内容为设计样本，不是用户桌面的实拍。
+图稿为确定性设计场景，不是用户桌面截图。桌面与缩略图复用同一组不可变窗口源及其几何；所有正式 PNG 均有同名 SVG。
 
-## 单一视觉源与生成
+## 生成与单一视觉源
 
-`render_reference.py`读取`design-tokens.json`，输出9张SVG与`render-measurements.json`。`render_svg.cjs`将它们输出为2倍PNG，`build_design_book.py`组合图册与独立参数说明。
+`render_reference.py`、补充图稿生成源与 `design-tokens.json` 共同定义场景和参数，生成 SVG 与几何记录；`render_svg.cjs` 输出 2× PNG，`build_design_book.py` 组合 R4 图册。按生成源的当前入口运行，不直接修改导出 PNG 或 SVG。
 
 ```bash
 python3 render_reference.py
 node render_svg.cjs
 python3 build_design_book.py
+python3 validate_reference.py --pdf
 ```
 
-依赖：Python 3、Node.js与`sharp`、Python的`reportlab`与`Pillow`，以及Noto Sans CJK SC字体。运行环境可用`CODEX_PRIMARY_RUNTIME_NODE_MODULES`定位预装的`sharp`；普通环境直接安装`sharp`即可。PDF原图对照优先读取同仓库历史原图，独立使用本包时可通过`NEARPANE_ORIGINAL_REFERENCE`传入其路径。
+依赖为 Python 3、Node.js、`sharp`、`reportlab`、`Pillow`、`pypdf` 和 Noto Sans CJK SC 字体。预装运行环境可通过 `CODEX_PRIMARY_RUNTIME_NODE_MODULES` 定位 `sharp`；普通环境安装同名依赖。图册原图对照可通过 `NEARPANE_ORIGINAL_REFERENCE` 指定仓库原始参考图。
 
-材质、主要尺寸与正文参数由tokens驱动；具体示例内容、窗口外观及图外排版由renderer定义。SVG是便于检查的矢量输出，修改时应回到源文件，不手工修补导出图形成第二套规则。
+## 已有原生能力与本轮边界
 
-## 依据与验证范围
+本轮设计已同步原生基线 `c5e05334bd45784aa4d1ecf5329028ad6e9d66ff`。该基线的 5.20 记录了同桌面窗口卡、受权原生面板四窗画面，以及隔离最终安装实例的跨应用双窗自动平铺和恢复。不能把这些已完成工作重写为未开始，也不能据此推断跨 Space 切换和迁窗已经通过。详见[5.20 基线状态](https://github.com/haohongfei2001-png/nearpane/blob/c5e05334bd45784aa4d1ecf5329028ad6e9d66ff/engineering/native-spaces/STATUS.md)与[5.20 验收记录](https://github.com/haohongfei2001-png/nearpane/blob/c5e05334bd45784aa4d1ecf5329028ad6e9d66ff/engineering/verification/P5.20-DESKTOP-OVERVIEW-AND-AUTO-TILING.md)；最新专项进度另见[原生 Spaces PR #14](https://github.com/haohongfei2001-png/nearpane/pull/14)。这些固定提交链接保留原生证据的实际版本，不读取本设计分支中较旧的状态副本。
 
-- 原生基线：`implementation/host-foundation-20261109`，提交`71dd29dbba0fa55249f1af46fc901df65af33c71`。
-- 官网基线：`main`，提交`e3f26bbaa1ba4da87da56b475f5fa6fa5daa8766`。
-- 近期产品纠正：`design/next-generation-20261117`的Revision 02，提交`c295a4dd49cd9edce6fa97d591987604ef84e6aa`。被否定的Revision 01不再作为依据。
-- 原始外观：`design/assets/2026-11-15-v2/interface-reference-original.png`。完整来源链接见SPEC末尾。
+[VALIDATION.md](VALIDATION.md)记录本包最终静态与排版检查。本轮没有修改原生业务代码，也没有运行 R4 AppKit 光学校准或替代已有原生验收。设计、代码实现、真实验证分别记录。
 
-[VALIDATION.md](VALIDATION.md)记录本包静态出图与排版检查。窗口出生顺序、真实Space库存、点击聚焦、窗口迁移和AppKit玻璃在真实Mac上的效果均仍需原生验收，不能由静态图证明。
-
-## 实施入口
-
-先按SPEC统一默认宽度、工具高度、背景/前景分层与预览比例，再接真实对象库存和稳定序列。保留原生基线中的5.19前景分层修复；不在旧的96pt图片高度上限与固定3/8工具分区上继续叠加补丁。文件空入口用途仍未定义，禁止擅自补成文件选择器等新功能。
-
-本包为独立设计变更，不包含原生业务代码改动。
+**文件空入口的点击用途仍明确延期。** 其位置与视觉已经定义，不能擅自补成文件选择器、Finder、上传器或云盘；这不阻塞其余已明确外观的实施。

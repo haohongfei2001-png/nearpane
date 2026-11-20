@@ -74,7 +74,7 @@ def icon(name,x,y,size=18,c='#5d6973'):
     return f'<g transform="translate({n(x)} {n(y)}) scale({n(size/24)})" fill="none" stroke="{c}" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">{ICONS[name]}</g>'
 
 class Art:
-    def __init__(self,w,h):self.w=w;self.h=h;self.defs=[];self.parts=[];self.i=0
+    def __init__(self,w,h):self.w=w;self.h=h;self.defs=[];self.parts=[];self.i=0;self.sources={};self.projections=[]
     def uid(self):self.i+=1;return f'x{self.i}'
     def add(self,s):self.parts.append(s)
     def clip(self,x,y,w,h,rx=0):
@@ -82,8 +82,9 @@ class Art:
     def wrap(self,body,clip=None,transform=None,filter_id=None):
         return '<g'+(f' clip-path="url(#{clip})"' if clip else '')+(f' transform="{transform}"' if transform else '')+(f' filter="url(#{filter_id})"' if filter_id else '')+'>'+body+'</g>'
     def save(self,name):
-        common=f'''<filter id="blur" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="{TOKENS['material']['blurStdDeviationPt']}"/></filter><filter id="winshadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#233649" flood-opacity=".15"/></filter><filter id="smallshadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#1e3247" flood-opacity=".18"/></filter>'''
-        svg=f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{self.w}" height="{self.h}" viewBox="0 0 {self.w} {self.h}" role="img"><title>Nearpane R3 design reference — not a native screenshot</title><defs>{common}{"".join(self.defs)}</defs>{"".join(self.parts)}</svg>'
+        sh=TOKENS['material']['shadow']
+        common=f'''<filter id="blur" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="{TOKENS['material']['blurStdDeviationPt']}"/></filter><filter id="winshadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#233649" flood-opacity=".15"/></filter><filter id="smallshadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#1e3247" flood-opacity=".15"/></filter><filter id="shellshadow" x="-35%" y="-10%" width="170%" height="130%"><feDropShadow dx="0" dy="{sh['shell']['dy']}" stdDeviation="{sh['shell']['sigma']}" flood-color="#14212c" flood-opacity="{sh['shell']['alpha']}"/></filter><filter id="cardshadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="{sh['card']['dy']}" stdDeviation="{sh['card']['sigma']}" flood-color="#14212c" flood-opacity="{sh['card']['alpha']}"/></filter>'''
+        svg=f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{self.w}" height="{self.h}" viewBox="0 0 {self.w} {self.h}" role="img"><title>Nearpane R4 visual reference - design sample, not a native screenshot</title><defs>{common}{"".join(self.defs)}</defs>{"".join(self.parts)}</svg>'
         (OUT/(name+'.svg')).write_text(svg)
 
 def app_icon(app,x,y,size=20):
@@ -167,14 +168,52 @@ def window(a,x,y,w,h,app='browser',title=None,shadow=False):
     body=a.wrap(s,clip=clip)
     return a.wrap(body,transform=f'translate({n(x)} {n(y)})',filter_id='winshadow' if shadow else None)
 
-def tile_window(a,x,y,w,h,app,source_w=600,source_h=424,title=None,fullscreen=False):
-    scale=min(w/source_w,h/source_h)
-    xx=x+(w-source_w*scale)/2; yy=y+(h-source_h*scale)/2
+def source_window(a,app,source_w,source_h,title=None,fullscreen=False):
+    """A source object is defined once and referenced by desktop and all previews."""
+    key=(app,n(source_w),n(source_h),title,fullscreen)
+    if key in a.sources:return a.sources[key]
+    uid=a.uid()
     if fullscreen:
         content=a.wrap(window(a,0,0,source_w,source_h+32,app,title),transform='translate(0 -32)')
         content=a.wrap(content,clip=a.clip(0,0,source_w,source_h,2))
     else:content=window(a,0,0,source_w,source_h,app,title)
-    return a.wrap(content,transform=f'translate({n(xx)} {n(yy)}) scale({n(scale)})',filter_id='smallshadow')
+    a.defs.append(f'<g id="{uid}" data-source-app="{app}" data-source-width="{n(source_w)}" data-source-height="{n(source_h)}">{content}</g>')
+    a.sources[key]=uid
+    return uid
+
+def tile_window(a,x,y,w,h,app,source_w=600,source_h=424,title=None,fullscreen=False):
+    scale=min(w/source_w,h/source_h)
+    xx=x+(w-source_w*scale)/2;yy=y+(h-source_h*scale)/2
+    uid=source_window(a,app,source_w,source_h,title,fullscreen)
+    return a.wrap(f'<use xlink:href="#{uid}"/>',transform=f'translate({n(xx)} {n(yy)}) scale({n(scale)})',filter_id='smallshadow')
+
+def scene_fixture(work_w,work_h,scene='four',apps=None,ratio=None):
+    """Immutable illustrative object inventory, with frames relative to WorkRect."""
+    gap=TOKENS['referenceFixture']['windowGutter']
+    apps=apps or (['browser','notes','code','chat'] if scene in ['four','lived'] else ['browser','code'])
+    frames=[]
+    if scene=='lived':
+        frames=[(0,30,work_w*.65,work_h*.86),(work_w*.62,0,work_w*.38,work_h*.69),(work_w*.35,work_h*.43,work_w*.65,work_h*.57),(work_w*.12,work_h*.27,work_w*.46,work_h*.69)]
+    elif len(apps)==1:frames=[(0,0,work_w,work_h)]
+    elif len(apps)>=4:
+        frames=[((j%2)*(work_w+gap)/2,(j//2)*(work_h+gap)/2,(work_w-gap)/2,(work_h-gap)/2) for j in range(len(apps))]
+    else:
+        fraction=2/3 if scene=='asymmetric' else .5
+        first=(work_w-gap)*fraction
+        frames=[(0,0,first,work_h),(first+gap,0,work_w-first-gap,work_h)]
+    return [{'id':f'{app}-{j+1}','app':app,'frame':list(frame),'sourceSize':[frame[2],frame[3]],'birthOrdinal':j+1} for j,(app,frame) in enumerate(zip(apps,frames))]
+
+def project_scene(a,x,y,w,h,members,viewport,fullscreen=False):
+    """One uniform transform for all members, including their gaps and overlap."""
+    vw,vh=viewport;scale=min(w/vw,h/vh);ox=x+(w-vw*scale)/2;oy=y+(h-vh*scale)/2
+    body=''
+    for member in members:
+        fx,fy,fw,fh=member['frame'];sw,sh=member['sourceSize']
+        uid=source_window(a,member['app'],sw,sh,fullscreen=fullscreen)
+        body+=a.wrap(f'<use xlink:href="#{uid}"/>',transform=f'translate({n(fx)} {n(fy)})')
+        a.projections.append({'id':member['id'],'source':uid,'sourceSize':[sw,sh],'frame':member['frame'],'scale':scale,'projectedFrame':[ox+fx*scale,oy+fy*scale,fw*scale,fh*scale]})
+    body=a.wrap(body,clip=a.clip(0,0,vw,vh,0))
+    return a.wrap(body,transform=f'translate({n(ox)} {n(oy)}) scale({n(scale)})')
 
 def voice(a,x,y,w,h=144,paused=False,dark=False):
     ink=T['primaryColorDark' if dark else 'primaryColorLight'];sec=T['secondaryColorDark' if dark else 'secondaryColorLight']
@@ -189,17 +228,22 @@ def voice(a,x,y,w,h=144,paused=False,dark=False):
         for j,hh in enumerate([6,12,17,11,6]):s+=rect(x+w-49+j*5,cy+(27-hh)/2,2.5,hh,sec,1.25)
     return s
 
-def tray(a,x,y,w,h=144,compact=False,empty=False,dark=False):
-    s='';gap=6;pad=8;cols=(w-2*pad-gap)/2;rows=1 if compact or empty else 2;ch=(h-2*pad-gap*(rows-1))/rows
-    cells=['camera','folder'] if empty else (['browser','file'] if compact else ['browser','code','camera','file'])
+def tray(a,x,y,w,h=144,compact=False,empty=False,dark=False,cells=None):
+    s='';gap=L['trayCellGap'];pad=L['trayInset'];cols=(w-2*pad-gap)/2
+    cells=cells or (['camera','folder'] if empty else (['browser','file'] if compact else ['browser','code','camera','file']))
+    rows=1 if len(cells)<=2 else 2;ch=(h-2*pad-gap*(rows-1))/rows
     for j,app in enumerate(cells):
         xx=x+pad+(j%2)*(cols+gap);yy=y+pad+(j//2)*(ch+gap)
-        s+=rect(xx,yy,cols,ch,'#fff' if not dark else '#4b5156',8,'#ffffff60' if not dark else '#ffffff20',.6,alpha=.24 if app in ['camera','folder'] else 1)
-        if app in ['camera','folder']:s+=icon(app,xx+(cols-23)/2,yy+(ch-23)/2,23,'#c4d0d9' if dark else '#71818e')
+        if app in ['camera','folder']:
+            s+=rect(xx,yy,cols,ch,'#fff' if not dark else '#c6d0d8',9,alpha=.18 if not dark else .06)
+            s+=icon(app,xx+(cols-21)/2,yy+(ch-21)/2,21,'#c4d0d9' if dark else '#657581')
         elif app=='file':
-            s+=rect(xx+cols/2-14,yy+ch/2-19,28,38,'#fff',3,'#dce2e6',.6)+f'<path d="M{xx+cols/2+6} {yy+ch/2-19}l8 8h-8z" fill="#edf0f2"/>'
-            s+=rect(xx+cols/2-18,yy+ch/2+2,29,12,'#9a6c5a',2)+txt(xx+cols/2-3.5,yy+ch/2+11,'PDF',7,'#fff',550,'middle')
-        else:s+=tile_window(a,xx+3,yy+3,cols-6,ch-6,app)
+            s+=rect(xx,yy,cols,ch,'#fcfcfb' if not dark else '#30363b',7,'#c6cdd333' if not dark else '#ffffff16',L['hairlinePt'])
+            s+=rect(xx+cols/2-13,yy+ch/2-21,26,36,'#fff',3,'#dce2e6',.5)+f'<path d="M{xx+cols/2+5} {yy+ch/2-21}l8 8h-8z" fill="#edf0f2"/>'
+            s+=rect(xx+cols/2-17,yy+ch/2-1,28,11,'#976c5b',2)+txt(xx+cols/2-3,yy+ch/2+7,'PDF',6.5,'#fff',550,'middle')
+        else:
+            s+=rect(xx,yy,cols,ch,'#f8fafb' if not dark else '#30363b',7,alpha=.28)
+            s+=tile_window(a,xx+1,yy+1,cols-2,ch-2,app)
     return s
 
 def memo(a,x,y,w,dark=False,tasks=False):
@@ -214,98 +258,131 @@ def memo(a,x,y,w,dark=False,tasks=False):
         s+=txt(x+12,y+101,'128 × 3 =',13,sec)+rect(x+83,y+85,35,22,'#7b8991',4,alpha=.12)+txt(x+100.5,y+101,'384',13,ink,500,'middle')+icon('close',x+124,y+90,12,sec)
     return s
 
-def thumb_card(a,x,y,w,kind='window',apps=None,title=None,selected=False,dark=False,work_ratio=1.4,label=None,ratio=None,fullscreen_ratio=1.6):
-    apps=apps or ['browser'];inner=w-8;ratio=ratio or (fullscreen_ratio if kind in ['fullscreen','splitfull'] else work_ratio);ph=inner/ratio
-    if kind=='portrait':ph=inner/work_ratio
-    total=ph+21
-    s=''
-    if selected:s+=rect(x,y,w,total,'#fff' if not dark else '#fff',11,'#5f6e7a' if not dark else '#c9d4df',1.5,alpha=.16 if not dark else .06)
-    px=x+4;py=y+4
-    if kind=='unavailable':s+=rect(px,py,inner,ph,'#e2e8eb' if not dark else '#414b54',6)+txt(px+inner/2,py+ph/2+4,'预览暂不可用',11,'#75828d' if not dark else '#d0d9df',400,'middle')
+def thumb_card(a,x,y,w,kind='window',apps=None,title=None,selected=False,dark=False,work_ratio=1.4,label=None,ratio=None,fullscreen_ratio=1.6,members=None,viewport=None,state=None,density='balanced',contrast=False):
+    apps=apps or ['browser'];inner=w-8
+    aspect=ratio or (fullscreen_ratio if kind in ['fullscreen','splitfull'] else work_ratio)
+    independent=kind in ['window','portrait','unavailable']
+    source_w,source_h=(320,860) if kind=='portrait' else (600,600/aspect)
+    if members and independent:source_w,source_h=members[0]['sourceSize'];aspect=source_w/source_h
+    ph=min(inner/aspect,inner*L['independentImageHeightPerWidth']) if independent and density!='source' else inner/aspect
+    if kind=='portrait' and density=='source':ph=inner/work_ratio
+    total=ph+L['previewBadgeTail'];px=x+4;py=y+4
+    state=state or ('selected' if selected else 'normal')
+    fill='#fff' if not dark else '#dce5ec'
+    border='#97a5b0' if not dark else '#c2cdd5'
+    surface={'normal':.08,'hover':.24,'selected':.28,'pressed':.38,'focus':.23,'drop':.26}.get(state,.08)
+    s=rect(x,y,w,total,fill,10,alpha=surface if not dark else surface*.25)
+    if state in ['selected','pressed','focus','drop']:
+        stroke=TOKENS['material']['contrast']['borderDark' if dark else 'borderLight'] if contrast else border
+        sw=L['selectionStrokePt'] if state!='focus' else L['focusStrokePt']
+        if state=='focus':stroke='#78A8DD' if dark else '#497FAB'
+        s+=rect(x+.5,y+.5,w-1,total-1,'none',10,stroke,sw)
+    if kind=='unavailable':
+        s+=rect(px,py,inner,ph,'#e5eaed' if not dark else '#343d45',6)+txt(px+inner/2,py+ph/2+4,'预览暂不可用',11,'#65737e' if not dark else '#d0d9df',400,'middle')
     elif kind in ['group','space','quad','asymmetric','splitfull']:
-        s+=rect(px,py,inner,ph,'#dfe6ea' if not dark else '#4b545e',6,alpha=.4)
-        if len(apps)==1:
-            s+=tile_window(a,px,py,inner,ph,apps[0],600,600/ratio)
-        elif kind=='quad':
-            for j,app in enumerate(apps):s+=tile_window(a,px+(j%2)*(inner+2)/2,py+(j//2)*(ph+2)/2,(inner-2)/2,(ph-2)/2,app,600,600/work_ratio)
-        else:
-            frac=.66 if kind=='asymmetric' else .5;gap=2;first=inner*frac-gap/2
-            for j,app in enumerate(apps):
-                ww=first if j==0 else inner-first-gap;xx=px if j==0 else px+first+gap
-                s+=tile_window(a,xx,py,ww,ph,app,600,600/(ww/ph),fullscreen=kind=='splitfull')
-    elif kind=='portrait':s+=tile_window(a,px,py,inner,ph,apps[0],320,860)
-    else:s+=tile_window(a,px,py,inner,ph,apps[0],600,600/ratio,title=title,fullscreen=kind=='fullscreen')
+        viewport=viewport or (1000,1000/aspect)
+        members=members or scene_fixture(*viewport,scene=kind,apps=apps)
+        s+=rect(px,py,inner,ph,'#dce4e8' if not dark else '#4b545e',6,alpha=.25)
+        s+=project_scene(a,px,py,inner,ph,members,viewport,fullscreen=kind=='splitfull')
+    else:
+        s+=tile_window(a,px,py,inner,ph,apps[0],source_w,source_h,title=title,fullscreen=kind=='fullscreen')
+        if members:
+            fit=min(inner/source_w,ph/source_h)
+            a.projections.append({'id':members[0]['id'],'source':source_window(a,apps[0],source_w,source_h,title),'sourceSize':[source_w,source_h],'scale':fit,'slot':[px,py,inner,ph],'projectedSize':[source_w*fit,source_h*fit]})
     if label:
-        s+=rect(px+4,py+4,len(label)*9+10,16,'#263643',4,alpha=.78)+txt(px+9,py+15,label,9,'#fff')
+        lw=sum(5 if ord(c)<128 else 9 for c in label)+12
+        s+=rect(px+4,py+4,lw,16,'#263643',4,alpha=.8)+txt(px+10,py+15,label,9,'#fff')
     xx=x+w/2-(len(apps)*20+(len(apps)-1)*3)/2
     for j,app in enumerate(apps):s+=app_icon(app,xx+j*23,py+ph-6,20)
     return s,total
 
-def rail(a,x,y,w,h,wall_id,tools=2,glass='balanced',dark=False,paused=False,compact=False,scene='four',screen=(1440,900),empty=False,window_ratio=None,blurred_wall_id=None):
-    shell_a,card_a=[TOKENS['material'][glass][v] for v in ['shell','textSurface']] if glass in ['airy','balanced','clear'] else (1,1)
-    shell=TOKENS['material']['neutralDark'] if dark else '#fff';pad=L['outerInset'];cw=w-2*pad
+def rail(a,x,y,w,h,wall_id,tools=2,glass='balanced',dark=False,paused=False,compact=False,scene='four',screen=(1440,900),empty=False,window_ratio=None,blurred_wall_id=None,fixture=None,preview_density='balanced',contrast=False,tool_order=None,active_id=None):
+    material=TOKENS['material'];palette=material['dark']
+    reduced=glass=='reduceTransparency'
+    if dark:shell_a,card_a=palette['shell'],palette['textSurface'];shell=palette['shellColor'];card=palette['textSurfaceColor']
+    else:shell_a,card_a=[material[glass][v] for v in ['shell','textSurface']] if not reduced else (1,1);shell=card='#fff'
+    if reduced:
+        shell_a=card_a=1;shell=material['reduced']['shellColorDark' if dark else 'shellColorLight'];card=material['reduced']['textSurfaceColorDark' if dark else 'textSurfaceColorLight']
+    pad=L['outerInset'];cw=w-2*pad;hair=L['hairlinePt']
     clip=a.clip(x,y,w,h,L['shellRadius'])
+    # Shadows only belong to surface shapes. Foreground is a separate sibling.
+    a.add(a.wrap(rect(x,y,w,h,'#152430',L['shellRadius']),filter_id='shellshadow'))
     bg=f'<use xlink:href="#{blurred_wall_id}"/>' if blurred_wall_id else f'<use xlink:href="#{wall_id}" filter="url(#blur)"/>'
     a.add(a.wrap(bg,clip=clip))
     cursor=y+pad;ms=[]
-    vh=M['voicePausedHeight' if paused else 'voiceActiveHeight'];ms.append(('voice',cursor,vh));cursor+=vh+L['toolGap']
-    th=M['trayOneRowHeight' if compact or empty else 'trayTwoRowHeight'];ms.append(('tray',cursor,th));cursor+=th+L['toolGap']
-    if tools>=3:ms.append(('memo',cursor,M['memoHeight']));cursor+=M['memoHeight']+L['toolGap']
-    if tools>=4:ms.append(('tasks',cursor,M['tasksHeight']));cursor+=M['tasksHeight']+L['toolGap']
-    # Shell has true holes: inner tint never compounds with outer white tint.
+    order=tool_order or ['voice','tray','memo','tasks'][:tools]
+    for name in order:
+        if name=='voice':hh=M['voicePausedHeight' if paused else 'voiceActiveHeight']
+        elif name=='tray':hh=M['trayOneRowHeight' if compact or empty else 'trayTwoRowHeight']
+        else:hh=M[name+'Height']
+        ms.append((name,cursor,hh));cursor+=hh+L['toolGap']
+    # One blurred backdrop. Shell holes prevent double tinting under text cards.
     mask=a.uid();a.defs.append(f'<mask id="{mask}">{rect(x,y,w,h,"white",L["shellRadius"])}'+''.join(rect(x+pad,yy,cw,hh,'black',L['toolRadius']) for _,yy,hh in ms)+'</mask>')
     a.add(rect(x,y,w,h,shell,L['shellRadius'],alpha=shell_a,extra=f'mask="url(#{mask})"'))
     for name,yy,hh in ms:
-        a.add(rect(x+pad,yy,cw,hh,shell,L['toolRadius'],'#ffffff78' if not dark else '#ffffff20',.65,alpha=card_a))
+        a.add(f'<g mask="url(#{mask})">'+a.wrap(rect(x+pad,yy,cw,hh,card,L['toolRadius']),filter_id='cardshadow')+'</g>')
+        edge=material['contrast']['borderDark' if dark else 'borderLight'] if contrast else ('#ffffff85' if not dark else palette['hairline'])
+        sw=material['contrast']['hairlinePt'] if contrast else hair
+        a.add(rect(x+pad,yy,cw,hh,card,L['toolRadius'],edge,sw,alpha=card_a))
+        a.add(line(x+pad+L['toolRadius'],yy+.5,x+w-pad-L['toolRadius'],yy+.5,'#fff',hair,.52 if not dark else .12))
         if name=='voice':a.add(voice(a,x+pad,yy,cw,hh,paused,dark))
         elif name=='tray':a.add(tray(a,x+pad,yy,cw,hh,compact,empty,dark))
         else:a.add(memo(a,x+pad,yy,cw,dark,name=='tasks'))
-    a.add(rect(x,y,w,h,'none',L['shellRadius'],'#ffffffa8' if not dark else '#ffffff29',.7))
+    a.add(rect(x+.25,y+.25,w-.5,h-.5,'none',L['shellRadius'],'#ffffffb8' if not dark else '#ffffff35',hair))
     listclip=a.clip(x+pad-2,cursor-2,cw+4,max(0,y+h-pad-cursor+2),3)
-    _,_,work_w,work_h=fixture_work_rect(screen[0],screen[1],w)
-    workratio=work_w/work_h
+    _,_,work_w,work_h=fixture_work_rect(screen[0],screen[1],w);workratio=work_w/work_h
+    inventory=fixture or scene_fixture(work_w,work_h,scene='lived' if scene=='lived' else 'four')
     cards=[]
     if empty:
         a.add(txt(x+w/2,cursor+24,'这个桌面还没有窗口',12,'#667580',400,'middle'))
-        return {'listY':cursor,'toolCount':tools,'overflow':False,'lastY':cursor+30}
-    if scene=='group':
-        cards=[('group',['browser','code'],None),('window',['notes'],None),('separator',[],None),('space',['browser','notes'],'桌面 2'),('fullscreen',['video'],'全屏')]
-    elif scene=='spaces':
-        cards=[('group',['browser','code'],None),('separator',[],None),('space',['notes'],'桌面 2'),('fullscreen',['video'],'全屏'),('space',['browser','code'],'桌面 4')]
+        return {'listY':round(cursor-y,2),'toolCount':len(order),'overflow':False,'lastY':round(cursor-y+30,2),'cards':[]}
+    if scene=='tools':
+        cards=[]
+    elif scene in ['group','spaces']:
+        group=fixture or scene_fixture(work_w,work_h,scene='group')
+        cards=[{'kind':'group','members':group,'apps':[m['app'] for m in group],'viewport':(work_w,work_h)}]
+        if scene=='group':cards.append({'kind':'window','apps':['notes']})
+        cards += [{'kind':'separator'},{'kind':'space','apps':['notes'],'label':'桌面 2'},{'kind':'fullscreen','apps':['video'],'label':'全屏'}]
+        if scene=='spaces':cards.append({'kind':'space','apps':['browser','code'],'label':'桌面 4'})
     else:
-        apps=['browser','notes','code','chat']
-        if scene=='many':apps+=['finder','notes','browser','chat']
-        cards=[('window',[app],None) for app in apps]
+        cards=[{'kind':'window','apps':[m['app']],'members':[m]} for m in inventory]
+        if scene=='many':cards += [{'kind':'window','apps':[app]} for app in ['finder','notes','browser','chat','browser']]
     body='';start=cursor;positions=[]
-    for j,(kind,apps,label) in enumerate(cards):
-        if kind=='separator':body+=line(x+pad+5,cursor+3,x+w-pad-5,cursor+3,'#7b8a94',.7,.24);cursor+=16;continue
-        cs,hh=thumb_card(a,x+pad,cursor,cw,kind,apps,selected=(j==0),dark=dark,work_ratio=workratio,label=label,ratio=window_ratio if kind=='window' else None,fullscreen_ratio=screen[0]/screen[1])
-        positions.append({'kind':kind,'top':round(cursor-y,2),'height':round(hh,2)})
+    for j,c in enumerate(cards):
+        kind=c['kind']
+        if kind=='separator':body+=line(x+pad+5,cursor+3,x+w-pad-5,cursor+3,'#7b8a94',.5,.24);cursor+=16;continue
+        cs,hh=thumb_card(a,x+pad,cursor,cw,selected=(any(m['id']==active_id for m in c.get('members',[])) if active_id else j==0),dark=dark,work_ratio=workratio,ratio=window_ratio if kind=='window' and not c.get('members') else None,fullscreen_ratio=screen[0]/screen[1],density=preview_density,contrast=contrast,**c)
+        positions.append({'kind':kind,'top':round(cursor-y,2),'height':round(hh,2),'members':[m['id'] for m in c.get('members',[])],'fullyVisible':cursor+hh<=y+h-pad})
         body+=cs;cursor+=hh+L['windowGap']
     a.add(a.wrap(body,clip=listclip))
     overflow=cursor-L['windowGap']>y+h-pad
-    if overflow:a.add(rect(x+w-6,y+h-65,2.5,43,'#61717f' if not dark else '#b8c4cf',1.25,alpha=.35))
-    return {'listY':round(start-y,2),'toolCount':tools,'overflow':overflow,'lastY':round(cursor-y,2),'cards':positions}
+    # The static thumb shows the scroll affordance only when content exceeds the viewport.
+    if overflow:a.add(rect(x+w-5,y+h-65,2,43,'#61717f' if not dark else '#b8c4cf',1,alpha=.3))
+    return {'listY':round(start-y,2),'toolCount':len(order),'toolOrder':order,'overflow':overflow,'lastY':round(cursor-y,2),'cards':positions,'sourceInventory':inventory}
 
-def menu(a,w):
+def menu(a,w,active_app='Safari'):
     a.add(rect(0,0,w,27,'#f7f9fb',alpha=.52))
     # Neutral desktop menu chrome; no invented Nearpane header.
     a.add(circle(22,14,5.4,'#31404b')+f'<path d="M23 6q1-4 5-3-1 4-5 4" fill="#31404b"/>')
     x=43
-    for j,s in enumerate(['Safari','文件','编辑','显示','历史记录','书签','窗口','帮助']):
-        a.add(txt(x,18,s,11,'#33414d',600 if j==0 else 400));x+=57 if j in [0,4] else 44
+    labels = ([active_app,'文件','编辑','选择','查看','转到','运行','终端','窗口','帮助']
+              if active_app == 'Code' else [active_app,'文件','编辑','显示','历史记录','书签','窗口','帮助'])
+    for j,s in enumerate(labels):
+        a.add(txt(x,18,s,11,'#33414d',600 if j==0 else 400))
+        x += max(44, len(s) * (6.5 if s.isascii() else 11) + 18)
     a.add(icon('wifi',w-232,6,15,'#435461')+rect(w-205,9,18,9,'none',2,'#435461',1)+rect(w-202,11,11,5,'#435461',1)+txt(w-172,18,'11月18日 周三  09:41',11,'#435461'))
 
 def desktop(name='01-default-desktop',tools=2,w=1440,h=900,panel=None,scene='four',dark=False,wall='blue',paused=False):
     if panel is None:panel=default_width(w)
-    a=Art(w,h);wall_id=wallpaper(a,w,h,wall);a.add(f'<use xlink:href="#{wall_id}"/>');menu(a,w)
-    wx,wy,ww,wh=fixture_work_rect(w,h,panel);gap=TOKENS['referenceFixture']['windowGutter']
-    if scene=='four':
-        for j,app in enumerate(['browser','notes','code','chat']):a.add(window(a,wx+(j%2)*(ww+gap)/2,wy+(j//2)*(wh+gap)/2,(ww-gap)/2,(wh-gap)/2,app,shadow=True))
-    else:
-        for j,app in enumerate(['browser','code']):a.add(window(a,wx+j*(ww+gap)/2,wy,(ww-gap)/2,wh,app,shadow=True))
-    geometry=rail(a,w-panel,33,panel,h-39,wall_id,tools=tools,dark=dark,paused=paused,scene=scene,screen=(w,h),window_ratio=(ww-gap)/(wh-gap) if scene=='four' else None)
-    geometry.update({'screen':[w,h],'panelWidth':panel,'workRect':[wx,wy,ww,wh]})
+    a=Art(w,h);wall_id=wallpaper(a,w,h,wall);a.add(f'<use xlink:href="#{wall_id}"/>');menu(a,w,'Code' if scene=='lived' else 'Safari')
+    wx,wy,ww,wh=fixture_work_rect(w,h,panel)
+    members=scene_fixture(ww,wh,scene if scene in ['four','lived'] else 'group')
+    paint=members if scene!='lived' else [members[j] for j in [0,1,3,2]]
+    for member in paint:
+        fx,fy,fw,fh=member['frame'];uid=source_window(a,member['app'],fw,fh)
+        a.add(a.wrap(f'<use xlink:href="#{uid}"/>',transform=f'translate({n(wx+fx)} {n(wy+fy)})',filter_id='winshadow'))
+    geometry=rail(a,w-panel,33,panel,h-39,wall_id,tools=tools,dark=dark,paused=paused,scene=scene,screen=(w,h),fixture=members,active_id='code-3' if scene=='lived' else None)
+    geometry.update({'screen':[w,h],'panelWidth':panel,'workRect':[wx,wy,ww,wh],'projections':a.projections})
     a.save(name);return geometry
 
 def board_head(a,kicker,title,desc):
@@ -313,15 +390,16 @@ def board_head(a,kicker,title,desc):
     a.add(txt(42,43,kicker,10,'#85909a',500,extra='letter-spacing="1.8"'))
     a.add(txt(42,84,title,29,'#29343b',550))
     a.add(txt(42,113,desc,12,'#7d878e'))
-def board_foot(a,left,right='NEARPANE  /  R3  /  2026.11.18'):
+def board_foot(a,left,right='NEARPANE  /  R4  /  2026.11.18'):
     a.add(line(42,a.h-62,a.w-42,a.h-62,'#d9dfe1',.8)+txt(42,a.h-37,left,10,'#7d888f')+txt(a.w-42,a.h-37,right,10,'#8d979e',400,'end'))
 def sample(a,x,top,w,h,title,sub,footer,**kw):
     a.add(txt(x,top,title,14,'#35424c',550)+txt(x,top+23,sub,10,'#859099'))
-    yy=top+42;local_wall=wallpaper(a,w,h,kw.pop('wall','blue'));wall=a.uid()
-    a.defs.append(f'<g id="{wall}" transform="translate({n(x)} {n(yy)})"><use xlink:href="#{local_wall}"/></g>')
+    yy=top+42;bleed=TOKENS['material']['blurStdDeviationPt']*4
+    local_wall=wallpaper(a,w+bleed*2,h+bleed*2,kw.pop('wall','blue'));wall=a.uid()
+    a.defs.append(f'<g id="{wall}" transform="translate({n(x-bleed)} {n(yy-bleed)})"><use xlink:href="#{local_wall}"/></g>')
     blurred_wall=a.uid()
-    a.defs.append(f'<g id="{blurred_wall}" transform="translate({n(x)} {n(yy)})"><use xlink:href="#{local_wall}" filter="url(#blur)"/></g>')
-    cl=a.clip(x,yy,w,h,20)
+    a.defs.append(f'<g id="{blurred_wall}" transform="translate({n(x-bleed)} {n(yy-bleed)})"><use xlink:href="#{local_wall}" filter="url(#blur)"/></g>')
+    cl=a.clip(x,yy,w,h,L['shellRadius'])
     a.add(a.wrap(f'<use xlink:href="#{wall}"/>',clip=cl))
     g=rail(a,x,yy,w,h,wall,blurred_wall_id=blurred_wall,**kw)
     a.add(para(x,yy+h+24,footer,w,10,17,'#7c8790',3))
@@ -329,9 +407,9 @@ def sample(a,x,top,w,h,title,sub,footer,**kw):
 
 def width_board():
     a=Art(1200,1180);board_head(a,'NEARPANE / WIDTH','默认先合适，再允许调整。','同一块 1440 × 900 pt 屏幕；正文始终为 14 pt，预览按真实比例变化。')
-    cols=[(110,180,'紧凑 · 1/8','180 pt · 屏宽 12.5%','字号不缩小。保留一行托盘，窗口单列滚动。',True),(350,240,'推荐默认','240 pt · 屏宽 16.7%','中文正文与两列托盘都有足够宽度。',False),(650,360,'宽幅 · 1/4','360 pt · 屏宽 25%','缩略图自然变大，不再固定为 96 pt 高。',False)]
-    gs=[]
-    for x,w,title,sub,foot,compact in cols:gs.append(sample(a,x,164,w,840,title,sub,foot,compact=compact,screen=(1440,900)))
+    cols=[(110,180,'紧凑 · 1/8','180 pt · 屏宽 12.5%','同样四格内容，字号不缩小；按需滚动。',False),(350,240,'推荐默认','240 pt · 屏宽 16.7%','中文正文与两列托盘都有足够宽度。',False),(650,360,'宽幅 · 1/4','360 pt · 屏宽 25%','缩略图自然变大，不再固定为 96 pt 高。',False)]
+    gs=[];fixed=scene_fixture(1176,849,'four')
+    for x,w,title,sub,foot,compact in cols:gs.append(sample(a,x,164,w,840,title,sub,foot,compact=compact,screen=(1440,900),fixture=fixed))
     board_foot(a,'内边距 12 pt · 模块间距 10 pt · 宽度不随内容自动改变');a.save('03-width-comparison');return gs
 
 def glass_board():
@@ -343,7 +421,7 @@ def glass_board():
 
 def layout_board():
     a=Art(1200,1200);board_head(a,'NEARPANE / LAYOUT','工具先显示，窗口紧接其后。','工具按实际高度占位；列表从上向下，余量自然留在底部。')
-    specs=[('两个工具','语音 + 截图 / 文件',2,False,'four','四个独立窗口，按打开顺序依次排列。'),('三个工具','再加入备忘录',3,False,'four','第三个工具完整显示，窗口列表随之下移。'),('语音明确暂停','单行收起，正文保留',3,True,'four','主动暂停才收起；短暂静音不让布局跳动。'),('明确双窗组合','真实分屏布局，一张合成图',2,False,'group','明确组合后共用一张预览；成员可以分别点选。')]
+    specs=[('两个工具','语音 + 截图 / 文件',2,False,'four','四个独立窗口，按打开顺序依次排列。'),('三个工具','再加入备忘录',3,False,'four','第三个工具完整显示，窗口列表随之下移。'),('语音明确暂停','单行收起，记录保留',3,True,'four','主动暂停才收起；短暂静音不让布局跳动。'),('明确双窗组合','真实分屏布局，一张合成图',2,False,'group','明确组合后共用一张预览；成员可以分别点选。')]
     gs=[]
     for j,(title,sub,tools,paused,scene,foot) in enumerate(specs):gs.append(sample(a,42+j*282,166,258,850,title,sub,foot,tools=tools,paused=paused,scene=scene,screen=(1440,900)))
     board_foot(a,'不居中、不从底部起排、不再固定 3/8 工具区。');a.save('02-layout-comparison');return gs
@@ -359,7 +437,7 @@ def states_board():
         a.add(s);a.add(para(x,y+226,desc,258,10,17,'#7d8891',2))
     a.add(txt(42,724,'新增工具延续原来的安静外观',19,'#35434d',550))
     for j,(title,kind) in enumerate([('托盘空态 · 只有两格','empty'),('空间紧张 · 各留最新一项','compact'),('备忘录 · 临时计算','memo'),('可选待办 · 内容直接出现','tasks')]):
-        x=42+j*282;y=760;a.add(txt(x,y,title,12,'#5f6e79'));a.add(rect(x,y+18,258,160,'#e6ebed',18));a.add(rect(x+12,y+30,234,128 if kind in ['memo','tasks'] else 76,'#fff',18,alpha=.88))
+        x=42+j*282;y=760;a.add(txt(x,y,title,12,'#5f6e79'));a.add(rect(x,y+18,258,160,'#e6ebed',18));a.add(rect(x+12,y+30,234,128 if kind in ['memo','tasks'] else 76,'#fff',L['toolRadius'],alpha=.88))
         if kind in ['empty','compact']:a.add(tray(a,x+12,y+30,234,76,True,kind=='empty'))
         else:a.add(memo(a,x+12,y+30,234,tasks=kind=='tasks'))
     a.add(txt(42,978,'文件空入口只定义位置，点击用途待定；计算归备忘录，翻译在原词附近出现。',11,'#7d8891'))
@@ -395,8 +473,71 @@ def boundaries_board():
     sample(a,918,162,240,685,'降低透明度','不透明系统背景','前景、工具顺序、字号和缩略图比例保持一致。',glass='reduceTransparency',compact=True,screen=(1440,900))
     board_foot(a,'本页补全原生 Split View、真正空态和系统降低透明度；不是已完成的原生验收。');a.save('09-native-and-accessibility')
 
+def interactions_board():
+    a=Art(1200,1020)
+    board_head(a,'NEARPANE / FEEDBACK','有反馈，也保持安静。','常态、悬停、选中和键盘焦点各司其职；任何状态都不稀释内容、不改变卡片位置。')
+    styles=[('常态','normal','不描深框，内容与玻璃边界可辨。'),('悬停','hover','轻提亮，命中范围与常态一致。'),('当前窗口','selected','0.75 pt 中性轮廓，确认当前对象。'),('键盘焦点','focus','独立焦点环，不与当前窗口混淆。')]
+    for j,(title,state,desc) in enumerate(styles):
+        x=42+j*282;y=167;a.add(txt(x,y,title,14,'#35424c',550))
+        a.add(rect(x,y+22,258,173,'#dce5eb',18))
+        body,hh=thumb_card(a,x+13,y+37,232,state=state,work_ratio=1.4)
+        a.add(body);a.add(para(x,y+222,desc,258,11,19,'#6c7882',2))
+    a.add(txt(42,479,'操作中的信息，只在需要时出现。',23,'#35424c',550))
+    samples=[('附加处理中','progress','仍保留原对象，收到接收回执后才退场。'),('附加失败 · 原项恢复','error','缩略图回到原位置，可再次尝试。'),('文件名 · 悬停显示','filename','类型图标提供初筛，完整名称按需显示。'),('窗口拖动 · 落点反馈','drop','只反馈目标；放下后执行，失败回原位。')]
+    for j,(title,kind,desc) in enumerate(samples):
+        x=42+j*282;y=521;a.add(txt(x,y,title,12,'#5f6e79'))
+        a.add(rect(x,y+22,258,210,'#e5ebef',18))
+        if kind=='drop':
+            body,hh=thumb_card(a,x+13,y+37,232,'group',['browser','notes'],state='drop',work_ratio=1.5)
+            a.add(body)
+            a.add(rect(x+127,y+53,107,120,'#fff',6,'#687e8c',.75,alpha=.18,extra='stroke-dasharray="4 4"'))
+        else:
+            a.add(rect(x+12,y+39,234,144,'#fff',16,alpha=.88))
+            a.add(tray(a,x+12,y+39,234,144))
+            if kind=='progress':
+                a.add(rect(x+18,y+99,102,3,'#9aabb7',1.5,alpha=.3)+rect(x+18,y+99,61,3,'#5f7585',1.5))
+            elif kind=='error':
+                a.add(circle(x+111,y+58,8,'#fff')+circle(x+111,y+58,6,'#a86650')+txt(x+111,y+61,'!',9,'#fff',600,'middle'))
+            else:
+                a.add(a.wrap(rect(x+72,y+185,172,26,'#fff',7,'#d2d9de',.5)+txt(x+84,y+202,'Nearpane 设计方案.pdf',10,'#42515d'),filter_id='smallshadow'))
+        a.add(para(x,y+261,desc,258,11,19,'#6c7882',3))
+    a.add(line(42,877,1158,877,'#d7dfe3',.5))
+    a.add(txt(42,910,'悬停 120 ms · 状态变化 160 ms · 主动收起 180 ms · 系统减少动态效果时取消位移动画',12,'#53636f'))
+    board_foot(a,'按下与拖动期间锁定对象身份；新内容在手势结束后再进入布局。')
+    a.save('13-interaction-states')
+
+
+def stress_board():
+    a=Art(1200,1020)
+    board_head(a,'NEARPANE / ENVIRONMENT','换一张桌面，文字仍有稳定的底板。','相同正文与托盘；浅色、深色、复杂背景，以及系统辅助显示分别对照。')
+    samples=[('浅色桌面','paper',False,False,False),('深色桌面','ink',False,False,False),('复杂桌面','busy',False,False,False),('深色外观','busy',True,False,False),('降低透明度','busy',False,True,False),('增强对比度','busy',False,False,True)]
+    gs=[]
+    for j,(title,wall,dark,reduced,contrast) in enumerate(samples):
+        x=84+(j%3)*364;top=169+(j//3)*365
+        sub='同一默认光学目标' if j<3 else ('独立深色参数 0.72 / 0.94' if dark else ('背景实色，内容保持' if reduced else '边界 1 pt，结构保持'))
+        gs.append(sample(a,x,top,304,254,title,sub,'',wall=wall,tools=2,compact=True,scene='tools',glass='reduceTransparency' if reduced else 'balanced',dark=dark,contrast=contrast,screen=(1440,900)))
+    board_foot(a,'外壳可以透出环境；正文、图标与图像保持不透明。光学参数仍需 AppKit 校准。')
+    a.save('14-background-stress');return gs
+
+
+def density_board():
+    a=Art(1200,1240)
+    board_head(a,'NEARPANE / PREVIEW DENSITY','同样的 240 pt，把窗口排得更从容。','同一对象、同一比例、同一正文与四格托盘。这里只改变独立窗口的预览密度。')
+    fixtures=scene_fixture(1176,849,'four')
+    left=sample(a,90,165,240,861,'全宽预览','R3 的密度规则','窗口完整，但同一视口能辨认的对象较少。',fixture=fixtures,preview_density='source')
+    right=sample(a,442,165,240,861,'本轮默认','按宽度计算高度上限，再 Fit','四个普通窗口可见；正文与工具不压缩。',fixture=fixtures)
+    a.add(txt(770,244,'保留比例，减少重复空白',23,'#35424c',550))
+    a.add(para(770,289,'独立窗口预览槽的最大高度，为可用图宽的一半；源图只做等比缩放。',335,15,26,'#566772',4))
+    a.add(para(770,444,'240 pt 侧栏：208 × 104 pt 图槽。\n窗口图像按原比例居中。\n应用图标完整保留在每行底部。',335,14,24,'#566772',5))
+    a.add(para(770,623,'代价也清楚：较高窗口的文字会更小。需要辨认细节时，可在独立设置中放大预览，或加宽侧栏。',335,14,24,'#566772',5))
+    a.add(para(770,810,'组合与原生 Space 仍使用各自统一坐标。较短屏幕、更多窗口或三个工具继续滚动，不承诺永远显示四项。',335,14,24,'#566772',5))
+    board_foot(a,'密度规则只影响显示尺度，窗口数量不驱动压缩；默认是本轮设计选择。')
+    a.save('15-density-comparison');return {'source':left,'balanced':right}
+
+
 def make_all():
     geometry={}
+    geometry['lived']=desktop('00-lived-desktop',scene='lived')
     geometry['default']=desktop()
     geometry['threeTools']=desktop('07-three-tools-desktop',tools=3)
     geometry['splitDesktop']=desktop('08-split-workspace-desktop',scene='spaces')
@@ -404,7 +545,12 @@ def make_all():
     geometry['material']=glass_board()
     geometry['layout']=layout_board()
     states_board();focus_board();boundaries_board()
+    interactions_board()
+    geometry['stress']=stress_board()
+    geometry['density']=density_board()
+    from render_supplement import make_supplements
+    geometry['supplements']=make_supplements()
     (ROOT/'render-measurements.json').write_text(json.dumps(geometry,ensure_ascii=False,indent=2))
-    print(json.dumps({'svg_count':len(list(OUT.glob('*.svg'))),'output':str(OUT),'default':geometry['default']},ensure_ascii=False))
+    print(json.dumps({'svg_count':len(list(OUT.glob('*.svg'))),'output':str(OUT),'default_width':geometry['default']['panelWidth'],'default_complete_cards':sum(c['fullyVisible'] for c in geometry['default']['cards'])},ensure_ascii=False))
 
 if __name__=='__main__': make_all()
