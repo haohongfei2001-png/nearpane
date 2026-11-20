@@ -26,19 +26,17 @@ app="$product_root/release/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
 version=5.22
-build_number=90
-name="Nearpane P$version Alpha.app"
+build_number=91
+name="Nearpane.app"
+signing_identity="${NEARPANE_LOCAL_SIGNING_IDENTITY:-installed-product}"
 delivery="${NEARPANE_CANDIDATE_OUTPUT:-/Applications}"
 if [[ -z "${NEARPANE_CANDIDATE_OUTPUT:-}" && ! -e /Applications/Nearpane.app &&
       ( -d "$HOME/Applications/Nearpane.app" || ! -w /Applications ) ]]; then
     delivery="$HOME/Applications"
 fi
 if [[ "${delivery%/}" == /Applications || "${delivery%/}" == "$HOME/Applications" ]]; then
-    signing_identity="${NEARPANE_LOCAL_SIGNING_IDENTITY:-installed-product}"
-    name="Nearpane.app"
     receipt="$product_root/candidate/package.json"
 else
-    signing_identity="${NEARPANE_LOCAL_SIGNING_IDENTITY:-}"
     receipt="$delivery/package.json"
 fi
 [[ ! -L "${delivery%/}" ]] || { echo "Installation directory is a symlink: $delivery" >&2; exit 1; }
@@ -65,9 +63,7 @@ python3 -B scripts/build-helper-runtime.py "$candidate"
 check_candidate_source
 /usr/bin/plutil -replace NearpaneSourceState -string "$source_state" "$candidate/Contents/Info.plist"
 codesign --force --sign - --identifier com.holdsnow.nearpane.alpha "$candidate"
-if [[ -n "$signing_identity" ]]; then
-    python3 -I -B scripts/candidate_signing.py "$candidate" --identity "$signing_identity"
-fi
+python3 -I -B scripts/candidate_signing.py "$candidate" --identity "$signing_identity"
 codesign --verify --strict --deep "$candidate"
 "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
 "$candidate/Contents/MacOS/NearpaneHost" --check-helper-runtime

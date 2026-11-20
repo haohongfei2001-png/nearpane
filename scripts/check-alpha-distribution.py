@@ -36,6 +36,45 @@ def requirement(output):
     return values[0]
 
 
+# These executables can participate in a macOS permission decision.
+def designated_requirement(path):
+    output = cmd("/usr/bin/codesign", "-d", "-r-", str(path))
+    return requirement(output)
+
+
+# Stable shipping identifiers include the historical standalone helper identifiers.
+PRODUCT_SIGNING_TEAM = "ZB9D4T66QB"
+PRODUCT_IDENTIFIERS = {
+    ".": "com.holdsnow.nearpane.alpha",
+    "Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
+    "Contents/Helpers/NearpaneOrdinaryWindowController": "NearpaneOrdinaryWindowController",
+    "Contents/Helpers/NearpaneSpaceAction": "NearpaneSpaceAction",
+    "Contents/Helpers/NearpaneAutomation": "com.holdsnow.nearpane.automation",
+    "Contents/Helpers/NearpaneFrameController.app": "org.nearpane.lab.NearpaneFrameController",
+    "Contents/Helpers/NearpaneFixtureWindows.app": "org.nearpane.lab.NearpaneFixtureWindows",
+    "Contents/Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
+}
+
+
+def normalized_requirement(text):
+    return " ".join(text.replace("/* exists */", "").replace('"', "").split())
+
+
+def verify_install_identity(candidate):
+    for relative, identifier in PRODUCT_IDENTIFIERS.items():
+        subject = candidate / relative
+        rule = (f'identifier "{identifier}" and anchor apple generic and '
+                'certificate 1[field.1.2.840.113635.100.6.2.6] and '
+                'certificate leaf[field.1.2.840.113635.100.6.1.13] and '
+                f'certificate leaf[subject.OU] = "{PRODUCT_SIGNING_TEAM}"')
+        cmd("/usr/bin/codesign", "--verify", "--strict", "-R=" + rule, str(subject))
+        # The operating system records the designated requirement itself. A custom
+        # requirement pinned to this binary or certificate would break the next update.
+        actual = designated_requirement(subject)
+        if normalized_requirement(actual) != normalized_requirement(rule):
+            raise ValueError("Unstable permission identity: " + relative)
+
+
 def inspect(app):
     app = app.resolve(strict=True)
     contents = app / "Contents"
@@ -134,11 +173,16 @@ def inspect(app):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("app", type=Path)
+    parser.add_argument("--require-install-identity", action="store_true",
+                        help="Require the stable Nearpane Developer ID identity for the Host and its permission helpers")
     parser.add_argument("--require-distribution-signatures", action="store_true",
                         help="Fail when even the preliminary Developer ID/timestamp/runtime checks are unmet")
     args = parser.parse_args()
     try:
         report = inspect(args.app)
+        if args.require_install_identity or (args.require_distribution_signatures and not report["missingDistributionSignatures"]):
+            verify_install_identity(args.app)
+            report["permissionIdentity"] = dict(team=PRODUCT_SIGNING_TEAM, subjects=len(PRODUCT_IDENTIFIERS))
     except subprocess.CalledProcessError as exc:
         parser.exit(1, f"{exc}\n{(exc.stdout or '').strip()}\n")
     except (OSError, ValueError, KeyError) as exc:

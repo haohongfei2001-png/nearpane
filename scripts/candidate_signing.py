@@ -70,56 +70,17 @@ def seal_components(temp, seal):
     return 3 + len(additional) + len(action_helpers)
 
 
-# These executables can participate in a macOS permission decision.
-def designated_requirement(path):
-    output = gate.cmd("/usr/bin/codesign", "-d", "-r-", str(path))
-    return gate.requirement(output)
-
-
-# Stable shipping identifiers include the historical standalone helper identifiers.
-PRODUCT_SIGNING_TEAM = "ZB9D4T66QB"
-PRODUCT_IDENTIFIERS = {
-    ".": "com.holdsnow.nearpane.alpha",
-    "Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
-    "Contents/Helpers/NearpaneOrdinaryWindowController": "NearpaneOrdinaryWindowController",
-    "Contents/Helpers/NearpaneSpaceAction": "NearpaneSpaceAction",
-    "Contents/Helpers/NearpaneAutomation": "com.holdsnow.nearpane.automation",
-    "Contents/Helpers/NearpaneFrameController.app": "org.nearpane.lab.NearpaneFrameController",
-    "Contents/Helpers/NearpaneFixtureWindows.app": "org.nearpane.lab.NearpaneFixtureWindows",
-    "Contents/Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
-}
-
-
-def normalized_requirement(text):
-    return " ".join(text.replace("/* exists */", "").replace('"', "").split())
-
-
-def verify_install_identity(candidate):
-    for relative, identifier in PRODUCT_IDENTIFIERS.items():
-        subject = candidate / relative
-        rule = (f'identifier "{identifier}" and anchor apple generic and '
-                'certificate 1[field.1.2.840.113635.100.6.2.6] and '
-                'certificate leaf[field.1.2.840.113635.100.6.1.13] and '
-                f'certificate leaf[subject.OU] = "{PRODUCT_SIGNING_TEAM}"')
-        gate.cmd("/usr/bin/codesign", "--verify", "--strict", "-R=" + rule, str(subject))
-        # The operating system records the designated requirement itself. A custom
-        # requirement pinned to this binary or certificate would break the next update.
-        actual = designated_requirement(subject)
-        if normalized_requirement(actual) != normalized_requirement(rule):
-            raise ValueError("Unstable permission identity: " + relative)
-
-
 def check_continuity(previous, candidate):
     # Legacy ad-hoc installations need a one-time migration to a named identity.
     fields = gate.cmd("/usr/bin/codesign", "-dvv", str(previous)).splitlines()
     if "Signature=adhoc" in fields:
         return
-    for subject in PRODUCT_IDENTIFIERS:
+    for subject in gate.PRODUCT_IDENTIFIERS:
         old, new = previous / subject, candidate / subject
         if not old.exists():
             continue
         for source, target in ((old, new), (new, old)):
-            requirement = designated_requirement(source)
+            requirement = gate.designated_requirement(source)
             gate.cmd("/usr/bin/codesign", "--verify", "--strict", "-R=" + requirement, str(target))
 
 
@@ -135,7 +96,7 @@ def require_developer_team(fingerprint, listing):
 
 def product_fingerprint(listing):
     possible = re.findall(r'^\s*\d+\)\s+([A-F0-9]{40})\s+"Developer ID Application: [^"\n]+ '
-                          rf'\({PRODUCT_SIGNING_TEAM}\)"\s*$', listing, re.MULTILINE)
+                          rf'\({gate.PRODUCT_SIGNING_TEAM}\)"\s*$', listing, re.MULTILINE)
     if len(possible) != 1:
         raise ValueError("Select the authorized Nearpane Developer ID certificate by its full fingerprint")
     return possible[0]
@@ -152,6 +113,8 @@ def sign_staged(candidate, fingerprint):
     if fingerprint == "installed-product":
         fingerprint = product_fingerprint(listing)
     team = require_developer_team(fingerprint, listing)
+    if team != gate.PRODUCT_SIGNING_TEAM:
+        raise ValueError("Selected certificate belongs to a different Developer ID team")
 
     def seal(component, identifier):
         # Keep the current local package's hardened-runtime and entitlement semantics.

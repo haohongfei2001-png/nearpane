@@ -26,7 +26,7 @@ Settings 的应用页面提供每日检查开关和检查更新入口。初始�
 
 ## 本机安装的权限身份
 
-通过 `scripts/build-candidate.sh` 安装至系统或用户的“应用程序”目录时，沿用 `com.holdsnow.nearpane.alpha` 和 Developer ID 团队 `ZB9D4T66QB`。默认从有效的 Developer ID Application 证书中选择该团队的唯一匹配，有多张时由维护者指定证书指纹。首次安装、从旧临时签名迁移和后续覆盖安装均逐项检查 Host 和七个权限相关助手。正式安装拒绝临时签名、错误团队、改变的助手标识及指向某次构建哈希的指定要求。替换已稳定签名的旧版时还会双向验证双方的指定要求。开发目录仍可生成隔离测试包。
+通过 `scripts/build-candidate.sh` 安装或导出候选包时，沿用 `com.holdsnow.nearpane.alpha` 和 Developer ID 团队 `ZB9D4T66QB`。默认从有效的 Developer ID Application 证书中选择该团队的唯一匹配，有多张时由维护者指定证书指纹。首次安装、从旧临时签名迁移和后续覆盖安装均逐项检查 Host 和七个权限相关助手。正式安装拒绝临时签名、错误团队、改变的助手标识及指向某次构建哈希的指定要求。替换已稳定签名的旧版时还会双向验证双方的指定要求。归档与直接安装都使用 `Nearpane.app` 作为包名，版本号只用于外层 ZIP。开发命令 `scripts/build-app.sh` 使用单独的 bundle ID。可对下载后解包的原件运行 `python3 scripts/check-alpha-distribution.py Nearpane.app --require-install-identity` 复核。
 
 2026-11-19 对实际 build 85 和已安装 build 86 的八个签名主体完成 16 次双向验证。清理旧成品后重新启动 build 86，其实时读数仍为辅助功能和屏幕录制均未授权。旧临时签名的授权需要账户所有者在这两个隐私设置项中移除旧 Nearpane 条目，添加当前 `/Applications/Nearpane.app` 并允许，按系统提示重启。后续符合相同指定要求的版本具备承接该授权的身份条件，用户撤销或系统另行确认时以运行时读数为准。清理已按用户要求移除旧版归档，包括此前收据中记载的 build 85 回退 ZIP。
 

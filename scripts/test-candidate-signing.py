@@ -1,4 +1,7 @@
 """Unsigned, offline regression tests for candidate identity selection and replacement."""
+import hashlib
+import importlib.util
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -6,6 +9,10 @@ import unittest
 from unittest.mock import patch
 
 import candidate_signing as signing
+
+spec = importlib.util.spec_from_file_location("publisher", Path(__file__).with_name("publish-candidate.py"))
+publisher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(publisher)
 
 
 class CandidateIdentityTests(unittest.TestCase):
@@ -25,16 +32,44 @@ class CandidateIdentityTests(unittest.TestCase):
 
     def test_shipping_identity_rejects_version_specific_designated_requirement(self):
         with patch.object(signing.gate, "cmd", return_value=""), patch.object(
-                signing, "designated_requirement", return_value="cdhash H'1234'"):
+                signing.gate, "designated_requirement", return_value="cdhash H'1234'"):
             with self.assertRaisesRegex(ValueError, "Unstable permission identity"):
-                signing.verify_install_identity(Path("candidate.app"))
+                signing.gate.verify_install_identity(Path("candidate.app"))
 
     def test_default_install_selects_exactly_one_certificate_of_the_product_team(self):
-        matching = self.identity.replace("A012345678", signing.PRODUCT_SIGNING_TEAM)
+        matching = self.identity.replace("A012345678", signing.gate.PRODUCT_SIGNING_TEAM)
         self.assertEqual(signing.product_fingerprint(self.identity + "\n" + matching), self.fingerprint)
         for listing in (self.identity, matching + "\n" + matching, matching + " (expired)"):
             with self.assertRaises(ValueError):
                 signing.product_fingerprint(listing)
+
+    def test_export_rejects_unstable_identity_before_publishing_the_first_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory).resolve()
+            stage = destination / ".nearpane-stage.test"
+            app = stage / "Nearpane.app"
+            host = app / "Contents/MacOS/NearpaneHost"
+            host.parent.mkdir(parents=True)
+            host.write_bytes(b"fixture")
+            receipt = dict(bundle="com.holdsnow.nearpane.alpha", binaries={
+                "MacOS/NearpaneHost": {"sha256": hashlib.sha256(host.read_bytes()).hexdigest()}})
+            (stage / "package.json").write_text(json.dumps(receipt))
+            with patch.object(publisher, "verify_alpha"), patch.object(
+                    publisher.signing.gate, "verify_install_identity", side_effect=ValueError("unstable")) as identity:
+                with self.assertRaisesRegex(ValueError, "unstable"):
+                    publisher.publish(app, destination / app.name, destination / "package.json")
+                identity.assert_called_once_with(app)
+            self.assertFalse((destination / app.name).exists())
+            self.assertFalse((destination / "package.json").exists())
+
+    def test_export_rejects_versioned_app_filename(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory).resolve()
+            stage = destination / ".nearpane-stage.test"
+            stage.mkdir()
+            name = "Nearpane P5.22 Alpha.app"
+            with self.assertRaisesRegex(ValueError, "Stage Nearpane.app"):
+                publisher.publish(stage / name, destination / name, destination / "package.json")
 
     def test_only_signs_private_staging_directory(self):
         with tempfile.TemporaryDirectory() as work, patch.object(signing.gate, "cmd") as command:
@@ -67,7 +102,7 @@ class CandidateIdentityTests(unittest.TestCase):
                     return "designated => " + args[-1]
                 return ""
 
-            with patch.object(signing, "PRODUCT_IDENTIFIERS", subjects), patch.object(signing.gate, "cmd", side_effect=command) as calls:
+            with patch.object(signing.gate, "PRODUCT_IDENTIFIERS", subjects), patch.object(signing.gate, "cmd", side_effect=command) as calls:
                 signing.check_continuity(old, new)
                 for subject in subjects:
                     for left, right in ((old, new), (new, old)):
@@ -79,7 +114,7 @@ class CandidateIdentityTests(unittest.TestCase):
                     raise subprocess.CalledProcessError(3, args)
                 return command(*args)
 
-            with patch.object(signing, "PRODUCT_IDENTIFIERS", subjects), patch.object(signing.gate, "cmd", side_effect=wrong_signer):
+            with patch.object(signing.gate, "PRODUCT_IDENTIFIERS", subjects), patch.object(signing.gate, "cmd", side_effect=wrong_signer):
                 with self.assertRaises(subprocess.CalledProcessError):
                     signing.check_continuity(old, new)
 
