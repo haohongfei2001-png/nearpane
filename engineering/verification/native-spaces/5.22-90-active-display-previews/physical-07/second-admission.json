@@ -1,0 +1,23 @@
+{
+  "cleanup": {
+    "status": "NOT_RUN"
+  },
+  "fixtureLaunched": false,
+  "fullscreen": {
+    "status": "NOT_RUN"
+  },
+  "installedLayout": "NOT_RUN",
+  "mode": "fullscreen-roundtrip",
+  "observations": [],
+  "pair": {
+    "issued": false
+  },
+  "physicalSource": "two synthetic documents only",
+  "pixelsRead": 0,
+  "reason": "leasedFullscreenSourceNotIndependentlyEmpty",
+  "status": "BLOCKED",
+  "systemPair": "NOT_RUN",
+  "tile": {
+    "issued": false
+  }
+}
