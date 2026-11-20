@@ -10,7 +10,7 @@ import NearpaneCore
     private var gesture: (UUID, NativeSidebarMember, UUID, ContinuousClock.Instant)?
 
     func begin(_ member: NativeSidebarMember, feed: CurrentDesktopWindows?) -> NSItemProvider {
-        guard member.source.kind == .ordinary, let lifetime = feed?.lifetime(of: member.key) else { return NSItemProvider() }
+        guard !member.selectionOnly, member.source.kind == .ordinary, let lifetime = feed?.lifetime(of: member.key) else { return NSItemProvider() }
         let token = UUID()
         gesture = (token, member, lifetime, .now.advanced(by: .seconds(20)))
         let item = NSItemProvider()
@@ -42,7 +42,7 @@ struct NativeWindowDragSource: ViewModifier {
     let drag: NativeSidebarDrag
     let feed: CurrentDesktopWindows?
     @ViewBuilder func body(content: Content) -> some View {
-        if let member { content.onDrag { drag.begin(member, feed: feed) } } else { content }
+        if let member, !member.selectionOnly { content.onDrag { drag.begin(member, feed: feed) } } else { content }
     }
 }
 

@@ -15,7 +15,13 @@ import OSLog
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
+    @ObservationIgnored private var sidebarWindows = NativeSidebarWindowHistory()
+    private let readSidebarWindows: NativeSidebarWindowHistory.Read
     let groups = ExplicitWindowGroups()
+
+    func tracks(_ token: UUID, at location: NativeSidebarWindowLocation) -> Bool {
+        panelRequested && sidebarWindows.tracks(token, at: location)
+    }
 
     func join(_ a: NativeSidebarMember, _ b: NativeSidebarMember) {
         guard a.source == b.source, a.source.kind == .ordinary, let snapshot,
@@ -39,13 +45,16 @@ import OSLog
     private var managementRequested = false
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
-         fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint) {
+         fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint,
+         readSidebarWindows: @escaping NativeSidebarWindowHistory.Read = { await NativeSpaceActionClient.shared.observe($0) }) {
+        self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
     }
 
     func changed() { events?.yield(()) }
 
-    func invalidate() {
+    func invalidate(preservingOriginalWindows: Bool = false) {
+        if !preservingOriginalWindows { sidebarWindows = .init() }
         epoch = UUID()
         pending?.1.cancel()
         pending = nil
@@ -58,6 +67,7 @@ import OSLog
 
     func observe(_ enable: Bool) {
         panelRequested = enable
+        if !enable { sidebarWindows = .init() }
         updateObservation()
     }
 
@@ -152,7 +162,11 @@ import OSLog
     }
 
     func readNow() async -> DesktopSnapshot? {
-        guard events != nil, sessionAvailable() else { lifetimes.removeAll(); return nil }
+        guard events != nil, sessionAvailable() else {
+            lifetimes.removeAll()
+            sidebarWindows = .init()
+            return nil
+        }
         let expected = epoch
         if let pending {
             let result = await pending.1.value
@@ -164,11 +178,19 @@ import OSLog
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
             let readback = try? await read(request)
             guard let self, !Task.isCancelled, expected == self.epoch else { return nil }
-            guard let result = readback, self.sessionAvailable(),
+            guard var result = readback, self.sessionAvailable(),
                   result.sessionID == request.session, result.revision == request.revision, result.isStructurallyValid,
                   result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
                 self.lifetimes.removeAll()
+                if !self.sessionAvailable() { self.sidebarWindows = .init() }
                 return nil
+            }
+            if self.panelRequested {
+                var history = self.sidebarWindows
+                await history.update(&result, read: self.readSidebarWindows)
+                guard !Task.isCancelled, expected == self.epoch, self.sessionAvailable(), self.panelRequested,
+                      result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return nil }
+                self.sidebarWindows = history
             }
             var next = [DesktopWindowKey: UUID]()
             for window in result.windows {

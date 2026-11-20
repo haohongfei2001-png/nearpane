@@ -5,6 +5,16 @@ import WindowGeometryCore
 @testable import NearpaneDesktopReader
 
 struct OverviewRoleSchedulingTests {
+    @Test func absentInactiveAXWindowHasUnknownRoleWhileAnExplicitPanelRemainsIneligible() {
+        var list = OverviewWindowRole.Owner()
+        #expect(OverviewWindowRole.classification(of: 17, owner: list, current: false) == nil)
+        #expect(OverviewWindowRole.classification(of: 17, owner: list, current: true) == false)
+        list.windows[17] = .init(ordinary: false, minimized: false, fullscreen: false)
+        #expect(OverviewWindowRole.classification(of: 17, owner: list, current: false) == false)
+        list.windows[17] = .init(ordinary: nil, minimized: nil, fullscreen: nil)
+        #expect(OverviewWindowRole.classification(of: 17, owner: list, current: true) == nil)
+    }
+
     @Test func slowOwnerCannotExhaustAnotherCurrentOwnersReadTime() {
         let targets = (10...13).map { OverviewWindowRole.Target(pid: Int32($0), numbers: [UInt32($0)]) }
         var now = 0.0, visited: [Int32] = []

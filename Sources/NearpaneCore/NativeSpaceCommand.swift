@@ -48,8 +48,34 @@ public struct NativeSpaceStepPermission: Codable, Sendable {
     }
 }
 
+/// A read-only catalogue request. An original token is meaningful only to the
+/// signed helper process that retained the AX object while this Space was current.
+public struct NativeSidebarWindowLocation: Codable, Hashable, Sendable {
+    public let window: NativeSpaceWindow
+    public let display: UUID
+    public let space: String
+    public let spaceUUID: UUID
+    public init(window: NativeSpaceWindow, display: UUID, space: String, spaceUUID: UUID) {
+        self.window = window
+        self.display = display
+        self.space = space
+        self.spaceUUID = spaceUUID
+    }
+}
+
+public struct NativeSidebarWindowProbe: Codable, Sendable {
+    public let location: NativeSidebarWindowLocation
+    public let current: Bool
+    public let original: UUID?
+    public init(_ location: NativeSidebarWindowLocation, current: Bool, original: UUID?) {
+        self.location = location
+        self.current = current
+        self.original = original
+    }
+}
+
 public struct NativeSpaceCommand: Codable, Sendable {
-    public enum Action: String, Codable, Sendable { case probe, select, move }
+    public enum Action: String, Codable, Sendable { case probe, select, move, observeWindows }
     public let id: UUID
     public let action: Action
     public let display, source, target: String
@@ -57,6 +83,8 @@ public struct NativeSpaceCommand: Codable, Sendable {
     public let sourceKind, targetKind: NativeSpaceKind
     public let createdAtUptime: TimeInterval
     public let window: NativeSpaceWindow?
+    public let originalWindow: UUID?
+    public let observations: [NativeSidebarWindowProbe]?
     public var deadlineUptime: TimeInterval { createdAtUptime + 5 }
     public func isFresh(at now: TimeInterval) -> Bool {
         createdAtUptime.isFinite && now >= createdAtUptime && now < deadlineUptime
@@ -65,6 +93,7 @@ public struct NativeSpaceCommand: Codable, Sendable {
     public init(id: UUID, action: Action, display: String, source: String, target: String,
                 sourceUUID: UUID? = nil, targetUUID: UUID? = nil, window: NativeSpaceWindow? = nil,
                 sourceKind: NativeSpaceKind = .ordinary, targetKind: NativeSpaceKind = .ordinary,
+                originalWindow: UUID? = nil, observations: [NativeSidebarWindowProbe]? = nil,
                 createdAtUptime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         self.id = id
         self.action = action
@@ -77,6 +106,8 @@ public struct NativeSpaceCommand: Codable, Sendable {
         self.targetKind = targetKind
         self.createdAtUptime = createdAtUptime
         self.window = window
+        self.originalWindow = originalWindow
+        self.observations = observations
     }
 }
 
@@ -111,12 +142,14 @@ public struct NativeSpaceReply: Codable, Sendable {
     public let issuedAtUptime, confirmedAtUptime: TimeInterval?
     public let submittedSteps: Int
     public let switchTrace: NativeSwitchTrace?
+    public let originalWindow: UUID?
+    public let observedWindows: [UUID?]?
 
     public init(id: UUID, state: State, detail: String, canSwitch: Bool, canMove: Bool,
                 currentBefore: [String: String]? = nil, currentAfter: [String: String]? = nil,
                 membershipBefore: [String]? = nil, membershipAfter: [String]? = nil,
                 issuedAtUptime: TimeInterval? = nil, confirmedAtUptime: TimeInterval? = nil, submittedSteps: Int = 0,
-                switchTrace: NativeSwitchTrace? = nil) {
+                switchTrace: NativeSwitchTrace? = nil, originalWindow: UUID? = nil, observedWindows: [UUID?]? = nil) {
         self.id = id
         self.state = state
         self.detail = detail
@@ -130,5 +163,7 @@ public struct NativeSpaceReply: Codable, Sendable {
         self.confirmedAtUptime = confirmedAtUptime
         self.submittedSteps = submittedSteps
         self.switchTrace = switchTrace
+        self.originalWindow = originalWindow
+        self.observedWindows = observedWindows
     }
 }

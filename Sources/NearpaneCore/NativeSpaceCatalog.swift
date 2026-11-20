@@ -39,8 +39,12 @@ public struct NativeSpaceCatalog {
         for window in local {
             if case .known(let ids) = window.membership {
                 if evidence.catalogComplete != nil, window.metadata?.overviewOrdinaryRole != true {
-                    if window.metadata?.overviewOrdinaryRole == nil { unresolved.formUnion(ids) }
-                    continue
+                    if window.metadata?.overviewOrdinaryRole == false { continue }
+                    guard window.sidebarOriginalWindow != nil, ids.count == 1,
+                          records.contains(where: { $0.id == ids[0] && $0.nativeKind == .ordinary }) else {
+                        unresolved.formUnion(ids)
+                        continue
+                    }
                 }
                 for id in ids { membership[id, default: []].append(window) }
             }

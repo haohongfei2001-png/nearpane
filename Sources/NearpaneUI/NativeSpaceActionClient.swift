@@ -18,15 +18,17 @@ final class NativeSelectionPermit: @unchecked Sendable {
     }
 
     private let current: @MainActor @Sendable () -> Bool
+    private let requiredOriginal: UUID?
     private let checkOriginalWindow: @MainActor @Sendable () async -> Bool
-    init(current: @escaping @MainActor @Sendable () -> Bool = { true },
+    init(current: @escaping @MainActor @Sendable () -> Bool = { true }, requiredOriginal: UUID? = nil,
          checkOriginalWindow: @escaping @MainActor @Sendable () async -> Bool = { true }) {
         self.current = current
+        self.requiredOriginal = requiredOriginal
         self.checkOriginalWindow = checkOriginalWindow
     }
 
-    func gesturePermission(for id: UUID, after steps: Int) async -> NativeSpaceStepPermission {
-        guard lock.withLock({ active }), await checkOriginalWindow() else {
+    func gesturePermission(for id: UUID, after steps: Int, original: UUID? = nil) async -> NativeSpaceStepPermission {
+        guard original == requiredOriginal, lock.withLock({ active }), await checkOriginalWindow() else {
             return .init(id: id, submittedSteps: steps, proceed: false)
         }
         return permission(for: id, after: steps)
@@ -46,6 +48,16 @@ final class NativeSelectionPermit: @unchecked Sendable {
 @MainActor final class NativeSpaceActionClient {
     static let shared = NativeSpaceActionClient()
     private let channel = SpaceActionChannel()
+
+    func observe(_ probes: [NativeSidebarWindowProbe]) async -> [UUID?] {
+        guard !probes.isEmpty, probes.count <= 16 else { return [] }
+        let command = NativeSpaceCommand(id: UUID(), action: .observeWindows, display: "", source: "", target: "",
+                                         observations: probes)
+        let reply = await run(command)
+        guard reply.id == command.id, reply.state == .ready, let tokens = reply.observedWindows,
+              tokens.count == probes.count else { return [] }
+        return tokens
+    }
 
     func run(_ command: NativeSpaceCommand, permit: NativeSelectionPermit? = nil) async -> NativeSpaceReply {
         await channel.exchange(command, permit: permit)
@@ -121,7 +133,7 @@ private actor SpaceActionChannel {
         defer {
             if waiting.isEmpty { exchanging = false } else { waiting.removeFirst().resume() }
         }
-        if command.action != .move && switchJournal.suspended {
+        if (command.action == .select || command.action == .probe) && switchJournal.suspended {
             return .init(id: command.id, state: command.action == .probe ? .ready : .failed,
                          detail: "此系统版本的上次切换未获确认。请使用系统桌面控制。", canSwitch: false, canMove: false)
         }
@@ -131,7 +143,7 @@ private actor SpaceActionChannel {
             try Task.checkCancellation()
             guard command.isFresh(at: ProcessInfo.processInfo.systemUptime) else { throw CocoaError(.userCancelled) }
             var request = try JSONEncoder().encode(command)
-            guard request.count < 4096 else { throw CocoaError(.coderInvalidValue) }
+            guard request.count < (command.action == .observeWindows ? 16384 : 4096) else { throw CocoaError(.coderInvalidValue) }
             request.append(10)
             let channel = try connect()
             try Task.checkCancellation()
@@ -152,7 +164,7 @@ private actor SpaceActionChannel {
                 }
                 guard command.action == .select, granted == 0, reply.submittedSteps == granted
                 else { throw CocoaError(.coderReadCorrupt) }
-                let decision = await permit?.gesturePermission(for: command.id, after: granted)
+                let decision = await permit?.gesturePermission(for: command.id, after: granted, original: reply.originalWindow)
                     ?? .init(id: command.id, submittedSteps: granted, proceed: false)
                 mayHaveIssued = mayHaveIssued || decision.proceed
                 try channel.input.write(contentsOf: JSONEncoder().encode(decision) + Data([10]))

@@ -37,18 +37,28 @@ struct NativeSidebarDestination: Equatable {
 struct NativeSidebarMember: Equatable {
     let source: NativeSidebarDestination
     let key: DesktopWindowKey
+    let originalWindow: UUID?
+    let selectionOnly: Bool
+    var location: NativeSidebarWindowLocation? {
+        guard source.kind == .ordinary, let display = UUID(uuidString: source.display) else { return nil }
+        return .init(window: .init(pid: key.pid, birth: key.birth, number: key.number), display: display,
+                     space: source.space, spaceUUID: source.uuid)
+    }
     init?(_ window: WindowObservation, source: NativeSidebarDestination) {
         guard let m = window.metadata, m.pid > 1, m.number > 0, let birth = m.launchMicroseconds, birth > 0,
               case .known(let ids) = window.membership, ids.contains(source.space),
               window.displayID == source.display else { return nil }
         self.source = source
+        originalWindow = window.sidebarOriginalWindow
+        selectionOnly = originalWindow != nil && m.overviewOrdinaryRole != true
         key = .init(pid: m.pid, birth: birth, number: m.number)
     }
 
     func resolve(_ snapshot: DesktopSnapshot) -> WindowObservation? {
         guard let live = source.resolve(snapshot), let row = live.rows.first(where: { $0.id == source.space }) else { return nil }
         return row.windows.first(where: {
-            $0.metadata?.number == key.number && $0.metadata?.pid == key.pid && $0.metadata?.launchMicroseconds == key.birth
+            $0.metadata?.number == key.number && $0.metadata?.pid == key.pid && $0.metadata?.launchMicroseconds == key.birth &&
+                (originalWindow == nil || $0.sidebarOriginalWindow == originalWindow)
         })
     }
 }
@@ -65,7 +75,7 @@ struct SidebarBackgroundWindows: Identifiable {
             guard !row.record.isCurrent, let destination = NativeSidebarDestination(row, in: catalog) else { return nil }
             let windows = row.windows.filter { window in
                 guard let metadata = window.metadata, metadata.minimized != true,
-                      metadata.overviewOrdinaryRole ?? window.canWitnessCurrentSpace,
+                      (window.sidebarOriginalWindow != nil || (metadata.overviewOrdinaryRole ?? window.canWitnessCurrentSpace)),
                       case .known(let spaces) = window.membership, !spaces.contains(catalog.current.id),
                       let member = NativeSidebarMember(window, source: destination) else { return false }
                 return seen.insert(member.key).inserted
@@ -133,14 +143,18 @@ struct SidebarBackgroundWindows: Identifiable {
             @MainActor func valid() -> Bool {
                 guard self?.isCurrent(token) == true, allowed(), WindowContentPreview.sessionAvailable(),
                       NativeSelectionPermit.inputCounters() == userInput else { return false }
+                if let member, let original = member.originalWindow, let location = member.location {
+                    return feed.tracks(original, at: location)
+                }
                 return member.map { lifetime != nil && feed.lifetime(of: $0.key) == lifetime } ?? true
             }
             guard valid(), let before = await feed.readNow(), let map = destination.resolve(before),
                   member == nil || member?.resolve(before) != nil, valid() else {
                 throw OrdinaryWindowFailure("桌面或窗口已变化，请重新选择。")
             }
-            let bound: OrdinaryWindowAX?
-            if map.current.id != destination.space, let member {
+            let original = map.current.id != destination.space ? member?.originalWindow : nil
+            var bound: OrdinaryWindowAX?
+            if map.current.id != destination.space, let member, original == nil {
                 // Retain the exact AX element across the switch and focus operation.
                 // A rebuilt window with the same CG number cannot inherit the click.
                 bound = try await DesktopWindowSelection.bind(member.key)
@@ -148,10 +162,16 @@ struct SidebarBackgroundWindows: Identifiable {
                       destination.resolve(fresh)?.current.id == map.current.id, valid() else {
                     throw OrdinaryWindowFailure("所选窗口或来源桌面已变化。")
                 }
-            } else { bound = nil }
-            let permit = NativeSelectionPermit(current: valid, checkOriginalWindow: {
-                guard let bound else { return member == nil }
-                return await bound.stillSelected()
+            }
+            let beforeSwitch = bound
+            let permit = NativeSelectionPermit(current: valid, requiredOriginal: original, checkOriginalWindow: {
+                if let original, let member, let location = member.location {
+                    guard feed.tracks(original, at: location), let surface = WindowSurfaceRecord(number: member.key.number)
+                    else { return false }
+                    return surface.pid == member.key.pid && surface.layer == 0 && surface.isDrawn
+                }
+                guard let beforeSwitch else { return member == nil }
+                return await beforeSwitch.stillSelected()
             })
             self?.activeSelection = permit
             defer { if self?.activeSelection === permit { self?.activeSelection = nil } }
@@ -161,7 +181,7 @@ struct SidebarBackgroundWindows: Identifiable {
                 let request = NativeSpaceCommand(id: UUID(), action: .select, display: destination.display,
                     source: map.current.id, target: destination.space, sourceUUID: sourceUUID, targetUUID: destination.uuid,
                     window: member.map { .init(pid: $0.key.pid, birth: $0.key.birth, number: $0.key.number) },
-                    sourceKind: sourceKind, targetKind: destination.kind)
+                    sourceKind: sourceKind, targetKind: destination.kind, originalWindow: original)
                 let reply = await NativeSpaceActionClient.shared.run(request, permit: permit)
                 feed.changed()
                 guard reply.id == request.id, reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
@@ -183,6 +203,18 @@ struct SidebarBackgroundWindows: Identifiable {
             guard valid(), let member else { return }
             guard let window = member.resolve(current), let target = DesktopWindowTarget(window, in: current),
                   target.overviewSpace == destination.space else { throw OrdinaryWindowFailure("所选窗口已离开这个桌面。") }
+            if let original, let location = member.location {
+                // The destination is current again. The independent focus worker binds
+                // its exact AX object first. Then the switch worker must still see the
+                // unique CFEqual foreground object it retained before the desktop changed.
+                let focus = try await DesktopWindowSelection.bind(member.key)
+                let probe = NativeSidebarWindowProbe(location, current: true, original: original)
+                guard valid(), await NativeSpaceActionClient.shared.observe([probe]) == [original],
+                      await focus.stillSelected(), valid() else {
+                    throw OrdinaryWindowFailure("落地后原窗口身份已变化。")
+                }
+                bound = focus
+            }
             let path = try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 4,
                 verifySpace: {
                     guard valid(), let fresh = await feed.readNow() else { return false }
@@ -194,11 +226,12 @@ struct SidebarBackgroundWindows: Identifiable {
 
     func move(_ member: NativeSidebarMember, into dest: NativeSidebarDestination, lifetime: UUID, feed: CurrentDesktopWindows,
               allowed: @escaping @MainActor () -> Bool) {
-        guard member.source != dest, member.source.kind == .ordinary, dest.kind == .ordinary else { return }
+        guard !member.selectionOnly, member.source != dest, member.source.kind == .ordinary, dest.kind == .ordinary else { return }
         submit(selection: false) { [weak self] _ in
             @MainActor func transfer() async throws {
                 guard allowed(), let current = await feed.readNow(), let map = dest.resolve(current),
                       member.source.display == dest.display, let w = member.resolve(current),
+                      w.sidebarOriginalWindow == nil || w.metadata?.overviewOrdinaryRole == true,
                       case .known(let ids) = w.membership, ids == [member.source.space],
                       feed.lifetime(of: member.key) == lifetime, map.rows.contains(where: { $0.id == member.source.space }), allowed() else {
                     throw OrdinaryWindowFailure("拖动的窗口或目标桌面已变化。")

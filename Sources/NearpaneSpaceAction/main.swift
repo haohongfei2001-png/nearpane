@@ -18,7 +18,7 @@ func isBundledChild() -> Bool {
 }
 
 @MainActor
-func run(_ request: NativeSpaceCommand, available: Bool,
+func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindowWitnesses,
          authorize: (NativeSpaceReply) throws -> NativeSpaceStepPermission) -> NativeSpaceReply {
     let canSwitch = available && NPDockInstalledProtocol() != NPDockUnsupported && CGPreflightPostEventAccess()
     let canMove = available && AXIsProcessTrusted() && NPMoveAvailable()
@@ -34,13 +34,22 @@ func run(_ request: NativeSpaceCommand, available: Bool,
               currentBefore: before?.currents, currentAfter: after?.currents,
               membershipBefore: oldMembership, membershipAfter: newMembership,
               issuedAtUptime: issuedAt, confirmedAtUptime: state == .confirmed ? ProcessInfo.processInfo.systemUptime : nil,
-              submittedSteps: steps, switchTrace: request.action == .select ? trace : nil)
+              submittedSteps: steps, switchTrace: request.action == .select ? trace : nil,
+              originalWindow: state == .awaitingStep ? request.originalWindow : nil)
     }
     do {
         guard available else { throw ActionFailure("此系统构建尚不支持原生桌面动作。") }
         guard request.isFresh(at: ProcessInfo.processInfo.systemUptime) else { throw ActionFailure("桌面动作已过期。") }
         let start = try ActionInventory.read()
         before = start
+        if request.action == .observeWindows {
+            guard let probes = request.observations, request.window == nil, request.originalWindow == nil else {
+                throw ActionFailure("窗口观察请求不完整。")
+            }
+            let tokens = try witnesses.observe(probes, inventory: start)
+            return .init(id: request.id, state: .ready, detail: "已核对窗口身份。", canSwitch: canSwitch,
+                         canMove: canMove, observedWindows: tokens)
+        }
         if request.action == .probe { return reply(.ready, "已读取当前空间能力。") }
         let (display, from, to) = try start.route(request)
         var expected = start.currents
@@ -66,7 +75,11 @@ func run(_ request: NativeSpaceCommand, available: Bool,
             if issued { issuedAt = submitted; steps = 1 }
         } else {
             guard canSwitch else { throw ActionFailure("缺少向系统请求桌面切换的权限。") }
-            selectedWindow = try request.window.map { try SelectedWindowWitness($0, display: display, space: request.target) }
+            if let token = request.originalWindow {
+                selectedWindow = try SelectedWindowWitness { try witnesses.selected(request, token: token) }
+            } else {
+                selectedWindow = try request.window.map { try SelectedWindowWitness($0, display: display, space: request.target) }
+            }
             if from == to { after = start; return reply(.confirmed, "已在目标桌面。") }
             guard try ActionInventory.read() == start else { throw ActionFailure("切换前显示器或空间已改变。") }
             expected[UUID(uuidString: request.display)!.uuidString] = request.target
@@ -159,15 +172,16 @@ if CommandLine.arguments.dropFirst() == ["--self-check"] {
 } else if CommandLine.arguments.dropFirst() == ["--serve"], isBundledChild() {
     let supported = NPReadOnlySpacesOpen() == 1
     var consumed = Set<UUID>()
+    let witnesses = SidebarWindowWitnesses()
     while let line = readLine(), isBundledChild() {
-        guard line.utf8.count <= 4096,
+        guard line.utf8.count <= 16384,
               let request = try? JSONDecoder().decode(NativeSpaceCommand.self, from: Data(line.utf8))
         else { exit(65) }
         let result: NativeSpaceReply
-        if request.action != .probe && (consumed.count >= 65536 || !consumed.insert(request.id).inserted) {
+        if (request.action == .select || request.action == .move) && (consumed.count >= 65536 || !consumed.insert(request.id).inserted) {
             result = .init(id: request.id, state: .failed, detail: "过期或重复的动作。", canSwitch: false, canMove: false)
         } else {
-            result = autoreleasepool { run(request, available: supported, authorize: awaitStepPermission) }
+            result = autoreleasepool { run(request, available: supported, witnesses: witnesses, authorize: awaitStepPermission) }
         }
         guard let bytes = try? JSONEncoder().encode(result) else { exit(70) }
         FileHandle.standardOutput.write(bytes + Data([10]))

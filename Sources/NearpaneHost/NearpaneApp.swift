@@ -856,7 +856,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case NSWorkspace.sessionDidResignActiveNotification: desktopAvailabilityChanged(.resigned)
         case NSWorkspace.sessionDidBecomeActiveNotification: desktopAvailabilityChanged(.becameActive, settling: true)
         case NSWorkspace.activeSpaceDidChangeNotification:
-            modules?.stopWindowContentPreview()
+            modules?.stopWindowContentPreview(spaceChanged: true)
             host?.invalidateDesktop()
         default:
             modules?.desktopWindowsChanged()

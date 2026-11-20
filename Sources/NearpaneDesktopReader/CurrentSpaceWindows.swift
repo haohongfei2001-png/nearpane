@@ -175,7 +175,7 @@ extension Reader {
                 onActiveDesktop: visible, overviewSpaceID: proof,
                 hasCatalogGeometry: geometry.usualPresentation && afterSlices.contains(where: { $0.displayID == display.id }),
                 catalogLogicalFrame: geometry.logical.map(SurfaceRect.init), overviewIsPresented: presented,
-                overviewOrdinaryRole: role?.ordinary ?? (role == nil && ownerRoles?.everyNumberKnown == true ? false : nil))
+                overviewOrdinaryRole: OverviewWindowRole.classification(of: entry.windowID, owner: ownerRoles, current: proof != nil))
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }

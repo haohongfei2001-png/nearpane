@@ -13,6 +13,12 @@ struct OverviewWindowRole {
         var allRolesRead = true
     }
 
+    static func classification(of number: UInt32, owner: Owner?, current: Bool) -> Bool? {
+        if let row = owner?.windows[number] { return row.ordinary }
+        // AXWindows may return a complete, empty list after the owner’s Space becomes inactive.
+        return current && owner?.everyNumberKnown == true ? false : nil
+    }
+
     struct Target: Equatable {
         let pid: Int32
         var numbers: Set<UInt32>
