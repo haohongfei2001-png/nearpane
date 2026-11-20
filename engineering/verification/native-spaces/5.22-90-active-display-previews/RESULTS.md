@@ -11,6 +11,8 @@ Nearpane 5.22（90）在 macOS 27.0（26A428）、一块 1470 × 956 pt 显示�
 | 隔离资料，常规启动 | 12/12 | 29.45 ms | 46.41 ms | [原始时钟重算](physical-14/replay.json) · [卡片连续性](physical-14/continuity.json) |
 | 隔离资料，常规启动并录制无损整卡 | 12/12 | 29.19 ms | 61.20 ms | [原始时钟重算](physical-15/replay.json) · [卡片连续性](physical-15/continuity.json) |
 
+**五个不同应用同屏。** 本轮分别启动五个签名标识不同的普通应用，各有独立进程、一扇测试窗口和独立色标。初始状态与五次逐窗变色共六个阶段，在同一个正式侧栏窗口、同一帧内读到五张卡。30/30 项卡片与源窗对应，各阶段均至少两次匹配。五个测试进程全部退出，空桌面和原台前调度设置均独立读回。该轮只保存色标与几何收据。[五窗逐项独立复核](five-window/installed/replay.json) · [系统与正式侧栏原始读回](five-window/installed/result.json)
+
 **灰帧原因。** 前一诊断版的采集流仍在交付，B 窗绘制时一次所有者查询失败，侧栏随即画出轮廓。修复后，活采集流仅在进程代际、可执行文件、签名、普通应用身份、共享资格及窗口归属均成立时继续显示。新安装包的正式 Host 记录到 3 次 AppKit 应用查找缺失，均完成了独立身份复核。对应整轮两张卡都未出现灰帧。早期 212.35 ms 样本没有同类跟踪，原始失败保留。[旧版关联收据](physical-11/diagnosis.json) · [修复后的三次读回](physical-12/owner-readback.json)
 
 **无损实机录像。** 第四轮正式侧栏的两张完整卡片共录制 2.55 秒，两扇文档都在画面中变色。30 帧原始呈现逐像素解码并与采集时的摘要比对一致。最大播放边界误差为 7.88 微秒。文件同时保留每帧的原始时钟。[完整双卡无损动画](physical-15/media/paired-cards.apng) · [实机截图](physical-15/media/paired-overview.png) · [独立像素复核](physical-15/media/lossless-pixel-replay.json)

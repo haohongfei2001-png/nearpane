@@ -148,7 +148,14 @@
       "historicalLossyMarkerReadback": "physical-13/media/decoded-cards.json",
       "historicalLossyMarkerMismatchCount": 8
     },
-    "qualifiedLosslessFilm": "physical-15/media/paired-cards.apng"
+    "qualifiedLosslessFilm": "physical-15/media/paired-cards.apng",
+    "fiveApplicationScope": {
+      "status": "PASS",
+      "applications": 5,
+      "allCardPhaseComparisonsPassed": 30,
+      "evidence": "five-window/installed/replay.json",
+      "scope": "One enrolled ordinary Space, one physical display, five individually enrolled signed ordinary applications, five separate native windows. No private pixels persisted."
+    }
   },
   "permissions": {
     "installed": "PASS",
