@@ -7,7 +7,7 @@ mkdir "$1"
 target="$(uname -m)-apple-macos26.0"
 for name in selection capture; do
     extra=()
-    if [[ "$name" == selection ]]; then extra+=("$src/translation-proof.swift"); fi
+    if [[ "$name" == selection ]]; then extra+=("$src/translation-proof.swift" "$src/translation-panel-observer.swift"); fi
     xcrun swiftc -parse-as-library -target "$target" "$src/tool-context.swift" "$src/tool-$name.swift" ${extra[@]+"${extra[@]}"} -o "$1/tool-$name"
 done
 fixture="$1/Nearpane Tool Fixture.app"

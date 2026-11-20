@@ -85,15 +85,6 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     guard let pid=state["pid"] as? Int32,let number=state["window"] as? CGWindowID,let rect=state["selection"] as? String else {
         throw ToolRefusal("The signed fixture did not confirm its selection")
     }
-    func sourceFocused() -> Bool {
-        guard let client=fixture.client,!client.isTerminated,NSWorkspace.shared.frontmostApplication == client,
-              let state=try? JSONSerialization.jsonObject(with:Data(contentsOf:fixture.directory.appendingPathComponent("state.json"))) as? [String:Any],
-              state["session"] as? String == fixture.directory.lastPathComponent, state["pid"] as? Int32==pid,
-              state["window"] as? UInt32==number,state["front"] as? Bool==true,state["key"] as? Bool==true,state["focused"] as? Bool==true,
-              let raw=ToolUI.value(AXUIElementCreateSystemWide(),kAXFocusedUIElementAttribute),CFGetTypeID(raw)==AXUIElementGetTypeID() else{return false}
-        var actual:pid_t=0
-        return AXUIElementGetPid(raw as! AXUIElement,&actual) == .success && actual==pid
-    }
     let clientSelection=NSRectFromString(rect)
     let system=AXUIElementCreateSystemWide()
     guard !clientSelection.isEmpty,let raw=ToolUI.value(system,kAXFocusedUIElementAttribute),CFGetTypeID(raw)==AXUIElementGetTypeID() else {throw ToolRefusal("No independent focused field")}
@@ -116,40 +107,60 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     try await ToolUI.screenshot(number,pid:pid,to:sourcePNG)
     let pointer = CGEvent(source: nil)?.location
     let started = ProcessInfo.processInfo.systemUptime
-    guard sourceFocused() else { throw ToolRefusal("The fixture lost its selected input before Services dispatch") }
-    let performed = try await fixture.requestService()
-    var report: [String:Any] = ["hostPID":context.host.processIdentifier,"hostBirth":hostBirth,"generation":context.generation.lastPathComponent,
-                                "phase":"translation","source":phrase,"sourceLanguage":source,
-                                "assetStatus":languageState,"serviceDispatched":performed,"serviceRegistration":route,"selection":NSStringFromRect(selection),
-                                "clientSelection":NSStringFromRect(clientSelection),"axBoundsAvailable":!axBounds.isEmpty,"rowsBefore":originalWords.count]
-    guard performed else { report["status"]="FAIL"; report["reason"]="macOS could not deliver the declared Service"; return report }
-    var sample: (CGWindowID,CGRect)?
-    var pointerSample: (CGWindowID,CGRect)?
-    var words: [Word] = []
-    var observedFrames=[CGWindowID:String]()
-    for _ in 0..<180 {
-        guard !context.host.isTerminated else { throw ToolRefusal("Host exited during translation") }
-        let panels=ToolUI.windows(context.host.processIdentifier).filter { !priorPanels.contains($0.id) && $0.level == NSWindow.Level.popUpMenu.rawValue }
-        for panel in panels { observedFrames[panel.id]=NSStringFromRect(panel.bounds) }
-        if let panel = panels.first(where: {
-            !priorPanels.contains($0.id) && $0.level == NSWindow.Level.popUpMenu.rawValue
-                && $0.bounds.width > 15 && $0.bounds.width < 450 && $0.bounds.height < 230
-                && abs($0.bounds.minX-selection.minX) <= 4
-                && min(abs($0.bounds.minY-selection.maxY),abs($0.bounds.maxY-selection.minY)) <= 11
-        }) {
-            sample = (panel.id,panel.bounds)
-
+    func focus()->TranslationSourceWitness { translationSource(fixture,pid,number,element,phrase) }
+    func sameHost()->Bool { !context.host.isTerminated && kernelBirth(context.host.processIdentifier)==hostBirth }
+    let beforeService=focus()
+    guard beforeService.confirmed else {throw ToolRefusal("Fixture input, exact external AX selection or foreground changed before dispatch")}
+    try fixture.beginService()
+    // Observe the live surface first. Unified log readback and Vision OCR may outlive the panel.
+    var samples=[TranslationPanelSample](), frames=[CGWindowID:Set<String>](), ambiguous=0
+    var words=[Word](), firstFrame:Double?, completedFrame:Double?, attempt=0
+    let offsets=[0.0,0.35,1.0,2.2,4.0,6.1]
+    let wallLimit=started+(language == .installed ? 19.0:7.5)
+    while ProcessInfo.processInfo.systemUptime < wallLimit && sameHost() {
+        let now=ProcessInfo.processInfo.systemUptime
+        words=try context.words(phrase)
+        if !words.isEmpty && completedFrame==nil {
+            completedFrame=now;attempt=0
         }
-        if let pointer, let panel = panels.first(where: { $0.bounds.width > 15 && $0.bounds.width < 450 &&
-            $0.bounds.height < 230 && $0.bounds.insetBy(dx:-12,dy:-12).contains(pointer) }) {
-            pointerSample = (panel.id,panel.bounds)
+        let panels=ToolUI.windows(context.host.processIdentifier).filter {
+            !priorPanels.contains($0.id) && $0.level==NSWindow.Level.popUpMenu.rawValue &&
+            $0.bounds.width>15 && $0.bounds.width<450 && $0.bounds.height>0 && $0.bounds.height<230
         }
-        words = try context.words(phrase)
-        if (sample != nil || pointerSample != nil) && ((!words.isEmpty) || language != .installed) { break }
-        await ToolUI.pause(90)
+        func nearSelection(_ r:CGRect)->Bool {
+            abs(r.minX-selection.minX)<=4 && min(abs(r.minY-selection.maxY),abs(r.maxY-selection.minY))<=11
+        }
+        for row in panels {frames[row.id,default:[]].insert(NSStringFromRect(row.bounds))}
+        let qualified=panels.filter { row in
+            nearSelection(row.bounds) || pointer.map {row.bounds.insetBy(dx:-12,dy:-12).contains($0)}==true
+        }
+        if qualified.count>1 {ambiguous+=1}
+        if qualified.count==1,let candidate=qualified.first {
+            if firstFrame==nil {firstFrame=now}
+            let epoch=completedFrame ?? firstFrame ?? now
+            let limit=language == .installed && words.isEmpty ? 1:offsets.count
+            if attempt<limit && now>=epoch+offsets[attempt] {
+                attempt+=1
+                samples.append(await sampleTranslationPanel(host:context.host.processIdentifier,fixture:pid,
+                    number:candidate.id,rect:candidate.bounds,selection:nearSelection(candidate.bounds),
+                    pointer:pointer,focus:focus,sameHost:sameHost))
+            }
+            if attempt==offsets.count {break}
+        }
+        await ToolUI.pause(60)
     }
-    report["newPopupFrames"]=observedFrames.values.sorted()
-    await ToolUI.pause(220)
+    let fixtureEnd=fixture.selectionState()
+    let attempted=fixtureEnd?["serviceAttempted"] as? Bool
+    let performed=fixtureEnd?["serviceDispatched"] as? Bool
+    var report:[String:Any]=["hostPID":context.host.processIdentifier,"hostBirth":hostBirth,"generation":context.generation.lastPathComponent,
+        "phase":"translation","observationContract":"live-panel-before-log-v2","source":phrase,"sourceLanguage":source,"assetStatus":languageState,
+        "serviceDispatched":performed==true,"fixtureDispatchConfirmed":attempted==true && performed != nil,
+        "serviceRegistration":route,"selection":NSStringFromRect(selection),"clientSelection":NSStringFromRect(clientSelection),
+        "axBoundsAvailable":!axBounds.isEmpty,"rowsBefore":originalWords.count,"sourceBeforeDispatch":beforeService.checks,
+        "serviceUptime":started,"ambiguousPanelSamples":ambiguous,"newPopupFrames":frames.values.flatMap{$0}.sorted(),
+        "windowObservations":frames.keys.sorted().map{["window":$0,"frames":Array(frames[$0] ?? []).sorted()] as [String:Any]},
+        "fixtureServiceTimes":fixtureEnd?["serviceTimes"] ?? [:],"fixtureSelectionAcrossService":fixtureEnd?["selectionAcrossService"] ?? [:]]
+    words=try context.words(phrase)
     var stages = hostStages(pid: context.host.processIdentifier, phrase: phrase, after: started)
     for _ in 0..<3 {
         let log = stages["stages"] as? [[String:String]] ?? []
@@ -164,7 +175,7 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
     let request = (stages["requestID"] as? String).flatMap(UUID.init(uuidString:))
     let sourceDigest = TranslationProof.digest(phrase)
     report["serviceRequestHandoff"] = TranslationProof.follows(evidence,[("serviceCallback",sourceDigest),("requestQueued",sourceDigest),("hostReceived",sourceDigest)]) ? "PASS":"UNKNOWN"
-    if sample == nil, ordered.contains("anchorPointer") { sample = pointerSample }
+
     report["notebookMatchingRows"] = words.count
     if words.count == 1, let word=words.first, word.language == "zh-Hans" {
         report["translation"] = word.translation
@@ -174,84 +185,68 @@ func translate(_ context: ToolContext) async throws -> [String:Any] {
         report["sourceHash"] = word.sourceSHA256
         report["expectedMeaning"] = word.translation.contains("蓝") && (word.translation.contains("自行车") || word.translation.contains("单车"))
     }
-    guard let originalSample=sample,let request,
-          let current=ToolUI.windows(context.host.processIdentifier).first(where:{$0.id==originalSample.0 && $0.level==NSWindow.Level.popUpMenu.rawValue})
-    else { report["status"]="UNKNOWN"; report["reason"]="A unique service request or adjacent installed Host window was not observed"; return report }
-    let bubbleSurface=(current.id,current.bounds)
-    let atSelection = abs(current.bounds.minX-selection.minX) <= 4 &&
-        min(abs(current.bounds.minY-selection.maxY),abs(current.bounds.maxY-selection.minY)) <= 11
-    let atPointer = pointer.map { current.bounds.insetBy(dx:-12,dy:-12).contains($0) } ?? false
-    guard (atSelection && ordered.contains("anchorSelection")) || (atPointer && ordered.contains("anchorPointer")) else {
-        report["status"]="UNKNOWN";report["reason"]="The final bubble could not be matched to the observed selection or pointer";return report
-    }
-    let expected = words.count == 1 ? words[0].translation : ordered.contains("modelMissing") ?
+    let expected=words.count==1 ? words[0].translation : ordered.contains("modelMissing") ?
         "请先在 macOS 翻译设置中下载所需语言。" : ordered.contains("modelUnsupported") ? "当前系统不支持这组语言的本地翻译。" : ""
-    let panelHash=TranslationProof.panel(request,pid:context.host.processIdentifier,window:bubbleSurface.0,text:expected)
-    let isBound = !expected.isEmpty && evidence.contains { $0["stage"] == "panelVisible" && $0["sha256"] == panelHash }
-    func panelCurrent() -> Bool {
-        guard let rows=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else { return false }
-        let interior=bubbleSurface.1.insetBy(dx:2,dy:2)
-        for row in rows {
-            guard let data=row[kCGWindowBounds as String] as? NSDictionary,let rect=CGRect(dictionaryRepresentation:data) else{return false}
-            if row[kCGWindowNumber as String] as? UInt32==bubbleSurface.0 {
-                return row[kCGWindowOwnerPID as String] as? pid_t==context.host.processIdentifier &&
-                    row[kCGWindowLayer as String] as? Int==NSWindow.Level.popUpMenu.rawValue && rect==bubbleSurface.1
-            }
-            if (row[kCGWindowAlpha as String] as? Double ?? 1)>0 && rect.intersects(interior) {return false}
-        }
-        return false
+    let terminal=words.count==1 ? "wordCommitted" : ordered.contains("modelMissing") ? "modelMissing" : "modelUnsupported"
+    let content=TranslationProof.digest(TranslationProof.normalized(expected))
+    var details=[[String:Any]](), winner:TranslationPanelSample?
+    for sample in samples {
+        let declared=request.flatMap { TranslationProof.presentation(evidence,source:phrase,answer:expected,terminal:terminal,
+            id:$0,pid:context.host.processIdentifier,window:sample.number,begin:sample.begin,end:sample.end) }
+        let axExact:Bool
+        if let request,let axEnd=sample.axEnd,sample.labels.count==1,sample.labels[request]?.contains(content)==true,
+           let declared {
+            axExact=TranslationProof.presentation(evidence,source:phrase,answer:expected,terminal:terminal,id:request,
+                pid:context.host.processIdentifier,window:sample.number,begin:sample.begin,end:axEnd)==declared
+        } else {axExact=false}
+        let optical=sample.textInImage(expected)
+        let verdict=TranslationPanelVerdict(isBound:declared != nil,
+            panelCurrent:sample.beforeStack.clear && sample.afterStack.clear,
+            sourceFocused:sample.beforeFocus.confirmed && sample.afterFocus.confirmed,
+            anchorMatches:(declared=="anchorSelection" && sample.selection) || (declared=="anchorPointer" && sample.pointer),
+            hostSameGeneration:sample.sameHost,imageCaptured:sample.image != nil,contentMatches:optical.matches || (axExact && optical.visibleText))
+        var item=sample.metadata
+        item["checks"]=verdict.fields;item["exactRequestAXText"]=axExact;item["exactOCR"]=optical.matches;item["textSeenInImage"]=optical.visibleText
+        item["declaredAnchor"]=declared ?? "unbound";item["qualified"]=verdict.passed
+        details.append(item)
+        if winner==nil && verdict.passed {winner=sample}
     }
-    guard isBound, panelCurrent(), sourceFocused() else {
-        report["status"]="UNKNOWN";report["reason"]="Could not bind this non-key visible window, its content and foreground fixture to the same Services request";return report
+    report["panelSamples"]=details
+    report["anchorDeclarations"]=ordered.filter {["anchorSelection","anchorPointer"].contains($0)}
+    report["panelChecks"]=["isBound","panelCurrent","sourceFocused","anchorMatches","hostSameGeneration","imageCaptured","contentMatches"].reduce(into:[String:String]()) { result,key in
+        if details.isEmpty {result[key]="NOT_OBSERVED";return}
+        let matches=details.filter{($0["checks"] as? [String:Bool])?[key]==true}.count
+        result[key]=matches==0 ? "NO_SAMPLE" : matches==details.count ? "ALL_SAMPLES":"SOME_SAMPLES"
     }
-    report["panelWindow"]=bubbleSurface.0;report["panelContentSHA256"]=TranslationProof.digest(expected)
-    report["fixtureFocusBefore"]=true
-    report["serviceUptime"]=started
-    report["bubble"] = NSStringFromRect(bubbleSurface.1)
-    // The transient loading bubble is reused for the final text.
-    await ToolUI.pause(280)
-    let bubble = context.output.appendingPathComponent("bubble.png")
-    let observed: String
-    do {
-        try await ToolUI.screenshot(bubbleSurface.0,pid:context.host.processIdentifier,to:bubble)
-        observed = try ToolUI.ocr(bubble).joined()
-    } catch {
-        report["status"]="UNKNOWN"; report["reason"]="The installed bubble could not be captured and read"; return report
+    report["visibleNonactivatingBubble"]="UNKNOWN"
+    if ordered.contains("modelMissing") {report["translationCapability"]="BLOCKED_MODEL_MISSING"}
+    guard performed == true, attempted == true else {
+        report["status"]=attempted==true && performed==false ? "FAIL":"UNKNOWN"
+        report["reason"]="Fixture did not positively confirm its single service dispatch";return report
     }
-    func normalized(_ text:String) -> String {
-        text.filter { $0.isLetter || $0.isNumber }.lowercased()
-    }
-    guard panelCurrent(), sourceFocused() else {
-        try? FileManager.default.removeItem(at:bubble)
-        report["status"]="UNKNOWN";report["reason"]="Panel identity or document focus changed during the observation";return report
-    }
-    report["fixtureFocusAfter"]=true
-    let ax = ToolUI.nodes(context.host).filter { node in
-        guard ToolUI.value(node,kAXIdentifierAttribute) as? String == "nearpane-translation-content-" + request.uuidString, let r = ToolUI.frame(node) else { return false }
-        return bubbleSurface.1.insetBy(dx:-2,dy:-2).contains(r) && !r.isEmpty
-    }.flatMap(ToolUI.labels)
+    guard let chosen=winner,let image=chosen.image,let request,
+          let png=NSBitmapImageRep(cgImage:image).representation(using:.png,properties:[:])
+    else {report["status"]="UNKNOWN";report["reason"]="No single live sample met every panel check; see panelSamples";return report}
+    try png.write(to:context.output.appendingPathComponent("bubble.png"),options:.withoutOverwriting)
+    let bubbleSurface=(chosen.number,chosen.rect)
+    report["panelWindow"]=chosen.number;report["bubble"]=NSStringFromRect(chosen.rect)
+    report["chosenSampleUptime"]=chosen.begin;report["panelContentSHA256"]=TranslationProof.digest(expected)
+    report["fixtureFocusBefore"]=true;report["fixtureFocusAfter"]=true;report["visibleNonactivatingBubble"]="PASS"
     if language != .installed && words.isEmpty {
-        let explained = ([observed] + ax).contains { normalized($0)==normalized(expected) ||
-            (ordered.contains("modelMissing") && ($0.contains("下载") || $0.contains("下載"))) }
-        report["visibleNonactivatingBubble"] = explained ? "PASS":"UNKNOWN"
-        report["missingLanguageNoticeObserved"] = explained
-        report["status"] = explained ? "BLOCKED" : "UNKNOWN"
-        report["reason"] = "Offline translation languages are not installed"
-        return report
+        report["missingLanguageNoticeObserved"]=true;report["status"]="BLOCKED"
+        report["reason"]="Offline translation language resources are unavailable";return report
     }
-    guard words.count == 1, let word = words.first, word.language == "zh-Hans" else {
-        report["status"]="FAIL"; report["reason"]="The isolated wordbook has no unique translated row"; return report
+    guard words.count==1,let word=words.first,word.language=="zh-Hans" else {
+        report["status"]="FAIL";report["reason"]="The isolated wordbook has no unique translated row";return report
     }
-    let exact = ([observed] + ax).contains { normalized($0) == normalized(word.translation) }
     let plausible = report["expectedMeaning"] as? Bool == true
-    report["bubbleMatchesStoredTranslation"] = exact
-    report["visibleNonactivatingBubble"] = exact ? "PASS":"UNKNOWN"
+    report["bubbleMatchesStoredTranslation"] = true
     let orderedChain = TranslationProof.translated(evidence,source:phrase,answer:word.translation,id:request,pid:context.host.processIdentifier,window:bubbleSurface.0)
     report["orderedResultChain"]=orderedChain
     let stored = words[0]
     let linked = stored.requestID?.uuidString == stages["requestID"] as? String && stored.providerVersion != nil &&
         stored.sourceLanguage == source && stored.committedAt != nil && stored.sourceSHA256 == sourceDigest
-    report["status"] = exact && plausible && linked && orderedChain ? "PASS" : "FAIL"
+    report["status"] = plausible && linked && orderedChain ? "PASS" : "FAIL"
     return report
 }
 

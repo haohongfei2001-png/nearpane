@@ -21,7 +21,7 @@ import time
 import uuid
 
 import installed_profile as profile
-from acceptance import identity
+from acceptance import host_current_permissions, identity
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
@@ -290,6 +290,15 @@ class Mac:
         require(active == str(uuid.UUID(active)) and generation == root/"generations"/active
                 and generation == generation.resolve(strict=True), "Isolated profile generation changed")
 
+    def permissions(self, stamp, root, expected, metrics):
+        require(self.bound(stamp[0],root,expected)==stamp,"Host changed before permission sampling")
+        subprocess.run(["/usr/bin/codesign","--verify","--strict",metrics],check=True,capture_output=True,timeout=8)
+        facts=host_current_permissions({"pid":stamp[0],"launch":stamp[1]+stamp[2]/1_000_000},metrics)
+        require(self.bound(stamp[0],root,expected)==stamp,"Host changed during permission sampling")
+        if not facts or not all(isinstance(facts.get(k),bool) for k in ("screen","accessibility","postEvent")):
+            return dict(status="UNKNOWN",reason="No unique nonce-matched installed Host response")
+        return dict(status="OBSERVED",**facts)
+
     def trial(self, name, rec, context, leases):
         out = Path(rec["output"])
         source = rec["candidate"]["source"]
@@ -447,6 +456,19 @@ class Transaction:
                 return
             home = self.home
             generation = self.start_home(home)
+            if self.rec.get("trialScope") == "p4-service":
+                stamp=self.mac.bound(self.mac.pid(),home/profile.PROFILE,self.rec["candidate"])
+                perms=dict(status="UNKNOWN",pid=stamp[0],birth=stamp[1]*1_000_000+stamp[2],
+                           sourceRevision=self.rec["candidate"]["source"],cdhash=self.rec["candidate"]["cdhash"],
+                           generation=generation.name,method="installed Host nonce-bound nonprompting preflight")
+                self.save("sampling-installed-host-permissions")
+                try:
+                    perms.update(self.mac.permissions(stamp,home/profile.PROFILE,self.rec["candidate"],self.rec["metrics"]))
+                except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as error:
+                    perms["reason"]=type(error).__name__+": "+str(error)[:180]
+                self.rec["hostPermissions"]=perms
+                persist(self.out/"host-permissions.json",perms)
+                self.save("sampled-installed-host-permissions")
             for name in self.rec["trials"]:
                 if cancelled():
                     break
@@ -581,6 +603,8 @@ class Transaction:
         require(args.metrics.is_file() and os.access(args.metrics,os.X_OK) and
                 (args.kit/"tool-selection").is_file() and (args.kit/"Nearpane Tool Fixture.app").is_dir(),
                 "Missing P3/P4 tools")
+        only=getattr(args,"only",None)
+        require(only in (None,"p4-service") and not (only and args.wordbook_driver),"P4-only accepts only the Services driver")
         require(bool(args.wordbook_driver) == bool(args.wordbook_kit), "Supply both independent wordbook inputs")
         if args.wordbook_driver:
             require(args.wordbook_driver.name == "p4-wordbook-recovery.py" and args.wordbook_driver.is_file()
@@ -595,14 +619,14 @@ class Transaction:
         home = mac.new_home()
         tx = cls(mac,dict(schema=1,transaction=str(uuid.uuid4()),home=str(home),output=str(output),
                           metrics=str(args.metrics.resolve(strict=True)),kit=str(args.kit.resolve(strict=True)),
-                          sessions=str(args.sessions.resolve()),restoration="PENDING",
-                          trials={k:dict(status="NOT_RUN") for k in ("P3","P4","P4-wordbook")},events=[]))
+                          sessions=str(args.sessions.resolve()),restoration="PENDING",trialScope=only or "all",
+                          trials={k:dict(status="NOT_RUN") for k in (("P4",) if only else ("P3","P4","P4-wordbook"))},events=[]))
         if args.wordbook_driver:
             tx.wordbook_home = mac.new_home()
             tx.rec.update(wordbookHome=str(tx.wordbook_home), wordbookHomeIdentity=inode(tx.wordbook_home),
                           wordbookDriver=str(args.wordbook_driver.resolve(strict=True)),
                           wordbookKit=str(args.wordbook_kit.resolve(strict=True)))
-        else:
+        elif not only:
             tx.rec["trials"]["P4-wordbook"]["reason"] = "optionalDriverUnavailable"
         owned_dir(tx.slot_parent.parent,create=True)
         tx.slot_parent.mkdir(mode=0o700)
@@ -692,6 +716,7 @@ def main():
     run.add_argument("--metrics",required=True,type=Path)
     run.add_argument("--kit",required=True,type=Path)
     run.add_argument("--sessions",type=Path,default=HERE.parents[2]/"build/native-acceptance")
+    run.add_argument("--only",choices=("p4-service",),help="one installed Host permission sample and the P4 Services case")
     run.add_argument("--wordbook-driver",type=Path)
     run.add_argument("--wordbook-kit",type=Path)
     commands.add_parser("recover")
@@ -705,9 +730,10 @@ def main():
         signal.signal(sig,stop)
     try:
         report = supervise(Mac(),args,lambda: caught[0] if caught else 0)
-        print(json.dumps({k:report.get(k) for k in ("transaction","stage","restoration","cleanup","trials","operationError","output")},
+        print(json.dumps({k:report.get(k) for k in ("transaction","stage","restoration","cleanup","trials","hostPermissions","operationError","output")},
                          ensure_ascii=False,indent=2))
-        if args.action == "run" and any(x["status"] != "PASS" for x in report["trials"].values()):
+        missing_permissions = report.get("trialScope") == "p4-service" and report.get("hostPermissions",{}).get("status") != "OBSERVED"
+        if args.action == "run" and (missing_permissions or any(x["status"] != "PASS" for x in report["trials"].values())):
             return 128+caught[0] if caught else 2
         return 128+caught[0] if caught else 0
     except (KeyError,ValueError,OSError,RuntimeError,subprocess.SubprocessError) as err:

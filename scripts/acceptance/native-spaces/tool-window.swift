@@ -41,6 +41,12 @@ func quartz(_ rect:NSRect) -> String {
 DispatchQueue.main.async {
     window.center();window.makeKeyAndOrderFront(nil);app.activate(ignoringOtherApps:true)
 }
+var serviceTimes = [String:Double]()
+var serviceSelection = [String:Bool]()
+func exactSelection() -> Bool {
+    NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid() && window.isKeyWindow &&
+    window.firstResponder === field && field.selectedRange() == NSRange(location:0,length:(field.string as NSString).length)
+}
 let timer = Timer(timeInterval:0.06,repeats:true) { _ in
     if FileManager.default.fileExists(atPath:dir.appendingPathComponent("close").path) || ProcessInfo.processInfo.systemUptime-started>90 {
         board?.releaseGlobally()
@@ -67,7 +73,13 @@ let timer = Timer(timeInterval:0.06,repeats:true) { _ in
         serviceAttempted=true
         let privateBoard=NSPasteboard.withUniqueName()
         board=privateBoard
-        if privateBoard.setString(field.string,forType:.string) {serviceDispatched=NSPerformService("在 Nearpane 翻译选词",privateBoard)}
+        if privateBoard.setString(field.string,forType:.string) {
+            serviceSelection["before"] = exactSelection()
+            serviceTimes["before"] = ProcessInfo.processInfo.systemUptime
+            serviceDispatched = NSPerformService("在 Nearpane 翻译选词",privateBoard)
+            serviceTimes["after"] = ProcessInfo.processInfo.systemUptime
+            serviceSelection["after"] = exactSelection()
+        }
     }
     let areas=[0.5,0.3,0.7].map { fraction in
         let crop=NSRect(x:view.bounds.midX-65,y:(view.bounds.height*fraction).rounded()-38,width:130,height:76)
@@ -76,7 +88,13 @@ let timer = Timer(timeInterval:0.06,repeats:true) { _ in
     var state:[String:Any]=["session":dir.lastPathComponent,"kind":args[0],"pid":getpid(),"window":window.windowNumber,
                            "key":window.isKeyWindow,"front":front,"focused":focused,"pose":capture ? pose:0,"areas":areas,
                            "serviceAttempted":serviceAttempted,"serviceDispatched":serviceDispatched]
-    if !capture && focused { state["selection"]=quartz(field.firstRect(forCharacterRange:field.selectedRange(),actualRange:nil)) }
+    if !capture {
+        state["serviceTimes"] = serviceTimes
+        state["selectionAcrossService"] = serviceSelection
+        state["front"] = NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid()
+        state["focused"] = exactSelection()
+    }
+    if !capture && exactSelection() { state["selection"]=quartz(field.firstRect(forCharacterRange:field.selectedRange(),actualRange:nil)) }
     if let data=try? JSONSerialization.data(withJSONObject:state,options:.sortedKeys),data != last {
         try? data.write(to:dir.appendingPathComponent("state.json"),options:.atomic);last=data
     }

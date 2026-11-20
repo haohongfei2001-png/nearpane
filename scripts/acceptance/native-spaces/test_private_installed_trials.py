@@ -129,6 +129,11 @@ class Fixture:
     def wait_owner(self,root,expected):
         return self.bound(self.pid(),root,expected)
 
+    def permissions(self,stamp,root,expected,metrics):
+        assert self.bound(stamp[0],root,expected)==stamp
+        self.actions.append("installed-permissions")
+        return {"status":"OBSERVED","screen":True,"accessibility":False,"postEvent":True}
+
     def trial(self,name,rec,env,guard):
         assert self.active[1] == Path(env["NEARPANE_TEST_HOME"])/tool.profile.PROFILE
         assert self.generation == Path(env["NEARPANE_TEST_GENERATION"])
@@ -194,6 +199,31 @@ class TestTemporaryInstall(unittest.TestCase):
         self.assertEqual(self.mac.actions,["quit-daily","launch-isolated","P3","P4","quit-isolated",
                                            "launch-isolated","P4-wordbook","quit-isolated","launch-daily"])
         self.assertEqual(record["restoration"],"PASS")
+
+    def test_p4_service_only_gets_one_installed_permission_read_and_one_trial(self):
+        self.args.only="p4-service"
+        report=tool.supervise(self.mac,self.args,lambda:0)
+        self.assertEqual(list(report["trials"]),["P4"])
+        self.assertEqual(self.mac.actions,["quit-daily","launch-isolated","installed-permissions","P4","quit-isolated","launch-daily"])
+        permissions=tool.read_json(self.args.output/"host-permissions.json")
+        self.assertEqual(permissions["status"],"OBSERVED")
+        self.assertFalse(permissions["accessibility"])
+        self.assertEqual(permissions["pid"],report["isolatedHost"][0])
+        self.assertEqual(permissions["sourceRevision"],report["candidate"]["source"])
+        self.assertEqual(report["restoration"],"PASS")
+
+    def test_missing_installed_permission_response_remains_unknown_and_services_still_runs(self):
+        self.args.only="p4-service"
+        def missing(*args):
+            self.mac.actions.append("installed-permissions")
+            raise RuntimeError("nonce not observed")
+        self.mac.permissions=missing
+        report=tool.supervise(self.mac,self.args,lambda:0)
+        self.assertEqual(report["hostPermissions"]["status"],"UNKNOWN")
+        self.assertNotIn("screen",report["hostPermissions"])
+        self.assertEqual(self.mac.actions.count("installed-permissions"),1)
+        self.assertEqual(report["trials"],{"P4":{"status":"PASS"}})
+        self.assertEqual(report["restoration"],"PASS")
 
     def test_recover_after_atomic_swap_before_observation(self):
         tx = self.prepare()
