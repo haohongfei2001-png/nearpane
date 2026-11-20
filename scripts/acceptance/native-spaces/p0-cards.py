@@ -1,6 +1,7 @@
 """Installed P0. Exactly one genuine background-window card press per attempt."""
 import argparse
 import functools
+import hashlib
 import importlib.util
 import json
 import math
@@ -10,6 +11,7 @@ import plistlib
 import queue
 import select
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -294,7 +296,80 @@ def finish_visual(module,kit,folder,pressed,ended,request,started,observer_optio
             return result['status']
     return 'UNKNOWN'
 
-def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None):
+class InstalledWindowAudit:
+    """Collect only the diagnostics emitted by the isolated installed process for our two signed fixtures."""
+    def __init__(self,home,output,kit,host):
+        validate_home(home)
+        self.home=home;self.output=output/'host-window-audit';self.output.mkdir(mode=0o700)
+        self.kit=kit;self.host=host;self.targets=[];self.baselineLines=0;self.registeredAt=None
+        self.request=home/'p0-window-audit-targets.json'
+        self.stream=home/'p0-window-audit.jsonl'
+        require(not self.request.exists() and not self.request.is_symlink() and not self.stream.exists() and not self.stream.is_symlink(),
+                'the new isolated home already contains a Host window-audit binding')
+    def register(self,window):
+        target={k:window[k] for k in ('pid','birth','number')}
+        require(window['identifier'] in ('net.example.spaces-document','net.example.spaces-route-witness') and
+                len(self.targets)<2 and all(t['pid']!=target['pid'] and t['number']!=target['number'] for t in self.targets),
+                'only the separate signed ordinary document fixtures may appear in the Host audit')
+        try:self.baselineLines=self.read()[1]['sourceLines']
+        except FileNotFoundError:self.baselineLines=0
+        self.registeredAt=cmd(self.kit/'p0-card','state').get('uptime')
+        self.targets.append(target)
+        store(self.request,dict(version=1,targets=self.targets))
+        store(self.output/'registered-targets.json',dict(version=1,targets=self.targets))
+    def read(self):
+        fd=os.open(self.stream,os.O_RDONLY|os.O_NOFOLLOW)
+        with os.fdopen(fd,'rb') as f:
+            info=os.fstat(fd)
+            require(stat.S_ISREG(info.st_mode) and info.st_uid==os.getuid() and info.st_nlink==1 and not info.st_mode&0o022
+                    and 0<=info.st_size<=16*1024*1024,'unexpected isolated Host diagnostic stream')
+            raw=f.read(info.st_size)
+        lines=raw.split(b'\n');trailing=len(lines.pop())
+        records=[];withheld=0;invalid=0
+        for number,line in enumerate(lines,1):
+            if not line:continue
+            try:row=json.loads(line)
+            except (ValueError,UnicodeDecodeError):invalid+=1;continue
+            if not isinstance(row,dict) or not audit_metadata_only(row):withheld+=1;continue
+            records.append((number,row,line))
+        return records,dict(sourceSHA256=hashlib.sha256(raw).hexdigest(),bytesRead=len(raw),sourceLines=len(lines),completeRecords=len(records),
+                            malformedLines=invalid,withheldNonMetadataLines=withheld,trailingIncompleteBytes=trailing)
+    def snapshot(self,phase,context,final=False):
+        metadata=dict(phase=phase,source='isolated installed Host',host=self.host,targets=list(self.targets),context=context,
+                      registeredAtUptime=self.registeredAt,registeredAfterLine=self.baselineLines)
+        try:
+            before=cmd(self.kit/'p0-card','state');metadata['before']=before
+            observed=cmd(self.kit/'p0-card','process',self.host['pid'])
+            require(all(observed.get(k)==self.host[k] for k in ('pid','birth','hash','identifier','executable')),
+                    'current installed Host generation differs from the audit binding')
+            deadline=time.monotonic()+(4 if phase.endswith('-current') else 0)
+            while True:
+                try:records,summary=self.read()
+                except FileNotFoundError:
+                    if time.monotonic()>=deadline:raise
+                    records=[];summary={}
+                latest=[(n,row) for n,row,_ in records if n>self.baselineLines]
+                if latest or time.monotonic()>=deadline:break
+                time.sleep(.12)
+            after=cmd(self.kit/'p0-card','state')
+            metadata.update(summary,after=after,status='OBSERVED' if latest else 'UNAVAILABLE')
+            if final:
+                with (self.output/'installed.jsonl').open('wb') as f:
+                    for _,_,line in records:f.write(line+b'\n')
+            else:
+                metadata['records']=[dict(line=n,record=row) for n,row in latest[-80:]]
+        except (ValueError,OSError,KeyError,subprocess.SubprocessError) as e:
+            metadata.update(status='UNAVAILABLE',reason=type(e).__name__ if isinstance(e,FileNotFoundError) else str(e))
+        store(self.output/(phase+'.json'),metadata)
+
+def audit_metadata_only(value):
+    if isinstance(value,dict):
+        excluded={'title','windowtitle','appname','windowname','ownername','selectedtext','text','content','document','filepath','path','url','pixels','screenshot'}
+        return all(isinstance(k,str) and k.lower() not in excluded and audit_metadata_only(v) for k,v in value.items())
+    if isinstance(value,list):return all(audit_metadata_only(v) for v in value)
+    return value is None or isinstance(value,(bool,int,float,str))
+
+def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None):
     folder.mkdir(mode=0o700); store(folder/'identity.json',p)
     item = dict(status='UNKNOWN',axIssued=False,hostIssued=False,blankScreen='UNKNOWN',screenshotTaken=False,lateObservationSeconds=SETTLE_SECONDS)
     action = {}; holder = None; host = None; watch = None; recorder = None; called = False; started = None
@@ -310,6 +385,8 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None):
             if inspect.get('error','').startswith('official background card'): time.sleep(.18); continue
             break
         store(folder/'card-before.json',inspect)
+        if audit and not inspect.get('ready') and inspect.get('error','').startswith('official background card'):
+            audit.snapshot('unavailable-'+folder.name,dict(source=p['topology']['current'],target=p['target'],control=inspect))
         require(inspect.get('ready'),inspect.get('error','installed background card unavailable'))
         if visual_stage in ('roundTrip','ten'):
             try:
@@ -500,7 +577,7 @@ def run(args):
     def log(event,**data):
         with (out/'actions.jsonl').open('a') as f:
             f.write(json.dumps({'event':event,'monotonic':time.monotonic(),**data},ensure_ascii=False)+'\n');f.flush();os.fsync(f.fileno())
-    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None;keeper=None
+    report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None;keeper=None;audit=None
     with tempfile.TemporaryDirectory(dir='/private/tmp',prefix='nearpane-p0-owned-') as tmp:
         documents=Documents(args.kit,Path(tmp),log)
         state=lambda:cmd(tool,'state')
@@ -548,6 +625,7 @@ def run(args):
             guard_setup(owned,initial,{a},{first['pid']})
             if route=='ordinary':
                 keeper=OwnedKeeper(tool)
+                audit=InstalledWindowAudit(Path(os.environ['NEARPANE_TEST_HOME']),out,args.kit,host)
                 lease=out/'ordinary-lease';lease.mkdir(mode=0o700);ws=Workspace(args.kit,lease,log)
                 require(ws.home==staging,'ordinary lease origin changed')
                 a=ws.create();one=state();require(owned_insertion(origin,one['topology'],0)==a,'first lease mismatch')
@@ -568,6 +646,7 @@ def run(args):
                                  and s.get('frontPID')==window['pid'] and s.get('focusedNumber')==window['number'] and anchored([window],[space]),
                                  'owned ordinary document was not independently placed and focused on its leased Space')
                 def admit(window,space,name):
+                    audit.register(window)
                     placed(window,space)
                     evidence=out/f'retained-{name}.json'
                     def enroll():
@@ -578,6 +657,7 @@ def run(args):
                     confirmed_current_cards(
                         lambda:keeper.call('current-card',window,hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid']),
                         lambda samples:store(path,samples),f"current-desktop-window:{window['pid']}:{window['number']}",space)
+                    audit.snapshot(name+'-current',dict(space=space,currentCardEvidence=path.name))
                     log('installed-current-card-seen-twice',space=space,ownedWindow=window['number'],evidence=path.name)
                     checkpoint(name+'-document')
                 admit(first,a,'first')
@@ -611,7 +691,7 @@ def run(args):
                     if sample.get('topology')!=req['topology'] or sample.get('hid')!=initial['hid']:
                         trial=dict(status='BLOCKED',reason='new input or topology changed before the next sample',hostIssued=False,axIssued=False)
                         sample_dir=out/f'{gate}-{n:02}';sample_dir.mkdir();store(sample_dir/'result.json',trial);log('card-not-issued',**trial)
-                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper)
+                    else:trial=attempt(tool,req,out/f'{gate}-{n:02}',journal,log,visual_stage=gate,keeper=keeper,audit=audit)
                     stage['samples'].append(dict(index=n,source=source,target=target,**trial));evaluate_gate(stage,gate,how_many);report()
                     if gate=='ten':result['blankScreen']=stage['blankScreen'];result['blankScreenScope']='ten'
                     if trial['status']!='PASS':break
@@ -632,6 +712,7 @@ def run(args):
                 result['stages']['roundTrip'].update(status='BLOCKED',reason=str(e))
         finally:
             problems=[];clean={}
+            if audit and audit.targets:audit.snapshot('before-cleanup',dict(stageStatus=result['status']),final=True)
             # Only a positively held fixture may return its own document to its original ordinary Space.
             if rootdoc and initial and top and a and b:
                 try:
