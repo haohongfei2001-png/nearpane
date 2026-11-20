@@ -1,0 +1,158 @@
+{
+  "scope": "Apple SpeechAnalyzer / SpeechTranscriber on generated 16 kHz mono PCM files",
+  "mode": "hosted",
+  "physicalInstalledHost": {
+    "trials": 0,
+    "contractTrials": 60,
+    "status": "NOT_RUN"
+  },
+  "source": {
+    "voice": "Tingting",
+    "locale": "zh_CN",
+    "rate": 165,
+    "output": "WAVE file only",
+    "noise": "uniform seeded at +10 dB source SNR"
+  },
+  "macOS": "26.7.2",
+  "osBuild": "25G332",
+  "architecture": "arm64",
+  "status": "BLOCKED",
+  "rounds": [
+    {
+      "case": "01-clean",
+      "expected": "今天测试语音",
+      "condition": "clean",
+      "seed": null,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "54a98a90e2cc98c1ab4d54740ddcf2787718c06b33007a723c5b2e7623a5287c",
+        "sha256": "54a98a90e2cc98c1ab4d54740ddcf2787718c06b33007a723c5b2e7623a5287c",
+        "frames": 24046,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0046875
+      }
+    },
+    {
+      "case": "02-noise10dB",
+      "expected": "窗外正在下雨",
+      "condition": "noise10dB",
+      "seed": 2,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "45b18689765929179efffa8e4cc857dabce94431c29f719f81dd31685db3786a",
+        "sha256": "bd4dc8a18617cd08775c97610cce0f41e72c5c8698c8fc3b7a0be10f18c83e2a",
+        "frames": 23535,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0001875,
+        "linearPeakGain": 1,
+        "measuredSourceSNRdB": 10.0000143165593
+      }
+    },
+    {
+      "case": "03-clean",
+      "expected": "蓝色雨伞放在门口",
+      "condition": "clean",
+      "seed": null,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "a5d8b624fcc9d24fc95229a2fc961c66997f0442b44ca4593bba39076f32f3c8",
+        "sha256": "a5d8b624fcc9d24fc95229a2fc961c66997f0442b44ca4593bba39076f32f3c8",
+        "frames": 30501,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 6.25e-05
+      }
+    },
+    {
+      "case": "01-noise10dB",
+      "expected": "今天测试语音",
+      "condition": "noise10dB",
+      "seed": 4,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "54a98a90e2cc98c1ab4d54740ddcf2787718c06b33007a723c5b2e7623a5287c",
+        "sha256": "59301f02935bb06de9ae4b08b43086127b00a5ff8091b8b3c83ba38f46cd01ce",
+        "frames": 24046,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0046875,
+        "linearPeakGain": 1,
+        "measuredSourceSNRdB": 10.000012881024755
+      }
+    },
+    {
+      "case": "02-clean",
+      "expected": "窗外正在下雨",
+      "condition": "clean",
+      "seed": null,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "45b18689765929179efffa8e4cc857dabce94431c29f719f81dd31685db3786a",
+        "sha256": "45b18689765929179efffa8e4cc857dabce94431c29f719f81dd31685db3786a",
+        "frames": 23535,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 0.0001875
+      }
+    },
+    {
+      "case": "03-noise10dB",
+      "expected": "蓝色雨伞放在门口",
+      "condition": "noise10dB",
+      "seed": 6,
+      "status": "NOT_RUN",
+      "score": null,
+      "input": {
+        "cleanSHA256": "a5d8b624fcc9d24fc95229a2fc961c66997f0442b44ca4593bba39076f32f3c8",
+        "sha256": "4d86f06e91dd808b38c244da8df5a2649fbf867d6503a96892d235d600b73d3a",
+        "frames": 30501,
+        "sampleRate": 16000,
+        "firstCleanSignalSeconds": 6.25e-05,
+        "linearPeakGain": 1,
+        "measuredSourceSNRdB": 9.999981863691916
+      }
+    }
+  ],
+  "aggregate": {
+    "cases": 6,
+    "scoredFinals": 0,
+    "unscored": 6,
+    "exact": 0,
+    "firstCharacterCorrect": 0,
+    "firstCharacterRate": null,
+    "characterEdits": null,
+    "referenceCharacters": null,
+    "microCER": null
+  },
+  "runner": {
+    "GITHUB_RUN_ID": "44730039447",
+    "GITHUB_RUN_ATTEMPT": "1",
+    "GITHUB_SHA": "8925dac0119bffc5f5a3b0a3de6690fa144fa48e",
+    "ImageOS": "macos26",
+    "ImageVersion": "20261117.0516.1"
+  },
+  "fixtures": "READY",
+  "preparation": {
+    "deadlineSeconds": 240,
+    "elapsedSeconds": 0.217,
+    "exitCode": 3,
+    "timedOut": false,
+    "events": [
+      {
+        "stage": "inventory-start",
+        "transcriberAvailable": false,
+        "uptimeSeconds": 190.81450816666668
+      },
+      {
+        "asset": "unsupported",
+        "locale": "zh_CN",
+        "localeInstalled": false,
+        "stage": "inventory",
+        "uptimeSeconds": 190.994109
+      }
+    ]
+  },
+  "reason": "runner did not confirm an installed local zh-CN model"
+}

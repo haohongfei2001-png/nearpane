@@ -19,7 +19,10 @@
   },
   "receipts": {
     "syntheticWorkerShutdownAndReopen": "voice-readback.json",
-    "actualChineseSpeechFrameworkForTestRunner": "voice-apple-file.json"
+    "actualChineseSpeechFrameworkForTestRunner": "voice-apple-file.json",
+    "disposableMacOS26AppleFileProbe": "hosted-speech/hosted-speech.json",
+    "runnerArtifactVerification": "hosted-speech/ci-run.json",
+    "historicalInstalledFinalsRescored": "hosted-speech/archived-finals.json"
   },
   "modelEvidence": "The pinned local engine uses SpeechAnalyzer and SpeechTranscriber. The Chinese locale is supported but AssetInventory did not report its local model installed for this test-runner identity. File recognition is BLOCKED for this identity. The signed Host has a separate identity. No provider accuracy or local model ranking was established.",
   "physicalQualification": {

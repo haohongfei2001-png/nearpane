@@ -1,0 +1,36 @@
+{
+  "run": {
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44730039447",
+    "attempt": 1,
+    "event": "push",
+    "head": "8925dac0119bffc5f5a3b0a3de6690fa144fa48e",
+    "createdAt": "2026-11-20T11:44:25Z",
+    "updatedAt": "2026-11-20T11:45:04Z",
+    "conclusion": "failure"
+  },
+  "job": {
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44730039447/job/136267146473",
+    "runnerGroup": "GitHub Actions",
+    "labels": [
+      "macos-26"
+    ],
+    "startedAt": "2026-11-20T11:44:28Z",
+    "completedAt": "2026-11-20T11:45:04Z",
+    "conclusion": "failure"
+  },
+  "artifact": {
+    "id": 14624964839,
+    "sizeBytes": 1562,
+    "githubZipDigest": "sha256:46ba679e25b98346621e7d613df4367fe3d1eae353290b3a29c1764f76550485",
+    "downloadedZipSHA256": "46ba679e25b98346621e7d613df4367fe3d1eae353290b3a29c1764f76550485",
+    "uncompressedJSONSHA256": "a45aba87370e706c20ca5c15edde71c210aba5f880bbbacc414afb6645117587",
+    "matchesCommittedReceipt": true
+  },
+  "localChecks": {
+    "pureMemoryScoringTests": 5,
+    "existingPhysicalDriverRegressionTests": 6,
+    "repeatLocalFixtureHashesMatched": 6,
+    "localSignedModelPreparationGuardExitCode": 7
+  },
+  "newInstalledHostTrials": 0
+}
