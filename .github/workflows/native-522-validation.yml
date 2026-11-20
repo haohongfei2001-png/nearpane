@@ -12,6 +12,9 @@ on:
       - 'Tests/NearpaneSpaceActionTests/**'
       - 'Tests/NearpaneUITests/NativeSidebarWindowHistoryTests.swift'
       - 'Tests/NearpaneUITests/NativeSidebarNavigationTests.swift'
+      - 'Tests/NearpaneUITests/DesktopPreviewOwnerTests.swift'
+      - 'Tests/NearpaneUITests/TranslationSelectionOriginTests.swift'
+      - 'Tests/NearpaneHostTests/ServiceOpenIntentTests.swift'
       - 'Tests/NearpaneCoreTests/AXWindowListTests.swift'
       - 'scripts/acceptance/native-spaces/**'
       - 'Resources/NearpaneHost.entitlements'
@@ -66,13 +69,15 @@ jobs:
           bash scripts/acceptance/native-spaces/protocol-tests.sh
       - name: Compile the foundation-only production UI on the hosted SDK
         run: swift build --target NearpaneUI
-      - name: Verify retained windows in the complete production UI module
+      - name: Verify window identity, Services source and Host open handling
         run: |
           set -euo pipefail
-          swift test --disable-xctest --enable-swift-testing --filter 'NativeSidebarWindowHistoryTests|NativeSidebarNavigationTests|AXWindowListTests' 2>&1 | tee "$RUNNER_TEMP/retained-tests.log"
-          grep -F 'Suite NativeSidebarWindowHistoryTests passed' "$RUNNER_TEMP/retained-tests.log"
-          grep -F 'Suite NativeSidebarNavigationTests passed' "$RUNNER_TEMP/retained-tests.log"
-          grep -F 'Suite AXWindowListTests passed' "$RUNNER_TEMP/retained-tests.log"
+          suites=(NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests)
+          filter=$(IFS='|'; echo "${suites[*]}")
+          swift test --disable-xctest --enable-swift-testing --filter "$filter" 2>&1 | tee "$RUNNER_TEMP/native-ui-tests.log"
+          for suite in "${suites[@]}"; do
+            grep -F "Suite $suite passed" "$RUNNER_TEMP/native-ui-tests.log"
+          done
       - name: Assess the enrolled private archive on this clean hosted Mac
         if: "${{ !cancelled() && contains(github.event.head_commit.message, '[private-macos-26 ') }}"
         env:

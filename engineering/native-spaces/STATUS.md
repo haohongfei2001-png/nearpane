@@ -1,6 +1,24 @@
 # 当前安装与专项状态
 
-**当前 5.22（90）签名安装候选 `d2d0bb6`，PR #15 保持 Draft。** 两扇真实测试窗在四批正式 Host 实测中完成 48/48 次画面更新。5,708 帧合格侧栏采样都显示了对应色标。首次确认的呈现差为 P50 32.50 ms、P95 48.94 ms、最大 61.20 ms。30 帧完整双卡录像已逐像素验证。从同一侧栏帧读取五个独立应用的五张卡，六个状态下 30/30 项对应正确。三次 AppKit 所有者查询中断均在原有流上通过独立复核。当前安装版隐藏一分钟，7 次读回均为零条活动流，自动恢复后两张卡均继续交付画面。三项已有授权保留，系统仅登记正式安装。单屏桌面归属与台前调度交接已有实证，物理三指动画、双屏、双窗 Split View 和原生同条件延迟仍待验。P0 当前系统适配资格关闭，P1 迁窗 0 次，同应用受控编辑器两轮输入各 1/2，B 最后一批未读到可归属的 AppKit 按键。TextEdit 确认输入 0 个，公证待办。此前两张临时桌面尚未回收。[真实录像、机器收据和签名候选](../verification/native-spaces/5.22-90-active-display-previews/RESULTS.md)
+## 2026-11-21 · 5.22（90）正式安装复核
+
+PR #15 从原生 PR #14 的 `629524b` 继续，采用研究分支 `3151827` 三份决策及原生分支 `c1604f3` 的复核。可运行内部候选 `d81c458` 完成双窗正式验收，日常安装 `d2d0bb6` 及日常资料已原位恢复。`b55ed96` 原回退档通过 SHA-256 与双向签名核验。PR 保持 Draft。[候选与还原](../verification/native-spaces/5.22-p6/integrated-d81c458/protected-installation.json) · [回退](../verification/native-spaces/5.22-p6/integrated-d81c458/b55ed96-rollback.json)
+
+| 阶段 | 实测与未通过项 |
+|---|---|
+| P0 | 第 18 轮的系统事件确认，外部 Apple Event 激活 Codex，随后 Dock 为该应用的窗口 42445 切到桌面 6。脚本上游未知。跨动作观察器两轮分别获得 171、136 个有效被动样本。专用签名 Host 以 nonce 从实际动作助手取回 `canSwitch=false, canMove=false`。借用已登记的相邻 5095/5094 时，第一次清点合格，约 418 ms 后第二次清点无法核对一个普通窗口条目。端点和条目身份保留 UNKNOWN，受控窗口 53833 在前后两次独立读回均归属 5095。布置快捷键和产品切换均为零。原桌面、焦点、Stage 和日常应用均恢复，两张既有测试桌面仍在。正式往返、10、50 均未执行。[隔离实机事件](../verification/native-spaces/5.22-p0/post-reassessment/isolated-97109f4/booked-adjacent.json) · [拒绝现场](../verification/native-spaces/5.22-p0/post-reassessment/isolated-97109f4/rejected-census.json) · [原始事件链](../verification/native-spaces/5.22-p0/post-reassessment/run18-system.json) · [被动观察](../verification/native-spaces/5.22-p0/post-reassessment/observer-isolated.json) |
+| P1 | 已验证 Objective-C selector/IMP、真实方法签名、对象生命周期、窗口代际与迁移读回判据。实际投递迁窗 0 次。[非派发收据](../verification/native-spaces/5.22-p1-bridge/bridge-abi.json) |
+| P2 | **最新正式安装候选 10/10**。此前候选 `0242247` 独立一轮也是 10/10。两轮均在同一注册签名应用的两扇窗口间交替。每次由生产侧栏发起，外部 AX、实际窗口号、AppKit 键窗和编辑器匹配，12 对按键只改动目标文件。第三按被拒的旧轮次保留。[十次动作和单窗实拍](../verification/native-spaces/5.22-90-active-display-previews/same-space-focus/registered-document-runs/09) · [此前失败](../verification/native-spaces/5.22-90-active-display-previews/same-space-focus/registered-document-runs/05-07.md) |
+| P3 | 正式 Host 对已运行 Chrome 的非提示资格查询为 `notRequested`，没有已授权的隔离登录资料。真实草稿上传阻塞；读取标签、上传与发送均为零。[授权收据](../verification/native-spaces/5.22-p3/installed-946afb9/qualification.json) |
+| P4 | 已证实真实 Services 回调与签名 Host 的入队和接收。系统在回调前 4.499 ms 为 Host 申请前台，来源窗口焦点保持失败。5 个独立像素样本核实了实际显示的系统语言包下载提示，本机英中翻译模型缺失。预置词条在两个独立签名 Host 的磁盘与设置页读回通过。三句中文各有干净与噪声样本，6/6 原始首尾音频完整。真实识别最终稿 0，60 次物理麦克风启动未测。[Services 系统时序及选区实拍](../verification/native-spaces/5.22-p4/installed-d81c458/README.md) · [词本](../verification/native-spaces/5.22-p4/installed-9ba33eb/seeded-wordbook.json) · [语音](../verification/native-spaces/5.22-p4/local-corpus/summary.json) |
+| P5 | 37 项布局和生命周期用例、6 项性能数据核算用例通过。有一次实际全屏进出和隐藏一分钟后恢复。修复了旧预演的到期任务清除新预演的竞态，两项调度用例各复测 20 次。真实多屏、双窗 Split View、睡眠恢复及对标系统的完整性能仍待验。[P5 收据](../verification/native-spaces/5.22-p5/offline-qualification.json) · [竞态复现和修复](../verification/native-spaces/5.22-p5/lifecycle-scheduling.json) |
+| P6 | 13 个代码对象、18 个架构切片分发签名通过。已为 Host 签入 Apple Events 和麦克风资源授权。在升级验证中，实际 Host 的辅助功能、录屏、事件投递三项均获准。GitHub Draft 候选下载哈希通过。实体 macOS 27 与托管 macOS 26 均因缺少公证票据拒绝放行，干净设备首启和 Sparkle 在线升级未验。[权限实测](../verification/native-spaces/5.22-p6/integrated-d81c458/host-permissions.json) · [候选](../verification/native-spaces/5.22-p6/integrated-d81c458/draft-asset.json) · [系统策略](../verification/native-spaces/5.22-p6/integrated-d81c458/system-policy.json) · [云端 macOS 26](../verification/native-spaces/5.22-p6/integrated-d81c458/hosted-macos-26.json) |
+
+完整源码离线回归通过 592 项 Swift 测试及加载历史原件后的 269 项 Python 验收测试。分发签名和公证准备另有 9、10 项通过。[分阶段机器结果](../verification/native-spaces/5.22-p6/integrated-d81c458/acceptance.json)
+
+## 既往安装记录
+
+**此前 5.22（90）签名安装候选 `d2d0bb6`，PR #15 保持 Draft。** 两扇真实测试窗在四批正式 Host 实测中完成 48/48 次画面更新。5,708 帧合格侧栏采样都显示了对应色标。首次确认的呈现差为 P50 32.50 ms、P95 48.94 ms、最大 61.20 ms。30 帧完整双卡录像已逐像素验证。从同一侧栏帧读取五个独立应用的五张卡，六个状态下 30/30 项对应正确。三次 AppKit 所有者查询中断均在原有流上通过独立复核。当前安装版隐藏一分钟，7 次读回均为零条活动流，自动恢复后两张卡均继续交付画面。三项已有授权保留，系统仅登记正式安装。单屏桌面归属与台前调度交接已有实证，物理三指动画、双屏、双窗 Split View 和原生同条件延迟仍待验。P0 当前系统适配资格关闭，P1 迁窗 0 次，同应用受控编辑器两轮输入各 1/2，B 最后一批未读到可归属的 AppKit 按键。TextEdit 确认输入 0 个，公证待办。此前两张临时桌面尚未回收。[真实录像、机器收据和签名候选](../verification/native-spaces/5.22-90-active-display-previews/RESULTS.md)
 
 **前一签名安装候选 5.22（90）`32b9f92`，PR #15 为 Draft。** 正式安装版三轮双文档画面更新共确认 36/36，各轮 P95 分别为 46.48、44.10、212.35 ms。第三轮有约 150 ms 的灰色画面，逐帧连续性仍未通过。未取得同条件的 Apple 基准。已有三项系统授权在更新后仍有效，原位安装与 ZIP 的 248 项逐一一致。已验证一次受控窗口真实全屏并正常返回。双窗 Split View、触控板动画与双物理显示器仍待实机证据。原桌面回收状态单列在本轮记录。[机器数据、原图和回退](../verification/native-spaces/5.22-90-active-display-previews/RESULTS.md)
 
