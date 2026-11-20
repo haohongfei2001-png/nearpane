@@ -1,0 +1,39 @@
+{
+  "name": "Nearpane visual reference R4",
+  "date": "2026-11-18",
+  "status": "Designed; proposed implementation reference; native calibration pending",
+  "sourceCommit": "c5e05334bd45784aa4d1ecf5329028ad6e9d66ff",
+  "units": "logical points, except explicitly stated physical pixels",
+  "width": {
+    "defaultFormula": "round(min(D*0.25,max(D*0.125,min(360,max(240,D*0.16)))))",
+    "commonScreenDefaultRatio": 0.16,
+    "normalFloor": 240,
+    "normalCeiling": 360,
+    "manualFractionRange": [0.125, 0.25],
+    "minimumFullPanelWidth": 176,
+    "autoResizeOnContent": false,
+    "workRectFormula": "visibleFrame minus actual reserved sidebar width and explicit layout margins; reference uses 12pt left/top/bottom inset plus 12pt sidebar separation"
+  },
+  "referenceFixture": {"menuBarHeight": 27, "dockVisible": false, "workAreaInset": 12, "sidebarSeparation": 12, "windowGutter": 10, "description": "Illustrative display geometry only; native code reads NSScreen.visibleFrame and actual configured spacing instead of hardcoding menu-bar height."},
+  "layout": {"outerInset": 12, "toolGap": 10, "windowGap": 11, "shellRadius": 28, "toolRadius": 16, "previewRadius": 6, "strokePhysicalPixels": 1, "referenceScale": 2, "hairlinePt": 0.5, "selectionStrokePt": 0.75, "focusStrokePt": 2, "independentImageHeightPerWidth": 0.5, "previewBadgeTail": 18, "trayInset": 6, "trayCellGap": 6, "flow": "top aligned; tools first; remainder belongs to scrollable preview list"},
+  "typography": {"primarySize": 14, "primaryLineHeight": 20, "secondarySize": 12, "identitySize": 11, "primaryColorLight": "#25272A", "secondaryColorLight": "#55595F", "primaryColorDark": "#F1F2F4", "secondaryColorDark": "#CCD0D4", "foregroundAlpha": 1},
+  "modules": {"voiceActiveHeight": 144, "voicePausedHeight": 40, "trayOneRowHeight": 76, "trayTwoRowHeight": 144, "trayColumns": 2, "trayMaxCells": 4, "memoHeight": 128, "tasksHeight": 128, "voiceShortSilenceCollapses": false},
+  "material": {
+    "meaning": "Reference-renderer optical white/neutral coverage, NOT native slider values",
+    "blurStdDeviationPt": 18,
+    "neutralDark": "#24272B",
+    "airy": {"shell": 0.48, "textSurface": 0.82},
+    "balanced": {"shell": 0.58, "textSurface": 0.88},
+    "clear": {"shell": 0.72, "textSurface": 0.94},
+    "reduceTransparency": {"shell": 1, "textSurface": 1},
+    "dark": {"shell": 0.72, "textSurface": 0.94, "shellColor": "#24272B", "textSurfaceColor": "#202226", "hairline": "#FFFFFF2E", "selection": "#D8E0E9"},
+    "reduced": {"shellColorLight": "#EFF1F3", "textSurfaceColorLight": "#FFFFFF", "shellColorDark": "#24272B", "textSurfaceColorDark": "#202226"},
+    "contrast": {"hairlinePt": 1, "borderLight": "#68727B", "borderDark": "#D1D7DE"},
+    "shadow": {"shell": {"dy": 6, "sigma": 11, "alpha": 0.08}, "card": {"dy": 2, "sigma": 3, "alpha": 0.04}},
+    "default": "balanced",
+    "foregroundAlpha": 1,
+    "nativeImplementation": "One native blur source; independent shell/card region masks; content as opaque siblings; optically match and measure on real Mac"
+  },
+  "previews": {"layout": "single column", "windowOrder": "birthOrdinal, firstObservedOrdinal only when birth not known", "nativeSpaceOrder": "system order", "regularCompositeCoordinates": "WorkRect", "fullscreenCoordinates": "native fullscreen bounds", "independentDensity": "image viewport at most (rowWidth - 8) * 0.5 high; Fit source without distortion; no dependence on window count", "compositeDensity": "WorkRect or display aspect, one transform for all member frames", "currentSpaceDuplicateOverview": false, "automaticGroupingFromGeometry": false, "clickRestoresLayout": false, "fixed96ptHeightCap": false, "sourceImagesAlpha": 1},
+  "interaction": {"hoverDurationMs": 120, "stateDurationMs": 160, "explicitToolCollapseMs": 180, "reduceMotionMs": 0, "dragThresholdPt": 6, "identityLockedDuringPointerGesture": true, "restingScrollIndicator": "hidden; visible during scroll/hover", "permissionVoiceHeight": 40, "voiceSilenceChangesHeight": false}
+}

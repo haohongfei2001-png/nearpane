@@ -1,0 +1,253 @@
+{
+  "version": "R4",
+  "date": "2026-11-18",
+  "scope": "Static design source, rendered examples and PDF; not native application verification",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "SVG parsing, text alpha and exact 2x exports",
+      "status": "PASS",
+      "sceneCount": 16
+    },
+    {
+      "name": "Default width, concentric corners, fixed-content width comparison and tool occupancy",
+      "status": "PASS",
+      "defaultWidth": 240,
+      "listTopTwoTools": 320,
+      "listTopThreeTools": 458,
+      "completeDefaultCards": 4
+    },
+    {
+      "name": "Same desktop/preview source, aspect preservation, shared group geometry and exact 2:1",
+      "status": "PASS"
+    },
+    {
+      "name": "1/4/8/9 windows use constant tool and row sizes",
+      "status": "PASS",
+      "scenarios": [
+        {
+          "windows": 1,
+          "rowHeight": 122,
+          "listTop": 320,
+          "overflow": false
+        },
+        {
+          "windows": 4,
+          "rowHeight": 122,
+          "listTop": 320,
+          "overflow": false
+        },
+        {
+          "windows": 8,
+          "rowHeight": 122,
+          "listTop": 320,
+          "overflow": true
+        },
+        {
+          "windows": 9,
+          "rowHeight": 122,
+          "listTop": 320,
+          "overflow": true
+        }
+      ]
+    },
+    {
+      "name": "Seven required tray flows, voice visibility, calculation cancel and translation geometry",
+      "status": "PASS",
+      "trayStates": 9
+    },
+    {
+      "name": "Opaque window interiors within raster rounding tolerance and exact text-core pixels",
+      "status": "PASS",
+      "imageVariants": 4,
+      "imageDifferences": [
+        {
+          "maximumChannelDifference": 1,
+          "changedPixels": 6,
+          "comparedPixels": 52052
+        },
+        {
+          "maximumChannelDifference": 1,
+          "changedPixels": 6,
+          "comparedPixels": 52052
+        },
+        {
+          "maximumChannelDifference": 1,
+          "changedPixels": 6,
+          "comparedPixels": 52052
+        }
+      ],
+      "equalGlyphCorePixels": 3046
+    },
+    {
+      "name": "PDF page count and content streams",
+      "status": "PASS",
+      "pages": 18,
+      "visualReview": "See VALIDATION.md; programmatic checks cannot assess appearance"
+    }
+  ],
+  "dimensions": {
+    "00-lived-desktop": {
+      "logical": [
+        1440.0,
+        900.0
+      ],
+      "pixels": [
+        2880,
+        1800
+      ]
+    },
+    "01-default-desktop": {
+      "logical": [
+        1440.0,
+        900.0
+      ],
+      "pixels": [
+        2880,
+        1800
+      ]
+    },
+    "02-layout-comparison": {
+      "logical": [
+        1200.0,
+        1200.0
+      ],
+      "pixels": [
+        2400,
+        2400
+      ]
+    },
+    "03-width-comparison": {
+      "logical": [
+        1200.0,
+        1180.0
+      ],
+      "pixels": [
+        2400,
+        2360
+      ]
+    },
+    "04-material-comparison": {
+      "logical": [
+        1200.0,
+        1020.0
+      ],
+      "pixels": [
+        2400,
+        2040
+      ]
+    },
+    "05-state-reference": {
+      "logical": [
+        1200.0,
+        1100.0
+      ],
+      "pixels": [
+        2400,
+        2200
+      ]
+    },
+    "06-annotated-detail": {
+      "logical": [
+        1200.0,
+        1120.0
+      ],
+      "pixels": [
+        2400,
+        2240
+      ]
+    },
+    "07-three-tools-desktop": {
+      "logical": [
+        1440.0,
+        900.0
+      ],
+      "pixels": [
+        2880,
+        1800
+      ]
+    },
+    "08-split-workspace-desktop": {
+      "logical": [
+        1440.0,
+        900.0
+      ],
+      "pixels": [
+        2880,
+        1800
+      ]
+    },
+    "09-native-and-accessibility": {
+      "logical": [
+        1200.0,
+        1020.0
+      ],
+      "pixels": [
+        2400,
+        2040
+      ]
+    },
+    "10-tray-flow": {
+      "logical": [
+        1320.0,
+        1430.0
+      ],
+      "pixels": [
+        2640,
+        2860
+      ]
+    },
+    "11-voice-and-memo": {
+      "logical": [
+        1320.0,
+        1430.0
+      ],
+      "pixels": [
+        2640,
+        2860
+      ]
+    },
+    "12-inline-translation": {
+      "logical": [
+        1320.0,
+        1240.0
+      ],
+      "pixels": [
+        2640,
+        2480
+      ]
+    },
+    "13-interaction-states": {
+      "logical": [
+        1200.0,
+        1020.0
+      ],
+      "pixels": [
+        2400,
+        2040
+      ]
+    },
+    "14-background-stress": {
+      "logical": [
+        1200.0,
+        1020.0
+      ],
+      "pixels": [
+        2400,
+        2040
+      ]
+    },
+    "15-density-comparison": {
+      "logical": [
+        1200.0,
+        1240.0
+      ],
+      "pixels": [
+        2400,
+        2480
+      ]
+    }
+  },
+  "nativeOpticalCalibration": "NOT_RUN",
+  "nativeInteractionAcceptance": "NOT_RUN in this design task; retain separate existing native receipts"
+}

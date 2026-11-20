@@ -1,0 +1,3135 @@
+{
+  "lived": {
+    "listY": 320,
+    "toolCount": 2,
+    "toolOrder": [
+      "voice",
+      "tray"
+    ],
+    "overflow": false,
+    "lastY": 852.0,
+    "cards": [
+      {
+        "kind": "window",
+        "top": 320,
+        "height": 122.0,
+        "members": [
+          "browser-1"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 453.0,
+        "height": 122.0,
+        "members": [
+          "notes-2"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 586.0,
+        "height": 122.0,
+        "members": [
+          "code-3"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 719.0,
+        "height": 122.0,
+        "members": [
+          "chat-4"
+        ],
+        "fullyVisible": true
+      }
+    ],
+    "sourceInventory": [
+      {
+        "id": "browser-1",
+        "app": "browser",
+        "frame": [
+          0,
+          30,
+          764.4,
+          730.14
+        ],
+        "sourceSize": [
+          764.4,
+          730.14
+        ],
+        "birthOrdinal": 1
+      },
+      {
+        "id": "notes-2",
+        "app": "notes",
+        "frame": [
+          729.12,
+          0,
+          446.88,
+          585.81
+        ],
+        "sourceSize": [
+          446.88,
+          585.81
+        ],
+        "birthOrdinal": 2
+      },
+      {
+        "id": "code-3",
+        "app": "code",
+        "frame": [
+          411.59999999999997,
+          365.07,
+          764.4,
+          483.92999999999995
+        ],
+        "sourceSize": [
+          764.4,
+          483.92999999999995
+        ],
+        "birthOrdinal": 3
+      },
+      {
+        "id": "chat-4",
+        "app": "chat",
+        "frame": [
+          141.12,
+          229.23000000000002,
+          540.96,
+          585.81
+        ],
+        "sourceSize": [
+          540.96,
+          585.81
+        ],
+        "birthOrdinal": 4
+      }
+    ],
+    "screen": [
+      1440,
+      900
+    ],
+    "panelWidth": 240,
+    "workRect": [
+      12,
+      39,
+      1176,
+      849
+    ],
+    "projections": [
+      {
+        "id": "browser-1",
+        "source": "x3",
+        "sourceSize": [
+          764.4,
+          730.14
+        ],
+        "scale": 0.14243843646423973,
+        "slot": [
+          1216,
+          357,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          108.87994083326485,
+          104.0
+        ]
+      },
+      {
+        "id": "notes-2",
+        "source": "x5",
+        "sourceSize": [
+          446.88,
+          585.81
+        ],
+        "scale": 0.17753196428876258,
+        "slot": [
+          1216,
+          490.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          79.33548420136222,
+          104.0
+        ]
+      },
+      {
+        "id": "code-3",
+        "source": "x9",
+        "sourceSize": [
+          764.4,
+          483.92999999999995
+        ],
+        "scale": 0.21490711466534418,
+        "slot": [
+          1216,
+          623.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          164.2749984501891,
+          104.0
+        ]
+      },
+      {
+        "id": "chat-4",
+        "source": "x7",
+        "sourceSize": [
+          540.96,
+          585.81
+        ],
+        "scale": 0.17753196428876258,
+        "slot": [
+          1216,
+          756.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          96.03769140164901,
+          104.0
+        ]
+      }
+    ]
+  },
+  "default": {
+    "listY": 320,
+    "toolCount": 2,
+    "toolOrder": [
+      "voice",
+      "tray"
+    ],
+    "overflow": false,
+    "lastY": 852.0,
+    "cards": [
+      {
+        "kind": "window",
+        "top": 320,
+        "height": 122.0,
+        "members": [
+          "browser-1"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 453.0,
+        "height": 122.0,
+        "members": [
+          "notes-2"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 586.0,
+        "height": 122.0,
+        "members": [
+          "code-3"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 719.0,
+        "height": 122.0,
+        "members": [
+          "chat-4"
+        ],
+        "fullyVisible": true
+      }
+    ],
+    "sourceInventory": [
+      {
+        "id": "browser-1",
+        "app": "browser",
+        "frame": [
+          0.0,
+          0.0,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 1
+      },
+      {
+        "id": "notes-2",
+        "app": "notes",
+        "frame": [
+          593.0,
+          0.0,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 2
+      },
+      {
+        "id": "code-3",
+        "app": "code",
+        "frame": [
+          0.0,
+          429.5,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 3
+      },
+      {
+        "id": "chat-4",
+        "app": "chat",
+        "frame": [
+          593.0,
+          429.5,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 4
+      }
+    ],
+    "screen": [
+      1440,
+      900
+    ],
+    "panelWidth": 240,
+    "workRect": [
+      12,
+      39,
+      1176,
+      849
+    ],
+    "projections": [
+      {
+        "id": "browser-1",
+        "source": "x3",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          357,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      },
+      {
+        "id": "notes-2",
+        "source": "x5",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          490.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      },
+      {
+        "id": "code-3",
+        "source": "x7",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          623.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      },
+      {
+        "id": "chat-4",
+        "source": "x9",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          756.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      }
+    ]
+  },
+  "threeTools": {
+    "listY": 458,
+    "toolCount": 3,
+    "toolOrder": [
+      "voice",
+      "tray",
+      "memo"
+    ],
+    "overflow": true,
+    "lastY": 990.0,
+    "cards": [
+      {
+        "kind": "window",
+        "top": 458,
+        "height": 122.0,
+        "members": [
+          "browser-1"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 591.0,
+        "height": 122.0,
+        "members": [
+          "notes-2"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 724.0,
+        "height": 122.0,
+        "members": [
+          "code-3"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "window",
+        "top": 857.0,
+        "height": 122.0,
+        "members": [
+          "chat-4"
+        ],
+        "fullyVisible": false
+      }
+    ],
+    "sourceInventory": [
+      {
+        "id": "browser-1",
+        "app": "browser",
+        "frame": [
+          0.0,
+          0.0,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 1
+      },
+      {
+        "id": "notes-2",
+        "app": "notes",
+        "frame": [
+          593.0,
+          0.0,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 2
+      },
+      {
+        "id": "code-3",
+        "app": "code",
+        "frame": [
+          0.0,
+          429.5,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 3
+      },
+      {
+        "id": "chat-4",
+        "app": "chat",
+        "frame": [
+          593.0,
+          429.5,
+          583.0,
+          419.5
+        ],
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "birthOrdinal": 4
+      }
+    ],
+    "screen": [
+      1440,
+      900
+    ],
+    "panelWidth": 240,
+    "workRect": [
+      12,
+      39,
+      1176,
+      849
+    ],
+    "projections": [
+      {
+        "id": "browser-1",
+        "source": "x3",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          495,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      },
+      {
+        "id": "notes-2",
+        "source": "x5",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          628.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      },
+      {
+        "id": "code-3",
+        "source": "x7",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          761.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      },
+      {
+        "id": "chat-4",
+        "source": "x9",
+        "sourceSize": [
+          583.0,
+          419.5
+        ],
+        "scale": 0.24791418355184744,
+        "slot": [
+          1216,
+          894.0,
+          208,
+          104.0
+        ],
+        "projectedSize": [
+          144.53396901072705,
+          104.0
+        ]
+      }
+    ]
+  },
+  "splitDesktop": {
+    "listY": 320,
+    "toolCount": 2,
+    "toolOrder": [
+      "voice",
+      "tray"
+    ],
+    "overflow": true,
+    "lastY": 1032.49,
+    "cards": [
+      {
+        "kind": "group",
+        "top": 320,
+        "height": 168.16,
+        "members": [
+          "browser-1",
+          "code-2"
+        ],
+        "fullyVisible": true
+      },
+      {
+        "kind": "space",
+        "top": 515.16,
+        "height": 168.16,
+        "members": [],
+        "fullyVisible": true
+      },
+      {
+        "kind": "fullscreen",
+        "top": 694.33,
+        "height": 148.0,
+        "members": [],
+        "fullyVisible": true
+      },
+      {
+        "kind": "space",
+        "top": 853.33,
+        "height": 168.16,
+        "members": [],
+        "fullyVisible": false
+      }
+    ],
+    "sourceInventory": [
+      {
+        "id": "browser-1",
+        "app": "browser",
+        "frame": [
+          0,
+          0,
+          583.0,
+          849
+        ],
+        "sourceSize": [
+          583.0,
+          849
+        ],
+        "birthOrdinal": 1
+      },
+      {
+        "id": "code-2",
+        "app": "code",
+        "frame": [
+          593.0,
+          0,
+          583.0,
+          849
+        ],
+        "sourceSize": [
+          583.0,
+          849
+        ],
+        "birthOrdinal": 2
+      }
+    ],
+    "screen": [
+      1440,
+      900
+    ],
+    "panelWidth": 240,
+    "workRect": [
+      12,
+      39,
+      1176,
+      849
+    ],
+    "projections": [
+      {
+        "id": "browser-1",
+        "source": "x3",
+        "sourceSize": [
+          583.0,
+          849
+        ],
+        "frame": [
+          0,
+          0,
+          583.0,
+          849
+        ],
+        "scale": 0.17687074829931973,
+        "projectedFrame": [
+          1216.0,
+          357.0,
+          103.1156462585034,
+          150.16326530612244
+        ]
+      },
+      {
+        "id": "code-2",
+        "source": "x5",
+        "sourceSize": [
+          583.0,
+          849
+        ],
+        "frame": [
+          593.0,
+          0,
+          583.0,
+          849
+        ],
+        "scale": 0.17687074829931973,
+        "projectedFrame": [
+          1320.8843537414966,
+          357.0,
+          103.1156462585034,
+          150.16326530612244
+        ]
+      },
+      {
+        "id": "notes-1",
+        "source": "x15",
+        "sourceSize": [
+          1000,
+          721.9387755102041
+        ],
+        "frame": [
+          0,
+          0,
+          1000,
+          721.9387755102041
+        ],
+        "scale": 0.208,
+        "projectedFrame": [
+          1216.0,
+          552.1632653061224,
+          208.0,
+          150.16326530612244
+        ]
+      },
+      {
+        "id": "browser-1",
+        "source": "x21",
+        "sourceSize": [
+          495.0,
+          721.9387755102041
+        ],
+        "frame": [
+          0,
+          0,
+          495.0,
+          721.9387755102041
+        ],
+        "scale": 0.208,
+        "projectedFrame": [
+          1216.0,
+          890.3265306122448,
+          102.96,
+          150.16326530612244
+        ]
+      },
+      {
+        "id": "code-2",
+        "source": "x23",
+        "sourceSize": [
+          495.0,
+          721.9387755102041
+        ],
+        "frame": [
+          505.0,
+          0,
+          495.0,
+          721.9387755102041
+        ],
+        "scale": 0.208,
+        "projectedFrame": [
+          1321.04,
+          890.3265306122448,
+          102.96,
+          150.16326530612244
+        ]
+      }
+    ]
+  },
+  "width": [
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 732.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 92.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 423.0,
+          "height": 92.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 526.0,
+          "height": 92.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 629.0,
+          "height": 92.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": true
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            593.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            593.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 852.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 122.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 453.0,
+          "height": 122.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 586.0,
+          "height": 122.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 719.0,
+          "height": 122.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            593.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            593.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 1092.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 182.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 513.0,
+          "height": 182.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 706.0,
+          "height": 182.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": false
+        },
+        {
+          "kind": "window",
+          "top": 899.0,
+          "height": 182.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            593.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            593.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    }
+  ],
+  "material": [
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 820.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 131.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 394.0,
+          "height": 131.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 536.0,
+          "height": 131.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 678.0,
+          "height": 131.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 820.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 131.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 394.0,
+          "height": 131.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 536.0,
+          "height": 131.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 678.0,
+          "height": 131.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 820.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 131.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 394.0,
+          "height": 131.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 536.0,
+          "height": 131.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 678.0,
+          "height": 131.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 820.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 252,
+          "height": 131.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 394.0,
+          "height": 131.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 536.0,
+          "height": 131.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 678.0,
+          "height": 131.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    }
+  ],
+  "layout": [
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 888.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 131.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 462.0,
+          "height": 131.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 604.0,
+          "height": 131.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 746.0,
+          "height": 131.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 458,
+      "toolCount": 3,
+      "toolOrder": [
+        "voice",
+        "tray",
+        "memo"
+      ],
+      "overflow": true,
+      "lastY": 1026.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 458,
+          "height": 131.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 600.0,
+          "height": 131.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 742.0,
+          "height": 131.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": false
+        },
+        {
+          "kind": "window",
+          "top": 884.0,
+          "height": 131.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 354,
+      "toolCount": 3,
+      "toolOrder": [
+        "voice",
+        "tray",
+        "memo"
+      ],
+      "overflow": true,
+      "lastY": 922.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 354,
+          "height": 131.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 496.0,
+          "height": 131.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 638.0,
+          "height": 131.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 780.0,
+          "height": 131.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 320,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 1037.64,
+      "cards": [
+        {
+          "kind": "group",
+          "top": 320,
+          "height": 183.69,
+          "members": [
+            "browser-1",
+            "code-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 514.69,
+          "height": 131.0,
+          "members": [],
+          "fullyVisible": true
+        },
+        {
+          "kind": "space",
+          "top": 672.69,
+          "height": 183.69,
+          "members": [],
+          "fullyVisible": false
+        },
+        {
+          "kind": "fullscreen",
+          "top": 867.39,
+          "height": 159.25,
+          "members": [],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            584.0,
+            0.0,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            584.0,
+            429.5,
+            574.0,
+            419.5
+          ],
+          "sourceSize": [
+            574.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    }
+  ],
+  "stress": [
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 252,
+      "cards": [],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            561.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            561.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 252,
+      "cards": [],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            561.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            561.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 252,
+      "cards": [],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            561.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            561.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 252,
+      "cards": [],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            561.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            561.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 252,
+      "cards": [],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            561.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            561.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    {
+      "listY": 252,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 252,
+      "cards": [],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            561.0,
+            0.0,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            561.0,
+            429.5,
+            551.0,
+            419.5
+          ],
+          "sourceSize": [
+            551.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    }
+  ],
+  "density": {
+    "source": {
+      "listY": 320,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": true,
+      "lastY": 1034.67,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 167.67,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 498.67,
+          "height": 167.67,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 677.33,
+          "height": 167.67,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 856.0,
+          "height": 167.67,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": false
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            593.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            593.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    },
+    "balanced": {
+      "listY": 320,
+      "toolCount": 2,
+      "toolOrder": [
+        "voice",
+        "tray"
+      ],
+      "overflow": false,
+      "lastY": 852.0,
+      "cards": [
+        {
+          "kind": "window",
+          "top": 320,
+          "height": 122.0,
+          "members": [
+            "browser-1"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 453.0,
+          "height": 122.0,
+          "members": [
+            "notes-2"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 586.0,
+          "height": 122.0,
+          "members": [
+            "code-3"
+          ],
+          "fullyVisible": true
+        },
+        {
+          "kind": "window",
+          "top": 719.0,
+          "height": 122.0,
+          "members": [
+            "chat-4"
+          ],
+          "fullyVisible": true
+        }
+      ],
+      "sourceInventory": [
+        {
+          "id": "browser-1",
+          "app": "browser",
+          "frame": [
+            0.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 1
+        },
+        {
+          "id": "notes-2",
+          "app": "notes",
+          "frame": [
+            593.0,
+            0.0,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 2
+        },
+        {
+          "id": "code-3",
+          "app": "code",
+          "frame": [
+            0.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 3
+        },
+        {
+          "id": "chat-4",
+          "app": "chat",
+          "frame": [
+            593.0,
+            429.5,
+            583.0,
+            419.5
+          ],
+          "sourceSize": [
+            583.0,
+            419.5
+          ],
+          "birthOrdinal": 4
+        }
+      ]
+    }
+  },
+  "supplements": {
+    "trayFlow": [
+      {
+        "name": "空托盘",
+        "recommendedCompletion": false,
+        "hiddenDescription": "无",
+        "visibleItems": [
+          "C",
+          "F"
+        ],
+        "rows": 1,
+        "moduleHeight": 76,
+        "cells": [
+          {
+            "item": "C",
+            "frame": [
+              132.0,
+              234.0,
+              99.0,
+              64.0
+            ]
+          },
+          {
+            "item": "F",
+            "frame": [
+              237.0,
+              234.0,
+              99.0,
+              64.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "一张截图",
+        "recommendedCompletion": false,
+        "hiddenDescription": "无；第四位不绘制空框",
+        "visibleItems": [
+          "S1",
+          "C",
+          "F"
+        ],
+        "rows": 2,
+        "moduleHeight": 144,
+        "cells": [
+          {
+            "item": "S1",
+            "frame": [
+              558.0,
+              234.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "C",
+            "frame": [
+              663.0,
+              234.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F",
+            "frame": [
+              558.0,
+              303.0,
+              99.0,
+              63.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "两张截图",
+        "recommendedCompletion": false,
+        "hiddenDescription": "无",
+        "visibleItems": [
+          "S1",
+          "S2",
+          "C",
+          "F"
+        ],
+        "rows": 2,
+        "moduleHeight": 144,
+        "cells": [
+          {
+            "item": "S1",
+            "frame": [
+              984.0,
+              234.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "S2",
+            "frame": [
+              1089.0,
+              234.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "C",
+            "frame": [
+              984.0,
+              303.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F",
+            "frame": [
+              1089.0,
+              303.0,
+              99.0,
+              63.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "三张以上截图",
+        "recommendedCompletion": false,
+        "hiddenDescription": "文件入口、较早截图",
+        "visibleItems": [
+          "S1",
+          "S2",
+          "S3",
+          "C"
+        ],
+        "rows": 2,
+        "moduleHeight": 144,
+        "cells": [
+          {
+            "item": "S1",
+            "frame": [
+              132.0,
+              578.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "S2",
+            "frame": [
+              237.0,
+              578.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "S3",
+            "frame": [
+              132.0,
+              647.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "C",
+            "frame": [
+              237.0,
+              647.0,
+              99.0,
+              63.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "一张截图、一个文件",
+        "recommendedCompletion": false,
+        "hiddenDescription": "无",
+        "visibleItems": [
+          "S1",
+          "C",
+          "F",
+          "F1"
+        ],
+        "rows": 2,
+        "moduleHeight": 144,
+        "cells": [
+          {
+            "item": "S1",
+            "frame": [
+              558.0,
+              578.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "C",
+            "frame": [
+              663.0,
+              578.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F",
+            "frame": [
+              558.0,
+              647.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F1",
+            "frame": [
+              663.0,
+              647.0,
+              99.0,
+              63.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "多张截图、一个文件",
+        "recommendedCompletion": false,
+        "hiddenDescription": "文件入口、较早截图",
+        "visibleItems": [
+          "S1",
+          "S2",
+          "C",
+          "F1"
+        ],
+        "rows": 2,
+        "moduleHeight": 144,
+        "cells": [
+          {
+            "item": "S1",
+            "frame": [
+              984.0,
+              578.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "S2",
+            "frame": [
+              1089.0,
+              578.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "C",
+            "frame": [
+              984.0,
+              647.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F1",
+            "frame": [
+              1089.0,
+              647.0,
+              99.0,
+              63.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "空间紧张时",
+        "recommendedCompletion": false,
+        "hiddenDescription": "两个入口、较早内容",
+        "visibleItems": [
+          "S1",
+          "F1"
+        ],
+        "rows": 1,
+        "moduleHeight": 76,
+        "cells": [
+          {
+            "item": "S1",
+            "frame": [
+              132.0,
+              922.0,
+              99.0,
+              64.0
+            ]
+          },
+          {
+            "item": "F1",
+            "frame": [
+              237.0,
+              922.0,
+              99.0,
+              64.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "只有一个文件",
+        "recommendedCompletion": true,
+        "hiddenDescription": "文件空入口",
+        "visibleItems": [
+          "C",
+          "F1"
+        ],
+        "rows": 1,
+        "moduleHeight": 76,
+        "cells": [
+          {
+            "item": "C",
+            "frame": [
+              558.0,
+              922.0,
+              99.0,
+              64.0
+            ]
+          },
+          {
+            "item": "F1",
+            "frame": [
+              663.0,
+              922.0,
+              99.0,
+              64.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "多个文件",
+        "recommendedCompletion": true,
+        "hiddenDescription": "文件空入口、更早文件",
+        "visibleItems": [
+          "C",
+          "F3",
+          "F2",
+          "F1"
+        ],
+        "rows": 2,
+        "moduleHeight": 144,
+        "cells": [
+          {
+            "item": "C",
+            "frame": [
+              984.0,
+              922.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F3",
+            "frame": [
+              1089.0,
+              922.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F2",
+            "frame": [
+              984.0,
+              991.0,
+              99.0,
+              63.0
+            ]
+          },
+          {
+            "item": "F1",
+            "frame": [
+              1089.0,
+              991.0,
+              99.0,
+              63.0
+            ]
+          }
+        ]
+      }
+    ],
+    "voiceAndMemo": {
+      "voice": [
+        {
+          "state": "active",
+          "moduleHeight": 144,
+          "bodyVisible": true,
+          "captureEnabled": true,
+          "waveformActive": true
+        },
+        {
+          "state": "waiting",
+          "moduleHeight": 144,
+          "bodyVisible": true,
+          "captureEnabled": true,
+          "waveformActive": false
+        },
+        {
+          "state": "paused",
+          "moduleHeight": 40,
+          "bodyVisible": false,
+          "captureEnabled": false,
+          "waveformActive": false
+        },
+        {
+          "state": "permission",
+          "moduleHeight": 40,
+          "bodyVisible": false,
+          "captureEnabled": false,
+          "waveformActive": false
+        }
+      ],
+      "memo": [
+        {
+          "expression": "128 × 3 =",
+          "temporaryResultVisible": false,
+          "moduleHeight": 128
+        },
+        {
+          "expression": "128 × 3 =",
+          "temporaryResultVisible": true,
+          "moduleHeight": 128
+        },
+        {
+          "expression": "128 × 3 =",
+          "temporaryResultVisible": false,
+          "moduleHeight": 128
+        }
+      ],
+      "cancelPreservesExpression": true,
+      "independentDraftNavigation": "context menu -> draft -> back to unchanged memo"
+    },
+    "inlineTranslation": {
+      "selectionFrame": [
+        91,
+        377,
+        80,
+        25
+      ],
+      "popoverFrame": [
+        84,
+        412,
+        324,
+        166
+      ],
+      "selectionNotOccluded": true,
+      "saveButton": false,
+      "wordbookFrame": [
+        52,
+        820,
+        754,
+        284
+      ],
+      "containsUserData": false
+    }
+  }
+}
