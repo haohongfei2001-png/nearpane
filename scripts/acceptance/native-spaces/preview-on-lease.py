@@ -79,6 +79,12 @@ def run(args):
                 result["documents"] = {k: proof[k] for k in ("status", "operationStatus", "reason", "issued", "passes", "cleanup")}
             finally:
                 document_receipt.finish()
+        elif args.scenario == "pair-cross":
+            from cross_app_pair import run as cross_pair
+            source = plistlib.loads((APP/"Contents/Info.plist").read_bytes())["NearpaneSourceRevision"]
+            proof = cross_pair(Path(os.environ["NP_P2_DOCUMENT_KIT"]), output/"cross-app-pair",
+                               workspace, args.expected_space, space_uuid, source)
+            result["crossApplicationPair"] = {k: proof[k] for k in ("status", "operationStatus", "attempts", "issued", "cleanup")}
         elif args.scenario in ("pair-pointer", "pair-focus", "pair-drag"):
             from pair_pointer import PairPointerRun
             receipt = Receipt(output / "pair-pointer")
@@ -145,7 +151,7 @@ def run(args):
                 result["stageRestore"] = dict(status="BLOCKED", reason=str(error)[:260])
             if result["stageRestore"]["status"] != "PASS":
                 result["status"] = "BLOCKED"
-            elif result["preview"]["status"] != "NOT_RUN" or any(k in result for k in ("documents", "fiveWindows", "controlledWindow", "pairPointer")):
+            elif result["preview"]["status"] != "NOT_RUN" or any(k in result for k in ("documents", "fiveWindows", "controlledWindow", "pairPointer", "crossApplicationPair")):
                 try:
                     result["afterFixture"] = empty_system_desktop(workspace, args.expected_space)
                 except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
@@ -169,7 +175,7 @@ if __name__ == "__main__":
     parser.add_argument("workspace", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--expected-space", required=True, type=int)
-    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows", "controlled-window", "pair-pointer", "pair-focus", "pair-drag", "hidden-budget"), default="paired-preview")
+    parser.add_argument("--scenario", choices=("paired-preview", "same-space-documents", "five-windows", "controlled-window", "pair-pointer", "pair-focus", "pair-drag", "pair-cross", "hidden-budget"), default="paired-preview")
     parser.add_argument("--five-window-kit", type=Path, help="signed five-application kit for the five-windows scenario")
     parser.add_argument("--previous-archive", type=Path)
     parser.add_argument("--install-receipt", type=Path)
