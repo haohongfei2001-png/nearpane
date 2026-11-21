@@ -1,7 +1,14 @@
 import Foundation
 import Observation
 
-/// Membership belongs to the display. Native Space observations and live AX authority never enter this file.
+/// A read-only partition. Neither UUID is a destination for native window operations.
+public struct StageGroupScope: Hashable, Codable, Sendable {
+    public let display: UUID
+    public let nativeSpace: UUID
+    public init(display: UUID, nativeSpace: UUID) { self.display = display; self.nativeSpace = nativeSpace }
+}
+
+/// Group identity belongs to Nearpane. Partition provenance survives a restart; AX authority never does.
 public struct StageGroupDirectory: Codable, Equatable, Sendable {
     public struct Member: Codable, Equatable, Identifiable, Sendable {
         public let id: UUID
@@ -13,12 +20,15 @@ public struct StageGroupDirectory: Codable, Equatable, Sendable {
         public let id: UUID
         public var members: [Member]
         public var selectedMember: UUID?
+        public var nativeSpace: UUID?
+        public var needsReorganization: Bool?
+        public var verifiedActive: Bool?
     }
 
     public struct Display: Codable, Equatable, Identifiable, Sendable {
         public let id: UUID
         public var groups: [Group]
-        /// Set only after a verified visibility transaction. A focus or directory edit never sets this.
+        /// Legacy v1 field, cleared when migrating. New activity is unique within each ordinary Space.
         public var activeGroup: UUID?
     }
 
@@ -27,12 +37,17 @@ public struct StageGroupDirectory: Codable, Equatable, Sendable {
 
     fileprivate func validate() throws {
         var ids = Set<UUID>(), windows = Set<NativeSpaceWindow>()
-        guard version == 1 else { throw StageGroupError.invalidDirectory }
+        guard version == 1 || version == 2 else { throw StageGroupError.invalidDirectory }
         for display in displays {
             guard ids.insert(display.id).inserted,
                   display.activeGroup.map({ id in display.groups.contains { $0.id == id } }) != false
             else { throw StageGroupError.invalidDirectory }
+            var activeSpaces = Set<UUID>()
             for group in display.groups {
+                if group.verifiedActive == true {
+                    guard version == 2, group.needsReorganization != true, let space = group.nativeSpace,
+                          activeSpaces.insert(space).inserted else { throw StageGroupError.invalidDirectory }
+                }
                 guard ids.insert(group.id).inserted, !group.members.isEmpty,
                       group.selectedMember.map({ id in group.members.contains { $0.id == id } }) != false
                 else { throw StageGroupError.invalidDirectory }
@@ -64,12 +79,14 @@ public struct StageGroupWindow: Sendable {
     public let display: UUID
     public let identity: NativeSpaceWindow
     public let lifetime: UUID
+    public let nativeSpace: UUID?
     public let layout: SurfaceRect?
 
-    public init(display: UUID, identity: NativeSpaceWindow, lifetime: UUID, layout: SurfaceRect? = nil) {
+    public init(display: UUID, identity: NativeSpaceWindow, lifetime: UUID, layout: SurfaceRect? = nil, nativeSpace: UUID? = nil) {
         self.display = display
         self.identity = identity
         self.lifetime = lifetime
+        self.nativeSpace = nativeSpace
         self.layout = layout
     }
 
@@ -87,22 +104,40 @@ public struct StageGroupWindow: Sendable {
 }
 
 @MainActor @Observable public final class StageGroupStore {
-    public private(set) var directory = StageGroupDirectory(version: 1, displays: [])
+    public private(set) var directory = StageGroupDirectory(version: 2, displays: [])
     public private(set) var loadIssue: String?
-    private let file: URL?
+    private let file: URL?, legacy: URL?
+    @ObservationIgnored private var legacyOriginal: Data?
     @ObservationIgnored private var original: Data?
     private var bindings = [NativeSpaceWindow: UUID]()
 
     /// The Host supplies its exclusively leased profile directory. A nil location is an in-memory fixture.
     public init(profile: URL?) {
-        file = profile?.appendingPathComponent("stage-groups-v1.json")
+        file = profile?.appendingPathComponent("stage-groups-v2.json")
+        legacy = profile?.appendingPathComponent("stage-groups-v1.json")
         guard let file else { return }
         do {
             original = try Self.read(file)
             if let original {
                 let loaded = try JSONDecoder().decode(StageGroupDirectory.self, from: original)
                 try loaded.validate()
+                guard loaded.version == 2, loaded.displays.allSatisfy({ $0.activeGroup == nil }) else { throw StageGroupError.invalidDirectory }
                 directory = loaded
+            } else if let legacy, let old = try Self.read(legacy) {
+                legacyOriginal = old
+                let previous = try JSONDecoder().decode(StageGroupDirectory.self, from: old)
+                try previous.validate()
+                guard previous.version == 1 else { throw StageGroupError.invalidDirectory }
+                var migrated = StageGroupDirectory(version: 2, displays: previous.displays)
+                for d in migrated.displays.indices {
+                    migrated.displays[d].activeGroup = nil
+                    for g in migrated.displays[d].groups.indices {
+                        migrated.displays[d].groups[g].nativeSpace = nil
+                        migrated.displays[d].groups[g].needsReorganization = nil
+                        migrated.displays[d].groups[g].verifiedActive = nil
+                    }
+                }
+                directory = migrated
             }
         } catch { loadIssue = StageGroupError.invalidDirectory.localizedDescription }
     }
@@ -117,7 +152,8 @@ public struct StageGroupWindow: Sendable {
         guard updated != directory else { return }
         try updated.validate()
         if let file {
-            guard try Self.read(file) == original else {
+            let legacyUnchanged = try original != nil || legacy.flatMap(Self.read) == legacyOriginal
+            guard try Self.read(file) == original, legacyUnchanged else {
                 loadIssue = StageGroupError.changedFile.localizedDescription
                 throw StageGroupError.changedFile
             }
@@ -137,13 +173,34 @@ public struct StageGroupWindow: Sendable {
         let occurrences = Dictionary(grouping: windows, by: \.identity)
         for window in windows where occurrences[window.identity]?.count == 1 && known.insert(window.identity).inserted {
             let member = StageGroupDirectory.Member(id: UUID(), windowHint: window.identity, layout: window.layout)
-            let group = StageGroupDirectory.Group(id: UUID(), members: [member])
+            let group = StageGroupDirectory.Group(id: UUID(), members: [member], nativeSpace: window.nativeSpace)
             if let index = next.displays.firstIndex(where: { $0.id == window.display }) {
                 next.displays[index].groups.append(group)
             } else {
                 next.displays.append(.init(id: window.display, groups: [group]))
             }
             additions[window.identity] = window.lifetime
+        }
+        for d in next.displays.indices {
+            for g in next.displays[d].groups.indices {
+                var group = next.displays[d].groups[g]
+                let live = group.members.compactMap { member -> StageGroupWindow? in
+                    guard let candidates = occurrences[member.windowHint], candidates.count == 1 else { return nil }
+                    return candidates[0]
+                }
+                let observedSpaces = Set(live.compactMap(\.nativeSpace))
+                let moved = live.contains { $0.display != next.displays[d].id } ||
+                    group.nativeSpace.map { !observedSpaces.subtracting([$0]).isEmpty } == true
+                if moved || observedSpaces.count > 1 {
+                    group.needsReorganization = true
+                    group.verifiedActive = nil
+                } else if live.count == group.members.count,
+                          live.allSatisfy({ $0.nativeSpace != nil && bindings[$0.identity] == $0.lifetime }), observedSpaces.count == 1 {
+                    group.nativeSpace = observedSpaces.first
+                    group.needsReorganization = nil
+                }
+                next.displays[d].groups[g] = group
+            }
         }
         try commit(next)
         if !additions.isEmpty { bindings.merge(additions) { _, new in new } }
@@ -153,14 +210,38 @@ public struct StageGroupWindow: Sendable {
         directory.displays.first { $0.id == display }?.groups ?? []
     }
 
+    public func groups(in scope: StageGroupScope) -> [StageGroupDirectory.Group] {
+        groups(on: scope.display).filter { $0.nativeSpace == scope.nativeSpace }
+    }
+
+    public func activeGroup(in scope: StageGroupScope) -> UUID? {
+        groups(in: scope).first { $0.verifiedActive == true }?.id
+    }
+
+    /// Called only by the coordinator once a whole-transaction independent readback is complete.
+    func commitActivity(_ group: UUID, preferred: UUID, in scope: StageGroupScope,
+                        expected: StageGroupDirectory) throws {
+        guard directory == expected else { throw StageGroupError.changedFile }
+        var next = directory
+        guard let d = next.displays.firstIndex(where: { $0.id == scope.display }),
+              let g = next.displays[d].groups.firstIndex(where: { $0.id == group && $0.nativeSpace == scope.nativeSpace }),
+              next.displays[d].groups[g].needsReorganization != true,
+              next.displays[d].groups[g].members.contains(where: { $0.id == preferred }) else { throw StageGroupError.staleBinding }
+        for index in next.displays[d].groups.indices where next.displays[d].groups[index].nativeSpace == scope.nativeSpace {
+            next.displays[d].groups[index].verifiedActive = index == g ? true : nil
+        }
+        next.displays[d].groups[g].selectedMember = preferred
+        try commit(next)
+    }
+
     /// Partial, stale and other-display groups have no actionable composite card.
     public func projectedGroups(on display: UUID, among windows: [StageGroupWindow]) -> [StageGroupDirectory.Group] {
         let candidates = Dictionary(grouping: windows.filter { $0.display == display }, by: \.identity)
         return groups(on: display).filter { group in
-            group.members.allSatisfy { member in
+            group.needsReorganization != true && group.members.allSatisfy { member in
                 let matches = candidates[member.windowHint]
                 guard matches?.count == 1, let match = matches?.first else { return false }
-                return bindings[member.windowHint] == match.lifetime
+                return bindings[member.windowHint] == match.lifetime && group.nativeSpace == match.nativeSpace
             }
         }
     }
@@ -171,20 +252,29 @@ public struct StageGroupWindow: Sendable {
         }?.id
     }
 
+    /// This can also represent a native Mission Control move within one physical display.
+    public func needsReassignment(_ window: StageGroupWindow) -> Bool {
+        directory.displays.contains { d in d.groups.contains { g in
+            g.members.contains { $0.windowHint == window.identity } &&
+                (d.id != window.display || (g.nativeSpace != nil && window.nativeSpace != nil && g.nativeSpace != window.nativeSpace))
+        } }
+    }
+
     /// An explicit roster edit after macOS or the user has already moved the window onto another display.
     public func assignToObservedDisplay(_ window: StageGroupWindow) throws {
         var next = directory
-        guard let oldID = previousDisplay(of: window), let d = next.displays.firstIndex(where: { $0.id == oldID }),
+        guard needsReassignment(window), let d = next.displays.firstIndex(where: { $0.groups.contains { $0.members.contains { $0.windowHint == window.identity } } }),
               let g = next.displays[d].groups.firstIndex(where: { $0.members.contains { $0.windowHint == window.identity } }),
               let m = next.displays[d].groups[g].members.firstIndex(where: { $0.windowHint == window.identity })
         else { throw StageGroupError.wrongDisplay }
         let oldGroup = next.displays[d].groups[g].id
+        next.displays[d].groups[g].verifiedActive = nil
         var member = next.displays[d].groups[g].members.remove(at: m)
         member.layout = window.layout
         if next.displays[d].groups[g].selectedMember == member.id { next.displays[d].groups[g].selectedMember = nil }
         if next.displays[d].activeGroup == oldGroup { next.displays[d].activeGroup = nil }
         next.displays[d].groups.removeAll { $0.members.isEmpty }
-        let single = StageGroupDirectory.Group(id: UUID(), members: [member])
+        let single = StageGroupDirectory.Group(id: UUID(), members: [member], nativeSpace: window.nativeSpace)
         if let target = next.displays.firstIndex(where: { $0.id == window.display }) {
             next.displays[target].groups.append(single)
         } else {
@@ -196,7 +286,7 @@ public struct StageGroupWindow: Sendable {
 
     /// Explicit confirmation of one roster card only. The hint cannot independently authorize focus or geometry.
     public func needsRebinding(_ window: StageGroupWindow) -> Bool {
-        loadIssue == nil && bindings[window.identity] != window.lifetime &&
+        loadIssue == nil && !needsReassignment(window) && bindings[window.identity] != window.lifetime &&
             groups(on: window.display).contains { $0.members.contains { $0.windowHint == window.identity } }
     }
 
@@ -207,7 +297,7 @@ public struct StageGroupWindow: Sendable {
 
     /// Transfer only the dragged member. Preserve other members, group order and their last verified geometry.
     public func join(_ moving: StageGroupWindow, to target: StageGroupWindow) throws {
-        guard moving.display == target.display else { throw StageGroupError.wrongDisplay }
+        guard moving.display == target.display, moving.nativeSpace == target.nativeSpace else { throw StageGroupError.wrongDisplay }
         guard moving.identity != target.identity, bindings[moving.identity] == moving.lifetime,
               bindings[target.identity] == target.lifetime else { throw StageGroupError.staleBinding }
         var next = directory
@@ -219,10 +309,14 @@ public struct StageGroupWindow: Sendable {
             }
             return nil
         }
-        guard let source = location(moving.identity), let destination = location(target.identity) else { throw StageGroupError.staleBinding }
+        guard let source = location(moving.identity), let destination = location(target.identity),
+              [source.group, destination.group].allSatisfy({ display.groups[$0].nativeSpace == target.nativeSpace &&
+                  display.groups[$0].needsReorganization != true }) else { throw StageGroupError.staleBinding }
         if let frame = target.layout { display.groups[destination.group].members[destination.member].layout = frame }
         if let frame = moving.layout { display.groups[source.group].members[source.member].layout = frame }
         if source.group != destination.group {
+            display.groups[source.group].verifiedActive = nil
+            display.groups[destination.group].verifiedActive = nil
             let member = display.groups[source.group].members.remove(at: source.member)
             display.groups[destination.group].members.append(member)
             if display.groups[source.group].selectedMember == member.id { display.groups[source.group].selectedMember = nil }
@@ -244,9 +338,10 @@ public struct StageGroupWindow: Sendable {
         else { throw StageGroupError.wrongDisplay }
         guard next.displays[d].groups[g].members.count > 1 else { return }
         let member = next.displays[d].groups[g].members.remove(at: m)
+        next.displays[d].groups[g].verifiedActive = nil
         if next.displays[d].groups[g].selectedMember == member.id { next.displays[d].groups[g].selectedMember = nil }
         if next.displays[d].activeGroup == next.displays[d].groups[g].id { next.displays[d].activeGroup = nil }
-        next.displays[d].groups.insert(.init(id: UUID(), members: [member]), at: g + 1)
+        next.displays[d].groups.insert(.init(id: UUID(), members: [member], nativeSpace: window.nativeSpace), at: g + 1)
         try commit(next)
     }
 
@@ -257,7 +352,7 @@ public struct StageGroupWindow: Sendable {
               let g = next.displays[d].groups.firstIndex(where: { $0.id == id }) else { throw StageGroupError.wrongDisplay }
         let old = next.displays[d].groups[g]
         guard old.members.count > 1 else { return }
-        let singles = old.members.map { StageGroupDirectory.Group(id: UUID(), members: [$0]) }
+        let singles = old.members.map { StageGroupDirectory.Group(id: UUID(), members: [$0], nativeSpace: old.nativeSpace, needsReorganization: old.needsReorganization) }
         next.displays[d].groups.replaceSubrange(g...g, with: singles)
         if next.displays[d].activeGroup == id { next.displays[d].activeGroup = nil }
         try commit(next)

@@ -119,6 +119,60 @@ import Testing
         #expect(try Data(contentsOf: file) == Data([1]))
     }
 
+    @Test func scopesSurviveIndependentDesktopSelectionAndNativeMoves() throws {
+        let store = StageGroupStore(profile: nil), s1 = UUID(), s2 = UUID()
+        func scoped(_ w: StageGroupWindow, space: UUID) -> StageGroupWindow {
+            .init(display: w.display, identity: w.identity, lifetime: w.lifetime, layout: w.layout, nativeSpace: space)
+        }
+        let a = scoped(window(1, display: first), space: s1), b = scoped(window(2, display: first), space: s1)
+        let c = scoped(window(3, display: first), space: s2), other = scoped(window(4, display: second), space: s1)
+        let local = StageGroupScope(display: first, nativeSpace: s1), next = StageGroupScope(display: first, nativeSpace: s2)
+        try store.observe([a,b,c,other])
+        try store.join(b, to: a)
+        #expect(throws: StageGroupError.self) { try store.join(c, to: a) }
+        let pair = try #require(store.groups(in: local).first)
+        let single = try #require(store.groups(in: next).first)
+        try store.commitActivity(pair.id, preferred: pair.members[1].id, in: local, expected: store.directory)
+        try store.commitActivity(single.id, preferred: single.members[0].id, in: next, expected: store.directory)
+        #expect(store.activeGroup(in: local) == pair.id && store.activeGroup(in: next) == single.id)
+        #expect(store.activeGroup(in: .init(display: second, nativeSpace: s1)) == nil)
+        let moved = scoped(b, space: s2)
+        try store.observe([moved, c])
+        #expect(store.groups(in: local).first?.needsReorganization == true)
+        #expect(store.activeGroup(in: local) == nil && store.activeGroup(in: next) == single.id)
+        #expect(store.needsReassignment(moved) && store.groups(in: local).first?.members.count == 2)
+        #expect(store.projectedGroups(on: first, among: [a,moved,c]).map(\.id) == [single.id])
+        try store.assignToObservedDisplay(moved)
+        try store.observe([a])
+        #expect(store.groups(in: local).first?.needsReorganization == nil)
+        #expect(store.groups(in: next).count == 2 && store.groups(in: local).first?.members.count == 1)
+    }
+
+    @Test func v1MigrationKeepsOriginalAndDoesNotGuessSpaceOrFocus() throws {
+        let profile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try FileManager.default.createDirectory(at: profile, withIntermediateDirectories: true)
+        let w = window(1, display: first)
+        let oldSlot = StageGroupDirectory.Member(id: UUID(), windowHint: w.identity, layout: w.layout)
+        let g = StageGroupDirectory.Group(id: UUID(), members: [oldSlot])
+        let old = StageGroupDirectory(version: 1, displays: [.init(id: first, groups: [g], activeGroup: g.id)])
+        let path = profile.appendingPathComponent("stage-groups-v1.json")
+        let bytes = try JSONEncoder().encode(old)
+        try bytes.write(to: path)
+        let store = StageGroupStore(profile: profile), space = UUID()
+        let live = StageGroupWindow(display: first, identity: w.identity, lifetime: UUID(), nativeSpace: space)
+        try store.observe([live])
+        #expect(store.directory.displays.first?.activeGroup == nil && store.groups(on: first).first?.nativeSpace == nil)
+        #expect(store.projectedGroups(on: first, among: [live]).isEmpty)
+        try store.rebind(live)
+        try store.observe([live])
+        let copy = StageGroupStore(profile: profile)
+        #expect(copy.directory == store.directory)
+        #expect(copy.groups(in: .init(display: first, nativeSpace: space)).first?.members == [oldSlot])
+        #expect(copy.activeGroup(in: .init(display: first, nativeSpace: space)) == nil)
+        #expect(try Data(contentsOf: path) == bytes)
+    }
+
     @Test func relativeFramesUseDisplayLocalUsableOrigin() {
         let rect = StageGroupWindow.relativeFrame(.init(x: -10, y: 20, width: 500, height: 380),
                                                   in: .init(x: 10, y: 20, width: 1000, height: 760))

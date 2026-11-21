@@ -75,16 +75,16 @@ import OSLog
     /// A member must still be on this physical display and its current ordinary desktop.
     private func groupWindow(_ window: WindowObservation, on screen: DisplayObservation,
                              current: SpaceRecord) -> StageGroupWindow? {
-        guard current.ordinaryUUID != nil, window.displayID == screen.id, let display = UUID(uuidString: screen.id),
+        guard let nativeSpace = current.ordinaryUUID, window.displayID == screen.id, let display = UUID(uuidString: screen.id),
               window.membership == .known(recordIDs: [current.id]), let m = window.metadata, m.isOnscreen == true,
-              m.minimized != true, m.fullScreen != true, m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace,
+              m.minimized != true, m.fullScreen != true, m.overviewOrdinaryRole != false, m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace,
               let key = DesktopWindowKey(window), let lifetime = lifetimes[key] else { return nil }
         let layout = screen.usable.flatMap { area in
             m.hasCatalogGeometry == true || m.presentation == .confirmed
                 ? StageGroupWindow.relativeFrame(window.bounds, in: area) : nil
         }
         return .init(display: display, identity: .init(pid: key.pid, birth: key.birth, number: key.number),
-                     lifetime: lifetime, layout: layout)
+                     lifetime: lifetime, layout: layout, nativeSpace: nativeSpace)
     }
 
     private func stageWindows(in snapshot: DesktopSnapshot, on screen: DisplayObservation) -> [StageGroupWindow] {

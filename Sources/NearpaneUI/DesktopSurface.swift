@@ -258,8 +258,8 @@ struct DesktopSurface: View {
                                     }
                                 }
                             }
-                            if let w = feed.groupWindow(member, in: snapshot), feed.groups.previousDisplay(of: w) != nil {
-                                Button("将此窗口归入本显示器") {
+                            if let w = feed.groupWindow(member, in: snapshot), feed.groups.needsReassignment(w) {
+                                Button("将此窗口归入当前屏幕和桌面") {
                                     editGroup([member]) { fresh in
                                         guard let current = feed.groupWindow(member, in: fresh) else { throw StageGroupError.staleBinding }
                                         try feed.groups.assignToObservedDisplay(current)
