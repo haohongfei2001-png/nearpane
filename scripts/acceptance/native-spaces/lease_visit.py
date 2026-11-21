@@ -108,6 +108,14 @@ def verify_chain(ws, live, target):
     return ids
 
 
+def ordinary_anchor_rows(rows, generation, numbers, space):
+    expected = set(numbers)
+    return (len(expected) == len(numbers) == 2 and isinstance(rows,list) and len(rows) == 2 and
+            all(isinstance(w,dict) and (w.get("pid"),w.get("birth")) == generation and
+                w.get("standard") is True and w.get("forward") is True and w.get("reverse") == [space]
+                for w in rows) and {w.get("number") for w in rows} == expected)
+
+
 class VisitWorkspace(PREVIEW.PreviewWorkspace):
     pinned_hid = None
 
@@ -270,9 +278,20 @@ class NativeVisit:
         actual = P0.cmd(self.tool,"process",self.process.pid)
         require(actual["executable"] == str(self.exe) and actual["hash"] == self.hash and actual["identifier"] == ANCHOR_ID and
                 actual["birth"] == born and self.process.poll() is None,"returnFixtureGenerationNotBound")
-        before = self.paired_sample(self.origin)
-        require(before["originExact"] or (before["systemFocus"]["pid"] == self.process.pid and
-                before["systemFocus"]["number"] in self.anchor_numbers),"foregroundSupersededDuringAnchorAdmission")
+        binding = [{**actual,"number":number,"ownerFile":None} for number in self.anchor_numbers]
+        # An application's assignment may place its new windows somewhere other than the active desktop.
+        # Even its first local activation requires both CG/AX identities on the original Space.
+        for _ in range(2):
+            before = self.paired_sample(self.origin)
+            require(before["originExact"] or (before["systemFocus"]["pid"] == self.process.pid and
+                    before["systemFocus"]["number"] in self.anchor_numbers),"foregroundSupersededDuringAnchorAdmission")
+            rows = P0.cmd(self.tool,"windows",body=binding).get("windows")
+            require(ordinary_anchor_rows(rows,(self.process.pid,born),self.anchor_numbers,self.origin),
+                    "syntheticAnchorNotExclusivelyOnLiveOrigin")
+        self.ws.hardware()
+        current = self.reader.read({"command":"sample"})
+        require(current["current"] == self.origin and current["systemFocus"] == before["systemFocus"],
+                "originChangedBeforeOwnedActivation")
         request = dict(nonce=str(uuid.uuid4()),action="activate",index=0)
         self.save("ownedAnchorActivationIntent",space=self.origin,pid=self.process.pid,number=self.anchor_numbers[0])
         with (self.folder/"request.json").open("x") as f: json.dump(request,f)

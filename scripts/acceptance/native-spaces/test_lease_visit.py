@@ -83,6 +83,13 @@ class VisitTests(unittest.TestCase):
         n.paired_sample=Mock(return_value=current);n.restore()
         n.original.finish.assert_not_called();n.anchor_focus.finish.assert_not_called()
 
+    def test_both_local_anchor_windows_must_be_exclusively_on_the_actual_origin_before_activation(self):
+        a=dict(pid=9,birth=500,number=41,standard=True,forward=True,reverse=[4])
+        b=dict(a,number=42);self.assertTrue(v.ordinary_anchor_rows([a,b],(9,500),[41,42],4))
+        for change in (dict(reverse=[4,6]),dict(forward=False),dict(birth=501),dict(standard=False),dict(number=41)):
+            self.assertFalse(v.ordinary_anchor_rows([a,{**b,**change}],(9,500),[41,42],4))
+        self.assertFalse(v.ordinary_anchor_rows([a,b],(9,500),[41,42],6))
+
     def test_historical_reference_distinguishes_anchor_return_from_exact_focus_restore(self):
         bundle,h=v.archive_anchor()
         self.assertEqual(bundle.name,"Lifecycle Window.app");self.assertEqual(len(h),40)
