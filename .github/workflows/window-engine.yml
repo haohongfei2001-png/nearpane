@@ -29,13 +29,38 @@ jobs:
           rustc --version >> "$RUNNER_TEMP/engine-evidence/os.txt"
           cargo test --locked --offline --manifest-path Engine/nearpane-window-engine/Cargo.toml --features corner,spaces,isolated-fixtures | tee "$RUNNER_TEMP/engine-evidence/rust.txt"
           cargo build --locked --offline --release --manifest-path Engine/nearpane-window-engine/Cargo.toml --features corner,spaces,isolated-fixtures
+          python3 -B -m unittest discover -s scripts/acceptance/window-engine/performance -p 'test_*.py'
+          python3 -B -m unittest discover -s scripts/acceptance/window-engine/spaces -p 'test_*.py'
       - name: Observe a real Corner transaction in the disposable GUI
         run: bash scripts/acceptance/window-engine/corner/run-hosted.sh "$RUNNER_TEMP/engine-evidence/corner"
       - name: Observe real window memberships in the disposable GUI
         if: ${{ !cancelled() && hashFiles('Engine/nearpane-window-engine/target/release/libnearpane_window_engine.a') != '' }}
         env:
           NP_RUN_HOSTED_SPACES_TRIAL: '1'
-        run: python3 -B scripts/acceptance/window-engine/spaces/run-hosted.py Engine/nearpane-window-engine/target/release/libnearpane_window_engine.a "$RUNNER_TEMP/engine-evidence/spaces"
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/engine-evidence"
+          python3 - "$evidence" <<'PY'
+          import json, sys
+          from pathlib import Path
+          root = Path(sys.argv[1])
+          corner = root / "corner/result.json"
+          data = json.loads(corner.read_bytes()) if corner.is_file() else {}
+          reads = data.get("nativeScopeReads", [])
+          if len(reads) == 2 and all(r.get("matchedType") == 0 and r.get("ordinaryWithUUIDCount") == 0
+                                     and r.get("directWindowServerHome", 0) > 0 for r in reads):
+              target = root/"spaces"
+              target.mkdir()
+              result = {"status":"BLOCKED", "hostedOwnWindowTrial":"NOT_RUN", "qualificationGranted":False,
+                        "reason":"independentOrdinarySpaceUUIDMissingTwice", "source":"../corner/result.json",
+                        "receipts":0, "physicalInstalledHost":"NOT_RUN"}
+              (target/"summary.json").write_text(json.dumps(result, indent=2)+"\n")
+          PY
+          if test -s "$evidence/spaces/summary.json"; then
+            echo 'Physical qualification BLOCKED. The hosted WindowServer supplies no ordinary Space UUID.' >> "$GITHUB_STEP_SUMMARY"
+            exit 2
+          fi
+          python3 -B scripts/acceptance/window-engine/spaces/run-hosted.py Engine/nearpane-window-engine/target/release/libnearpane_window_engine.a "$evidence/spaces"
       - name: Preserve readbacks including blocked and failed cases
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

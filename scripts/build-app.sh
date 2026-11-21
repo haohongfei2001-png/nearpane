@@ -71,6 +71,11 @@ ordinary="$binary_dir/NearpaneOrdinaryWindowController"
 /usr/bin/codesign --verify --strict "$ordinary"
 install -m 755 "$ordinary" "$stage/Contents/Helpers/NearpaneOrdinaryWindowController"
 /usr/bin/plutil -insert NearpaneOrdinaryWindowControllerSHA256 -string "$(shasum -a 256 "$ordinary" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
+guardian="$stage/Contents/Helpers/NearpaneCornerGuardian"
+bash scripts/acceptance/window-engine/corner/build-guardian.sh "$guardian" "$NEARPANE_ENGINE_ARCHIVE"
+/usr/bin/codesign --force --sign - --timestamp=none --options runtime --identifier com.holdsnow.nearpane.alpha.corner-guardian "$guardian"
+/usr/bin/codesign --verify --strict "$guardian"
+/usr/bin/plutil -insert NearpaneCornerGuardianSHA256 -string "$(shasum -a 256 "$guardian" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then
   /usr/bin/plutil -replace LSMinimumSystemVersion -string 14.0 "$stage/Contents/Info.plist"
   for usage in NearpaneNativeAcceptanceSchema NSMicrophoneUsageDescription NSSpeechRecognitionUsageDescription NSAppleEventsUsageDescription; do

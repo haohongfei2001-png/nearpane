@@ -79,7 +79,7 @@ class Synthetic:
         )
         install["controlOwner"] = dict(
             **writer(901 if system == "nearpane" else 902),
-            bundleID="com.holdsnow.nearpane.host" if system == "nearpane" else "com.apple.dock",
+            bundleID="com.holdsnow.nearpane.alpha" if system == "nearpane" else "com.apple.dock",
             path="/Applications/Nearpane.app/Contents/MacOS/NearpaneHost"
             if system == "nearpane"
             else "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock",

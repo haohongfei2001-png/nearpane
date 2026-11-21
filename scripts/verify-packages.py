@@ -42,8 +42,15 @@ def verify_engine_boundary(contents, plist, binary, host_image, sandbox):
     origin_files = {p.name: digest(p) for p in (source/"origins").glob("*.json")}
     if {p.name: digest(p) for p in (bundled/"origins").glob("*.json")} != origin_files:
         raise ValueError("Incomplete StageGroup upstream file origins")
+    guardian = contents / "Helpers/NearpaneCornerGuardian"
+    if guardian.resolve() != guardian or digest(guardian) != plist.get("NearpaneCornerGuardianSHA256"):
+        raise ValueError("Unexpected Corner recovery helper")
+    subprocess.run(["/usr/bin/codesign", "--verify", "--strict", '-R=identifier "com.holdsnow.nearpane.alpha.corner-guardian"',
+                    str(guardian)], check=True)
+    if b"com.holdsnow.nearpane.engine-guardian.fixture" in guardian.read_bytes():
+        raise ValueError("Packaged recovery helper includes a fixture identity")
     imports = subprocess.check_output(["/usr/bin/nm", "-u", str(binary)], text=True).splitlines()
-    if any(line.split() and line.split()[-1].startswith(("_SLS", "_CGS", "__AXUIElementGetWindow")) for line in imports):
+    if any(line.split() and re.match(r"^(_(?:SLS|CGS)[A-Z]|__AXUIElementGetWindow$)", line.split()[-1]) for line in imports):
         raise ValueError("Host imports private WindowServer symbols directly")
     if any(marker in host_image for marker in (b"SLSOrderWindow", b"np_is_enrolled_fixture",
                                                b'identifier "com.holdsnow.nearpane.engine-fixture')):
@@ -107,6 +114,8 @@ def verify(app, lock, sandbox):
     # packages seal their exact Mach-O and resource inventory independently (no distribution signature).
     host_image = binary.read_bytes()
     if plist["CFBundleIdentifier"] in ("com.holdsnow.nearpane.candidate", "com.holdsnow.nearpane.candidate.p45", "com.holdsnow.nearpane.candidate.p46", "com.holdsnow.nearpane.candidate.p47", "com.holdsnow.nearpane.candidate.p48", "com.holdsnow.nearpane.candidate.p481", "com.holdsnow.nearpane.candidate.p49", "com.holdsnow.nearpane.candidate.p50", "com.holdsnow.nearpane.candidate.p51", "com.holdsnow.nearpane.candidate.p52", "com.holdsnow.nearpane.alpha"):
+        subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+    elif (contents/"_CodeSignature/CodeResources").is_file():
         subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
     else:
         with tempfile.TemporaryDirectory(prefix="verify-macho-", dir=ROOT/"build") as tmp:

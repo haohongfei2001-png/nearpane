@@ -116,7 +116,7 @@ def shell_identity(env, system, candidate):
             "signedInstalledCandidateUnavailable",
         )
         require(
-            owner["bundleID"] == "com.holdsnow.nearpane.host"
+            owner["bundleID"] == "com.holdsnow.nearpane.alpha"
             and owner["path"] == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
             "installedHostControlOwnerUnconfirmed",
         )

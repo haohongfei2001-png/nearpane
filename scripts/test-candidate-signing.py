@@ -32,10 +32,15 @@ class CandidateIdentityTests(unittest.TestCase):
                     signing.require_developer_team(fingerprint, listing)
 
     def test_shipping_identity_rejects_version_specific_designated_requirement(self):
-        with patch.object(signing.gate, "cmd", return_value=""), patch.object(
+        with tempfile.TemporaryDirectory() as directory, patch.object(signing.gate, "cmd", return_value=""), patch.object(
                 signing.gate, "designated_requirement", return_value="cdhash H'1234'"):
+            package = Path(directory)/"candidate.app"
+            (package/"Contents").mkdir(parents=True)
+            (package/"Contents/Info.plist").write_bytes(plistlib.dumps({"NearpaneStageEngineABI": 1}))
             with self.assertRaisesRegex(ValueError, "Unstable permission identity"):
-                signing.gate.verify_install_identity(Path("candidate.app"))
+                signing.gate.verify_install_identity(package)
+            self.assertEqual(signing.gate.product_identifiers(package)["Contents/Helpers/NearpaneCornerGuardian"],
+                             "com.holdsnow.nearpane.alpha.corner-guardian")
 
     def test_default_install_selects_exactly_one_certificate_of_the_product_team(self):
         matching = self.identity.replace("A012345678", signing.gate.PRODUCT_SIGNING_TEAM)
@@ -132,6 +137,7 @@ class CandidateIdentityTests(unittest.TestCase):
             for root in old, new:
                 (root / subjects[1]).parent.mkdir(parents=True)
                 (root / subjects[1]).touch()
+                (root / "Contents/Info.plist").write_bytes(plistlib.dumps({}))
 
             def command(*args):
                 if "-dvv" in args:

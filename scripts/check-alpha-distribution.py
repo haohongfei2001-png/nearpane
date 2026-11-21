@@ -70,9 +70,15 @@ PRODUCT_IDENTIFIERS = {
 def normalized_requirement(text):
     return " ".join(text.replace("/* exists */", "").replace('"', "").split())
 
+def product_identifiers(candidate):
+    info = plistlib.loads((candidate/"Contents/Info.plist").read_bytes())
+    if "NearpaneStageEngineABI" in info:
+        return {**PRODUCT_IDENTIFIERS, "Contents/Helpers/NearpaneCornerGuardian": "com.holdsnow.nearpane.alpha.corner-guardian"}
+    return PRODUCT_IDENTIFIERS
+
 
 def verify_install_identity(candidate):
-    for relative, identifier in PRODUCT_IDENTIFIERS.items():
+    for relative, identifier in product_identifiers(candidate).items():
         subject = candidate / relative
         rule = (f'identifier "{identifier}" and anchor apple generic and '
                 'certificate 1[field.1.2.840.113635.100.6.2.6] and '
@@ -196,7 +202,7 @@ if __name__ == "__main__":
         report = inspect(args.app)
         if args.require_install_identity or (args.require_distribution_signatures and not report["missingDistributionSignatures"]):
             verify_install_identity(args.app)
-            report["permissionIdentity"] = dict(team=PRODUCT_SIGNING_TEAM, subjects=len(PRODUCT_IDENTIFIERS))
+            report["permissionIdentity"] = dict(team=PRODUCT_SIGNING_TEAM, subjects=len(product_identifiers(args.app)))
     except subprocess.CalledProcessError as exc:
         parser.exit(1, f"{exc}\n{(exc.stdout or '').strip()}\n")
     except (OSError, ValueError, KeyError) as exc:

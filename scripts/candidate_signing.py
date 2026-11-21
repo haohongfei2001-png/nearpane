@@ -38,7 +38,9 @@ def seal_components(temp, seal):
     additional = [automation] if automation.exists() else []
     space_action = helpers / "NearpaneSpaceAction"
     action_helpers = [space_action] if space_action.exists() else []
-    for binary in (*readers, writer, *additional, *action_helpers):
+    guardian = helpers / "NearpaneCornerGuardian"
+    guardians = [guardian] if guardian.exists() else []
+    for binary in (*readers, writer, *additional, *action_helpers, *guardians):
         if binary.is_symlink() or not binary.is_file():
             raise ValueError("Expected regular helper binary")
         # Standalone helpers retain the identifiers used by their earlier builds.
@@ -52,6 +54,8 @@ def seal_components(temp, seal):
     pin(temp, "NearpaneOrdinaryWindowControllerSHA256", writer)
     if action_helpers:
         pin(temp, "NearpaneSpaceActionSHA256", space_action)
+    if guardians:
+        pin(temp, "NearpaneCornerGuardianSHA256", guardian)
     if additional:
         plist = temp / "Contents/Info.plist"
         info = plistlib.loads(plist.read_bytes())
@@ -68,7 +72,7 @@ def seal_components(temp, seal):
                                    (fixture, "NearpaneDesktopReaderSHA256", readers[1])):
         if plistlib.loads((bundle / "Contents/Info.plist").read_bytes())[key] != sha(executable):
             raise ValueError("Nested signing invalidated helper binding")
-    return 3 + len(additional) + len(action_helpers)
+    return 3 + len(additional) + len(action_helpers) + len(guardians)
 
 
 def check_continuity(previous, candidate):
@@ -76,7 +80,7 @@ def check_continuity(previous, candidate):
     fields = gate.cmd("/usr/bin/codesign", "-dvv", str(previous)).splitlines()
     if "Signature=adhoc" in fields:
         return
-    for subject in gate.PRODUCT_IDENTIFIERS:
+    for subject in gate.product_identifiers(candidate):
         old, new = previous / subject, candidate / subject
         if not old.exists():
             continue

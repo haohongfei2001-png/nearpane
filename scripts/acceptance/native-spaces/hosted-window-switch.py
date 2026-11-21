@@ -22,7 +22,12 @@ def main():
     if args.hosted_receipt and args.hosted_receipt.exists():
         parser.error("Expected a fresh receipt")
     build = args.bin_path.resolve(strict=True)
-    target_dirs = {"NearpaneUI.build", "NearpaneCore.build", "WindowGeometryCore.build"}
+    root = Path(__file__).resolve().parents[3]
+    archive_path = os.environ.get("NEARPANE_ENGINE_ARCHIVE")
+    if not archive_path:
+        archive_path = subprocess.check_output(["bash", root/"scripts/build-window-engine.sh"], cwd=root, text=True).strip()
+    archive = Path(archive_path).resolve(strict=True)
+    target_dirs = {"NearpaneUI.build", "NearpaneCore.build", "NearpaneWindowEngine.build", "WindowGeometryCore.build"}
     link_file = build / "NearpanePackageTests.product/Objects.LinkFileList"
     objects = [Path(p) for p in link_file.read_text().splitlines() if Path(p).parent.name in target_dirs]
     if {p.parent for p in objects} != {build / d for d in target_dirs}:
@@ -37,7 +42,9 @@ def main():
         (app / "Contents/Info.plist").write_bytes(plistlib.dumps(info))
         source = Path(__file__).with_suffix(".swift")
         subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-target", platform.machine() + "-apple-macos14.0",
-                        "-I", build / "Modules", source, *objects, "-o", binary], check=True)
+                        "-I", build / "Modules", "-I", root/"Engine/nearpane-window-engine/include",
+                        source, *objects, archive, "-lobjc", "-framework", "Carbon", "-framework", "Security",
+                        "-framework", "ApplicationServices", "-o", binary], check=True)
         subprocess.run(["codesign", "--force", "--sign", "-", app], check=True, capture_output=True)
         subprocess.run(["codesign", "--verify", "--strict", app], check=True)
         if subprocess.check_output([binary, "--verify-link"], text=True).strip() != "0.16":
