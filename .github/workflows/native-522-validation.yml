@@ -63,8 +63,8 @@ jobs:
           persist-credentials: false
       - name: Measure the real desktop file on a fresh login
         run: |
-          swift build --target NearpaneSpaceAction
-          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-desktop-items "$RUNNER_TEMP/desktop-items-27"
+          swift build --build-system native --target NearpaneSpaceAction
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --build-system native --show-bin-path)" --hosted-desktop-items "$RUNNER_TEMP/desktop-items-27"
           cat "$RUNNER_TEMP/desktop-items-27/summary.json" >> "$GITHUB_STEP_SUMMARY"
           python3 - <<'PY'
           import json, os

@@ -61,6 +61,9 @@ def run_comparison(binary, destination, desktop_items_only=False):
                     trial = {"status": "BLOCKED", "reason": "signedOwnerLaunchOrEnrollment",
                              "ownerErrors": [json.loads(p.read_bytes()) for p in root.glob("*-failure.json")]}
             finally:
+                # Allow the encoder to include the final settled desktop before stopping.
+                if method == "desktop-items" and capture and trial_seconds is not None:
+                    time.sleep(0.5)
                 (root / "film-stop").touch()
                 if capture:
                     try:

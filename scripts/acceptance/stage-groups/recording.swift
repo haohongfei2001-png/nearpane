@@ -25,10 +25,12 @@ func fixtureDisplay() async throws -> SCDisplay {
 
 private final class RecordingState: NSObject, SCRecordingOutputDelegate {
     let lock = NSLock()
-    private var complete = false, failed = false
+    private var started = false, complete = false, failed = false
+    func recordingOutputDidStartRecording(_ output: SCRecordingOutput) { lock.withLock { started = true } }
     func recordingOutputDidFinishRecording(_ output: SCRecordingOutput) { lock.withLock { complete = true } }
     func recordingOutput(_ output: SCRecordingOutput, didFailWithError error: any Error) { lock.withLock { failed = true } }
     var result: Bool? { lock.withLock { failed ? false : (complete ? true : nil) } }
+    var recording: Bool { lock.withLock { started && !failed && !complete } }
 }
 
 @MainActor func recordComparison(_ root: URL) async throws {
@@ -47,6 +49,11 @@ private final class RecordingState: NSObject, SCRecordingOutputDelegate {
     let file = SCRecordingOutput(configuration: settings, delegate: witness)
     try stream.addRecordingOutput(file)
     try await stream.startCapture()
+    let startup = ContinuousClock.now + .seconds(5)
+    while !witness.recording, witness.result == nil, ContinuousClock.now < startup {
+        try await Task.sleep(for: .milliseconds(40))
+    }
+    guard witness.recording else { throw CaptureUnavailable.completion }
     try Data().write(to: root.appendingPathComponent("film-ready"), options: .atomic)
     let deadline = ContinuousClock.now + .seconds(120)
     while !FileManager.default.fileExists(atPath: root.appendingPathComponent("film-stop").path),

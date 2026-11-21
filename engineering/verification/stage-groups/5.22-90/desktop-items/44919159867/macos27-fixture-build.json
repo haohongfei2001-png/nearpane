@@ -1,0 +1,7 @@
+{
+  "sourceRevision": "d7ce52d7d7cb9798d78f8c293f3b2ea7b098b2c8",
+  "job": 136891287208,
+  "fixtureLoading": "FAIL",
+  "desktopInteraction": "NOT_RUN",
+  "rawError": "FileNotFoundError: [Errno 2] No such file or directory: '/Users/runner/work/nearpane/nearpane/.build/out/Products/Debug/NearpaneCore.build/output-file-map.json'"
+}
