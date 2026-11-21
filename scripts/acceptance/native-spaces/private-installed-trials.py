@@ -266,7 +266,7 @@ class Mac:
         require(not any(k in os.environ for k in ("CFFIXED_USER_HOME", "NEARPANE_TEST_HOME", "NEARPANE_TEST_GENERATION",
                                                     "NEARPANE_PREVIEW_DIAGNOSTICS", "NEARPANE_ACCEPTANCE_SESSION")),
                 "Run the supervisor outside an acceptance environment")
-        subprocess.run(["/usr/bin/open", "-g", str(self.canonical)], check=True, timeout=8)
+        profile.launch_background(self.canonical)
 
     def wait_launch_resolution(self, root):
         deadline = time.monotonic() + 20

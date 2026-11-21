@@ -65,16 +65,23 @@ def validate_home(home):
         raise ValueError("Unsafe acceptance home")
 
 
+def launch_background(app, launch_options=()):
+    # Launch Services suppresses its own activation with -g. Both installed Hosts
+    # also use --background to distinguish this open from a Finder settings request.
+    subprocess.run(["/usr/bin/open", "-g", *launch_options, str(app), "--args", "--background"],
+                   check=True, timeout=8)
+
+
 def launch_isolated(home):
     validate_home(home)
     if installed_pid() is not None:
         raise RuntimeError("An installed Host is already running")
     root = home / PROFILE
     root.parent.mkdir(parents=True, exist_ok=True)
-    arguments = ["/usr/bin/open", "-g", "--env", "CFFIXED_USER_HOME=" + str(home)]
+    arguments = ["--env", "CFFIXED_USER_HOME=" + str(home)]
     if os.environ.get("NEARPANE_PREVIEW_DIAGNOSTICS") == "1":
         arguments += ["--env", "NEARPANE_TEST_HOME=" + str(home), "--env", "NEARPANE_PREVIEW_DIAGNOSTICS=1"]
-    subprocess.run([*arguments, str(APP)], check=True)
+    launch_background(APP, arguments)
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         pid = installed_pid()
@@ -163,7 +170,7 @@ def main():
                 quit_host(current)
             current = installed_pid()
             if stopped and not current:
-                subprocess.run(["/usr/bin/open", "-g", str(APP)], check=True)
+                launch_background(APP)
                 deadline = time.monotonic() + 20
                 while not owns_profile(installed_pid(), daily_root) and time.monotonic() < deadline:
                     time.sleep(.2)

@@ -13,6 +13,7 @@ import sys
 import tempfile
 import unittest
 import uuid
+from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE))
@@ -149,6 +150,13 @@ class Fixture:
 
 @unittest.skipUnless(sys.platform == "darwin","requires Darwin APFS renamex_np")
 class TestTemporaryInstall(unittest.TestCase):
+    def test_background_install_and_restore_do_not_request_the_settings_window(self):
+        for options in [[], ["--env", "CFFIXED_USER_HOME=/tmp/enrolled"]]:
+            with patch.object(tool.profile.subprocess, "run") as launch:
+                tool.profile.launch_background(Path("/Applications/Nearpane.app"), options)
+            self.assertEqual(launch.call_args.args[0], ["/usr/bin/open", "-g", *options,
+                                                      "/Applications/Nearpane.app", "--args", "--background"])
+
     def setUp(self):
         tmp = tempfile.TemporaryDirectory(dir="/private/tmp")
         self.addCleanup(tmp.cleanup)
