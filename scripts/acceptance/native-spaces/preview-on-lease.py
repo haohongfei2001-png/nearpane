@@ -68,6 +68,15 @@ def run(args):
             result["stageSetup"] = stage.toggle("stage-off", True, False)
         result["offZeroBefore"] = driver.surface_checkpoint(kit, workspace.host, args.expected_space, False, 0)
         require(result["offZeroBefore"]["status"] == "PASS", "initial Host window area not empty")
+        directory_probe = os.environ.get("NP_SPACE_MENU_SMOKE")
+        if args.scenario == "pair-pointer" and directory_probe:
+            from space_menu_smoke import run as read_space_menu
+            menu = read_space_menu(Path(directory_probe), workspace, args.expected_space,
+                                   result["stageSurfaceEnrollment"], Path(os.environ["NP_P2_DOCUMENT_KIT"])/"observe",
+                                   output/"space-directory")
+            result["spaceDirectory"] = {k: menu.get(k) for k in ("status", "reason", "readback", "cleanup")}
+            save()
+            require(menu.get("cleanup", {}).get("status") in ("PASS", "NOT_NEEDED"), "spaceMenuCleanupUnconfirmed")
         save()
         if args.scenario == "same-space-documents":
             require(subprocess.run(["/usr/bin/pgrep", "-x", "TextEdit"], capture_output=True).returncode == 1,
