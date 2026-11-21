@@ -147,9 +147,32 @@ private struct Samples {
     receipt["parkSetter"] = parked.rawValue
     let park = try await readBack(all, baseline: before, miniature: true, root: root)
     receipt["park"] = park
-    guard (try? birth(target.owner.pid)) == target.owner.birth, !StageManagerPreference.ownsWindowDispatch,
-          let rebound = enroll(owners[0], name: "a")?.first, CFEqual(rebound.element, target.element),
-          let actual = ax(target.element, kAXMinimizedAttribute) as? Bool else { try save("restoreIdentityOrOwnershipUnknown"); return }
+    // An app can omit or reclassify a minimized window in AXWindows. Re-enumeration is evidence,
+    // never a replacement for the exact AX object retained through this owned fixture's lifetime.
+    let expectedIdentifier = "nearpane.fixture.a.0"
+    let ownerAlive = (try? birth(target.owner.pid)) == target.owner.birth &&
+        NSRunningApplication(processIdentifier: target.owner.pid)?.bundleIdentifier == target.owner.identifier
+    let available = !StageManagerPreference.ownsWindowDispatch
+    let list = ax(AXUIElementCreateApplication(target.owner.pid), kAXWindowsAttribute) as? [AXUIElement]
+    let matches = list?.filter { (ax($0, kAXIdentifierAttribute) as? String) == expectedIdentifier }
+    let enumerable = matches?.count == 1 && matches?.first.map { CFEqual($0, target.element) } == true
+    let listingConflicts = matches.map { !$0.isEmpty && !enumerable } ?? false
+    let legacyRebind = enroll(owners[0], name: "a")?.first.map { CFEqual($0.element, target.element) } ?? false
+    let identifier = ax(target.element, kAXIdentifierAttribute) as? String
+    var pid: pid_t = 0
+    let retainedOwner = AXUIElementGetPid(target.element, &pid) == .success && pid == target.owner.pid
+    let fresh = try await sample(all, root: root)
+    let held = fresh?.owned[target.id]
+    let actual = ax(target.element, kAXMinimizedAttribute) as? Bool
+    receipt["restoreIdentity"] = ["ownerGeneration":ownerAlive, "dispatchAvailable":available,
+        "windowListReadable":list != nil, "listedIdentifierMatches":matches?.count ?? -1,
+        "listedSameObject":enumerable, "originalEnumerationRoute":legacyRebind, "retainedAXOwner":retainedOwner,
+        "retainedIdentifierPresent":identifier != nil, "retainedIdentifierMatches":identifier == expectedIdentifier,
+        "ownerConfirmedSameNumber":held?.number == target.id, "ownerAndAXAgreeOnState":actual != nil && held?.miniature == actual]
+    guard ownerAlive, available, !listingConflicts, retainedOwner, let actual,
+          identifier == nil || identifier == expectedIdentifier,
+          fresh?.axMiniature[target.id] == actual, held?.number == target.id, held?.miniature == actual
+    else { try save("retainedAXOrOwnerAttestationUnavailable"); return }
     if actual {
         receipt["setRequests"] = 2
         receipt["restoreSetter"] = AXUIElementSetAttributeValue(target.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse).rawValue
