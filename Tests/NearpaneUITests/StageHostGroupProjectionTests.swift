@@ -4,6 +4,15 @@ import NearpaneCore
 @testable import NearpaneUI
 
 @MainActor struct StageHostGroupProjectionTests {
+    @Test func anUnavailableGroupClickKeepsTheWorkSetAndOnlyAnExplicitMemberMayFocus() throws {
+        var focusCount = 0
+        #expect(throws: StageSwitchError.unavailable) {
+            try StageSidebarSelection.group.withoutEngine { focusCount += 1 }
+        }
+        #expect(focusCount == 0)
+        try StageSidebarSelection.member.withoutEngine { focusCount += 1 }
+        #expect(focusCount == 1)
+    }
     let display = UUID().uuidString, space = UUID(), rect = SurfaceRect(x: 24, y: 32, width: 320, height: 200)
     func window(_ n: UInt32, member: String = "4", membership: WindowMembership? = nil) -> WindowObservation {
         .init(id: String(n), displayID: display, bounds: rect, membership: membership ?? .known(recordIDs: [member]), confidence: .unknown,

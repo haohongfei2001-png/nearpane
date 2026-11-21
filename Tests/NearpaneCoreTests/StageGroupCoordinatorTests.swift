@@ -103,6 +103,25 @@ import Testing
         #expect(runtime.writes.count == 1)
     }
 
+    @Test func groupSelectionUsesItsLastExactMemberAndPreservesSiblingFocusChoices() async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        func live(_ member: StageGroupDirectory.Member) throws -> StageGroupWindow {
+            let s = try #require(runtime.windows[member.windowHint])
+            return .init(display: runtime.scope.display, identity: s.window, lifetime: s.lifetime, nativeSpace: runtime.scope.nativeSpace)
+        }
+        let a = groups[0].members[0], b = groups[1].members[0]
+        try store.join(live(b), to: live(a))
+        let both = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        try await engine.activate(both.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        try await engine.activate(groups[2].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let saved = try #require(store.groups(in: runtime.scope).first { $0.id == both.id })
+        #expect(saved.focusMember()?.id == b.id && saved.focusMember(requested: UUID()) == nil)
+        try await engine.activate(both.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.focus == b.windowHint && runtime.windows[a.windowHint]?.visibility == .visible &&
+                runtime.windows[b.windowHint]?.visibility == .visible && runtime.windows[groups[2].members[0].windowHint]?.visibility == .minimized)
+    }
+
     @Test(arguments: [1, 3]) func userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_ boundary: Int) async throws {
         let (profile, store, engine, runtime, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: profile) }

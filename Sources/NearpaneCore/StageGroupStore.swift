@@ -23,6 +23,11 @@ public struct StageGroupDirectory: Codable, Equatable, Sendable {
         public var nativeSpace: UUID?
         public var needsReorganization: Bool?
         public var verifiedActive: Bool?
+
+        public func focusMember(requested: UUID? = nil) -> Member? {
+            guard let id = requested ?? selectedMember else { return members.first }
+            return members.first { $0.id == id }
+        }
     }
 
     public struct Display: Codable, Equatable, Identifiable, Sendable {

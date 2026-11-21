@@ -344,7 +344,7 @@ import NearpaneOrdinaryWindowRuntime
                   g.members.allSatisfy({ m in
                       guard let s = witness.state(of:m.windowHint) else { return false }
                       return engine.coordinator.confirmsHidden(group:g.id,member:m.id,state:s,scope:scope,owner:session.owner)
-                  }), let target = g.members.first(where:{ $0.id == g.selectedMember }) ?? g.members.first,
+                  }), let target = g.focusMember(),
                   let state = witness.state(of:target.windowHint) else { return nil }
             return .init(id:g.id,member:target.id,scope:scope,state:state,owner:session.owner,count:g.members.count)
         }

@@ -170,10 +170,12 @@ struct DesktopSurface: View {
             primary: display?.secondary != true, settings: settings, fallbackEdge: host.configuration.edge).ordinary
     }
 
-    private func choose(_ member: NativeSidebarMember, group: UUID, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows) {
+    private func choose(_ member: NativeSidebarMember, group: UUID, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows,
+                        intent: StageSidebarSelection = .member) {
         guard let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in:snapshot),
               let lifetime = feed.lifetime(of:member.key) else { return }
-        guard feed.stageEngine.routesGroupChoice else {
+        guard canNavigate else { return }
+        if !feed.stageEngine.routesGroupChoice && intent == .member {
             selectWindow(target,snapshot:snapshot,lifetime:lifetime,member:member)
             return
         }
@@ -183,9 +185,13 @@ struct DesktopSurface: View {
                 canNavigate && navigation.isCurrent(token) && feed.lifetime(of:member.key) == lifetime &&
                     NativeSelectionPermit.inputCounters() == input
             }
-            guard valid(), let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
+            guard valid() else { throw StageSwitchError.interrupted }
+            guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
+            guard let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
             let handled = try await feed.stageEngine.groupChoice(group,member:member,in:feed,snapshot:fresh,current:valid)
-            if !handled && valid() { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member) }
+            if !handled && valid() {
+                try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member) }
+            }
         }
     }
 
@@ -277,6 +283,12 @@ struct DesktopSurface: View {
                             }), gallery: gallery,
                             permitted: permitted, workArea: workArea(for: screen),
                             select: { choose($0, group: group.id, snapshot: snapshot, feed: feed) },
+                            selectGroup: {
+                                guard let saved = group.focusMember(),
+                                      let preferred = members.first(where: { $0.location?.window == saved.windowHint })
+                                else { selectionIssue = StageGroupError.staleBinding.localizedDescription; return }
+                                choose(preferred, group: group.id, snapshot: snapshot, feed: feed, intent: .group)
+                            },
                             id: group.id, windows: grouped, snapshot: snapshot,
                             place: { place($0, feed: feed) }, remove: { chosen in
                                 editGroup([chosen]) { fresh in

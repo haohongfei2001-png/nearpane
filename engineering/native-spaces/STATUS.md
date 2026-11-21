@@ -2,6 +2,8 @@
 
 ## 2026-11-21 · StageGroup 窗口所有权
 
+组合缩略图的背景和组名都可选择整个组。返回时优先选择该组上次确认获得焦点的成员。若整组调度不可用，会显示原因；组内仍可按窗口精确选择。27 项本地回归通过，含同应用双窗组合往返、未获资格时零次整组写入与 R4 侧栏布局。[整组入口收据](../verification/window-engine/stage-product/group-action.xml)
+
 停放窗口重现时，Host 用保留的原始 AX 对象、两次窗口状态和同一个新出现标记确认其组成员身份。读回过期、窗口代际变化及旁窗均不能继承旧组。鼠标操作和画面缓存继续使用新出现标记。24 项隔离测试通过。[原始收据](../verification/window-engine/stage-product/reappearing-window.xml)
 
 切换中的每个写入前后和末次确认都核对真实焦点。外部输入改变焦点后，后台补偿和重启后的恢复也无权抢回。另一物理屏的可见焦点须通过两次屏幕清单和 Host 的 AX、CG 与原生归属读回；这时本屏工作集合仍可保留。单个执行器尚不能同时写入两块屏，选择另一屏不会拆散已持有的组。焦点与独立显示器证据的隔离回归以及首次夹具失败均已保存。[复测收据](../verification/window-engine/stage-product/focus.xml) · [首次夹具失败](../verification/window-engine/stage-product/focus-first-attempt.xml)

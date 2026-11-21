@@ -49,6 +49,15 @@ struct SidebarWindowDragAndDrop: ViewModifier {
 }
 
 /// Only an explicit multiwindow group uses a desktop-shaped canvas.
+enum StageSidebarSelection {
+    case group, member
+
+    func withoutEngine(focusMember: () -> Void) throws {
+        guard self == .member else { throw StageSwitchError.unavailable }
+        focusMember()
+    }
+}
+
 struct NativeWindowGroupCard: View {
     let destination: NativeSidebarDestination
     let display: DisplayObservation
@@ -58,6 +67,7 @@ struct NativeWindowGroupCard: View {
     let permitted: Bool
     let workArea: SurfaceRect?
     let select: (NativeSidebarMember) -> Void
+    let selectGroup: () -> Void
     let id: UUID
     let windows: [WindowObservation]
     let snapshot: DesktopSnapshot
@@ -72,6 +82,12 @@ struct NativeWindowGroupCard: View {
         let unplaced = ordered.filter { projectedFrame($0, canvas: canvas) == nil }
         VStack(spacing: 0) {
             ZStack(alignment: .topLeading) {
+                Button(action: selectGroup) {
+                    Color.clear.contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("切换到此窗口组合")
+                .accessibilityIdentifier("stage-group-select:" + id.uuidString)
                 GeometryReader { proxy in
                     let scale = canvas.map { min(proxy.size.width / $0.width, proxy.size.height / $0.height) } ?? 0
                     let dx = (proxy.size.width - (canvas?.width ?? 0) * scale) / 2
@@ -110,12 +126,14 @@ struct NativeWindowGroupCard: View {
             .frame(maxWidth: .infinity).aspectRatio(canvas.map { $0.width / $0.height } ?? 1.9, contentMode: .fit)
             .background(.primary.opacity(0.09), in: RoundedRectangle(cornerRadius: 7))
             .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(.primary.opacity(0.4)).allowsHitTesting(false) }
-            HStack(spacing: 3) {
-                ForEach(Array(appIcons(for: ordered).prefix(4).enumerated()), id: \.offset) { _, badge in
-                    Image(nsImage: badge.icon).resizable().scaledToFit().frame(width: 12, height: 12)
-                }
-                Text("窗口组合").font(.caption2).lineLimit(1)
-            }.frame(height: 18).accessibilityHidden(true)
+            Button(action: selectGroup) {
+                HStack(spacing: 3) {
+                    ForEach(Array(appIcons(for: ordered).prefix(4).enumerated()), id: \.offset) { _, badge in
+                        Image(nsImage: badge.icon).resizable().scaledToFit().frame(width: 12, height: 12)
+                    }
+                    Text("窗口组合").font(.caption2).lineLimit(1)
+                }.frame(maxWidth: .infinity).frame(height: 18).contentShape(Rectangle())
+            }.buttonStyle(.plain).accessibilityHidden(true)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("窗口组合")

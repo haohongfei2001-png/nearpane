@@ -66,7 +66,20 @@ public extension StageWindowSession {
     }
 }
 
-public enum StageSwitchError: Error, Equatable { case busy, unavailable, interrupted, incomplete, ownership, recoveryRequired }
+public enum StageSwitchError: LocalizedError, Equatable {
+    case busy, unavailable, interrupted, incomplete, ownership, recoveryRequired
+
+    public var errorDescription: String? {
+        switch self {
+        case .busy: return "已有窗口操作正在进行。"
+        case .unavailable: return "当前环境暂不能切换整个窗口组。"
+        case .interrupted: return "窗口或焦点已变化，本次切换已停止。"
+        case .incomplete: return "尚未核对完整的窗口组状态。"
+        case .ownership: return "窗口归属已变化，请重新选择。"
+        case .recoveryRequired: return "上一次窗口操作仍有待确认的恢复记录。"
+        }
+    }
+}
 
 @MainActor public final class StageGroupCoordinator {
     struct Ownership: Codable, Equatable {
@@ -218,7 +231,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
             return state.lifetime
         }
         guard let target = groups.first(where: { $0.id == group }),
-              let preferred = target.members.first(where: { $0.id == (member ?? target.selectedMember ?? target.members.first?.id) })
+              let preferred = target.focusMember(requested: member)
         else { throw StageSwitchError.incomplete }
         let members = groups.flatMap(\.members), ids = Set(members.map(\.windowHint)), targets = Set(target.members.map(\.windowHint))
         guard epoch == token, first.scope == scope, first.workArea.width > 0, first.workArea.height > 0,
