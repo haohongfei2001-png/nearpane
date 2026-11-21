@@ -1,0 +1,15 @@
+{
+  "sourceRevision": "d7ce52d7d7cb9798d78f8c293f3b2ea7b098b2c8",
+  "archive": "Nearpane-development-arm64.zip",
+  "sha256": "1e44e4c1aa981231aea370119ccf690140517a948b965d69477602a67c1e61ad",
+  "bytes": 17069620,
+  "identity": "com.holdsnow.nearpane.host",
+  "cdHash": "29786b638606067f0b0873e3a4d0f99a13e9a8e4",
+  "signature": "adhoc",
+  "sourceState": "clean",
+  "architecture": "arm64",
+  "unpackedStrictSignature": "PASS",
+  "resourceReadback": "Packaged Saytile and Riftlet resources verified.",
+  "installedHost": "NOT_RUN",
+  "notarization": "NOT_RUN"
+}

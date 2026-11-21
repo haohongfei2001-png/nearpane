@@ -1,5 +1,9 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 桌面文件和图标
+
+「设置 → 本屏窗口 → 桌面文件和图标」现可选择平时隐藏、点击空白墙纸时显示，也可恢复为始终显示。托管 macOS 26（25G332）与 27（26A434）均通过真实文件和普通应用窗口验收，点回应用的 Dock 图标后文件再次隐藏。26A428 实体机离屏回归 745 项通过、3 项条件跳过，正式安装版交互为 **NOT_RUN**。26A434 的录像完成回调为 **UNKNOWN**，四个状态均有独立截图。 [实测截图、录像和原始收据](../verification/stage-groups/5.22-90/desktop-items/RESULTS.md)
+
 ## 2026-11-21 · StageGroup 产品工程与验收
 
 本轮从 `e6d4bac` 推进到源码 `5e708a4`。macOS 27.0（26A428）、SIP 开启的主机完成开发包构建、解包验签及完整离屏回归，739 项通过、3 项条件跳过。正式安装 Host 的生产后端资格为 **0/2**。 [机器总表](../verification/window-engine/stage-product/verification.json) · [完整 Swift 回归](../verification/window-engine/stage-product/full-swift.xml) · [开发包签名与哈希](../verification/window-engine/stage-product/development-build.json)
