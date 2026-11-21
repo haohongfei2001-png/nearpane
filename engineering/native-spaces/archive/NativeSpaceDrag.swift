@@ -56,4 +56,3 @@ struct NativeWindowDragSource: ViewModifier {
         if let member, !member.selectionOnly { content.onDrag { drag.begin(member, feed: feed) } } else { content }
     }
 }
-

@@ -18,6 +18,8 @@
 
 上表源码位于工程的 [Sources](../../Sources)。旧窗口停放实测和同屏选窗/布局收据分别说明了能复用的能力与已知失败。 [普通 App 停放裁决](../verification/P4.2.2-VIRTUAL-TECHNICAL-VERDICT.md) · [正式同屏证据](../verification/native-spaces/5.22-90-sidebar-pair/RESULTS.md)
 
+已安装的早期候选还做过一次真实的系统台前调度交接。开启系统台前调度后，两次读取 Nearpane 都显示零张窗口卡、零条捕获流，语音和托盘工具继续显示。这个结果可以复用为独占调度的基线。它没有证明 Apple 的内部组 ID 与原生 Space ID 有固定对应关系，当前签名候选也仍需重新验收系统交接。 [历史实机互斥与原始读回](../verification/native-spaces/5.22-90-active-display-previews/RESULTS.md)
+
 ## 数据、投影与持久化
 
 - 每个活动资料代拥有一个版本化的 `stage-groups-v1.json`。物理显示器 UUID 持有有序组列表、最后一次已证实的活动组引用；组持有独立 UUID、有序成员、选中成员和对应布局。显示器断开时保存分区，再次连接根据 UUID 和实际 WorkRect 重新计算。
