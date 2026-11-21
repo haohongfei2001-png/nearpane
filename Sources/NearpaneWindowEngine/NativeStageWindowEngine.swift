@@ -21,7 +21,7 @@ public struct NativeStageEngineRequest: Sendable {
 }
 public struct NativeStageEngineReceipt: Sendable {
     public let status, flags, detail, owned: UInt32
-    public let nativeID: UInt64
+    public let nativeID, epoch: UInt64
     public let frame: SurfaceRect
     public let intent: UUID
 }
@@ -48,7 +48,19 @@ public actor NativeStageWindowEngine {
     }
     deinit { _ = np_engine_destroy(handle) }
     public nonisolated func revoke() { _ = np_engine_revoke(handle) }
+    public nonisolated func currentEpoch() throws -> UInt64 {
+        var epoch: UInt64 = 0
+        let code = np_engine_epoch(handle, &epoch)
+        guard code == NP_OK else { throw NativeStageEngineError.transport(code) }
+        return epoch
+    }
     @discardableResult public func close() -> Bool { np_engine_destroy(handle) == NP_OK }
+    public func launchSpaces() async throws -> NativeStageEngineReceipt {
+        try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_LAUNCH), intent: UUID()), timeoutMilliseconds: 9_000)
+    }
+    public func cleanSpacesLaunch() async throws -> NativeStageEngineReceipt {
+        try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_CLEAN_LAUNCH), intent: UUID()), timeoutMilliseconds: 9_000)
+    }
     public func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000) async throws -> NativeStageEngineReceipt {
         var request = NPRequest(), ticket: UInt64 = 0
         request.size = UInt32(MemoryLayout<NPRequest>.size); request.version = UInt32(NP_ENGINE_ABI)
@@ -84,7 +96,7 @@ public actor NativeStageWindowEngine {
                 let id = UUID(uuid: result.intent)
                 guard id == input.intent, result.epoch == usedEpoch else { throw NativeStageEngineError.correlation }
                 return NativeStageEngineReceipt(status: result.status, flags: result.flags, detail: result.detail,
-                    owned: result.owned, nativeID: result.native_id,
+                    owned: result.owned, nativeID: result.native_id, epoch: result.epoch,
                     frame: SurfaceRect(x: result.frame.x, y: result.frame.y, width: result.frame.width, height: result.frame.height),
                     intent: id)
             }

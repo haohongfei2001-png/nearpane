@@ -31,6 +31,9 @@ struct EngineABITests {
             frame: .init(width: 100, height: 100))
         let result = try await engine.submit(request)
         #expect(result.status == NP_UNSUPPORTED && result.intent == intent && result.owned == 0)
+        let launch = try await engine.launchSpaces()
+        #expect(launch.status == NP_UNSUPPORTED && launch.owned == 0)
+        #expect(launch.epoch == (try engine.currentEpoch()))
         engine.revoke()
         #expect(await engine.close())
     }

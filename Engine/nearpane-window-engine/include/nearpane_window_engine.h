@@ -1,6 +1,7 @@
 #ifndef NEARPANE_WINDOW_ENGINE_H
 #define NEARPANE_WINDOW_ENGINE_H
 #include <stdint.h>
+#include <stdbool.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -9,10 +10,12 @@ extern "C" {
  * Process birth is Unix microseconds from proc_bsdinfo. IDs use UUID network bytes.
  * Each command concerns one journaled window. 32 outstanding tickets per handle. */
 enum { NP_ENGINE_ABI = 1, NP_CORNER = 1, NP_SPACES = 2 };
-enum { NP_PROBE = 1, NP_READBACK, NP_HIDE, NP_SHOW, NP_RESTORE, NP_HEALTH, NP_TRIAL };
+enum { NP_PROBE = 1, NP_READBACK, NP_HIDE, NP_SHOW, NP_RESTORE, NP_HEALTH, NP_TRIAL,
+       NP_LAUNCH, NP_CLEAN_LAUNCH };
 enum { NP_PASS = 0, NP_FAIL, NP_UNKNOWN, NP_UNSUPPORTED, NP_TIMEOUT, NP_CANCELLED };
 enum { NP_VISIBLE = 1, NP_HIDDEN = 2, NP_AX_VALID = 4, NP_CG_VALID = 8,
-       NP_INPUT_SAFE = 16, NP_MEMBERSHIP_VALID = 32, NP_HEALTHY = 64, NP_OWNED = 128 };
+       NP_INPUT_SAFE = 16, NP_MEMBERSHIP_VALID = 32, NP_HEALTHY = 64, NP_OWNED = 128,
+       NP_PROBE_RESTORED = 256, NP_PROBE_CLOSED = 512, NP_PROBE_SPACE_DESTROYED = 1024 };
 /* Transport status is separate from the observed result. */
 enum { NP_OK = 0, NP_INVALID = 1, NP_INCOMPATIBLE = 2, NP_CLOSED = 3, NP_BUSY = 4,
        NP_PENDING = 5, NP_NO_TICKET = 6, NP_INTERNAL = 7 };
@@ -44,6 +47,7 @@ uint32_t np_engine_version(void);
 uint32_t np_engine_create(const NPConfig *, uint64_t *handle);
 /* acquisition for exactly one reviewed backend; evidence points to 16 UUID bytes. */
 uint32_t np_engine_create_qualified(uint32_t backend, const uint8_t *evidence, uint64_t *handle);
+bool np_engine_evidence_is_reviewed(uint32_t backend, const uint8_t *evidence);
 uint32_t np_engine_epoch(uint64_t handle, uint64_t *epoch);
 uint32_t np_engine_submit(uint64_t handle, const NPRequest *, uint64_t *ticket);
 uint32_t np_engine_poll(uint64_t handle, uint64_t ticket, NPReceipt *receipt);

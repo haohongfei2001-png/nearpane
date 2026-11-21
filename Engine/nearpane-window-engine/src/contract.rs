@@ -15,6 +15,8 @@ pub const SHOW: u32 = 4;
 pub const RESTORE: u32 = 5;
 pub const HEALTH: u32 = 6;
 pub const TRIAL: u32 = 7;
+pub const LAUNCH: u32 = 8;
+pub const CLEAN_LAUNCH: u32 = 9;
 pub const PASS: u32 = 0;
 pub const FAIL: u32 = 1;
 pub const UNKNOWN: u32 = 2;
@@ -29,6 +31,10 @@ pub const INPUT_SAFE: u32 = 16;
 pub const MEMBERSHIP_VALID: u32 = 32;
 pub const HEALTHY: u32 = 64;
 pub const OWNED: u32 = 128;
+pub const PROBE_RESTORED: u32 = 256;
+pub const PROBE_CLOSED: u32 = 512;
+pub const PROBE_SPACE_DESTROYED: u32 = 1024;
+pub const PROBE_CLEAN_FLAGS: u32 = PROBE_RESTORED | PROBE_CLOSED | PROBE_SPACE_DESTROYED;
 pub const TRIAL_CLASSIC: u32 = 1 << 16;
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -96,11 +102,11 @@ pub struct Request {
 }
 impl Request {
     pub fn writes(&self) -> bool {
-        matches!(self.operation, HIDE | SHOW | RESTORE | TRIAL)
+        matches!(self.operation, HIDE | SHOW | RESTORE | TRIAL | LAUNCH | CLEAN_LAUNCH)
     }
     pub fn valid(&self) -> bool {
         if !matches!(self.backend, CORNER | SPACES)
-            || !(PROBE..=TRIAL).contains(&self.operation)
+            || !(PROBE..=CLEAN_LAUNCH).contains(&self.operation)
             || self.intent == [0; 16]
             || self.epoch == 0
             || !(1..=10_000).contains(&self.timeout_ms)
@@ -114,6 +120,12 @@ impl Request {
         }
         if matches!(self.operation, PROBE | HEALTH) {
             return true;
+        }
+        if matches!(self.operation, LAUNCH | CLEAN_LAUNCH) {
+            return self.backend == SPACES && self.flags == 0 && self.pid == 0 && self.window == 0
+                && self.birth == 0 && self.native_id == 0 && self.frame == Rect::default()
+                && self.target == Rect::default() && [self.group,self.display,self.native_space,
+                    self.member,self.lifetime,self.generation].iter().all(|id| *id == [0;16]);
         }
         self.pid > 0
             && self.birth > 0
@@ -132,12 +144,14 @@ impl Request {
             .all(|id| *id != [0; 16])
     }
 }
+#[derive(Clone)]
 pub struct Control {
     pub(crate) epoch: Arc<AtomicU64>,
     pub(crate) expected: u64,
     pub(crate) cancelled: Arc<AtomicBool>,
     pub(crate) deadline: Instant,
     pub(crate) write: bool,
+    pub(crate) spaces_route: Option<u32>,
 }
 impl Control {
     pub fn guard(&self) -> Result<(), u32> {
@@ -153,6 +167,9 @@ impl Control {
     }
     pub fn may_write(&self) -> bool {
         self.write && self.guard().is_ok()
+    }
+    pub fn approved_spaces_route(&self) -> Option<u32> {
+        self.spaces_route.filter(|_| self.may_write())
     }
 }
 #[derive(Clone, Copy, Default, Debug)]

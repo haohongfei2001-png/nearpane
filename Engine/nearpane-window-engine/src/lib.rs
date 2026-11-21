@@ -81,7 +81,7 @@ pub unsafe extern "C" fn np_engine_create(config: *const Config, out: *mut u64) 
         Ok(())
     })
 }
-fn create_session(config: Config, qualified: Option<u32>) -> Result<u64, u32> {
+fn create_session(config: Config, qualified: Option<Grant>) -> Result<u64, u32> {
     let mut map = lock(registry());
     let writable = config.mode != 0 || qualified.is_some();
     if map.len() >= 32 || (writable && map.values().any(|h| h.writable)) {
@@ -101,7 +101,21 @@ fn create_session(config: Config, qualified: Option<u32>) -> Result<u64, u32> {
 // Only reviewed physical evidence IDs belong here. The signed Swift Host authenticates the
 // detached measurement and matches its final CDHash, system, display and consent before calling.
 // A Host digest never needs to be embedded into the very binary it identifies.
-const REVIEWED: &[(u32, [u8; 16])] = &[];
+#[derive(Clone, Copy)]
+struct Grant {
+    backend: u32,
+    evidence: [u8; 16],
+    spaces_route: Option<u32>,
+}
+const REVIEWED: &[Grant] = &[];
+fn reviewed(backend: u32, evidence: [u8; 16]) -> Option<Grant> {
+    REVIEWED.iter().copied().find(|g| g.backend == backend && g.evidence == evidence &&
+        matches!((g.backend, g.spaces_route), (CORNER, None) | (SPACES, Some(1 | 2))))
+}
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn np_engine_evidence_is_reviewed(backend: u32, evidence: *const u8) -> bool {
+    !evidence.is_null() && reviewed(backend, unsafe { evidence.cast::<[u8;16]>().read() }).is_some()
+}
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn np_engine_create_qualified(
     backend: u32,
@@ -115,9 +129,7 @@ pub unsafe extern "C" fn np_engine_create_qualified(
             return Err(INVALID);
         }
         let id = unsafe { evidence.cast::<[u8; 16]>().read() };
-        if !REVIEWED.contains(&(backend, id)) {
-            return Err(INCOMPATIBLE);
-        }
+        let grant = reviewed(backend, id).ok_or(INCOMPATIBLE)?;
         let config = Config {
             size: size_of::<Config>() as u32,
             version: ABI,
@@ -125,7 +137,7 @@ pub unsafe extern "C" fn np_engine_create_qualified(
             process_count: 0,
             processes: [Process::default(); 2],
         };
-        let handle = create_session(config, Some(backend))?;
+        let handle = create_session(config, Some(grant))?;
         unsafe { out.write(handle) };
         Ok(())
     })

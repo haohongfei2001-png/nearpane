@@ -107,10 +107,21 @@ struct State {
 impl State {
     fn record_write(&mut self, request: &Request, result: &Outcome) {
         let lease = Lease::from(request);
+        let canary = matches!(request.operation, LAUNCH | CLEAN_LAUNCH);
+        if canary && result.status == PASS && result.owned == 0 &&
+            result.flags & (PROBE_CLEAN_FLAGS | MEMBERSHIP_VALID | OWNED | HIDDEN) == PROBE_CLEAN_FLAGS | MEMBERSHIP_VALID {
+            self.unresolved.remove(&lease);
+            // Canary cleanup never releases another window's owner or its unknown leases.
+            if request.operation == CLEAN_LAUNCH && self.unresolved.is_empty() {
+                self.owner = None;
+                self.health_lost = false;
+            }
+            return;
+        }
         if result.owned > 0 || result.flags & OWNED != 0 || result.status == UNKNOWN {
             self.owner = Some(request.backend);
         }
-        if result.status == UNKNOWN {
+        if result.status == UNKNOWN || (canary && (result.owned != 0 || result.flags & OWNED != 0)) {
             self.unresolved.insert(lease);
             return;
         }
@@ -178,7 +189,7 @@ fn pump_run_loop() {
 #[cfg(not(target_os = "macos"))]
 fn pump_run_loop() {}
 impl Session {
-    pub fn create(config: Config, qualified: Option<u32>) -> Result<Self, u32> {
+    pub(super) fn create(config: Config, qualified: Option<crate::Grant>) -> Result<Self, u32> {
         let state = Arc::new(Mutex::new(State::default()));
         let epoch = Arc::new(AtomicU64::new(1));
         let (tx, rx) = mpsc::sync_channel(LIMIT);
@@ -309,7 +320,7 @@ impl Session {
 }
 fn process(
     config: &Config,
-    qualified: Option<u32>,
+    qualified: Option<crate::Grant>,
     shared: &Mutex<State>,
     epoch: &Arc<AtomicU64>,
     backends: &mut Backends,
@@ -322,14 +333,17 @@ fn process(
         cancelled: job.cancelled,
         deadline: job.began + Duration::from_millis(r.timeout_ms as u64),
         write: r.writes()
-            && (config.allows(&r) || (qualified == Some(r.backend) && r.operation != TRIAL)),
+            && (config.allows(&r) || (qualified.is_some_and(|g| g.backend == r.backend) && r.operation != TRIAL)),
+        spaces_route: qualified.and_then(|g| g.spaces_route),
     };
     let may_enter = {
         let mut s = lock(shared);
         let allowed = r.writes()
             && control.may_write()
             && s.owner.is_none_or(|b| b == r.backend)
-            && ((s.unresolved.is_empty() && !s.health_lost) || r.operation == RESTORE);
+            && ((s.unresolved.is_empty() && !s.health_lost) || matches!(r.operation, RESTORE | CLEAN_LAUNCH))
+            && (!matches!(r.operation, LAUNCH | CLEAN_LAUNCH) || (r.operation == LAUNCH && s.owner.is_none())
+                || (r.operation == CLEAN_LAUNCH && s.unresolved.contains(&Lease::from(&r))));
         let Some(ticket) = s.tickets.get_mut(&job.id) else {
             return;
         };
