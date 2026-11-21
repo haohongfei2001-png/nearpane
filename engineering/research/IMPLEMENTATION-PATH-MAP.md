@@ -1,5 +1,21 @@
 # 5.22（90）实施依据与模块归属
 
+## 当前 StageGroup 路径图
+
+| 阶段 | 实施所有者与读写边界 |
+| --- | --- |
+| P0 | NearpaneCore 的调度组目录、活动资料代文件；NearpaneUI 的 CurrentDesktopWindows、ExplicitWindowGroups、EmbeddedModules 绑定显示器和活窗。 |
+| P1 | 同屏 AX 适配、写前日志、恢复与系统读回；Host/helper 的原生 Space 入口只读。 |
+| P2 | DesktopSurface、NativeSpaceNavigator 的同屏拖放、DesktopAutomaticTiling、DesktopWindowSelection、HostCurrentWindowFocus。 |
+| P3 | WindowContentPreview、DesktopWindowGallery、NativeWindowGroupCard、WindowSwitchTransition；按组、按实际成员身份取像。 |
+| P4 | DisplayPanels、DesktopDisplayTopology、DesktopReadEvidence、MissionControlVisibility、DesktopSplitViewCard、NearpaneApp 的生命周期订阅。 |
+| P5 | NearpaneTray、NearpaneVoice、SelectionTranslation、SidebarNotebook 与活动资料代。 |
+| P6 | native-522-validation、candidate_signing、private_notary、实际安装和回滚工具。 |
+
+当前的精确路径、历史差异与真实系统门槛见[架构审查](NEARPANE-STAGE-GROUP-ARCHITECTURE.md)和[新路线](NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)。
+
+## ARCHIVED · 原 Native Spaces 路径图
+
 PR #15 的起点为 `6f85f73bc6b64290308ac610e342702f989a9f66`，接管时的安装版窗口修复源码为 `365fdc40c19853e4fa4343f9f20c240c85b7583b`。本目录三份裁决原文取自研究提交 `3151827799a646d4a41af7f15bae6fa8c520d00b`。原生源码与 PR #14 修复均沿 PR #15 历史向前更新。冻结的 R4 窗口卡、空态及视觉令牌继续生效。
 
 | 阶段 / 归属 | 现有入口（相对工程根目录） | 跨模块约定 |

@@ -1,5 +1,7 @@
 # 5.22（90）分阶段验收
 
+**窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](../../native-spaces/ACCEPTANCE.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。
+
 以[操作合同](../../native-spaces/ACCEPTANCE.md)、[冻结实施计划](../../research/NEARPANE-5.22-CODEX-IMPLEMENTATION-PLAN.md)和[版本矩阵](../../research/NEARPANE-5.22-COMPATIBILITY-MATRIX.md)为依据。操作必须从正式签名安装包的生产入口发起，夹具仅负责建立和清理隔离资料、读取真实系统结果。
 
 | 判定 | 必须保留的证据 |

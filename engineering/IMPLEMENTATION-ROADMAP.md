@@ -1,5 +1,7 @@
 # Nearpane — 工程实施路线与交付门槛
 
+**窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。
+
 **状态：目标工程路线与准入权威 · 2026-11-09 · ADR-013 已并入；不代表当前代码已实现**
 
 > 当前工程实现状态以 [P4.1 准入报告](verification/P4.1-native-action-gate.md) 等实际收据为准。本文件定义后续实施的行为和通过条件，历史 Mock/P1/P2 的验证不得自动解释为符合 ADR-013。

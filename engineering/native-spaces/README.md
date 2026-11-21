@@ -1,5 +1,7 @@
 # Nearpane 原生空间调度专项｜开发与验收入口
 
+**窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。
+
 **决定日期：2026-11-18（北京时间）**  
 **当前正式侧栏与安装验收见 [STATUS](STATUS.md)。**
 

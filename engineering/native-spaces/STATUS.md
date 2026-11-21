@@ -1,5 +1,22 @@
 # 当前安装与专项状态
 
+## 当前产品路线 · Stage Manager 替代
+
+PR #15 的重定向基线为 `a1a3fc3`，版本 5.22（90）。逻辑组按真实显示器维护；原生 Space、手势、全屏和 Split View 归 Apple。新发布门槛以 SG0–SG6 为准。 [产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [差异审查与架构](../research/NEARPANE-STAGE-GROUP-ARCHITECTURE.md) · [实施顺序](../research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md) · [验收合同](ACCEPTANCE.md)
+
+| 旧任务 | 归档状态与成果去向 |
+| --- | --- |
+| 旧 P0 原生切换、原生选择菜单 | OUT_OF_SCOPE，历史根因、一次/10/50 门槛和失败收据 ARCHIVED。 |
+| 旧 P1 Bridged 跨 Space 迁窗 | OUT_OF_SCOPE，ABI 研究和非派发试验 ARCHIVED。 |
+| 旧 P2 精确选窗 | 旧任务 ARCHIVED，正式 10/10 和同屏拖放作为新 P2 回归基线。 |
+| 旧 P3 截图附件 / 旧 P4 语音、翻译、词本 | 旧任务 ARCHIVED，可复用的工程与真实缺项并入新 P5。 |
+| 旧 P5 生命周期与性能 | 旧任务 ARCHIVED，本屏工作区、新 P4 被动系统兼容与新 P6 性能继续验证。 |
+| 旧 P6 分发 | 旧任务 ARCHIVED，同包验签和回退证据复用，公证与干净首启进入新 P6。 |
+
+### 历史安装记录（ARCHIVED）
+
+以下版本记录中的“当前”“发布门槛”均指当时的工作包。
+
 ## 2026-11-21 · Nearpane 自有的同桌面切窗过渡
 
 5.22（90）签名候选 `78f630f` 已接入同一普通桌面的直接选窗。重叠部分的旧画面以 160 毫秒淡出，键盘焦点可以同步转交。实体 Mac 的隔离 GPU 测试按 60 Hz 取样 13 次，观察到 11 种不同颜色，过渡方向连续。云端注册夹具实测过渡层显示时只有目标编辑器收到字符，退场后键窗仍正确。正式安装版的屏幕录制、辅助功能和输入事件三项授权均已读回允许。实机当时缺少可保留的普通桌面原焦点，正式点击、逐帧录屏和键盘落点均未运行。日常版 `d2d0bb6` 和配置已恢复。两台系统验签通过，均缺公证票据。PR #15 保持 Draft。[逐项结果与原始收据](../verification/native-spaces/5.22-window-switch-motion/RESULTS.md) · [草稿候选](../verification/native-spaces/5.22-p6/integrated-78f630f/draft-asset.json)

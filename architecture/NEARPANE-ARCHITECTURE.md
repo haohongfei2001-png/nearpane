@@ -1,5 +1,7 @@
 # Nearpane — 整体产品架构与第一方集成方案
 
+**窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](../engineering/research/NEARPANE-STAGE-GROUP-ARCHITECTURE.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。
+
 **状态：设计基线 / 非运行时实现**  
 **版本：0.2 · 2026-11-09（双空间模式补充，不重新设计整体架构）**  
 **依赖：PRODUCT_DEFINITION.md、NEARPANE-VISUAL-AUTHORITY.md、MACOS-SPACES-FEASIBILITY.md、ADR-010-DUAL-WORKSPACE-MODES.md**

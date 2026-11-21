@@ -14,7 +14,7 @@
 
 ## 产品定义与实施依据
 
-本工程分支使用本仓库内的 **[PRODUCT_DEFINITION.md](PRODUCT_DEFINITION.md)**、**[视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)** 与 **[交互规范](design/INTERACTION-SPEC.md)** 作为产品实施依据。细化决策见 [ADR-010](decisions/ADR-010-DUAL-WORKSPACE-MODES.md)、[ADR-011](decisions/ADR-011-MULTI-DISPLAY-PRESENTATION.md)、[ADR-012](decisions/ADR-012-DESKTOP-WORK-AREA-AND-FULLSCREEN.md)、**[ADR-013](decisions/ADR-013-STABLE-WORKRECT-AND-EIGHT-WINDOW-TILING.md)**。原生空间专项有更新裁决时，以 **[2026-11-18 专项决定](engineering/native-spaces/DECISIONS.md)** 为准；未涉及的产品规则继续有效。旧原型、旧测试和早期阶段限制保留历史参考地位。
+窗口调度采用 Nearpane 自己的 Display → StageGroup → Window 模型。macOS 管理原生桌面及其手势、全屏和 Split View。产品边界、当前实现差异及阶段门槛见[产品定义](engineering/research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md)、[架构](engineering/research/NEARPANE-STAGE-GROUP-ARCHITECTURE.md)和[实施计划](engineering/research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)。R4 [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)继续生效。
 
 打开窗口列表和启用窗口自动管理是两个独立操作。Docked 的预留区沿用该屏的持久设置。自动平铺、八窗分流、历史比例和退出恢复的产品规则见 ADR-013。哪些规则已在安装版验证，请查阅[产品完成状态](engineering/verification/PRODUCT_COMPLETION_STATE.md)。
 

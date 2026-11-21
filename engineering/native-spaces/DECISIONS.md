@@ -1,5 +1,7 @@
 # 已确定的产品与技术决策
 
+**窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。
+
 本文件适用于 [原生空间专项](README.md)。这里的方案是待实现决定，不是性能或系统能力已实测的声明。
 
 ## 当前产品交互修订 · 2026-11-18
