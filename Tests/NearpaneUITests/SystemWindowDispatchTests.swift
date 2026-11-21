@@ -26,7 +26,10 @@ import Testing
         #expect(!lane.dispatchAvailable && panels.missionControlDispatchState == "unknown")
         panels.setMissionControl(.exposed)
         panels.setSystemManagesWindows(true)
-        panels.setMissionControl(.ordinary) // A late AX read while Stage owns the display.
+        panels.setMissionControl(.exposed, evidence: "signedDockMCIdentifier")
+        #expect(!lane.dispatchAvailable && panels.missionControlDispatchState == "exposed")
+        panels.setMissionControl(.ordinary)
+        #expect(!lane.dispatchAvailable && panels.missionControlDispatchState == "ordinary")
         panels.setSuspended(true)
         panels.setSystemManagesWindows(false)
         #expect(!lane.dispatchAvailable)

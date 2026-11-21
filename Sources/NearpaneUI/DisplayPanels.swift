@@ -90,7 +90,7 @@ import NearpaneCore
         }
     }
     private func panelOcclusionChanged(_ id: ObjectIdentifier) {
-        guard !systemManagesWindows, !suspended, !stopped else { return }
+        guard !suspended, !stopped else { return }
         let windows = [primary.window] + secondary.values.map(\.window)
         guard let window = windows.compactMap({ $0 }).first(where: { ObjectIdentifier($0) == id }),
               window.isVisible, !window.occlusionState.contains(.visible) else { return }
@@ -104,15 +104,14 @@ import NearpaneCore
         guard value != systemManagesWindows else { return }
         let previous = windowDispatchEligible
         systemManagesWindows = value
-        if missionControlReader != nil {
-            sampleGeneration = UUID(); missionControl = .unknown
-            missionControlDispatchEvidence = value ? "stageManagerOwnsDispatch" : "waitingForDock"
-        }
+        sampleGeneration = UUID()
+        missionControl = .unknown
+        missionControlDispatchEvidence = "waitingForDock"
         publishOwnership(previous: previous)
     }
 
     func setMissionControl(_ value: MissionControlVisibility, evidence: String? = nil) {
-        guard !stopped, !suspended, !systemManagesWindows else { return }
+        guard !stopped, !suspended else { return }
         if let evidence { missionControlDispatchEvidence = evidence }
         guard missionControl != value else { return }
         let previous = windowDispatchEligible
@@ -150,7 +149,7 @@ import NearpaneCore
     private func pollSystemOwnership() {
         guard !stopped, let missionControlReader else { return }
         setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
-        guard !suspended, !systemManagesWindows else { return }
+        guard !suspended else { return }
         if let sampleBegan {
             if .now - sampleBegan > .milliseconds(750) { setMissionControl(.unknown, evidence: "sampleExpired") }
             return
