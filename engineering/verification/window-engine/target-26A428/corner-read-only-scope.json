@@ -1,0 +1,73 @@
+{
+  "cornerPatch": {
+    "status": "NOT_RUN"
+  },
+  "fifty": 0,
+  "fixtureOwnersExited": true,
+  "hosted": false,
+  "menuBarDockWallpaperNotificationInteractions": "NOT_RUN",
+  "nativeScope": {
+    "display": "physical-display-1",
+    "native": 4,
+    "space": "ordinary-space-1"
+  },
+  "nativeScopePreflight": [
+    {
+      "appKitScreenCount": 1,
+      "cgDisplayCount": 1,
+      "connectionAvailable": 1,
+      "currentID64": 4,
+      "currentManagedID": 4,
+      "currentType": 0,
+      "currentUUID": "ordinary-space-1",
+      "directWindowServerHome": 4,
+      "displayToken": "uuid",
+      "managedDisplayCount": 1,
+      "matchedRecords": 1,
+      "matchedType": 0,
+      "matchedUUID": "ordinary-space-1",
+      "ordinaryCount": 2,
+      "ordinaryWithUUIDCount": 2,
+      "physicalDisplayUUID": "physical-display-1",
+      "read": 1,
+      "reason": "confirmed",
+      "recordCount": 2,
+      "singleCGMainDisplay": true
+    },
+    {
+      "appKitScreenCount": 1,
+      "cgDisplayCount": 1,
+      "connectionAvailable": 1,
+      "currentID64": 4,
+      "currentManagedID": 4,
+      "currentType": 0,
+      "currentUUID": "ordinary-space-1",
+      "directWindowServerHome": 4,
+      "displayToken": "uuid",
+      "managedDisplayCount": 1,
+      "matchedRecords": 1,
+      "matchedType": 0,
+      "matchedUUID": "ordinary-space-1",
+      "ordinaryCount": 2,
+      "ordinaryWithUUIDCount": 2,
+      "physicalDisplayUUID": "physical-display-1",
+      "read": 2,
+      "reason": "confirmed",
+      "recordCount": 2,
+      "singleCGMainDisplay": true
+    }
+  ],
+  "officialInstalledHost": "NOT_RUN",
+  "physicalMultiDisplay": "NOT_RUN",
+  "processCrashAndRelaunch": "NOT_RUN",
+  "qualification": "UNQUALIFIED",
+  "schema": 1,
+  "scope": "readOnlyNativeDesktopIdentity",
+  "single": 0,
+  "status": "PASS",
+  "ten": 0,
+  "redaction": {
+    "originalSHA256": "f6128e9deac90eda7e14f07d32c97ff8ea974dd18235682d0a28126fa0e286ac",
+    "fields": "Physical display and native Space UUIDs replaced consistently after checking both are UUIDs."
+  }
+}

@@ -4,8 +4,12 @@ use std::cell::Cell;
 
 struct Guard {
     ok: Cell<bool>,
+    approved: Option<Route>,
 }
 impl Authority for Guard {
+    fn approved_route(&self) -> Option<Route> {
+        self.approved
+    }
     fn active(&self) -> Check<()> {
         self.observation()
     }
@@ -28,6 +32,11 @@ struct Fake {
     no_effect: bool,
     switch_topology: bool,
     bystander: bool,
+    opened_probe: bool,
+    defer_probe_close: bool,
+    probe_closes: u32,
+    lose_focus_on_hide: bool,
+    focus_changed: bool,
 }
 impl Fake {
     fn new() -> Self {
@@ -103,11 +112,46 @@ impl Platform for Fake {
             Err(unknown(Why::Identity))
         }
     }
+    fn canary(&mut self, op: launch::PanelOp, guard: &impl Authority) -> Check<launch::Panel> {
+        let n = 77;
+        if op == launch::PanelOp::Open {
+            guard.active()?;
+            if self.opened_probe {
+                return Err(fail(Why::Stale));
+            }
+            self.add(&request(n, READBACK, 1));
+            self.windows.get_mut(&n).unwrap().2 = 77;
+            self.opened_probe = true;
+        } else if op == launch::PanelOp::Close {
+            guard.active()?;
+            self.probe_closes += 1;
+            if !self.defer_probe_close {
+                self.windows.remove(&n);
+            }
+        }
+        let exists = self.windows.contains_key(&n);
+        Ok(launch::Panel {
+            number: if self.opened_probe { n } else { 0 },
+            pid: std::process::id() as i32,
+            birth: 123,
+            opened: self.opened_probe as u32,
+            registered: exists as u32,
+            absent: (!exists) as u32,
+            focus_same: (!self.focus_changed) as u32,
+            close_issued: (self.probe_closes>0) as u32,
+        })
+    }
+    fn absent(&self, n: u32) -> Check<bool> {
+        Ok(!self.windows.contains_key(&n))
+    }
+    fn transparent_canary(&self, w: &u64) -> bool {
+        *w == 77
+    }
     fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
         let t = self.windows[&w.number];
         if t.0 == w && t.2 == *lease && !t.3 {
             Ok(Seen {
-                visible: t.1 == 10,
+                visible: *lease != 77 && t.1 == 10,
                 rect: [0., 0., 100., 100.],
             })
         } else {
@@ -126,6 +170,7 @@ impl Platform for Fake {
     }
     fn move_window(&mut self, _: i32, route: Route, w: Window, s: u64, mask: u32) -> Delivery {
         self.moved.push((route, w.number, s, mask));
+        if self.lose_focus_on_hide && mask==7 && w.number==77 {self.focus_changed=true;}
         if !self.no_effect {
             self.windows.get_mut(&w.number).unwrap().1 = s;
         }
@@ -165,6 +210,7 @@ fn setup() -> (State<Fake>, Guard) {
         s,
         Guard {
             ok: Cell::new(true),
+            approved: None,
         },
     )
 }
@@ -328,4 +374,74 @@ fn passive_worker_tick_freezes_after_external_change_and_never_dispatches_recove
     assert_eq!(s.run(&request(1, RESTORE, 4), &a).status, PASS);
     assert_eq!(s.sys.moved.len(), writes);
     assert!(s.slots.is_empty());
+}
+
+fn launch_request(op: u32) -> Request {
+    Request {
+        backend: SPACES,
+        operation: op,
+        intent: [17; 16],
+        epoch: 1,
+        timeout_ms: 2000,
+        ..Request::default()
+    }
+}
+#[test]
+fn approved_launch_arms_only_its_evidence_route_after_its_own_canary_dies() {
+    for route in [Route::Classic, Route::Bridge] {
+        let (mut s, mut guard) = setup();
+        let passive = s.run(&request(1, PROBE, 8), &guard);
+        assert_eq!(passive.status, UNKNOWN);
+        assert_eq!(s.run(&launch_request(LAUNCH), &guard).status, UNSUPPORTED);
+        assert!(s.sys.moved.is_empty() && !s.sys.opened_probe);
+        guard.approved = Some(route);
+        let result = s.run(&launch_request(LAUNCH), &guard);
+        assert_eq!(
+            (result.status, result.owned, result.native_id),
+            (PASS, 0, 10)
+        );
+        assert_eq!(
+            result.flags,
+            CG_VALID | MEMBERSHIP_VALID | HEALTHY | PROBE_CLEAN_FLAGS
+        );
+        assert_eq!(s.sys.moved, vec![(route, 77, 101, 7), (route, 77, 10, 15)]);
+        assert_eq!(s.sys.destroyed, vec![101]);
+        assert_eq!(s.sys.probe_closes, 1);
+        assert!(!s.sys.windows.contains_key(&77));
+        assert_eq!(s.run(&request(1, HEALTH, 3), &guard).status, PASS);
+        assert_eq!(s.run(&launch_request(LAUNCH), &guard).status, FAIL);
+        assert_eq!(s.sys.moved.len(), 2);
+    }
+}
+#[test]
+fn cleanup_waits_for_delayed_probe_close_without_reissuing_or_arming_backend() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    s.sys.defer_probe_close = true;
+    let waiting = s.run(&launch_request(LAUNCH), &guard);
+    assert_eq!(waiting.status, UNKNOWN);
+    assert!(waiting.owned > 0 && s.route.is_none());
+    assert_ne!(s.run(&request(1, HIDE, 4), &guard).status, PASS);
+    assert_eq!(s.sys.probe_closes, 1);
+    s.sys.windows.remove(&77);
+    let closed = s.run(&launch_request(CLEAN_LAUNCH), &guard);
+    assert_eq!((closed.status, closed.owned), (PASS, 0));
+    assert_eq!(closed.flags & PROBE_CLEAN_FLAGS, PROBE_CLEAN_FLAGS);
+    assert_eq!(closed.flags & HEALTHY, 0);
+    assert_eq!(s.sys.probe_closes, 1);
+    assert_eq!(s.sys.moved.len(), 2);
+    assert!(s.route.is_none());
+}
+#[test]
+fn launch_never_accepts_a_caller_window_or_acquires_a_different_evidence_route() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Classic);
+    let mut forged = launch_request(LAUNCH);
+    forged.window = 2;
+    assert_eq!(s.run(&forged, &guard).status, FAIL);
+    let noop = s.run(&launch_request(CLEAN_LAUNCH), &guard);
+    assert_eq!((noop.status, noop.owned), (PASS, 0));
+    assert!(!s.sys.opened_probe && s.sys.moved.is_empty() && s.sys.destroyed.is_empty());
+    guard.approved = Some(Route::Bridge);
+    assert_ne!(s.run(&launch_request(CLEAN_LAUNCH), &guard).status, PASS);
 }

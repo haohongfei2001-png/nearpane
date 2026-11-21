@@ -5,6 +5,7 @@ use crate::contract::*;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::time::{Duration, Instant};
 
+mod launch;
 mod system;
 type Id = [u8; 16];
 type Check<T> = Result<T, Fault>;
@@ -47,6 +48,9 @@ enum Why {
     HideVerified,
     Cleanup,
     Health,
+    LaunchPassed,
+    ProbeClosed,
+    ProbeFocus,
 }
 #[derive(Clone, Copy, Debug)]
 struct Fault(u32, Why);
@@ -163,6 +167,15 @@ trait Platform {
     fn spaces(&self, c: i32, number: u32) -> Check<Rows>;
     fn bind(&self, window: Window) -> Check<Self::Witness>;
     fn see(&self, w: Window, witness: &Self::Witness) -> Check<Seen>;
+    fn transparent_canary(&self, _w: &Self::Witness) -> bool {
+        false
+    }
+    fn canary(&mut self, _op: launch::PanelOp, _a: &impl Authority) -> Check<launch::Panel> {
+        Err(Fault(UNSUPPORTED, Why::Disabled))
+    }
+    fn absent(&self, _number: u32) -> Check<bool> {
+        Err(unknown(Why::Readback))
+    }
     fn create(&mut self, c: i32) -> Check<u64>;
     fn destroy(&mut self, c: i32, space: u64) -> Delivery;
     fn move_window(&mut self, c: i32, route: Route, w: Window, target: u64, mask: u32) -> Delivery;
@@ -170,8 +183,24 @@ trait Platform {
 trait Authority {
     fn active(&self) -> Check<()>;
     fn observation(&self) -> Check<()>;
+    fn approved_route(&self) -> Option<Route> {
+        None
+    }
+    fn retained(&self) -> Option<Control> {
+        None
+    }
 }
 impl Authority for Control {
+    fn approved_route(&self) -> Option<Route> {
+        match self.approved_spaces_route()? {
+            1 => Some(Route::Classic),
+            2 => Some(Route::Bridge),
+            _ => None,
+        }
+    }
+    fn retained(&self) -> Option<Control> {
+        Some(self.clone())
+    }
     fn active(&self) -> Check<()> {
         self.observation()?;
         if self.may_write() {
@@ -203,6 +232,7 @@ struct Bound<W> {
     lease: Lease,
     witness: W,
     original: [f64; 4],
+    pending_target: std::cell::Cell<Option<u64>>,
 }
 struct Space {
     id: u64,
@@ -219,6 +249,7 @@ struct State<P: Platform> {
     strikes: VecDeque<Instant>,
     failed: bool,
     next_tick: Option<Instant>,
+    launch: Option<launch::CanaryRun>,
     tick_cursor: usize,
 }
 impl<P: Platform> State<P> {
@@ -233,6 +264,7 @@ impl<P: Platform> State<P> {
             strikes: VecDeque::new(),
             failed: false,
             next_tick: None,
+            launch: None,
             tick_cursor: 0,
         }
     }
@@ -424,7 +456,10 @@ impl<P: Platform> State<P> {
             return Err(unknown(Why::Membership));
         }
         let b = self.sys.see(window, w)?;
-        if a.rect != b.rect || a.visible != b.visible || b.visible == hidden {
+        if a.rect != b.rect
+            || a.visible != b.visible
+            || (!self.sys.transparent_canary(w) && b.visible == hidden)
+        {
             return Err(unknown(Why::Readback));
         }
         Ok(b)
@@ -465,7 +500,12 @@ impl<P: Platform> State<P> {
         a.active()?;
         let target = if hidden { sid } else { lease.slot.home.id };
         let mask = if hidden { 7 } else { 15 };
+        if bound.pending_target.get() == Some(target) {
+            return Err(unknown(Why::Uncertain));
+        }
+        bound.pending_target.set(Some(target));
         if self.sys.move_window(c, route, lease.window, target, mask) == Delivery::Refused {
+            bound.pending_target.set(None);
             return Err(fail(Why::NoDelivery));
         }
         let started = Instant::now();
@@ -500,6 +540,7 @@ impl<P: Platform> State<P> {
             }
             std::thread::sleep(Duration::from_millis(4));
         }
+        bound.pending_target.set(None);
         if missed {
             self.record_late(self.sys.now());
         }
@@ -536,6 +577,7 @@ impl<P: Platform> State<P> {
                 lease,
                 witness,
                 original: original.rect,
+                pending_target: std::cell::Cell::new(None),
             },
         );
         self.moved(c, lease, sid, true, route, &top, a)
@@ -727,6 +769,36 @@ impl<P: Platform> State<P> {
                 detail = Why::Health;
                 return Ok(());
             }
+            if matches!(r.operation, LAUNCH | CLEAN_LAUNCH) {
+                if !r.valid() {
+                    return Err(fail(Why::Identity));
+                }
+                let route = a
+                    .approved_route()
+                    .ok_or(Fault(UNSUPPORTED, Why::Disabled))?;
+                a.active()?;
+                if r.operation == LAUNCH {
+                    self.start_canary(c, route, r.intent, a)?;
+                } else {
+                    self.finish_canary(c, route, a)?;
+                }
+                let proof = self.launch.as_ref().ok_or(unknown(Why::Readback))?;
+                out.native_id = proof.home.map_or(0, |h| h.id);
+                out.flags = CG_VALID | MEMBERSHIP_VALID | PROBE_CLEAN_FLAGS;
+                if r.operation == LAUNCH {
+                    out.flags |= HEALTHY;
+                }
+                out.status = PASS;
+                detail = if r.operation == LAUNCH {
+                    Why::LaunchPassed
+                } else {
+                    Why::ProbeClosed
+                };
+                return Ok(());
+            }
+            if self.launch.as_ref().is_some_and(|p| !p.cleaned) {
+                return Err(unknown(Why::RestoreFirst));
+            }
             let lease = Lease::from(r)?;
             let requested = [r.frame.x, r.frame.y, r.frame.width, r.frame.height];
             if r.operation == READBACK {
@@ -820,7 +892,10 @@ impl<P: Platform> State<P> {
                 .values()
                 .filter(|s| !self.owned.values().any(|w| w.lease.slot == s.owner.slot))
                 .count()) as u32;
-        if !self.owned.is_empty() || !self.slots.is_empty() {
+        if self.launch.as_ref().is_some_and(|p| !p.cleaned) {
+            out.owned = out.owned.saturating_add(1);
+        }
+        if out.owned > 0 {
             out.flags |= OWNED;
         }
         out
@@ -829,7 +904,7 @@ impl<P: Platform> State<P> {
 pub struct Spaces(State<system::System>);
 impl Default for Spaces {
     fn default() -> Self {
-        Self(State::new(system::System))
+        Self(State::new(system::System::default()))
     }
 }
 impl WindowEngine for Spaces {

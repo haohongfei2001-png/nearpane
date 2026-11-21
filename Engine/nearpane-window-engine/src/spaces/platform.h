@@ -20,4 +20,9 @@ int32_t np_stage_move(int32_t connection, uint32_t route, uint32_t number, uint6
 void *np_stage_bind(uint32_t number, int32_t pid, uint64_t birth);
 int32_t np_stage_check_bound(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t on_screen);
 void np_stage_release(void *handle);
+typedef struct { uint32_t number; int32_t pid; uint64_t birth; uint32_t opened, registered, absent, focus_same, close_issued; } NPStageCanary;
+typedef int32_t (*NPStageGuard)(void *);
+typedef void (*NPStageFree)(void *);
+void *np_stage_launch_token(void);
+int32_t np_stage_launch_call(void *handle,uint32_t op,void *auth,NPStageGuard guard,NPStageFree release,NPStageCanary *out);
 #endif

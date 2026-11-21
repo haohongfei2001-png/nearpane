@@ -6,6 +6,15 @@ use std::ffi::c_void;
 #[cfg(target_os = "macos")]
 mod mac {
     use super::*;
+    use std::sync::Arc;
+    unsafe extern "C" fn still_allowed(ctx: *mut c_void) -> i32 {
+        (!ctx.is_null() && unsafe { &*ctx.cast::<Control>() }.may_write()) as i32
+    }
+    unsafe extern "C" fn free_control(ctx: *mut c_void) {
+        if !ctx.is_null() {
+            drop(unsafe { Box::from_raw(ctx.cast::<Control>()) });
+        }
+    }
     #[repr(C)]
     #[derive(Default, Clone, Copy)]
     struct WindowRow {
@@ -38,6 +47,15 @@ mod mac {
             on_screen: u32,
         ) -> i32;
         fn np_stage_release(witness: *mut c_void);
+        fn np_stage_launch_token() -> *mut c_void;
+        fn np_stage_launch_call(
+            token: *mut c_void,
+            op: u32,
+            ctx: *mut c_void,
+            guard: unsafe extern "C" fn(*mut c_void) -> i32,
+            free: unsafe extern "C" fn(*mut c_void),
+            row: *mut launch::Panel,
+        ) -> i32;
         fn np_stage_create(c: i32, s: *mut u64) -> i32;
         fn np_stage_destroy(c: i32, s: u64) -> i32;
         fn np_stage_move(c: i32, route: u32, w: u32, s: u64, mask: u32) -> i32;
@@ -60,12 +78,40 @@ mod mac {
             _ => Delivery::Uncertain,
         }
     }
-    pub(crate) struct Witness(std::ptr::NonNull<c_void>);
+    pub(crate) struct Reference(pub(super) std::ptr::NonNull<c_void>);
     // The opaque reference is held by one WM worker, never accessed concurrently.
-    unsafe impl Send for Witness {}
-    impl Drop for Witness {
+    unsafe impl Send for Reference {}
+    unsafe impl Sync for Reference {}
+    impl Drop for Reference {
         fn drop(&mut self) {
             unsafe { np_stage_release(self.0.as_ptr()) }
+        }
+    }
+    pub(crate) enum Witness {
+        Document(Reference),
+        Canary(Arc<Reference>),
+    }
+    fn panel_read(
+        token: &Reference,
+        op: launch::PanelOp,
+        control: Option<Control>,
+    ) -> Check<launch::Panel> {
+        let mut result = launch::Panel::default();
+        let ptr = control.map_or(std::ptr::null_mut(), |c| Box::into_raw(Box::new(c)).cast());
+        let valid = unsafe {
+            np_stage_launch_call(
+                token.0.as_ptr(),
+                op as u32,
+                ptr,
+                still_allowed,
+                free_control,
+                &mut result,
+            )
+        };
+        if valid == 1 {
+            Ok(result)
+        } else {
+            Err(unknown(Why::Readback))
         }
     }
     impl Platform for System {
@@ -113,8 +159,17 @@ mod mac {
             numbers::<128>(|p, n| unsafe { np_stage_membership(c, w, p, n) })
         }
         fn bind(&self, w: Window) -> Check<Witness> {
+            if let Some(token) = &self.token {
+                if self.canary_number == Some(w.number) {
+                    let p = panel_read(token, launch::PanelOp::Read, None)?;
+                    if p.window() == Some(w) && p.registered == 1 {
+                        return Ok(Witness::Canary(token.clone()));
+                    }
+                    return Err(unknown(Why::Identity));
+                }
+            }
             std::ptr::NonNull::new(unsafe { np_stage_bind(w.number, w.pid, w.birth) })
-                .map(Witness)
+                .map(|reference| Witness::Document(Reference(reference)))
                 .ok_or(unknown(Why::MinimizedOrAX))
         }
         fn see(&self, w: Window, lease: &Witness) -> Check<Seen> {
@@ -125,16 +180,65 @@ mod mac {
                 || row.birth != w.birth
                 || row.layer != 1
                 || row.onboard > 1
-                || unsafe {
-                    np_stage_check_bound(lease.0.as_ptr(), w.number, w.pid, w.birth, row.onboard)
-                } != 1
             {
+                return Err(unknown(Why::Identity));
+            }
+            let valid = match lease {
+                Witness::Document(reference) => unsafe {
+                    np_stage_check_bound(
+                        reference.0.as_ptr(),
+                        w.number,
+                        w.pid,
+                        w.birth,
+                        row.onboard,
+                    ) == 1
+                },
+                Witness::Canary(token) => {
+                    let p = panel_read(token, launch::PanelOp::Read, None)?;
+                    p.window() == Some(w) && p.registered == 1 && p.focus_same == 1
+                }
+            };
+            if !valid {
                 return Err(unknown(Why::Identity));
             }
             Ok(Seen {
                 visible: row.onboard == 1,
                 rect: row.rect,
             })
+        }
+        fn transparent_canary(&self, w: &Witness) -> bool {
+            matches!(w, Witness::Canary(_))
+        }
+        fn canary(&mut self, op: launch::PanelOp, a: &impl Authority) -> Check<launch::Panel> {
+            if self.token.is_none() && op == launch::PanelOp::Prepare {
+                self.token = std::ptr::NonNull::new(unsafe { np_stage_launch_token() })
+                    .map(|p| Arc::new(Reference(p)));
+            }
+            let token = self
+                .token
+                .as_ref()
+                .ok_or(Fault(UNSUPPORTED, Why::Disabled))?;
+            let control = if matches!(op, launch::PanelOp::Open | launch::PanelOp::Close) {
+                a.active()?;
+                Some(a.retained().ok_or(Fault(UNSUPPORTED, Why::Disabled))?)
+            } else {
+                None
+            };
+            let read = panel_read(token, op, control)?;
+            if read.registered == 1 {
+                self.canary_number = Some(read.number);
+            } else if read.absent == 1 && read.opened == 1 {
+                self.canary_number = None;
+            }
+            Ok(read)
+        }
+        fn absent(&self, n: u32) -> Check<bool> {
+            let mut r = WindowRow::default();
+            match unsafe { np_stage_window(n, &mut r) } {
+                0 => Ok(true),
+                1 => Ok(false),
+                _ => Err(unknown(Why::Readback)),
+            }
         }
         fn create(&mut self, c: i32) -> Check<u64> {
             let mut id = 0;
@@ -157,7 +261,13 @@ mod mac {
         }
     }
 }
-pub(super) struct System;
+#[derive(Default)]
+pub(super) struct System {
+    #[cfg(target_os = "macos")]
+    token: Option<std::sync::Arc<mac::Reference>>,
+    #[cfg(target_os = "macos")]
+    canary_number: Option<u32>,
+}
 #[cfg(not(target_os = "macos"))]
 impl Platform for System {
     type Witness = ();
