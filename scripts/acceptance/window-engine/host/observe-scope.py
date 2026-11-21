@@ -56,7 +56,7 @@ def public_scope(raw):
 
 def public_observation(observation):
     # One token table for the whole Host response. Both samplers use the same physical identities.
-    result = public_scope({key: observation[key] for key in ("spaceScope", "postCanarySpaceScope", "guardianFixture", "guardianIndependent",
+    result = public_scope({key: observation[key] for key in ("spaceScope", "postCanarySpaceScope", "canaryMissionControl", "guardianFixture", "guardianIndependent",
                                                             "installedSpacesFixtureCycle","installedSpacesCanary") if key in observation})
     # This nonce is issued by the runner for one invocation. Only restore the
     # verified field itself; a display or Space UUID elsewhere must stay redacted.

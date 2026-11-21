@@ -142,6 +142,32 @@ class InstalledScopeTests(unittest.TestCase):
                         dict(session=dict(session, securitySessionID=0))]:
             self.assertEqual(check(roster=dict(census, **invalid))["status"], "UNKNOWN")
 
+    def test_real_overview_receipt_demands_two_visible_counts_and_restoration(self):
+        row = dict(status="PASS", stage="afterCanary", restored=True, inputEventsPosted=0,
+                   presentations=1, dismissals=1, tileCounts=[2,2], expectedCount=2)
+        self.assertEqual(membership.overview_verdict(row, [3,7]), "PASS")
+        for change in (dict(tileCounts=[2]), dict(tileCounts=[2,3]), dict(restored=False),
+                       dict(presentations=True), dict(inputEventsPosted=1), dict(dismissals=2)):
+            self.assertEqual(membership.overview_verdict(dict(row, **change), [3,7]), "UNKNOWN")
+        self.assertEqual(membership.overview_verdict(dict(row,status="FAIL"), [3,7]), "FAIL")
+        report = dict(requestedOwnCanary=True, requestedSpacesCycle=False, hostObservationStarted=True,
+                      hostLaunchRequested=True, hostExit=dict(status="PASS"), panelJournal=dict(status="PASS"))
+        self.assertFalse(membership.resources(report)["clear"])
+        self.assertTrue(membership.resources(dict(report,overviewObservation=row))["clear"])
+
+    def test_external_trial_stops_at_predecessor_without_starting_an_owner(self):
+        with tempfile.TemporaryDirectory() as td:
+            args = membership.argparse.Namespace(host=reader.DAILY, expected_source=revision, expected_cdhash=digest,
+                out=Path(td)/"run.json", installed=True, preflight_only=False, own_spaces_canary=False, enrolled_spaces_cycle=True)
+            report = dict(osBuild="26A428",requestedSpacesCycle=True)
+            with patch.object(reader,"identity",return_value=image), patch.object(membership,"inspect_launch",return_value=dict(status="PASS")), \
+                    patch.object(membership,"own_panel_first",side_effect=lambda a,r: r.update(ownPanelPredecessor=dict(status="UNKNOWN", resourcesClear=False))), \
+                    patch.object(membership,"prepare_fixture") as prepare:
+                membership.run(args, report)
+                prepare.assert_not_called()
+            self.assertEqual(report["status"], "UNKNOWN")
+            self.assertFalse(membership.resources(report)["clear"])
+
     def test_installed_binding_and_development_controls(self):
         self.assertTrue(membership.installed_matches(reader.DAILY, image, revision, digest))
         for key, value in (("CDHash","c"*40), ("sourceState","dirty"), ("Identifier","com.holdsnow.nearpane.host"),

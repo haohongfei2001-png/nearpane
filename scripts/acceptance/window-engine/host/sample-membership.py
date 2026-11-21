@@ -372,6 +372,39 @@ def panel_archive(observed, challenge):
                 reason="boundPanelJournal" if proven else "incompleteOrConflictingPanelJournal")
 
 
+def overview_verdict(witness, expected):
+    if not isinstance(witness, dict) or not isinstance(expected, list) or not expected:
+        return "UNKNOWN"
+    if witness.get("status") in ("BLOCKED", "FAIL", "UNKNOWN"):
+        return witness["status"]
+    counts = witness.get("tileCounts")
+    totals = {"inputEventsPosted": 0, "presentations": 1, "dismissals": 1, "expectedCount": len(expected)}
+    return "PASS" if (witness.get("status") == "PASS" and witness.get("stage") == "afterCanary"
+                      and witness.get("restored") is True
+                      and all(type(witness.get(k)) is int and witness[k] == count for k, count in totals.items()) and isinstance(counts, list)
+                      and len(counts) == 2 and all(type(n) is int and n == len(expected) for n in counts)) else "UNKNOWN"
+
+
+def own_panel_first(a, report):
+    # Reuse the formal installed path, including its own launch/exit census. An archive
+    # supplied by a caller never authorizes a later external action.
+    path = a.out.with_name(a.out.stem + "-own-panel.json")
+    with path.open("x"):
+        pass
+    own = dict(requestedOwnCanary=True, requestedSpacesCycle=False, productionQualified=False,
+               osBuild=report["osBuild"], scope="physicalInstalledHostOwnPanelOnly", status="UNKNOWN")
+    try:
+        run(argparse.Namespace(**(vars(a) | dict(out=path, own_spaces_canary=True, enrolled_spaces_cycle=False))), own)
+    finally:
+        own["probeResources"] = resources(own)
+        path.write_text(json.dumps(own, indent=2) + "\n")
+        report["ownPanelPredecessor"] = dict(receipt=path.name, status=own["status"], challenge=own.get("challenge"),
+            rawHostSHA256=own.get("rawHostSHA256"),
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(), resourcesClear=own["probeResources"]["clear"],
+            missionControlUI=own.get("missionControlUI","NOT_RUN"))
+    return own["status"] == "PASS" and own["probeResources"]["clear"] and own.get("missionControlUI") == "PASS"
+
+
 def run(a, report):
     app = a.host.resolve(strict=True)
     image = scope_reader.identity(app)
@@ -392,6 +425,19 @@ def run(a, report):
     if not admitted:
         report.update(status="BLOCKED", reason="installedImageOrPriorHostReceiptMismatch")
         return
+    if a.enrolled_spaces_cycle:
+        if not own_panel_first(a, report):
+            report.update(status=report["ownPanelPredecessor"]["status"], reason="standalonePanelOrVisibleSystemStripNotConfirmed",
+                          membershipStatus="NOT_RUN")
+            if report["status"] == "PASS":
+                report["status"] = "UNKNOWN"
+            return
+        # A newly started daily instance or replaced bundle invalidates the preceding launch.
+        readiness = inspect_launch(scope_reader.identity(app), a.expected_source, a.expected_cdhash)
+        report["afterCanaryLaunchReadiness"] = readiness
+        if readiness["status"] != "PASS":
+            report.update(status=readiness["status"], reason="launchConditionsChangedAfterCanary", membershipStatus="NOT_RUN")
+            return
     raw_output = a.out.with_name(a.out.stem + "-host.json")
     with raw_output.open("x"):
         pass
@@ -403,18 +449,33 @@ def run(a, report):
         report.update(scope="physicalInstalledHostOwnPanelOnly", hostObservationStarted=True)
         observed = scope_reader.observe(app, challenge, channel, raw_output, expected_image=image, own_canary=True)
         archived = panel_archive(observed, challenge)
+        overview = observed.get("canaryMissionControl", {})
+        visible = overview_verdict(overview, confirmed_desktops(observed)) if archived["status"] == "PASS" else "NOT_RUN"
         report.update(hostLaunchRequested=observed.get("launchRequested"), hostExit=observed.get("hostExit"),
                       preexistingSameID=observed.get("launchServices", {}).get("prelaunch", {}).get("pids", []),
                       subject=observed.get("subject"), permissions=observed.get("permissions"),
                       canary=observed.get("installedSpacesCanary"), rawHostSHA256=observed.get("rawSHA256"),
-                      membershipStatus="NOT_RUN", panelJournal=archived, status=archived["status"],
-                      missionControlUI="NOT_RUN", thirdPartyWindow="NOT_RUN")
-        report["reason"] = observed.get("reason") if observed.get("status") != "PASS" else archived["reason"]
+                      membershipStatus="NOT_RUN", panelJournal=archived, status=visible if archived["status"] == "PASS" else archived["status"],
+                      missionControlUI=visible, overviewObservation=overview, thirdPartyWindow="NOT_RUN")
+        report["reason"] = (observed.get("reason") if observed.get("status") != "PASS" else
+                            overview.get("reason","visibleSystemStripUnconfirmed") if archived["status"] == "PASS" else archived["reason"])
         return
     work = Path("/private/tmp") / ("nearpane-membership." + challenge)
     work.mkdir(mode=0o700)
     fixture, exe, digest = prepare_fixture(work, report)
     def enroll(pre):
+        if a.enrolled_spaces_cycle:
+            prior = report["ownPanelPredecessor"]
+            nonce = str(uuid.UUID(prior["challenge"]))
+            previous = scope_reader.read_private(Path("/private/tmp") / ("nearpane-host-scope." + nonce) / "response.json", 196608)
+            if hashlib.sha256(previous).hexdigest() != prior["rawHostSHA256"]:
+                raise ValueError("standalone Host response changed before fixture admission")
+            prior_scope = json.loads(previous)["postCanarySpaceScope"]
+            current = pre["spaceScope"]
+            if (current["scope"] != prior_scope["scope"] or any(
+                    current["samples"][0].get(key) != prior_scope["samples"][-1].get(key)
+                    for key in ("session","display","managedRows"))):
+                raise ValueError("console, display or managed Spaces changed before fixture admission")
         return registered_window(pre, challenge, work, fixture, exe, digest, report)
     def inspect_final(raw):
         if a.enrolled_spaces_cycle:
@@ -468,8 +529,12 @@ def resources(report):
         backend = "PASS" if report.get("panelJournal", {}).get("status") == "PASS" else "UNKNOWN"
     elif report["requestedSpacesCycle"] and report.get("fixtureAdmission") == "registeredSignedBackgroundWindow":
         backend = "PASS" if report.get("backendSafeToRollback") is True else "UNKNOWN"
+    overview = report.get("overviewObservation", {})
+    overview_clear = (not report.get("requestedOwnCanary") or backend == "NOT_RUN" or overview.get("restored") is True)
+    preceding = report.get("ownPanelPredecessor")
     return dict(candidateExit=host, registeredWindowExit=fixture, backendCleanup=backend,
-                clear=all(state in {"PASS", "NOT_RUN"} for state in (host, fixture, backend)))
+                clear=all(state in {"PASS", "NOT_RUN"} for state in (host, fixture, backend))
+                and overview_clear and (preceding is None or preceding["resourcesClear"] is True))
 
 
 
