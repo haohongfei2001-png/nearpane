@@ -181,6 +181,35 @@ class TestTemporaryInstall(unittest.TestCase):
     def recover(self):
         return tool.supervise(self.mac,argparse.Namespace(action="recover"),lambda:0)
 
+    def test_existing_window_recovery_stops_in_place_before_staging_or_quit(self):
+        self.args.only = "window-engine"
+        with patch.object(tool.window_engine_trial(), "prepare", return_value={"status": "BLOCKED"}):
+            r = tool.supervise(self.mac, self.args, lambda: 0)
+        self.assertEqual(r["stage"], "daily-preflight-blocked")
+        self.assertEqual(self.mac.actions, [])
+        self.assertEqual(tool.inode(self.mac.canonical), self.original)
+        self.assertFalse((self.mac.root/"active.json").exists())
+
+    def test_engine_unknown_after_swap_preserves_both_bundles_and_never_launches_daily(self):
+        tx = self.prepare()
+        tx.rec.update(trialScope="window-engine", engineWork=str(self.base), trials={"WindowEngine": {"status": "NOT_RUN"}})
+        probe = tool.window_engine_trial()
+        def gate(*_):
+            return dict(roster=dict(complete=True, session=dict(qualified=True),
+                                    pids=[self.mac.pid()] if self.mac.pid() else []), leases=dict(quitPermitted=True))
+        def interrupted(trial):
+            trial.save("running-installed-window-engine", engineProbeIntended=True)
+        with patch.object(probe, "census_and_recovery", side_effect=gate), patch.object(probe, "stamp_is_gone", return_value=True), patch.object(probe, "run", side_effect=interrupted):
+            try:
+                tx.forward(lambda: 0)
+                with self.assertRaisesRegex(ValueError, "cleanup receipt outstanding"):
+                    tx.restore()
+                self.assertEqual(tool.inode(tx.slot), self.original)
+                self.assertIsNone(self.mac.pid())
+                self.assertNotIn("launch-daily", self.mac.actions)
+            finally:
+                tx.release_daily()
+
     def test_both_trials_separate_real_swaps_exact_original_and_profile(self):
         record = tool.supervise(self.mac,self.args,lambda:0)
         self.assertEqual(self.mac.actions,["quit-daily","launch-isolated","P3","P4","quit-isolated","launch-daily"])

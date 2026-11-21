@@ -116,6 +116,8 @@ def main():
         "spaces-tests",
         "performance-tests",
         "corner-lease-tests",
+        "installed-host-tests",
+        "installed-supervisor-tests",
         "ci-tests",
     )
     checks = {name: {"status": "NOT_RUN"} for name in phases}
@@ -236,10 +238,13 @@ def main():
                 lambda _: swift_count(xml, suites),
             )
         run("hosted-reader-build", build_reader(work / "hosted-reader-compile-only"))
+        run("installed-supervisor-tests", ["python3", "-B", "-m", "unittest", "discover", "-s",
+            ACCEPTANCE.parent / "native-spaces", "-p", "test_private_installed_trials.py"], python_count)
         for name, folder in (
             ("spaces-tests", "spaces"),
             ("performance-tests", "performance"),
             ("corner-lease-tests", "corner/single"),
+            ("installed-host-tests", "host"),
             ("ci-tests", "ci"),
         ):
             run(

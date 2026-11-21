@@ -526,6 +526,13 @@ class Transaction:
         require(stamp == self.rec["initialDailyHost"], "Enrolled daily Host generation changed")
         if cancelled():
             return
+        if self.rec.get("trialScope") == "window-engine":
+            probe = window_engine_trial()
+            refreshed = probe.census_and_recovery(Path(self.rec["engineWork"]), self.app, self.id)
+            self.save("checked-daily-window-ownership", dailyPreQuit=refreshed)
+            if not probe.admit_daily(refreshed, stamp[0]):
+                self.rec["trials"]["WindowEngine"] = dict(status="BLOCKED", reason="dailyOwnershipOrRosterChanged")
+                return
         if self.rec.get("visitFocusLeaseKit"):
             import lease_visit
             self.daily_visit_reader, self.rec["visitDailyOriginal"] = lease_visit.daily_reference(self.rec["visitFocusLeaseKit"],stamp[0])
@@ -540,9 +547,19 @@ class Transaction:
         with self.guarded_daily():
             if cancelled():
                 return
+            if self.rec.get("trialScope") == "window-engine":
+                probe = window_engine_trial()
+                after_quit = probe.census_and_recovery(Path(self.rec["engineWork"]), self.app, self.id)
+                gone = probe.stamp_is_gone(stamp)
+                self.save("observed-normal-exit", originalGenerationGone=gone, postQuit=after_quit)
+                require(gone and after_quit["roster"]["complete"] and not after_quit["roster"]["pids"]
+                        and after_quit["leases"]["quitPermitted"], "Original Host or window recovery still present")
             self.save("swapping-to-candidate")
             self.exchange("original")
             if cancelled():
+                return
+            if self.rec.get("trialScope") == "window-engine":
+                window_engine_trial().run(self)
                 return
             home = self.home
             generation = self.start_home(home)
@@ -614,6 +631,13 @@ class Transaction:
             if side == "candidate":
                 with self.guarded_daily():
                     self.mac.clear(self.daily_lock,{os.getpid()})
+                    if self.rec.get("trialScope") == "window-engine":
+                        probe = window_engine_trial()
+                        require(probe.resources_clear(self), "Window Engine recovery or cleanup receipt outstanding")
+                        check = probe.census_and_recovery(Path(self.rec["engineWork"]), self.app, self.id)
+                        self.save("checked-engine-restoration", beforeEngineRollback=check)
+                        require(check["leases"]["quitPermitted"] and check["roster"]["complete"]
+                                and not check["roster"]["pids"], "Window Engine ownership or Host still present")
                     pid = self.mac.pid()
                     if pid is None and self.rec.get("pendingIsolatedHome"):
                         root = Path(self.rec["pendingIsolatedHome"])/profile.PROFILE
@@ -668,6 +692,8 @@ class Transaction:
                     for row in self.rec["trials"].values():
                         if row.get("setupReceipt") and row["status"] == "PASS":
                             row.update(status="UNKNOWN",setupDailyForeground=daily_focus["status"])
+            if self.rec.get("trialScope") == "window-engine" and self.rec.get("engineOldPermissions"):
+                self.rec["restoredDailyPermissions"] = window_engine_trial().verify_daily(self.rec["engineOldPermissions"], restored)
             self.save("restored",restoration="PASS",restoredDailyHost=restored,cleanup="PENDING")
             # The daily app is already restored. Only discard data created for this transaction.
             try:
@@ -712,7 +738,7 @@ class Transaction:
         focus_mode = getattr(args, "focus_scenario", "controlled-window")
         require(focus_mode == "controlled-window" or args.only == "p2", "Pointer scenarios require --only p2")
         require(not getattr(args, "pair_kit", None) or focus_mode in ("pair-focus", "pair-pointer", "pair-drag", "pair-cross"), "Select a pointer scenario for --pair-kit")
-        choices = {"p0-diagnostic":("P0-diagnostic",), "p2":("P2",), "p4-service":("P4",), "p2,p4-service":("P2","P4"),
+        choices = {"window-engine":("WindowEngine",), "p0-diagnostic":("P0-diagnostic",), "p2":("P2",), "p4-service":("P4",), "p2,p4-service":("P2","P4"),
                    "p3,p4":("P3","P4"), None:("P3","P4","P4-wordbook")}
         require(only in choices and not (only and args.wordbook_driver), "Invalid protected trial selection")
         inputs = {}
@@ -729,7 +755,9 @@ class Transaction:
             require(only == "p2" and focus_mode in ("pair-focus","pair-pointer","pair-drag"),
                     "Focus scope preflight requires a same-application registered pair scenario")
             inputs["focusScopePreflight"] = True
-        if only == "p0-diagnostic":
+        if only == "window-engine":
+            inputs["engineWork"] = str(args.engine_work)
+        elif only == "p0-diagnostic":
             require((HERE/"p0-host-diagnostic.py").is_file() and args.issuer_key and args.issuer_key.is_file()
                     and (args.kit/"system-workspace").is_file(), "Missing single-run diagnostic kit or issuer")
             inputs["issuerKey"] = str(args.issuer_key.resolve(strict=True))
@@ -787,7 +815,7 @@ class Transaction:
         home = mac.new_home()
         chosen_trials=choices[only]
         tx = cls(mac,dict(schema=1,transaction=str(uuid.uuid4()),home=str(home),output=str(output),
-                          kit=str(args.kit.resolve(strict=True)),**inputs,
+                          kit=str(args.kit.resolve(strict=True)) if args.kit else None,**inputs,
                           sessions=str(args.sessions.resolve()),restoration="PENDING",trialScope=only or "all",
                           trials={k:dict(status="NOT_RUN") for k in chosen_trials},events=[]))
         if args.wordbook_driver:
@@ -826,6 +854,13 @@ def session_lock(mac):
             os.close(fd)
 
 
+def window_engine_trial():
+    directory = str(HERE.parent / "window-engine/host")
+    if directory not in sys.path:
+        sys.path.insert(0, directory)
+    return importlib.import_module("installed_cycle")
+
+
 def supervise(mac, args, cancelled):
     active = mac.root/"active.json"
     if args.action == "status":
@@ -836,7 +871,20 @@ def supervise(mac, args, cancelled):
         last = read_json(active) if active.exists() else None
         if args.action == "run":
             require(not last or last.get("restoration") == "PASS", "An installation session still needs recovery")
+            pre = None
+            if getattr(args, "only", None) == "window-engine":
+                pre = window_engine_trial().prepare(mac, args)
+                if pre["status"] != "PASS":
+                    # No transaction, no quit, no swap. The previous install's recovery journal stays intact.
+                    args.output.mkdir(mode=0o700)
+                    owned_dir(args.output)
+                    result = dict(stage="daily-preflight-blocked", installation="NOT_RUN", restoration="NOT_NEEDED",
+                                  preflight=pre, trials={"WindowEngine":dict(status=pre["status"], entry="NOT_RUN")})
+                    persist(args.output/"installation.json", result)
+                    return result
             tx = Transaction.prepare(mac,args)
+            if pre:
+                tx.save("enrolled", engineOldPermissions=pre["originalPermissions"], engineBackup=pre["backup"])
             try:
                 tx.forward(cancelled)
             except Exception as err:
@@ -883,9 +931,10 @@ def main():
             run.add_argument("--"+subject+"-"+field,required=True)
     run.add_argument("--output",required=True,type=Path)
     run.add_argument("--metrics",type=Path)
-    run.add_argument("--kit",required=True,type=Path)
+    run.add_argument("--kit",type=Path)
+    run.add_argument("--engine-work",type=Path,help="private in-place backup directory for --only window-engine")
     run.add_argument("--sessions",type=Path,default=HERE.parents[2]/"build/native-acceptance")
-    run.add_argument("--only",type=str.lower,choices=("p4-service","p3,p4","p2","p0-diagnostic","p2,p4-service"))
+    run.add_argument("--only",type=str.lower,choices=("p4-service","p3,p4","p2","p0-diagnostic","p2,p4-service","window-engine"))
     run.add_argument("--focus-scenario", choices=("controlled-window", "pair-focus", "pair-pointer", "pair-drag", "pair-cross"), default="controlled-window",
                      help="with --only p2, measure pointer selection alone or selection plus three actual card drags")
     run.add_argument("--focus-scope-preflight", action="store_true",
@@ -901,6 +950,8 @@ def main():
     commands.add_parser("recover")
     commands.add_parser("status")
     args = parser.parse_args()
+    if args.action == "run" and args.only != "window-engine" and not args.kit:
+        parser.error("--kit is required for the selected trial")
     caught = []
     def stop(number, frame):
         if not caught:
@@ -912,7 +963,9 @@ def main():
         print(json.dumps({k:report.get(k) for k in ("transaction","stage","restoration","cleanup","trials","hostPermissions","operationError","output")},
                          ensure_ascii=False,indent=2))
         missing_permissions = report.get("trialScope") in ("p4-service","p3,p4","p2,p4-service") and report.get("hostPermissions",{}).get("status") != "OBSERVED"
-        if args.action == "run" and (missing_permissions or any(x["status"] != "PASS" for x in report["trials"].values())):
+        engine_permissions_unconfirmed = (report.get("trialScope") == "window-engine"
+                                          and report.get("restoredDailyPermissions", {}).get("status") != "PASS")
+        if args.action == "run" and (missing_permissions or engine_permissions_unconfirmed or any(x["status"] != "PASS" for x in report["trials"].values())):
             return 128+caught[0] if caught else 2
         return 128+caught[0] if caught else 0
     except (KeyError,ValueError,OSError,RuntimeError,subprocess.SubprocessError) as err:
