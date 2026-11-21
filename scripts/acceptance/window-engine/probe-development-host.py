@@ -67,6 +67,7 @@ def main():
         checked("/usr/bin/codesign", "--verify", "--strict", "--deep", app)
         checked(sys.executable, "-B", ROOT/"scripts/verify-packages.py", app)
         host = app/"Contents/MacOS/NearpaneHost"
+        cli = json.loads(checked(host, "--probe-stage-window-engine"))
         challenge = str(uuid.uuid4())
         stdout, stderr = private/"probe.json", private/"probe.stderr"
         checked("/usr/bin/open", "-n", "-g", "-W", "-a", app, "--stdin", "/dev/null", "--stdout", stdout,
@@ -80,6 +81,7 @@ def main():
                                 "sip": checked("csrutil", "status").strip()},
                         signedHost=metadata(app), hostSHA256=signing.sha(host),
                         engineBoundary=observed, launch="Launch Services background, challenge correlated",
+                        sameExecutableDirectInvocation=cli,
                         sourceHead=plist.get("NearpaneStageEngineSourceRevision"),
                         sourceState=plist.get("NearpaneStageEngineSourceState", "unrecorded"),
                         signedBundleVerified=True, status="PASS")

@@ -11,6 +11,12 @@ The product exposes one StageGroup action. Each backend requires its own complet
 
 Gate 0 produced a Rust static library for arm64 and x86_64, a Swift-callable C ABI, a bounded worker, and a pinned origin and Cargo license inventory. [Build and ABI receipt](../verification/window-engine/gate0.json) · [license and origins](../verification/window-engine/gate0-origins.json)
 
+### Implemented interfaces
+
+The ABI lives in [nearpane_window_engine.h](../../Engine/nearpane-window-engine/include/nearpane_window_engine.h). Each asynchronous submission carries one intent and epoch. Rust owns the worker queue, pinned route and window-level OS operations. Swift owns membership, geometry, focus, durable intents and the independent reconciliation of every visible result. The Corner Guardian retains its exact AX object while the Host is alive and checks the journal before recovering a window after Host death. Spaces performs a round trip with its own nonactivating panel, verifies both directions of membership, and accounts for the panel and temporary Space before ordinary writes. See the [implementation and evidence](../verification/window-engine/RESULTS.md).
+
+The Host checks the exact installed image, build, SIP, display topology and signed physical qualification. Comparable results can select either backend. With two qualified implementations that trade different metrics, an existing healthy owner is retained. On a fresh session the first deciding metric is the P99 real-input latency, followed by first-frame P95, settled P95 and frame gaps. These comparisons run only after both safety, Apple-reference and stress contracts pass. Unresolved window or probe ownership retains the old journal and prevents a handoff.
+
 ## 1. Codex mission
 
 Extract the proven window-engine mechanisms from the pinned Stage Manager upstream into a focused in-process Rust static library, connect it to the existing Swift Nearpane Host through a narrow versioned C ABI, and preserve Nearpane's R4 product, StageGroup model, transaction ledger and window identity system.
@@ -167,14 +173,14 @@ A guardian process is not automatically copied wholesale. Its IPC, code-signing 
 ## 5. Acceptance matrix
 
 ### Gate 0 — source extraction and build
-- [ ] Fixed upstream commit recorded.
-- [ ] Every vendored file mapped to upstream path and original blob SHA.
-- [ ] MIT notices retained.
-- [ ] Cargo dependency license audit recorded.
-- [ ] Rust static library builds for all supported architectures.
-- [ ] Swift/C ABI size/version tests pass.
+- [x] Fixed upstream commit recorded.
+- [x] Vendored origins mapped to upstream paths and original blob SHAs.
+- [x] MIT notices retained.
+- [x] Cargo dependency license audit recorded.
+- [x] Rust static library builds for arm64 and x86_64.
+- [x] Swift/C ABI size/version tests pass.
 - [ ] No UI, R4 or StageGroup schema regression.
-- [ ] No panic crosses FFI.
+- [x] Tested panic terminates at the C ABI boundary.
 
 ### Gate 1 — Corner geometry and input safety
 - [ ] Corner selection and park/clamp tests pass for all supported display layouts.
@@ -215,7 +221,14 @@ A guardian process is not automatically copied wholesale. Its IPC, code-signing 
 - [ ] Use existing `NEARPANE-STAGEGROUP-PERFORMANCE-STANDARD.md`.
 - [ ] No performance score can override a safety FAIL/UNKNOWN.
 
-### Gate 5 — distribution
+### Gate 5 — product lifecycle
+
+- [ ] A newly opened ordinary window joins the intended group on its own physical display.
+- [ ] Same-app siblings, composite layout, desktop reveal and independent keyboard focus survive an entire group cycle.
+- [ ] Target Host yields to Mission Control, native Spaces, full screen and Split View.
+- [ ] Hot plug, sleep/wake, quit and crash recovery preserve confirmed members and unresolved journal records.
+
+### Distribution checklist from the original research (deferred)
 - [ ] Developer ID deep signature check of app and every embedded code object.
 - [ ] Hardened Runtime entitlements reviewed.
 - [ ] Notarization and Gatekeeper assessment on exact final artifact.

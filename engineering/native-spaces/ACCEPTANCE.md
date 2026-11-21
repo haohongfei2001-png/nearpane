@@ -1,5 +1,9 @@
 # Nearpane 调度组正式验收合同
 
+## Rust Window Engine 的验收入口
+
+两个后端共用同一份正式 Host 合同。按单次 A→B→C→A、10 次、50 次顺序验证整组。三项均通过后，在同一台实体 Mac 上按每方向至少 100 个有效样本与 Apple 台前调度配对，最后才进入 1000 次压力验收。单窗夹具、静态库回归、成功的系统调用和隔离开发 Host 的权限预检各自单列。任何输入安全失败或清理状态未知均阻止晋级。 [门槛与原始收据](../verification/window-engine/RESULTS.md) · [性能合同](../research/NEARPANE-STAGEGROUP-PERFORMANCE-STANDARD.md)
+
 ## 当前单次隔离门槛
 
 使用两个签名且已注册的普通 App。一个 App 提供两扇分别归入不同组的文档窗，另一个提供第三组、独立旁窗、用户预先最小化的窗及辅助面板。系统 Stage Manager 全程关闭。独立记录每扇窗的进程出生代、CGWindowID、AX 身份、AX/CG/AppKit 矩形和可见性、前台焦点、真实输入唯一接收者、Dock 窗口图块及退出清理。捕获仅限临时登录环境。

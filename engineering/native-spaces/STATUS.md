@@ -1,5 +1,11 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · StageGroup Window Engine
+
+PR #15 已将 Corner 和 Spaces 编入同一个 Rust 静态库。R4 侧栏继续使用 Swift 的 StageGroupStore 和 StageGroupCoordinator。Swift 写入事务日志、绑定窗口代际并独立读回。每批窗口只有一个底层写入者。当前取得生产资格的后端数为 **0**。 [逐项状态](../verification/window-engine/RESULTS.md) · [实施合同](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
+
+目标实体机为 macOS 27.0（26A428）、SIP 开启、一块物理屏幕。两次独立读取都确认当前普通桌面及其 UUID。隔离 Spaces 探针通过自身 Developer ID、进程代际与签名校验，其辅助功能授权读回为否，系统写入为零。托管 26A434 的当前桌面有编号，连续两读均缺少 UUID。正式整组往返、真实输入、同机 Apple 性能对照及压力验收尚未通过。 [实体机证据](../verification/window-engine/target-26A428/) · [托管原始记录](../verification/window-engine/runs/44882622947/)
+
 ## 2026-11-21 · 内嵌截图与语音
 
 5.22（90）开发分支已接入 Riftlet 1.0.7（53）开发版和 Saytile 0.20（533）内测版。设置页从开发包的来源收据读取实际版本。macOS 27 本地全量回归共 669 项，666 项通过，3 项条件跳过。macOS 26 的 GitHub 工具专项和离线开发包构建通过。 [版本与更新流程](../../Dependencies/README.md) · [CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44872015547)
