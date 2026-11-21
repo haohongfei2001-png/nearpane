@@ -6,7 +6,7 @@ on:
       - '.github/workflows/native-522-validation.yml'
       - 'Package.swift'
       - 'scripts/acceptance/stage-groups/**'
-      - 'Tests/NearpaneCoreTests/StageGroupStoreTests.swift'
+      - 'Tests/NearpaneCoreTests/StageGroup*Tests.swift'
       - 'Sources/CNativeSpaceActions/**'
       - 'Sources/NearpaneSpaceAction/**'
       - 'Sources/NearpaneCore/**'
@@ -106,7 +106,7 @@ jobs:
       - name: Verify window identity, Services source and Host open handling
         run: |
           set -euo pipefail
-          suites=(StageGroupStoreTests MoveReadbackTests NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests WindowSwitchTransitionTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests DesktopOverviewShortcutTests SystemWindowDispatchTests WorkspacePanelTests NativeSpaceMenuTests ActionInventoryTests)
+          suites=(StageGroupStoreTests StageGroupCoordinatorTests MoveReadbackTests NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests WindowSwitchTransitionTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests DesktopOverviewShortcutTests SystemWindowDispatchTests WorkspacePanelTests NativeSpaceMenuTests ActionInventoryTests)
           filter=$(IFS='|'; echo "${suites[*]}")
           swift test --disable-xctest --enable-swift-testing --filter "$filter" 2>&1 | tee "$RUNNER_TEMP/native-ui-tests.log"
           for suite in "${suites[@]}"; do

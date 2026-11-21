@@ -234,6 +234,8 @@ public struct StageGroupWindow: Sendable {
         try commit(next)
     }
 
+    func isBound(_ member: StageGroupDirectory.Member, to lifetime: UUID) -> Bool { bindings[member.windowHint] == lifetime }
+
     /// Partial, stale and other-display groups have no actionable composite card.
     public func projectedGroups(on display: UUID, among windows: [StageGroupWindow]) -> [StageGroupDirectory.Group] {
         let candidates = Dictionary(grouping: windows.filter { $0.display == display }, by: \.identity)
