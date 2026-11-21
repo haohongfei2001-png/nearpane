@@ -143,8 +143,7 @@ class Trial:
         self.command("B","front")
         self.command("A","reset",0)
         self.command("A","reset",1)
-        self.command("A","seed",1)
-        time.sleep(.45)
+        self.seed_focus(phase,1)
         s = self.snap(phase + ".baseline")
         if not s["axTrusted"] or not s["postAllowed"] or not s["cgListsAvailable"]:
             raise RuntimeError("WindowServer/AX/input unavailable")
@@ -200,8 +199,7 @@ class Trial:
         if index:
             # For the second document B1 can be used as keeper instead; exercise alternating
             # membership with the original document active on this same-owner pass.
-            self.command("A","seed",0)
-            time.sleep(.35)
+            self.seed_focus(tag+".second",0)
             before = self.snap(tag+".baseline-second")
             point = center(before["windows"][label]["axFrame"])
         pre = before["windows"][label]
