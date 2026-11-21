@@ -12,6 +12,22 @@ w=importlib.import_module("preview-workspace")
 
 
 class PreviewWorkspaceTests(unittest.TestCase):
+    def test_exclusive_overview_chord_is_both_claimed_and_released_on_the_same_host(self):
+        ws = Mock(host={"pid": 7})
+        ws.read.return_value = {"host": ws.host, "current": 3}
+        transaction = w.PreferenceStage(Path("/stage"), Path("/evidence"), ws, 3)
+        for stage, expected in [(False, "occupied"), (True, "available")]:
+            metrics = dict(pid=7, stageManagerOwnsDispatch=int(stage), windowDispatchEligible=int(not stage),
+                           overviewShortcutRegistered=int(not stage), missionControlPresented=-1 if stage else 0)
+            for claim_state in ("available", "occupied"):
+                claim = dict(pid=7, state=claim_state, keyEventsSent=0)
+                with patch.object(w, "row", side_effect=lambda sample: sample), patch.object(w, "states", return_value=[{"state": stage}]*2), patch.object(w.subprocess, "check_output", side_effect=map(json.dumps, (metrics, claim, metrics))):
+                    result = transaction.shortcut_readback(Path("/chord"), stage)
+                self.assertEqual(result["status"], "PASS" if claim_state == expected else "FAIL")
+        with patch.object(w, "row", side_effect=lambda sample: sample), patch.object(w.subprocess, "check_output", return_value='{"pid":8,"stageManagerOwnsDispatch":1}') as run:
+            result = transaction.shortcut_readback(Path("/chord"), True)
+        self.assertEqual((result["status"], run.call_count), ("UNKNOWN", 1))
+
     def test_preference_setup_is_one_existing_known_boolean_and_runtime_is_independent(self):
         with tempfile.TemporaryDirectory() as d:
             ws=Mock();ws.display="D";ws.host={"pid":7,"codeHash":"signed"}

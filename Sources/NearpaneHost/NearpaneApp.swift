@@ -361,6 +361,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func observeDesktopSession() {
         for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification,
+                     NSWorkspace.didDeactivateApplicationNotification,
                      NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification,
                      NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification,
                      NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification,
@@ -434,10 +435,17 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         guard var metrics = modules?.windowPreviewMetrics, let host else { return }
         metrics["stageManagerOwnsDispatch"] = NSNumber(value: panels?.systemManagesWindows == true)
+        metrics["windowDispatchEligible"] = NSNumber(value: overviewAvailable)
+        metrics["overviewShortcutRegistered"] = NSNumber(value: DesktopOverviewShortcut.shared.registered)
+        let missionControl = panels?.missionControlDispatchState
+        metrics["missionControlPresented"] = NSNumber(value: missionControl == "ordinary" ? 0 : missionControl == "exposed" ? 1 : -1)
         metrics["surfaceHidden"] = NSNumber(value: host.configuration.surfaceHidden)
         metrics["visibilityRevision"] = NSNumber(value: host.surfaceVisibilityRevision)
         DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
-            object: nonce.uuidString, userInfo: metrics.merging(["pid": NSNumber(value: getpid())]) { a, _ in a },
+            object: nonce.uuidString, userInfo: (metrics as [String: Any]).merging([
+                "pid": NSNumber(value: getpid()),
+                "missionControlObservation": panels?.missionControlDispatchEvidence ?? "unavailable"
+            ]) { a, _ in a },
             deliverImmediately: true)
     }
 
@@ -744,8 +752,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if passiveDisplayID == nil {
             installMenu()
             if ProcessInfo.processInfo.environment["NEARPANE_NATIVE_ACCEPTANCE"] == nil, testSession == nil {
-                DesktopOverviewShortcut.shared.show = { [weak self] in self?.showWindowOverview() }
-                DesktopOverviewShortcut.shared.configure(session.configuration.overviewShortcut)
+                DesktopOverviewShortcut.shared.start(session.configuration.overviewShortcut,
+                    eligible: { [weak self] in self?.overviewAvailable == true },
+                    open: { [weak self] in self?.openWindowOverview() == true })
                 Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowOverview").notice("Shortcut: \(DesktopOverviewShortcut.shared.status, privacy: .public)")
             }
             if pendingMainWindow { pendingMainWindow = false; showSettings() }
@@ -757,6 +766,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // waiting for our reply can bypass the remaining work.
         guard terminationTask == nil else { return .terminateLater }
         terminationTask = Task {
+            defer { DesktopOverviewShortcut.shared.refreshOwnership() }
             if let updater, !(await updater.permitsTermination()) {
                 terminationTask = nil
                 sender.reply(toApplicationShouldTerminate: false)
@@ -802,6 +812,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             #endif
             sender.reply(toApplicationShouldTerminate: true)
         }
+        DesktopOverviewShortcut.shared.refreshOwnership()
         return .terminateLater
     }
 
@@ -867,7 +878,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let overview = menu.items.first(where: { $0.action == #selector(showWindowOverview) }) {
             let managed = panels?.systemManagesWindows == true
             overview.title = managed ? "本屏窗口由台前调度管理" : "显示本屏窗口总览"
-            overview.isEnabled = host?.isRunning == true && !managed
+            overview.isEnabled = overviewAvailable
         }
         guard let entry = menu.items.first(where: { $0.action == #selector(toggleSurface) }) else { return }
         entry.title = host?.configuration.surfaceHidden == true ? "显示侧栏" : "隐藏侧栏"
@@ -881,19 +892,31 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         showSettings()
     }
 
-    @objc private func showWindowOverview() {
+    private var overviewAvailable: Bool {
         guard let host, host.isRunning, !sessionUnavailable, terminationTask == nil, passiveDisplayID == nil,
-              host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
-              let panels, !panels.systemManagesWindows else { return }
+              panels?.windowDispatchEligible == true else { return false }
+        return host.registry.preferences.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
+    }
+
+    @objc private func showWindowOverview() { _ = openWindowOverview() }
+
+    private func openWindowOverview() -> Bool {
+        guard overviewAvailable, let host, let panels else { return false }
         let point = NSEvent.mouseLocation
         let hits = SystemScreens.geometry().filter { screen in
             let r = screen.frame
             return NSPointInRect(point, NSRect(x: r.x, y: r.y, width: r.width, height: r.height))
         }
-        guard hits.count == 1, let screen = hits.first else { return }
-        host.setSurfaceHidden(false)
-        panels.request(screen.id)
-        updatePanels()
+        guard hits.count == 1, let screen = hits.first else { return false }
+        Task { @MainActor [weak self] in
+            guard await panels.confirmWindowDispatch(), let self, self.host === host,
+                  self.panels === panels, overviewAvailable,
+                  SystemScreens.geometry().contains(where: { $0.id == screen.id }) else { return }
+            host.setSurfaceHidden(false)
+            panels.request(screen.id)
+            updatePanels()
+        }
+        return true
     }
 
     @objc private func hideStatusIcon() {
@@ -934,6 +957,13 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func desktopChanged(_ note: Notification) {
+        if note.name == NSWorkspace.didDeactivateApplicationNotification {
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            if app?.bundleIdentifier == "com.apple.systempreferences" {
+                DesktopOverviewShortcut.shared.refreshOwnership(recheckReservation: true)
+            }
+            return
+        }
         if note.name == NSWorkspace.didActivateApplicationNotification {
             let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             selectionService?.foregroundChanged(to: app?.processIdentifier)
@@ -956,6 +986,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updatePanels() {
+        DesktopOverviewShortcut.shared.refreshOwnership()
         guard host?.isRunning == true else { return }
         #if canImport(SaytileKit)
         if CandidateProfile.selected, requestsDesktopFixture || enrolledFullscreenTrial, let passiveDisplayID {

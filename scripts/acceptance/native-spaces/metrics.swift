@@ -24,7 +24,7 @@ if diagnosticProbe {
 }
 let center = DistributedNotificationCenter.default()
 let nonce = UUID().uuidString
-var received: [String: Int]?
+var received: [String: Any]?
 let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-metrics.reply"),
                                object: nonce, queue: .main) { notice in
     guard let fields = notice.userInfo, fields["pid"] as? Int32 == pid else { return }
@@ -35,13 +35,18 @@ let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-met
     }
     let names = ["captureRequests", "capturesInFlight", "cacheEntries", "chargedPixelBytes", "activeStreams",
                  "visibleDisplays", "gallerySessions"]
-    var output = ["pid": Int(pid)]
+    var output: [String: Any] = ["pid": Int(pid)]
     for name in names {
         guard let number = fields[name] as? NSNumber, number.intValue >= 0 else { return }
         output[name] = number.intValue
     }
-    for name in ["windowManagementBusy", "surfaceHidden", "visibilityRevision", "stageManagerOwnsDispatch", "deliveredFrames"] {
+    for name in ["windowManagementBusy", "surfaceHidden", "visibilityRevision", "stageManagerOwnsDispatch",
+                 "windowDispatchEligible", "overviewShortcutRegistered", "missionControlPresented", "deliveredFrames"] {
         if let value = fields[name] as? NSNumber { output[name] = value.intValue }
+    }
+    if let reason = fields["missionControlObservation"] as? String, reason.utf8.count <= 64,
+       reason.range(of: "^[A-Za-z]+$", options: .regularExpression) != nil {
+        output["missionControlObservation"] = reason
     }
     received = output
 }
@@ -56,5 +61,5 @@ guard let received, diagnosticProbe ? (kernelHost(pid) == birth) : (app?.isTermi
 if checkPermissions {
     print(nonce)
 } else {
-    print(String(decoding:try JSONEncoder().encode(received),as:UTF8.self))
+    print(String(decoding:try JSONSerialization.data(withJSONObject:received),as:UTF8.self))
 }
