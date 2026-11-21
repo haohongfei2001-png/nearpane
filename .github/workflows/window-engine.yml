@@ -1,78 +1,79 @@
 name: StageGroup window engine
 on:
   workflow_dispatch:
+    inputs:
+      hosted_preflight:
+        description: 'Also collect two read-only desktop identity observations on a disposable hosted Mac'
+        type: boolean
+        required: false
+        default: false
   push:
     branches: [codex/r4-native-candidate-20261120]
     paths:
       - '.github/workflows/window-engine.yml'
       - 'Engine/nearpane-window-engine/**'
       - 'scripts/acceptance/window-engine/**'
+      - 'scripts/build-window-engine.sh'
+      - 'scripts/build-paths.sh'
+      - 'scripts/test.sh'
+      - 'Package.swift'
+      - 'Sources/NearpaneWindowEngine/**'
+      - 'Sources/NearpaneOrdinaryWindowController/**'
+      - 'Sources/**/Stage*.swift'
+      - 'Sources/NearpaneHost/NearpaneApp.swift'
+      - 'Sources/NearpaneUI/DesktopWindowSelection.swift'
+      - 'Sources/NearpaneUI/DisplayPanels.swift'
+      - 'Tests/NearpaneWindowEngineTests/**'
+      - 'Tests/**/Stage*Tests.swift'
 permissions:
   contents: read
 concurrency:
-  group: window-engine-${{ github.ref }}
-  cancel-in-progress: false
+  group: window-engine-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 jobs:
-  isolated:
+  source:
+    name: Rust, Swift and production C ABI
     runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Compile both engines and exercise the bounded ABI
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/engine-evidence"
-          sw_vers > "$RUNNER_TEMP/engine-evidence/os.txt"
-          csrutil status >> "$RUNNER_TEMP/engine-evidence/os.txt"
-          rustc --version >> "$RUNNER_TEMP/engine-evidence/os.txt"
-          cargo test --locked --offline --manifest-path Engine/nearpane-window-engine/Cargo.toml --features corner,spaces,isolated-fixtures | tee "$RUNNER_TEMP/engine-evidence/rust.txt"
-          cargo build --locked --offline --release --manifest-path Engine/nearpane-window-engine/Cargo.toml --features corner,spaces,isolated-fixtures
-          python3 -B -m unittest discover -s scripts/acceptance/window-engine/performance -p 'test_*.py'
-          python3 -B -m unittest discover -s scripts/acceptance/window-engine/spaces -p 'test_*.py'
-      - name: Observe a real Corner transaction in the disposable GUI
-        run: bash scripts/acceptance/window-engine/corner/run-hosted.sh "$RUNNER_TEMP/engine-evidence/corner"
-      - name: Observe real window memberships in the disposable GUI
-        if: ${{ !cancelled() && hashFiles('Engine/nearpane-window-engine/target/release/libnearpane_window_engine.a') != '' }}
-        env:
-          NP_RUN_HOSTED_SPACES_TRIAL: '1'
-        run: |
-          set -euo pipefail
-          evidence="$RUNNER_TEMP/engine-evidence"
-          python3 - "$evidence" <<'PY'
-          import json, sys
-          from pathlib import Path
-          root = Path(sys.argv[1])
-          corner = root / "corner/result.json"
-          data = json.loads(corner.read_bytes()) if corner.is_file() else {}
-          reads = data.get("nativeScopeReads", [])
-          if len(reads) == 2 and all(r.get("matchedType") == 0 and r.get("ordinaryWithUUIDCount") == 0
-                                     and r.get("directWindowServerHome", 0) > 0 for r in reads):
-              target = root/"spaces"
-              target.mkdir()
-              result = {"status":"BLOCKED", "hostedOwnWindowTrial":"NOT_RUN", "qualificationGranted":False,
-                        "reason":"independentOrdinarySpaceUUIDMissingTwice", "source":"../corner/result.json",
-                        "receipts":0, "physicalInstalledHost":"NOT_RUN"}
-              (target/"summary.json").write_text(json.dumps(result, indent=2)+"\n")
-          PY
-          if test -s "$evidence/spaces/summary.json"; then
-            echo 'Physical qualification BLOCKED. The hosted WindowServer supplies no ordinary Space UUID.' >> "$GITHUB_STEP_SUMMARY"
-            exit 2
-          fi
-          python3 -B scripts/acceptance/window-engine/spaces/run-hosted.py Engine/nearpane-window-engine/target/release/libnearpane_window_engine.a "$evidence/spaces"
-      - name: Preserve readbacks including blocked and failed cases
+      - name: Run the engine and its language bindings
+        run: python3 -B scripts/acceptance/window-engine/ci/source-tests.py "$RUNNER_TEMP/window-engine-source"
+      - name: Preserve each build and test result
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: window-engine-observations
-          path: |
-            ${{ runner.temp }}/engine-evidence/os.txt
-            ${{ runner.temp }}/engine-evidence/rust.txt
-            ${{ runner.temp }}/engine-evidence/corner/*.json*
-            ${{ runner.temp }}/engine-evidence/corner/*.txt
-            ${{ runner.temp }}/engine-evidence/corner/*.log
-            ${{ runner.temp }}/engine-evidence/corner/recovery/*.json*
-            ${{ runner.temp }}/engine-evidence/spaces/*.json*
+          name: window-engine-source
+          path: ${{ runner.temp }}/window-engine-source/
+          if-no-files-found: error
+          retention-days: 14
+
+  hosted-scope:
+    name: Read-only hosted desktop preflight
+    needs: source
+    # The Draft branch can request one observation on the same source-test push, before this workflow exists on main.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.hosted_preflight) ||
+      (github.event_name == 'push' && endsWith(github.event.head_commit.message, '[window-engine-hosted-scope]'))
+    runs-on: xcode-27
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Observe the runner's current ordinary desktop
+        env:
+          NP_HOSTED_SCOPE_ONLY: '1'
+        run: |
+          set -o pipefail
+          python3 -B scripts/acceptance/window-engine/ci/hosted_scope.py "$RUNNER_TEMP/window-engine-hosted-scope" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Preserve the independent environment observation
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: window-engine-hosted-scope
+          path: ${{ runner.temp }}/window-engine-hosted-scope/
           if-no-files-found: error
           retention-days: 14
