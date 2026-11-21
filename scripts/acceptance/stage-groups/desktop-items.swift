@@ -11,17 +11,23 @@ import ScreenCaptureKit
     while let el = queue.popLast(), seen.count < 1600 {
         guard seen.insert(el).inserted else { continue }
         let role = ax(el, kAXRoleAttribute) as? String
-        if let id = ax(el, kAXIdentifierAttribute) as? String, id.lowercased().contains("desktop") || id.contains("stage-manager") {
+        let id = ax(el, kAXIdentifierAttribute) as? String ?? ""
+        if role == kAXCheckBoxRole || id.lowercased().contains("desktop") || id.contains("stage-manager") {
             var owner: pid_t = 0
             AXUIElementGetPid(el, &owner)
             var control = ["id": id, "role": role ?? "unknown",
                            "owner": NSRunningApplication(processIdentifier: owner)?.bundleIdentifier ?? "unknown"]
-            if ["desktop-items", "show-items-on-desktop"].contains(id) {
+            if role == kAXCheckBoxRole {
+                control["title"] = ax(el, kAXTitleAttribute) as? String
+                control["label"] = ax(el, kAXDescriptionAttribute) as? String
                 control["enabled"] = DesktopItemsSetting.boolean(ax(el, kAXEnabledAttribute)).map(String.init) ?? "unreadable"
                 control["checked"] = DesktopItemsSetting.boolean(ax(el, kAXValueAttribute)).map(String.init) ?? "unreadable"
                 var actions: CFArray?
                 AXUIElementCopyActionNames(el, &actions)
                 control["pressable"] = String((actions as? [String])?.contains(kAXPressAction) == true)
+                if !id.contains("widget"), [control["title"], control["label"]].contains("In Stage Manager") {
+                    otherOptions["itemsInStageManager"] = control["checked"]
+                }
             }
             controls.append(control)
             if ["stage-manager-on", "click-wallpaper-to-reveal-desktop", "show-desktop-widgets", "show-stage-manager-widgets"].contains(id),
@@ -148,7 +154,9 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
             throw DesktopTrialStop("BLOCKED", "nativeDesktopItemsCheckboxUnreadable")
         }
         original = initial; receipt["originalMode"] = initial.rawValue
-        let before = settingsControlSample()["otherOptions"] as? [String: String]
+        let initialPane = settingsControlSample()
+        receipt["initialControls"] = initialPane["desktopControls"]
+        let before = initialPane["otherOptions"] as? [String: String]
         receipt["otherOptionsBefore"] = before
         mayHaveChanged = initial != .always
         let baselineMode = await DesktopItemsSetting.shared.choose(.always)

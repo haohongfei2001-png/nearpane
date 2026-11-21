@@ -59,6 +59,15 @@ struct DesktopItemsSettingTests {
         #expect(DesktopItemsSetting.boolean(nil) == nil)
     }
 
+    @Test func theStageManagerColumnAndWidgetRowCannotChangeDesktopFiles() {
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "desktop-items", names: ["In Stage Manager"], inItemsRow: { true }))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "desktop-items", names: [], inItemsRow: { true }))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "show-desktop-widgets", names: ["On Desktop"], inItemsRow: { true }))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "", names: ["On Desktop"], inItemsRow: { false }))
+        #expect(DesktopItemsSetting.identifiesDesktopItems(id: "", names: ["On Desktop"], inItemsRow: { true }))
+        #expect(DesktopItemsSetting.identifiesDesktopItems(id: "standard-items", names: ["桌面上"], inItemsRow: { true }))
+    }
+
     @Test @MainActor func onlyTheSystemDesktopBackgroundQualifies() {
         let finder = "com.apple.finder"
         #expect(WallpaperRevealMonitor.isDesktopBackground(windowOwner: finder, hitOwner: finder, role: kAXScrollAreaRole))
