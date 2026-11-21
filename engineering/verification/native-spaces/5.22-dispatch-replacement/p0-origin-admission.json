@@ -1,0 +1,131 @@
+{
+  "scenario": "protected installed P0 single diagnostic",
+  "scope": "DIAGNOSTIC_ONLY",
+  "status": "BLOCKED",
+  "source": "04a3e760dd9bf1bcca914830e32315e7701b5f8a",
+  "candidateCDHash": "3dac1c1c150d1233f3ec765aca260580eae082ad",
+  "formalGateEligible": false,
+  "admission": [
+    {
+      "event": "registered-stage-space-not-current",
+      "monotonic": 293154.260752375,
+      "expected": 5095,
+      "selected": 6
+    },
+    {
+      "event": "stopped",
+      "monotonic": 293154.328780541,
+      "reason": "historical Stage lease was not admitted"
+    }
+  ],
+  "installedHostProbe": [
+    {
+      "action": "probe",
+      "at": 293153.7246400833,
+      "birth": 1795219758656021,
+      "canMove": false,
+      "canSwitch": false,
+      "generation": "b1b0505f-ef39-4a80-95b8-46a5392488a4",
+      "issued": false,
+      "nonce": "607239E3-1EEA-4969-80B4-5BFF49E65D9E",
+      "operation": "607239E3-1EEA-4969-80B4-5BFF49E65D9E",
+      "pid": 20228,
+      "ready": true,
+      "revision": "04a3e760dd9bf1bcca914830e32315e7701b5f8a",
+      "stageManagerOwnsDispatch": true,
+      "state": "ready",
+      "submittedSteps": 0
+    }
+  ],
+  "setupOperations": 0,
+  "hostSwitchOperations": 0,
+  "moveOperations": 0,
+  "observerAfterLandingSeconds": null,
+  "blankScreen": "UNKNOWN",
+  "privateContentCaptured": false,
+  "formalGates": {
+    "diagnostic": {
+      "reason": "historical Stage lease was not admitted",
+      "requested": 1,
+      "samples": [],
+      "status": "BLOCKED"
+    },
+    "fifty": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "requested": 50,
+      "samples": [],
+      "status": "NOT_RUN"
+    },
+    "roundTrip": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "requested": 2,
+      "samples": [],
+      "status": "NOT_RUN"
+    },
+    "ten": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "requested": 10,
+      "samples": [],
+      "status": "NOT_RUN"
+    }
+  },
+  "cleanup": {
+    "errors": [],
+    "newerHumanInput": false,
+    "originalCurrentRestored": true,
+    "originalFocusRestoration": {
+      "issued": false,
+      "reason": "released"
+    },
+    "originalFocusedWindowRestored": true,
+    "originalForegroundRestored": true,
+    "originalOrderAndUUIDsRestored": true,
+    "ownedAppsExited": true,
+    "preservedNewerState": false,
+    "stageManager": {
+      "changedByRun": false,
+      "current": [
+        {
+          "ax": true,
+          "screen": true,
+          "state": true,
+          "uid": 501,
+          "uptime": 293154.42075058335
+        },
+        {
+          "ax": true,
+          "screen": true,
+          "state": true,
+          "uid": 501,
+          "uptime": 293154.656758
+        }
+      ],
+      "original": true,
+      "status": "PASS"
+    },
+    "status": "PASS"
+  },
+  "dailyRestoration": {
+    "restoration": "PASS",
+    "cleanup": "PASS",
+    "dailyConfiguration": {
+      "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+      "configuration": "b1b64d9fe1740024a25e82e53176f84ee725155a47eaa6496321f36d862eb9b2"
+    },
+    "restoredDailyHost": [
+      20769,
+      1795219767,
+      336814
+    ]
+  },
+  "raw": {
+    "installation.json": "490f2104dc9c5419fe8055bb290e4af5a802b7ff57debb3a3fd6cdd8fd8b021e",
+    "p0/results.json": "e92e7fa01c106b822d129ceda81b6d7f9e6462dc9cab13c580c6bcbbd852ccaf",
+    "p0/actions.jsonl": "9c77fcee515aa76b42dc4ac46fea1bb6c98497014df80488cedf3886be19eb83",
+    "p0/original.json": "c1acc397de01fc2cf78a125e670c099449b8c6538013c75e56a728ac15858b94",
+    "p0/final.json": "83f99656d9c35937069b3b03fc646131f743056603c90721bf744c3574e94c63"
+  }
+}
