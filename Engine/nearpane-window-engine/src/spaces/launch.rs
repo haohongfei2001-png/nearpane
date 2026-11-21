@@ -38,10 +38,10 @@ pub(super) struct CanaryRun {
     initial: Rows,
     topology: Vec<Desktop>,
     pub home: Option<Home>,
-    lease: Option<Lease>,
+    pub(super) lease: Option<Lease>,
     frame: Option<[f64; 4]>,
-    parking: Option<u64>,
-    restored: bool,
+    pub(super) parking: Option<u64>,
+    pub(super) restored: bool,
     close_sent: bool,
     pub cleaned: bool,
 }

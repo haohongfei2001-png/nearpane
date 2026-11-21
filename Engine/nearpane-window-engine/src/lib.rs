@@ -7,6 +7,16 @@ mod runtime;
 #[cfg(feature = "spaces")]
 mod spaces;
 
+// Optional backend builds expose the same ABI and never dereference caller storage here.
+#[cfg(not(all(feature = "spaces", target_os = "macos")))]
+#[unsafe(no_mangle)]
+pub extern "C" fn np_spaces_installed_fixture_cycle(
+    _nonce: *const u8,
+    _receipt: *mut std::ffi::c_void,
+) -> i32 {
+    -1
+}
+
 use contract::*;
 use runtime::*;
 use std::{

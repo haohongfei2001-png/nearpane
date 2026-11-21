@@ -8,11 +8,11 @@ mod mac {
     use super::*;
     use std::sync::Arc;
     unsafe extern "C" fn still_allowed(ctx: *mut c_void) -> i32 {
-        (!ctx.is_null() && unsafe { &*ctx.cast::<Control>() }.may_write()) as i32
+        (!ctx.is_null() && unsafe { &*ctx.cast::<PanelPermit>() }.allowed()) as i32
     }
     unsafe extern "C" fn free_control(ctx: *mut c_void) {
         if !ctx.is_null() {
-            drop(unsafe { Box::from_raw(ctx.cast::<Control>()) });
+            drop(unsafe { Box::from_raw(ctx.cast::<PanelPermit>()) });
         }
     }
     #[repr(C)]
@@ -94,7 +94,7 @@ mod mac {
     fn panel_read(
         token: &Reference,
         op: launch::PanelOp,
-        control: Option<Control>,
+        control: Option<PanelPermit>,
     ) -> Check<launch::Panel> {
         let mut result = launch::Panel::default();
         let ptr = control.map_or(std::ptr::null_mut(), |c| Box::into_raw(Box::new(c)).cast());
@@ -198,7 +198,17 @@ mod mac {
                     p.window() == Some(w) && p.registered == 1 && p.focus_same == 1
                 }
             };
-            if !valid {
+            if !valid
+                || self.fixture.as_ref().is_some_and(|session| {
+                    w == session.window()
+                        && match lease {
+                            Witness::Document(reference) => {
+                                !session.same_document(reference.0.as_ptr(), &row.rect)
+                            }
+                            Witness::Canary(_) => true,
+                        }
+                })
+            {
                 return Err(unknown(Why::Identity));
             }
             Ok(Seen {
@@ -208,6 +218,9 @@ mod mac {
         }
         fn transparent_canary(&self, w: &Witness) -> bool {
             matches!(w, Witness::Canary(_))
+        }
+        fn enrolled_transparent_fixture(&self, window: Window) -> bool {
+            self.fixture.as_ref().is_some_and(|f| window == f.window())
         }
         fn canary(&mut self, op: launch::PanelOp, a: &impl Authority) -> Check<launch::Panel> {
             if self.token.is_none() && op == launch::PanelOp::Prepare {
@@ -224,7 +237,22 @@ mod mac {
             } else {
                 None
             };
-            let read = panel_read(token, op, control)?;
+            let action = match op {
+                launch::PanelOp::Open => Some(8),
+                launch::PanelOp::Close => Some(10),
+                _ => None,
+            };
+            if let (Some(f), Some(event)) = (&self.fixture, action) {
+                f.record(event, self.canary_number.unwrap_or(0), 0, 0)?;
+            }
+            let observed = panel_read(token, op, control);
+            if let (Some(f), Some(event)) = (&self.fixture, action) {
+                let number = observed
+                    .as_ref()
+                    .map_or(self.canary_number.unwrap_or(0), |p| p.number);
+                f.record(event + 1, number, 0, if observed.is_ok() { 1 } else { -1 })?;
+            }
+            let read = observed?;
             if read.registered == 1 {
                 self.canary_number = Some(read.number);
             } else if read.absent == 1 && read.opened == 1 {
@@ -241,8 +269,16 @@ mod mac {
             }
         }
         fn create(&mut self, c: i32) -> Check<u64> {
+            if let Some(fixture) = &self.fixture {
+                fixture.issued(installed::Write::Create, 0, 0)?;
+            }
             let mut id = 0;
             let status = unsafe { np_stage_create(c, &mut id) };
+            if let Some(f) = &self.fixture {
+                // The engine must record any returned ID even if the post-call journal faults.
+                // The sticky refusal then prevents new writes and leaves the original intent.
+                let _ = f.record(4, 0, id, status);
+            }
             if status == 1 && id > 0 {
                 Ok(id)
             } else {
@@ -254,15 +290,43 @@ mod mac {
             }
         }
         fn destroy(&mut self, c: i32, s: u64) -> Delivery {
-            delivery(unsafe { np_stage_destroy(c, s) })
+            if self
+                .fixture
+                .as_ref()
+                .is_some_and(|f| f.issued(installed::Write::Destroy, 0, s).is_err())
+            {
+                return Delivery::Refused;
+            }
+            let status = unsafe { np_stage_destroy(c, s) };
+            if let Some(f) = &self.fixture {
+                let _ = f.record(7, 0, s, status);
+            }
+            delivery(status)
         }
         fn move_window(&mut self, c: i32, route: Route, w: Window, s: u64, mask: u32) -> Delivery {
-            delivery(unsafe { np_stage_move(c, route as u32, w.number, s, mask) })
+            if let Some(f) = &self.fixture {
+                let is_canary =
+                    self.canary_number == Some(w.number) && w.pid == std::process::id() as i32;
+                if route != Route::Bridge
+                    || (!is_canary && w != f.window())
+                    || !matches!(mask, 7 | 15)
+                    || f.move_issued(is_canary, mask, w.number, s).is_err()
+                {
+                    return Delivery::Refused;
+                }
+            }
+            let status = unsafe { np_stage_move(c, route as u32, w.number, s, mask) };
+            if let Some(f) = &self.fixture {
+                let _ = f.record(if mask == 7 { 5 } else { 6 }, w.number, s, status);
+            }
+            delivery(status)
         }
     }
 }
 #[derive(Default)]
 pub(super) struct System {
+    #[cfg(target_os = "macos")]
+    pub(super) fixture: Option<installed::Guard>,
     #[cfg(target_os = "macos")]
     token: Option<std::sync::Arc<mac::Reference>>,
     #[cfg(target_os = "macos")]

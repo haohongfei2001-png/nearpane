@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "nearpane_host_scope.h"
 #include "nearpane_guardian_observation.h"
+#include "nearpane_spaces_installed_fixture.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

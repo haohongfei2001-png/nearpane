@@ -307,3 +307,4 @@ int32_t np_stage_check_bound(void *handle,uint32_t n,int32_t pid,uint64_t starte
 }
 void np_stage_release(void *handle) { if (handle) CFRelease((CFTypeRef)handle); }
 #include "launch-panel.inc"
+#include "installed-fixture.inc"

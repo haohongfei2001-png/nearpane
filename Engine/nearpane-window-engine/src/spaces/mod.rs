@@ -5,6 +5,8 @@ use crate::contract::*;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::time::{Duration, Instant};
 
+#[cfg(target_os = "macos")]
+mod installed;
 mod launch;
 mod system;
 type Id = [u8; 16];
@@ -170,6 +172,9 @@ trait Platform {
     fn transparent_canary(&self, _w: &Self::Witness) -> bool {
         false
     }
+    fn enrolled_transparent_fixture(&self, _window: Window) -> bool {
+        false
+    }
     fn canary(&mut self, _op: launch::PanelOp, _a: &impl Authority) -> Check<launch::Panel> {
         Err(Fault(UNSUPPORTED, Why::Disabled))
     }
@@ -183,11 +188,46 @@ trait Platform {
 trait Authority {
     fn active(&self) -> Check<()>;
     fn observation(&self) -> Check<()>;
+    fn fixture_home_ax(&self) -> Check<()> {
+        Ok(())
+    }
+    fn fixture_journal_start(
+        &self,
+        _top: &[Desktop],
+        _inventory: &Rows,
+        _home: u64,
+        _frame: &[f64; 4],
+        _members: usize,
+    ) -> Check<()> {
+        Ok(())
+    }
+    fn fixture_membership_receipt(&self, _window: Window, _space: u64, _hidden: bool) -> Check<()> {
+        Ok(())
+    }
+    fn fixture_recovered(&self, _external: bool, _window: u32, _space: u64) -> Check<()> {
+        Ok(())
+    }
     fn approved_route(&self) -> Option<Route> {
         None
     }
-    fn retained(&self) -> Option<Control> {
+    fn retained(&self) -> Option<PanelPermit> {
         None
+    }
+}
+// Issued only for an already authorized callback that opens/closes a Host-owned
+// panel. The installed fixture permit never becomes a generic engine Control.
+enum PanelPermit {
+    Runtime(Control),
+    #[cfg(target_os = "macos")]
+    Fixture(installed::Guard),
+}
+impl PanelPermit {
+    fn allowed(&self) -> bool {
+        match self {
+            Self::Runtime(control) => control.may_write(),
+            #[cfg(target_os = "macos")]
+            Self::Fixture(guard) => guard.active().is_ok(),
+        }
     }
 }
 impl Authority for Control {
@@ -198,8 +238,8 @@ impl Authority for Control {
             _ => None,
         }
     }
-    fn retained(&self) -> Option<Control> {
-        Some(self.clone())
+    fn retained(&self) -> Option<PanelPermit> {
+        Some(PanelPermit::Runtime(self.clone()))
     }
     fn active(&self) -> Check<()> {
         self.observation()?;
@@ -458,7 +498,9 @@ impl<P: Platform> State<P> {
         let b = self.sys.see(window, w)?;
         if a.rect != b.rect
             || a.visible != b.visible
-            || (!self.sys.transparent_canary(w) && b.visible == hidden)
+            || (!self.sys.transparent_canary(w)
+                && b.visible == hidden
+                && (hidden || !self.sys.enrolled_transparent_fixture(window)))
         {
             return Err(unknown(Why::Readback));
         }
@@ -541,6 +583,7 @@ impl<P: Platform> State<P> {
             std::thread::sleep(Duration::from_millis(4));
         }
         bound.pending_target.set(None);
+        a.fixture_membership_receipt(lease.window, target, hidden)?;
         if missed {
             self.record_late(self.sys.now());
         }

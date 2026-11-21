@@ -37,6 +37,7 @@ struct Fake {
     probe_closes: u32,
     lose_focus_on_hide: bool,
     focus_changed: bool,
+    replace_fixture_when_parked: bool,
 }
 impl Fake {
     fn new() -> Self {
@@ -175,9 +176,85 @@ impl Platform for Fake {
         }
         if !self.no_effect {
             self.windows.get_mut(&w.number).unwrap().1 = s;
+            if self.replace_fixture_when_parked && w.number != 77 && mask == 7 {
+                self.windows.get_mut(&w.number).unwrap().2 += 1;
+            }
         }
         Delivery::Accepted
     }
+}
+#[cfg(target_os = "macos")]
+fn installed_fixture() -> (State<Fake>, Guard, Window) {
+    let (mut s, g) = setup();
+    let mut enrolled = request(5, READBACK, 42);
+    enrolled.pid = std::process::id() as i32 + 1;
+    s.sys.add(&enrolled);
+    let w = s.sys.windows[&5].0;
+    (s, g, w)
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn installed_cycle_uses_two_distinct_owners_ordinary_fixture_returns_and_both_parking_ids_disappear()
+ {
+    let (mut s, g, w) = installed_fixture();
+    let (result, proof) = installed::replay(&mut s, w, &g, || ());
+    assert_eq!(result, PASS);
+    assert_eq!(proof, [2, 2, 2, 2, 1, 1, 1, 77]);
+    assert_eq!(
+        s.sys.moved,
+        vec![
+            (Route::Bridge, 77, 101, 7),
+            (Route::Bridge, 77, 10, 15),
+            (Route::Bridge, 5, 102, 7),
+            (Route::Bridge, 5, 10, 15)
+        ]
+    );
+    assert_eq!(s.sys.destroyed, vec![101, 102]);
+    assert_eq!(s.sys.spaces, Rows::from([10]));
+    assert!(s.owned.is_empty() && s.slots.is_empty());
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn installed_cycle_does_not_acquire_fixture_after_failed_canary_or_superseding_input() {
+    let (mut s, g, w) = installed_fixture();
+    s.sys.defer_probe_close = true;
+    let (result, proof) = installed::replay(&mut s, w, &g, || {
+        panic!("must not reach the external window")
+    });
+    assert_ne!(result, PASS);
+    assert_eq!(proof[1], 0);
+    assert_eq!(proof[4], 0);
+    assert!(s.sys.moved.iter().all(|(_, id, _, _)| *id == 77));
+    let (mut s, g, w) = installed_fixture();
+    let (result, proof) = installed::replay(&mut s, w, &g, || g.ok.set(false));
+    assert_ne!(result, PASS);
+    assert_eq!(proof[1], 0);
+    assert_eq!(proof[4], 1);
+    assert!(s.sys.moved.iter().all(|(_, id, _, _)| *id == 77));
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn replacement_ax_object_preserves_ownership_without_an_unproven_restore_or_resend() {
+    let (mut s, g, w) = installed_fixture();
+    s.sys.replace_fixture_when_parked = true;
+    let (result, proof) = installed::replay(&mut s, w, &g, || ());
+    assert_ne!(result, PASS);
+    assert_eq!(proof[6], 0);
+    assert_eq!(
+        s.sys.moved.iter().filter(|(_, id, _, _)| *id == 5).count(),
+        1
+    );
+    assert!(s.owned.contains_key(&w));
+    assert!(s.sys.spaces.contains(&102));
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn own_pid_cannot_be_misrepresented_as_the_external_ordinary_subject() {
+    let (mut s, g, mut w) = installed_fixture();
+    w.pid = std::process::id() as i32;
+    let (result, _) = installed::replay(&mut s, w, &g, || panic!("must refuse"));
+    assert_eq!(result, FAIL);
+    assert!(s.sys.moved.is_empty() && !s.sys.opened_probe);
 }
 fn request(number: u32, operation: u32, i: u8) -> Request {
     Request {

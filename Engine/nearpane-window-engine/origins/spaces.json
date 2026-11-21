@@ -46,5 +46,11 @@
     "upstream": "src/platform/spaces/probe.rs",
     "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
     "modifications": "Adapt the nonactivating transparent probe panel. Require the installed Developer ID identity, a retained private instance, unchanged external focus, bounded main-thread calls and positive AppKit/CG disappearance."
+  },
+  {
+    "local": "src/spaces/installed.rs",
+    "upstream": "src/platform/spaces/probe.rs",
+    "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
+    "modifications": "Reuse the existing own-panel, temporary-Space, bound-window and return paths for a single independently enrolled fixture. Keep its authority, durable evidence and state separate from production qualification."
   }
 ]
