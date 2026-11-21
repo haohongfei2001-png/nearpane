@@ -55,9 +55,22 @@ class InstalledScopeTests(unittest.TestCase):
         row = dict(status="PASS", trial="ownPanelOnly", phase="completed", challenge=nonce, admission=checks, canary=panel,
                    fixture=dict(status="NOT_RUN", dispatchAttempts=dict.fromkeys(ops, 0)), heldSpaces=0, heldWindows=0,
                    endInventoryAndFocusReads=2, canaryUnresolved=False, safeToRollback=True)
-        sample = dict(status="PASS", subject=dict(pid=412), hostExit=dict(status="PASS"),
-                      spaceScope=raw()["spaceScope"], installedSpacesCanary=row)
+        host = dict(raw(), installedSpacesCanary=row)
+        host["spaceScope"]["scope"]["spaceUUID"] = nonce
+        host["spaceScope"]["workspace"] = {"notificationsObserved": 0}
+        entries = [dict(id64=i, managedID=i, type=t, malformed=False, uuid=str(uuid.UUID(int=i))) for i,t in [(5,4),(6,0)]]
+        for read in host["spaceScope"]["samples"]:
+            read.update(directCurrent=6, directCurrentAfter=6, managedRows=[dict(rosterCount=2,orderedDesktops=entries)])
+        host["postCanarySpaceScope"] = copy.deepcopy(host["spaceScope"])
+        correlated(host)
+        sample = dict(status="PASS", subject=host["subject"], hostExit=dict(status="PASS"), **reader.public_observation(host))
+        self.assertNotIn(nonce, json.dumps(sample["spaceScope"]))
+        self.assertEqual(sample["installedSpacesCanary"]["challenge"], nonce)
         self.assertEqual(membership.panel_verdict(sample, nonce), "PASS")
+        for key in ("installedSpacesCanary", "installedSpacesFixtureCycle"):
+            other = dict(raw(), **{key: dict(row, challenge=str(uuid.uuid4()))})
+            with self.assertRaises(ValueError):
+                reader.public_observation(other)
         for path, value in [(("fixture", "dispatchAttempts", "hide"), 1), (("canary", "dispatchAttempts", "create"), True),
                             (("canary", "closed"), False), (("canary", "originalSpace"), 9),
                             (("canary", "parkingID"), None), (("canary", "parkingID"), 6),
@@ -68,6 +81,51 @@ class InstalledScopeTests(unittest.TestCase):
             item[path[-1]] = value
             self.assertEqual(membership.panel_verdict(changed, nonce), "UNKNOWN", path)
         self.assertEqual(membership.panel_verdict(dict(sample, status="BLOCKED"), nonce), "BLOCKED")
+
+        # Replay through the same public projection and archive verifier as the formal runner.
+        log = [["willOpenCanary",0,0,0], ["openedCanaryResponse",8,0,1],
+               ["willCreateSpace",0,0,0], ["createdSpaceResponse",0,7,1],
+               ["willHideWindow",8,7,0], ["hideResponse",8,7,1], ["twoMembershipReads",8,7,1],
+               ["willReturnWindow",8,6,0], ["returnResponse",8,6,1], ["twoMembershipReads",8,6,0],
+               ["willCloseCanary",8,0,0], ["closedCanaryResponse",8,0,1], ["willDestroySpace",0,7,0],
+               ["destroyResponse",0,7,1], ["canaryFullyRecovered",8,7,1], ["terminalClean",0,0,1]]
+        boot = str(uuid.uuid4())
+        journal = dict(status="ARCHIVED_CLEAN", scopeOfTrial="ownPanelOnly", boot=boot, challenge=nonce,
+                       hostPID=412, hostBirth=59, fixturePID=0, fixtureBirth=0, fixtureWindow=0,
+                       originalSpace=6, originalFrame=None, startUptime=49.0, initialSpaceInventory=[5,5,6],
+                       managedDesktopIDs=[5,6], knownActions=[dict(event=e, window=w, space=s, response=r,
+                       owner="installedHostCanary", uptime=50+i*.01) for i,(e,w,s,r) in enumerate(log)])
+        def verify(archive):
+            with patch.object(membership.journal, "inspect", return_value=copy.deepcopy(archive)) as read, \
+                    patch.object(reader, "command", return_value=boot):
+                result = membership.panel_archive(sample, nonce)
+                read.assert_called_once_with(uuid.UUID(nonce))
+                self.assertNotIn(boot, json.dumps(result))
+                return result["status"]
+        self.assertEqual(verify(journal), "PASS")
+        for change in ("addedDesktop", "reorderedDesktops", "differentSession", "missingPostRead"):
+            altered = copy.deepcopy(sample)
+            after = altered["postCanarySpaceScope"]["samples"][1]
+            if change == "addedDesktop": after["managedRows"][0]["orderedDesktops"].append(dict(entries[0],id64=11,managedID=11))
+            if change == "reorderedDesktops": after["managedRows"][0]["orderedDesktops"].reverse()
+            if change == "differentSession": after["session"]["securitySessionID"] += 1
+            if change == "missingPostRead": del altered["postCanarySpaceScope"]
+            self.assertIsNone(membership.confirmed_desktops(altered), change)
+        for key, value in (("hostBirth", 60), ("boot", str(uuid.uuid4())), ("status", "PENDING_RECONCILIATION"),
+                           ("fixtureWindow", False), ("scopeOfTrial", "ownPanelAndEnrolledWindow"),
+                           ("initialSpaceInventory", [6,7]), ("managedDesktopIDs", [5,6,6]),
+                           ("knownActions", journal["knownActions"][:-1]), ("startUptime", float("nan"))):
+            self.assertEqual(verify(dict(journal, **{key:value})), "UNKNOWN", key)
+        for i, key, value in ((6,"window",9), (9,"space",7), (15,"response",True), (10,"uptime",0),
+                              (4,"owner","signedOrdinaryFixture"), (5,"response",-1), (7,"event","willDestroySpace")):
+            broken = copy.deepcopy(journal)
+            broken["knownActions"][i][key] = value
+            self.assertEqual(verify(broken), "UNKNOWN", (i,key))
+        with patch.object(membership.journal, "inspect", side_effect=FileNotFoundError):
+            self.assertEqual(membership.panel_archive(sample, nonce)["status"], "UNKNOWN")
+        with patch.object(membership.journal, "inspect") as untouched:
+            self.assertEqual(membership.panel_archive(dict(sample,status="BLOCKED"), nonce)["status"], "BLOCKED")
+            untouched.assert_not_called()
 
     def test_launch_readiness_records_both_conflicts_without_looking_at_daily_windows(self):
         target = dict(os="27.0", build="26A428", architecture="arm64", sip=sip)

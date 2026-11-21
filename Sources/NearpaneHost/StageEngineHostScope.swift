@@ -313,7 +313,7 @@ enum StageEngineHostScope {
             let entries = (row["Spaces"] as? [[String:Any]])?.map { Space($0) } ?? []
             let matched = current.number.map { n in entries.filter { $0.id64 == n || $0.managedID == n } } ?? []
             return ["displayToken": value(row["Display Identifier"] as? String), "current": current.json,
-                    "rosterCount": entries.count, "matchingActiveEntries": matched.map(\.json)]
+                    "rosterCount": entries.count, "orderedDesktops": entries.map(\.json), "matchingActiveEntries": matched.map(\.json)]
         }
         func direct() -> (UInt64?, Int32?) {
             guard let token = i.token else { return (nil,nil) }

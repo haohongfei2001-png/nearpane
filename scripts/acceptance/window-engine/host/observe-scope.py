@@ -56,8 +56,19 @@ def public_scope(raw):
 
 def public_observation(observation):
     # One token table for the whole Host response. Both samplers use the same physical identities.
-    return public_scope({key: observation[key] for key in ("spaceScope", "guardianFixture", "guardianIndependent",
-                                                          "installedSpacesFixtureCycle","installedSpacesCanary") if key in observation})
+    result = public_scope({key: observation[key] for key in ("spaceScope", "postCanarySpaceScope", "guardianFixture", "guardianIndependent",
+                                                            "installedSpacesFixtureCycle","installedSpacesCanary") if key in observation})
+    # This nonce is issued by the runner for one invocation. Only restore the
+    # verified field itself; a display or Space UUID elsewhere must stay redacted.
+    for key in ("installedSpacesCanary", "installedSpacesFixtureCycle"):
+        if key in result and "challenge" in observation[key]:
+            if not isinstance(observation[key]["challenge"], str):
+                raise ValueError("invalid engine invocation challenge")
+            nonce = uuid.UUID(observation[key]["challenge"])
+            if nonce != uuid.UUID(observation["challenge"]):
+                raise ValueError("engine receipt belongs to another Host invocation")
+            result[key]["challenge"] = str(nonce)
+    return result
 
 
 CHECKS = {"accessibility", "listenEvent", "postEvent", "screenCapture"}

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import plistlib
@@ -25,6 +26,9 @@ import candidate_signing
 spec = importlib.util.spec_from_file_location("host_scope", HERE / "observe-scope.py")
 scope_reader = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scope_reader)
+spec = importlib.util.spec_from_file_location("spaces_journal", HERE.parent / "spaces/inspect-installed-journal.py")
+journal = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(journal)
 
 
 def read_when_ready(path, process, deadline):
@@ -266,6 +270,108 @@ def panel_verdict(observed, challenge):
     return "PASS" if clean else "UNKNOWN"
 
 
+def confirmed_desktops(observed):
+    """Both paired Host samplers must agree on every desktop and its display before and after."""
+    original = observed.get("spaceScope", {}).get("scope")
+    subject = observed.get("subject", {})
+    scopes = [observed.get("spaceScope", {}), observed.get("postCanarySpaceScope", {})]
+    order = None
+    for scope in scopes:
+        samples = scope.get("samples")
+        if (not original or original.get("status") != "PASS" or scope.get("scope") != original
+                or scope.get("readOnly") is not True or scope.get("workspace", {}).get("notificationsObserved") != 0
+                or not isinstance(samples, list) or len(samples) != 2):
+            return None
+        for sample in samples:
+            if (sample.get("hostPID") != subject.get("pid") or sample.get("hostBirth") != subject.get("birth")
+                    or sample.get("directCurrent") != original["nativeID"] or sample.get("directCurrentAfter") != original["nativeID"]
+                    or sample.get("session") != scopes[0]["samples"][0].get("session")
+                    or sample.get("display") != scopes[0]["samples"][0].get("display")):
+                return None
+            rows = sample.get("managedRows")
+            if not isinstance(rows, list) or len(rows) != 1:
+                return None
+            row = rows[0]
+            desktops = row.get("orderedDesktops")
+            if not isinstance(desktops, list) or not desktops or row.get("rosterCount") != len(desktops):
+                return None
+            ids = []
+            for item in desktops:
+                number = item.get("id64") if item.get("id64") is not None else item.get("managedID")
+                if (type(number) is not int or number <= 0 or item.get("managedID") not in (None, number)
+                        or type(item.get("type")) is not int or not item.get("uuid") or item.get("malformed") is not False):
+                    return None
+                ids.append(number)
+            if len(set(ids)) != len(ids) or ids.count(original["nativeID"]) != 1:
+                return None
+            if order is not None and order != rows:
+                return None
+            order = rows
+    return ids
+
+
+def panel_archive(observed, challenge):
+    """Read the specific Host's durable archive only after its correlated response."""
+    verdict = panel_verdict(observed, challenge)
+    if verdict != "PASS":
+        return dict(status=verdict, archiveRead=False, reason="hostCycleNotConfirmed")
+    try:
+        archive = journal.inspect(uuid.UUID(challenge))
+    except (OSError, KeyError, ValueError, IndexError, TypeError) as error:
+        return dict(status="UNKNOWN", archiveRead=False, reason="cycleArchiveUnavailable", error=type(error).__name__)
+    # Boot UUID is needed locally to reject replay, never included in the public receipt.
+    boot = archive.pop("boot", None)
+    try:
+        same_boot = uuid.UUID(boot) == uuid.UUID(scope_reader.command("/usr/sbin/sysctl", "-n", "kern.bootsessionuuid").strip())
+    except (OSError, ValueError, TypeError, AttributeError, subprocess.SubprocessError):
+        same_boot = False
+    panel = observed["installedSpacesCanary"]["canary"]
+    window, home, parking = (panel[k] for k in ("window", "originalSpace", "parkingID"))
+    def whole(value):
+        return type(value) is int and value > 0
+    def clock(value):
+        return type(value) in (float, int) and math.isfinite(value) and value >= 0
+    before, managed = archive.get("initialSpaceInventory"), archive.get("managedDesktopIDs")
+    origin = (archive.get("status") == "ARCHIVED_CLEAN" and same_boot and archive.get("challenge") == challenge
+              and archive.get("scopeOfTrial") == "ownPanelOnly"
+              and all(whole(archive.get(k)) and archive[k] == observed["subject"].get(s)
+                      for k, s in (("hostPID", "pid"), ("hostBirth", "birth")))
+              and all(type(archive.get(k)) is int and archive[k] == 0 for k in ("fixturePID", "fixtureBirth", "fixtureWindow"))
+              and archive.get("originalSpace") == home and archive.get("originalFrame", False) is None
+              and all(isinstance(ids, list) and all(whole(i) for i in ids)
+                      and ids.count(home) == 1 and parking not in ids for ids in (before, managed))
+              and len(set(managed)) == len(managed) and set(managed) <= set(before)
+              and confirmed_desktops(observed) == managed)
+    expected = [
+        ("willOpenCanary", 0, 0, 0), ("openedCanaryResponse", window, 0, 1),
+        ("willCreateSpace", 0, 0, 0), ("createdSpaceResponse", 0, parking, 1),
+        ("willHideWindow", window, parking, 0), ("hideResponse", window, parking, 1),
+        ("twoMembershipReads", window, parking, 1),
+        ("willReturnWindow", window, home, 0), ("returnResponse", window, home, 1),
+        ("twoMembershipReads", window, home, 0),
+        ("willCloseCanary", window, 0, 0), ("closedCanaryResponse", window, 0, 1),
+        ("willDestroySpace", 0, parking, 0), ("destroyResponse", 0, parking, 1),
+        ("canaryFullyRecovered", window, parking, 1), ("terminalClean", 0, 0, 1),
+    ]
+    actions, previous = archive.get("knownActions"), archive.get("startUptime")
+    matched = 0
+    if origin and clock(previous) and isinstance(actions, list):
+        for row, target in zip(actions, expected):
+            if not isinstance(row, dict):
+                break
+            fields = tuple(row.get(k) for k in ("event", "window", "space", "response"))
+            now = row.get("uptime")
+            if (row.get("owner") != "installedHostCanary" or fields != target
+                    or any(type(number) is not int for number in fields[1:]) or not clock(now) or now < previous):
+                break
+            previous = now
+            matched += 1
+    proven = origin and matched == len(expected) and len(actions) == len(expected)
+    return dict(status="PASS" if proven else "UNKNOWN", archiveRead=True, sameBoot=same_boot,
+                matchedActions=matched, expectedActions=len(expected), archive=archive,
+                reason="boundPanelJournal" if proven else "incompleteOrConflictingPanelJournal")
+
+
 def run(a, report):
     app = a.host.resolve(strict=True)
     image = scope_reader.identity(app)
@@ -296,12 +402,14 @@ def run(a, report):
     if a.own_spaces_canary:
         report.update(scope="physicalInstalledHostOwnPanelOnly", hostObservationStarted=True)
         observed = scope_reader.observe(app, challenge, channel, raw_output, expected_image=image, own_canary=True)
+        archived = panel_archive(observed, challenge)
         report.update(hostLaunchRequested=observed.get("launchRequested"), hostExit=observed.get("hostExit"),
                       preexistingSameID=observed.get("launchServices", {}).get("prelaunch", {}).get("pids", []),
                       subject=observed.get("subject"), permissions=observed.get("permissions"),
                       canary=observed.get("installedSpacesCanary"), rawHostSHA256=observed.get("rawSHA256"),
-                      membershipStatus="NOT_RUN", status=panel_verdict(observed, challenge))
-        report["reason"] = observed.get("reason") if observed.get("status") != "PASS" else "ownPanelPhysicalReadback"
+                      membershipStatus="NOT_RUN", panelJournal=archived, status=archived["status"],
+                      missionControlUI="NOT_RUN", thirdPartyWindow="NOT_RUN")
+        report["reason"] = observed.get("reason") if observed.get("status") != "PASS" else archived["reason"]
         return
     work = Path("/private/tmp") / ("nearpane-membership." + challenge)
     work.mkdir(mode=0o700)
@@ -357,7 +465,7 @@ def resources(report):
         fixture = "PASS" if report.get("ownerClosed") and report.get("ownedProcessExited") else "UNKNOWN"
     backend = "NOT_RUN"
     if report.get("requestedOwnCanary") and report.get("hostObservationStarted") and report.get("hostLaunchRequested") is not False:
-        backend = "PASS" if (report.get("canary") or {}).get("safeToRollback") is True else "UNKNOWN"
+        backend = "PASS" if report.get("panelJournal", {}).get("status") == "PASS" else "UNKNOWN"
     elif report["requestedSpacesCycle"] and report.get("fixtureAdmission") == "registeredSignedBackgroundWindow":
         backend = "PASS" if report.get("backendSafeToRollback") is True else "UNKNOWN"
     return dict(candidateExit=host, registeredWindowExit=fixture, backendCleanup=backend,

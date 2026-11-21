@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read only the installed fixture's durable journal. This command never repairs a Space."""
 import argparse
+import hashlib
 import json
 import os
 import pwd
@@ -44,11 +45,18 @@ def inspect(nonce=None):
         if nonce and challenge != nonce:
             raise ValueError("archiveChallengeMismatch")
         # Surface only fixture/window IDs; other ordinary Space members were never recorded.
-        actions = [{k: event[k] for k in ("event", "owner", "window", "space", "response")}
+        actions = [{k: event[k] for k in ("event", "owner", "window", "space", "response", "uptime")}
                    for event in rows[1:]]
-        clean = bool(nonce and actions and actions[-1]["event"] == "terminalClean")
+        final = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        if (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns, final.st_nlink) != (
+                info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_nlink):
+            raise ValueError("journalReplacedOrChangedDuringRead")
+        clean = bool(nonce and final.st_nlink == 1 and actions and actions[-1]["event"] == "terminalClean")
         return {"status": "ARCHIVED_CLEAN" if clean else "PENDING_RECONCILIATION",
                 "challenge": str(challenge), "boot": initial["boot"],
+                "scopeOfTrial": initial.get("scopeOfTrial"), "sha256": hashlib.sha256(raw).hexdigest(),
+                "startUptime": initial["uptime"], "initialSpaceInventory": initial["spaceInventory"],
+                "managedDesktopIDs": [r["id"] for r in initial["scope"]],
                 "hostPID": initial["hostPID"], "hostBirth": initial["hostBirth"],
                 "fixturePID": initial["fixturePID"], "fixtureBirth": initial["fixtureBirth"],
                 "fixtureWindow": initial["fixtureWindow"], "originalSpace": initial["home"],
