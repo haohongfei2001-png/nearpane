@@ -45,6 +45,8 @@ struct TestTargetBindingTests {
         #expect(result.functionSource.contains("""
         if (!receiver.ready(input)) return retire('targetInvalidBeforeInput', 'picker', 'targetChanged');
               op.inputCount = 1; op.inputSequence = tick(); op.inputTime = inputTime;
+              op.blobSerialBeforeInput = registry.blobSerial ?? 0;
+              registry.blobWindowUntil = op.inputTime + 10000;
               diag.stage = 'setter'; diag.setterEntered = true;
               Reflect.apply(setter, input, [transfer.files]);
         """))

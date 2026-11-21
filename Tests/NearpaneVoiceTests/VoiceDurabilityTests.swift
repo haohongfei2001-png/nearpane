@@ -40,6 +40,31 @@ private final class DelayedRecognition: RecognitionSession {
 }
 
 struct VoiceDurabilityTests {
+    @MainActor @Test func openingTheEmbeddedArchiveRecoversUncheckpointedPCMWithoutStartingInput() async throws {
+        let root = directory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = try SaytileStore(directory: root)
+        let row = try await original.createRecording()
+        let audio = try PCMJournal(directory: original.audioDirectory, recordingID: row.id)
+        try audio.openChunk()
+        try await original.registerAudioChunk(recordingID: row.id, relativePath: audio.relativePath, frames: 0)
+        try audio.append(Data(repeating: 7, count: 6400))
+        try audio.closeChunk()
+        try await original.close()
+
+        let module = VoiceModule(openStore: { try SaytileStore(directory: root) }, makeInput: { _,changed in
+            Issue.record("Opening an archive created an audio device")
+            return ScriptedInput(changed)
+        })
+        try module.start()
+        await module.waitForTransition()
+        let proof = try await module.withArchiveRead { await NearpaneVoiceReadback.read(row.id, store: $0) }
+        #expect(proof.frames == 3200 && proof.audioSHA256 != nil)
+        #expect(module.capture == .paused)
+        module.stop()
+        await module.waitForTransition()
+    }
+
     private func directory() -> URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(ProcessInfo.processInfo.environment["NEARPANE_TEST_DIRECTORY"] ?? ".build/test-data")

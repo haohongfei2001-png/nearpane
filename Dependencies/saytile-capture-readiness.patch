@@ -48,7 +48,7 @@
      func cancelRecognitionAndWait(recordingID: UUID? = nil) async {
          let sessions = (retired + (speech.map { [$0] } ?? [])).filter { recordingID == nil || $0.recordingID == recordingID }
          let cancelledIDs = Set(sessions.map { ObjectIdentifier($0) })
-@@ -448,10 +453,10 @@
+@@ -473,10 +478,10 @@
              state = .paused; level = 0
          }
          let worker = try CaptureWorker(store: store, ring: ring, sampleRate: 16_000,
@@ -61,7 +61,7 @@
          await worker.start()
          let buffer = AVAudioPCMBuffer(pcmFormat: source.processingFormat, frameCapacity: 320)!
          do {
-@@ -646,7 +651,7 @@
+@@ -699,7 +704,7 @@
              guard let sampleRate = pinned?.sampleRate ?? format?.sampleRate else { throw AudioFailure.message("没有可用的麦克风") }
              let ring = try AudioRing(capacity: UInt32(sampleRate * 4))
              let meterContinuation = beginMeterObservation()
@@ -70,18 +70,17 @@
                  meterContinuation.yield((speaking, level))
              }, failed: { [weak self] message in Task { @MainActor in await self?.suspend(reason: message) } })
              if let pinned {
-@@ -667,7 +672,9 @@
-                 if requestPermission { requestedRunning = false }
+@@ -721,7 +726,8 @@
+                 waitingForOpenLid = requestedRunning
                  throw AudioFailure.message(MicrophoneLid.reason)
              }
 -            self.engine = engine; self.ring = ring; self.worker = worker; state = .listening
-+            // Keep the display in .starting until the worker's first actual input buffer.
-+            // Its existing meter publishes .listening even for digital silence.
++            // Publish standby from the first real input buffer, including silence.
 +            self.engine = engine; self.ring = ring; self.worker = worker
+             restoringStandby = false
              await worker.start()
              prepareLocalSpeechResourcesIfNeeded()
-         } catch {
-@@ -1009,6 +1016,15 @@
+@@ -1066,6 +1072,15 @@
              if let lease { try? await store.releaseAudioLease(lease) }
          }
      }
@@ -97,7 +96,7 @@
      public func shutdown() async {
          if let shutdownTask { await shutdownTask.value; return }
          isShuttingDown = true; requestedRunning = false; playbackResume = false
-@@ -1026,7 +1042,7 @@
+@@ -1083,7 +1098,7 @@
              for release in Array(leaseReleaseTasks.values) { await release.value }
              leaseReleaseTasks.removeAll()
              await stopCapture()

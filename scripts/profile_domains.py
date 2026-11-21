@@ -18,9 +18,15 @@ TRAY = Path("Riftlet/queue.sqlite")
 CONFIG = Path("Nearpane/host-configuration.json")
 CLOCK = Path("Nearpane/clock-time-zone.v1.json")
 # sqlite_master, including indexes and constraints, from the two pinned domain writers.
-SCHEMA = {VOICE: (5, "034c18279d1b3aaffc7580f07c568baf34809cceba5fc4f95469d96ccd4b76e9"),
-          TRAY: (4, "04b043caf5f2b592719c1a5a7ef57e876ea2bb874462b01c6254a493d739f096")}
-VOICE_SCHEMA_6 = "880d36991e72f91afbf29e3942b350ec9a139332e8a33b354afec8094fd4206b"
+RIFTLET_CURRENT = "e974764fe59a1506677b279f37f2508d0d31fc9a3eba26755e7237046e376140"
+SCHEMA = {
+    VOICE: {5: {"034c18279d1b3aaffc7580f07c568baf34809cceba5fc4f95469d96ccd4b76e9"},
+            6: {"880d36991e72f91afbf29e3942b350ec9a139332e8a33b354afec8094fd4206b",
+                "d28328752b2cd5807d08a529cdfbbc0b631ad9aaad33dc4664c32726548c04de"}},
+    TRAY: {4: {"04b043caf5f2b592719c1a5a7ef57e876ea2bb874462b01c6254a493d739f096", RIFTLET_CURRENT},
+           5: {RIFTLET_CURRENT},
+           6: {"9c81809eb2880c260fb9cd4dbccffba13fd4a556acec12aeebcff651dae4aa01"}},
+}
 SECTIONS = {"voice", "tray", "settings"}
 VOICE_TEXT = {"recordings", "revisions", "editing_drafts", "frozen_revisions", "archive_draft_bases",
               "timeline_settings", "transcript_timeline", "natural_paragraph_schema", "timeline_paragraphs"}
@@ -123,14 +129,11 @@ def snapshot(root, rel):
             if wal.exists():
                 checkpoint_private_copy(db, Path(str(local) + "-wal"))
             db.execute("PRAGMA trusted_schema=OFF")
-            version, known = SCHEMA[rel]
             actual = db.execute("PRAGMA user_version").fetchone()[0]
-            if rel == VOICE and actual == 6:
-                version, known = 6, VOICE_SCHEMA_6
-            require(actual == version, "此版本不支持该数据库版本，请使用原版本。")
+            require(actual in SCHEMA[rel], "此版本不支持该数据库版本，请使用原版本。")
             objects = list(db.execute("SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name"))
             signature = hashlib.sha256(json.dumps(objects, separators=(',', ':')).encode()).hexdigest()
-            require(signature == known, "数据库结构与固定领域版本不符。")
+            require(signature in SCHEMA[rel][actual], "数据库结构与固定领域版本不符。")
             check(db)
             yield db
 
@@ -242,6 +245,8 @@ def tray_contents(db, root, dest=None):
     require(db.execute("SELECT value FROM metadata WHERE key='mode'").fetchone() == ("production",),
             "截图资料库不是此候选支持的正式领域格式。")
     media_names, ids = set(), set()
+    tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    retired = {row[0] for row in db.execute("SELECT asset_id FROM retired_media")} if "retired_media" in tables else set()
     if dest is not None:
         for name in ("media", "journal", "staging", "imported-attachment-holds"):
             (dest / "Riftlet" / name).mkdir(parents=True, mode=0o700, exist_ok=True)
@@ -252,18 +257,22 @@ def tray_contents(db, root, dest=None):
         require(item["id"] == row_id and item["fileName"] == name and item["sourceKey"] == key and
                 re.fullmatch(r'[a-fA-F0-9-]{36}\.[A-Za-z0-9]+', name) and name.split('.')[0].lower() == uid,
                 "截图 UUID、文件名或来源不一致。")
-        path = regular(library / "media" / name)
-        require(item["byteCount"] > 0 and path.stat().st_size == item["byteCount"] and
-                digest(path) == item["sha256"], "截图媒体大小或 SHA-256 校验失败。")
+        path = library / "media" / name
+        has_media = path.exists() or path.is_symlink()
+        require(has_media or row_id in retired, "截图媒体缺失且没有对应的清理记录。")
+        if has_media:
+            require(item["byteCount"] > 0 and regular(path).stat().st_size == item["byteCount"] and
+                    digest(path) == item["sha256"], "截图媒体大小或 SHA-256 校验失败。")
         if active:
             require(db.execute("SELECT asset_id FROM operations WHERE id=?", (active,)).fetchone() == (row_id,),
                     "截图与附件操作归属不一致。")
         media_names.add(name)
         ids.add(uid)
         if dest is not None:
-            target = dest / "Riftlet/media" / name
-            shutil.copyfile(path, target)
-            require(digest(target) == item["sha256"], "写入后截图 SHA-256 校验失败。")
+            if has_media:
+                target = dest / "Riftlet/media" / name
+                shutil.copyfile(path, target)
+                require(digest(target) == item["sha256"], "写入后截图 SHA-256 校验失败。")
             save(dest / "Riftlet/journal" / (uid + ".json"), dict(version=1, image=item))
         manifest = library / "journal" / (uid + ".json")
         if manifest.exists():
@@ -277,10 +286,11 @@ def tray_contents(db, root, dest=None):
     if dest is not None:
         write_holds(dest, holds)
         (dest / "Riftlet/instance.lock").touch(mode=0o600)
-        export_store(db, dest / TRAY, {"assets","operations","compensations","upload_starts","metadata"},
+        export_store(db, dest / TRAY, {"assets","operations","compensations","upload_starts","metadata",
+                                       "retired_media","handled_attachments"},
                      """DELETE FROM metadata WHERE key NOT IN ('mode','transfer-dispatch-slots-v1',
                         'capture_paused','user_hidden')""")
-    return dict(traySchema=4, trayAssets=len(ids), trayOperations=scalar(db, "SELECT count(*) FROM operations"),
+    return dict(traySchema=scalar(db, "PRAGMA user_version"), trayAssets=len(ids), trayOperations=scalar(db, "SELECT count(*) FROM operations"),
                 trayUnknown=scalar(db, "SELECT count(*) FROM operations WHERE phase IN ('unknown','compensated')"),
                 trayFailed=scalar(db, "SELECT count(*) FROM operations WHERE phase='failed'"),
                 activeAttachments=scalar(db, "SELECT count(*) FROM operations WHERE phase IN "

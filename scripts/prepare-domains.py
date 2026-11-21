@@ -19,6 +19,8 @@ import urllib.error
 import urllib.request
 import zlib
 
+from domain_resources import source_receipt, verify_resources
+
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "Dependencies/domains.lock.json"
 MIB = 1024 * 1024
@@ -54,6 +56,13 @@ def selection(pin, path):
 def validate(pin):
     require(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", pin["repository"]), "Invalid GitHub repository")
     require(re.fullmatch(r"[0-9a-f]{40}", pin["commit"]), "A full immutable Git commit is required")
+    if "upstreamBuild" in pin:
+        build = pin["upstreamBuild"]
+        require(isinstance(build, dict) and re.fullmatch(r"\d+(?:\.\d+)+", str(build.get("version", "")))
+                and type(build.get("build")) is int and build["build"] > 0
+                and build.get("channel") in ("development", "internal", "release", "beta")
+                and type(build.get("pullRequest")) is int and build["pullRequest"] > 0,
+                "Invalid upstream product build")
     files = pin["files"]
     require(files and all(valid_path(p) and selection(pin, p) and re.fullmatch(r"[a-f0-9]{64}", h)
                           for p, h in files.items()), "Invalid file inventory in lock")
@@ -234,63 +243,62 @@ def voice_bindings(cache, pin, updates=None):
     if updates:
         # SwiftPM excludes these originals and discovers only these verified replacements.
         links.update({PurePosixPath(path).name: cache / key(updates) / path for path in updates["sources"]})
-    patch_file = ROOT / "Dependencies/saytile-capture-readiness.patch"
-    source_name = "AudioCapture.swift"
-    expected_entries = set(links)
+    module_bindings(cache, dest, links, links["Upstream"] / "AudioCapture.swift",
+                    "saytile-capture-readiness.patch", adjustment)
+
+
+def adapter_bindings(cache, pin):
+    adjustment = pin["draftWitness"]
+    upstream = cache / key(pin) / "Sources/RiftletAdapters"
+    original = upstream / "ChromeAppleEventsExecutor.swift"
+    links = {child.name: child for child in upstream.iterdir() if child != original}
+    dest = cache / ("adapters-" + key(pin) + "-" + adjustment["compiledSHA256"])
+    module_bindings(cache, dest, links, original, "riftlet-draft-witness.patch", adjustment)
+
+
+def module_bindings(cache, dest, links, original, patch_name, adjustment):
+    expected = set(links)
+    patch = ROOT / "Dependencies" / patch_name
     if adjustment:
         require(re.fullmatch(r"[0-9a-f]{64}", adjustment["compiledSHA256"])
-                and hashlib.sha256(patch_file.read_bytes()).hexdigest() == adjustment["patchSHA256"]
-                and source_name not in links, "Unexpected microphone readiness patch")
-        expected_entries.add(source_name)
+                and hashlib.sha256(patch.read_bytes()).hexdigest() == adjustment["patchSHA256"]
+                and original.name not in expected, f"Unqualified adaptation: {patch_name}")
+        expected.add(original.name)
     if not dest.exists():
         with tempfile.TemporaryDirectory(prefix=".bindings-", dir=cache) as work:
-            stage = Path(work) / "voice"
+            stage = Path(work) / "module"
             stage.mkdir()
             for name, target in links.items():
                 (stage / name).symlink_to(os.path.relpath(target, dest))
             if adjustment:
-                # Apply only in the derived binding. The verified upstream tree stays immutable.
-                result = subprocess.run(["/usr/bin/patch", "-s", "-F", "0", "-o", str(stage / source_name),
-                                         str(links["Upstream"] / source_name), str(patch_file)], cwd=stage)
-                require(result.returncode == 0 and hashlib.sha256((stage / source_name).read_bytes()).hexdigest()
-                        == adjustment["compiledSHA256"], "Cannot reproduce the pinned microphone adapter")
+                result = subprocess.run(["/usr/bin/patch", "-s", "-F", "0", "-o", str(stage / original.name),
+                                         str(original), str(patch)], cwd=stage)
+                require(result.returncode == 0 and hashlib.sha256((stage / original.name).read_bytes()).hexdigest()
+                        == adjustment["compiledSHA256"], f"Cannot reproduce {patch_name}")
             stage.rename(dest)
-    require(not dest.is_symlink() and {p.name for p in dest.iterdir()} == expected_entries,
-            "Unexpected entry in the SaytileKit binding")
+    require(not dest.is_symlink() and {p.name for p in dest.iterdir()} == expected,
+            f"Unexpected entry in {dest.name}")
     if adjustment:
-        adapted = dest / source_name
+        adapted = dest / original.name
         require(not adapted.is_symlink() and adapted.is_file()
                 and hashlib.sha256(adapted.read_bytes()).hexdigest() == adjustment["compiledSHA256"],
-                "Microphone source differs from the reviewed adaptation")
+                f"Compiled source differs from {patch_name}")
     for name, target in links.items():
         require((dest / name).is_symlink() and (dest / name).resolve(strict=True) == target,
-                f"Invalid SaytileKit bridge link: {name}")
+                f"Invalid binding for {name}")
+
 
 
 def package_resources(resources, pins, directories, updates, update_directory):
-    bundled = {
-        "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
-        "riftlet": {"Sources/RiftletAdapters/Resources/" + p: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + p
-                    for p in ("chatgpt-web-20261027.js", "legacy-web-observe.js")}
-    }
-    for path in pins["saytile"]["files"]:
-        if path.startswith("Sources/SaytileKit/Resources/LocalASR/"):
-            bundled["saytile"][path] = "Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/" + Path(path).name
     for name, pin in pins.items():
-        for path, relative in bundled[name].items():
-            require(hashlib.sha256((resources / relative).read_bytes()).hexdigest() == pin["files"][path],
-                    f"Packaged resource differs from lock: {relative}")
+        verify_resources(resources, name, pin)
         dest = resources / "Upstream" / name
         dest.mkdir(parents=True)
         for path in pin["notices"]:
             notice = dest / path
             notice.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(directories[name] / path, notice)
-        provenance = {k: pin[k] for k in ("repository", "commit", "treeSHA256", "notices")}
-        if pin.get("releaseTag"):
-            provenance["releaseTag"] = pin["releaseTag"]
-        if name == "saytile" and pin.get("captureReadiness"):
-            provenance["captureReadiness"] = pin["captureReadiness"]
+        provenance = source_receipt(pin)
         if name == "saytile" and updates:
             provenance["updates"] = updates
             for path in updates["notices"]:
@@ -305,7 +313,8 @@ def propose(lock, domain, revision, output):
     require(re.fullmatch(r"[0-9a-f]{40}", revision), "A full immutable Git commit is required")
     pin = lock["saytileUpdates"] if domain == "saytileUpdates" else lock["domains"][domain]
     pin["commit"] = revision
-    pin.pop("releaseTag", None)  # Only restore a tag after verifying its commit.
+    pin.pop("releaseTag", None)
+    pin.pop("upstreamBuild", None)  # Verify the product version at the new commit before adopting it.
     url = f"https://api.github.com/repos/{pin['repository']}/git/trees/{revision}?recursive=1"
     with remote(url) as response:
         tree = json.loads(response.read(8 * MIB))
@@ -368,6 +377,7 @@ def main():
         for filename in ("module.modulemap", "shim.h"):
             require(len({(p / "Sources/CSQLite" / filename).read_bytes() for p in directories.values()}) == 1,
                     "Pinned SQLite module definitions no longer match")
+        adapter_bindings(cache, pins["riftlet"])
         tray_bindings(cache, pins["riftlet"])
         voice_bindings(cache, pins["saytile"], updates)
         if args.package_resources:

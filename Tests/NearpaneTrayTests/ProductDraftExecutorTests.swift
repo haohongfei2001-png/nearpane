@@ -21,6 +21,46 @@ import RiftletCore
         }
     }
 
+    @Test func legacyClaimsStayInChromeAndEdgeRequiresTheOriginalBrowserAndClick() throws {
+        let id = UUID()
+        let fixture = ProductDraftBinding(nonce:id.uuidString.lowercased(), process:"fixture", window:"4", tab:"5",
+                                          assetID:UUID().uuidString, sha256:String(repeating:"1", count:64),
+                                          boundAt:0, expiresAt:10, timeOrigin:1)
+        let data = try JSONEncoder().encode(fixture)
+        #expect(!String(decoding:data, as:UTF8.self).contains("applicationID"))
+        var claim = try JSONDecoder().decode(ProductDraftBinding.self, from:data)
+        func target(_ browser: AttachmentBrowser, _ nonce: UUID) -> TargetLease {
+            TargetLease(adapterID:"chatgpt-web", surface:.webChat, applicationID:browser.rawValue,
+                        sessionID:"fixture", windowID:"4", tabID:"5", documentID:"doc", composerID:"editor",
+                        draftGeneration:"gen", clickBindingID:nonce)
+        }
+        #expect(claim.accepts(target(.chrome, id)) && !claim.accepts(target(.edge, id)))
+        claim.applicationID = AttachmentBrowser.edge.rawValue
+        #expect(claim.accepts(target(.edge, id)) && !claim.accepts(target(.chrome, id)) && !claim.accepts(target(.edge, UUID())))
+    }
+
+    @Test func discoveryCannotCreateALeaseOrSpendTheImage() async throws {
+        let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let image = ImportedAsset(sourceKey:"fixture", fileName:"fixture.png", sha256:String(repeating:"b", count:64),
+                                  byteCount:20, pixelWidth:2, pixelHeight:2, mediaType:"image/png")
+        let target = TargetLease(adapterID:"chatgpt-web", surface:.webChat, applicationID:AttachmentBrowser.edge.rawValue,
+                                 sessionID:"edge", windowID:"2", tabID:"1", documentID:"d", composerID:"e", draftGeneration:"g")
+        let browser = Browser(target)
+        let route = CandidateDraftRoute(session:"edge", window:"2", tab:"1", url:URL(string:"https://claude.ai/new")!)
+        let executor = ProductDraftExecutor(root:root, base:browser, guardSource:"function(){}", arm:{ _ in throw route },
+            inspect:{ sample in
+                #expect(sample.url == route.url && sample.tab == route.tab && sample.window == route.window && sample.session == route.session)
+                return Task { true }
+            })
+        try executor.checkAsset(image)
+        let pending = try executor.targetForClick(program:ChatGPTWebPageProgram.load())
+        await #expect(throws: ReadOnlyDraftEntry.self) { try await pending.value }
+        #expect(browser.actions.isEmpty)
+        #expect(try FileManager.default.contentsOfDirectory(atPath:root.path).isEmpty)
+    }
+
     @Test func importedAttemptCannotArmOrObserveAnOldDraftAndAnUnspentImageRemainsEligible() async throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)

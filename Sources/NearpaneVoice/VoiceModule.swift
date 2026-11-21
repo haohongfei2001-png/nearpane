@@ -148,6 +148,7 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private var store: SaytileStore?
     @ObservationIgnored private var panelReads = 0
     @ObservationIgnored private var waitingForPanelReads: CheckedContinuation<Void, Never>?
+    @ObservationIgnored private var audioRecoveryReady = false
     @ObservationIgnored private var input: (any VoiceInput)?
     @ObservationIgnored private var intent: UUID?
     @ObservationIgnored private var awaitingFirstPCM = false
@@ -242,12 +243,25 @@ public final class VoiceModule: HostModule {
                     openingFailed?()
                     return
                 }
-                await refresh()
+                await recoverOnOpen(epoch)
             }
         } else {
             try open()
-            transition = Task { [weak self] in await self?.refresh() }
+            transition = Task { [weak self] in await self?.recoverOnOpen(epoch) }
         }
+    }
+
+    private func recoverOnOpen(_ epoch: Int) async {
+        guard active, generation == epoch, let store else { return }
+        do {
+            _ = try await AudioDiagnostics.recoverAudio(store: store)
+            guard active, generation == epoch else { return }
+            audioRecoveryReady = true
+        } catch {
+            guard active, generation == epoch else { return }
+            issue = "原音恢复尚未完成，可在语音档案中查看已保存的文字。"
+        }
+        await refresh()
     }
 
     private func open() throws {
@@ -299,7 +313,7 @@ public final class VoiceModule: HostModule {
         let closingGeneration = generation
         let previous = transition, oldInput = input, oldStore = store, writes = draftWrite
         draftWrite = nil
-        input = nil; store = nil; rows = []; capture = .paused; control = .init(.paused, 0)
+        input = nil; store = nil; audioRecoveryReady = false; rows = []; capture = .paused; control = .init(.paused, 0)
         busy = false; hasEarlier = false; issue = nil; limit = 60
         transition = Task {
             await previous?.value
@@ -322,7 +336,7 @@ public final class VoiceModule: HostModule {
 
     private func currentInput() throws -> any VoiceInput {
         if let input { return input }
-        if store == nil { try open() }
+        guard audioRecoveryReady else { throw StoreError.database("原音恢复尚未完成。") }
         guard let store else { throw StoreError.missingRecording }
         let epoch = generation
         let input = makeInput(store) { [weak self] state, level, error in

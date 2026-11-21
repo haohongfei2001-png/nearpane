@@ -76,17 +76,16 @@ else
   # Native SwiftPM produces flat resource directories and does not attempt to sign
   # File Provider metadata. Construct the layout required by the original .app loaders.
   install_resources() {
-    local module="$1" bundle_name="$2" file
-    shift 2
+    local module="$1" bundle_name="$2"
     local input="$binary_dir/Nearpane_$module.bundle" dest="$resources/$bundle_name.bundle/Contents"
     mkdir -p "$dest/Resources"
-    for file in "$@"; do cp -R "$input/$file" "$dest/Resources/$file"; done
+    cp -R "$input/." "$dest/Resources/"
     /usr/bin/plutil -create xml1 "$dest/Info.plist"
     /usr/bin/plutil -insert CFBundlePackageType -string BNDL "$dest/Info.plist"
     /usr/bin/plutil -insert CFBundleIdentifier -string "com.holdsnow.nearpane.resources.$module" "$dest/Info.plist"
   }
-  install_resources SaytileKit Nearpane_SaytileKit ConnectionSample.pcm LocalASR
-  install_resources RiftletAdapters Riftlet_RiftletAdapters chatgpt-web-20261027.js legacy-web-observe.js
+  install_resources SaytileKit Nearpane_SaytileKit
+  install_resources RiftletAdapters Riftlet_RiftletAdapters
   # Saytile first asks the main bundle. This also prevents its SwiftPM development fallback from being used.
   ln -s Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR "$resources/LocalASR"
   ln -s Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm "$resources/ConnectionSample.pcm"

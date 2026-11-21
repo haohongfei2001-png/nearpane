@@ -5,7 +5,7 @@ import ImageIO
 import UniformTypeIdentifiers
 import Testing
 import NearpaneCore
-import SaytileKit
+@testable import SaytileKit
 import RiftletCore
 import RiftletCapture
 @testable import NearpaneVoice
@@ -37,6 +37,11 @@ struct IntegratedHostTests {
         var ids = [UUID]()
         for (index, text) in [firstLine, secondLine].enumerated() {
             let row = try await store.createRecording(createdAt: Date(timeIntervalSince1970: Double(index + 1)))
+            let journal = try PCMJournal(directory: store.audioDirectory, recordingID: row.id)
+            try journal.openChunk()
+            try journal.append(Data(repeating: 0, count: 3200))
+            try journal.closeChunk()
+            try await store.registerAudioChunk(recordingID: row.id, relativePath: journal.relativePath, frames: journal.frames)
             let ticket = try await store.beginRecognition(recordingID: row.id)
             _ = try await store.applyRecognition(ticket: ticket, text: text, isFinal: true)
             try await store.finishRecording(id: row.id)
@@ -71,6 +76,49 @@ struct IntegratedHostTests {
             ids.insert(try await importer.importBuiltInScreenshot(original: url, outputDirectory: output).id)
         }
         return ids
+    }
+
+    @Test func profileProjectionReadsBothEmbeddedWritersAndPreservesRetiredMedia() async throws {
+        let root = fixtureRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        _ = try await seedVoice(root.appendingPathComponent("Nearpane"))
+        let ids = try await seedQueue(root)
+        let library = root.appendingPathComponent("Riftlet")
+        let id = try #require(ids.first)
+        do {
+            let opened = try ExistingLibrary.open(library)
+            try await opened.store.removeFromQueue(id)
+            let asset = try #require(try await opened.store.asset(id:id))
+            try await opened.store.retireMedia(id, revision:asset.visibilityRevision, batch:UUID())
+            // Model a completed cleanup without touching the system Trash.
+            try FileManager.default.moveItem(at:library.appendingPathComponent("media/" + asset.image.fileName),
+                                             to:root.appendingPathComponent("retired-fixture.png"))
+            opened.lock.close()
+        }
+        let script = """
+        import pathlib,sys
+        sys.path.insert(0,str(pathlib.Path.cwd()/'scripts'))
+        import profile_domains as p
+        root=pathlib.Path(sys.argv[1])
+        dest=root/'projection'
+        dest.mkdir()
+        with p.snapshot(root,p.VOICE) as voice:
+            assert p.voice_stats(voice)['voiceSchema']==6
+            p.text_projection(voice,dest)
+        with p.snapshot(root,p.TRAY) as tray:
+            assert p.tray_contents(tray,root,dest)['traySchema']==5
+        with p.snapshot(dest,p.TRAY) as copy:
+            assert copy.execute('select count(*) from retired_media').fetchone()==(1,)
+            assert p.tray_contents(copy,dest)['trayAssets']==3
+        """
+        let check = Process()
+        check.executableURL = URL(fileURLWithPath:"/usr/bin/python3")
+        check.arguments = ["-I","-B","-c",script,root.path]
+        try check.run()
+        check.waitUntilExit()
+        #expect(check.terminationStatus == 0)
+        let reopened = try ExistingLibrary.open(root.appendingPathComponent("projection/Riftlet"))
+        #expect(try await reopened.store.isRetiredMedia(id))
     }
 
     @Test func sharedHostKeepsDomainDataSeparateAndRestoresOnlyDurableState() async throws {

@@ -8,8 +8,9 @@ struct DomainPin: Decodable {
     let commit: String
     let treeSHA256: String
     let sources: [String]
-    struct CaptureReadiness: Decodable { let compiledSHA256: String }
-    let captureReadiness: CaptureReadiness?
+    struct Adaptation: Decodable { let compiledSHA256: String }
+    let captureReadiness: Adaptation?
+    let draftWitness: Adaptation?
     var key: String { commit + "-" + treeSHA256 }
 }
 struct DomainLock: Decodable {
@@ -45,6 +46,7 @@ if full {
     let cache = (run.isEmpty ? ".build" : "build/standalone." + run + "/cache") + "/domain-cache-v1/"
     let saytile = cache + speech.key + "/Sources/"
     let riftlet = cache + tray.key + "/Sources/"
+    guard let witness = tray.draftWitness else { fatalError("Missing Riftlet click witness bridge") }
     let voiceSuffix = speech.captureReadiness.map { "-" + $0.compiledSHA256 } ?? ""
     targets += [
         .binaryTarget(name: "Sparkle", path: updateCache),
@@ -62,7 +64,7 @@ if full {
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "RiftletCapture", dependencies: ["RiftletCore"], path: riftlet + "RiftletCapture",
                 swiftSettings: [.swiftLanguageMode(.v5)]),
-        .target(name: "RiftletAdapters", dependencies: ["RiftletCore"], path: riftlet + "RiftletAdapters",
+        .target(name: "RiftletAdapters", dependencies: ["RiftletCore"], path: cache + "adapters-" + tray.key + "-" + witness.compiledSHA256,
                 resources: [.process("Resources")], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "RiftletUI", dependencies: ["RiftletCore", "RiftletCapture"], path: riftlet + "RiftletUI",
                 exclude: ["ThumbnailCache.swift"], swiftSettings: [.swiftLanguageMode(.v5)]),

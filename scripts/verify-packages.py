@@ -11,15 +11,12 @@ import subprocess
 import sys
 import tempfile
 
+from domain_resources import source_receipt, verify_resources
+
 ROOT = Path(__file__).resolve().parents[1]
 _icon_spec = importlib.util.spec_from_file_location("app_icon", ROOT / "scripts/prepare-app-icon.py")
 app_icon = importlib.util.module_from_spec(_icon_spec)
 _icon_spec.loader.exec_module(app_icon)
-RESOURCE_PATHS = {
-    "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
-    "riftlet": {"Sources/RiftletAdapters/Resources/" + file: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + file
-                for file in ("chatgpt-web-20261027.js","legacy-web-observe.js")}
-}
 
 
 def digest(path):
@@ -122,11 +119,7 @@ def verify(app, lock, sandbox):
                 raise ValueError("Unexpected profile migration resource: " + name)
     for name,pin in lock["domains"].items():
         provenance = json.loads((root/"Upstream"/name/"source.json").read_text())
-        expected = {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}
-        if pin.get("releaseTag"):
-            expected["releaseTag"] = pin["releaseTag"]
-        if name == "saytile" and pin.get("captureReadiness"):
-            expected["captureReadiness"] = pin["captureReadiness"]
+        expected = source_receipt(pin)
         if name == "saytile" and lock.get("saytileUpdates"):
             updates = lock["saytileUpdates"]
             expected["updates"] = updates
@@ -135,11 +128,8 @@ def verify(app, lock, sandbox):
                     raise ValueError("Incorrect packaged Saytile update notice: "+notice)
         if provenance != expected:
             raise ValueError("Incorrect packaged provenance: "+name)
-        checks = {**RESOURCE_PATHS[name], **{n: "Upstream/"+name+"/"+n for n in pin["notices"]}}
-        if name == "saytile":
-            for path in pin["files"]:
-                if path.startswith("Sources/SaytileKit/Resources/LocalASR/"):
-                    checks[path] = "Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/" + Path(path).name
+        verify_resources(root, name, pin)
+        checks = {n: "Upstream/"+name+"/"+n for n in pin["notices"]}
         for src,out in checks.items():
             if digest(root/out) != pin["files"][src]:
                 raise ValueError("Packaged checksum mismatch: "+out)

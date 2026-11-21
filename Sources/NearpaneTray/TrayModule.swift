@@ -324,14 +324,22 @@ public final class TrayModule: HostModule {
         return save
     }
 
-    public func authorizeAttachments() async {
+    public func authorizeAttachments(in browser: AttachmentBrowser? = nil) async {
         guard !localOnly, let owner else { return }
         let request = UUID()
         permissionRequest = request
-        let result = await owner.checkPermission(true, nil)
+        let result: AutomationPermissionState
+        if let browser {
+            let (availability, target) = NativeAutomationPermissionChecker.selectBrowser(expectedSession: nil, browsers: [browser])
+            if let target { result = await owner.checkPermission(true, target.session) }
+            else { result = availability ?? .unavailable }
+        } else {
+            result = await owner.checkPermission(true, nil)
+        }
         let allowed = result == .granted
         guard self.owner === owner, permissionRequest == request else { return }
         attachmentAccessNotice = result.attachmentNotice
+        if browser != nil, !allowed, mayAttach { return }
         if !allowed {
             mayAttach = false
             cancelInteraction()
@@ -424,7 +432,7 @@ public final class TrayModule: HostModule {
             issue = attachmentAccessNotice
             return nil
         } catch AcceptanceBrowserRoute.ScriptError.javaScriptFromAppleEventsDenied {
-            issue = "Chrome 已拒绝来自 Apple 事件的 JavaScript，截图仍在托盘中。可在 Chrome「视图 → 开发者」检查此项设置。"
+            issue = "当前浏览器已拒绝来自 Apple 事件的 JavaScript，截图仍在托盘中。"
             return nil
         } catch { issue = "未能确认目标草稿，截图仍在托盘中。"; return nil }
     }
@@ -458,6 +466,9 @@ public final class TrayModule: HostModule {
             guard self.owner === owner else { return }
             await refresh()
             scheduleObservation(owner)
+        } catch let entry as ReadOnlyDraftEntry {
+            guard interaction == press.epoch else { return }
+            issue = entry.notice
         } catch {
             guard interaction == press.epoch else { return }
             issue = "未能确认附加；请检查原草稿。截图和原操作均已保留。"

@@ -80,7 +80,8 @@ final class TrayOwner {
         let owner = TrayOwner(store: library.store, root: root, adapter: adapter, policy: policy.receiptPolicy,
                          captureEntry: prefs.builtInScreenshotEnabled, defaultMode: prefs.defaultMode,
                          ownership: library.lock, magnetEnabled: ArrivalMotionPreferences(url: root.appendingPathComponent("arrival-motion-settings.json")).mode == .magnet, pin: pin,
-                         permission: attachmentPermission(executorAvailable: executor != nil, mayPrompt: testSession == nil),
+                         permission: attachmentPermission(executorAvailable: executor != nil, mayPrompt: testSession == nil,
+                            checker: NativeAutomationPermissionChecker(browsers: product == nil ? [.chrome] : AttachmentBrowser.allCases)),
                          notify: notify, report: report)
         if let bound {
             owner.mayObserveTestClaim = { bound.hasClaim }
