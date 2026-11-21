@@ -29,6 +29,7 @@ struct PairStackCoverage {
 struct PairPhysicalSample {
     let from: Double, to: Double
     let slot: Int
+    var cover: UInt32?
     var record: [Double] { [from, to, Double(slot)] }
 }
 
@@ -261,7 +262,11 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
     private var delivered = 0, idle = 0, beforeBaseline = 0, lastTicks: UInt64 = 0
     private var guardDurations = [Double](), firstTargetStack: PairPhysicalSample?, reversedStack: PairPhysicalSample?
     private var sawTargetPixels = false
-    private var confirmedTarget: Bool { sawTargetPixels && stack.last?.slot == target }
+    private var confirmedTarget: Bool { sawTargetPixels && stack.last?.slot == target && stack.last?.cover == nil }
+    #if P2_WINDOW_MOTION
+    private var motion = PairSwitchPixels.Series()
+    private var excludedAtEnrollment = Set<UInt32>()
+    #endif
     private var stackAttempts = 0, coverage = PairStackCoverage()
     private var frameDiagnostics = [VisualRow](), startedWithoutPixels = 0, startedWithoutClock = 0
     private var lastIdleTick: UInt64?, lastIdleAnchor: UInt64?
@@ -319,11 +324,22 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
               numbers.allSatisfy(catalog.contains), numbers.allSatisfy({ NPReadWindowSpaces($0) as? [UInt64] == [request.space] }) else {
             throw PairVisualFailure.enrollmentChanged
         }
-        guard let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [VisualRow]
+        guard var rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [VisualRow]
         else { throw PairVisualFailure.obscuredOrUncertainCrop }
+        var cover: UInt32?
+        #if P2_WINDOW_MOTION
+        let patch = frames[0].intersection(frames[1])
+        let candidates = rows.compactMap { PairSwitchPixels.cover($0, host: request.hostPID, patch: patch) }
+        guard candidates.count <= 1 else { throw PairVisualFailure.ambiguousSurface }
+        if let number = candidates.first {
+            guard !excludedAtEnrollment.contains(number) else { throw PairVisualFailure.enrollmentChanged }
+            cover = number
+            rows.removeAll { $0[kCGWindowNumber as String] as? UInt32 == number }
+        }
+        #endif
         let slot = try PairVisualEvidence.physicalTop(rows: rows, frames: frames, numbers: numbers,
                                                       pid: pid, crop: crop, coverage: &coverage)
-        return PairPhysicalSample(from:from, to:visualNow(), slot:slot)
+        return PairPhysicalSample(from:from, to:visualNow(), slot:slot, cover:cover)
     }
 
     private func readStack() {
@@ -369,15 +385,34 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
               pair.allSatisfy({ w in numbers.firstIndex(of:w.windowID).map { frames[$0] == w.frame } == true }) else {
             fail(.geometryChanged); return
         }
+        #if P2_WINDOW_MOTION
+        guard let crop, runningCodeHash(request.hostPID) == request.hostHash, runningCodeHash(pid) == request.hash,
+              let hostApp = content.applications.first(where: { $0.processID == request.hostPID }),
+              let fixture = content.applications.first(where: { $0.processID == pid }), hostApp.processID != fixture.processID else {
+            fail(.enrollmentChanged); return
+        }
+        let owners: Set<pid_t> = [pid, request.hostPID]
+        let excluded = content.windows.filter { owners.contains($0.owningApplication?.processID ?? 0) && !numbers.contains($0.windowID) }
+        excludedAtEnrollment = Set(excluded.map(\.windowID))
+        let filter = SCContentFilter(display:screen, including:[hostApp, fixture], exceptingWindows:excluded)
+        filter.includeMenuBar = false
+        guard Set(filter.includedApplications.map(\.processID)) == owners else { fail(.enrollmentChanged); return }
+        #else
         let filter = SCContentFilter(display:screen, including:pair)
         filter.includeMenuBar = false
         guard Set(filter.includedWindows.map(\.windowID)) == Set(numbers),
               Set(filter.includedApplications.map(\.processID)).isSubset(of:[pid]) else { fail(.enrollmentChanged); return }
+        #endif
         let cfg = SCStreamConfiguration()
+        #if P2_WINDOW_MOTION
+        cfg.sourceRect = crop.offsetBy(dx: -displayBounds.minX, dy: -displayBounds.minY)
+        cfg.width = PairSwitchPixels.side; cfg.height = PairSwitchPixels.side
+        #else
         cfg.sourceRect = CGRect(origin: .zero, size: screen.frame.size)
         // Nine pixels for eight points leaves at least eight whole pixels at fractional origins.
         cfg.width = Int(ceil(screen.frame.width * 9 / 8))
         cfg.height = Int((CGFloat(cfg.width) * screen.frame.height / screen.frame.width).rounded())
+        #endif
         cfg.preservesAspectRatio = false; cfg.ignoreShadowsDisplay = true; cfg.showMouseClicks = false
         cfg.colorSpaceName = CGColorSpace.sRGB; cfg.pixelFormat = kCVPixelFormatType_32BGRA
         cfg.minimumFrameInterval = .zero; cfg.queueDepth = 3; cfg.showsCursor = false; cfg.captureMicrophone = false
@@ -449,7 +484,17 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
         let covered = stack.filter { $0.from >= before.from && $0.to <= after.to }.map(\.slot)
         let progress = covered.map { $0 == target ? 1 : 0 }
         guard progress == progress.sorted() else { fail(.physicalStackReversed); return }
+        #if P2_WINDOW_MOTION
+        guard let actual = PairSwitchPixels.read(buffer) else { fail(.offPaletteMarker); return }
+        let fraction = target == 1 ? actual.fraction : 1 - actual.fraction
+        motion.append(progress:fraction, data:actual.rgb, time:time, before:before.cover, after:after.cover)
+        // Interior and covered endpoint samples describe animation only. They may
+        // never certify the first unobstructed destination frame or keyboard focus.
+        guard before.cover == nil, after.cover == nil, fraction < 0.035 || fraction > 0.965 else { return }
+        let read = PairFocusRaster.measure(buffer, display:crop, crop:crop)
+        #else
         let read = PairFocusRaster.measure(buffer, display: displayBounds, crop: crop)
+        #endif
         frameDiagnostics[index]["raster"] = read.record
         guard let slot = read.slot else { fail(read.issue ?? .pixelBufferUnavailable); return }
         guard let state = PairVisualEvidence.composition(slot:slot,target:target,presentation:time,uncertainty:clock.uncertainty,
@@ -484,7 +529,12 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
                 guard !self.stopped, let after = self.stack.last, after.slot == self.target,
                       let buffer, buffer.isValid else { return }
                 report["completedBeforeUptime"] = after.to
+                #if P2_WINDOW_MOTION
+                guard before.cover == nil, after.cover == nil else { return }
+                let read = PairFocusRaster.measure(buffer, display:crop, crop:crop)
+                #else
                 let read = PairFocusRaster.measure(buffer, display: self.displayBounds, crop: crop)
+                #endif
                 report["raster"] = read.record
                 guard let measured = read.slot else {
                     report["reason"] = (read.issue ?? .pixelBufferUnavailable).rawValue
@@ -558,6 +608,11 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
             result["lastPhysicalStack"] = stack.last?.record
             result["finalTargetStackMatched"] = failure == nil && stack.last?.slot == target && reversedStack == nil
             result["method"] = "twoEnrolledWindowDisplayRasterWithPhysicalStackAtEightPointCrop"
+            #if P2_WINDOW_MOTION
+            result["method"] = "installedWindowSwitchAndTwoDocumentsAtEightPointCrop"
+            result["windowSwitch"] = motion.receipt(terminated: failure != nil || !confirmedTarget || result["status"] as? String != "OBSERVED",
+                                                    down: down, up: up, uncertainty: clock?.uncertainty)
+            #endif
             result["displayPointBounds"] = [displayBounds.minX,displayBounds.minY,displayBounds.width,displayBounds.height]
             if let cfg = displayConfig { result["requestedRaster"] = [cfg.width,cfg.height] }
             result["fixtureWindows"] = numbers; result["spaceUUID"] = request.spaceUUID
@@ -578,6 +633,9 @@ final class PairPointerVisual: NSObject, SCStreamOutput, SCStreamDelegate, @unch
                 (samples.isEmpty ? "noQualifiedSourceFrame" : (idle > 0 ? "sourceAndIdleOnly" : "sourceWithoutNewTarget"))
             if let endpoint { result["terminalScreenshot"] = endpoint }
             result["retainedPixelBytes"] = 0
+            #if P2_WINDOW_MOTION
+            result["retainedPixelBytes"] = motion.frames.filter { $0["fixtureRGB8"] != nil }.count * PairSwitchPixels.side * PairSwitchPixels.side * 3
+            #endif
             return result
         }
     }

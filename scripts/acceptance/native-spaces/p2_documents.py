@@ -344,7 +344,7 @@ class RegisteredRun:
         initial_focus=self.prepare_front(hashes)
         return self.selection_trials(reader, texts, hashes, initial_focus)
 
-    def selection_trials(self, reader, texts, hashes, initial_focus):
+    def selection_trials(self, reader, texts, hashes, initial_focus, after_verified_input=None):
         numbers=self.binding["numbers"]
         first_slot=1 if initial_focus==numbers[0] else 0
         unique_tokens=secrets.SystemRandom().sample(range(10**12),10)
@@ -386,6 +386,8 @@ class RegisteredRun:
             attempt.update(status="PASS",siblingUnchanged=True)
             self.out["passes"]+=1
             if self.trial==1:self.capture_first(n,hashes)
+            if after_verified_input is not None:
+                after_verified_input(attempt)
         self.out.update(status="PASS",reason="tenExactAlternatingWindowsAndInputs")
         return hashes
 

@@ -7,7 +7,7 @@ kit="${1:?fresh private /private/tmp/nearpane-d01.* output directory}"
 [[ "$kit" == /private/tmp/nearpane-d01.* && -d "$kit" && ! -L "$kit" && ! -e "$kit/observe" && ! -e "$kit/Field Notes.app" ]]
 [[ "$(stat -f %u "$kit")" == "$(id -u)" && "$(stat -f %Lp "$kit")" == 700 ]]
 flavor="${2:-marker}"
-[[ "$flavor" == marker || "$flavor" == --registered-documents || "$flavor" == --pair-pointer ]]
+[[ "$flavor" == marker || "$flavor" == --registered-documents || "$flavor" == --pair-pointer || "$flavor" == --window-switch ]]
 src=scripts/acceptance/native-spaces
 inc=Sources/CReadOnlySpaces/include
 work="$kit/marker-build"
@@ -23,11 +23,15 @@ if [[ "$flavor" != marker ]]; then
     mkdir "$work/observer"
     cp "$src/observe.swift" "$work/observer/main.swift"
     observer_sources=("$work/observer/main.swift" "$src/p2-document-scope.swift" "$src/p2-stage-surface.swift" scripts/acceptance/observe-secondary-space-controls.swift "$src/p2-document-post.swift" "$src/p2-keypad.swift" "$src/p2-document-physical.swift" Sources/NearpaneCore/AXWindowList.swift)
-    if [[ "$flavor" == --pair-pointer ]]; then
+    if [[ "$flavor" == --pair-pointer || "$flavor" == --window-switch ]]; then
         flags+=(-D P2_PAIR_POINTER)
         observer_sources+=("$src/apple-focus-surface.swift" "$src/pair-pointer.swift" "$src/pair-pointer-receiver.swift" "$src/pair-pointer-motion.swift" "$src/pair-pointer-cursor.swift" "$src/pair-pointer-post.swift" "$src/pair-pointer-readiness.swift"
                            "$src/pair-pointer-visual.swift" "$src/pair-pointer-palette.swift" "$src/screen-presentation-clock.swift")
         fixture_sources+=("$src/pair-pointer-palette.swift")
+        if [[ "$flavor" == --window-switch ]]; then
+            flags+=(-D P2_WINDOW_MOTION)
+            observer_sources+=("$src/pair-switch-pixels.swift")
+        fi
     fi
     fixture_sources+=("$src/p2-keypad.swift" "$src/p2-document-files.swift" "$src/p2-document-physical.swift")
 fi

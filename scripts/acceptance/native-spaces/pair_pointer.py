@@ -222,6 +222,9 @@ class PairPointerRun(RegisteredRun):
             compact = {k:presentation[k] for k in ("status","reason","evidenceKind","downToVisibleMS","upToVisibleMS","confirmedByUptime","firstTargetDisplayUptime",
                        "firstTargetPresentationMachTicks","targetFrameObserved","retainedPixelBytes") if k in presentation}
             compact["file"] = name
+            if isinstance(motion := presentation.get("windowSwitch"), dict):
+                compact["windowSwitch"] = {k:motion[k] for k in ("status","intermediateFrames","distinctIntermediateBins",
+                                           "fractionSpan","unattributedFrames","reversed","afterClick") if k in motion}
             logged = {**proof,"presentation":compact}
             if self.attempt is not None:
                 self.attempt["presentation"] = compact
@@ -519,7 +522,11 @@ class PairPointerRun(RegisteredRun):
         else:
             self.out["selection"]["status"] = "UNKNOWN"
             try:
-                self.selection_trials(reader, texts, hashes, initial_focus)
+                def check_motion(attempt):
+                    motion = attempt.get("presentation", {}).get("windowSwitch")
+                    if motion and motion.get("status") != "PASS":
+                        raise TrialStop("windowSwitchPixelsUnconfirmed", "FAIL" if motion.get("status") == "FAIL" else "UNKNOWN")
+                self.selection_trials(reader, texts, hashes, initial_focus, check_motion)
                 self.out["selection"]["status"] = "PASS"
             except Superseded:
                 raise
@@ -580,6 +587,12 @@ class PairPointerRun(RegisteredRun):
         callbacks = [r["hostButton"]["downToCallbackMs"] for r in rows if r.get("hostButton",{}).get("status") == "OBSERVED"]
         self.out["measurement"]["statistics"]["downToHostButtonMs"] = summary(callbacks)
         present = [r["presentation"] for r in rows if "presentation" in r]
+        motion = [p["windowSwitch"].get("status") for p in present if "windowSwitch" in p]
+        if motion:
+            self.out["measurement"]["windowSwitch"] = {
+                "status": "FAIL" if "FAIL" in motion else "PASS" if motion == ["PASS"] * 10 and self.out["passes"] == 10 else "UNKNOWN",
+                "attempts": len(motion), "passed": motion.count("PASS"), "failed": motion.count("FAIL"),
+                "unknown": motion.count("UNKNOWN"), "notRun": 10-len(motion)}
         observed = [p for p in present if p.get("status") == "OBSERVED"]
         self.out["measurement"]["displayPresentation"] = (
             "OBSERVED" if observed and len(observed)==len(rows)==10 else "PARTIAL" if observed else "UNKNOWN" if present else "NOT_RUN")
