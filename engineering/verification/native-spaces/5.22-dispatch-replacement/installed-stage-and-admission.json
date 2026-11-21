@@ -1,0 +1,111 @@
+{
+  "source": "35eecd2af47d99573be92100c668805aefd46410",
+  "candidateCDHash": "fe70bd23db5e28f00e1f8712033daa3b338e57d3",
+  "system": {
+    "os": "macOS 27.0",
+    "build": "26A428"
+  },
+  "stageManagerOnCustomChord": {
+    "status": "PASS",
+    "scope": "pre-visit Stage Manager",
+    "keyEventsSent": 0,
+    "stage": true,
+    "before": {
+      "windowManagementBusy": 0,
+      "activeStreams": 0,
+      "windowDispatchEligible": 0,
+      "missionControlPresented": 0,
+      "pid": 42904,
+      "visibleDisplays": 0,
+      "capturesInFlight": 0,
+      "captureRequests": 0,
+      "chargedPixelBytes": 0,
+      "overviewShortcutRegistered": 0,
+      "stageManagerOwnsDispatch": 1,
+      "deliveredFrames": 0,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "visibilityRevision": 294962517882208,
+      "gallerySessions": 0,
+      "cacheEntries": 0,
+      "surfaceHidden": 0
+    },
+    "claim": {
+      "keyEventsSent": 0,
+      "registration": 0,
+      "pid": 42904,
+      "release": 0,
+      "state": "available"
+    },
+    "after": {
+      "cacheEntries": 0,
+      "capturesInFlight": 0,
+      "activeStreams": 0,
+      "surfaceHidden": 0,
+      "gallerySessions": 0,
+      "overviewShortcutRegistered": 0,
+      "missionControlPresented": 0,
+      "visibleDisplays": 0,
+      "stageManagerOwnsDispatch": 1,
+      "windowDispatchEligible": 0,
+      "visibilityRevision": 294962517882208,
+      "deliveredFrames": 0,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "pid": 42904,
+      "captureRequests": 0,
+      "windowManagementBusy": 0,
+      "chargedPixelBytes": 0
+    },
+    "actualLogin": [
+      {
+        "ax": true,
+        "screen": true,
+        "state": true,
+        "uid": 501,
+        "uptime": 294966.552268375
+      },
+      {
+        "ax": true,
+        "screen": true,
+        "state": true,
+        "uid": 501,
+        "uptime": 294966.89194675
+      }
+    ],
+    "reason": "exclusiveCustomChordReadback"
+  },
+  "visit": {
+    "childStarted": false,
+    "entry": "NOT_RUN",
+    "officialGateEligible": false,
+    "productInputsBySetup": 0,
+    "reason": "unrelated desktop became current",
+    "restoration": "NOT_NEEDED",
+    "schema": 1,
+    "scope": "setup-and-restoration-only",
+    "spacesCreatedOrRemoved": 0,
+    "status": "BLOCKED"
+  },
+  "runtimeCleanup": {
+    "app": "PASS",
+    "profile": "PASS",
+    "restoredVersion": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "foreground": {
+      "status": "PASS",
+      "originalReferenceMatchedTwice": true,
+      "source": 4,
+      "uptimes": [
+        294975.56540920836,
+        294975.7131725
+      ]
+    }
+  },
+  "hardwareGesture": "NOT_RUN",
+  "liveMissionControl": "NOT_RUN",
+  "ordinaryFocusAndDragOnThisSHA": "NOT_RUN",
+  "fullReplacement": "NOT_PASSED",
+  "fileHashes": {
+    "installation.json": "cbcc9fe4177e13748ce2d46ee093d65ed678689f8f4fda433f59c44027589fb7",
+    "pre-visit-stage-shortcut.json": "c7e435b21476104e70c4a0a97a9d244071152a6a66f3c912509935be16519bb7",
+    "receipt.json": "cc5ea21c575a4991adff8920166772c60d974682552f0654d2ccf64dbc94b90a"
+  }
+}
