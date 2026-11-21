@@ -9,6 +9,7 @@
 #import <math.h>
 #import <unistd.h>
 #import "macos.h"
+#import "mouse_event.h"
 #import "scope_binding.h"
 
 enum {
@@ -29,7 +30,9 @@ enum {
     NO_ZORDER = 14,
     NEW_INTENT = 15,
     SETTER = 16,
-    CHANGED_FRAME = 17
+    CHANGED_FRAME = 17,
+    BUTTON_HELD = 18,
+    NO_LISTEN = 19
 };
 static NCFrame frame(CGRect r) { return (NCFrame){r.origin.x, r.origin.y, r.size.width, r.size.height}; }
 static BOOL valid(NCFrame f) {
@@ -124,10 +127,20 @@ void np_corner_inputs(uint32_t counters[13]) {
         counters[n] = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, e[n]);
 }
 int np_corner_secure_input(void) { return IsSecureEventInputEnabled() != 0; }
+static BOOL mouseButtonHeld(void) {
+    // A stationary held button has no new counter event. AX must not move a window
+    // underneath an in-flight gesture, including during Guardian recovery.
+    for (CGMouseButton button = 0; button < 32; button++)
+        if (CGEventSourceButtonState(kCGEventSourceStateHIDSystemState, button) ||
+            CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, button)) return YES;
+    return NO;
+}
 uint32_t np_corner_input_access(void) {
     if (!AXIsProcessTrusted() || !CGPreflightPostEventAccess())
         return NO_AX;
-    return np_corner_secure_input() ? SECURE : OK;
+    if (!CGPreflightListenEventAccess()) return NO_LISTEN;
+    if (np_corner_secure_input()) return SECURE;
+    return mouseButtonHeld() ? BUTTON_HELD : OK;
 }
 uint32_t np_corner_displays(NCDisplay *rows, uint32_t capacity, uint32_t *count) {
     @autoreleasepool {
@@ -503,6 +516,10 @@ uint32_t np_corner_position(const NCMember *m, void *retained, NCFrame before, N
             CFRelease(value);
             return NEW_INTENT;
         }
+        if (mouseButtonHeld()) {
+            CFRelease(value);
+            return BUTTON_HELD;
+        }
         *issued = 1;
         AXError err = AXUIElementSetAttributeValue(e, kAXPositionAttribute, value);
         CFRelease(value);
@@ -524,10 +541,7 @@ static CGEventRef tapCallback(CGEventTapProxy proxy, CGEventType type, CGEventRe
     }
     if (!event)
         return event;
-    CGPoint p = CGEventGetLocation(event);
-    return tap->decide(tap->context, type, p.x, p.y, CGEventGetIntegerValueField(event, kCGMouseEventButtonNumber))
-               ? NULL
-               : event;
+    return nc_mouse_decision(type, event, tap->context, tap->decide) ? NULL : event;
 }
 void np_corner_tap_run(void *context, NCDecide decide, NCTapControl control, NCTapHealth health) {
     @autoreleasepool {

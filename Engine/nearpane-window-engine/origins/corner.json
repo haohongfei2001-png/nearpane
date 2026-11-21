@@ -45,7 +45,7 @@
     "local": "src/corner/tap.rs",
     "upstream": "src/platform/corner/sliver_tap.rs",
     "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
-    "modifications": "Move filtering to a session-owned thread and immutable published geometry. Revoke on timeout, secure input, contention or stale membership."
+    "modifications": "Move filtering to a session-owned thread and immutable published geometry. Compare available Quartz recipient fields to current CG observations. After a disagreement keep only corroborated existing recipients protected during recovery. Timeout or secure input ends the generation."
   },
   {
     "local": "src/corner/tap.rs",
@@ -57,7 +57,7 @@
     "local": "src/corner/macos.m",
     "upstream": "src/platform/corner/sliver_tap.rs",
     "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
-    "modifications": "Translate session-head event tap creation and its bounded CFRunLoop to the Apple SDK types."
+    "modifications": "Translate session-head event tap creation and its bounded CFRunLoop to the Apple SDK types. Read button, recipient window and owner fields without retaining events. Refuse position writes while a button is held."
   },
   {
     "local": "src/corner/macos.m",

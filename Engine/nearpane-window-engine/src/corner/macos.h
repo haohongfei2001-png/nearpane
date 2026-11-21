@@ -1,3 +1,4 @@
+#pragma once
 // Private SDK shim. These layouts stay inside the Rust Corner backend.
 #include <stdint.h>
 typedef struct {
@@ -40,7 +41,7 @@ uint32_t np_corner_input_access(void);
 void np_corner_inputs(uint32_t counters[13]);
 // Callback receives in-process event metadata only. No event pointer escapes into Rust.
 // Control returns bit 0 wanted, bit 1 a swallowed gesture still held, bit 2 stop.
-typedef int (*NCDecide)(void *, uint32_t, double, double, int64_t);
+typedef int (*NCDecide)(void *, uint32_t, double, double, int64_t, int64_t, int64_t);
 typedef uint32_t (*NCTapControl)(void *);
 typedef void (*NCTapHealth)(void *, uint32_t);
 void np_corner_tap_run(void *, NCDecide, NCTapControl, NCTapHealth);
