@@ -2,7 +2,7 @@
 
 ## 2026-11-21 · 系统调度交接
 
-5.22（90）正式源码 `35eecd2` 新增按需的本屏空间目录，系统接管时撤销待执行的窗口动作并释放总览快捷键。第 18 轮已关联到外部激活和 Dock 随窗切桌面。本轮第一次 P0 隔离安装停在桌面 6 的入场预检，未投递手势，回退成功。macOS 27.0（26A428）的产品切换与迁窗资格仍关闭。整体替代及同条件 Apple 速度对照均未通过。[分项结果](../verification/native-spaces/5.22-dispatch-replacement/RESULTS.md) · [发布验收合同](ACCEPTANCE.md)
+5.22（90）签名候选 `35eecd2` 已在 macOS 27.0（26A428）验证台前调度开启时的快捷键交还。两次正式 Host 读回为零注册、零预览流，独立进程能实际取得并释放自定义组合键。修复安装脚本抢占前台后，原桌面和原窗口两次读回一致。本屏空间目录已接入正式菜单，当前构建保持只读。真实切换、迁窗、原生全屏 Split View、多屏与苹果同条件速度仍未通过。PR #15 保持 Draft。[实机逐项结果](../verification/native-spaces/5.22-dispatch-replacement/RESULTS.md) · [同包分发门槛](../verification/native-spaces/5.22-p6/integrated-35eecd2/hosted-macos-26.json) · [发布验收合同](ACCEPTANCE.md)
 
 ## 2026-11-21 · 同屏拖放与切窗
 
