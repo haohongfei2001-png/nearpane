@@ -1,0 +1,39 @@
+Rust, Swift and production C ABI	Run the engine and its language bindings	﻿2026-11-21T17:38:24.7773210Z ##[group]Run python3 -B scripts/acceptance/window-engine/ci/source-tests.py "$RUNNER_TEMP/window-engine-source"
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:38:24.7774260Z ^[[36;1mpython3 -B scripts/acceptance/window-engine/ci/source-tests.py "$RUNNER_TEMP/window-engine-source"^[[0m
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:38:24.7812700Z shell: /bin/bash -e {0}
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:38:24.7813090Z ##[endgroup]
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:38:35.9451910Z rust PASS 100
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:38:39.6242510Z release PASS 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:38:40.5505750Z c-abi-link PASS 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:38:40.5721900Z c-abi PASS 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:28.3106000Z swift PASS 86
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:30.6127880Z hosted-reader-build PASS 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:31.8661710Z installed-supervisor-tests PASS 23
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:32.5822010Z spaces-tests PASS 11
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.4371110Z performance-tests PASS 10
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.5351290Z corner-lease-tests PASS 4
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8186090Z ......E.........
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8186570Z ======================================================================
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8187930Z ERROR: test_external_trial_stops_at_predecessor_without_starting_an_owner (test_installed_scope.InstalledScopeTests.test_external_trial_stops_at_predecessor_without_starting_an_owner)
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8189220Z ----------------------------------------------------------------------
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8189620Z Traceback (most recent call last):
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8190310Z   File "/Users/runner/work/nearpane/nearpane/scripts/acceptance/window-engine/host/test_installed_scope.py", line 166, in test_external_trial_stops_at_predecessor_without_starting_an_owner
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8191280Z     membership.run(args, report)
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8191500Z     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8192060Z   File "/Users/runner/work/nearpane/nearpane/scripts/acceptance/window-engine/host/sample-membership.py", line 409, in run
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8192910Z     app = a.host.resolve(strict=True)
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8193560Z   File "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py", line 1137, in resolve
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8194190Z     return self.with_segments(os.path.realpath(self, strict=strict))
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8194540Z                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8194830Z   File "<frozen posixpath>", line 460, in realpath
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8195230Z FileNotFoundError: [Errno 2] No such file or directory: '/Applications/Nearpane.app'
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8195540Z 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8195670Z ----------------------------------------------------------------------
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8195990Z Ran 16 tests in 0.019s
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8196120Z 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8196210Z FAILED (errors=1)
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8196370Z 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8196380Z 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:33.8196600Z installed-host-tests FAIL 
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:34.0272110Z ci-tests PASS 13
+Rust, Swift and production C ABI	Run the engine and its language bindings	2026-11-21T17:40:34.5718670Z ##[error]Process completed with exit code 1.

@@ -526,7 +526,12 @@ def resources(report):
         fixture = "PASS" if report.get("ownerClosed") and report.get("ownedProcessExited") else "UNKNOWN"
     backend = "NOT_RUN"
     if report.get("requestedOwnCanary") and report.get("hostObservationStarted") and report.get("hostLaunchRequested") is not False:
-        backend = "PASS" if report.get("panelJournal", {}).get("status") == "PASS" else "UNKNOWN"
+        canary = report.get("canary") or {}
+        if (canary.get("engineInvoked") is False and canary.get("status") == "BLOCKED"
+                and canary.get("reason") == "hostScopeOrRegistrationChanged" and canary.get("safeToRollback") is True):
+            backend = "NOT_RUN"
+        else:
+            backend = "PASS" if report.get("panelJournal", {}).get("status") == "PASS" else "UNKNOWN"
     elif report["requestedSpacesCycle"] and report.get("fixtureAdmission") == "registeredSignedBackgroundWindow":
         backend = "PASS" if report.get("backendSafeToRollback") is True else "UNKNOWN"
     overview = report.get("overviewObservation", {})

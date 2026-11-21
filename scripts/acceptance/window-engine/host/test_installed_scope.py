@@ -154,13 +154,21 @@ class InstalledScopeTests(unittest.TestCase):
                       hostLaunchRequested=True, hostExit=dict(status="PASS"), panelJournal=dict(status="PASS"))
         self.assertFalse(membership.resources(report)["clear"])
         self.assertTrue(membership.resources(dict(report,overviewObservation=row))["clear"])
+        refused = dict(report, panelJournal=dict(status="BLOCKED"), canary=dict(status="BLOCKED", engineInvoked=False,
+                       reason="hostScopeOrRegistrationChanged", safeToRollback=True))
+        self.assertTrue(membership.resources(refused)["clear"])
+        refused["canary"]["engineInvoked"] = True
+        self.assertFalse(membership.resources(refused)["clear"])
 
     def test_external_trial_stops_at_predecessor_without_starting_an_owner(self):
         with tempfile.TemporaryDirectory() as td:
-            args = membership.argparse.Namespace(host=reader.DAILY, expected_source=revision, expected_cdhash=digest,
+            canonical = Path(td).resolve() / "Applications" / "Nearpane.app"
+            canonical.mkdir(parents=True)
+            args = membership.argparse.Namespace(host=canonical, expected_source=revision, expected_cdhash=digest,
                 out=Path(td)/"run.json", installed=True, preflight_only=False, own_spaces_canary=False, enrolled_spaces_cycle=True)
             report = dict(osBuild="26A428",requestedSpacesCycle=True)
-            with patch.object(reader,"identity",return_value=image), patch.object(membership,"inspect_launch",return_value=dict(status="PASS")), \
+            with patch.object(reader,"DAILY",canonical), patch.object(reader,"identity",return_value=image), \
+                    patch.object(membership,"inspect_launch",return_value=dict(status="PASS")), \
                     patch.object(membership,"own_panel_first",side_effect=lambda a,r: r.update(ownPanelPredecessor=dict(status="UNKNOWN", resourcesClear=False))), \
                     patch.object(membership,"prepare_fixture") as prepare:
                 membership.run(args, report)

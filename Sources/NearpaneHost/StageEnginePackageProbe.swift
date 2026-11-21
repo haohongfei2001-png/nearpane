@@ -145,7 +145,8 @@ enum StageEnginePackageProbe {
                 let admitted = ownSpacesCanary ? admitsPhysicalScope(preflight: preflight, current: report)
                     : admitsInstalledCycle(preflight: preflight, registered: report)
                 if try !channel.exists(.abort), admitted {
-                    let cycle = await InstalledSpacesFixtureCycle.read(challenge: challenge, ownPanelOnly: ownSpacesCanary)
+                    var cycle = await InstalledSpacesFixtureCycle.read(challenge: challenge, ownPanelOnly: ownSpacesCanary)
+                    cycle["engineInvoked"] = true
                     report[key] = cycle
                     if ownSpacesCanary {
                         // This reader is independent of Rust's WindowServer connection and durable journal.
@@ -158,7 +159,8 @@ enum StageEnginePackageProbe {
                         }
                     }
                 } else {
-                    report[key] = ["status": "BLOCKED", "reason": "hostScopeOrRegistrationChanged", "safeToRollback": true] as [String: Any]
+                    report[key] = ["status": "BLOCKED", "reason": "hostScopeOrRegistrationChanged",
+                                   "engineInvoked": false, "safeToRollback": true] as [String: Any]
                 }
             } else if let fixture {
                 guard let scope = report["spaceScope"] as? [String: Any] else { return 3 }
