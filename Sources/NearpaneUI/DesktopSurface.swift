@@ -85,9 +85,15 @@ struct DesktopSurface: View {
             }
         }
         .onChange(of: canNavigate) { previous, available in
-            if previous && !available, let request { menu.close(request) }
+            if previous && !available {
+                navigation.windowSwitch.cancel(on: displayID)
+                if let request { menu.close(request) }
+            }
         }
-        .onDisappear { if let request { menu.close(request) } }
+        .onDisappear {
+            navigation.windowSwitch.cancel(on: displayID)
+            if let request { menu.close(request) }
+        }
         #if NEARPANE_P0_DIAGNOSTIC
         .task(id: canNavigate ? displayID : nil) {
             guard canNavigate, let id = displayID, let feed = display?.pointer?.windowPreviews?.currentDesktop,
@@ -239,7 +245,13 @@ struct DesktopSurface: View {
                             }), gallery: gallery,
                             permitted: permitted, canSwitch: canNavigate && navigation.canSwitch,
                             canMove: canNavigate && navigation.canMove, workArea: workArea(for: screen),
-                            select: { navigation.select(member.source, member: $0, feed: feed, allowed: { canNavigate }) },
+                            select: { chosen in
+                                if let chosen, let observed = chosen.resolve(snapshot), let target = DesktopWindowTarget(observed, in: snapshot) {
+                                    selectWindow(target, snapshot: snapshot, lifetime: feed.lifetime(of: chosen.key), member: chosen)
+                                } else {
+                                    navigation.select(member.source, member: chosen, feed: feed, allowed: { canNavigate })
+                                }
+                            },
                             id: group.id, windows: grouped, snapshot: snapshot,
                             place: { place($0, feed: feed) }, move: { move($0, to: $1, lifetime: $2, feed: feed) }, dissolve: { feed.groups.dissolve(group.id) })
                             .id(group.members)
@@ -255,7 +267,8 @@ struct DesktopSurface: View {
                         width: width, drag: drag, feed: feed, canMove: canNavigate && navigation.canMove,
                         select: { if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) } },
                         place: { pair in if let feed { place(pair, feed: feed) } },
-                        move: { source, dest, birth in if let feed { move(source, to: dest, lifetime: birth, feed: feed) } }))
+                        move: { source, dest, birth in if let feed { move(source, to: dest, lifetime: birth, feed: feed) } },
+                        prepare: { if let target { prepareSwitch(target, in: snapshot) } }))
                     .contextMenu {
                         if let member, let feed, member.source.kind == .ordinary {
                             ForEach(Array(windows.enumerated()), id: \.element.id) { i, other in
@@ -298,7 +311,14 @@ struct DesktopSurface: View {
         return pixels + "，" + geometry
     }
 
-    private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, lifetime: UUID?) {
+    private func prepareSwitch(_ target: DesktopWindowTarget, in snapshot: DesktopSnapshot, operation: UUID? = nil) {
+        guard let previews = display?.pointer?.windowPreviews else { return }
+        navigation.windowSwitch.prepare(target, snapshot: snapshot, previews: previews, operation: operation,
+            allowed: { canNavigate && host.configuration.showsWindowThumbnails })
+    }
+
+    private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, lifetime: UUID?,
+                              member: NativeSidebarMember? = nil) {
         let timing = WindowFocusTiming.begin()
         guard snapshot.native != nil, let previews = display?.pointer?.windowPreviews else { return }
         let generation = previews.gallery.generation
@@ -311,6 +331,9 @@ struct DesktopSurface: View {
             guard feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime) else {
                 return DesktopWindowSelection.refusedCurrentCard("window lifetime")
             }
+            if let original = member?.originalWindow, let location = member?.location, feed?.tracks(original, at: location) != true {
+                return DesktopWindowSelection.refusedCurrentCard("group window identity")
+            }
             guard generation == previews.gallery.generation, visibility == previews.visibilityGeneration[target.display] else {
                 return DesktopWindowSelection.refusedCurrentCard("visibility generation")
             }
@@ -321,16 +344,18 @@ struct DesktopSurface: View {
         }
         guard target.present(in: overview), stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
         selectionIssue = nil
-        navigation.submit { token in
+        navigation.submit(prepare: { prepareSwitch(target, in: snapshot, operation: timing.id) }) { token in
             let isLatest = { navigation.isCurrent(token) }
             let verifySpace: (() async -> Bool)? = previews.currentDesktop.map { feed in
                 { target.remainsSelection(in: await feed.readNow()) }
             }
             do {
                 let path = try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 5,
-                    verifySpace: verifySpace, stillCurrent: { isLatest() && stillCurrent() }, timing: timing)
+                    verifySpace: verifySpace, stillCurrent: { isLatest() && stillCurrent() }, timing: timing,
+                    beforeFocus: { navigation.windowSwitch.beforeFocus(timing.id, current: { isLatest() && stillCurrent() }) })
                 if isLatest() { selectionIssue = path.focusNotice }
             } catch {
+                navigation.windowSwitch.cancel(timing.id)
                 // An explicitly superseded choice must not clear the newer pending click.
                 if isLatest() { throw error }
             }

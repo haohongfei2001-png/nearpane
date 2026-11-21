@@ -11,6 +11,7 @@ struct SidebarCardPointer: NSViewRepresentable {
     let select: () -> Void
     let place: (SidebarPairDrop) -> Void
     let highlight: (Bool?) -> Void
+    var prepare: () -> Void = {}
 
     func makeNSView(context: Context) -> CardArea { CardArea() }
     func updateNSView(_ area: CardArea, context: Context) { area.card = self }
@@ -71,6 +72,7 @@ struct SidebarCardPointer: NSViewRepresentable {
                   let (area, _) = hit(in: panel, at: event.locationInWindow),
                   let card = area.card else { return false }
             pressed = (card.member, card.lifetime, event.locationInWindow, false)
+            card.prepare()
             Self.log.info("phase=cardDown")
             return true
         case .leftMouseDragged, .leftMouseUp:

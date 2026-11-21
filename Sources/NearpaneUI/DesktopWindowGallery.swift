@@ -218,6 +218,8 @@ struct DesktopWindowTarget: Equatable {
     }
     @MainActor private final class Live {
         let target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream
+        let window: SCWindow
+        let screen: SCDisplay?
         let needsMembership: Bool
         let owner: DesktopPreviewOwner?
         var task: Task<Void, Never>?
@@ -226,8 +228,10 @@ struct DesktopWindowTarget: Equatable {
         var publishedEpoch: UInt64?
         var checkedRevision: UInt64?
         var cancelled = false
-        init(_ target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream, needsMembership: Bool, app: NSRunningApplication) {
+        init(_ target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream, needsMembership: Bool,
+             app: NSRunningApplication, window: SCWindow, screen: SCDisplay?) {
             self.target = target; self.incarnation = incarnation; self.run = run; self.stream = stream
+            self.window = window; self.screen = screen
             self.needsMembership = needsMembership
             owner = DesktopPreviewOwner(key: target.key, app: app)
         }
@@ -245,6 +249,16 @@ struct DesktopWindowTarget: Equatable {
         guard stills.peek(target.key) != nil, let live = streams[target.key], !live.cancelled, live.target.samePicture(as: target),
               live.incarnation == lifetime(target.key), live.publishedEpoch == live.stream.epoch else { return 0 }
         return live.sequence
+    }
+
+    func allowsSwitchPicture(_ target: DesktopWindowTarget) -> Bool {
+        permitsWindow(target.key) && lifetime(target.key) != nil
+    }
+
+    func switchCaptureSource(_ target: DesktopWindowTarget, display: CGDirectDisplayID) -> (SCWindow, SCDisplay)? {
+        guard let live = streams[target.key], !live.cancelled, live.target == target,
+              live.incarnation == lifetime(target.key), let screen = live.screen, screen.displayID == display else { return nil }
+        return (live.window, screen)
     }
     private struct MeasuredSize: Equatable {
         let target: DesktopWindowTarget
@@ -567,7 +581,9 @@ struct DesktopWindowTarget: Equatable {
                         if streams[key] == nil && visible[display]?.contains(key) == true { missingPictures[key] = display }
                         continue
                     }
-                    let live = Live(target, incarnation: incarnation, run: token, stream: pipe, needsMembership: offstage, app: app)
+                    let screen = content.displays.first { $0.frame.contains(window.frame) }
+                    let live = Live(target, incarnation: incarnation, run: token, stream: pipe, needsMembership: offstage,
+                                    app: app, window: window, screen: screen)
                     audit?.record(key, .lifecycle, .created, epoch: pipe.epoch, sequence: 0)
                     streams[key] = live
                     lastService[key] = live.acquired

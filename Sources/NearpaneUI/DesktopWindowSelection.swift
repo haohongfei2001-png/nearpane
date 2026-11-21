@@ -200,7 +200,7 @@ extension DesktopWindowTarget {
     static func select(_ target: DesktopWindowTarget, deadline: Double,
                        verifySpace: (() async -> Bool)? = nil, stillCurrent: @escaping @MainActor @Sendable () -> Bool,
                        bound: OrdinaryWindowAX? = nil, permit: NativeSelectionPermit? = nil,
-                       timing: WindowFocusTiming? = nil) async throws -> SelectionPath {
+                       timing: WindowFocusTiming? = nil, beforeFocus: () -> Void = {}) async throws -> SelectionPath {
         func current() -> Bool {
             stillCurrent() && WindowContentPreview.sessionAvailable() && ProcessInfo.processInfo.systemUptime <= deadline
         }
@@ -250,6 +250,7 @@ extension DesktopWindowTarget {
             let boundAt = ContinuousClock.now
             timing?.prepared(.hostBindingFinished)
             try await focusBoundCard(verify:verifySpace, current:current, opening:{ try await verifyOpeningScope(after:boundAt) }) {
+                beforeFocus()
                 try await host.focus(deadline:deadline, current:stillCurrent, timing:timing)
             }
             recentWorkerFocus = nil
@@ -280,6 +281,7 @@ extension DesktopWindowTarget {
                 if reading.evidence != .confirmed { timing?.scopeFindings(reading.findings, from: .host) }
                 return reading.evidence
             }, fullRoster: { try await verifyOpeningScope(after:boundAt) }, timing: timing)
+            beforeFocus()
             try await handle.focusCurrent(frame: target.frame, display: target.display, deadline: deadline,
                                           space: admitted?.desktop.record ?? target.overviewSpace,
                                           permit: permit ?? NativeSelectionPermit(current: stillCurrent), timing: timing, scope: admitted)
@@ -309,6 +311,8 @@ extension DesktopWindowTarget {
                 throw OrdinaryWindowFailure("窗口或桌面已变化，请重新选择。")
             }
         }
+        guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
+        beforeFocus()
         guard current() else { throw OrdinaryWindowFailure("原选窗操作已取消。") }
         timing?.beforeApplicationActivation()
         guard app.activate(options: []) else {

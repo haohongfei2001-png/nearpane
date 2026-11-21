@@ -80,6 +80,7 @@ struct SidebarWindowDragAndDrop: ViewModifier {
     let select: () -> Void
     let place: (SidebarPairDrop) -> Void
     let move: (NativeSidebarMember, NativeSidebarDestination, UUID) -> Void
+    var prepare: () -> Void = {}
 
     @ViewState private var highlightedSide: Bool?
 
@@ -89,7 +90,7 @@ struct SidebarWindowDragAndDrop: ViewModifier {
                 content
                     .background(SidebarCardPointer(member: member, lifetime: lifetime,
                         current: { feed.lifetime(of: member.key) == lifetime }, select: select, place: place,
-                        highlight: { highlightedSide = $0 }).accessibilityHidden(true))
+                        highlight: { highlightedSide = $0 }, prepare: prepare).accessibilityHidden(true))
                     .overlay(alignment: highlightedSide == true ? .leading : .trailing) { indicator }
                     .accessibilityHint(member.selectionOnly ? "将这扇窗口切换到前台" : "拖到另一扇窗口预览的左半或右半可在本屏分屏")
             } else if !member.selectionOnly {

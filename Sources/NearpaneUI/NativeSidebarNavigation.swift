@@ -139,10 +139,12 @@ struct CrossSpaceFocusContinuity {
     private var activeSelection: NativeSelectionPermit?
     private(set) var dispatchAvailable = true
     private(set) var ownershipEpoch = UUID()
+    @ObservationIgnored let windowSwitch = WindowSwitchTransition()
 
     func setDispatchAvailable(_ available: Bool) {
         guard dispatchAvailable != available else { return }
         dispatchAvailable = available
+        windowSwitch.cancel()
         ownershipEpoch = UUID()
         generation = UUID()
         activeSelection?.revoke()
@@ -178,12 +180,13 @@ struct CrossSpaceFocusContinuity {
         return canSwitch
     }
 
-    func submit(selection: Bool = true, _ work: @escaping Work) {
+    func submit(selection: Bool = true, prepare: (() -> Void)? = nil, _ work: @escaping Work) {
         guard dispatchAvailable else { return }
         if selection && pending.last?.selection == true { pending.removeLast() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
         activeSelection?.revoke()
         generation = UUID(); issue = nil
+        if let prepare { prepare() } else { windowSwitch.cancel() }
         pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, run: work))
         guard !running else { return }
         running = true
