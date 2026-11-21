@@ -6,7 +6,7 @@ Upstream baseline: `eugene-tea/stage-manager@69a73665488243bf78982c6d523ac4e0850
 
 ## Final decision
 
-**Implementation amendment for PR #15.** Both backends are internal implementations of the same engine. Production eligibility requires independently verified physical results for each environment. The reviewed same-machine measurements govern a choice between qualified backends. The former default and user opt-in in §3 and §8 describe the research proposal. The Host grants one writer, restores its verified members before any change in ownership, and keeps writes disabled while ownership is uncertain.
+**Implementation amendment for PR #15.** Both backends implement the same internal engine. Each needs independent physical qualification on the supported environment. Comparable measurements on the same Mac govern the choice between qualified backends. The Host grants one writer and restores its verified members before transferring ownership. The earlier default and user opt-in remain recorded in the [original research decision](https://github.com/haohongfei2001-png/nearpane/blob/fe38f48/engineering/research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md).
 
 **Choose Option A, with a deliberately narrow extraction: vendor the upstream Rust window-engine mechanisms into an in-process Rust static library and expose a versioned C ABI to the existing Swift Host. Do not embed the upstream application/controller/model wholesale.**
 
@@ -47,9 +47,9 @@ This is not “link the current stage-manager crate and call it done”. The cur
 
 ## 3. Backend decision
 
-### 3.1 Default: Accessibility Corner
+### 3.1 Accessibility Corner
 
-Accessibility is the default backend, matching upstream's own default. It is the correct Nearpane starting point because:
+The upstream app starts with Corner. The relevant evidence for qualifying Corner in Nearpane includes the following observations.
 - it uses documented AX writes and CGEventTap/CGWindowList APIs for the core behavior;
 - it does not require private SkyLight Space migration;
 - upstream's own data shows the switch end-to-end geometry time is almost the same as Spaces (862 ms vs 852 ms in its three-run captures-on table);
@@ -58,9 +58,10 @@ Accessibility is the default backend, matching upstream's own default. It is the
 
 Corner is not accepted merely because AX setters succeed. Production qualification requires the entire hit-test and event-tap path, zero real pointer deliveries to inactive windows, correct Dock behavior, same-app sibling isolation, restore geometry, and crash recovery.
 
-### 3.2 Optional backend: Spaces
+### 3.2 Spaces
 
-Spaces is an opt-in performance/power optimization, not a presumed superior engine. It may become the preferred backend on a particular machine only after:
+The Host may qualify Spaces for a particular environment after the following checks.
+
 1. all required symbols and bridged classes/selectors resolve;
 2. a real trial panel moves into a created Space and reads back there;
 3. the same panel returns to its Desktop and reads back;
@@ -72,12 +73,9 @@ For Nearpane's exact target macOS 27.0 build 26A428 with SIP Enabled, compatibil
 
 ### 3.3 Fallback
 
-- If the Spaces launch probe fails: start Corner.
-- If any Spaces hide/show readback fails after one retry, or health strikes cross the threshold: restore all windows from Spaces, verify them, then switch to Corner for the rest of that run.
-- If Corner's CGEventTap is unavailable or its snapshot is stale, Corner must not advertise or commit safe group switching. Keep windows visible or enter an explicit read-only/paused state; do not fall back to an unsafe overlay-only mode.
-- If both backends fail recovery, disable all new visibility writes and retain the recovery journal for manual/next-launch reconciliation.
-
-This is a safety-oriented backend fallback, not a cascade of increasingly speculative hiding APIs.
+- A failed launch probe retains its original owner until independent reads confirm the canary, temporary Space and member windows have been accounted for.
+- A failed membership readback, stale hit-test snapshot or unavailable event tap stops new group operations. Restore the previous owner's verified members and retain the journal for any unresolved member or dispatch.
+- After confirmed recovery, the Host may select a healthy backend that has independently passed the complete contract for the same environment. The Host keeps group writes closed while recovery or qualification is incomplete.
 
 ## 4. What to preserve from Nearpane
 
@@ -160,10 +158,10 @@ Static linking does not eliminate code signing: final Nearpane.app must pass dee
 ## 8. Final answers
 
 1. Accessibility Corner: **yes, reuse the implementation, especially the event-tap safety path; do not use overlay alone.**
-2. Spaces: **yes, reuse as an optional backend, but only after exact target OS qualification.**
+2. Spaces is an internal backend that requires the target launch probe, membership, recovery and physical compatibility tests.
 3. Shared WindowEngine interface: **yes.**
-4. Default backend: **Accessibility Corner.**
-5. Secondary backend: **Spaces, probe-gated and runtime-health-gated fallback to Corner.**
+4. The Host chooses automatically among fully qualified backends using comparable measurements. Ordinary users see a single StageGroup action.
+5. A handoff requires independent recovery under the previous owner and full qualification of the replacement. An unresolved lease keeps writes closed.
 6. Directly portable: pure geometry, PressGate/hit-test, event tap, SkyLight FFI primitives and health policy.
 7. Adapt: window identity, stage/desktop mapping, persistence, recovery ownership, display UUIDs, controller and ABI.
 8. Nearpane code: preserve StageGroup/R4/identity/journal/focus; replace duplicate visibility execution; keep inventory read-only.

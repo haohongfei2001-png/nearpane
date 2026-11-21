@@ -1,0 +1,9 @@
+{
+  "status": "BLOCKED",
+  "hostedOwnWindowTrial": "NOT_RUN",
+  "qualificationGranted": false,
+  "reason": "independentOrdinarySpaceUUIDMissingTwice",
+  "source": "../corner/result.json",
+  "receipts": 0,
+  "physicalInstalledHost": "NOT_RUN"
+}

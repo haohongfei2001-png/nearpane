@@ -4,7 +4,9 @@
 
 PR #15 已将 Corner 和 Spaces 编入同一个 Rust 静态库。R4 侧栏继续使用 Swift 的 StageGroupStore 和 StageGroupCoordinator。Swift 写入事务日志、绑定窗口代际并独立读回。每批窗口只有一个底层写入者。当前取得生产资格的后端数为 **0**。 [逐项状态](../verification/window-engine/RESULTS.md) · [实施合同](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
 
-目标实体机为 macOS 27.0（26A428）、SIP 开启、一块物理屏幕。两次独立读取都确认当前普通桌面及其 UUID。隔离 Spaces 探针通过自身 Developer ID、进程代际与签名校验，其辅助功能授权读回为否，系统写入为零。托管 26A434 的当前桌面有编号，连续两读均缺少 UUID。正式整组往返、真实输入、同机 Apple 性能对照及压力验收尚未通过。 [实体机证据](../verification/window-engine/target-26A428/) · [托管原始记录](../verification/window-engine/runs/44882622947/)
+目标实体机为 macOS 27.0（26A428）、SIP 开启、一块物理屏幕。最初的两次只读检查均确认普通桌面及其 UUID。之后独立 Corner 探针两读的记录类型为 4，原焦点和自身授权也未满足动作条件。独立 Spaces 探针通过签名和进程身份校验，自身辅助功能授权读回为否。两项均在窗口写入前停止。托管 26A434 则两次缺少普通桌面 UUID。正式整组往返、同机 Apple 性能对照及压力测试均为 **NOT_RUN**。 [实体机证据](../verification/window-engine/target-26A428/) · [托管原始记录](../verification/window-engine/runs/44885716283/)
+
+源码 `ddac854` 的同一签名开发 Host 在直接调用和独立后台启动时均读到辅助功能与输入事件允许，并拒绝两个未获资格的后端写入。日常 5.22（90）的 CDHash 前后一致。全量 Swift 复测 695 项通过、3 项跳过，首次并行构建期间发生的一次语音夹具超时已留档。云端原生协议和内嵌工具检查通过。 [机器可读总表](../verification/window-engine/verification.json) · [开发 Host 对照](../verification/window-engine/target-26A428/signed-development-host.json) · [语音失败与复测](../verification/window-engine/swift-test-events.txt)
 
 ## 2026-11-21 · 内嵌截图与语音
 

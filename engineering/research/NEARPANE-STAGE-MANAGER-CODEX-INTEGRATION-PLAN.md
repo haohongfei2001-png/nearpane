@@ -7,7 +7,7 @@ The research commit contains the original plan. Implementation started from Draf
 
 ## Current execution contract
 
-The product exposes one StageGroup action. Each backend requires its own complete physical qualification for the current OS build, SIP state and Host. The signed-in user has no backend selector. Startup may inspect both engines. A reviewed comparison on equivalent hardware governs selection when more than one qualifies. Recovery of the existing owner's confirmed windows precedes any handoff. A missing or ambiguous receipt keeps writes closed. These rules supersede the historical default and opt-in language below. This round's Gate 5 covers product lifecycle integration. Distribution and notarization are deferred.
+The product exposes one StageGroup action. Each backend requires its own complete physical qualification for the current OS build, SIP state and Host. The signed-in user has no backend selector. Startup may inspect both engines. A reviewed comparison on equivalent hardware governs selection when more than one qualifies. Recovery of the existing owner's confirmed windows precedes any handoff. A missing or ambiguous receipt keeps writes closed. This round's Gate 5 covers product lifecycle integration. Distribution and notarization are deferred.
 
 Gate 0 produced a Rust static library for arm64 and x86_64, a Swift-callable C ABI, a bounded worker, and a pinned origin and Cargo license inventory. [Build and ABI receipt](../verification/window-engine/gate0.json) · [license and origins](../verification/window-engine/gate0-origins.json)
 
@@ -35,7 +35,7 @@ Do not copy the upstream application. Do not redesign R4. Do not replace StageGr
 - Every operation uses Nearpane's process-birth/PID/CGWindowID/generation lease and intent UUID.
 - No AX/CF/ObjC object pointer is persisted or treated as a stable cross-process identity.
 - No panic may unwind across the C ABI.
-- The Spaces backend is disabled by default until target machine qualification.
+- StageGroup writes require a backend that independently passed the complete qualification on the target environment.
 - Corner requires a functioning CGEventTap and fresh hit-test snapshot; overlay-only operation is not acceptable.
 - Any incomplete inventory, ambiguous owner, stale generation, user input epoch change, display/Space topology change or system takeover aborts the transaction before the next side effect.
 - No production source modification is authorized by the research delivery itself; this plan is the next implementation task.
@@ -240,7 +240,7 @@ A guardian process is not automatically copied wholesale. Its IPC, code-signing 
 
 - Feature flag defaults to existing read-only behavior; no new production window writes.
 - Corner backend can be disabled independently of R4 UI and StageGroup directory.
-- Spaces backend has a separate flag and remains off until Gate 2 passes.
+- Each backend can have its qualification withdrawn independently. Its existing owner retains responsibility for verified recovery.
 - On backend failure, stop new actions, restore only windows with verified Nearpane ownership, keep unresolved journal entries, and revoke the active group's success state.
 - Preserve previous signed install and profile data. Do not delete legacy verification evidence.
 - Never automatically retry an unknown dispatch after process restart.
@@ -256,6 +256,6 @@ Codex must update:
 
 Do not mark a gate passed from unit tests, CI-only tests or successful API return codes. Physical signed-host evidence is required for the real window-management claims.
 
-## 8. Final Codex start instruction
+## 8. Next physical acceptance
 
-> Implement the Nearpane Stage Manager engine integration strictly from `engineering/research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md`. First refresh PR #15 branch and verify HEAD; pin upstream `eugene-tea/stage-manager@69a73665488243bf78982c6d523ac4e0850c1ddb`. Use the selected Option A: focused in-process Rust static library with versioned C ABI. Preserve R4 UI, StageGroupStore, StageGroupCoordinator, identity leases, transaction journal and exact focus path. Default to Accessibility Corner with the complete CGEventTap/PressGate input shield; Spaces remains disabled unless exact macOS 27.0 build 26A428 with SIP Enabled passes the launch probe, real membership readback, runtime health, lifecycle and recovery tests. Do not copy the upstream app, UI, model/persistence, icon or artwork. Keep all upstream MIT notices and produce dependency license audit and file-origin manifest. Work gate-by-gate; stop and report blockers instead of weakening safety criteria. No release, notarization, PR merge or Draft-to-ready transition. Report real physical-host results separately from CI and unit tests. A visibility or input-safety failure means no production StageGroup switching.
+On macOS 27.0 build 26A428 with SIP enabled, use an isolated ordinary desktop and a signed fixture with its own existing permissions. Run one complete hide and restore for each backend, with the original focus, sibling windows, bystander and native membership independently witnessed. Expand a successful backend to 10 and 50 transitions, the signed Host's three-group cycle, and then the paired Apple benchmark. Record each failure at the first unverified step. PR #15 remains Draft. [Per-build evidence](../verification/window-engine/RESULTS.md) · [Original research instruction](https://github.com/haohongfei2001-png/nearpane/blob/fe38f48/engineering/research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
