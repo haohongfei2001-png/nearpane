@@ -204,11 +204,18 @@ def run(a, report):
             except subprocess.TimeoutExpired:
                 exit_code = None
             report.update(ownerEnd=last, launchExit=exit_code)
+            for key, file in (
+                ("ownerPreflight", "owner-preflight.json"),
+                ("ownerSession", "owner-session.json"),
+            ):
+                if (work / file).is_file():
+                    report[key] = json.loads((work / file).read_bytes())
             same = last and first and all(first.get(k) == last.get(k) for k in ("pid", "birth", "window"))
             gone = False
-            if first and isinstance(first.get("pid"), int) and first["pid"] > 1:
+            pid = (first or report.get("ownerPreflight") or {}).get("pid")
+            if isinstance(pid, int) and pid > 1:
                 found = subprocess.run(
-                    ["/bin/ps", "-p", str(first["pid"]), "-o", "comm="], capture_output=True, text=True
+                    ["/bin/ps", "-p", str(pid), "-o", "comm="], capture_output=True, text=True
                 )
                 gone = found.returncode == 1 and not found.stdout.strip() and not found.stderr.strip()
             report["ownedProcessExited"] = gone

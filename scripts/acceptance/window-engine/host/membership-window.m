@@ -31,22 +31,40 @@ int main(int argc, const char *argv[]) {
         NSString *root =
             [@"/private/tmp/nearpane-membership." stringByAppendingString:id.UUIDString.lowercaseString];
         NSBundle *app = NSBundle.mainBundle;
-        if (![app.bundleIdentifier isEqual:@"com.holdsnow.nearpane.engine-fixture.a"] ||
-            ![app.bundleURL.URLByResolvingSymlinksInPath.path
-                isEqual:[root stringByAppendingPathComponent:@"Membership Window.app"]])
-            return 2;
         int dir = open(root.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
         struct stat folder;
         struct proc_bsdinfo proc = {0};
         if (dir < 0 || fstat(dir, &folder) || folder.st_uid != getuid() || (folder.st_mode & 0777) != 0700 ||
             proc_pidinfo(getpid(), PROC_PIDTBSDINFO, 0, &proc, sizeof(proc)) != sizeof(proc))
             return 2;
+        // Foundation presents /private/tmp as /tmp for the same directory. Compare the kernel paths.
+        NSString *expected = [root stringByAppendingPathComponent:@"Membership Window.app"];
+        char actual[PATH_MAX], target[PATH_MAX];
+        BOOL exact = realpath(app.bundleURL.fileSystemRepresentation, actual) &&
+                     realpath(expected.fileSystemRepresentation, target) && strcmp(actual, target) == 0 &&
+                     strcmp(target, expected.fileSystemRepresentation) == 0;
+        BOOL signedID = [app.bundleIdentifier isEqual:@"com.holdsnow.nearpane.engine-fixture.a"];
+        if (!emit(
+                dir, "owner-preflight.json", @{
+                    @"pid" : @(getpid()),
+                    @"exactBundleDirectory" : @(exact),
+                    @"expectedBundleID" : @(signedID)
+                }) ||
+            !exact || !signedID)
+            return 2;
         uint64_t birth = (uint64_t)proc.pbi_start_tvsec * 1000000 + proc.pbi_start_tvusec;
         [NSApplication sharedApplication];
         [NSApp finishLaunching];
         pid_t front = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
-        if (front < 1 || front == getpid() || NSApp.isActive ||
-            NSApp.activationPolicy != NSApplicationActivationPolicyRegular || NSScreen.screens.count != 1)
+        BOOL quiet = front > 0 && front != getpid() && !NSApp.isActive;
+        BOOL regular = NSApp.activationPolicy == NSApplicationActivationPolicyRegular;
+        BOOL single = NSScreen.screens.count == 1;
+        if (!emit(
+                dir, "owner-session.json",
+                @{@"background" : @(quiet),
+                  @"regular" : @(regular),
+                  @"singleScreen" : @(single)}) ||
+            !quiet || !regular || !single)
             return 3;
         NSRect screen = NSScreen.screens.firstObject.visibleFrame;
         NSRect bounds = NSMakeRect(NSMidX(screen) - 110, NSMidY(screen) - 55, 220, 110);
