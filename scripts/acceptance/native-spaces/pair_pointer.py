@@ -194,6 +194,9 @@ class PairPointerRun(RegisteredRun):
         self.phase_monitor = None
         self.focus_only = False
         self.drag_only = False
+        self.native_reference_probe = os.environ.get("NP_NATIVE_REFERENCE_PROBE") == "1"
+        if self.native_reference_probe:
+            self.out["nativeReferenceProbe"] = {"environment":{"status":"NOT_RUN"},"applePicker":{"status":"NOT_RUN"}}
         self.focus_scope_preflight = os.environ.get("NP_P2_FOCUS_SCOPE_PREFLIGHT") == "1"
         if self.focus_scope_preflight:
             self.out["runScope"] = "DIAGNOSTIC_WITH_FOCUS_SCOPE_PREFLIGHT"
@@ -505,6 +508,9 @@ class PairPointerRun(RegisteredRun):
         texts = [f"Field Notes {name} {self.folder.name}\n" for name in ("A","B")]
         hashes = [digest(t.encode()) for t in texts]
         initial_focus = self.prepare_front(hashes)
+        if self.native_reference_probe:
+            from pair_native_reference import checkpoint
+            checkpoint(self,hashes)
         if self.focus_scope_preflight:
             self.inspect_focus_scope()
         selection_error = None
@@ -597,6 +603,8 @@ class PairPointerRun(RegisteredRun):
                 self.rec.write("focus-scope-preflight.json", gate)
         self.rec.write("pair-pointer.json", self.out)
         self.rec.summary["pairPointer"] = {k:self.out[k] for k in ("status","operationStatus","reason","selection","measurement","cleanup")}
+        if self.native_reference_probe:
+            self.rec.summary["pairPointer"]["nativeReferenceProbe"] = self.out["nativeReferenceProbe"]
         if self.focus_scope_preflight:
             self.rec.summary["pairPointer"].update(runScope=self.out["runScope"],focusScopePreflight=gate)
         scenario = "focus-scope-pair-diagnostic" if self.focus_scope_preflight else "ordinary-pair-pointer"

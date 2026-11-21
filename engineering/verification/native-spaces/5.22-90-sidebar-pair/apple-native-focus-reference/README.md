@@ -17,6 +17,8 @@ python3 scripts/acceptance/native-spaces/apple-preview-reference.py
 
 ## 真实环境的只读准入
 
+在已登记租约的正式 `pair-pointer`、`pair-focus` 或 `pair-drag` 验收命令前设置 `NP_NATIVE_REFERENCE_PROBE=1`，即可在两扇夹具的原前台身份确认后、第一次产品操作前，各采一次环境和 Apple 系统按钮资格。结果分别写入当轮收据目录中的 `focus-reference-environment.json` 和 `apple-focus-reference.json`，两个文件的 SHA-256 会进入 `pair-pointer.json`。普通桌面没有可核验的系统分组时，记录两次容器、按钮及链接计数，原来的产品验收继续。已确认系统正在接管两个按钮、窗口已换代或用户输入介入时，停止后续产品手势，按既有租约收尾。
+
 在现有已注册双文档 P2 租约内，使用该会话持有的 `RegisteredRun` 和两个当前夹具摘要。普通桌面先查 `focus-reference-environment`。在主控已安排、同一租约的 Mission Control 可见期间可查 `apple-focus-reference`。
 
 ```python
