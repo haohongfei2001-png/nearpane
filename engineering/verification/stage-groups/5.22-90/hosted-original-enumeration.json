@@ -1,0 +1,84 @@
+{
+  "fixtureProcessesExited": true,
+  "groupVisibilitySwitch": "NOT_RUN",
+  "installedHost": "NOT_RUN",
+  "nativeWrites": 0,
+  "physicalMultiDisplay": "NOT_RUN",
+  "profileRemoved": true,
+  "record": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "6B3A3F2C-9541-4EDD-A156-5E7DD247F635",
+      "0CDFE6E4-91F8-42B2-97F4-211EF990BC59"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 7910,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "oldBindingsIneligible": false,
+    "onScreenWindows": 3,
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false
+  },
+  "reopen": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "6B3A3F2C-9541-4EDD-A156-5E7DD247F635",
+      "0CDFE6E4-91F8-42B2-97F4-211EF990BC59"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 7920,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "oldBindingsIneligible": true,
+    "onScreenWindows": 3,
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false
+  },
+  "scope": "two registered ordinary fixture apps and two independent directory readers",
+  "singleWindowVisibility": {
+    "identity": "retained AX object and owner-assigned AX identifier bound to its declared CGWindowID",
+    "nativeMembership": "UNKNOWN",
+    "naturalKeyboardInput": "NOT_RUN",
+    "park": {
+      "focusObservation": {
+        "frontProcessUnchanged": true,
+        "siblingKeyUnchanged": true,
+        "targetKeyUnchanged": true
+      },
+      "independentSamples": 2,
+      "observed": {
+        "restoredPresentation": true,
+        "siblingAndOtherApp": true,
+        "targetAX": true,
+        "targetAppKit": true,
+        "targetCG": true
+      },
+      "status": "PASS"
+    },
+    "parkSetter": 0,
+    "profileChanges": 0,
+    "reason": "restoreIdentityOrOwnershipUnknown",
+    "scope": "one enrolled foreign window, one same-owner sibling, one other-app bystander",
+    "setRequests": 1,
+    "status": "UNKNOWN",
+    "wholeGroupSwitch": "NOT_RUN"
+  },
+  "sourceRevision": "267bd9f94c02987663da2381183a1523bf306a94",
+  "status": "PASS",
+  "gitHubRun": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44856122328"
+}

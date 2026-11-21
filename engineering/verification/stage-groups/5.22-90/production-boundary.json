@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "removedSymbols": [
+    "_NPSendAdjacentSwipe",
+    "_NPSendDiagnosticAdjacentSwipe",
+    "_NPCreateWindowMove",
+    "_NPSubmitWindowMove",
+    "_NPDockInstalledProtocol",
+    "_CGEventPost",
+    "_SLSManagedDisplaySetCurrentSpace",
+    "_SLSMoveWindowsToManagedSpace"
+  ],
+  "linkedWriteSymbols": [],
+  "productionRouteHits": [],
+  "retainedReadOnlyInventory": true,
+  "probe": "NearpaneSpaceAction schema=2; no action issued"
+}

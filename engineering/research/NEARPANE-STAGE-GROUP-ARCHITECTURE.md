@@ -40,7 +40,7 @@
 
 ## 单窗显示与隐藏的裁决
 
-公开跨进程候选限于可设置的 AX 窗口属性与动作。优先验证逐窗 `AXMinimized` 加原位恢复，并以 CG 在屏、AX、所有者回读、原生归属、焦点与旁窗联合验收。在旧的非激活副屏夹具中，setter 返回成功却未观察到预期最小化；另一轮 regular 应用的兄弟窗呈现也发生变化。当时系统台前调度已开启，因果归属尚未证明。移动到屏外、整应用隐藏、给别的 Space 的窗激活应用、私有窗口层级写入均不作为回退。P1 的下一项真实试验是在可用的隔离普通登录桌面、系统台前调度已关闭时，用两个普通签名 App、同 App 兄弟窗和第三个不参与窗口重复单次受控往返。在任一读回不明确时暂缓产品写入。当前没有批准新的私有写适配器。既有只读桥保留逐 OS 校验和不支持时降级。 [Apple AX 写属性](https://developer.apple.com/documentation/applicationservices/1460434-axuielementsetattributevalue) · [旧实验逐窗读回](../verification/P4.2.2-REGULAR-APP-PARKING.md) · [AppKit Space 变化通知](https://developer.apple.com/documentation/appkit/nsworkspace/activespacedidchangenotification)
+公开跨进程候选限于可设置的 AX 窗口属性与动作。优先验证逐窗 `AXMinimized` 加原位恢复，并以 CG 在屏、AX、所有者回读、原生归属、焦点与旁窗联合验收。在旧的非激活副屏夹具中，setter 返回成功却未观察到预期最小化；另一轮 regular 应用的兄弟窗呈现也发生变化。当时系统台前调度已开启，因果归属尚未证明。移动到屏外、整应用隐藏、给别的 Space 的窗激活应用、私有窗口层级写入均不作为回退。P1 的首轮资格试验限定在系统台前调度关闭的隔离普通桌面，使用两款登记的普通 App、同 App 兄弟窗和第三个不参与窗口。在任一读回不明确时暂缓产品写入。当前没有批准新的私有写适配器。既有只读桥保留逐 OS 校验和不支持时降级。 [Apple AX 写属性](https://developer.apple.com/documentation/applicationservices/1460434-axuielementsetattributevalue) · [旧实验逐窗读回](../verification/P4.2.2-REGULAR-APP-PARKING.md) · [AppKit Space 变化通知](https://developer.apple.com/documentation/appkit/nsworkspace/activespacedidchangenotification)
 
 ## 首批生产实现
 
@@ -49,3 +49,7 @@ Host 菜单、侧栏弹层、调度组背景点击和跨原生桌面拖入的旧
 `StageGroupStore` 在活动资料代的 Nearpane 子目录保存每屏有序的组、成员 ID 和相对可用区域的布局。某个进程的窗号、进程出生时间用作查找提示。运行期窗口代际保存在内存。新观察只补录明确的当前普通窗口；暂时缺窗不删除成员。两扇窗同一原生桌面是当前编辑的准入条件，原生桌面 ID 不进入组文件。已有窗在新屏上被实际观察到后可以显式改归属，此编辑只写目录。 [目录实现](../../Sources/NearpaneCore/StageGroupStore.swift) · [生产窗口源](../../Sources/NearpaneUI/CurrentDesktopWindows.swift)
 
 加入组合只移动所选成员。拖放排布要经过原窗口管理器的实际几何确认，再写组布局。读窗暂时中断时，只有原操作仍持有两扇原窗的 AX 对象并完成独立确认，才可更新这次操作的绑定。重开目录时，当前实现允许用户重新关联具有相同进程出生和窗号提示的窗口。应用重新启动后的跨进程自动恢复、组级停放所有权与活动组提交还需实现。 [侧栏入口](../../Sources/NearpaneUI/DesktopSurface.swift) · [排布后读回](../../Sources/NearpaneUI/DesktopAutomaticTiling.swift)
+
+公开 AX 资格试验已独立读回单窗退场与还原。最小化后的原 AX 对象仍可核对，整个窗口列表的旧筛选不能独自裁决身份。还原改变了目标窗的 key 状态，所以完整组切换还须单独确认焦点和输入。当前没有启用生产组级停放。 [实测与未决项](../verification/stage-groups/5.22-90/RESULTS.md)
+
+当前生产侧栏的编辑还需要只读目录能够确认本屏当前普通桌面。在没有独立数值归属读回的系统上，只读窗口列表与夹具的目录成功不构成正式侧栏切组资格。物理外屏和重新连接尚待设备验收。

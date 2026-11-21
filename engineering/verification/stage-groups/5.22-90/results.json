@@ -1,0 +1,78 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "route": "Stage Manager replacement",
+  "pr": 15,
+  "draft": true,
+  "source": "267bd9f94c02987663da2381183a1523bf306a94",
+  "acceptanceSource": "a948bef13e306701a2258cce9c2d8a1b2469b95b",
+  "nativeCIRuns": [
+    44855351770,
+    44856122328,
+    44856813290
+  ],
+  "localSwift": {
+    "status": "PASS",
+    "tests": 659,
+    "suites": 105
+  },
+  "isolatedProtocol": {
+    "status": "PASS",
+    "tests": 26
+  },
+  "gates": {
+    "SG0": {
+      "directoryWithRealWindows": "PASS",
+      "independentProcessReload": "PASS",
+      "formalInstalledHostReload": "NOT_RUN",
+      "nativeMembershipOnHostedMac": "UNKNOWN",
+      "physicalDualDisplay": "BLOCKED"
+    },
+    "SG1": {
+      "publicAXSingleWindowPark": "PASS",
+      "firstRestore": "UNKNOWN",
+      "publicAXSingleWindowRestore": "PASS",
+      "unchangedTargetKeyOnRestore": "FAIL",
+      "naturalInput": "NOT_RUN",
+      "installedWholeGroupRoundTrip": "NOT_RUN",
+      "activeGroupCommits": 0
+    },
+    "SG2": {
+      "priorInstalledFocus": "PASS",
+      "priorSource": "f7997a7",
+      "priorUniqueInputs": "10/10",
+      "currentCandidateInstalledFocus": "NOT_RUN",
+      "groupLayoutRoundTrip": "NOT_RUN"
+    },
+    "SG3": {
+      "compositePixelsOnThisCandidate": "NOT_RUN",
+      "perMemberLatency": "NOT_RUN"
+    },
+    "SG4": {
+      "retiredNativeActionRoutes": "PASS",
+      "physicalReadOnlyPreflight": "PASS",
+      "systemGesturesAndFullscreenOnThisCandidate": "NOT_RUN"
+    },
+    "SG5": {
+      "swiftRegressions": "PASS",
+      "realBrowserVoiceAndTranslationOnThisCandidate": "NOT_RUN"
+    },
+    "SG6": {
+      "developerIDAndPrivateDownload": "PASS",
+      "archiveInLocalTemporaryDirectory": "PASS",
+      "archiveInWorkspaceDocuments": "FAIL",
+      "notarization": "NOT_RUN",
+      "cleanInstall": "NOT_RUN",
+      "stageManagerPerformanceComparison": "NOT_RUN",
+      "archiveInLocalDownloads": "PASS"
+    }
+  },
+  "retired": {
+    "nativeDockGestures": "OUT_OF_SCOPE",
+    "nativeCrossSpaceMove": "OUT_OF_SCOPE",
+    "nativeSpaceSelectionMenu": "OUT_OF_SCOPE"
+  },
+  "dailyInstalledSource": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "merge": false,
+  "publicRelease": false
+}

@@ -13,6 +13,14 @@ PR #15 的重定向基线为 `a1a3fc3`，版本 5.22（90）。逻辑组按真�
 | 旧 P5 生命周期与性能 | 旧任务 ARCHIVED，本屏工作区、新 P4 被动系统兼容与新 P6 性能继续验证。 |
 | 旧 P6 分发 | 旧任务 ARCHIVED，同包验签和回退证据复用，公证与干净首启进入新 P6。 |
 
+### 5.22（90）· 本屏 StageGroup 实施与验收
+
+Host 和签名 helper 已双端拒绝历史原生写命令。生产侧栏从活动资料代读取每屏组目录，支持单窗入组、移出、解散和已确认分屏布局保存。签名候选 `267bd9f` 与测试修订 `a948bef` 的产品源码相同。 [本轮收据与失败项](../verification/stage-groups/5.22-90/RESULTS.md) · [机器结果](../verification/stage-groups/5.22-90/results.json)
+
+- **已通过**。两个独立注册 App、三扇真实窗、同屏两个组。新读取进程恢复组和布局，旧绑定失效。隔离单窗退场与还原各一次，每步三方双读回，旁窗几何和可见性保持原值。659 项本地 Swift 测试通过。签名 ZIP 已放入现有 GitHub 草稿并独立下载核对。 [目录与单窗收据](../verification/stage-groups/5.22-90/hosted-retained-window.json) · [候选摘要](../verification/stage-groups/5.22-90/signed-candidate.json)
+- **失败与未知**。首次还原前重新枚举未能确认身份，未提交还原。改用保留的原 AX 对象并核对所属 App 后还原成功，目标窗的 key 状态发生变化。托管端原生 Space ID 仍未知。同步目录解包时出现 FinderInfo 并导致严格验签失败，同一 ZIP 在普通本地目录通过。 [首次还原](../verification/stage-groups/5.22-90/hosted-original-enumeration.json) · [验签对照](../verification/stage-groups/5.22-90/archive-readback.json)
+- **阻塞与未执行**。实体机当前只有内屏。正式 Host 重启及整组 A→B→A、输入标记、多屏重连、原生分屏互操作、性能对照与公证均未验收。下一步为正式 Host 写前日志、成员级补偿及隔离登录会话往返。 [实体预检](../verification/stage-groups/5.22-90/physical-preflight.json)
+
 ### 历史安装记录（ARCHIVED）
 
 以下版本记录中的“当前”“发布门槛”均指当时的工作包。

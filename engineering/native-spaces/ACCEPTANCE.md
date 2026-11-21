@@ -15,3 +15,5 @@
 **PASS** 仅适用于注明的主体和场景。**FAIL** 为已证实违反合同。**UNKNOWN** 为可能已投递或读回不足。**BLOCKED** 为先决条件缺失。**NOT_RUN** 为未执行。对可能发生的写入先核对持久状态；不重复投递。单元测试、托管 WindowServer 及干净包静态验签分别计账。
 
 旧 S01–S03 的原生切换、D01 的跨 Space 迁窗、Dock 合成手势资格与原生菜单均为 **OUT_OF_SCOPE**。历次实机成绩、源码和失败回执仍可追溯。[历史合同](ARCHIVED-NATIVE-SPACES-ACCEPTANCE.md) · [工程状态](STATUS.md) · [阶段门槛与回滚](../research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)
+
+首批独立读回已覆盖同屏跨应用目录与单窗公开 AX 退场/还原。在正式生产侧栏提交并复核整组活动状态之前，SG1 保持未通过。 [首批机器收据](../verification/stage-groups/5.22-90/results.json)
