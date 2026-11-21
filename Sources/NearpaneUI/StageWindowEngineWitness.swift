@@ -27,6 +27,7 @@ import NearpaneOrdinaryWindowRuntime
     private var hostAccess: StageHostAccess?
     private var lastSnapshot: DesktopSnapshot?, lastStates = [NativeSpaceWindow:StageWindowState]()
     private var lastSample: StageWindowSample?
+    private var lastAppearances = [DesktopWindowKey: UUID]()
     private struct ArrivalWatch {
         let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: StageHostWindow
         let directory: StageGroupDirectory
@@ -176,10 +177,10 @@ import NearpaneOrdinaryWindowRuntime
             var enrolling = [NativeSpaceWindow:Binding]()
             for key in keys {
                 let k = DesktopWindowKey(pid:key.pid,birth:key.birth,number:key.number)
-                guard let life = feed.lifetime(of:k), permits(owner,restoring:false) else { throw StageSwitchError.interrupted }
+                guard let life = feed.groupLifetime(of:k), permits(owner,restoring:false) else { throw StageSwitchError.interrupted }
                 let monitor = try DesktopWindowSelection.bindStage(k, lifetime: life, home: desktop, owner: owner, access: access)
                 guard monitor.id.pid == key.pid, monitor.id.launch == key.birth, monitor.id.number == key.number,
-                      feed.lifetime(of:k) == life else { throw StageSwitchError.ownership }
+                      feed.groupLifetime(of:k) == life else { throw StageSwitchError.ownership }
                 enrolling[key] = .init(lifetime:life,monitor:monitor,readOnly:authorizedLifetimes[key] != life)
             }
             bindings = enrolling; self.owner = owner.backend; home = desktop; enrolledTopology = initial
@@ -219,7 +220,11 @@ import NearpaneOrdinaryWindowRuntime
         let sample = StageWindowSample(scope:scope,generation:generation,sequence:sequence,
             workArea:.init(x:opening.display.frame.x+usable.x,y:opening.display.frame.y+usable.y,width:usable.width,height:usable.height),
             windows:states,focus:focus,nativeID:native,foreignFocusScope:foreign)
-        if candidate == nil { lastSnapshot = last; lastStates = states; lastSample = sample }
+        if candidate == nil {
+            lastAppearances = feed.confirmGroupLifetimes(previous: lastSample, current: sample, inventory: last,
+                                                         previousAppearances: lastAppearances, enrolled: authorizedLifetimes)
+            lastSnapshot = last; lastStates = states; lastSample = sample
+        }
         return sample
     }
 

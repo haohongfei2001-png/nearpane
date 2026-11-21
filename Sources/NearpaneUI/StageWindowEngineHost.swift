@@ -265,7 +265,7 @@ import NearpaneOrdinaryWindowRuntime
         guard let excluded = management?.ordinary.stageWindowExclusions else { throw StageSwitchError.busy }
         func lifetime(_ key: NativeSpaceWindow) -> UUID? {
             guard !excluded.contains(key) else { return nil }
-            return witness?.lifetime(of: key) ?? feed.lifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number))
+            return witness?.lifetime(of: key) ?? feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number))
         }
         let participants = feed.groups.participatingGroups(in: scope, lifetime: lifetime)
         var lifetimes = [NativeSpaceWindow: UUID]()
@@ -298,7 +298,7 @@ import NearpaneOrdinaryWindowRuntime
             self?.revision == token && self?.management?.permitsStageEngine(on:member.source.display) == true
         }
         let permitted: @MainActor () -> Bool = { [weak self,weak feed] in
-            self != nil && feed?.lifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
+            self != nil && feed?.groupLifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
         }
         guard permitted() else { throw StageSwitchError.busy }
         let approval = try consent(for: scope, evidence: selected.evidence, feed: feed)

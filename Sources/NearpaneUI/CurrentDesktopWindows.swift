@@ -17,7 +17,10 @@ import OSLog
     private(set) var snapshot: DesktopSnapshot?
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
-    @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
+    @ObservationIgnored private var stageLifetimes = StageGroupWindowLifetimes()
+    @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]() {
+        didSet { stageLifetimes.prune(lifetimes) }
+    }
     @ObservationIgnored weak var boundSidebarPair: BoundSidebarPair?
     @ObservationIgnored private var sidebarWindows = NativeSidebarWindowHistory()
     private let readSidebarWindows: NativeSidebarWindowHistory.Read?
@@ -79,7 +82,7 @@ import OSLog
         guard let nativeSpace = current.ordinaryUUID, window.displayID == screen.id, let display = UUID(uuidString: screen.id),
               window.membership == .known(recordIDs: [current.id]), let m = window.metadata, m.isOnscreen == true,
               m.minimized != true, m.fullScreen != true, m.overviewOrdinaryRole != false, m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace,
-              let key = DesktopWindowKey(window), let lifetime = lifetimes[key] else { return nil }
+              let key = DesktopWindowKey(window), let lifetime = groupLifetime(of: key) else { return nil }
         let layout = screen.usable.flatMap { area in
             m.hasCatalogGeometry == true || m.presentation == .confirmed
                 ? StageGroupWindow.relativeFrame(window.bounds, in: area) : nil
@@ -127,6 +130,19 @@ import OSLog
     }
 
     func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
+    func groupLifetime(of key: DesktopWindowKey) -> UUID? {
+        stageLifetimes.lifetime(of: key, appearance: lifetimes[key])
+    }
+
+    func confirmGroupLifetimes(previous: StageWindowSample?, current: StageWindowSample, inventory: DesktopSnapshot,
+                               previousAppearances: [DesktopWindowKey: UUID], enrolled: [NativeSpaceWindow: UUID]) -> [DesktopWindowKey: UUID] {
+        guard inventory.sessionID == session, inventory.revision == revision, sessionAvailable() else { return [:] }
+        if let previous {
+            stageLifetimes.confirm(first: previous, second: current, previousAppearances: previousAppearances,
+                                   appearances: lifetimes, enrolled: enrolled)
+        }
+        return lifetimes.filter { key, _ in enrolled[.init(pid: key.pid, birth: key.birth, number: key.number)] != nil }
+    }
     @ObservationIgnored private var epoch = UUID()
     @ObservationIgnored private var pending: (UUID, Task<DesktopSnapshot?, Never>)?
     @ObservationIgnored private var loop: Task<Void, Never>?
