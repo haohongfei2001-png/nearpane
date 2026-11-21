@@ -1,0 +1,52 @@
+name: StageGroup window engine
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/r4-native-candidate-20261120]
+    paths:
+      - '.github/workflows/window-engine.yml'
+      - 'Engine/nearpane-window-engine/**'
+      - 'scripts/acceptance/window-engine/**'
+permissions:
+  contents: read
+concurrency:
+  group: window-engine-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  isolated:
+    runs-on: xcode-27
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Compile both engines and exercise the bounded ABI
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/engine-evidence"
+          sw_vers > "$RUNNER_TEMP/engine-evidence/os.txt"
+          csrutil status >> "$RUNNER_TEMP/engine-evidence/os.txt"
+          rustc --version >> "$RUNNER_TEMP/engine-evidence/os.txt"
+          cargo test --locked --offline --manifest-path Engine/nearpane-window-engine/Cargo.toml --features corner,spaces,isolated-fixtures | tee "$RUNNER_TEMP/engine-evidence/rust.txt"
+          cargo build --locked --offline --release --manifest-path Engine/nearpane-window-engine/Cargo.toml --features corner,spaces,isolated-fixtures
+      - name: Observe a real Corner transaction in the disposable GUI
+        run: bash scripts/acceptance/window-engine/corner/run-hosted.sh "$RUNNER_TEMP/engine-evidence/corner"
+      - name: Observe real window memberships in the disposable GUI
+        if: ${{ !cancelled() && hashFiles('Engine/nearpane-window-engine/target/release/libnearpane_window_engine.a') != '' }}
+        env:
+          NP_RUN_HOSTED_SPACES_TRIAL: '1'
+        run: python3 -B scripts/acceptance/window-engine/spaces/run-hosted.py Engine/nearpane-window-engine/target/release/libnearpane_window_engine.a "$RUNNER_TEMP/engine-evidence/spaces"
+      - name: Preserve readbacks including blocked and failed cases
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: window-engine-observations
+          path: |
+            ${{ runner.temp }}/engine-evidence/os.txt
+            ${{ runner.temp }}/engine-evidence/rust.txt
+            ${{ runner.temp }}/engine-evidence/corner/*.json*
+            ${{ runner.temp }}/engine-evidence/corner/*.txt
+            ${{ runner.temp }}/engine-evidence/corner/*.log
+            ${{ runner.temp }}/engine-evidence/spaces/*.json*
+          if-no-files-found: error
+          retention-days: 14
