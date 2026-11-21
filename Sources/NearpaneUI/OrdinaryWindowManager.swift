@@ -446,12 +446,12 @@ enum OrdinaryRefusal: String, LocalizedError {
 
     /// Apply only the two explicitly dropped windows. Existing grants stay with their original owners.
     /// Temporary handles leave the journal after both windows are independently witnessed at the chosen slots.
-    func placeSidebarPair(left: any OrdinaryWindowObserving, right: any OrdinaryWindowObserving,
+    @discardableResult func placeSidebarPair(left: any OrdinaryWindowObserving, right: any OrdinaryWindowObserving,
                           desktop: OrdinaryDesktopIdentity, context: AdmissionContext,
-                          current: @escaping @MainActor () -> Bool) async throws {
+                          current: @escaping @MainActor () -> Bool) async throws -> OrdinaryWindowPairPlacement {
         var stage = "admission"
         do {
-            try await applySidebarPair(left: left, right: right, desktop: desktop, context: context, current: current,
+            return try await applySidebarPair(left: left, right: right, desktop: desktop, context: context, current: current,
                                        stage: { stage = $0 })
         } catch {
             let reason: String
@@ -470,7 +470,7 @@ enum OrdinaryRefusal: String, LocalizedError {
 
     private func applySidebarPair(left: any OrdinaryWindowObserving, right: any OrdinaryWindowObserving,
                                   desktop: OrdinaryDesktopIdentity, context: AdmissionContext,
-                                  current: @escaping @MainActor () -> Bool, stage: (String) -> Void) async throws {
+                                  current: @escaping @MainActor () -> Bool, stage: (String) -> Void) async throws -> OrdinaryWindowPairPlacement {
         try enter()
         defer { busy = false }
         guard !paused, current(), left.id.number != right.id.number, desktop.display == context.display,
@@ -564,6 +564,7 @@ enum OrdinaryRefusal: String, LocalizedError {
                 try save()
             }
             message = "两扇窗口已在本屏左右分屏。"
+            return placement
         } catch { fail(error); throw error }
     }
 

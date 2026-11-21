@@ -285,6 +285,17 @@ import OSLog
         return windows.sorted { (groupRank($0), ordinal($0), $0.id) < (groupRank($1), ordinal($1), $1.id) }
     }
 
+    /// A gesture cannot use a coalesced inventory that started before its input or before its AX write.
+    func readAfterAction() async -> DesktopSnapshot? {
+        let boundary = revision, expected = epoch
+        if let prior = pending {
+            _ = await prior.1.value
+            if pending?.0 == prior.0 { pending = nil }
+        }
+        guard epoch == expected, let fresh = await readNow(), fresh.revision > boundary, epoch == expected else { return nil }
+        return fresh
+    }
+
     func readNow() async -> DesktopSnapshot? {
         guard events != nil, sessionAvailable() else {
             boundSidebarPair?.revoke(.feedInvalidated)

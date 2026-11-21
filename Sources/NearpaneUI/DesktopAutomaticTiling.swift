@@ -216,7 +216,7 @@ struct DesktopTilingRoster: Equatable {
             }
         }
         try await manager.performUserAction {
-            guard current(), membersPresent(await feed.readNow()), current(),
+            guard current(), membersPresent(await feed.readAfterAction()), current(),
                   let ctx = manager.liveContext?(source.display) else {
                 Self.pairLog.info("phase=pairAdmissionRefused")
                 throw OrdinaryRefusal.stale
@@ -228,7 +228,7 @@ struct DesktopTilingRoster: Equatable {
             let selected = keys.compactMap { key in manager.retainedWindow(key) ?? new.first { key.matches($0.id) } }
             guard selected.count == 2 else { throw OrdinaryRefusal.ambiguous }
             guard current() else { throw OrdinaryRefusal.stale }
-            guard membersPresent(await feed.readNow()), current() else {
+            guard membersPresent(await feed.readAfterAction()), current() else {
                 Self.pairLog.info("phase=pairScopeChangedAfterBinding")
                 throw OrdinaryRefusal.stale
             }
@@ -252,9 +252,12 @@ struct DesktopTilingRoster: Equatable {
                 return true
             }
             Self.pairLog.info("phase=pairPlacing")
-            try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
+            let placement = try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
                                                context: ctx, current: placementCurrent)
-            guard placementCurrent(), let final = await feed.readNow(), membersPresent(final), placementCurrent() else {
+            guard placementCurrent(), let final = await feed.readAfterAction(), membersPresent(final), placementCurrent(),
+                  let left = (pair.draggedOnLeft ? a : b).resolve(final)?.metadata,
+                  let right = (pair.draggedOnLeft ? b : a).resolve(final)?.metadata,
+                  left.globalFrame == placement.leftFrame, right.globalFrame == placement.rightFrame else {
                 Self.pairLog.info("phase=pairFinalInventoryUnconfirmed")
                 throw OrdinaryRefusal.stale
             }

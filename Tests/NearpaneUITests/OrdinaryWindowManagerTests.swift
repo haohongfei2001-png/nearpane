@@ -121,6 +121,7 @@ private let fixtureDisplayID = "7AE8A89E-A767-4F89-9303-85AE9A867EDD"
         var windows = [WindowDouble]()
         var offStage = Set<UInt32>()
         var sticky = Set<UInt32>()
+        var reportedFrames = [UInt32: SurfaceRect]()
         var readable = true
         var stageEnabled: Bool? = false
         var catalogComplete: Bool?
@@ -131,10 +132,11 @@ private let fixtureDisplayID = "7AE8A89E-A767-4F89-9303-85AE9A867EDD"
             let f = SurfaceRect(width: 1000, height: 800)
             let members = windows.enumerated().map { index, h in
                 let id = h.id, visible = !offStage.contains(id.number)
-                return WindowObservation(id: String(id.number), displayID: fixtureDisplayID, bounds: h.frame,
+                let frame = reportedFrames[id.number] ?? h.frame
+                return WindowObservation(id: String(id.number), displayID: fixtureDisplayID, bounds: frame,
                     membership: .known(recordIDs: sticky.contains(id.number) ? [current.record, "900"] : [current.record]),
                     confidence: .unknown, metadata: .init(number: id.number, pid: id.pid, launchMicroseconds: id.launch,
-                        element: nil, globalFrame: h.frame, frontToBack: index, minimized: missingFromAX.contains(id.number) ? nil : false,
+                        element: nil, globalFrame: frame, frontToBack: index, minimized: missingFromAX.contains(id.number) ? nil : false,
                         fullScreen: nil, isOnscreen: visible, onActiveDesktop: visible && !missingFromAX.contains(id.number),
                         overviewSpaceID: current.record, hasCatalogGeometry: visible, overviewIsPresented: true,
                         overviewOrdinaryRole: nonOrdinary.contains(id.number) || missingFromAX.contains(id.number) ? false : true))
@@ -207,6 +209,27 @@ private let fixtureDisplayID = "7AE8A89E-A767-4F89-9303-85AE9A867EDD"
         world.sticky.insert(a.id.number)
         await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: xLife), allowed: { true }) }
         #expect(a.writes == 2 && b.writes == 2)
+    }
+
+    @Test func twoVerifiedAXPlacementsCannotCommitAGroupWithStaleCatalogGeometry() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        let a = WindowDouble(pid: 1801, number: 1801), b = WindowDouble(pid: 1802, number: 1802)
+        world.windows = [a,b]
+        let feed = world.feed(), tiling = world.automation(manager, feed)
+        feed.observe(true)
+        defer { feed.observe(false) }
+        try await world.until { feed.snapshot != nil }
+        let original = try #require(feed.snapshot)
+        let catalog = try #require(NativeSpaceCatalog(original, displayID: fixtureDisplayID, now: Date(), uptime: ProcessInfo.processInfo.systemUptime))
+        let destination = try #require(NativeSidebarDestination(catalog.rows[0], in: catalog))
+        let x = try #require(NativeSidebarMember(original.windows[0], source: destination))
+        let y = try #require(NativeSidebarMember(original.windows[1], source: destination))
+        let attempt = SidebarPairDrop(dragged: x, target: y, draggedLifetime: try #require(feed.lifetime(of: x.key)),
+                                      targetLifetime: try #require(feed.lifetime(of: y.key)), draggedOnLeft: true)
+        world.reportedFrames[b.id.number] = b.frame
+        await #expect(throws: (any Error).self) { try await tiling.place(attempt, allowed: { true }) }
+        #expect(a.writes == 1 && b.writes == 1)
+        #expect(feed.groups.groups(on: try #require(UUID(uuidString: fixtureDisplayID))).allSatisfy { $0.members.count == 1 })
     }
 
     enum SwapChange: CaseIterable {
