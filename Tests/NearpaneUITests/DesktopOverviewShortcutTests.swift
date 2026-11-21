@@ -1,8 +1,18 @@
+import Carbon.HIToolbox
 import NearpaneCore
 import Testing
 @testable import NearpaneUI
 
 @MainActor struct DesktopOverviewShortcutTests {
+    @Test func enabledSystemArrowReservesItsFunctionKeyVariant() {
+        let mask = UInt32(controlKey)
+        let row: [String: Any] = ["kHISymbolicHotKeyEnabled": true, "kHISymbolicHotKeyCode": kVK_UpArrow,
+                                  "kHISymbolicHotKeyModifiers": mask | UInt32(kEventKeyModifierFnMask)]
+        #expect(DesktopOverviewShortcut.systemReserves(mask, in: [row]))
+        #expect(!DesktopOverviewShortcut.systemReserves(mask | UInt32(cmdKey), in: [row]))
+        #expect(!DesktopOverviewShortcut.systemReserves(mask, in: [row.merging(["kHISymbolicHotKeyEnabled": false]) { _, new in new }]))
+    }
+
     @MainActor private final class Fixture {
         var eligible = true
         var reserved: DesktopOverviewShortcut.Reservation = .available

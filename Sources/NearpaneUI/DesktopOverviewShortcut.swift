@@ -27,10 +27,11 @@ import Observation
     }
 
     static func systemReserves(_ modifiers: UInt32, in rows: [[String: Any]]) -> Bool {
-        rows.contains {
-            ($0["kHISymbolicHotKeyEnabled"] as? Bool) == true &&
-            ($0["kHISymbolicHotKeyCode"] as? NSNumber)?.intValue == kVK_UpArrow &&
-            ($0["kHISymbolicHotKeyModifiers"] as? NSNumber)?.uint32Value == modifiers
+        rows.contains { row in
+            guard row["kHISymbolicHotKeyEnabled"] as? Bool == true,
+                  (row["kHISymbolicHotKeyCode"] as? NSNumber)?.intValue == kVK_UpArrow,
+                  let flags = (row["kHISymbolicHotKeyModifiers"] as? NSNumber)?.uint32Value else { return false }
+            return flags & ~UInt32(kEventKeyModifierFnMask) == modifiers
         }
     }
 

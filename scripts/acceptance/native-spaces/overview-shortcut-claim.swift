@@ -13,10 +13,11 @@ let modifiers = UInt32(controlKey | optionKey | cmdKey)
 var table: Unmanaged<CFArray>?
 var data: [String: Any] = ["pid": pid, "keyEventsSent": 0, "state": "unknown"]
 if CopySymbolicHotKeys(&table) == noErr, let rows = table?.takeRetainedValue() as? [[String: Any]] {
-    let reserved = rows.contains {
-        $0["kHISymbolicHotKeyEnabled"] as? Bool == true &&
-        ($0["kHISymbolicHotKeyCode"] as? NSNumber)?.intValue == kVK_UpArrow &&
-        ($0["kHISymbolicHotKeyModifiers"] as? NSNumber)?.uint32Value == modifiers
+    let reserved = rows.contains { row in
+        guard row["kHISymbolicHotKeyEnabled"] as? Bool == true,
+              (row["kHISymbolicHotKeyCode"] as? NSNumber)?.intValue == kVK_UpArrow,
+              let flags = (row["kHISymbolicHotKeyModifiers"] as? NSNumber)?.uint32Value else { return false }
+        return flags & ~UInt32(kEventKeyModifierFnMask) == modifiers
     }
     if reserved { data["state"] = "systemReserved" }
     else {

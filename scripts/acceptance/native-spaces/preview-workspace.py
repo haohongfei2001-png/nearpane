@@ -306,6 +306,40 @@ class StageTransaction:
         return result
 
 
+def sample_overview_shortcut(kit, stage, pid, bound, read_login):
+    """Bracket an independent Carbon reservation with two production Host snapshots."""
+    result = {"status": "UNKNOWN", "stage": stage, "keyEventsSent": 0}
+    def run(tool):
+        return json.loads(subprocess.check_output([kit/tool, str(pid)], text=True, timeout=5))
+    try:
+        if not bound():
+            return dict(result, reason="originalHostOrSpaceChanged")
+        before = run("metrics")
+        result.update(before=before)
+        if before.get("pid") != pid or before.get("stageManagerOwnsDispatch") != int(stage) or not bound():
+            return dict(result, reason="hostModeOrScopeChangedBeforeClaim")
+        claim = run("overview-shortcut-claim")
+        after = run("metrics")
+        login = read_login()
+        result.update(before=before, claim=claim, after=after, actualLogin=login)
+        if not login or any(v.get("state") is not stage for v in login):
+            return dict(result, reason="loginModeChanged")
+        if not bound() or any(v.get("pid") != pid for v in (before, claim, after)):
+            return dict(result, reason="originalHostOrSpaceChanged")
+        if claim.get("state") not in ("available", "occupied") or claim.get("keyEventsSent") != 0:
+            return dict(result, reason="exclusiveClaimUnresolved")
+        fields = ("stageManagerOwnsDispatch", "windowDispatchEligible", "overviewShortcutRegistered")
+        a, b = (tuple(point.get(k) for k in fields) for point in (before, after))
+        if a != b or None in a or a[0] != int(stage):
+            return dict(result, reason="hostOwnershipUnstable")
+        if not stage and (before.get("missionControlPresented") != 0 or after.get("missionControlPresented") != 0):
+            return dict(result, reason="ordinaryDesktopNotIndependentlyEstablishedByHost")
+        correct = a == (int(stage), int(not stage), int(not stage)) and claim["state"] == ("available" if stage else "occupied")
+        return dict(result, status="PASS" if correct else "FAIL", reason="exclusiveCustomChordReadback")
+    except (OSError, ValueError, subprocess.SubprocessError, KeyError, RuntimeError):
+        return dict(result, reason="ownershipReadUnavailable")
+
+
 class PreferenceStage:
     """Explicit acceptance-only loan of one existing boolean in the actual login domain."""
     domain="com.apple.WindowManager"
@@ -314,41 +348,10 @@ class PreferenceStage:
         self.kit,self.output,self.ws,self.n=kit,output,ws,n
 
     def shortcut_readback(self, kit, stage):
-        """Sample the actual Host around an independent, immediately released custom-chord claim."""
-        result = {"status": "UNKNOWN", "stage": stage, "keyEventsSent": 0}
-        pid = self.ws.host["pid"]
         def bound():
             observed = self.ws.read()
             return observed.get("host") == self.ws.host and row(observed)["current"] == self.n
-        def run(tool):
-            return json.loads(subprocess.check_output([kit/tool, str(pid)], text=True, timeout=5))
-        try:
-            if not bound():
-                return dict(result, reason="originalHostOrSpaceChanged")
-            before = run("metrics")
-            result.update(before=before)
-            if before.get("pid") != pid or before.get("stageManagerOwnsDispatch") != int(stage) or not bound():
-                return dict(result, reason="hostModeOrScopeChangedBeforeClaim")
-            claim = run("overview-shortcut-claim")
-            after = run("metrics")
-            login = states(self.kit)
-            result.update(before=before, claim=claim, after=after, actualLogin=login)
-            if not login or any(v.get("state") is not stage for v in login):
-                return dict(result, reason="loginModeChanged")
-            if not bound() or any(v.get("pid") != pid for v in (before, claim, after)):
-                return dict(result, reason="originalHostOrSpaceChanged")
-            if claim.get("state") not in ("available", "occupied") or claim.get("keyEventsSent") != 0:
-                return dict(result, reason="exclusiveClaimUnresolved")
-            fields = ("stageManagerOwnsDispatch", "windowDispatchEligible", "overviewShortcutRegistered")
-            a, b = (tuple(point.get(k) for k in fields) for point in (before, after))
-            if a != b or None in a or a[0] != int(stage):
-                return dict(result, reason="hostOwnershipUnstable")
-            if not stage and (before.get("missionControlPresented") != 0 or after.get("missionControlPresented") != 0):
-                return dict(result, reason="ordinaryDesktopNotIndependentlyEstablishedByHost")
-            correct = a == (int(stage), int(not stage), int(not stage)) and claim["state"] == ("available" if stage else "occupied")
-            return dict(result, status="PASS" if correct else "FAIL", reason="exclusiveCustomChordReadback")
-        except (OSError, ValueError, subprocess.SubprocessError, KeyError, RuntimeError):
-            return dict(result, reason="ownershipReadUnavailable")
+        return sample_overview_shortcut(kit, stage, self.ws.host["pid"], bound, lambda: states(self.kit))
 
     def runtime(self,value):
         samples=[];positive=[];end=time.monotonic()+7

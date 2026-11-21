@@ -6,6 +6,7 @@ import ctypes
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+import importlib
 import json
 import os
 from pathlib import Path
@@ -300,6 +301,35 @@ class Mac:
             return dict(status="UNKNOWN",reason="No unique nonce-matched installed Host response")
         return dict(status="OBSERVED",**facts)
 
+    def pre_visit_shortcut(self, rec, shortcut):
+        # Stage ownership and a global reservation can be measured before visiting any Space.
+        sample = {"status": "UNKNOWN", "scope": "pre-visit Stage Manager", "keyEventsSent": 0}
+        try:
+            kit = Path(shortcut)
+            require(kit == kit.resolve(strict=True) and kit.parent == Path("/private/tmp")
+                    and kit.name.startswith("nearpane-overview-chord.") and kit.stat().st_uid == os.getuid()
+                    and not kit.stat().st_mode & 0o077, "Unqualified overview shortcut kit")
+            for tool in ("metrics", "overview-shortcut-claim"):
+                rule = f'anchor apple generic and certificate leaf[subject.OU] = "ZB9D4T66QB" and identifier "com.holdsnow.nearpane.acceptance.{tool}"'
+                subprocess.run(["/usr/bin/codesign", "--verify", "--strict", "-R="+rule, kit/tool],
+                               check=True, capture_output=True, timeout=6)
+            stage_kit = Path(rec["focusLease"]["stageKit"])
+            preview = importlib.import_module("preview-workspace")
+            read_login = lambda: preview.states(stage_kit)
+            if read_login()[-1]["state"] is True:
+                stamp = rec["isolatedHost"]
+                hardware = lambda: subprocess.check_output([stage_kit/"system-workspace", "hid"], timeout=5)
+                initial = hardware()
+                def bound():
+                    return (self.bound(stamp[0], Path(rec["home"])/profile.PROFILE, rec["candidate"]) == stamp
+                            and hardware() == initial)
+                sample.update(preview.sample_overview_shortcut(kit, True, stamp[0], bound, read_login))
+            else:
+                sample.update(status="NOT_RUN", reason="StageManagerAlreadyOff")
+        except (OSError, ValueError, RuntimeError, KeyError, subprocess.SubprocessError) as exc:
+            sample["reason"] = "preVisitReadUnavailable:" + type(exc).__name__
+        return sample
+
     def trial(self, name, rec, context, leases):
         out = Path(rec["output"])
         source = rec["candidate"]["source"]
@@ -307,6 +337,8 @@ class Mac:
         if name in ("P0-diagnostic","P2") and "focusLease" in rec:
             original = self.canonical.parent/(".nearpane-installed-trials." + str(os.getuid()))/rec["transaction"]/"bundle.slot"
             chain = spaces_trials.extend_focus_chain(rec, self.canonical, original, out, gate, persist)
+        if name == "P2" and chain is not None and context.get("NP_OVERVIEW_SHORTCUT_KIT"):
+            persist(out/"pre-visit-stage-shortcut.json", self.pre_visit_shortcut(rec, context["NP_OVERVIEW_SHORTCUT_KIT"]))
         if name == "P2":
             context = dict(context)
             context.pop("NP_P2_FOCUS_SCOPE_PREFLIGHT", None)
