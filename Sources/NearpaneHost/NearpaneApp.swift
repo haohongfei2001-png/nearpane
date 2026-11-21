@@ -434,9 +434,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let screen = CGPreflightScreenCaptureAccess()
             let accessibility = AXIsProcessTrusted()
             let postEvent = CGPreflightPostEventAccess()
+            let listenEvent = CGPreflightListenEventAccess()
             // Keep privacy status in the Host log. The distributed reply only acknowledges sampling.
             Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "PermissionCheck")
-                .notice("Permission check \(nonce.uuidString, privacy: .public) screen=\(screen, privacy: .public) accessibility=\(accessibility, privacy: .public) postEvent=\(postEvent, privacy: .public)")
+                .notice("Permission check \(nonce.uuidString, privacy: .public) screen=\(screen, privacy: .public) accessibility=\(accessibility, privacy: .public) postEvent=\(postEvent, privacy: .public) listenEvent=\(listenEvent, privacy: .public)")
             DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
                 object: nonce.uuidString, userInfo: ["pid": NSNumber(value: getpid()), "checked": "permissions"], deliverImmediately: true)
             return

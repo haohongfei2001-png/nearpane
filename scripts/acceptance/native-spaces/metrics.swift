@@ -1,7 +1,9 @@
 import AppKit
 import Foundation
+import Security
 
-let check = CommandLine.arguments.count == 3 ? ["--diagnostic-space-probe":"p0-space-probe-read-only-v1","--permissions":"permissions","--draft-qualification":"draft-qualification-read-only-v1"][CommandLine.arguments[2]] : nil
+let permissionSubject = CommandLine.arguments.count == 3 && CommandLine.arguments[2] == "--permission-subject"
+let check = CommandLine.arguments.count == 3 ? ["--diagnostic-space-probe":"p0-space-probe-read-only-v1","--permissions":"permissions","--permission-subject":"permissions","--draft-qualification":"draft-qualification-read-only-v1"][CommandLine.arguments[2]] : nil
 let checkPermissions = check != nil
 guard CommandLine.arguments.count == 2 || checkPermissions, let pid = Int32(CommandLine.arguments[1]) else { exit(2) }
 func kernelHost(_ pid: pid_t) -> UInt64? {
@@ -13,9 +15,22 @@ func kernelHost(_ pid: pid_t) -> UInt64? {
     else { return nil }
     return info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec
 }
+func signedHostHash(_ pid: pid_t) -> String? {
+    var guest: SecCode?, requirement: SecRequirement?, disk: SecStaticCode?, fields: CFDictionary?
+    let rule = "anchor apple generic and identifier \"com.holdsnow.nearpane.alpha\" and certificate leaf[subject.OU] = \"ZB9D4T66QB\" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
+    guard SecRequirementCreateWithString(rule as CFString, [], &requirement) == errSecSuccess, let requirement,
+          SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid as String: pid] as CFDictionary, [], &guest) == errSecSuccess, let guest,
+          SecCodeCheckValidity(guest, SecCSFlags(rawValue: kSecCSStrictValidate), requirement) == errSecSuccess,
+          SecCodeCopyStaticCode(guest, [], &disk) == errSecSuccess, let disk,
+          SecCodeCopySigningInformation(disk, .init(rawValue: kSecCSSigningInformation), &fields) == errSecSuccess,
+          let digest = (fields as? [String:Any])?[kSecCodeInfoUnique as String] as? Data, !digest.isEmpty else { return nil }
+    return digest.map { String(format: "%02x", $0) }.joined()
+}
 let diagnosticProbe = check == "p0-space-probe-read-only-v1"
 let app = NSRunningApplication(processIdentifier:pid)
-let birth = diagnosticProbe ? kernelHost(pid) : nil
+let birth = diagnosticProbe || permissionSubject ? kernelHost(pid) : nil
+let image = permissionSubject ? signedHostHash(pid) : nil
+if permissionSubject && (image == nil || birth == nil) { exit(2) }
 if diagnosticProbe {
     guard birth != nil else { exit(2) }
 } else {
@@ -58,7 +73,11 @@ let until = ProcessInfo.processInfo.systemUptime + ((check == "draft-qualificati
 while received == nil, ProcessInfo.processInfo.systemUptime < until { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.03)) }
 center.removeObserver(token)
 guard let received, diagnosticProbe ? (kernelHost(pid) == birth) : (app?.isTerminated == false) else { exit(3) }
-if checkPermissions {
+if permissionSubject {
+    guard let image, let birth, kernelHost(pid) == birth, signedHostHash(pid) == image else { exit(3) }
+    let result: [String:Any] = ["pid": Int(pid), "birth": birth, "cdhash": image, "nonce": nonce]
+    print(String(decoding:try JSONSerialization.data(withJSONObject:result,options:.sortedKeys),as:UTF8.self))
+} else if checkPermissions {
     print(nonce)
 } else {
     print(String(decoding:try JSONSerialization.data(withJSONObject:received),as:UTF8.self))
