@@ -196,7 +196,7 @@ private struct FixtureGeometry: Codable {
 @main private struct Fixture {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 2, ["a", "b", "record", "reopen", "lifecycle", "visibility", "minimize", "corner", "wallpaper", "movie", "film"].contains(args[0]),
+        guard args.count == 2, ["a", "b", "record", "reopen", "lifecycle", "visibility", "minimize", "corner", "wallpaper", "desktop-items", "movie", "film"].contains(args[0]),
               ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else { exit(64) }
         if args[0] == "movie" {
             Task {
@@ -218,12 +218,13 @@ private struct FixtureGeometry: Codable {
             RunLoop.main.run()
             return
         }
-        if ["minimize", "corner", "wallpaper"].contains(args[0]) {
+        if ["minimize", "corner", "wallpaper", "desktop-items"].contains(args[0]) {
             let app = NSApplication.shared
             app.setActivationPolicy(.accessory)
             Task { @MainActor in
                 do {
-                    if args[0] == "wallpaper" { try await qualifyWallpaper(root: root) }
+                    if args[0] == "desktop-items" { try await qualifyDesktopItems(root: root) }
+                    else if args[0] == "wallpaper" { try await qualifyWallpaper(root: root) }
                     else { try await compareGroupVisibility(root: root, method: args[0]) }
                     exit(0)
                 }

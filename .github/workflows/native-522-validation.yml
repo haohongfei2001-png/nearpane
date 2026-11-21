@@ -23,6 +23,7 @@ on:
       - 'Tests/NearpaneUITests/TargetedCurrentCardTests.swift'
       - 'Tests/NearpaneUITests/OrdinaryWindowManagerTests.swift'
       - 'Tests/NearpaneUITests/DesktopOverviewShortcutTests.swift'
+      - 'Tests/NearpaneUITests/DesktopItemsSettingTests.swift'
       - 'Tests/NearpaneUITests/SystemWindowDispatchTests.swift'
       - 'Tests/NearpaneUITests/NativeSpaceMenuTests.swift'
       - 'Tests/NearpaneUITests/WorkspacePanelTests.swift'
@@ -109,6 +110,7 @@ jobs:
         run: |
           set -euo pipefail
           suites=(StageGroupStoreTests StageGroupCoordinatorTests MoveReadbackTests NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests WindowSwitchTransitionTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests DesktopOverviewShortcutTests SystemWindowDispatchTests WorkspacePanelTests NativeSpaceMenuTests ActionInventoryTests)
+          suites+=(DesktopItemsSettingTests)
           filter=$(IFS='|'; echo "${suites[*]}")
           swift test --disable-xctest --enable-swift-testing --filter "$filter" 2>&1 | tee "$RUNNER_TEMP/native-ui-tests.log"
           for suite in "${suites[@]}"; do
@@ -152,3 +154,17 @@ jobs:
           python3 -B scripts/qualify-private-macos-asset.py "$frozen" > "$RUNNER_TEMP/nearpane-private-policy.json"
           cat "$RUNNER_TEMP/nearpane-private-policy.json"
           cat "$RUNNER_TEMP/nearpane-private-policy.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Report desktop item visibility and restoration
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          record = json.loads((Path(os.environ["RUNNER_TEMP"]) / "stage-group-isolation/desktop-items.json").read_bytes())
+          status = record["status"]
+          print(f"Desktop items: {status} ({record.get('reason', 'native marker sequence')})")
+          if status not in ("PASS", "BLOCKED"):
+              raise SystemExit(1)
+          if status == "BLOCKED":
+              print("::warning::Desktop item behavior could not be qualified in this hosted login.")
+          PY

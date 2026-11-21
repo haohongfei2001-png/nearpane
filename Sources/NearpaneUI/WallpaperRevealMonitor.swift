@@ -17,7 +17,8 @@ import AppKit
     init(changed: @escaping (Bool) -> Void) {
         self.changed = changed
         monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
-            guard let cg = event.cgEvent else { return }
+            guard let cg = event.cgEvent, event.clickCount == 1,
+                  event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty else { return }
             let point = cg.location
             let number = cg.getIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent)
             self?.clicked(number: number, point: point)
@@ -39,17 +40,41 @@ import AppKit
               let app = NSRunningApplication(processIdentifier: pid), app.activationPolicy == .regular else { return false }
         return true
     }
-    private static func wallpaper(_ row: [String: Any]) -> Bool {
-        guard let layer = row[kCGWindowLayer as String] as? Int, layer <= CGWindowLevelForKey(.desktopIconWindow),
-              let pid = row[kCGWindowOwnerPID as String] as? Int32 else { return false }
-        let bundle = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
-        return ["com.apple.finder","com.apple.dock","com.apple.wallpaper.agent","com.apple.WindowManager"].contains(bundle)
+    static func isBlankDesktop(at point: CGPoint, windowNumber: Int) -> Bool {
+        guard let row = row(windowNumber) else { return false }
+        return isBlankDesktop(at: point, row: row)
+    }
+
+    private static func isBlankDesktop(at point: CGPoint, row: [String: Any]) -> Bool {
+        guard let layer = row[kCGWindowLayer as String] as? Int,
+              layer <= CGWindowLevelForKey(.desktopIconWindow),
+              let pid = row[kCGWindowOwnerPID as String] as? pid_t,
+              let bundle = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
+              desktopOwners.contains(bundle), AXIsProcessTrusted() else { return false }
+        var hit: AXUIElement?, hitPID: pid_t = 0, role: CFTypeRef?
+        guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
+              let hit, AXUIElementGetPid(hit, &hitPID) == .success,
+              let hitOwner = NSRunningApplication(processIdentifier: hitPID)?.bundleIdentifier,
+              AXUIElementCopyAttributeValue(hit, kAXRoleAttribute as CFString, &role) == .success,
+              let role = role as? String else { return false }
+        return isDesktopBackground(windowOwner: bundle, hitOwner: hitOwner, role: role)
+    }
+
+    private static let desktopOwners: Set<String> = ["com.apple.finder", "com.apple.dock", "com.apple.wallpaper.agent", "com.apple.WindowManager"]
+    static func isDesktopBackground(windowOwner: String, hitOwner: String, role: String) -> Bool {
+        guard desktopOwners.contains(windowOwner), desktopOwners.contains(hitOwner) else { return false }
+        // Desktop items and the Finder background share one CG window. An item, widget or Dock
+        // control must never become a background click on the strength of that window number.
+        if hitOwner == "com.apple.finder" {
+            return [kAXScrollAreaRole, kAXListRole, kAXWindowRole, kAXApplicationRole].contains(role)
+        }
+        return [kAXWindowRole, kAXApplicationRole].contains(role)
     }
 
     private func clicked(number: Int64, point: CGPoint) {
         let actual = number > 0 ? Int(number) : NSWindow.windowNumber(at: Self.appKit(point), belowWindowWithWindowNumber: 0)
         guard let row = Self.row(actual) else { return }
-        if Self.wallpaper(row) {
+        if Self.isBlankDesktop(at: point, row: row) {
             if !held {
                 witnesses = visibleWitnesses()
                 held = true; changed(true)

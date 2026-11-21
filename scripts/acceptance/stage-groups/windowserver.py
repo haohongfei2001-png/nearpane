@@ -54,7 +54,9 @@ def run(build, receipt, comparison=None, lifecycle_only=False):
                         Path(__file__).with_suffix(".swift"), Path(__file__).with_name("visibility.swift"),
                         Path(__file__).with_name("comparison.swift"), Path(__file__).with_name("recording.swift"),
                         Path(__file__).with_name("wallpaper.swift"), Path(__file__).with_name("lifecycle.swift"),
+                        Path(__file__).with_name("desktop-items.swift"),
                         Path(__file__).resolve().parents[3] / "Sources/NearpaneUI/WallpaperRevealMonitor.swift",
+                        Path(__file__).resolve().parents[3] / "Sources/NearpaneUI/DesktopItemsSetting.swift",
                         *inputs, "-o", binary], check=True)
         if comparison:
             from comparison import run_comparison

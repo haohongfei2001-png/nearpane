@@ -6,6 +6,8 @@
 
 同屏精确选窗和已验证的同屏分屏继续可用。正式侧栏的整组隔离尚未取得准入。系统的“始终允许点击墙纸显示桌面”由「桌面与程序坞」管理。Nearpane 在窗口移开期间让渡布局，并在恢复后重新核实窗口。桌面项目可见性单独由 macOS 设置。 [隔离对照与原始结果](../verification/stage-groups/5.22-90/isolation/RESULTS.md) · [Apple 桌面设置](https://support.apple.com/en-gb/guide/mac-help/mchlp1119/mac)
 
+「Nearpane 设置 → 本屏窗口 → 桌面文件和图标」提供「点击空白墙纸时显示」和「始终显示」。用户主动选择后，Nearpane 打开系统的「显示项目」并核实「在桌面上」复选框；macOS 为当前账户保存选择并响应桌面点击。文件、图标、部件及其位置均由系统维护。「点击墙纸移开窗口」保留独立的系统设置。 [Apple 桌面项目显示说明](https://support.apple.com/en-ie/guide/mac-help/mchl534ba392/27/mac/27)
+
 本裁决适用于 PR #15 的原生 5.22（90）工程。Nearpane 替代台前调度（Stage Manager）的窗口分组体验。用户在一块物理屏上安排几个工作集合，每个集合可以容纳不同应用的窗口。固定的 R4 卡片、原生材质、托盘与语音设计继续沿用。
 
 ## 三个对象

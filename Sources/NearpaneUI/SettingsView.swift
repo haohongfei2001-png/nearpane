@@ -389,6 +389,7 @@ public struct SettingsView: View {
 
     private var desktopOptions: some View {
         Form {
+            DesktopItemsSettingsSection()
             Picker("窗口总览快捷键", selection: Binding(get: { host.configuration.overviewShortcut }, set: { choice in
                 if host.setOverviewShortcut(choice) { DesktopOverviewShortcut.shared.configure(choice) }
             })) {

@@ -15,7 +15,7 @@ def run_comparison(binary, destination):
              "osBuild": subprocess.check_output(["sw_vers", "-buildVersion"], text=True).strip(),
              "tenRoundTrips": "NOT_RUN", "fiftyRoundTrips": "NOT_RUN"}
     # Never enter the second mechanism with a window left over from the first.
-    for method in ("minimize", "corner", "wallpaper"):
+    for method in ("minimize", "corner", "wallpaper", "desktop-items"):
         with tempfile.TemporaryDirectory(prefix="nearpane-isolation-") as directory:
             root = Path(directory).resolve()
             (root / "comparison").touch()
