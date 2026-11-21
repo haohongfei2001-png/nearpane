@@ -16,7 +16,7 @@
 
 签名候选 `203e34e` 在正式安装路径使用独立资料。对两扇已登记文档窗，自投保持原位，拖至另一卡右半及左半均通过，两次系统 AX 与 WindowServer 读回一致。桌面工作区为 1230 × 923 点，两个槽位分别为 615 × 923 点。右拖录像保留两窗从重叠到分屏的实际合成器画面，共 46 帧。正式鼠标交替选窗 10/10 次键盘输入落在目标编辑器。首次显示时延的读屏器在启流前因全屏库存检查拒绝了 10 次，此批的画面时延为 UNKNOWN。日常 App 与配置均已还原。[拖放收据与录像](../verification/native-spaces/5.22-90-sidebar-pair/binding-drag) · [鼠标与输入收据](../verification/native-spaces/5.22-90-sidebar-pair/binding-focus) · [内部签名候选](../verification/native-spaces/5.22-p6/integrated-203e34e/draft-asset.json)
 
-## 2026-11-21 · 5.22（90）正式安装复核
+## 2026-11-21 · 此前候选 d81c458 的正式安装复核
 
 PR #15 从原生 PR #14 的 `629524b` 继续，采用研究分支 `3151827` 三份决策及原生分支 `c1604f3` 的复核。可运行内部候选 `d81c458` 完成双窗正式验收，日常安装 `d2d0bb6` 及日常资料已原位恢复。`b55ed96` 原回退档通过 SHA-256 与双向签名核验。PR 保持 Draft。[候选与还原](../verification/native-spaces/5.22-p6/integrated-d81c458/protected-installation.json) · [回退](../verification/native-spaces/5.22-p6/integrated-d81c458/b55ed96-rollback.json)
 
@@ -24,7 +24,7 @@ PR #15 从原生 PR #14 的 `629524b` 继续，采用研究分支 `3151827` 三�
 |---|---|
 | P0 | 第 18 轮的系统事件确认，外部 Apple Event 激活 Codex，随后 Dock 为该应用的窗口 42445 切到桌面 6。脚本上游未知。跨动作观察器两轮分别获得 171、136 个有效被动样本。专用签名 Host 以 nonce 从实际动作助手取回 `canSwitch=false, canMove=false`。借用已登记的相邻 5095/5094 时，第一次清点合格，约 418 ms 后第二次清点无法核对一个普通窗口条目。端点和条目身份保留 UNKNOWN，受控窗口 53833 在前后两次独立读回均归属 5095。布置快捷键和产品切换均为零。原桌面、焦点、Stage 和日常应用均恢复，两张既有测试桌面仍在。正式往返、10、50 均未执行。[隔离实机事件](../verification/native-spaces/5.22-p0/post-reassessment/isolated-97109f4/booked-adjacent.json) · [拒绝现场](../verification/native-spaces/5.22-p0/post-reassessment/isolated-97109f4/rejected-census.json) · [原始事件链](../verification/native-spaces/5.22-p0/post-reassessment/run18-system.json) · [被动观察](../verification/native-spaces/5.22-p0/post-reassessment/observer-isolated.json) |
 | P1 | 已验证 Objective-C selector/IMP、真实方法签名、对象生命周期、窗口代际与迁移读回判据。实际投递迁窗 0 次。[非派发收据](../verification/native-spaces/5.22-p1-bridge/bridge-abi.json) |
-| P2 | **最新正式安装候选 10/10**。此前候选 `0242247` 独立一轮也是 10/10。两轮均在同一注册签名应用的两扇窗口间交替。每次由生产侧栏发起，外部 AX、实际窗口号、AppKit 键窗和编辑器匹配，12 对按键只改动目标文件。第三按被拒的旧轮次保留。[十次动作和单窗实拍](../verification/native-spaces/5.22-90-active-display-previews/same-space-focus/registered-document-runs/09) · [此前失败](../verification/native-spaces/5.22-90-active-display-previews/same-space-focus/registered-document-runs/05-07.md) |
+| P2 | **当时的正式安装候选 `d81c458` 为 10/10**。此前候选 `0242247` 独立一轮也是 10/10。两轮均在同一注册签名应用的两扇窗口间交替。每次由生产侧栏发起，外部 AX、实际窗口号、AppKit 键窗和编辑器匹配，12 对按键只改动目标文件。第三按被拒的旧轮次保留。[十次动作和单窗实拍](../verification/native-spaces/5.22-90-active-display-previews/same-space-focus/registered-document-runs/09) · [此前失败](../verification/native-spaces/5.22-90-active-display-previews/same-space-focus/registered-document-runs/05-07.md) |
 | P3 | 正式 Host 对已运行 Chrome 的非提示资格查询为 `notRequested`，没有已授权的隔离登录资料。真实草稿上传阻塞；读取标签、上传与发送均为零。[授权收据](../verification/native-spaces/5.22-p3/installed-946afb9/qualification.json) |
 | P4 | 已证实真实 Services 回调与签名 Host 的入队和接收。系统在回调前 4.499 ms 为 Host 申请前台，来源窗口焦点保持失败。5 个独立像素样本核实了实际显示的系统语言包下载提示，本机英中翻译模型缺失。预置词条在两个独立签名 Host 的磁盘与设置页读回通过。三句中文各有干净与噪声样本，6/6 原始首尾音频完整。真实识别最终稿 0，60 次物理麦克风启动未测。[Services 系统时序及选区实拍](../verification/native-spaces/5.22-p4/installed-d81c458/README.md) · [词本](../verification/native-spaces/5.22-p4/installed-9ba33eb/seeded-wordbook.json) · [语音](../verification/native-spaces/5.22-p4/local-corpus/summary.json) |
 | P5 | 37 项布局和生命周期用例、6 项性能数据核算用例通过。有一次实际全屏进出和隐藏一分钟后恢复。修复了旧预演的到期任务清除新预演的竞态，两项调度用例各复测 20 次。真实多屏、双窗 Split View、睡眠恢复及对标系统的完整性能仍待验。[P5 收据](../verification/native-spaces/5.22-p5/offline-qualification.json) · [竞态复现和修复](../verification/native-spaces/5.22-p5/lifecycle-scheduling.json) |
