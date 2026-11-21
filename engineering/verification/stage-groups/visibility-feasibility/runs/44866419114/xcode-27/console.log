@@ -1,0 +1,11 @@
+2026-11-21T04:30:28.6610360Z ##[group]Run python3 -B engineering/verification/stage-groups/visibility-feasibility/poc/run.py "$RUNNER_TEMP/window-visibility" --suite "$LAB_SUITE"
+2026-11-21T04:30:28.6611420Z ^[[36;1mpython3 -B engineering/verification/stage-groups/visibility-feasibility/poc/run.py "$RUNNER_TEMP/window-visibility" --suite "$LAB_SUITE"^[[0m
+2026-11-21T04:30:28.6674770Z shell: /bin/bash -e {0}
+2026-11-21T04:30:28.6675190Z env:
+2026-11-21T04:30:28.6675500Z   LAB_SUITE: lifecycle
+2026-11-21T04:30:28.6675740Z ##[endgroup]
+2026-11-21T04:30:35.2137900Z /Users/runner/work/_temp/nearpane-visibility-vqy3rp0q/bin/Fixture: replacing existing signature
+2026-11-21T04:30:36.2755820Z /Users/runner/work/_temp/nearpane-visibility-vqy3rp0q/bin/Inspect: replacing existing signature
+2026-11-21T04:30:37.6353260Z /Users/runner/work/_temp/nearpane-visibility-vqy3rp0q/bin/Order: replacing existing signature
+2026-11-21T04:30:38.5483680Z /Users/runner/work/_temp/nearpane-visibility-vqy3rp0q/bin/Display: replacing existing signature
+2026-11-21T04:31:05.3115060Z {"methods": {"A.crash": "OBSERVED", "C.crash": "OBSERVED"}, "cleanup": {"fixtureLaunchersExit": [0, 0], "fixtureCount": 2, "dockRestored": true, "temporaryDirectoryRemoved": true}}

@@ -1,0 +1,294 @@
+{
+  "cleanup": {
+    "dockRestored": true,
+    "fixtureCount": 2,
+    "fixtureLaunchersExit": [
+      0,
+      0
+    ],
+    "temporaryDirectoryRemoved": true
+  },
+  "dockPreferenceDuring": true,
+  "events": 40,
+  "independentSnapshots": 15,
+  "methods": {
+    "A.crash": {
+      "actorExit": -9,
+      "actorPID": 42164,
+      "orphan": {
+        "actualKeyID": 40,
+        "axMini": true,
+        "cgFrame": null,
+        "key": "A1",
+        "leasedAX": {
+          "frame": [
+            40,
+            258,
+            215,
+            188
+          ],
+          "identifier": "A0",
+          "mini": true
+        },
+        "onScreen": false,
+        "ordered": 0,
+        "ownerContent": "2860DD17-DB8B-46FB-A5AE-DD35167D4C47",
+        "ownerFrame": [
+          40,
+          322,
+          215,
+          188
+        ],
+        "ownerMini": true,
+        "ownerVisible": false,
+        "spaces": [
+          1
+        ],
+        "tiles": 0
+      },
+      "preCrash": {
+        "actualKeyID": 40,
+        "axMini": true,
+        "cgFrame": null,
+        "key": "A1",
+        "leasedAX": {
+          "frame": [
+            40,
+            258,
+            215,
+            188
+          ],
+          "identifier": "A0",
+          "mini": true
+        },
+        "onScreen": false,
+        "ordered": 0,
+        "ownerContent": "2860DD17-DB8B-46FB-A5AE-DD35167D4C47",
+        "ownerFrame": [
+          40,
+          322,
+          215,
+          188
+        ],
+        "ownerMini": true,
+        "ownerVisible": false,
+        "spaces": [
+          1
+        ],
+        "tiles": 0
+      },
+      "reason": null,
+      "recovered": {
+        "actualKeyID": 39,
+        "axMini": false,
+        "cgFrame": [
+          40,
+          258,
+          215,
+          188
+        ],
+        "key": "A0",
+        "leasedAX": {
+          "frame": [
+            40,
+            258,
+            215,
+            188
+          ],
+          "identifier": "A0",
+          "mini": false
+        },
+        "onScreen": true,
+        "ordered": 1,
+        "ownerContent": "2860DD17-DB8B-46FB-A5AE-DD35167D4C47",
+        "ownerFrame": [
+          40,
+          322,
+          215,
+          188
+        ],
+        "ownerMini": false,
+        "ownerVisible": true,
+        "spaces": [
+          1
+        ],
+        "tiles": 0
+      },
+      "restoreKeyDelta": {
+        "A0": 1,
+        "A1": 0,
+        "B0": 0,
+        "B1": 0
+      },
+      "status": "OBSERVED"
+    },
+    "C.crash": {
+      "afterCleanup": {
+        "actualKeyID": 40,
+        "axMini": false,
+        "cgFrame": [
+          40,
+          258,
+          215,
+          188
+        ],
+        "key": "A1",
+        "leasedAX": {
+          "frame": [
+            40,
+            258,
+            215,
+            188
+          ],
+          "identifier": "A0",
+          "mini": false
+        },
+        "onScreen": true,
+        "ordered": 1,
+        "ownerContent": "2860DD17-DB8B-46FB-A5AE-DD35167D4C47",
+        "ownerFrame": [
+          40,
+          322,
+          215,
+          188
+        ],
+        "ownerMini": false,
+        "ownerVisible": true,
+        "spaces": [
+          1
+        ],
+        "tiles": 0
+      },
+      "before": {
+        "actualKeyID": 40,
+        "axMini": false,
+        "cgFrame": [
+          40,
+          258,
+          215,
+          188
+        ],
+        "key": "A1",
+        "leasedAX": {
+          "frame": [
+            40,
+            258,
+            215,
+            188
+          ],
+          "identifier": "A0",
+          "mini": false
+        },
+        "onScreen": true,
+        "ordered": 1,
+        "ownerContent": "2860DD17-DB8B-46FB-A5AE-DD35167D4C47",
+        "ownerFrame": [
+          40,
+          322,
+          215,
+          188
+        ],
+        "ownerMini": false,
+        "ownerVisible": true,
+        "spaces": [
+          1
+        ],
+        "tiles": 0
+      },
+      "holderExit": -9,
+      "observedAfterCrash": [
+        {
+          "activeSpace": 1,
+          "bounds": [
+            0,
+            0,
+            1024,
+            768
+          ],
+          "id": 1,
+          "uuid": "2109FE05-700B-4D86-963C-08B091DE5E60"
+        }
+      ],
+      "parked": {
+        "actualKeyID": 40,
+        "axMini": false,
+        "cgFrame": [
+          1975,
+          1170,
+          215,
+          188
+        ],
+        "key": "A1",
+        "leasedAX": {
+          "frame": [
+            1975,
+            1170,
+            215,
+            188
+          ],
+          "identifier": "A0",
+          "mini": false
+        },
+        "onScreen": true,
+        "ordered": 1,
+        "ownerContent": "2860DD17-DB8B-46FB-A5AE-DD35167D4C47",
+        "ownerFrame": [
+          1975,
+          -278,
+          215,
+          188
+        ],
+        "ownerMini": false,
+        "ownerVisible": true,
+        "spaces": [
+          19
+        ],
+        "tiles": 0
+      },
+      "postCrash": {
+        "actualKeyID": 40,
+        "axMini": false,
+        "cgFrame": [
+          40,
+          258,
+          215,
+          188
+        ],
+        "key": "A1",
+        "leasedAX": {
+          "frame": [
+            40,
+            258,
+            215,
+            188
+          ],
+          "identifier": "A0",
+          "mini": false
+        },
+        "onScreen": true,
+        "ordered": 1,
+        "ownerContent": "2860DD17-DB8B-46FB-A5AE-DD35167D4C47",
+        "ownerFrame": [
+          40,
+          322,
+          215,
+          188
+        ],
+        "ownerMini": false,
+        "ownerVisible": true,
+        "spaces": [
+          1
+        ],
+        "tiles": 0
+      },
+      "reason": null,
+      "status": "OBSERVED"
+    }
+  },
+  "os": [
+    "ProductVersion:\t\t27.0.1",
+    "BuildVersion:\t\t26A434"
+  ],
+  "runRevision": "d67207c4b3b5bb4c117409644640fe71feb98963",
+  "sip": "System Integrity Protection status: disabled."
+}

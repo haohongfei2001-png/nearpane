@@ -1,5 +1,9 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 第三方窗口可见性复核
+
+整组隐藏与恢复仍为 **BLOCKED**。在使用“最小化至应用程序图标”的 macOS 26.7.2 和 27.0.1 隔离会话，AX 路线保持 Dock 图块为 0，但恢复 A0 后实际按键从 A1 移到 A0。五种外部 SkyLight 排序均未实现逐窗隐藏与恢复。虚拟显示器改变了原生 Space，停放窗收到真实点击，并出现在 Apple Mission Control 中。精确构建 26A428、SIP 开启的日常 Mac 已完成只读预检。正式窗口提供器保持关闭。 [可行性裁决与计划](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-FEASIBILITY.md) · [原始证据与截图](../verification/stage-groups/visibility-feasibility/README.md)
+
 ## 2026-11-21 · 三组真实窗口隔离
 
 5.22（90）整组切换 **BLOCKED**。在原生台前调度关闭的托管 macOS 26.7.2 上，两种机制均完成 A→B→C→A。逐窗 AX 最小化通过四次准确键盘输入、几何恢复及旁窗检查，但 Dock 窗口图块从 1 增至 3。角落遮罩保持 Dock 数量，已停放窗仍收到真实鼠标按下并取得焦点。原组窗口与用户原最小化状态最终恢复。原生墙纸移开和恢复及生产监视器让渡在此夹具中通过。正式 Host 单次、10 次、50 次和两块物理屏维持未验。
