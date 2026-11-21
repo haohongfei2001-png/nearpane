@@ -22,7 +22,7 @@ def run(build, receipt):
         binary = root / "StageFixture"
         subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-target", platform.machine() + "-apple-macos26.0",
                         "-I", build / "Modules", "-Xcc", "-fmodule-map-file=" + str(build / "CReadOnlySpaces.build/module.modulemap"),
-                        Path(__file__).with_suffix(".swift"), *inputs, "-o", binary], check=True)
+                        Path(__file__).with_suffix(".swift"), Path(__file__).with_name("visibility.swift"), *inputs, "-o", binary], check=True)
         if receipt is None:
             return
         result = {"status": "UNKNOWN", "profileRemoved": False, "installedHost": "NOT_RUN",
@@ -49,7 +49,9 @@ def run(build, receipt):
                     break
                 time.sleep(0.1)
             if not all((root / (n + ".json")).exists() for n in apps):
-                result.update(status="BLOCKED", reason="registeredOwnersUnavailable")
+                failures = [json.loads(path.read_bytes()) for path in root.glob("*-failure.json")]
+                result.update(status="BLOCKED" if failures and all(r["status"] == "BLOCKED" for r in failures) else "UNKNOWN",
+                              reason="registeredOwnersUnavailable", ownerResults=failures)
             else:
                 for phase in ("record", "reopen"):
                     check = subprocess.run([binary, phase, root], capture_output=True, text=True, timeout=10)
@@ -66,6 +68,11 @@ def run(build, receipt):
                         result["status"] = "PASS"
                     else:
                         result.update(status="FAIL", reason="independentReaderMismatch")
+            if result["status"] == "PASS":
+                probe = subprocess.run([binary, "visibility", root], capture_output=True, text=True, timeout=24)
+                observed = root / "visibility.json"
+                result["singleWindowVisibility"] = (json.loads(observed.read_bytes()) if observed.exists() else
+                    {"status": "UNKNOWN", "reason": probe.stderr[-300:] or "missingVisibilityReceipt"})
         finally:
             (root / "stop").touch()
             result["fixtureProcessesExited"] = all([proc.wait(timeout=12) == 0 for proc in processes])
@@ -77,6 +84,10 @@ def run(build, receipt):
             result["profileRemoved"] = not profile.exists()
             receipt.write_text(json.dumps(result, indent=2) + "\n")
             print(json.dumps(result, sort_keys=True))
+        qualification = result.get("singleWindowVisibility", {}).get("status", "NOT_RUN")
+        print("Directory and exact fixture geometry:", result["status"], "| Public single-window AX qualification:", qualification)
+        if qualification in ("FAIL", "UNKNOWN"):
+            print("::warning::Single-window visibility qualification recorded " + qualification)
         if result["status"] not in ("PASS", "BLOCKED"):
             raise SystemExit(1)
 

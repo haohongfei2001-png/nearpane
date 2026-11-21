@@ -3,11 +3,11 @@ import CReadOnlySpaces
 import NearpaneCore
 
 private enum FixtureError: String, Error { case registration, display, owner, missingWindow, invalidGroup, staleBinding }
-private struct Owner: Codable {
+struct Owner: Codable {
     let identifier: String, pid: Int32, birth: UInt64, display: UUID, numbers: [UInt32], onActiveSpace: Bool
 }
 
-private func birth(_ pid: Int32) throws -> UInt64 {
+func birth(_ pid: Int32) throws -> UInt64 {
     var info = proc_bsdinfo()
     let size = Int32(MemoryLayout.size(ofValue: info))
     guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size, info.pbi_pid == UInt32(pid),
@@ -42,6 +42,7 @@ private func birth(_ pid: Int32) throws -> UInt64 {
                                           backing: .buffered, defer: false)
                     window.isReleasedWhenClosed = false
                     window.title = "Stage group fixture"
+                    window.setAccessibilityIdentifier("nearpane.fixture." + name + "." + String(index))
                     window.backgroundColor = index == 1 ? .yellow : (name == "a" ? .red : .blue)
                     windows.append(window)
                     window.orderFront(nil)
@@ -51,11 +52,24 @@ private func birth(_ pid: Int32) throws -> UInt64 {
                                   numbers: windows.map { UInt32($0.windowNumber) },
                                   onActiveSpace: windows.allSatisfy { $0.isVisible && $0.isOnActiveSpace && $0.screen == screen })
                 try JSONEncoder().encode(owner).write(to: root.appendingPathComponent(name + ".json"), options: .atomic)
-                let deadline = ContinuousClock.now + .seconds(40)
+                var lastSample = ""
+                let deadline = ContinuousClock.now + .seconds(70)
                 while ContinuousClock.now < deadline && !FileManager.default.fileExists(atPath: root.appendingPathComponent("stop").path) {
-                    try await Task.sleep(for: .milliseconds(100))
+                    if let nonce = try? String(contentsOf: root.appendingPathComponent("sample"), encoding: .utf8),
+                       UUID(uuidString: nonce) != nil, nonce != lastSample {
+                        let samples = windows.map(OwnedWindowState.init)
+                        let out = root.appendingPathComponent(name + "-" + nonce + ".json")
+                        try JSONEncoder().encode(samples).write(to: out, options: .atomic)
+                        lastSample = nonce
+                    }
+                    try await Task.sleep(for: .milliseconds(40))
                 }
-            } catch { fputs("Fixture owner failed: \(error)\n", stderr) }
+            } catch {
+                let result = ["status": error is FixtureError ? "BLOCKED" : "UNKNOWN", "reason": String(describing: error)]
+                if let data = try? JSONEncoder().encode(result) {
+                    try? data.write(to: root.appendingPathComponent(name + "-failure.json"), options: .atomic)
+                }
+            }
             windows.forEach { $0.close() }
             NSApp.terminate(nil)
         }
@@ -128,9 +142,17 @@ private func birth(_ pid: Int32) throws -> UInt64 {
 @main private struct Fixture {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 2, ["a", "b", "record", "reopen"].contains(args[0]),
+        guard args.count == 2, ["a", "b", "record", "reopen", "visibility"].contains(args[0]),
               ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else { exit(64) }
         let root = URL(fileURLWithPath: args[1], isDirectory: true)
+        if args[0] == "visibility" {
+            Task { @MainActor in
+                do { try await qualifyVisibility(root: root); exit(0) }
+                catch { fputs("Visibility receipt failed: \(error)\n", stderr); exit(1) }
+            }
+            RunLoop.main.run()
+            return
+        }
         if args[0] == "record" || args[0] == "reopen" {
             do { try check(args[0], root: root) }
             catch { fputs("Fixture check \(args[0]) failed: \(error)\n", stderr); exit(1) }

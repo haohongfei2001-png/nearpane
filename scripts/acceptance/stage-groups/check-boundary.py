@@ -7,7 +7,8 @@ import sys
 helper = Path(sys.argv[1]).resolve(strict=True)
 symbols = subprocess.check_output(["nm", "-a", helper], text=True)
 blocked = ("_NPSendAdjacentSwipe", "_NPSendDiagnosticAdjacentSwipe", "_NPCreateWindowMove",
-           "_NPSubmitWindowMove", "_NPDockInstalledProtocol", "_CGEventPostToPid")
+           "_NPSubmitWindowMove", "_NPDockInstalledProtocol", "_CGEventPost",
+           "_SLSManagedDisplaySetCurrentSpace", "_SLSMoveWindowsToManagedSpace")
 leaks = [name for name in blocked if name in symbols]
 root = Path(__file__).resolve().parents[3]
 ui = {"Sources/NearpaneHost/NearpaneApp.swift": ["showSpaceMenu", "NativeSpaceMenu.request"],
