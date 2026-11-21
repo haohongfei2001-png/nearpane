@@ -23,6 +23,31 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+FIXTURE_REQUIREMENT = (
+    b'anchor apple generic and identifier "com.holdsnow.nearpane.engine-fixture.a" '
+    b'and certificate leaf[subject.OU] = "ZB9D4T66QB" '
+    b'and certificate leaf[field.1.2.840.113635.100.6.1.13] exists'
+)
+ENROLLED_FIXTURE_CDHASH = b"d13992d0ce5f73ce8c7ad8b019a0ecec39c5bd37"
+
+
+def verify_fixture_boundary(image):
+    # The installed diagnostic attests one exact signed guest. The isolated library
+    # additionally admits ad-hoc child processes and must never be linked here.
+    for symbol in (b"SLSOrderWindow", b"np_is_enrolled_fixture", b"np_fixture_corner_unposted_mouse"):
+        if symbol in image:
+            raise ValueError("Unqualified engine entry point in Host: " + symbol.decode())
+    marker = b'identifier "com.holdsnow.nearpane.engine-fixture'
+    start = 0
+    while (hit := image.find(marker, start)) >= 0:
+        left = image.rfind(b"\x00", 0, hit)
+        right = image.find(b"\x00", hit)
+        if (left < 0 or right < 0 or image[left+1:right] != FIXTURE_REQUIREMENT
+                or b"\x00" + ENROLLED_FIXTURE_CDHASH + b"\x00" not in image):
+            raise ValueError("Unreviewed fixture signing rule or absent enrolled CDHash in Host")
+        start = right + 1
+
+
 def verify_engine_boundary(contents, plist, binary, host_image, sandbox):
     private_names = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces",
                      b"SLSMainConnectionID", b"_AXUIElementGetWindow")
@@ -52,9 +77,7 @@ def verify_engine_boundary(contents, plist, binary, host_image, sandbox):
     imports = subprocess.check_output(["/usr/bin/nm", "-u", str(binary)], text=True).splitlines()
     if any(line.split() and re.match(r"^(_(?:SLS|CGS)[A-Z]|__AXUIElementGetWindow$)", line.split()[-1]) for line in imports):
         raise ValueError("Host imports private WindowServer symbols directly")
-    if any(marker in host_image for marker in (b"SLSOrderWindow", b"np_is_enrolled_fixture",
-                                               b'identifier "com.holdsnow.nearpane.engine-fixture')):
-        raise ValueError("Host contains an unqualified ordering route or experimental fixture code")
+    verify_fixture_boundary(host_image)
     for module in ("NearpaneCore", "NearpaneHost", "NearpaneUI", "NearpaneWindowEngine"):
         for path in (ROOT/"Sources"/module).rglob("*.swift"):
             if any(symbol in path.read_bytes() for symbol in private_names):

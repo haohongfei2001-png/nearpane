@@ -17,6 +17,28 @@ COMMIT = "a" * 40
 FILES = {"Sources/one.swift": b"first", "Sources/two.swift": b"second"}
 
 
+class PackagedWindowEngineTests(unittest.TestCase):
+    def test_only_the_reviewed_installed_guest_rule_and_pin_are_admitted(self):
+        spec = importlib.util.spec_from_file_location("package_verifier", Path(__file__).with_name("verify-packages.py"))
+        verifier = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(verifier)
+        rule = verifier.FIXTURE_REQUIREMENT
+        pin = verifier.ENROLLED_FIXTURE_CDHASH
+        def image(*records):
+            return b"\x00" + b"\x00".join(records) + b"\x00"
+
+        verifier.verify_fixture_boundary(image(rule, pin))
+        verifier.verify_fixture_boundary(image(b"no fixture route"))
+        loose = b'identifier "com.holdsnow.nearpane.engine-fixture.a"'
+        for invalid in (image(rule), image(rule, b"0" * 40), image(loose, pin),
+                        image(rule + b" or always", pin), image(b"always or " + rule, pin),
+                        image(rule.replace(b"ZB9D4T66QB", b"OTHERTEAM1"), pin),
+                        image(rule, pin, loose), image(rule, pin, b"np_is_enrolled_fixture"),
+                        image(rule, pin, b"np_fixture_corner_unposted_mouse"), image(rule, pin, b"SLSOrderWindow")):
+            with self.subTest(image=invalid), self.assertRaises(ValueError):
+                verifier.verify_fixture_boundary(invalid)
+
+
 def fixture():
     hashes = {p: hashlib.sha256(b).hexdigest() for p, b in FILES.items()}
     return dict(repository="example/Upstream", commit=COMMIT, treeSHA256=resolver.tree_hash(hashes),
