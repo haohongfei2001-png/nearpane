@@ -1,0 +1,1 @@
+StageWindowEngineWitnessTests.swift:10:55: error: mutation of captured var 'reads' in concurrently-executing code [#SendableClosureCaptures]

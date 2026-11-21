@@ -141,6 +141,16 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
 
     public var requiresRecovery: Bool { ledger.pending != nil || !(ledger.releases ?? []).isEmpty }
     public var retainedOwner: StageEngineOwner? { ledger.owner }
+    /// An idle check never tries to regain focus. An external takeover withdraws the active claim.
+    public func observesActiveGroup(_ sample: StageWindowSample, owner: StageEngineOwner) -> Bool {
+        guard !busy, !requiresRecovery, ledger.owner == owner, sample.generation == owner.generation,
+              let focus = sample.focus, let group = store.groups(in: sample.scope).first(where: { $0.verifiedActive == true }),
+              group.members.contains(where: { $0.windowHint == focus }) else { return false }
+        return group.members.allSatisfy { member in
+            guard let state = sample.windows[member.windowHint] else { return false }
+            return state.visibility == .visible && store.isBound(member, to: state.lifetime)
+        } && ledger.owned.filter { $0.scope == sample.scope }.allSatisfy { sample.windows[$0.hidden.window] == $0.hidden }
+    }
     public func confirmsHidden(group: UUID, member: UUID, state: StageWindowState, scope: StageGroupScope, owner: StageEngineOwner) -> Bool {
         !busy && !requiresRecovery && ledger.owner == owner &&
             ledger.owned.contains { $0.scope == scope && $0.group == group && $0.member == member && $0.hidden == state && $0.owner == owner }

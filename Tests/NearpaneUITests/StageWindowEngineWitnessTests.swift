@@ -5,6 +5,25 @@ import NearpaneCore
 import Testing
 
 @MainActor struct StageWindowEngineWitnessTests {
+    @Test func windowOwnerKeepsMetadataReaderAliveAfterSidebarHides() async {
+        actor Counter {
+            private(set) var reads = 0
+            func increment() { reads += 1 }
+        }
+        let counter = Counter()
+        let feed = CurrentDesktopWindows(read: { _ in await counter.increment(); throw StageSwitchError.unavailable },
+                                         sessionAvailable: { true }, fingerprint: { 0 })
+        feed.observe(true)
+        feed.observeStageOwnership(true)
+        feed.observe(false)
+        _ = await feed.readNow()
+        let whileOwned = await counter.reads
+        #expect(whileOwned > 0)
+        feed.observeStageOwnership(false)
+        _ = await feed.readNow()
+        let afterRelease = await counter.reads
+        #expect(afterRelease == whileOwned)
+    }
     let id = ManagedWindowID(pid:15,launch:23,number:3,element:UUID())
     let display = DisplayObservation(id:"A",frame:.init(width:1200,height:900),rotationDegrees:0,backingScale:1)
     let other = DisplayObservation(id:"B",frame:.init(x:1200,width:900,height:900),rotationDegrees:0,backingScale:1)

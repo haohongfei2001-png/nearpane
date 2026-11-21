@@ -71,11 +71,11 @@ import NearpaneOrdinaryWindowRuntime
         let records = Self.shipped.compactMap { StageWindowEngineAttestation.read($0,profile:profile) }
         if admissions != records { witness?.cancelArrivals(); admissions = records; granted = nil; consentRequest = nil }
         let selected = StageWindowEngineAttestation.installedEnvironment(snapshot).flatMap {
-            StageEngineQualification.choose(records,in:$0,retaining:engine?.session?.owner.backend)
+            engine?.preferredRecord(records, in: $0)
         }
         observedCapability = selected?.backend
-        guard let engine, let session = engine.session, session.qualifiedHiddenState != nil else { return }
-        if selected?.evidence != session.owner.evidence { freeze() }
+        guard let session = engine?.session, !session.isFrozen else { return }
+        if session.qualifiedHiddenState == nil || selected?.evidence != session.owner.evidence { freeze() }
     }
 
     /// Only a physically qualified Stage environment gets this projection. The signed reader's
@@ -84,7 +84,7 @@ import NearpaneOrdinaryWindowRuntime
         groupProjection = nil
         guard !Self.shipped.isEmpty, !admissions.isEmpty, raw.native?.catalogComplete == true,
               raw.native?.stageManagerEnabled == false, let environment = StageWindowEngineAttestation.installedEnvironment(raw),
-              StageEngineQualification.choose(admissions, in: environment, retaining: engine?.session?.owner.backend) != nil,
+              engine?.preferredRecord(admissions, in: environment) != nil,
               let access = try? StageHostAccess(expectedCDHash: environment.hostCDHash) else { return }
         groupProjection = Self.projectGroups(raw) { try access.currentSurface($0, home: $1) }
     }
@@ -133,7 +133,10 @@ import NearpaneOrdinaryWindowRuntime
         watchers.append((workspace, workspace.addObserver(forName: NSWorkspace.didActivateApplicationNotification,
                 object: nil, queue: .main) { [weak self] notification in
             let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
-            MainActor.assumeIsolated { self?.witness?.cancelArrivals(unlessFocusedPID: pid) }
+            MainActor.assumeIsolated {
+                self?.witness?.cancelArrivals(unlessFocusedPID: pid)
+                self?.feed?.changed()
+            }
         }))
         for name in [NSWorkspace.willSleepNotification,NSWorkspace.sessionDidResignActiveNotification,
                      NSWorkspace.activeSpaceDidChangeNotification] {
@@ -220,6 +223,7 @@ import NearpaneOrdinaryWindowRuntime
                 if engine.session == nil {
                     if Self.shipped.isEmpty { self?.stopWatching() }
                     self?.heldGroups = []
+                    self?.feed?.observeStageOwnership(false)
                 }
             }
             do { try await engine.release() } catch { /* Retain the prior worker and unresolved WAL. */ }
@@ -268,7 +272,7 @@ import NearpaneOrdinaryWindowRuntime
         else { throw StageSwitchError.recoveryRequired }
         let scope = StageGroupScope(display:window.display,nativeSpace:space)
         guard let env = StageWindowEngineAttestation.installedEnvironment(snapshot),
-              let selected = StageEngineQualification.choose(admissions,in:env,retaining:engine.session?.owner.backend) else {
+              let selected = engine.preferredRecord(admissions, in: env) else {
             if engine.holdsWindowDispatch { await release(); throw StageSwitchError.unavailable }
             return false
         }
@@ -301,6 +305,7 @@ import NearpaneOrdinaryWindowRuntime
             guard let profile else { return nil }
             return StageEngineSession(owner:.init(qualification:q,generation:witness.generation),witness:witness,profile:profile)
         }
+        if engine.session != nil { feed.observeStageOwnership(true) }
         guard available, permitted() else { throw StageSwitchError.unavailable }
         do {
             try await engine.activate(group,member:saved.id,in:scope,consent:true,current:permitted)
@@ -332,7 +337,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func refreshHeld(feed: CurrentDesktopWindows) {
-        guard let witness, heldRefresh == nil, engine?.canObserve == true, let session = engine?.session,
+        guard let witness, heldRefresh == nil, let engine, engine.canObserve, let session = engine.session,
+              engine.coordinator.retainedOwner == session.owner,
               ProcessInfo.processInfo.systemUptime - lastVerifiedAt > 0.75 else { return }
         let token = revision, scope = witness.scope
         heldRefresh = Task { [weak self,weak feed] in
@@ -341,7 +347,10 @@ import NearpaneOrdinaryWindowRuntime
             do {
                 try await session.checkHealth()
                 do {
-                    _ = try await session.read(scope)
+                    let sample = try await session.read(scope)
+                    guard engine.coordinator.observesActiveGroup(sample, owner: session.owner) else {
+                        throw StageSwitchError.ownership
+                    }
                 } catch let failure as StageSwitchError where failure == .interrupted || failure == .incomplete {
                     // A newly visible window can reach the desktop reader before its independent AX
                     // creation notification. Only an original event and two complete reads may admit it.

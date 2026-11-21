@@ -9,6 +9,7 @@ import Testing
     var sequence: UInt64 = 0, windows = [NativeSpaceWindow:StageWindowState](), focus: NativeSpaceWindow?
     var visible = [NativeSpaceWindow:StageWindowState](), writeIntents = Set<UUID>()
     var health = true, recovery = true, zeroLeases = true, canStart = true, unknownHide: UInt32?, badReadback: UInt32?
+    var workerHealthy = true
     var beforeCloseRead: (() -> Void)?
     var prepared = Set<UUID>(), confirmed = Set<UUID>(), confirmationFailure: UInt32?
     var visibleAfterMutation = [Int]()
@@ -59,7 +60,7 @@ import Testing
               confirmed.insert(c.intent).inserted, after.window.number != confirmationFailure else { throw StageSwitchError.recoveryRequired }
     }
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply {
-        .init(status:health ? 0 : 2,flags:health ? 64 | 16 : 0,intent:intent,nativeID:0)
+        .init(status:workerHealthy ? 0 : 2,flags:workerHealthy ? 64 | 16 : 0,intent:intent,nativeID:0)
     }
     func revoke() { revokes += 1 }
     func close() async -> Bool {
@@ -171,6 +172,58 @@ import Testing
             return StageEngineSession(owner:.init(qualification:q,generation:fresh.epoch),witness:fresh,transport:fresh)
         }
         #expect(selected && invoked && store.activeGroup(in:f.scope)==nil)
+    }
+
+    @Test func unhealthyBackendYieldsOnlyAfterRecoveryAndPositiveClose() async throws {
+        let (p, _, engine, original, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let fast = qualification(.spaces, metrics(3)), spare = qualification(.corner, metrics(7))
+        let records = [fast, spare]
+        let before = original.windows
+        try await bind(engine, original, fast)
+        try await activate(groups[0], engine, original)
+        let session = try #require(engine.session)
+        original.workerHealthy = false
+        await #expect(throws: StageSwitchError.unavailable) { try await session.checkHealth() }
+        #expect(session.backendFailed)
+        #expect(engine.preferredRecord([fast], in: environment) == nil)
+        #expect(engine.preferredRecord(records, in: environment) == spare)
+        original.zeroLeases = false
+        var allocations = 0
+        await #expect(throws: StageSwitchError.recoveryRequired) {
+            _ = try await engine.configure(for: environment, records: records, exclusive: { true }) { _ in allocations += 1; return nil }
+        }
+        #expect(allocations == 0 && engine.session === session && original.windows == before)
+        original.zeroLeases = true
+        let fresh = EngineFixture()
+        let ok = try await engine.configure(for: environment, records: records, exclusive: { true }) { q in
+            #expect(original.closes == 1 && q == spare)
+            allocations += 1
+            return StageEngineSession(owner: .init(qualification: q, generation: fresh.epoch), witness: fresh, transport: fresh)
+        }
+        #expect(ok && allocations == 1 && fresh.effects.isEmpty)
+        try await engine.release()
+        #expect(engine.preferredRecord(records, in: environment) == spare)
+    }
+
+    @Test func externalFocusIsReadOnlyAndPermissionLossDoesNotDisqualifyTheBackend() async throws {
+        let (p, _, engine, runtime, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let q = qualification(.corner)
+        try await bind(engine, runtime, q)
+        try await activate(groups[0], engine, runtime)
+        let session = try #require(engine.session)
+        let active = try await session.read(runtime.scope)
+        #expect(engine.coordinator.observesActiveGroup(active, owner: session.owner))
+        let user = try #require(runtime.windows.keys.first { $0.number == 4 })
+        runtime.focus = user
+        let external = try await session.read(runtime.scope)
+        #expect(!engine.coordinator.observesActiveGroup(external, owner: session.owner))
+        runtime.health = false
+        await #expect(throws: StageSwitchError.unavailable) { try await session.checkHealth() }
+        #expect(!session.backendFailed && engine.preferredRecord([q], in: environment) == q)
+        try await engine.release()
+        #expect(runtime.focus == user && runtime.windows.values.allSatisfy { $0.visibility == .visible })
     }
 
     @Test func oneUnknownRustWriteBlocksReplacementButOtherConfirmedWindowsCanReturn() async throws {

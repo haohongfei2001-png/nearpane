@@ -133,10 +133,11 @@ public struct StageEngineQualification: Codable, Equatable, Sendable {
             match[0].completePhysical
     }
     public static func choose(_ records: [Self], in live: StageEngineEnvironment,
-                              retaining owner: StageWindowBackend? = nil) -> Self? {
+                              retaining owner: StageWindowBackend? = nil, excluding unavailable: Set<UUID> = []) -> Self? {
         let matching = records.filter { $0.environment == live }
         let byBackend = Dictionary(grouping: matching, by: \.backend)
-        let eligible = matching.filter { byBackend[$0.backend]?.count == 1 && $0.admits(live,reviewed:records) }
+        let reviewed = records.filter { !unavailable.contains($0.evidence) }
+        let eligible = matching.filter { byBackend[$0.backend]?.count == 1 && !unavailable.contains($0.evidence) && $0.admits(live,reviewed:reviewed) }
         if eligible.count == 1 { return eligible[0] }
         guard eligible.count == 2 else { return nil }
         let a = eligible[0], b = eligible[1]

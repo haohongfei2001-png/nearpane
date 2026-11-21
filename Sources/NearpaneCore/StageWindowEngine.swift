@@ -53,6 +53,8 @@ package struct StageEngineReply {
     public var engineOwner: StageEngineOwner? { owner }
     private let witness: any StageEngineWindowWitness, transport: any StageEngineTransport
     private var frozen = false, closed = false, recovering = false
+    public private(set) var backendFailed = false
+    public var isFrozen: Bool { frozen }
     private var enrolledLifetimes: [NativeSpaceWindow: UUID]?
     var intentIsCurrent: @MainActor () -> Bool = { false }
     var canAttemptRelease: Bool { !closed && witness.permits(owner, restoring: true) }
@@ -92,16 +94,23 @@ package struct StageEngineReply {
             try await transport.start(owner,nativeID:native)
             try await checkHealth()
             guard intentIsCurrent() else { throw StageSwitchError.interrupted }
-        } catch { freeze(); throw error }
+        } catch { stopAfterBackendFailure(current: intentIsCurrent()); throw error }
+    }
+
+    private func stopAfterBackendFailure(current: Bool) {
+        if current && !Task.isCancelled && qualifiedHiddenState != nil { backendFailed = true }
+        freeze()
     }
 
     public func checkHealth() async throws {
         let intent = UUID()
         guard qualifiedHiddenState != nil else { throw StageSwitchError.unavailable }
-        let health = try await transport.health(owner,intent:intent)
-        guard qualifiedHiddenState != nil, health.verifies(intent,64 | (owner.backend == .corner ? 16 : 0)) else {
-            freeze(); throw StageSwitchError.unavailable
-        }
+        do {
+            let health = try await transport.health(owner,intent:intent)
+            guard qualifiedHiddenState != nil, health.verifies(intent,64 | (owner.backend == .corner ? 16 : 0)) else {
+                throw StageSwitchError.unavailable
+            }
+        } catch { stopAfterBackendFailure(current: true); throw error }
     }
 
     public func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) async throws {
@@ -125,8 +134,12 @@ package struct StageEngineReply {
         // Restoration can survive a revoked event tap/failed probe; the old worker must still explicitly
         // attest its retained ownership via RESTORE. No new hide/show/place follows a lost health result.
         if !c.restoring {
-            let health = try await transport.submit(6,owner:owner,c)
-            guard eligible(), health.verifies(c.intent,64 | (owner.backend == .corner ? 16 : 0)) else { freeze(); throw StageSwitchError.unavailable }
+            do {
+                let health = try await transport.submit(6,owner:owner,c)
+                guard eligible(), health.verifies(c.intent,64 | (owner.backend == .corner ? 16 : 0)) else {
+                    throw StageSwitchError.unavailable
+                }
+            } catch { stopAfterBackendFailure(current: eligible()); throw error }
             // A newly qualified Spaces handle may just have completed its own canary. Confirm that its
             // cleanup really returned the user roster, current Space and focus before the first real write.
             let checked = try await read(c.scope)
@@ -204,6 +217,12 @@ package struct StageEngineReply {
     public private(set) var session: StageEngineSession?
     public private(set) var lastFailure: StageSwitchError?
     private var busy = false, releaseRequested = false, revision = UUID()
+    private var failedEvidence = Set<UUID>()
+    public func preferredRecord(_ records: [StageEngineQualification], in environment: StageEngineEnvironment) -> StageEngineQualification? {
+        var unavailable = failedEvidence
+        if let session, session.backendFailed { unavailable.insert(session.owner.evidence) }
+        return StageEngineQualification.choose(records, in: environment, retaining: session?.owner.backend, excluding: unavailable)
+    }
     public var canObserve: Bool { !busy && !releaseRequested && session?.qualifiedHiddenState != nil }
     public var canAttemptOwnedRelease: Bool { !busy && session?.canAttemptRelease == true }
     public var holdsWindowDispatch: Bool { busy || releaseRequested || session != nil || coordinator.hasWindowAuthority }
@@ -239,6 +258,7 @@ package struct StageEngineReply {
             guard !coordinator.hasWindowAuthority else { throw StageSwitchError.recoveryRequired }
             return
         }
+        if previous.backendFailed { failedEvidence.insert(previous.owner.evidence) }
         let token = revision
         do {
             previous.beginRelease()
@@ -258,7 +278,7 @@ package struct StageEngineReply {
         guard !busy, !releaseRequested else { throw StageSwitchError.busy }
         busy = true
         defer { busy = false }
-        let next = StageEngineQualification.choose(records,in:environment,retaining:session?.owner.backend)
+        let next = preferredRecord(records, in: environment)
         if let session, let next, session.owner.environment == environment && session.owner.evidence == next.evidence &&
                 session.owner.backend == next.backend && session.qualifiedHiddenState != nil && exclusive() { return true }
         if session != nil {

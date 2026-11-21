@@ -136,6 +136,7 @@ import OSLog
     @ObservationIgnored var didSample: (() -> Void)?
     private var panelRequested = false
     private var managementRequested = false
+    private var stageOwnershipObserved = false
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
          fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint,
@@ -189,8 +190,14 @@ import OSLog
         updateObservation()
     }
 
+    func observeStageOwnership(_ enabled: Bool) {
+        guard enabled != stageOwnershipObserved else { return }
+        stageOwnershipObserved = enabled
+        updateObservation()
+    }
+
     private var observationRequested: Bool {
-        panelRequested || managementRequested || (splitObservationAllowed && (fullscreenHint || sampleNextSpace || nativeFullscreenSeen))
+        panelRequested || managementRequested || stageOwnershipObserved || (splitObservationAllowed && (fullscreenHint || sampleNextSpace || nativeFullscreenSeen))
     }
 
     private func updateObservation() {

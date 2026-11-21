@@ -6,6 +6,10 @@
 
 首次选组现在会先核对目标窗已获焦，再移开原组。外部焦点在写入中变化时，保留意图并停止。新普通窗口默认独立成组。加入、移出和拖放沿用同一侧栏队列，等待旧执行器归还窗口。旁屏目录可在本屏事务期间记录新窗。7 个套件共 52 项通过，包括组切换、同应用多窗和焦点中途改变的故障注入。物理双屏独立切换及正式安装版整组切换仍待验收。[调度回归](../verification/window-engine/stage-product/groups.xml) · [所有权模块 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44906708535)
 
+同一 Host 会话内，运行时健康检查失败的资格记录会退出选择。原写入者有未确认资源时，备用后端无法接管。权限暂时失效单独处理。侧栏收起后，持有窗口的执行器继续观察实际焦点与可见性。27 项隔离测试通过。[健康与恢复回归](../verification/window-engine/stage-product/health.xml)
+
+托管 macOS 26（25G332）的两个普通签名应用在旧路径对照中复现了最小化增加 Dock 图块、普通角落停放遭到鼠标命中。桌面显示与恢复通过，两组失败夹具均已正常退出。Rust Corner 的输入门和 Spaces 的实体机单窗资格仍待各自验证。[原始对照、失败记录和录屏](../verification/window-engine/stage-product/hosted-44906708529/)
+
 ## 2026-11-21 · 同机原位安装预检
 
 5.22（90）候选 `b7424a2` 已在私有目录完成 Developer ID 签名和静态验签。实体机 macOS 27.0（26A428）、SIP 开启。原位监督程序在正常退出日常 Host 前返回 **BLOCKED**。活动资料中有一扇普通窗口尚待恢复，进程代际和窗口号两次吻合，当前宽度 1230，记录的原始宽度 1211。原应用、资料和恢复日志均已完整备份，收尾核对原 PID、出生代、签名和资料指纹一致。[本次实机结论](../verification/window-engine/in-place-26A428/RESULTS.md) · [原位安装入口收据](../verification/window-engine/in-place-26A428/05-installation.json)
