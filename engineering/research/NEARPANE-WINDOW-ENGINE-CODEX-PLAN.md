@@ -1,6 +1,6 @@
 # Nearpane Window Engine — Codex Implementation Plan
 
-Date: 2026-11-21. Target PR #15 branch `codex/r4-native-candidate-20261120`, starting HEAD `3304e464efe92d4e4791532c23ebb52eb6658c6d`.
+Date: 2026-11-21. Target PR #15 branch `codex/r4-native-candidate-20261120`, starting HEAD `76d9ca80e1a10f57d0916c8555fa5199d376d4ba`.
 This plan is not authorization to mutate foreign windows.
 
 ## 0. Binding decision
@@ -124,3 +124,30 @@ The next Codex task is not “implement StageGroup hiding.” It is either:
 - separately authorized isolated PoC for a genuinely new visibility mechanism.
 
 Without that authorization, make no code changes. Correct status: logical StageGroup architecture exists; production visibility is BLOCKED; native-grade replacement is not demonstrated.
+
+
+## 8. Final supplemental decision at HEAD 76d9ca8
+
+The plan baseline is refreshed to `76d9ca80e1a10f57d0916c8555fa5199d376d4ba`. The two hosted artifacts from run [44865492229](https://github.com/haohongfei2001-png/nearpane/actions/runs/44865492229) are macOS 26.7.2 (25G332) and macOS 27.0.1 (26A434), both with SIP Disabled. The required macOS 27.0 (26A428), SIP Enabled test is NOT_RUN. The 27.0.1 artifact must not be relabeled as 27.0.
+
+### Codex work order — implement, then stop
+
+**Authorized implementation scope:**
+1. Preserve logical StageGroup IDs, membership, per-display directories, layout, exact window identity leases, and passive preview/observation.
+2. Keep `WindowVisibilityProvider` capability result `unsupported` / writes disabled for all current public builds.
+3. Make unsupported visibility explicit in UI and product copy; do not imply inactive groups are hidden or input-isolated.
+4. Finish the no-side-effect architecture boundary only where missing: typed provider protocol, capability matrix keyed by OS build/security/window class, transition intent/WAL model, identity-generation checks, cancellation on user input/system takeover, and fail-closed recovery.
+5. Add deterministic unit tests for stale PID/CGWindowID, AX invalidation, process relaunch, display generation changes, duplicate membership, WAL interruption and user action superseding a pending intent.
+6. Retain native Mission Control/Spaces/Stage Manager as system-owned; passive handoff only.
+
+**Explicitly prohibited:**
+- No AXMinimized provider or fallback, including the user's minimize-to-app-icon Dock mode.
+- No corner/off-screen parking.
+- No Non-activating Occlusion Shield used to assert hidden state or input isolation.
+- No ScreenCaptureKit screen image used as a substitute for source-window visibility.
+- No foreign SLS/SkyLight writes, private virtual displays, Dock scripting additions, SIP changes, preference changes, notarization or release.
+- No new exploratory branch or PoC for the same failed mechanisms.
+
+### Completion and stop conditions
+
+Codex should implement only the authorized boundary work above, run the repository's unit/CI checks, update the status document with exact implemented files/tests, and stop. It must not invent a new visibility mechanism. A future research task may reopen only if primary-source documentation reveals a new supported public API/entitlement that directly controls arbitrary foreign-window visibility or if Apple changes the supported distribution model. The existing evidence does not establish universal impossibility, but it does establish NO-GO for the current candidates.
