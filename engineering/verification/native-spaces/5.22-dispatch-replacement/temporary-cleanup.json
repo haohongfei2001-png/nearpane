@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "ownedTemporaryApplications": [
+    {
+      "kind": "intermediate-signed-export",
+      "source": "fa911663316a02a5c16e1e7cfbfb2a36a02ab956",
+      "intermediateExecutableSHA256": "9ad0183c81b71c815ca9fdbb090e2f78fa4f9df893bc11b566d7c0fe1c858d68",
+      "registered": false,
+      "removed": true
+    },
+    {
+      "kind": "intermediate-signed-export",
+      "source": "3ebbc7dca354cc29c3fa27883fbc4bd749e595c4",
+      "intermediateExecutableSHA256": "9c10ec3056fe63b419a3743424e2f9554380a15dbf529cb0d1a1c9aed5783b5d",
+      "registered": false,
+      "removed": true
+    },
+    {
+      "kind": "one-use-diagnostic",
+      "source": "04a3e760dd9bf1bcca914830e32315e7701b5f8a",
+      "intermediateExecutableSHA256": "0b8b1ee1c17932507c3b24c2e63f334a81e5476dd64cae6b0610111fd014ba75",
+      "registered": false,
+      "removed": true
+    },
+    {
+      "kind": "one-use-diagnostic",
+      "source": "35eecd2af47d99573be92100c668805aefd46410",
+      "intermediateExecutableSHA256": "8afa6477b42cfc6b6542efeefa4090b565e577ae5ab826a0f08deab7725928e9",
+      "registered": false,
+      "removed": true
+    },
+    {
+      "kind": "one-use-diagnostic",
+      "source": "35eecd2af47d99573be92100c668805aefd46410",
+      "intermediateExecutableSHA256": "96fe2ee60ab6c499497636e6d7c3179048785a300d52c9171f05ddfb73e46741",
+      "registered": false,
+      "removed": true
+    }
+  ],
+  "issuerKeysRetired": 3,
+  "liveDailySource": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "signedCandidateKept": true,
+  "archivedFallbackKept": true
+}

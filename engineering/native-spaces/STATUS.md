@@ -2,11 +2,11 @@
 
 ## 2026-11-21 · 系统调度交接
 
-5.22（90）签名候选 `35eecd2` 已在 macOS 27.0（26A428）验证台前调度开启时的快捷键交还。两次正式 Host 读回为零注册、零预览流，独立进程能实际取得并释放自定义组合键。修复安装脚本抢占前台后，原桌面和原窗口两次读回一致。本屏空间目录已接入正式菜单，当前构建保持只读。真实切换、迁窗、原生全屏 Split View、多屏与苹果同条件速度仍未通过。PR #15 保持 Draft。[实机逐项结果](../verification/native-spaces/5.22-dispatch-replacement/RESULTS.md) · [同包分发门槛](../verification/native-spaces/5.22-p6/integrated-35eecd2/hosted-macos-26.json) · [发布验收合同](ACCEPTANCE.md)
+5.22（90）签名候选 `35eecd2` 已在 macOS 27.0（26A428）验证台前调度开启时的快捷键交还。两次正式 Host 读回为零注册、零预览流，独立进程能实际取得并释放自定义组合键。修复安装脚本抢占前台后，原桌面和原窗口两次读回一致。本屏空间目录已接入正式菜单，当前构建保持只读。真实切换、迁窗、原生全屏 Split View、多屏与苹果同条件速度仍未通过。最后一次 P0 准入读到新的鼠标按下、抬起以及焦点变化，零投递，保留用户的新状态。日常安装仅登记一份，三项已有系统权限均已读回允许。PR #15 保持 Draft。[实机逐项结果](../verification/native-spaces/5.22-dispatch-replacement/RESULTS.md) · [同包分发门槛](../verification/native-spaces/5.22-p6/integrated-35eecd2/hosted-macos-26.json) · [发布验收合同](ACCEPTANCE.md)
 
 ## 2026-11-21 · 同屏拖放与切窗
 
-**当前签名候选 `f7997a7`，5.22（90）。** 在 macOS 27 正式安装路径，同一普通桌面里，两扇窗口向左或向右拖放分屏、拖回自身和不同应用间右拖均通过。最终槽位各为 615 × 923 点，两个系统来源连续两次读回一致。普通启动下十次鼠标选窗均命中目标编辑器，也均取得目标首帧。相较旧版 `d81c458`，松开至焦点的中位区间由 320–335 ms 降至 105–124 ms，至真实首帧由 358–378 ms 降至 139–159 ms。放手后首次确认双窗布局仍需 1.64–1.86 秒。日常安装 `d2d0bb6`、配置及原有台前调度状态已经恢复，`b55ed96` 回退存档原样保留。台前调度开启时由系统管理窗口。macOS 27 跨 Space 动作继续关闭，全屏 Split View、多屏、系统同条件性能及公证仍待通过。PR #15 保持 Draft。[正式验收、截图与视频](../verification/native-spaces/5.22-90-sidebar-pair/RESULTS.md) · [跨应用读回](../verification/native-spaces/5.22-90-sidebar-pair/final-cross/result.json) · [签名候选](../verification/native-spaces/5.22-p6/integrated-f7997a7/draft-asset.json)
+**此前完成同屏实测的签名候选 `f7997a7`，5.22（90）。** 在 macOS 27 正式安装路径，同一普通桌面里，两扇窗口向左或向右拖放分屏、拖回自身和不同应用间右拖均通过。最终槽位各为 615 × 923 点，两个系统来源连续两次读回一致。普通启动下十次鼠标选窗均命中目标编辑器，也均取得目标首帧。相较旧版 `d81c458`，松开至焦点的中位区间由 320–335 ms 降至 105–124 ms，至真实首帧由 358–378 ms 降至 139–159 ms。放手后首次确认双窗布局仍需 1.64–1.86 秒。日常安装 `d2d0bb6`、配置及原有台前调度状态已经恢复，`b55ed96` 回退存档原样保留。台前调度开启时由系统管理窗口。macOS 27 跨 Space 动作继续关闭，全屏 Split View、多屏、系统同条件性能及公证仍待通过。PR #15 保持 Draft。[正式验收、截图与视频](../verification/native-spaces/5.22-90-sidebar-pair/RESULTS.md) · [跨应用读回](../verification/native-spaces/5.22-90-sidebar-pair/final-cross/result.json) · [签名候选](../verification/native-spaces/5.22-p6/integrated-f7997a7/draft-asset.json)
 
 该候选通过 628 项 Swift 测试、317 项 Python 验收测试及托管 macOS 26 原生 CI。云端重新下载的 ZIP 与实机候选哈希一致，13 个代码对象、18 个切片签名通过。两台系统均确认缺少公证票据。[本轮机器摘要](../verification/native-spaces/5.22-90-sidebar-pair/final-acceptance.json) · [云端同包验签与 Gatekeeper 结果](../verification/native-spaces/5.22-p6/integrated-f7997a7/hosted-macos-26.json)
 
