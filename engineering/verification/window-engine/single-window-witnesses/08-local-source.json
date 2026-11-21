@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "scope": "automatedSourceTests",
+  "status": "PASS",
+  "checkout": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+  "architecture": "arm64",
+  "macOSBuild": "26A428",
+  "physicalQualification": "NOT_RUN",
+  "checks": {
+    "rust": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "rust.log",
+      "stderr": "rust.stderr.log",
+      "passed": 101
+    },
+    "release": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "release.log",
+      "stderr": "release.stderr.log",
+      "features": [
+        "corner",
+        "spaces"
+      ],
+      "sha256": "ea6dbb8d7cacb007669b2e4b0cdb30b2c0fbf976fffc6107a839cff0926800a7"
+    },
+    "c-abi-link": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "c-abi-link.log",
+      "stderr": "c-abi-link.stderr.log"
+    },
+    "c-abi": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "c-abi.log",
+      "stderr": "c-abi.stderr.log",
+      "readback": {
+        "closedWithoutOwnedResources": true,
+        "passiveHostCleanup": {
+          "flags": 0,
+          "owned": 0,
+          "poll": 0,
+          "refusedWithoutOwnership": true,
+          "status": 3,
+          "submit": 0
+        },
+        "passiveHostLaunch": {
+          "flags": 0,
+          "owned": 0,
+          "poll": 0,
+          "refusedWithoutOwnership": true,
+          "status": 3,
+          "submit": 0
+        },
+        "physicalWindowOperations": 0,
+        "schema": 1,
+        "unreviewedEvidenceRefused": true,
+        "wrongExecutableCannotCreateProbeToken": true
+      }
+    },
+    "corner-witness-build": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "corner-witness-build.log",
+      "stderr": "corner-witness-build.stderr.log"
+    },
+    "corner-witness": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "corner-witness.log",
+      "stderr": "corner-witness.stderr.log",
+      "readback": {
+        "scope": "offscreenOwnPNGAndUnpostedQuartzEvents",
+        "status": "PASS",
+        "systemInputPosted": 0,
+        "windowsOrdered": 0
+      }
+    },
+    "swift": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "swift.log",
+      "stderr": "swift.stderr.log",
+      "passed": 86,
+      "suites": [
+        "CornerGuardianIndependentProbeTests",
+        "CornerGuardianOwnershipTests",
+        "EngineABITests",
+        "StageCreationFocusTests",
+        "StageEngineHostScopeTests",
+        "StageEngineLaunchHandoffTests",
+        "StageGroupCoordinatorTests",
+        "StageGroupStoreTests",
+        "StageGroupWindowLifetimesTests",
+        "StageHostGroupProjectionTests",
+        "StageHostWindowAccessTests",
+        "StageInstalledProbeTests",
+        "StageWindowArrivalTests",
+        "StageWindowEngineTests",
+        "StageWindowEngineWitnessTests",
+        "StageWindowOwnershipTests"
+      ],
+      "xunit": "swift.xml"
+    },
+    "hosted-reader-build": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "hosted-reader-build.log",
+      "stderr": "hosted-reader-build.stderr.log"
+    },
+    "spaces-tests": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "spaces-tests.log",
+      "stderr": "spaces-tests.stderr.log",
+      "passed": 11
+    },
+    "performance-tests": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "performance-tests.log",
+      "stderr": "performance-tests.stderr.log",
+      "passed": 10
+    },
+    "corner-lease-tests": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "corner-lease-tests.log",
+      "stderr": "corner-lease-tests.stderr.log",
+      "passed": 4
+    },
+    "installed-host-tests": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "installed-host-tests.log",
+      "stderr": "installed-host-tests.stderr.log",
+      "passed": 16
+    },
+    "installed-supervisor-tests": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "installed-supervisor-tests.log",
+      "stderr": "installed-supervisor-tests.stderr.log",
+      "passed": 23
+    },
+    "ci-tests": {
+      "status": "PASS",
+      "exit": 0,
+      "log": "ci-tests.log",
+      "stderr": "ci-tests.stderr.log",
+      "passed": 13
+    }
+  }
+}

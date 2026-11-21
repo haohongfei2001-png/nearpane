@@ -1,0 +1,68 @@
+{
+  "scope": "GitHubActionsPerSourceRevision",
+  "runs": [
+    {
+      "conclusion": "success",
+      "databaseId": 44930180384,
+      "headSha": "4af44bf4ea00bbad820f3f900331e77f05044263",
+      "status": "completed",
+      "updatedAt": "2026-11-21T17:32:29Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44930180384",
+      "workflowName": "StageGroup window engine"
+    },
+    {
+      "conclusion": "failure",
+      "databaseId": 44931137852,
+      "headSha": "3d818c2b25536b314f5d829636e7b50ac91e8ce9",
+      "status": "completed",
+      "updatedAt": "2026-11-21T17:40:39Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44931137852",
+      "workflowName": "StageGroup window engine"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 44932037456,
+      "headSha": "1064999caae03fc639db3a01f64165545cb10552",
+      "status": "completed",
+      "updatedAt": "2026-11-21T17:51:57Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44932037456",
+      "workflowName": "StageGroup window engine"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 44933262446,
+      "headSha": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+      "status": "completed",
+      "updatedAt": "2026-11-21T18:06:47Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44933262446",
+      "workflowName": "StageGroup window engine"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 44933262459,
+      "headSha": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+      "status": "completed",
+      "updatedAt": "2026-11-21T18:10:56Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44933262459",
+      "workflowName": "Nearpane native 5.22 protocol"
+    },
+    {
+      "conclusion": "failure",
+      "databaseId": 44933262403,
+      "headSha": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+      "status": "completed",
+      "updatedAt": "2026-11-21T18:09:53Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44933262403",
+      "workflowName": "Embedded tool integration"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 44934325263,
+      "headSha": "341834d0f55f4c303d7b70c64bdd02a3ce0eaa07",
+      "status": "completed",
+      "updatedAt": "2026-11-21T18:20:04Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44934325263",
+      "workflowName": "Embedded tool integration"
+    }
+  ]
+}

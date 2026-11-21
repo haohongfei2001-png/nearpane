@@ -1,0 +1,259 @@
+{
+  "schema": 1,
+  "product": "Nearpane",
+  "version": "5.22",
+  "build": 90,
+  "branch": "codex/r4-native-candidate-20261120",
+  "pr": 15,
+  "draft": true,
+  "startingHead": "e4d11b8e9ff0bb0407d0a7483126c9a98c399bee",
+  "candidateSource": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+  "target": {
+    "os": "27.0",
+    "build": "26A428",
+    "architecture": "arm64",
+    "sip": "System Integrity Protection status: enabled."
+  },
+  "observedUTC": "2026-11-21T18:05:19.485076+00:00",
+  "physicalProductQualification": "BLOCKED",
+  "reason": [
+    "installedHostIsNotPinnedEngineCandidate",
+    "sameProductInstanceRunning"
+  ],
+  "hostCDHash": "64e2214263f2b8e028923973bee68002f8e512ac",
+  "guardianCDHash": "1d5d5ecb1ec101841420d0c66d5af98d1112a86d",
+  "baselineAndFinalDailyPID": 59938,
+  "dailyBirth": 1795224294017017,
+  "sourceEvidence": {
+    "localSystem": "26A428",
+    "ciSystem": "26A434",
+    "rustEach": 101,
+    "swiftEach": 86,
+    "pythonEach": 77,
+    "productionABI": "PASS",
+    "offscreenCropAndUnpostedQuartz": "PASS",
+    "builtIsolatedControllerAndTwoOrdinaryApps": "PASS",
+    "strictProductAndGuardianSignature": "PASS",
+    "pinnedUpstreamAndCargoLicenses": "PASS",
+    "exactSignedFixtureBinaryRule": "PASS",
+    "localDependencyAndPackageRegressionMethods": 10,
+    "publicWorkflowResults": "18-github-checks.json",
+    "hostedDevelopmentBundleAndEmbeddedResources": "PASS",
+    "linkedSignedImage": "16-linked-engine.json"
+  },
+  "host": {
+    "launch": "BLOCKED",
+    "ownTCC": "NOT_RUN",
+    "currentOrdinarySpaceFromCandidate": "NOT_RUN",
+    "canonicalPath": "/Applications/Nearpane.app",
+    "windowEngineABI": 1
+  },
+  "spaces": {
+    "qualification": "BLOCKED",
+    "ownPanelCycle": "NOT_RUN",
+    "forwardReverseMembership": "NOT_RUN",
+    "visibleMissionControlDeskCount": "NOT_RUN",
+    "focusContinuity": "NOT_RUN",
+    "temporarySpaceCleanup": "NOT_RUN",
+    "signedTransparentFixture": "NOT_RUN",
+    "visibleThirdPartyWindowCycle": "NOT_RUN",
+    "keyboardSiblingAndDock": "NOT_RUN",
+    "productionQualified": false
+  },
+  "corner": {
+    "qualification": "BLOCKED",
+    "isolatedControllerSingleWindow": "NOT_RUN",
+    "formalHostSingleWindow": "NOT_RUN",
+    "guardianAXRetentionWriteAheadLeaseAndDisarm": "NOT_RUN",
+    "installedEngineOverlayPixels": "NOT_RUN",
+    "sliverAndResizeGesturesToActualReceivers": "NOT_RUN",
+    "currentInputSafety": "UNKNOWN",
+    "historicalPrototypeInputSafety": "FAIL",
+    "historicalRawReceipt": "../../stage-groups/5.22-90/isolation/qualification/corner.json",
+    "productionQualified": false
+  },
+  "stageGroup": {
+    "defaultEngine": null,
+    "formalSidebarABCAndReturn": "NOT_RUN",
+    "single": 0,
+    "ten": 0,
+    "fifty": 0,
+    "measuredPerformanceSamples": 0,
+    "p50Milliseconds": null,
+    "p95Milliseconds": null,
+    "p99Milliseconds": null
+  },
+  "physicalRunCounts": {
+    "hostLaunches": 0,
+    "newWindows": 0,
+    "windowsHidden": 0,
+    "spacesCreated": 0,
+    "fixtureInputPosted": 0,
+    "permissionPrompts": 0,
+    "newLeases": 0,
+    "dailyInstallReplacements": 0
+  },
+  "rollback": {
+    "dailyImage": "unchanged",
+    "dailyReinstallRequired": false,
+    "beforeCornerSource": "1064999caae03fc639db3a01f64165545cb10552",
+    "beforeThisRunSource": "e4d11b8e9ff0bb0407d0a7483126c9a98c399bee"
+  },
+  "failureEvidence": [
+    {
+      "status": "FAIL",
+      "scope": "observerNonceProjectionAtStartingSource",
+      "path": "02-prior-canary-projection.json"
+    },
+    {
+      "status": "FAIL",
+      "scope": "initialHostedTestReliedOnInstalledDailyApp",
+      "path": "03-initial-hosted-test-failure.log"
+    },
+    {
+      "status": "FAIL",
+      "scope": "historicalCornerPrototypeAcceptedMouseDown",
+      "path": "../../stage-groups/5.22-90/isolation/qualification/corner.json"
+    },
+    {
+      "status": "FAIL",
+      "scope": "initialWholePackageRulePrefix",
+      "path": "15-initial-package-failure.zip"
+    },
+    {
+      "status": "FAIL",
+      "scope": "hostedLegacyCornerControl",
+      "reason": "dockWindowTiles",
+      "path": "hosted-25G332/corner.json"
+    },
+    {
+      "status": "FAIL",
+      "scope": "workspaceExtractionOuterSignature",
+      "path": "17-archive-roundtrip.json"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "01-launch-readiness.json",
+      "sha256": "5e5ea9fca7ae8d4b9fdf0e8353e2f414f266182cb3b0ee2961461b0576b84149"
+    },
+    {
+      "path": "02-prior-canary-projection.json",
+      "sha256": "071ff332bbe93fc0c00b46991e14282bef6e76f4ca9717c59e5ac77a265bf557"
+    },
+    {
+      "path": "03-initial-hosted-test-failure.log",
+      "sha256": "e1748e80c700b7374a745ced9d67535d6282d44438db68fae4ee4466790b9e62"
+    },
+    {
+      "path": "04-license-final.json",
+      "sha256": "f2b07185f0d009a0c8eb58d6caa9b364873c60cba97fd124d6cc0f8166ac53ec"
+    },
+    {
+      "path": "05-signed-candidate.json",
+      "sha256": "ce06666709c9b94dafe4a0a4b5aa621f06083cd902c6b0f5bc84378a03a91d0f"
+    },
+    {
+      "path": "06-staged-image-readiness.json",
+      "sha256": "1a5998b6c1471d52cae6aed67124417884417ab051f8df201761e93ae36703f5"
+    },
+    {
+      "path": "07-daily-image.json",
+      "sha256": "5b41627aafa3608812b7cc4016ca63f355523216fce1cf2a31023f6d7c0a29aa"
+    },
+    {
+      "path": "08-local-source.json",
+      "sha256": "00ca4389f73d3534f6c5e26fe785e479702f595c3b868fe6f759023dbfc26b9f"
+    },
+    {
+      "path": "09-canary-ci.json",
+      "sha256": "fba87d77e79732f03cbe40c8bafe6c095acdd7b758809eeefa128d58fda950c3"
+    },
+    {
+      "path": "10-overview-ci.json",
+      "sha256": "3fb54fbddec756ccc09552193d4d122f38f92178c91cb3b97b513091e346e2b2"
+    },
+    {
+      "path": "11-corner-kit-signatures.txt",
+      "sha256": "5fecf9b2caf6be5ff02a580574fd8ef57d173a60463688f6930973277b85cdfd"
+    },
+    {
+      "path": "12-corner-kit-build.json",
+      "sha256": "3e611bd1a924d0f72bd0a697664bcdf6f28e8580ef60127bf5e4a80af0c5c1b7"
+    },
+    {
+      "path": "13-final-ci.json",
+      "sha256": "1f3ee3fc4eed360ca648c4a2ab608726b15f9689eb28aaf4a833639223883956"
+    },
+    {
+      "path": "14-package-rule.json",
+      "sha256": "5fdb4b54abb3f1e7346fc234aa79decf22f39bf3a033c9103d2391d0243b64d3"
+    },
+    {
+      "path": "15-initial-package-failure.zip",
+      "sha256": "23ec99a5cbeafbc39a2895c4d5c1ec47b2e8ea6a307b7e28353ff04f0e983896"
+    },
+    {
+      "path": "16-linked-engine.json",
+      "sha256": "a6042af6658da613800067ca28a4d8a77df952dd294326effc3dc5d714897762"
+    },
+    {
+      "path": "17-archive-roundtrip.json",
+      "sha256": "78e002e892d168d530099f713983dece104f56b00e98f87fb7143b9fa7ed0de5"
+    },
+    {
+      "path": "18-github-checks.json",
+      "sha256": "665d5045e7d501f9b4ed6bde5a84f9d6690449ad16ef5036be4d286b036fbd12"
+    },
+    {
+      "path": "hosted-25G332/corner.json",
+      "sha256": "311c91a15e4bb22cad5fb991a89bddea40b164e0d25a1643db664afb25b22659"
+    },
+    {
+      "path": "hosted-25G332/corner.mp4",
+      "sha256": "bc24ddb58f8437e5f4d469a67d4da2e252e5f4f679f97dd09e4b9b81a00f68a2"
+    },
+    {
+      "path": "hosted-25G332/stage-group-lifecycle.json",
+      "sha256": "0d2171f6b339b64bac1be55af9fcbc7c8003cf8085b18fc4a9d8954e8e3846f3"
+    },
+    {
+      "path": "hosted-25G332/stage-group-windowserver.json",
+      "sha256": "25d9a29ff1a4582d0ab92cf6c227a678a26c9030202ccc0fd791b466bd067aa8"
+    },
+    {
+      "path": "hosted-25G332/summary.json",
+      "sha256": "394ac49d9f5d7a6fc32203c20c22f6b8e480a71bd5750dd633ee84c3b35edfa0"
+    },
+    {
+      "path": "hosted-source-logs.zip",
+      "sha256": "f814d5c9977ca35c5f9fa8615ed423069be59c10a5710450df3d79df3f15fd01"
+    },
+    {
+      "path": "local-source-logs.zip",
+      "sha256": "cfb56fc6ac6adf1687e1851a362cc25bf2abf77b98d7631e3b63019a8cc211b9"
+    }
+  ],
+  "packageVerifierRevision": "341834d0f55f4c303d7b70c64bdd02a3ce0eaa07",
+  "hostedNativeComparison": {
+    "source": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+    "osBuild": "25G332",
+    "registeredWindowDirectory": "PASS",
+    "registeredAppRelaunch": "PASS",
+    "nativeSpaceMembership": "UNKNOWN",
+    "installedHost": "NOT_RUN",
+    "groupVisibilitySwitch": "NOT_RUN",
+    "prototypeCornerStatus": "FAIL",
+    "prototypeCornerReason": "dockWindowTiles",
+    "raw": "hosted-25G332/corner.json",
+    "recording": "hosted-25G332/corner.mp4"
+  },
+  "isolatedArchive": {
+    "filename": "Nearpane-5.22-90.zip",
+    "bytes": 31848588,
+    "sha256": "1366b7639e6ec407f12c0434d770f48a5494dd0938eb328d5c80b087a1205e74",
+    "statusAppliesTo": "strictSignatureAndDigestsAfterPrivateTemporaryExtraction",
+    "workspaceExtractionStatus": "FAIL",
+    "candidateExecutions": 0
+  }
+}

@@ -1,5 +1,7 @@
 # Nearpane 5.22 Window Engine 验收
 
+2026-11-22，源码 `4a84113` 完成 Spaces 正式面板收据关联、Mission Control 可见清单核对，以及正式 Corner 裁片和输入接收者验收代码。目标系统 26A428 的签包与离屏源码验证通过。正式安装 Host 始终停在单实例预检，Spaces 和 Corner 的真实窗口行为仍待验收。 [单窗两后端本轮结果](single-window-witnesses/RESULTS.md)
+
 本轮在 26A428 实体机上修复并复测了全屏 Space 的重复清单读数，新增正式 Host 的独立自有面板入口。Corner 的按下、拖动、释放及接收者矛盾处理已通过源码测试。两后端的正式 Host 单窗资格均为 **BLOCKED**。 [当前验收及原始收据](single-window-isolation/RESULTS.md)
 
 此前 `666e26f` 的签名开发 Host 实测了双向归属和原始 AX 对象。 [当时的六级门槛、清理与原始记录](first-window-26A428/RESULTS.md)

@@ -1,0 +1,26 @@
+{
+  "scope": "liveCanonicalDailyImageAndProcessGeneration",
+  "status": "PASS",
+  "observedUTC": "2026-11-21T18:05:58.632856+00:00",
+  "pid": 59938,
+  "kernelBirth": 1795224294017017,
+  "executable": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+  "executableSHA256": "db90cd647b30a4a63a5d851c6af65586ab70f0d3765ed6cea34d99cddf224de6",
+  "signedImage": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90",
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "sourceState": null,
+    "engineABI": null,
+    "multipleInstancesProhibited": true
+  },
+  "rosterAndSignatureStableAcrossThisRun": true,
+  "kernelBirthMatchesPriorReceipt": true,
+  "priorReceipt": "../single-window-isolation/05-daily-host.json",
+  "launchRequests": 0,
+  "candidateInstallations": 0,
+  "dailyQuitRequests": 0
+}

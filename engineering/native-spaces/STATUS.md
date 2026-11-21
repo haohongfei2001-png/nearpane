@@ -1,5 +1,9 @@
 # 当前安装与专项状态
 
+## 2026-11-22 · StageGroup 单窗口调度
+
+5.22（90）源码 `4a84113` 已接入 Spaces 的面板操作日志、独立桌面清单和 Mission Control 可见桌面核对，以及 Corner 的逐显示器裁片、真实事件接收者和 Guardian 解除租约核对。26A428 实体机的本机源码回归、Host 与 Guardian 严格验签通过。日常 Host PID 59938 占用标准安装的单实例，隔离签名候选停在只读预检。两后端实机单窗口资格 **BLOCKED**，生产资格 **0/2**，整组及 10/50 次均为 **NOT_RUN**。 [结果、失败记录和签名](../verification/window-engine/single-window-witnesses/RESULTS.md)
+
 ## 正式 Host 单窗口资格
 
 5.22（90）的生产后端资格仍为 **0/2**。目标机 26A428、SIP 开启。修正后的引擎连续两次读到相同的桌面清单及全屏记录。正式候选与日常 Host 使用同一个单实例标识，当前控制台的标准路径已有日常实例运行。Spaces 自有面板、签名第三方窗口和 Corner 的真实鼠标及 Guardian 验收均为 **BLOCKED**。整组和 10/50 次测试为 **NOT_RUN**。 [本轮结果和机器收据](../verification/window-engine/single-window-isolation/RESULTS.md)
