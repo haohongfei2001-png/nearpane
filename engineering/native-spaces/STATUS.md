@@ -1,5 +1,9 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 系统调度交接
+
+5.22（90）正式源码 `35eecd2` 新增按需的本屏空间目录，系统接管时撤销待执行的窗口动作并释放总览快捷键。第 18 轮已关联到外部激活和 Dock 随窗切桌面。本轮第一次 P0 隔离安装停在桌面 6 的入场预检，未投递手势，回退成功。macOS 27.0（26A428）的产品切换与迁窗资格仍关闭。整体替代及同条件 Apple 速度对照均未通过。[分项结果](../verification/native-spaces/5.22-dispatch-replacement/RESULTS.md) · [发布验收合同](ACCEPTANCE.md)
+
 ## 2026-11-21 · 同屏拖放与切窗
 
 **当前签名候选 `f7997a7`，5.22（90）。** 在 macOS 27 正式安装路径，同一普通桌面里，两扇窗口向左或向右拖放分屏、拖回自身和不同应用间右拖均通过。最终槽位各为 615 × 923 点，两个系统来源连续两次读回一致。普通启动下十次鼠标选窗均命中目标编辑器，也均取得目标首帧。相较旧版 `d81c458`，松开至焦点的中位区间由 320–335 ms 降至 105–124 ms，至真实首帧由 358–378 ms 降至 139–159 ms。放手后首次确认双窗布局仍需 1.64–1.86 秒。日常安装 `d2d0bb6`、配置及原有台前调度状态已经恢复，`b55ed96` 回退存档原样保留。台前调度开启时由系统管理窗口。macOS 27 跨 Space 动作继续关闭，全屏 Split View、多屏、系统同条件性能及公证仍待通过。PR #15 保持 Draft。[正式验收、截图与视频](../verification/native-spaces/5.22-90-sidebar-pair/RESULTS.md) · [跨应用读回](../verification/native-spaces/5.22-90-sidebar-pair/final-cross/result.json) · [签名候选](../verification/native-spaces/5.22-p6/integrated-f7997a7/draft-asset.json)
