@@ -14,9 +14,11 @@ import time
 def run(build, receipt, comparison=None):
     with tempfile.TemporaryDirectory(prefix="nearpane-group-fixture.") as tmp:
         root = Path(tmp).resolve()
-        objects = (build / "NearpanePackageTests.product/Objects.LinkFileList").read_text().splitlines()
         targets = {"NearpaneCore.build", "WindowGeometryCore.build", "CReadOnlySpaces.build"}
-        inputs = [Path(p) for p in objects if Path(p).parent.name in targets]
+        inputs = [build / "CReadOnlySpaces.build/ReadOnlySpaces.c.o"]
+        for target in ("NearpaneCore.build", "WindowGeometryCore.build"):
+            mapping = json.loads((build / target / "output-file-map.json").read_bytes())
+            inputs.extend(Path(row["object"]) for row in mapping.values() if "object" in row)
         if {p.parent for p in inputs} != {build / target for target in targets}:
             raise RuntimeError("Missing production dependencies")
         binary = root / "StageFixture"

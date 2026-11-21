@@ -3,7 +3,7 @@ import AVFoundation
 import CReadOnlySpaces
 import NearpaneCore
 
-private enum FixtureError: String, Error { case registration, display, owner, missingWindow, invalidGroup, staleBinding }
+private enum FixtureError: String, Error { case registration, display, owner, missingWindow, persistedDirectoryMismatch, groupMembershipMismatch, layoutChanged, conflictingNativeMembership, staleBinding }
 struct Owner: Codable {
     let identifier: String, pid: Int32, birth: UInt64, display: UUID, numbers: [UInt32], onActiveSpace: Bool
 }
@@ -135,7 +135,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
     let reopening = phase == "reopen"
     if reopening {
         let original = try JSONDecoder().decode(StageGroupDirectory.self, from: Data(contentsOf: stateFile))
-        guard store.directory == original else { throw FixtureError.invalidGroup }
+        guard store.directory == original else { throw FixtureError.persistedDirectoryMismatch }
         try store.observe(windows)
         guard store.projectedGroups(on: id, among: windows).isEmpty else { throw FixtureError.staleBinding }
         for w in windows { try store.rebind(w) }
@@ -146,9 +146,15 @@ func birth(_ pid: Int32) throws -> UInt64 {
     }
     let projected = store.projectedGroups(on: id, among: windows)
     guard projected.count == 2, projected[0].members.map(\.windowHint) == [windows[0].identity, windows[2].identity],
-          projected[1].members.map(\.windowHint) == [windows[1].identity], store.directory.displays.first?.activeGroup == nil,
-          projected.flatMap(\.members).allSatisfy({ m in m.layout == windows.first { $0.identity == m.windowHint }?.layout })
-    else { throw FixtureError.invalidGroup }
+          projected[1].members.map(\.windowHint) == [windows[1].identity], store.directory.displays.first?.activeGroup == nil
+    else { throw FixtureError.groupMembershipMismatch }
+    for m in projected.flatMap(\.members) {
+        let observed = windows.first { $0.identity == m.windowHint }?.layout
+        guard observed == m.layout else {
+            fputs("Fixture layout changed for \(m.windowHint.number): previous=\(String(describing: m.layout)), current=\(String(describing: observed)), workArea=\(work)\n", stderr)
+            throw FixtureError.layoutChanged
+        }
+    }
     let sameSpace = spaces.count == 3 && spaces.allSatisfy { $0.count == 1 && $0 == spaces[0] }
     let nativeStatus = spaces.count == 3 ? (sameSpace ? "PASS" : "FAIL") : "UNKNOWN"
     let result: [String: Any] = ["status": "PASS", "inspectorPID": getpid(), "physicalDisplayUUID": id.uuidString,
@@ -157,7 +163,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
         "noActiveGroupInferred": true, "layoutCheckedAgainstWindowServer": true, "oldBindingsIneligible": reopening,
         "axTrusted": AXIsProcessTrusted(), "systemStageManagerOwnsDispatch": StageManagerPreference.ownsWindowDispatch]
     try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]).write(to: root.appendingPathComponent(phase + ".json"), options: .withoutOverwriting)
-    if nativeStatus == "FAIL" { throw FixtureError.invalidGroup }
+    if nativeStatus == "FAIL" { throw FixtureError.conflictingNativeMembership }
 }
 
 @main private struct Fixture {
