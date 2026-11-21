@@ -2,6 +2,7 @@
 #define NEARPANE_WINDOW_ENGINE_H
 #include <stdint.h>
 #include <stdbool.h>
+#include "nearpane_host_scope.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

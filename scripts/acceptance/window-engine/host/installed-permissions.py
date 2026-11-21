@@ -16,8 +16,8 @@ APP = Path("/Applications/Nearpane.app")
 METRICS = ROOT / "scripts/acceptance/native-spaces/metrics.swift"
 
 
-def output(*args):
-    return subprocess.check_output(list(map(str, args)), text=True, stderr=subprocess.STDOUT, timeout=60)
+def output(*args, timeout=60):
+    return subprocess.check_output(list(map(str, args)), text=True, stderr=subprocess.STDOUT, timeout=timeout)
 
 
 def installed():
@@ -59,7 +59,7 @@ def sample():
     pid = pids[0]
     with tempfile.TemporaryDirectory(prefix="nearpane-host-permission-", dir="/private/tmp") as work:
         reporter = Path(work) / "metrics"
-        output("xcrun", "swiftc", "-module-cache-path", Path(work) / "module-cache", METRICS, "-o", reporter)
+        output("xcrun", "swiftc", "-module-cache-path", ROOT / ".build/cache/ModuleCache", METRICS, "-o", reporter, timeout=240)
         # This process only sends a nonce and listens for the acknowledgement. The installed Host calls TCC.
         reply = json.loads(output(reporter, pid, "--permission-subject"))
     nonce = str(uuid.UUID(reply["nonce"])).upper()

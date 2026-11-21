@@ -618,3 +618,5 @@ int np_corner_same_window(const NCMember *m, void *retained) {
         return w && CFEqual(retained, (__bridge CFTypeRef)w);
     }
 }
+
+#include "host_scope.inc"
