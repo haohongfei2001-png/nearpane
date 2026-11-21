@@ -11,22 +11,24 @@ import SwiftUI
     final class MapView: NSView {
         var target: ((NSPoint) -> DesktopWindowTarget?)?
         var select: ((DesktopWindowTarget) -> Void)?
-        private var down: (NSPoint, DesktopWindowTarget)?
+        private var down: (NSPoint, DesktopWindowTarget, UUID)?
         override var isFlipped: Bool { true }
         override var needsPanelToBecomeKey: Bool { false }
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
         override func mouseDown(with event: NSEvent) {
             let p = convert(event.locationInWindow, from: nil)
-            down = target?(p).map { (p, $0) }
+            let navigation = NativeSidebarNavigation.shared
+            down = navigation.dispatchAvailable ? target?(p).map { (p, $0, navigation.ownershipEpoch) } : nil
         }
         override func mouseDragged(with event: NSEvent) {
             let p = convert(event.locationInWindow, from: nil)
-            if let (start, _) = down, hypot(p.x - start.x, p.y - start.y) >= 6 { down = nil }
+            if let (start, _, _) = down, hypot(p.x - start.x, p.y - start.y) >= 6 { down = nil }
         }
         override func mouseUp(with event: NSEvent) {
             defer { down = nil }
             let p = convert(event.locationInWindow, from: nil)
-            guard let (start, original) = down, hypot(p.x - start.x, p.y - start.y) < 6,
+            guard let (start, original, epoch) = down, NativeSidebarNavigation.shared.dispatchAvailable,
+                  NativeSidebarNavigation.shared.ownershipEpoch == epoch, hypot(p.x - start.x, p.y - start.y) < 6,
                   let live = target?(p), original == live else { return }
             select?(live)
         }
@@ -39,6 +41,7 @@ import SwiftUI
 /// against the destination Host panel, including letterboxed whitespace in the workspace row.
 @MainActor final class WorkspacePointerRegistry {
     weak var windowPreviews: WindowContentPreview?
+    weak var navigation: NativeSidebarNavigation?
     private let views = NSHashTable<WorkspacePointerView>.weakObjects()
     func register(_ view: WorkspacePointerView) { views.add(view) }
     func destination(at screen: NSPoint) -> WorkspaceID? {
@@ -71,6 +74,8 @@ struct WorkspacePointerSurface: NSViewRepresentable {
 @MainActor final class WorkspacePointerView: NSView {
     weak var host: HostSession?, display: SurfaceDisplay?
     var preview: DesktopPreview?, sample: DesktopSnapshot?, held = false
+    private var heldEpoch: UUID?
+    private var navigation: NativeSidebarNavigation { display?.pointer?.navigation ?? .shared }
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { false }
     override var needsPanelToBecomeKey: Bool { false }
@@ -84,7 +89,7 @@ struct WorkspacePointerSurface: NSViewRepresentable {
     }
     override func mouseDown(with event: NSEvent) {
         held = false
-        guard let window, let host, let preview, let sample else { return }
+        guard navigation.dispatchAvailable, let window, let host, let preview, let sample else { return }
         let p = convert(event.locationInWindow, from: nil)
         let now = Date()
         let uptime = ProcessInfo.processInfo.systemUptime
@@ -100,15 +105,18 @@ struct WorkspacePointerSurface: NSViewRepresentable {
         }
         let screen = window.convertPoint(toScreen: event.locationInWindow)
         host.pressWorkspace(row, window: id, x: screen.x, y: screen.y, snapshot: snapshot)
+        heldEpoch = navigation.ownershipEpoch
         held = true
     }
     override func mouseDragged(with event: NSEvent) {
-        guard held, let p = window?.convertPoint(toScreen: event.locationInWindow) else { return }
+        guard held, navigation.dispatchAvailable, heldEpoch == navigation.ownershipEpoch, let p = window?.convertPoint(toScreen: event.locationInWindow) else { return }
         host?.dragWorkspace(x: p.x, y: p.y)
     }
     override func mouseUp(with event: NSEvent) {
-        guard held, let screen = window?.convertPoint(toScreen: event.locationInWindow) else { return }
+        guard held else { return }
         held = false
+        guard navigation.dispatchAvailable, heldEpoch == navigation.ownershipEpoch,
+              let screen = window?.convertPoint(toScreen: event.locationInWindow) else { return }
         host?.releaseWorkspace(
             on: display?.pointer?.destination(at: screen), x: screen.x, y: screen.y, primary: display?.primaryID,
             now: Date(), uptime: ProcessInfo.processInfo.systemUptime)

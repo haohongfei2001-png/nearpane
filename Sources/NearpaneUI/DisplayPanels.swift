@@ -9,7 +9,23 @@ import NearpaneCore
     private var secondary = [String: EdgeWindowController]()
     private var suspended = false
     public private(set) var systemManagesWindows = false
+    private let navigation: NativeSidebarNavigation
+    private weak var workRect: CandidateWorkRect?
+    private var missionControl: MissionControlVisibility
+    private let missionControlReader: MissionControlVisibilityReader?
     private var stageMonitor: Timer?
+    private var occlusionMonitor: NSObjectProtocol?
+    private var sampleGeneration = UUID()
+    private var sampleBegan: ContinuousClock.Instant?
+    private var stopped = false
+
+    /// Login/session and system overview ownership only. An explicit command can reopen a hidden sidebar.
+    public var windowDispatchEligible: Bool {
+        !stopped && !suspended && !systemManagesWindows && missionControl == .ordinary
+    }
+    public var missionControlDispatchState: String { missionControl.rawValue }
+    /// Fixed reason only, including incomplete reads on other macOS builds.
+    public private(set) var missionControlDispatchEvidence = "waitingForDock"
 
     private var localMouse: Any?, externalMouse: Any?
     private var clickLease: UUID?
@@ -30,38 +46,150 @@ import NearpaneCore
     private let present: (EdgeWindowController) -> Void
     var secondaryIDs: Set<String> { Set(secondary.keys) }
     public convenience init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil) {
-        self.init(host: host, primary: primary, domains: domains, present: { $0.presentIfNeeded() })
-        setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
+        self.init(host: host, primary: primary, domains: domains, navigation: .shared, missionControlReader: .init(), present: { $0.presentIfNeeded() })
+        pollSystemOwnership()
+        occlusionMonitor = NotificationCenter.default.addObserver(forName: NSWindow.didChangeOcclusionStateNotification,
+            object: nil, queue: .main) { [weak self] note in
+            guard let source = note.object as? NSWindow else { return }
+            let id = ObjectIdentifier(source)
+            MainActor.assumeIsolated { self?.panelOcclusionChanged(id) }
+        }
         // The panel may be entirely withdrawn when Stage Manager owns the display.
         // Observe the preference independently of the gallery, without prompting or writing it.
         let timer = Timer(timeInterval: 0.35, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch) }
+            MainActor.assumeIsolated { self?.pollSystemOwnership() }
         }
         timer.tolerance = 0.08
         RunLoop.main.add(timer, forMode: .common)
         stageMonitor = timer
     }
-    init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil, present: @escaping (EdgeWindowController) -> Void) {
+    init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil,
+         navigation: NativeSidebarNavigation = .init(), missionControlReader: MissionControlVisibilityReader? = nil,
+         present: @escaping (EdgeWindowController) -> Void) {
+        self.navigation = navigation
+        self.workRect = domains?.workRect
+        self.missionControlReader = missionControlReader
+        missionControl = missionControlReader == nil ? .ordinary : .unknown
         self.fullscreen = FullscreenPresentation(host: host, domains: domains)
         self.present = present
         self.host = host
         self.primary = primary
+        pointer.navigation = navigation
         pointer.windowPreviews = domains?.windowPreviews
         pointer.windowPreviews?.currentDesktop?.splitPresentationChanged = { [weak self] in self?.refresh?() }
         primary.usePointer(pointer)
+        if missionControlReader != nil {
+            navigation.confirmDispatch = { [weak self] in await self?.confirmWindowDispatch() == true }
+            workRect?.desktopTiling.confirmDispatch = { [weak self] in await self?.confirmWindowDispatch() == true }
+        }
+        navigation.setDispatchAvailable(windowDispatchEligible)
+        workRect?.setOrdinaryHold("systemWindowDispatch", active: !windowDispatchEligible)
         host.glassPreviewChanged = { [weak self] id in
             self?.primary.refreshGlass(on: id)
             self?.secondary[id]?.refreshGlass(on: id)
         }
     }
+    private func panelOcclusionChanged(_ id: ObjectIdentifier) {
+        guard !systemManagesWindows, !suspended, !stopped else { return }
+        let windows = [primary.window] + secondary.values.map(\.window)
+        guard let window = windows.compactMap({ $0 }).first(where: { ObjectIdentifier($0) == id }),
+              window.isVisible, !window.occlusionState.contains(.visible) else { return }
+        // Ordinary occlusion also causes this notification. Re-read the Dock;
+        // occlusion by itself never identifies Mission Control.
+        invalidateObservation()
+        pollSystemOwnership()
+    }
+
     func setSystemManagesWindows(_ value: Bool) {
         guard value != systemManagesWindows else { return }
+        let previous = windowDispatchEligible
         systemManagesWindows = value
-        refresh?()
+        if missionControlReader != nil {
+            sampleGeneration = UUID(); missionControl = .unknown
+            missionControlDispatchEvidence = value ? "stageManagerOwnsDispatch" : "waitingForDock"
+        }
+        publishOwnership(previous: previous)
+    }
+
+    func setMissionControl(_ value: MissionControlVisibility, evidence: String? = nil) {
+        guard !stopped, !suspended, !systemManagesWindows else { return }
+        if let evidence { missionControlDispatchEvidence = evidence }
+        guard missionControl != value else { return }
+        let previous = windowDispatchEligible
+        missionControl = value
+        sampleGeneration = UUID()
+        publishOwnership(previous: previous)
+    }
+
+    /// Recheck the signed Dock at the point an explicit window command or automatic layout is admitted.
+    /// The monitor alone may still describe the last ordinary desktop just as an overview opens.
+    public func confirmWindowDispatch() async -> Bool {
+        guard let missionControlReader else { return windowDispatchEligible }
+        setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
+        guard windowDispatchEligible else { return false }
+        let generation = sampleGeneration
+        let started = ContinuousClock.now
+        let value = await missionControlReader.read()
+        guard generation == sampleGeneration, windowDispatchEligible else { return false }
+        setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
+        accept(value, started: started)
+        return windowDispatchEligible && generation == sampleGeneration
+    }
+
+    private func accept(_ sample: MissionControlVisibilityReader.Reading, started: ContinuousClock.Instant) {
+        if .now - started <= .milliseconds(750) {
+            setMissionControl(sample.visibility, evidence: sample.evidence)
+        } else { setMissionControl(.unknown, evidence: "sampleExpired") }
+    }
+
+    private func invalidateObservation() {
+        sampleGeneration = UUID()
+        setMissionControl(.unknown, evidence: "panelOcclusionChanged")
+    }
+
+    private func pollSystemOwnership() {
+        guard !stopped, let missionControlReader else { return }
+        setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
+        guard !suspended, !systemManagesWindows else { return }
+        if let sampleBegan {
+            if .now - sampleBegan > .milliseconds(750) { setMissionControl(.unknown, evidence: "sampleExpired") }
+            return
+        }
+        let generation = sampleGeneration
+        sampleBegan = .now
+        Task { [weak self] in
+            let value = await missionControlReader.read()
+            guard let self else { return }
+            let started = sampleBegan
+            sampleBegan = nil
+            guard generation == sampleGeneration, !stopped else { return }
+            setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
+            if let started { accept(value, started: started) }
+        }
+    }
+
+    private func publishOwnership(previous: Bool) {
+        let eligible = windowDispatchEligible
+        if previous != eligible {
+            navigation.setDispatchAvailable(eligible)
+            workRect?.setOrdinaryHold("systemWindowDispatch", active: !eligible)
+            if !eligible {
+                for id in pendingSpaceOpenings.union(host.panelContents.keys) { coordinator.finishRequest(id) }
+                pendingSpaceOpenings.removeAll()
+                primary.cancelWindowDispatchGesture()
+                for controller in secondary.values { controller.cancelWindowDispatchGesture() }
+                host.cancelWorkspaceGesture()
+                if let previews = pointer.windowPreviews {
+                    for id in previews.visibleDisplays { previews.setVisible(false, on: id) }
+                }
+                stopObservingClicks()
+            }
+        }
+        if !stopped { refresh?() }
     }
 
     public func request(_ display: String) {
-        guard !systemManagesWindows else { return }
+        guard windowDispatchEligible else { return }
         pendingSpaceOpenings.insert(display)
         coordinator.request(display)
         setDismissed(false, on: display)
@@ -79,11 +207,17 @@ import NearpaneCore
     }
     public func setSuspended(_ value: Bool) {
         guard value != suspended else { return }
+        let previous = windowDispatchEligible
         suspended = value
-        if value { stopObservingClicks() }
+        if missionControlReader != nil {
+            sampleGeneration = UUID(); missionControl = .unknown
+            missionControlDispatchEvidence = value ? "sessionSuspended" : "waitingForDock"
+        }
         fullscreen.sessionBoundary(uptime: ProcessInfo.processInfo.systemUptime)
+        publishOwnership(previous: previous)
     }
     public func update(screens: [ScreenGeometry], presentingOnly displayID: String? = nil) {
+        guard !stopped else { return }
         // A click may unfold the panel once. Later observation ticks must leave it
         // folded if the user subsequently closes the temporary expansion.
         let explicitOpenings = pendingSpaceOpenings
@@ -95,7 +229,7 @@ import NearpaneCore
         for screen in screens {
             demand[screen.id] = host.bus.desktop?.presentationDemand(for: screen.id, now: now, uptime: uptime) ?? .init()
         }
-        let canDispatch = !suspended && !host.configuration.surfaceHidden && !systemManagesWindows &&
+        let canDispatch = windowDispatchEligible && !host.configuration.surfaceHidden &&
             prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
         let feed = pointer.windowPreviews?.currentDesktop
         let fullscreenHint = demand.values.contains { $0.blocked }
@@ -127,7 +261,8 @@ import NearpaneCore
             if paired.contains(plan.id) {
                 content = plan.content == .full || plan.content == .spacesOnly ? .spacesOnly : .hidden
             } else if suppressed.contains(plan.id) || suspended || host.configuration.surfaceHidden { content = .hidden }
-            else if systemManagesWindows {
+            else if missionControl == .exposed { content = .hidden }
+            else if !windowDispatchEligible {
                 content = plan.primary && hasTools && demand[plan.id]?.blocked != true ? .toolsOnly : .hidden
             } else { return plan }
             return DisplaySurfacePlan(id: plan.id, primary: plan.primary, content: content)
@@ -168,7 +303,7 @@ import NearpaneCore
         observeClicksIfNeeded()
         if let screen = screens.first(where: { $0.id == main.id }),
            displayID == nil || main.id == displayID {
-            fullscreen.present(on: screen, allowed: !suspended && !paired.contains(screen.id) && !primary.captureSuppressed)
+            fullscreen.present(on: screen, allowed: !suspended && missionControl != .exposed && !paired.contains(screen.id) && !primary.captureSuppressed)
         } else { fullscreen.hide() }
 
         func place(_ controller: EdgeWindowController, on screen: ScreenGeometry, plan: DisplaySurfacePlan) {
@@ -223,6 +358,11 @@ import NearpaneCore
     }
 
     public func stop() {
+        guard !stopped else { return }
+        let previous = windowDispatchEligible
+        stopped = true
+        publishOwnership(previous: previous)
+        if let occlusionMonitor { NotificationCenter.default.removeObserver(occlusionMonitor); self.occlusionMonitor = nil }
         stageMonitor?.invalidate(); stageMonitor = nil
         pointer.windowPreviews?.currentDesktop?.configureSplitObservation(allowed: false, fullscreenHint: false)
         pendingSpaceOpenings.removeAll()

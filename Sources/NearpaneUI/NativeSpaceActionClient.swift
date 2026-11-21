@@ -161,6 +161,13 @@ private actor SpaceActionChannel {
             request.append(10)
             let channel = try connect()
             try Task.checkCancellation()
+            // A command can wait behind another exchange. Check on this side of the
+            // queue before the helper receives authority to make even its first write.
+            if command.action == .select || command.action == .move {
+                guard permit?.permission(for: command.id, after: 0).proceed == true else {
+                    return .init(id: command.id, state: .failed, detail: "窗口调度已交还系统，请重新选择。", canSwitch: false, canMove: false)
+                }
+            }
             if command.action == .select {
                 try switchJournal.begin(command)
                 journaled = true

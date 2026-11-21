@@ -43,8 +43,10 @@ import SwiftUI
     private var desktopWitnesses = [String: DesktopWitness]()
     private var holds = Set<String>()
     public func setOrdinaryHold(_ reason: String, active: Bool) {
+        let previous = suspended
         if active { holds.insert(reason) } else { holds.remove(reason) }
         suspended = !holds.isEmpty
+        if suspended != previous { desktopTiling.dispatchAvailabilityChanged(!suspended) }
     }
     public func ordinaryPresentation(_ state: String, display: String, deadline: Double?) {
         let now = ProcessInfo.processInfo.systemUptime
@@ -82,7 +84,9 @@ import SwiftUI
     }
     func connect(to host: HostSession) {
         self.host = host
-        desktopTiling.nativeModeAvailable = { [weak host] in host?.workspaceMode.mode == .native }
+        desktopTiling.nativeModeAvailable = { [weak self, weak host] in
+            self?.suspended == false && host?.workspaceMode.mode == .native
+        }
         ordinary.liveContext = { [weak self] display in self?.context(for: display) }
         ordinary.saveExclusion = { [weak host] id in
             guard let host else { throw OrdinaryRefusal.storage }
@@ -133,7 +137,8 @@ import SwiftUI
         ordinary = OrdinaryWindowManager(support: support)
         desktopTiling = DesktopAutomaticTiling(manager: ordinary)
         ordinary.presentationHeld = { [weak self] display in
-            self?.permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime) != true
+            guard let self else { return true }
+            return suspended || !permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime)
         }
     }
     public func restoreCleanDesktopPermission() {

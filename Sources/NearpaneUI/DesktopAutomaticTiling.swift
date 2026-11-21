@@ -93,7 +93,9 @@ struct DesktopTilingRoster: Equatable {
     @ObservationIgnored private weak var feed: CurrentDesktopWindows?
     @ObservationIgnored private var permitsOwner: (DesktopWindowKey) -> Bool = { _ in true }
     @ObservationIgnored var nativeModeAvailable: () -> Bool = { true }
+    @ObservationIgnored var confirmDispatch: (@MainActor () async -> Bool)?
     private var grant: UUID?
+    private var dispatchEpoch = UUID()
     private(set) var waitingForDesktop: OrdinaryDesktopIdentity?
     private var ending = false
     private var exitEvidence: DesktopSnapshot?
@@ -102,6 +104,7 @@ struct DesktopTilingRoster: Equatable {
     private(set) var unpresented = 0
     var scope: OrdinaryDesktopIdentity? { manager.desktopScope }
     @ObservationIgnored private var job: Task<Void, Never>?
+    private var jobID: UUID?
     /// A geometry refusal is retried only on a new membership, policy or explicit user request.
     private var previous: Set<DesktopWindowKey>?
     private var preferences: WorkspacePreferences?
@@ -149,12 +152,14 @@ struct DesktopTilingRoster: Equatable {
             notice = "当前无法确认本屏工作区域，或已有另一项窗口管理正在运行。"; return
         }
         starting = true
+        let epoch = dispatchEpoch
         defer { starting = false }
         let token = UUID()
         grant = token
         feed.observeManagement(true)
         let sample = await feed.readNow()
         guard grant == token, !ending else { return }
+        guard dispatchEpoch == epoch else { end(); return }
         guard nativeModeAvailable(), let roster = DesktopTilingRoster(sample, display: display), roster.space == selected, manager.liveContext?(display) != nil,
               manager.activeIDs.isEmpty, !manager.blocked, !manager.busy else {
             end(); notice = "尚未确认这个显示器上的普通桌面。请在普通桌面打开窗口调度。"; return
@@ -171,10 +176,11 @@ struct DesktopTilingRoster: Equatable {
     func transfer(_ key: DesktopWindowKey, lifetime: UUID, from source: OrdinaryDesktopIdentity,
                   to target: OrdinaryDesktopIdentity, perform: () async throws -> Void) async throws -> String {
         guard !ending, nativeModeAvailable() else { throw OrdinaryRefusal.stale }
+        let epoch = dispatchEpoch
         try await manager.performUserAction {
             try await manager.releaseForTransfer(key, from: source, perform: perform)
         }
-        guard scope == target, let feed, grant != nil else {
+        guard epoch == dispatchEpoch, nativeModeAvailable(), scope == target, let feed, grant != nil else {
             return "窗口已移入目标桌面。该桌面未授权自动分屏。"
         }
         guard permitsOwner(key) else { return "窗口已移入目标桌面，未纳入自动分屏。" }
@@ -195,10 +201,11 @@ struct DesktopTilingRoster: Equatable {
             Self.pairLog.info("phase=pairScopeRefused")
             throw OrdinaryRefusal.scope
         }
+        let epoch = dispatchEpoch
         func cardsMatch() -> Bool {
             feed.lifetime(of: a.key) == pair.draggedLifetime && feed.lifetime(of: b.key) == pair.targetLifetime
         }
-        func current() -> Bool { allowed() && !ending && nativeModeAvailable() && cardsMatch() }
+        func current() -> Bool { epoch == dispatchEpoch && allowed() && !ending && nativeModeAvailable() && cardsMatch() }
         func membersPresent(_ snapshot: DesktopSnapshot?) -> Bool {
             guard let snapshot, source.resolve(snapshot)?.current.ordinaryUUID == source.uuid,
                   snapshot.native?.stageManagerEnabled != true else { return false }
@@ -236,7 +243,7 @@ struct DesktopTilingRoster: Equatable {
             var usedBoundWindows = false
             @MainActor func placementCurrent() -> Bool {
                 guard let bound else { return current() }
-                guard allowed(), !ending, nativeModeAvailable() else { bound.revoke(.intentUnavailable); return false }
+                guard epoch == dispatchEpoch, allowed(), !ending, nativeModeAvailable() else { bound.revoke(.intentUnavailable); return false }
                 guard bound.loss == nil else { return false }
                 if !cardsMatch() && !usedBoundWindows {
                     usedBoundWindows = true
@@ -253,6 +260,19 @@ struct DesktopTilingRoster: Equatable {
             }
             Self.pairLog.info("phase=pairVerified")
             feed.changed()
+        }
+    }
+
+    func dispatchAvailabilityChanged(_ available: Bool) {
+        dispatchEpoch = UUID()
+        previous = nil
+        if available {
+            // Only a new roster on the already authorized desktop can propose another layout.
+            feed?.changed()
+        } else {
+            job?.cancel()
+            feed?.boundSidebarPair?.revoke(.intentUnavailable)
+            manager.withdrawWindowDispatch()
         }
     }
 
@@ -277,7 +297,7 @@ struct DesktopTilingRoster: Equatable {
     }
 
     func end() {
-        grant = nil; job?.cancel(); job = nil
+        grant = nil; jobID = nil; job?.cancel(); job = nil
         explicitArrivals.removeAll()
         manager.desktopScope = nil
         waitingForDesktop = nil
@@ -287,13 +307,18 @@ struct DesktopTilingRoster: Equatable {
 
     private func changed() {
         guard !ending else { return }
-        if let waiting = waitingForDesktop, !starting, grant == nil, nativeModeAvailable(), let feed,
+        if let waiting = waitingForDesktop, job == nil, !starting, grant == nil, nativeModeAvailable(), let feed,
            !manager.blocked, !manager.busy, manager.activeIDs.isEmpty, manager.liveContext?(waiting.display) != nil,
            DesktopTilingRoster(feed.snapshot, display: waiting.display)?.space == waiting {
-            waitingForDesktop = nil
+            let id = UUID()
+            jobID = id
             job = Task { [weak self] in
-                guard let self, !Task.isCancelled else { return }
-                job = nil
+                guard let self, jobID == id else { return }
+                job = nil; jobID = nil
+                guard !Task.isCancelled, nativeModeAvailable(), waitingForDesktop == waiting else {
+                    feed.changed(); return
+                }
+                waitingForDesktop = nil
                 await start(waiting)
             }
             return
@@ -321,9 +346,11 @@ struct DesktopTilingRoster: Equatable {
         guard !added.isEmpty else {
             notice = managed.isEmpty ? "已启用，等待本桌面出现普通窗口。" : "本桌面正在自动分屏。"; return
         }
+        let epoch = dispatchEpoch, id = UUID()
+        jobID = id
         job = Task { [weak self] in
             guard let self else { return }
-            defer { if grant == token { job = nil; feed.changed() } }
+            defer { if jobID == id { job = nil; jobID = nil; feed.changed() } }
             do {
                 let handles = try await resolve(added, scope, ctx.preferences, false)
                 try Task.checkCancellation()
@@ -332,7 +359,7 @@ struct DesktopTilingRoster: Equatable {
                       live.hasSamePresentedMembers(as: roster), handles.allSatisfy({ handle in
                           handle.desktopBinding == scope && added.contains(.init(pid: handle.id.pid, birth: handle.id.launch, number: handle.id.number))
                       }) else {
-                    if grant == token { notice = "等待可核对身份、尺寸和桌面归属的普通窗口。" }
+                    if grant == token, epoch == dispatchEpoch { notice = "等待可核对身份、尺寸和桌面归属的普通窗口。" }
                     return
                 }
                 let requestedCreation = handles.enumerated().contains { index, handle in
@@ -340,6 +367,10 @@ struct DesktopTilingRoster: Equatable {
                     return explicitArrivals[key] == nil && priorMembers?.contains(key) == false && WorkspaceAdmissionPlanner.requestsCreation(
                         existingCount: manager.activeIDs.count + index, source: .application, preferences: ctx.preferences)
                 }
+                if let confirmDispatch {
+                    guard await confirmDispatch(), dispatchEpoch == epoch else { return }
+                }
+                try Task.checkCancellation()
                 try await manager.performUserAction {
                     let review = try await manager.prepare(handles, context: ctx)
                     try Task.checkCancellation()
@@ -353,7 +384,7 @@ struct DesktopTilingRoster: Equatable {
                 notice = requestedCreation ? "系统桌面创建尚未开放，新窗口已在本桌面分屏。" :
                     "已核对本桌面 \(manager.activeIDs.count) 扇窗口的布局。"
             } catch {
-                if grant == token { notice = "本次自动分屏未完成。\(error.localizedDescription)" }
+                if grant == token, epoch == dispatchEpoch { notice = "本次自动分屏未完成。\(error.localizedDescription)" }
             }
         }
     }

@@ -137,9 +137,25 @@ struct CrossSpaceFocusContinuity {
     typealias Work = @MainActor (UUID) async throws -> Void
     private var generation = UUID()
     private var activeSelection: NativeSelectionPermit?
+    private(set) var dispatchAvailable = true
+    private(set) var ownershipEpoch = UUID()
+
+    func setDispatchAvailable(_ available: Bool) {
+        guard dispatchAvailable != available else { return }
+        dispatchAvailable = available
+        ownershipEpoch = UUID()
+        generation = UUID()
+        activeSelection?.revoke()
+        pending.removeAll()
+        issue = nil
+        canSwitch = false
+        canMove = false
+        recordedCapability = nil
+    }
+    @ObservationIgnored var confirmDispatch: (@MainActor () async -> Bool)?
     private var recordedCapability: String?
     private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "NativeSpaceActions")
-    private struct Job { let token: UUID, selection: Bool, run: Work }
+    private struct Job { let token: UUID, epoch: UUID, selection: Bool, run: Work }
     private var pending: [Job] = []
     private var running = false
     private(set) var issue: String?
@@ -147,9 +163,11 @@ struct CrossSpaceFocusContinuity {
     private(set) var canMove = false
 
     func probe(display: String) async {
+        guard dispatchAvailable else { return }
+        let epoch = ownershipEpoch
         let request = NativeSpaceCommand(id: UUID(), action: .probe, display: display, source: "", target: "")
         let reply = await NativeSpaceActionClient.shared.run(request)
-        guard !Task.isCancelled, reply.id == request.id else { return }
+        guard dispatchAvailable, ownershipEpoch == epoch, !Task.isCancelled, reply.id == request.id else { return }
         canSwitch = reply.state == .ready && reply.canSwitch
         canMove = reply.state == .ready && reply.canMove
         let capability = "ready=\(reply.state == .ready) canSwitch=\(canSwitch) canMove=\(canMove)"
@@ -160,25 +178,31 @@ struct CrossSpaceFocusContinuity {
     }
 
     func submit(selection: Bool = true, _ work: @escaping Work) {
+        guard dispatchAvailable else { return }
         if selection && pending.last?.selection == true { pending.removeLast() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
         activeSelection?.revoke()
         generation = UUID(); issue = nil
-        pending.append(Job(token: generation, selection: selection, run: work))
+        pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, run: work))
         guard !running else { return }
         running = true
         Task {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
+                guard dispatchAvailable, job.epoch == ownershipEpoch else { continue }
+                if let confirmDispatch {
+                    guard await confirmDispatch(), dispatchAvailable, job.epoch == ownershipEpoch,
+                          !job.selection || isCurrent(job.token) else { continue }
+                }
                 do { try await job.run(job.token) }
-                catch where !job.selection || job.token == generation { issue = error.localizedDescription }
+                catch where job.epoch == ownershipEpoch && (!job.selection || job.token == generation) { issue = error.localizedDescription }
                 catch {}
             }
             running = false
         }
     }
 
-    func isCurrent(_ token: UUID) -> Bool { generation == token }
+    func isCurrent(_ token: UUID) -> Bool { dispatchAvailable && generation == token }
 
     func select(_ destination: NativeSidebarDestination, member: NativeSidebarMember?, feed: CurrentDesktopWindows,
                 operation: UUID = UUID(), allowed: @escaping @MainActor () -> Bool) {
@@ -281,19 +305,24 @@ struct CrossSpaceFocusContinuity {
     func move(_ member: NativeSidebarMember, into dest: NativeSidebarDestination, lifetime: UUID, feed: CurrentDesktopWindows,
               allowed: @escaping @MainActor () -> Bool) {
         guard !member.selectionOnly, member.source != dest, member.source.kind == .ordinary, dest.kind == .ordinary else { return }
+        let epoch = ownershipEpoch
         submit(selection: false) { [weak self] _ in
+            @MainActor func currentIntent() -> Bool {
+                self?.ownershipEpoch == epoch && self?.dispatchAvailable == true && allowed()
+            }
             @MainActor func transfer() async throws {
-                guard allowed(), let current = await feed.readNow(), let map = dest.resolve(current),
+                guard currentIntent(), let current = await feed.readNow(), let map = dest.resolve(current),
                       member.source.display == dest.display, let w = member.resolve(current),
                       w.sidebarOriginalWindow == nil || w.metadata?.overviewOrdinaryRole == true,
                       case .known(let ids) = w.membership, ids == [member.source.space],
-                      feed.lifetime(of: member.key) == lifetime, map.rows.contains(where: { $0.id == member.source.space }), allowed() else {
+                      feed.lifetime(of: member.key) == lifetime, map.rows.contains(where: { $0.id == member.source.space }), currentIntent() else {
                     throw OrdinaryWindowFailure("拖动的窗口或目标桌面已变化。")
                 }
                 let request = NativeSpaceCommand(id: UUID(), action: .move, display: dest.display,
                     source: member.source.space, target: dest.space, sourceUUID: member.source.uuid, targetUUID: dest.uuid,
                     window: .init(pid: member.key.pid, birth: member.key.birth, number: member.key.number))
-                let reply = await NativeSpaceActionClient.shared.run(request)
+                let permit = NativeSelectionPermit(current: currentIntent)
+                let reply = await NativeSpaceActionClient.shared.run(request, permit: permit)
                 feed.changed()
                 guard reply.id == request.id, reply.state != .outcomeUnknown else {
                     throw UnconfirmedSpaceMove("窗口归属变化尚未确认，已保留原管理记录。")
@@ -320,10 +349,11 @@ struct CrossSpaceFocusContinuity {
             if let tiling = feed.automaticTiling {
                 let source = OrdinaryDesktopIdentity(display: member.source.display, record: member.source.space, uuid: member.source.uuid)
                 let target = OrdinaryDesktopIdentity(display: dest.display, record: dest.space, uuid: dest.uuid)
-                self?.issue = try await tiling.transfer(member.key, lifetime: lifetime, from: source, to: target, perform: transfer)
+                let result = try await tiling.transfer(member.key, lifetime: lifetime, from: source, to: target, perform: transfer)
+                if currentIntent() { self?.issue = result }
             } else {
                 try await transfer()
-                self?.issue = "窗口已移入目标桌面。该桌面未授权自动分屏。"
+                if currentIntent() { self?.issue = "窗口已移入目标桌面。该桌面未授权自动分屏。" }
             }
         }
     }

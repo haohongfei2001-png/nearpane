@@ -26,7 +26,7 @@ struct DesktopSurface: View {
     @ViewState private var drag = NativeSidebarDrag()
     private let navigation = NativeSidebarNavigation.shared
     private var canNavigate: Bool {
-        enabled && host.isRunning && !host.configuration.surfaceHidden &&
+        navigation.dispatchAvailable && enabled && host.isRunning && !host.configuration.surfaceHidden &&
             display?.interactionVisible == true && display?.id == displayID && WindowContentPreview.sessionAvailable()
     }
     @ViewState private var selectionIssue: String?
@@ -286,7 +286,7 @@ struct DesktopSurface: View {
         let userInput = NativeSelectionPermit.inputCounters()
         let visibility = previews.visibilityGeneration[target.display]
         func stillCurrent() -> Bool {
-            guard host.isRunning, !host.configuration.surfaceHidden, display?.interactionVisible == true,
+            guard navigation.dispatchAvailable, host.isRunning, !host.configuration.surfaceHidden, display?.interactionVisible == true,
                   display?.id == target.display else { return DesktopWindowSelection.refusedCurrentCard("display or sidebar") }
             guard feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime) else {
                 return DesktopWindowSelection.refusedCurrentCard("window lifetime")

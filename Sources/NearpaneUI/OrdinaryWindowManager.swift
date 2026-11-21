@@ -103,6 +103,8 @@ enum OrdinaryRefusal: String, LocalizedError {
     @ObservationIgnored private weak var creationWriter: (any OrdinaryWindowObserving)?
     private var checkingCreated = false
     private var previewRevision = 0
+    private var dispatchEpoch = UUID()
+    @ObservationIgnored private weak var activeWriter: (any OrdinaryWindowObserving)?
     private var monitoring: Task<Void, Never>?
     @ObservationIgnored private(set) var boundaryWake: Task<Void, Never>?
     @ObservationIgnored var monitorDelay: @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
@@ -157,6 +159,12 @@ enum OrdinaryRefusal: String, LocalizedError {
         activeIDs.first(where: key.matches).flatMap { handles[$0] }
     }
     func cancelPreview() { previewRevision += 1; pending = nil }
+
+    func withdrawWindowDispatch() {
+        dispatchEpoch = UUID()
+        cancelPreview()
+        activeWriter?.invalidate()
+    }
 
     /// Accept at most one explicit request during a passive read. A changed selection, lost
     /// observation, cancelled caller or closing Host invalidates it before dispatch.
@@ -345,6 +353,7 @@ enum OrdinaryRefusal: String, LocalizedError {
     private func move(_ id: ManagedWindowID, to target: SurfaceRect, context: AdmissionContext, kind: String,
                       creationToken: UUID? = nil, placement: OrdinaryWindowPairPlacement? = nil,
                       current: @escaping @MainActor () -> Bool = { true }) async throws {
+        let epoch = dispatchEpoch
         guard current(), let h = handles[id], leases[id] != nil, var e = entries[id],
               e.refusal == nil, e.intended == nil else { throw OrdinaryRefusal.lost }
         try checkedScope(context, grant: h)
@@ -359,7 +368,7 @@ enum OrdinaryRefusal: String, LocalizedError {
         else { throw OrdinaryRefusal.lost }
         try checkCreationGrant(creationToken)
         if target == e.confirmed { return }
-        guard current(), kind == "restore" || !closing else { throw OrdinaryRefusal.stale }
+        guard epoch == dispatchEpoch, current(), kind == "restore" || !closing else { throw OrdinaryRefusal.stale }
         try checkedScope(context, grant: h)
         let op = UUID()
         let before = e.confirmed
@@ -373,14 +382,15 @@ enum OrdinaryRefusal: String, LocalizedError {
                 do { try await Task.sleep(for: .milliseconds(20)) } catch { return }
                 guard let self else { h.invalidate(); return }
                 do {
-                    guard current(), !self.closing || kind == "restore" else { throw OrdinaryRefusal.stale }
+                    guard epoch == self.dispatchEpoch, current(), !self.closing || kind == "restore" else { throw OrdinaryRefusal.stale }
                     try self.checkCreationGrant(creationToken)
                     try self.checkedScope(context, grant: h)
                 } catch { h.invalidate(); return }
             }
         }
+        activeWriter = h
         if creationToken != nil { creationWriter = h }
-        defer { creationWriter = nil; guardTask.cancel() }
+        defer { activeWriter = nil; creationWriter = nil; guardTask.cancel() }
         let pair: AdmissionPair
         if let placement {
             do { pair = try await h.write(from: before, to: target, placement: placement) }
@@ -401,8 +411,9 @@ enum OrdinaryRefusal: String, LocalizedError {
     }
 
     private func apply(_ targets: [ManagedWindowID: SurfaceRect], in context: AdmissionContext, creationToken: UUID? = nil) async throws {
+        let epoch = dispatchEpoch
         for id in activeIDs {
-            guard !closing, let frame = targets[id] else { throw OrdinaryRefusal.stale }
+            guard epoch == dispatchEpoch, !closing, let frame = targets[id] else { throw OrdinaryRefusal.stale }
             try checkCreationGrant(creationToken)
             do { try await move(id, to: frame, context: context, kind: "layout", creationToken: creationToken) }
             catch { entries[id]?.refusal = error.localizedDescription; throw error }

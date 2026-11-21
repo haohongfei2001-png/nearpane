@@ -163,6 +163,11 @@ public final class EdgeWindowController: NSWindowController {
         display.id = nil
     }
 
+    // A held card must not become a click/drop after control returns from the system.
+    func cancelWindowDispatchGesture() {
+        (window as? EdgePanel)?.cardPointer.cancel()
+    }
+
     private func endPlacementInteractions() {
         placementGeneration += 1
         if let panel = window as? EdgePanel {

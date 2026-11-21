@@ -410,6 +410,45 @@ import Testing
         try await manager.performUserAction { try await manager.stop() }
     }
 
+    @Test func systemHandoffRevokesResolvedAutomaticWorkButRetainsTheDesktopGrant() async throws {
+        let env = OrdinaryScope(), manager = env.manager(), world = DesktopFixture()
+        let a = WindowDouble(number: 101), b = WindowDouble(number: 102), feed = world.feed()
+        var available = true
+        var resume: CheckedContinuation<Void, Never>?
+        let tiling = DesktopAutomaticTiling(manager: manager) { keys, scope, _ in
+            let handles = world.windows.filter { window in keys.contains { $0.matches(window.id) } }
+            for handle in handles { handle.desktopBinding = scope }
+            if handles.contains(where: { $0 === a }) {
+                await withCheckedContinuation { resume = $0 }
+            }
+            return handles
+        }
+        tiling.nativeModeAvailable = { available }
+        tiling.connect(feed)
+        world.windows = [a]
+        await tiling.start(world.space)
+        try await world.until { resume != nil }
+        available = false
+        tiling.dispatchAvailabilityChanged(false)
+        #expect(tiling.scope == world.space && manager.activeIDs.isEmpty)
+        world.windows = [b]
+        feed.changed()
+        available = true
+        tiling.dispatchAvailabilityChanged(true)
+        resume?.resume()
+        try await world.until { manager.verifiedIDs == [b.id] && !manager.busy }
+        #expect(a.writes == 0 && b.writes == 1 && tiling.scope == world.space)
+        try await manager.performUserAction { try await manager.stop() }
+    }
+
+    @Test func losingDispatchDuringConfirmationMakesAnOldPreviewUnusableAfterReturn() async throws {
+        let env = OrdinaryScope(), manager = env.manager(), window = WindowDouble()
+        let review = try await manager.prepare([window], context: env.context)
+        window.nextVerify = { manager.withdrawWindowDispatch() }
+        await #expect(throws: OrdinaryRefusal.self) { try await manager.confirm(review, context: env.context) }
+        #expect(window.writes == 0 && manager.activeIDs.isEmpty)
+    }
+
     @Test func virtualModeCannotInheritTheNativeDesktopGrant() async throws {
         let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
         let a = WindowDouble(); world.windows = [a]
