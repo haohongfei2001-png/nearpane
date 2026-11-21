@@ -19,3 +19,8 @@ xcrun clang -std=c11 -Wall -Wextra -Werror -I "$src" -I Engine/nearpane-window-e
 "$scratch/guard"
 xcrun clang -fobjc-arc -Wall -Wextra -Werror -I "$src" scripts/acceptance/window-engine/corner/scope-test.m -framework Foundation -framework CoreGraphics -o "$scratch/scope-test"
 "$scratch/scope-test"
+xcrun clang -fobjc-arc -Wall -Wextra -Werror -I "$src" -I Engine/nearpane-window-engine/include \
+    scripts/acceptance/window-engine/corner/packaged-ledger-test.m "$scratch/reader.o" -framework AppKit \
+    -framework Foundation -framework ApplicationServices -framework Security -framework Carbon \
+    -framework CoreGraphics -framework CoreFoundation -o "$scratch/packaged-ledger"
+"$scratch/packaged-ledger"

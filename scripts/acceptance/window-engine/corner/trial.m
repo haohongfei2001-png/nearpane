@@ -589,6 +589,10 @@ static void trial(NSString *kit) {
                     closeFrame(w[@"frame"], unpack(check.frame)),
                 @"initialWindowReadbackUnconfirmed");
     }
+    NPReceipt idle = request(rs[0], NP_HEALTH);
+    require(idle.status == NP_PASS && !idle.owned &&
+                (idle.flags & (NP_HEALTHY | NP_INPUT_SAFE)) == (NP_HEALTHY | NP_INPUT_SAFE),
+            @"idleSessionCouldNotAttestRealNoninterceptingPort");
     if (crashMode) {
         crashHost(kit, rs[0]);
         return;
@@ -657,7 +661,12 @@ static void trial(NSString *kit) {
                 result[@"status"] = @"UNKNOWN";
         }
         result[@"compensation"] = cleanup;
-        result[@"engineClose"] = @(np_engine_destroy(handle));
+        uint32_t closed = np_engine_destroy(handle);
+        result[@"engineClose"] = @(closed);
+        if (closed != NP_OK && [result[@"status"] isEqual:@"PASS"]) {
+            result[@"status"] = @"UNKNOWN";
+            result[@"reason"] = @"engineStillRetainsWindowsOrUnresolvedWrites";
+        }
         save();
     }
 }

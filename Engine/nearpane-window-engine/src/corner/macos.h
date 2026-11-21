@@ -46,3 +46,5 @@ void np_corner_tap_run(void *, NCDecide, NCTapControl, NCTapHealth);
 void np_corner_release_window(void *retained);
 void *np_corner_retain_window(const NCMember *member);
 int np_corner_same_window(const NCMember *member, void *retained);
+
+int np_corner_signed_fingerprint(int32_t pid, uint64_t birth, uint8_t digest[32]);

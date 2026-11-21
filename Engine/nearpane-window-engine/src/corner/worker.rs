@@ -193,6 +193,38 @@ impl Corner {
         self.last_refresh = Some(Instant::now());
         Ok(())
     }
+    /// Preflight for an admitted command with no parked members. This real, short-lived port has
+    /// an empty recipient set and no hit zones, so every gesture reaches its ordinary recipient.
+    fn idle_health(&self, r: &Request, control: &Control) -> Outcome {
+        let probe = || -> Result<(), u32> {
+            if !control.may_write() {
+                return Err(NEED_INDEPENDENT_READ);
+            }
+            let id = Member::from(r);
+            let layout = native::displays()?;
+            scoped(&layout, id.display)?;
+            let first = native::sample(&id)?;
+            let input = native::inputs();
+            let port = Tap::start(self.publication(false)?)?;
+            let second = native::sample(&id)?;
+            if !same(first.cg, second.cg) || layout != native::displays()? || input != native::inputs() {
+                return Err(USER_CHANGED);
+            }
+            port.publish(self.publication(false)?)?;
+            if control.guard().is_err() {
+                return Err(USER_CHANGED);
+            }
+            port.health()
+        };
+        match probe() {
+            Err(e) => self.result(control.guard().err().unwrap_or(c::UNKNOWN), e, None, false),
+            Ok(()) => {
+                let mut receipt = self.result(c::PASS, 0, None, false);
+                receipt.flags |= c::HEALTHY | c::INPUT_SAFE;
+                receipt
+            }
+        }
+    }
     fn read(&mut self, r: &Request) -> Outcome {
         let id = Member::from(r);
         let o = self.owned.get(&r.window);
@@ -434,7 +466,7 @@ impl WindowEngine for Corner {
                 Ok(_) => self.result(c::PASS, NEED_INDEPENDENT_READ, None, false),
                 Err(e) => self.result(c::UNKNOWN, e, None, false),
             },
-            c::HEALTH if self.owned.is_empty() => self.result(c::UNKNOWN, NEED_INDEPENDENT_READ, None, false),
+            c::HEALTH if self.owned.is_empty() => self.idle_health(r, control),
             c::HEALTH => match self.refresh(false) {
                 Ok(()) => {
                     let mut o = self.result(c::PASS, 0, None, true);
@@ -511,6 +543,19 @@ mod tests {
         ));
     }
     #[test]
+    fn an_unqualified_idle_health_request_never_creates_a_port_or_attests_input_safety() {
+        let c = Control {
+            epoch: std::sync::Arc::new(1.into()),
+            expected: 1,
+            cancelled: std::sync::Arc::new(false.into()),
+            deadline: Instant::now() + Duration::from_secs(2),
+            write: false,
+            spaces_route: None,
+        };
+        let receipt = Corner::default().idle_health(&Request::default(), &c);
+        assert_eq!((receipt.status, receipt.flags), (c::UNKNOWN, 0));
+    }
+    #[test]
     fn cold_engine_cannot_adopt_a_parked_window_from_numeric_and_journal_ids() {
         const EPOCH: u64 = 18;
         let c = Control {
@@ -519,6 +564,7 @@ mod tests {
             cancelled: std::sync::Arc::new(false.into()),
             deadline: Instant::now() + Duration::from_secs(2),
             write: true,
+            spaces_route: None,
         };
         let r = Request {
             pid: 9,

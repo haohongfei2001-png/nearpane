@@ -31,6 +31,7 @@ static void crashHost(NSString *kit, NPRequest r) {
                        O_CREAT | O_EXCL | O_APPEND | O_WRONLY | O_CLOEXEC | O_NOFOLLOW, 0600);
     require(journal >= 0, @"exclusiveFixtureLedgerUnavailable");
     NSPipe *input = [NSPipe pipe], *reply = [NSPipe pipe];
+    (void)fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1);
     NSTask *guardian = [NSTask new];
     guardian.executableURL = [NSURL fileURLWithPath:[kit stringByAppendingPathComponent:@"guardian"]];
     guardian.arguments = @[ kit, output ];

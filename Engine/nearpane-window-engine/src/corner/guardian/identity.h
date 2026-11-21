@@ -12,6 +12,7 @@ static inline uint64_t ncg_birth(pid_t pid, pid_t *parent) {
         *parent = (pid_t)p.pbi_ppid;
     return p.pbi_start_tvsec * UINT64_C(1000000) + p.pbi_start_tvusec;
 }
+#if defined(NP_CORNER_FIXTURE)
 static inline BOOL ncg_disposable(void) {
     NSDictionary *e = NSProcessInfo.processInfo.environment;
     return ([NSUserName() isEqual:@"runner"] && [e[@"GITHUB_ACTIONS"] isEqual:@"true"] &&
@@ -19,8 +20,9 @@ static inline BOOL ncg_disposable(void) {
            ([NSUserName() hasPrefix:@"nearpane-fixture-"] &&
             [e[@"NP_DISPOSABLE_CORNER_LOGIN"] isEqual:NSUserName()]);
 }
+#endif
 // Check running code against both its expected bundle identity and the signed artifact in the private kit.
-static inline NSData *ncg_hash(pid_t pid, NSString *path, NSString *ident) {
+static inline NSData *ncg_rule_hash(pid_t pid, NSString *path, NSString *requirement) {
     char actual[PROC_PIDPATHINFO_MAXSIZE], file[PATH_MAX], process[PATH_MAX];
     if (!proc_pidpath(pid, actual, sizeof(actual)) || !realpath(actual, process) ||
         !realpath(path.fileSystemRepresentation, file) || strcmp(file, process))
@@ -29,7 +31,6 @@ static inline NSData *ncg_hash(pid_t pid, NSString *path, NSString *ident) {
     SecStaticCodeRef disk = NULL;
     SecRequirementRef req = NULL;
     CFDictionaryRef a = NULL, b = NULL;
-    NSString *requirement = [NSString stringWithFormat:@"identifier \"%@\"", ident];
     OSStatus err = SecRequirementCreateWithString((__bridge CFStringRef)requirement, 0, &req);
     if (!err)
         err = SecCodeCopyGuestWithAttributes(
@@ -66,6 +67,10 @@ static inline NSData *ncg_hash(pid_t pid, NSString *path, NSString *ident) {
         CFRelease(live);
     return digest;
 }
+#if defined(NP_CORNER_FIXTURE)
+static inline NSData *ncg_hash(pid_t pid, NSString *path, NSString *ident) {
+    return ncg_rule_hash(pid, path, [NSString stringWithFormat:@"identifier \"%@\"", ident]);
+}
 static inline NSData *ncg_fixture_hash(pid_t pid, NSString *kit) {
     for (NSString *suffix in @[ @"a", @"b" ]) {
         NSString *path =
@@ -78,3 +83,5 @@ static inline NSData *ncg_fixture_hash(pid_t pid, NSString *kit) {
     }
     return nil;
 }
+
+#endif

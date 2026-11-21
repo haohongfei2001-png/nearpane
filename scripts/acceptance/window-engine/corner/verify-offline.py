@@ -41,7 +41,8 @@ def run(origin, upstream):
     return dict(upstreamCommit=PIN, checkedBlobs=len(origin), sourceTree=tree["sha"], offlineTests=int(passed[1]),
                 historicalComparison=dict(file=str(history.relative_to(ROOT)),sha256=hashlib.sha256(history.read_bytes()).hexdigest(),
                                           status=prior["status"],reason=prior["reason"],realClickWindowIDs=prior["realClickWindowIDs"]),
-                completedNativeAssertions=["threeGroupOrderedStages", "guardianAuthorizationAndJournalCorrelation", "singleMainActualDisplayScope"],
+                completedNativeAssertions=["threeGroupOrderedStages", "guardianAuthorizationAndJournalCorrelation", "singleMainActualDisplayScope",
+                                           "packagedStageVisibilityLedgerAndConservativeCas"],
                 hostedRun44881106930=archived,
                 macos27PhysicalRun="NOT_RUN", receiverMarkers="NOT_RUN", guardianCrash="NOT_RUN",
                 optionalWallpaperPatch="NOT_RUN", qualification="UNQUALIFIED")

@@ -47,6 +47,36 @@ static uint64_t birth(pid_t p) {
                ? i.pbi_start_tvsec * 1000000ULL + i.pbi_start_tvusec
                : 0;
 }
+int np_corner_signed_fingerprint(int32_t pid, uint64_t expected, uint8_t digest[32]) {
+    @autoreleasepool {
+        if (!expected || birth(pid) != expected)
+            return 0;
+        SecCodeRef code = NULL;
+        CFDictionaryRef info = NULL;
+        OSStatus err = SecCodeCopyGuestWithAttributes(
+            NULL,
+            (__bridge CFDictionaryRef)
+                @{(__bridge NSString *)kSecGuestAttributePid : @(pid)},
+            0, &code);
+        if (!err)
+            err = SecCodeCheckValidity(code, kSecCSStrictValidate, NULL);
+        if (!err)
+            err = SecCodeCopySigningInformation(code, kSecCSSigningInformation, &info);
+        NSData *__attribute__((objc_precise_lifetime)) h =
+            info ? [(__bridge NSDictionary *)info objectForKey:(__bridge NSString *)kSecCodeInfoUnique] : nil;
+        int ok =
+            !err && [h isKindOfClass:NSData.class] && (h.length == 20 || h.length == 32) && birth(pid) == expected;
+        if (ok) {
+            memset(digest, 0, 32);
+            memcpy(digest, h.bytes, h.length);
+        }
+        if (info)
+            CFRelease(info);
+        if (code)
+            CFRelease(code);
+        return ok;
+    }
+}
 static id ax(AXUIElementRef e, CFStringRef key) {
     CFTypeRef v = NULL;
     return e && AXUIElementCopyAttributeValue(e, key, &v) == kAXErrorSuccess ? CFBridgingRelease(v) : nil;

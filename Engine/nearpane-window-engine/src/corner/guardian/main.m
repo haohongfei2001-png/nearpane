@@ -15,6 +15,14 @@ typedef struct {
     NCDisplay display;
     void *held;
     int dir, ledger, kqueue;
+#ifndef NP_CORNER_FIXTURE
+    int profile, root, writer, serializer;
+    BOOL serializedRecovery;
+    void *profileID;
+    __unsafe_unretained NSString *hostHash;
+    __unsafe_unretained NSDictionary *stamp;
+    uint32_t takeoverInput[13];
+#endif
     NCRecoveryFacts facts;
     __unsafe_unretained NSData *hash;
     __unsafe_unretained NSString *kit;
@@ -47,7 +55,15 @@ static BOOL readPacket(int fd, void *raw, size_t length) {
     }
     return YES;
 }
+#ifndef NP_CORNER_FIXTURE
+static BOOL displayIs(Session *s);
+static BOOL stable(Session *s, NCFrame frame);
+#include "packaged.h"
+#endif
 static BOOL journal(Session *s, BOOL sealed) {
+#ifndef NP_CORNER_FIXTURE
+    return productJournal(s, sealed, NO);
+#else
     struct stat st, same;
     NCGuardianEntry p, q;
     size_t len = sizeof(p);
@@ -57,6 +73,7 @@ static BOOL journal(Session *s, BOOL sealed) {
         pread(s->ledger, &p, len, 0) != (ssize_t)len || memcmp(&p, &s->pre, len))
         return NO;
     return !sealed || (pread(s->ledger, &q, len, (off_t)len) == (ssize_t)len && !memcmp(&q, &s->sealed, len));
+#endif
 }
 static BOOL displayIs(Session *s) {
     NCDisplay d = {0};
@@ -78,8 +95,15 @@ static uint32_t authorize(void *ptr) {
     s->facts.lifetime_exact = np_corner_same_window(&s->member, s->held);
     s->facts.frame_exact = stable(s, convert(s->sealed.result.frame));
     s->facts.original_display = displayIs(s);
+#ifdef NP_CORNER_FIXTURE
     s->facts.inputs_unchanged = !memcmp(hid, s->sealed.hid, sizeof(hid));
     s->facts.current_signature = [s->hash isEqual:ncg_fixture_hash(s->member.pid, s->kit)];
+#else
+    s->facts.inputs_unchanged = !memcmp(hid, s->takeoverInput, sizeof(hid));
+    uint8_t digest[32] = {0};
+    s->facts.current_signature = np_corner_signed_fingerprint(s->member.pid, s->member.birth, digest) &&
+                                 [s->hash isEqual:[NSData dataWithBytes:digest length:sizeof(digest)]];
+#endif
     s->facts.no_secure_input = !np_corner_secure_input();
     return ncg_may_restore(s->facts);
 }
@@ -89,6 +113,7 @@ static void need(BOOL yes, NSString *why) {
 }
 static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSString *folder) {
     s->kit = kit;
+#ifdef NP_CORNER_FIXTURE
     need(ncg_disposable() && [ncg_hash(getpid(), [kit stringByAppendingPathComponent:@"guardian"],
                                        @"com.holdsnow.nearpane.engine-guardian.fixture") length] > 0,
          @"unsignedOrNonisolatedGuardian");
@@ -96,6 +121,24 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->ledger = openat(s->dir, "guardian-ledger.bin", O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     need(fileOK(s->dir, YES) && fileOK(s->ledger, NO), @"privateHostJournalUnavailable");
     need(readPacket(STDIN_FILENO, &s->pre, sizeof(s->pre)) && journal(s, NO), @"preparePipeAndJournalDiffer");
+#else
+    (void)kit;
+    NSData *parentDigest = signedProduct(getppid(), hostExe, @"com.holdsnow.nearpane.alpha");
+    need(parentDigest.length &&
+             signedProduct(getpid(), guardianExe, @"com.holdsnow.nearpane.alpha.corner-guardian").length,
+         @"signedCanonicalHostAndNestedGuardianRequired");
+    NSMutableString *__attribute__((objc_precise_lifetime)) hash = [NSMutableString string];
+    for (NSUInteger i = 0; i < parentDigest.length; i++)
+        [hash appendFormat:@"%02x", ((const uint8_t *)parentDigest.bytes)[i]];
+    s->hostHash = hash;
+    s->dir = open(folder.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    need(fileOK(s->dir, YES) && productOpen(s, folder), @"activeLockedHostProfileUnavailable");
+    need(productPrepare(s, productMessage(), folder), @"pendingQualifiedProductHideNotInHostJournal");
+    NSDictionary *__attribute__((objc_precise_lifetime)) stamp =
+        [productFile(s->profile, "stage-visibility-v1.json")[@"owner"] copy];
+    s->stamp = stamp;
+    need(stamp && journal(s, NO), @"hostOwnerStampChangedBeforeRetention");
+#endif
     NPRequest r = s->pre.lease;
     need(s->pre.version == 1 && s->pre.phase == NCG_PREPARE && s->pre.host == getppid() &&
              s->pre.host_birth != 0 && s->pre.host_birth == ncg_birth(getppid(), NULL) && r.size == sizeof(r) &&
@@ -110,6 +153,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
              [NSValue valueWithPointer:r.native_space]
          ])
         need(memcmp(v.pointerValue, zero, 16) != 0, @"incompleteHostLease");
+#ifdef NP_CORNER_FIXTURE
     NSData *host = ncg_hash(getppid(), [kit stringByAppendingPathComponent:@"controller"],
                             @"com.holdsnow.nearpane.engine-fixture");
     pid_t parent = 0;
@@ -117,6 +161,12 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->hash = owner;
     need(host.length && owner.length && ncg_birth(r.pid, &parent) == r.birth && parent == getppid(),
          @"unregisteredFixtureOrHostSignature");
+#else
+    uint8_t digest[32];
+    need(np_corner_signed_fingerprint(r.pid, r.birth, digest), @"enrolledApplicationSigningIdentityUnavailable");
+    NSData *__attribute__((objc_precise_lifetime)) owner = [NSData dataWithBytes:digest length:sizeof(digest)];
+    s->hash = owner;
+#endif
     s->kqueue = kqueue();
     struct kevent change;
     EV_SET(&change, (uintptr_t)s->pre.host, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_EXIT, 0, NULL);
@@ -134,9 +184,13 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->facts.retained_before_park = true;
     s->facts.unspent = true;
     need(write(STDOUT_FILENO, "R", 1) == 1, @"prepareAckUnavailable");
+#ifdef NP_CORNER_FIXTURE
     need(readPacket(STDIN_FILENO, &s->sealed, sizeof(s->sealed)) && ncg_correlates(&s->pre, &s->sealed) &&
              journal(s, YES),
          @"committedPostimageOrIntentMissing");
+#else
+    need(productSeal(s, productMessage()), @"independentCommittedProductOwnershipUnavailable");
+#endif
     NCFrame parked = convert(s->sealed.result.frame);
     CGRect d = CGRectMake(s->display.frame.x, s->display.frame.y, s->display.frame.w, s->display.frame.h);
     CGRect slit = CGRectIntersection(d, CGRectMake(parked.x, parked.y, parked.w, parked.h));
@@ -159,7 +213,27 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(write(STDOUT_FILENO, "P", 1) == 1, @"sealAckUnavailable");
     struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
     char extra;
+#ifdef NP_CORNER_FIXTURE
     need(poll(&p, 1, 12000) > 0 && read(STDIN_FILENO, &extra, 1) == 0, @"originalWriterPipeStillOpen");
+#else
+    int polled;
+    do {
+        polled = poll(&p, 1, -1);
+    } while (polled < 0 && errno == EINTR);
+    need(polled > 0, @"signedHostPipeUnavailable");
+    ssize_t got = read(STDIN_FILENO, &extra, 1);
+    if (got == 1 && extra == 'D') {
+        need(ncg_birth(s->pre.host, NULL) == s->pre.host_birth && getppid() == s->pre.host &&
+                 productJournal(s, YES, YES) && stable(s, convert(s->pre.lease.frame)),
+             @"journalAndReleasedOriginalNotConfirmed");
+        need(write(STDOUT_FILENO, "D", 1) == 1, @"disarmReplyUnavailable");
+        receipt[@"status"] = @"PASS";
+        receipt[@"reason"] = @"liveHostReleasedRestoredOwnership";
+        return;
+    }
+    need(got == 0, @"unexpectedHostCommand");
+    np_corner_inputs(s->takeoverInput);
+#endif
     s->facts.eof = true;
     struct kevent event;
     struct timespec wait = {2, 0};
@@ -169,6 +243,25 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->facts.kernel_parent_exit = true;
     for (unsigned i = 0; i < 100 && ncg_birth(s->pre.host, NULL) == s->pre.host_birth; i++)
         usleep(10000);
+#ifndef NP_CORNER_FIXTURE
+    // Never race a newly launched Host. This lock is also the CAS boundary for checking the active generation.
+    need(flock(s->writer, LOCK_SH | LOCK_NB) == 0 && activeProfile(s), @"newHostOwnsProfile");
+    // Multiple Guardians may keep out a new Host. Only one may execute its single-window restore at a time.
+    double deadline = NSProcessInfo.processInfo.systemUptime + 3;
+    int locked;
+    do {
+        locked = flock(s->serializer, LOCK_EX | LOCK_NB);
+        if (locked && errno == EWOULDBLOCK)
+            usleep(15000);
+        else
+            break;
+    } while (NSProcessInfo.processInfo.systemUptime < deadline);
+    need(locked == 0, @"otherRecoveryWriterDidNotQuiesce");
+    s->serializedRecovery = YES;
+    receipt[@"exclusiveHostWriterExcluded"] = @YES;
+    receipt[@"serializedRecoveryWriter"] = @YES;
+    usleep(25000);
+#endif
     need(authorize(s), @"restoreFactsIncomplete");
     uint32_t issued = 0;
     uint32_t why = np_corner_position(&s->member, s->held, parked, convert(r.frame), authorize, s, &issued);
@@ -189,12 +282,29 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(consecutive == 2, @"originalGeometryUnconfirmedAfterSingleSetter");
     receipt[@"status"] = @"PASS";
     receipt[@"reason"] = @"retainedWindowRestoredAfterKernelExitAndEOF";
+#ifndef NP_CORNER_FIXTURE
+    receipt[@"physicalRestoration"] = @"PASS";
+    receipt[@"durableOwnership"] = settleCommitted(s);
+    if (![receipt[@"durableOwnership"] isEqual:@"exactCommittedOwnershipRemoved"])
+        receipt[@"status"] = @"UNKNOWN";
+#endif
 }
 int main(int argc, const char **argv) {
     @autoreleasepool {
-        if (argc != 3 || !ncg_disposable())
+        if (argc != 3)
             return 2;
+        (void)fcntl(STDOUT_FILENO, F_SETNOSIGPIPE, 1);
+#ifdef NP_CORNER_FIXTURE
+        if (!ncg_disposable())
+            return 2;
+#else
+        if (strcmp(argv[1], "--watch"))
+            return 2;
+#endif
         Session s = {.dir = -1, .ledger = -1, .kqueue = -1};
+#ifndef NP_CORNER_FIXTURE
+        s.profile = s.root = s.writer = s.serializer = -1;
+#endif
         NSMutableDictionary *r = [@{@"schema" : @1, @"status" : @"UNKNOWN", @"issued" : @0} mutableCopy];
         @try {
             run(&s, r, @(argv[1]), @(argv[2]));
@@ -212,7 +322,7 @@ int main(int argc, const char **argv) {
         r[@"postimageExactBeforeWrite"] = @(s.facts.frame_exact);
         r[@"sameDisplay"] = @(s.facts.original_display);
         r[@"unchangedInput"] = @(s.facts.inputs_unchanged);
-        r[@"fixtureSignatureRechecked"] = @(s.facts.current_signature);
+        r[@"processSignatureRechecked"] = @(s.facts.current_signature);
         if (s.held)
             np_corner_release_window(s.held);
         if (s.ledger >= 0)
@@ -233,6 +343,18 @@ int main(int argc, const char **argv) {
         }
         if (s.dir >= 0)
             close(s.dir);
+#ifndef NP_CORNER_FIXTURE
+        if (s.profile >= 0)
+            close(s.profile);
+        if (s.root >= 0)
+            close(s.root);
+        if (s.writer >= 0)
+            close(s.writer);
+        if (s.serializer >= 0)
+            close(s.serializer);
+        if (s.profileID)
+            CFRelease(s.profileID);
+#endif
         return [r[@"status"] isEqual:@"PASS"] ? 0 : 3;
     }
 }

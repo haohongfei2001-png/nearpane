@@ -36,11 +36,11 @@ manifest=Engine/nearpane-window-engine/Cargo.toml
 cargo build --locked --offline --manifest-path "$manifest" --target-dir "$kit/target" --release --features corner,isolated-fixtures > "$out/build.log" 2>&1
 xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror "$src/owner.m" -framework AppKit -framework Foundation -o "$kit/owner"
 corner=Engine/nearpane-window-engine/src/corner
-xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror -I Engine/nearpane-window-engine/include -I "$corner" "$corner/guardian/main.m" "$corner/macos.m" \
+xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror -DNP_CORNER_FIXTURE=1 -I Engine/nearpane-window-engine/include -I "$corner" "$corner/guardian/main.m" "$corner/macos.m" \
  -framework AppKit -framework Foundation -framework CoreFoundation -framework CoreGraphics -framework ApplicationServices -framework Security -framework Carbon -o "$kit/guardian"
 codesign --force --options runtime --timestamp=none --identifier com.holdsnow.nearpane.engine-guardian.fixture --sign - "$kit/guardian" >> "$out/build.log" 2>&1
 codesign --verify --strict "$kit/guardian"
-xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror -I Engine/nearpane-window-engine/include -I "$corner" "$src/trial.m" "$src/picture.m" \
+xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror -DNP_CORNER_FIXTURE=1 -I Engine/nearpane-window-engine/include -I "$corner" "$src/trial.m" "$src/picture.m" \
  "$kit/target/release/libnearpane_window_engine.a" -framework AppKit -framework Foundation \
  -framework CoreFoundation -framework CoreGraphics -framework ApplicationServices -framework Security -framework Carbon -framework ScreenCaptureKit -framework ImageIO -o "$kit/controller"
 for name in a b; do

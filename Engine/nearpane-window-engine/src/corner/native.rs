@@ -64,6 +64,7 @@ unsafe extern "C" {
     fn np_corner_retain_window(id: *const Member) -> *mut c_void;
     fn np_corner_same_window(id: *const Member, retained: *mut c_void) -> i32;
     fn np_corner_inputs(output: *mut u32);
+    fn np_corner_signed_fingerprint(pid: i32, birth: u64, digest: *mut u8) -> i32;
     #[cfg(feature = "isolated-fixtures")]
     fn np_is_enrolled_fixture(pid: i32, birth: u64) -> bool;
     fn np_corner_release_window(retained: *mut c_void);
@@ -83,15 +84,24 @@ pub(super) fn inputs() -> Inputs {
     unsafe { np_corner_inputs(state.as_mut_ptr()) };
     state
 }
-fn active_grant(member: &Member) -> bool {
+fn fingerprint(member: &Member) -> Option<[u8; 32]> {
+    let mut bytes = [0; 32];
+    (unsafe { np_corner_signed_fingerprint(member.pid, member.birth, bytes.as_mut_ptr()) == 1 })
+        .then_some(bytes)
+}
+fn active_grant(member: &Member, captured: [u8; 32], control: &Control) -> bool {
+    if !control.may_write() || fingerprint(member) != Some(captured) {
+        return false;
+    }
     #[cfg(feature = "isolated-fixtures")]
     {
         unsafe { np_is_enrolled_fixture(member.pid, member.birth) }
     }
     #[cfg(not(feature = "isolated-fixtures"))]
     {
-        let _ = member;
-        false
+        // Ordinary mode cannot acquire a writable Control. Only Gate 0's compiled,
+        // explicitly reviewed evidence for this backend can create one in this build.
+        true
     }
 }
 
@@ -146,11 +156,12 @@ pub(super) fn zorder() -> Result<(Vec<sliver::Listed>, sliver::DockBar), u32> {
 }
 
 /// An AX object is never sent over the ABI or persisted. Only the engine's WM thread owns it.
-pub(super) struct Reference(std::ptr::NonNull<c_void>);
+pub(super) struct Reference(std::ptr::NonNull<c_void>, [u8; 32]);
 impl Reference {
     pub fn acquire(id: &Member) -> Result<Self, u32> {
+        let signed = fingerprint(id).ok_or(3u32)?;
         std::ptr::NonNull::new(unsafe { np_corner_retain_window(id) })
-            .map(Self)
+            .map(|w| Self(w, signed))
             .ok_or(3)
     }
     pub fn matches(&self, id: &Member) -> bool {
@@ -175,6 +186,7 @@ pub(super) fn position(
     struct Grant<'a> {
         control: &'a Control,
         id: &'a Member,
+        signer: [u8; 32],
         input: Inputs,
         tap: Option<&'a super::tap::Tap>,
     }
@@ -182,7 +194,7 @@ pub(super) fn position(
         // The C shim invokes this synchronously after reacquiring both systems' window identity.
         let grant = unsafe { &*raw.cast::<Grant>() };
         (grant.control.guard().is_ok()
-            && active_grant(grant.id)
+            && active_grant(grant.id, grant.signer, grant.control)
             && grant.control.may_write()
             && grant.tap.is_none_or(|tap| tap.health().is_ok())
             && inputs() == grant.input) as u32
@@ -190,6 +202,7 @@ pub(super) fn position(
     let mut context = Grant {
         control,
         id,
+        signer: reference.1,
         input,
         tap,
     };
