@@ -15,7 +15,7 @@ def run_comparison(binary, destination):
              "osBuild": subprocess.check_output(["sw_vers", "-buildVersion"], text=True).strip(),
              "tenRoundTrips": "NOT_RUN", "fiftyRoundTrips": "NOT_RUN"}
     # Never enter the second mechanism with a window left over from the first.
-    for method in ("minimize", "corner"):
+    for method in ("minimize", "corner", "wallpaper"):
         with tempfile.TemporaryDirectory(prefix="nearpane-isolation-") as directory:
             root = Path(directory).resolve()
             (root / "comparison").touch()
@@ -23,6 +23,7 @@ def run_comparison(binary, destination):
             trial = {"status": "UNKNOWN", "reason": "missingTrialReceipt"}
             movie = destination / (method + ".mp4")
             capture = None
+            trial_seconds = None
             try:
                 for label in ("a", "b"):
                     app = root / ("Group Owner " + label + ".app")
@@ -48,7 +49,9 @@ def run_comparison(binary, destination):
                     ready = time.monotonic() + 8
                     while capture.poll() is None and not (root / "film-ready").exists() and time.monotonic() < ready:
                         time.sleep(.05)
+                    trial_started = time.monotonic()
                     proc = subprocess.run([binary, method, root], timeout=110, capture_output=True, text=True)
+                    trial_seconds = time.monotonic() - trial_started
                     if (root / "trial.json").exists():
                         trial = json.loads((root / "trial.json").read_bytes())
                     if proc.returncode:
@@ -76,8 +79,10 @@ def run_comparison(binary, destination):
                 # AVFoundation reports the recorded duration. File existence alone proves nothing.
                 if movie.exists():
                     probe = subprocess.run([binary, "movie", movie], capture_output=True, text=True, timeout=7)
-                    trial["recording"] = {"status": "PASS" if probe.returncode == 0 else "UNKNOWN",
-                                          "seconds": probe.stdout.strip(), "bytes": movie.stat().st_size}
+                    seconds = float(probe.stdout.strip()) if probe.returncode == 0 else 0
+                    covers = trial_seconds is not None and seconds + 0.25 >= trial_seconds
+                    trial["recording"] = {"status": "PASS" if probe.returncode == 0 and capture.returncode == 0 and covers else "UNKNOWN",
+                                          "seconds": seconds, "inspectorSeconds": trial_seconds, "bytes": movie.stat().st_size}
                 else:
                     trial["recording"] = {"status": "BLOCKED", "reason": "captureUnavailable"}
                 (destination / (method + ".json")).write_text(json.dumps(trial, indent=2) + "\n")

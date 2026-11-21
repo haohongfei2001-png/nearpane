@@ -8,9 +8,9 @@ import NearpaneCore
     override var canBecomeMain: Bool { false }
 
     static let size = CGSize(width: 48, height: 150)
-    static func prepare(screen: NSScreen) async -> CornerMask? {
+    static func prepare(screen: NSScreen, root: URL) -> CornerMask? {
         let frame = CGRect(x: screen.frame.maxX - size.width, y: screen.frame.minY, width: size.width, height: size.height)
-        guard let image = try? await cornerPixels(width: Int(size.width), height: Int(size.height)) else { return nil }
+        guard let image = NSImage(contentsOf: root.appendingPathComponent("corner.tiff")) else { return nil }
         let panel = CornerMask(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
@@ -59,7 +59,7 @@ private func focused(_ target: Target) -> Bool {
     return CFEqual(value, target.element)
 }
 
-@MainActor private func takeFocus(_ target: Target) async throws -> Bool {
+@MainActor func takeFocus(_ target: Target) async throws -> Bool {
     guard sameOwner(target), !StageManagerPreference.ownsWindowDispatch,
           let app = NSRunningApplication(processIdentifier: target.owner.pid) else { return false }
     _ = app.activate(options: [])
@@ -160,7 +160,7 @@ private func restored(_ t: Target, _ s: Samples, before: Samples) -> Bool {
     let dockBase = dockMiniatures()
     receipt["dockBeforeUserMinimized"] = dockUnseeded ?? -1
     receipt["dockBaseline"] = dockBase ?? -1
-    let mask = method == "corner" ? await CornerMask.prepare(screen: screen) : nil
+    let mask = method == "corner" ? CornerMask.prepare(screen: screen, root: root) : nil
     receipt["displayBounds"] = rectJSON(bounds)
     receipt["requestedCorner"] = [corner.x, corner.y]
     receipt["maskPrepared"] = mask != nil
@@ -174,7 +174,7 @@ private func restored(_ t: Target, _ s: Samples, before: Samples) -> Bool {
             let w = s.owned[t.id]
             return ["id": t.id, "cg": rectJSON(s.cg[t.id]), "axFrame": rectJSON(s.axFrames[t.id]), "appKitFrame": rectJSON(w?.frame),
                     "ownerKey": w?.key ?? false, "ownerVisible": w?.visible ?? false, "ownerMini": w?.miniature ?? false,
-                    "axMin": s.axMiniature[t.id] as Any? ?? NSNull(), "input": w?.input ?? ""]
+                    "axMin": s.axMiniature[t.id] as Any? ?? NSNull(), "input": w?.input ?? "", "mouseDown": w?.clicks ?? -1]
         }
     }
     receipt["baseline"] = evidence(base)
@@ -282,7 +282,25 @@ private func restored(_ t: Target, _ s: Samples, before: Samples) -> Bool {
             }
         }
         receipt["cornerHits"] = hits; receipt["maskCoversRealStrip"] = covered
-        if hits.contains("parkedOwner") { state = "FAIL"; reason = "parkedWindowStillAcceptsPointer" }
+        if hits.contains("parkedOwner"), let top = origins.min() {
+            let p = CGPoint(x: bounds.maxX-0.5, y: top+2)
+            let previousPointer = CGEvent(source: nil)?.location
+            if let previousPointer, let beforeClick = try await sample(all, root: root), CGPreflightPostEventAccess(),
+               let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: p, mouseButton: .left),
+               let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: p, mouseButton: .left) {
+                down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)
+                try await Task.sleep(for: .milliseconds(220))
+                let post = try await sample(all, root: root)
+                let recipients = all.filter { t in (post?.owned[t.id]?.clicks ?? 0) > (beforeClick.owned[t.id]?.clicks ?? 0) }.map(\.id)
+                receipt["realClickWindowIDs"] = recipients
+                receipt["realClickChangedKey"] = managed.contains { post?.owned[$0.id]?.key != beforeClick.owned[$0.id]?.key }
+                receipt["realClickPoint"] = [p.x,p.y]
+                CGWarpMouseCursorPosition(previousPointer)
+                if recipients.contains(where: { held[$0] != nil }) {
+                    state = "FAIL"; reason = "parkedWindowReceivedRealMouseDown"
+                } else { state = "UNKNOWN"; reason = "parkedAXTargetPhysicalRecipientUnconfirmed" }
+            } else { state = "UNKNOWN"; reason = "parkedAXTargetPhysicalClickUnavailable" }
+        }
         else if mask?.isVisible != true || !covered || hits.isEmpty || hits.contains("unknown") {
             state = "UNKNOWN"; reason = "maskOrHitTestUnconfirmed"
         }

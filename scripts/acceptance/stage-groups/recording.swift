@@ -33,6 +33,9 @@ private final class RecordingState: NSObject, SCRecordingOutputDelegate {
 
 @MainActor func recordComparison(_ root: URL) async throws {
     let display = try await fixtureDisplay()
+    if let pixels = try? await cornerPixels(width: 48, height: 150), let data = pixels.tiffRepresentation {
+        try data.write(to: root.appendingPathComponent("corner.tiff"), options: .atomic)
+    }
     let config = SCStreamConfiguration()
     config.width = display.width; config.height = display.height
     config.minimumFrameInterval = CMTime(value: 1, timescale: 15)

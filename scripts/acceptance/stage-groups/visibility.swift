@@ -9,8 +9,9 @@ import NearpaneCore
 
 struct OwnedWindowState: Codable, Equatable {
     let number: UInt32, miniature: Bool, visible: Bool, activeSpace: Bool, key: Bool
-    let frame: CGRect, input: String, auxiliary: Bool
-    @MainActor init(_ window: NSWindow) {
+    let frame: CGRect, input: String, auxiliary: Bool, clicks: Int
+    @MainActor init(_ window: NSWindow, clicks: Int) {
+        self.clicks = clicks
         number = UInt32(window.windowNumber)
         miniature = window.isMiniaturized
         visible = window.isVisible

@@ -25,7 +25,8 @@ func birth(_ pid: Int32) throws -> UInt64 {
 
 @MainActor private final class OwnerDelegate: NSObject, NSApplicationDelegate {
     let root: URL, name: String
-    private var windows = [NSWindow]()
+    private var windows = [NSWindow](), clicks = [Int: Int]()
+    private var clickMonitor: Any?
     init(root: URL, name: String) { self.root = root; self.name = name }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -63,6 +64,12 @@ func birth(_ pid: Int32) throws -> UInt64 {
                     windows.append(window)
                     window.orderFront(nil)
                 }
+                if comparison {
+                    clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+                        self?.clicks[event.windowNumber, default: 0] += 1
+                        return event
+                    }
+                }
                 try await Task.sleep(for: .milliseconds(250))
                 let owner = Owner(identifier: expectedBundle, pid: getpid(), birth: try birth(getpid()), display: id,
                                   numbers: windows.map { UInt32($0.windowNumber) },
@@ -78,7 +85,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
                     }
                     if let nonce = try? String(contentsOf: root.appendingPathComponent("sample"), encoding: .utf8),
                        UUID(uuidString: nonce) != nil, nonce != lastSample {
-                        let samples = windows.map(OwnedWindowState.init)
+                        let samples = windows.map { OwnedWindowState($0, clicks: clicks[$0.windowNumber, default: 0]) }
                         let out = root.appendingPathComponent(name + "-" + nonce + ".json")
                         try JSONEncoder().encode(samples).write(to: out, options: .atomic)
                         lastSample = nonce
@@ -91,6 +98,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
                     try? data.write(to: root.appendingPathComponent(name + "-failure.json"), options: .atomic)
                 }
             }
+            if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
             windows.forEach { $0.close() }
             NSApp.terminate(nil)
         }
@@ -186,7 +194,7 @@ private struct FixtureGeometry: Codable {
 @main private struct Fixture {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 2, ["a", "b", "record", "reopen", "visibility", "minimize", "corner", "movie", "film"].contains(args[0]),
+        guard args.count == 2, ["a", "b", "record", "reopen", "visibility", "minimize", "corner", "wallpaper", "movie", "film"].contains(args[0]),
               ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else { exit(64) }
         if args[0] == "movie" {
             Task {
@@ -208,11 +216,15 @@ private struct FixtureGeometry: Codable {
             RunLoop.main.run()
             return
         }
-        if ["minimize", "corner"].contains(args[0]) {
+        if ["minimize", "corner", "wallpaper"].contains(args[0]) {
             let app = NSApplication.shared
             app.setActivationPolicy(.accessory)
             Task { @MainActor in
-                do { try await compareGroupVisibility(root: root, method: args[0]); exit(0) }
+                do {
+                    if args[0] == "wallpaper" { try await qualifyWallpaper(root: root) }
+                    else { try await compareGroupVisibility(root: root, method: args[0]) }
+                    exit(0)
+                }
                 catch { fputs("Group comparison failed: \(error)\n", stderr); exit(1) }
             }
             app.run()
