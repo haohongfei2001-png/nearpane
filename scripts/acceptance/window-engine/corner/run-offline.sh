@@ -15,3 +15,7 @@ xcrun clang -fobjc-arc -Wall -Wextra -Werror -c "$src/macos.m" -o "$scratch/read
 "$scratch/tests" --test-threads=1
 xcrun clang -std=c11 -Wall -Wextra -Werror scripts/acceptance/window-engine/corner/cycles-test.c -o "$scratch/cycles"
 "$scratch/cycles"
+xcrun clang -std=c11 -Wall -Wextra -Werror -I "$src" -I Engine/nearpane-window-engine/include scripts/acceptance/window-engine/corner/guardian-test.c -o "$scratch/guard"
+"$scratch/guard"
+xcrun clang -fobjc-arc -Wall -Wextra -Werror -I "$src" scripts/acceptance/window-engine/corner/scope-test.m -framework Foundation -framework CoreGraphics -o "$scratch/scope-test"
+"$scratch/scope-test"

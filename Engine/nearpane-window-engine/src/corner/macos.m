@@ -9,6 +9,7 @@
 #import <math.h>
 #import <unistd.h>
 #import "macos.h"
+#import "scope_binding.h"
 
 enum {
     OK = 0,
@@ -154,27 +155,45 @@ static BOOL memberSpace(const NCMember *member) {
     int c = mainID();
     if (c <= 0)
         return NO;
-    NSArray *displays = CFBridgingRelease(inventory(c));
-    unsigned matches = 0;
-    if (![displays isKindOfClass:NSArray.class] || displays.count < 1 || displays.count > 32)
-        return NO;
-    for (NSDictionary *display in displays) {
-        if (![display isKindOfClass:NSDictionary.class] ||
-            !uuidEqual(display[@"Display Identifier"], member->display))
-            continue;
-        NSDictionary *curr = display[@"Current Space"];
-        if (![curr isKindOfClass:NSDictionary.class] || ![curr[@"id64"] isEqual:@(member->native)])
+    NSString *physical = [[NSUUID alloc] initWithUUIDBytes:member->display].UUIDString;
+    NSUInteger reads = 1;
+    for (NSUInteger observed = 0; observed < reads; observed++) {
+        NSArray *displays = CFBridgingRelease(inventory(c));
+        if (![displays isKindOfClass:NSArray.class] || !displays.count || displays.count > 32)
             return NO;
-        NSArray *spaces = display[@"Spaces"];
-        if (![spaces isKindOfClass:NSArray.class] || spaces.count > 256)
+        NSUInteger matches = 0;
+        for (id obj in displays) {
+            if (![obj isKindOfClass:NSDictionary.class])
+                return NO;
+            NSString *token = obj[@"Display Identifier"];
+            BOOL alias = [token isEqual:@"Main"];
+            if (!alias && !uuidEqual(token, member->display))
+                continue;
+            BOOL onlyMain = NO;
+            if (alias) {
+                CGDirectDisplayID ids[2];
+                uint32_t n = 0;
+                if (displays.count != 1 || CGGetActiveDisplayList(2, ids, &n) != kCGErrorSuccess || n != 1 ||
+                    ids[0] != CGMainDisplayID() || CGDisplayIsInMirrorSet(ids[0]))
+                    return NO;
+                CFUUIDRef physicalUUID = CGDisplayCreateUUIDFromDisplayID(ids[0]);
+                if (!physicalUUID)
+                    return NO;
+                CFUUIDBytes bytes = CFUUIDGetUUIDBytes(physicalUUID);
+                CFRelease(physicalUUID);
+                onlyMain = !memcmp(&bytes, member->display, 16);
+                reads = 2;
+            }
+            NSDictionary *bound = nc_bound_scope(obj, physical, onlyMain, nc_direct_home(c, token),
+                                                 [NSMutableDictionary dictionary]);
+            if (!bound || ![bound[@"native"] isEqual:@(member->native)] ||
+                !uuidEqual(bound[@"space"], member->space))
+                return NO;
+            matches++;
+        }
+        if (matches != 1)
             return NO;
-        for (NSDictionary *space in spaces)
-            if ([space isKindOfClass:NSDictionary.class] && [space[@"id64"] isEqual:@(member->native)] &&
-                [space[@"type"] isEqual:@0] && uuidEqual(space[@"uuid"], member->space))
-                matches++;
     }
-    if (matches != 1)
-        return NO;
     NSArray *ids = CFBridgingRelease(reverse(c, 7, (__bridge CFArrayRef) @[ @(member->window) ]));
     uint64_t a = 0, b = 0;
     NSArray *windows = CFBridgingRelease(forward(c, 0, (__bridge CFArrayRef) @[ @(member->native) ], 7, &a, &b));

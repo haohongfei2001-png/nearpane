@@ -88,5 +88,11 @@
     "upstream": "src/engine/recovery.rs",
     "blob": "66603f3931ba0a43f5ba30e0b8e5e943aabf8eb2",
     "modifications": "Allow exact journal-authorized visible frame restoration only with the still-held AX object and the owned parked witness."
+  },
+  {
+    "local": "src/corner/guardian/main.m",
+    "upstream": "src/platform/guardian.rs",
+    "blob": "f7445e5b134aef7a3f06d81cdabdfac8e793eba9",
+    "modifications": "Source of the separate crash guardian mechanism. Nearpane independently binds a retained AX object, an authenticated parent-exit notification and the exact live Host journal. The fixture has one guarded restoration and no periodic sweep."
   }
 ]

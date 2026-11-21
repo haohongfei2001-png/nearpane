@@ -120,7 +120,14 @@ extern "C" fn state(raw: *mut c_void) -> u32 {
         | ((s.stop.load(Ordering::Acquire) as u32) << 2)
 }
 extern "C" fn status(raw: *mut c_void, code: u32) {
-    let s = unsafe { &(*raw.cast::<TapThread>()).shared };
+    let t = unsafe { &mut *raw.cast::<TapThread>() };
+    let s = &t.shared;
+    if matches!(code, 2..=4) {
+        // A forcibly removed port may never see the balancing release. Never inherit its
+        // button latch or suppress an unrelated drag after macOS has disabled this generation.
+        t.gates.fill(PressGate::new());
+        s.busy.store(false, Ordering::Release);
+    }
     s.ready.store(code == 1, Ordering::Release);
     match code {
         2 => s.revoke(UNAVAILABLE),
@@ -242,6 +249,33 @@ mod tests {
             hit(&publication(now, true), Point::new(5., 5.), now, 123),
             Ok(false)
         );
+    }
+    #[test]
+    fn forced_port_disable_discards_the_button_latch_and_cannot_be_healed_by_republication() {
+        for (code, reason) in [(2, UNAVAILABLE), (3, TIMED_OUT), (4, SECURE_INPUT)] {
+            let shared = Arc::new(Shared {
+                current: Mutex::new(Some(publication(Instant::now(), false))),
+                on: AtomicBool::new(true),
+                stop: AtomicBool::new(false),
+                busy: AtomicBool::new(false),
+                ready: AtomicBool::new(true),
+                lost: AtomicU32::new(0),
+            });
+            let mut handler = TapThread {
+                shared: shared.clone(),
+                gates: [PressGate::new(); 32],
+            };
+            let raw = (&mut handler as *mut TapThread).cast();
+            assert_eq!(decide(raw, 1, 95., 97., 0), 1);
+            assert!(shared.busy.load(Ordering::Acquire));
+            status(raw, code);
+            assert!(!shared.busy.load(Ordering::Acquire));
+            assert_eq!(decide(raw, 6, 95., 97., 0), 0);
+            assert_eq!(
+                Tap { shared }.publish(publication(Instant::now(), false)),
+                Err(reason)
+            );
+        }
     }
     #[test]
     fn independent_additional_mouse_buttons_keep_their_own_drag_and_up() {

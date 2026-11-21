@@ -47,6 +47,7 @@ jobs:
             ${{ runner.temp }}/engine-evidence/corner/*.json*
             ${{ runner.temp }}/engine-evidence/corner/*.txt
             ${{ runner.temp }}/engine-evidence/corner/*.log
+            ${{ runner.temp }}/engine-evidence/corner/recovery/*.json*
             ${{ runner.temp }}/engine-evidence/spaces/*.json*
           if-no-files-found: error
           retention-days: 14

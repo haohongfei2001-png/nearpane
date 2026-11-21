@@ -8,8 +8,16 @@
 #import <sys/stat.h>
 #import "nearpane_window_engine.h"
 #import "cycles.h"
+#import "picture.h"
+#import "scope_binding.h"
+#import "guardian/protocol.h"
+#import "guardian/identity.h"
+#include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
 
 static NSString *output;
+static BOOL crashMode;
 static NSMutableDictionary *result;
 static NSMutableArray<NSTask *> *children;
 static FILE *logFile;
@@ -34,7 +42,8 @@ static void save(void) {
     NSData *data = [NSJSONSerialization dataWithJSONObject:result
                                                    options:NSJSONWritingPrettyPrinted | NSJSONWritingSortedKeys
                                                      error:NULL];
-    [data writeToFile:[output stringByAppendingPathComponent:@"result.json"] atomically:YES];
+    [data writeToFile:[output stringByAppendingPathComponent:crashMode ? @"crash-host.json" : @"result.json"]
+           atomically:YES];
 }
 static void pauseFor(double seconds) {
     [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:seconds]];
@@ -107,22 +116,60 @@ static NSDictionary *scope(void) {
     Main conn = (Main)dlsym(library, "SLSMainConnectionID");
     Copy read = (Copy)dlsym(library, "SLSCopyManagedDisplaySpaces");
     require(conn && read, @"readOnlyNativeScopeGettersUnavailable");
-    NSArray *inventory = CFBridgingRelease(read(conn()));
-    require(inventory.count == 1 && NSScreen.screens.count == 1, @"singleFixtureDisplayUnavailable");
-    NSDictionary *display = inventory[0], *current = display[@"Current Space"];
-    NSNumber *n = current[@"id64"];
-    for (NSDictionary *s in display[@"Spaces"]) {
-        if ([s[@"id64"] isEqual:n] && [s[@"type"] isEqual:@0] && [[NSUUID alloc] initWithUUIDString:s[@"uuid"]])
-            return @{@"native" : n, @"space" : s[@"uuid"], @"display" : display[@"Display Identifier"]};
+    NSDictionary *first = nil;
+    NSMutableArray *evidence = [NSMutableArray array];
+    for (unsigned i = 0; i < 2; i++) {
+        int c = conn();
+        NSArray *rows = c > 0 ? CFBridgingRelease(read(c)) : nil;
+        CGDirectDisplayID ids[2];
+        uint32_t count = 0;
+        CGError queried = CGGetActiveDisplayList(2, ids, &count);
+        BOOL single = queried == kCGErrorSuccess && count == 1 && ids[0] == CGMainDisplayID() &&
+                      !CGDisplayIsInMirrorSet(ids[0]) && NSScreen.screens.count == 1 &&
+                      [NSScreen.screens[0].deviceDescription[@"NSScreenNumber"] isEqual:@(ids[0])];
+        CFUUIDRef nativeUUID = single ? CGDisplayCreateUUIDFromDisplayID(ids[0]) : NULL;
+        NSString *uuid = nativeUUID ? CFBridgingRelease(CFUUIDCreateString(NULL, nativeUUID)) : nil;
+        if (nativeUUID)
+            CFRelease(nativeUUID);
+        NSMutableDictionary *facts = [@{
+            @"read" : @(i + 1),
+            @"connectionAvailable" : @(c > 0),
+            @"cgDisplayCount" : @(count),
+            @"appKitScreenCount" : @(NSScreen.screens.count),
+            @"managedDisplayCount" : @([rows isKindOfClass:NSArray.class] ? rows.count : 0)
+        } mutableCopy];
+        NSDictionary *row =
+            [rows isKindOfClass:NSArray.class] && rows.count == 1 && [rows[0] isKindOfClass:NSDictionary.class]
+                ? rows[0]
+                : @{};
+        NSDictionary *bound =
+            nc_bound_scope(row, uuid, single, nc_direct_home(c, row[@"Display Identifier"]), facts);
+        [evidence addObject:facts];
+        if (!i)
+            first = bound;
+        if (i == 0)
+            pauseFor(.025);
+        if (i == 1 && (!first || ![first isEqual:bound])) {
+            event(@"nativeScopeRejected", @{@"reads" : evidence});
+            result[@"nativeScopeReads"] = evidence;
+            save();
+            stop(@"BLOCKED", !bound ? facts[@"reason"] : @"twoIndependentScopeReadsDisagree");
+        }
     }
-    stop(@"BLOCKED", @"ordinaryNativeDesktopUnavailable");
-    return nil;
+    if (!result[@"nativeScopePreflight"]) {
+        result[@"nativeScopePreflight"] = evidence;
+        save();
+    }
+    return first;
 }
-static NPReceipt request(NPRequest r, uint32_t op) {
+static NPReceipt requestID(NPRequest r, uint32_t op, const uint8_t requested[16]) {
     r.operation = op;
     r.epoch = epoch;
     r.timeout_ms = 4000;
-    [NSUUID.UUID getUUIDBytes:r.intent];
+    if (requested)
+        memcpy(r.intent, requested, 16);
+    else
+        [NSUUID.UUID getUUIDBytes:r.intent];
     uint64_t ticket = 0;
     NPReceipt receipt = {.size = sizeof(NPReceipt), .version = 1};
     require(np_engine_submit(handle, &r, &ticket) == NP_OK, @"productionABIRejectedFixtureRequest");
@@ -150,6 +197,7 @@ static NPReceipt request(NPRequest r, uint32_t op) {
         });
     return receipt;
 }
+static NPReceipt request(NPRequest r, uint32_t op) { return requestID(r, op, NULL); }
 static int dockTiles(void) {
     NSArray *d = [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.apple.dock"];
     if (d.count != 1)
@@ -483,6 +531,7 @@ static void exerciseShield(unsigned stage, unsigned lap, unsigned active, NPRequ
     }
     require(positive(rs[active], (int)(stage + lap + active)), @"visibleGroupWholeGestureUnconfirmed");
 }
+#include "crash-drill.inc"
 static void trial(NSString *kit) {
     require(AXIsProcessTrusted() && CGPreflightPostEventAccess(), @"fixtureAccessibilityOrPostEventUnavailable");
     NSDictionary *native = scope();
@@ -540,6 +589,10 @@ static void trial(NSString *kit) {
                     closeFrame(w[@"frame"], unpack(check.frame)),
                 @"initialWindowReadbackUnconfirmed");
     }
+    if (crashMode) {
+        crashHost(kit, rs[0]);
+        return;
+    }
     BOOL owned[3] = {NO, NO, NO};
     NCCycles cycle = {0};
     NSArray *keys = @[ @"single", @"ten", @"fifty" ];
@@ -576,6 +629,10 @@ static void trial(NSString *kit) {
                   @"from" : @(from),
                   @"to" : @(to)});
             result[keys[gate]] = @(cycle.lap[gate]);
+            if (gate == 0 && cycle.gate == 1) {
+                // Optional cosmetics are separately measured. They never shield events or qualify a backend.
+                result[@"cornerPatch"] = nc_fixture_picture(&rs[1], &rs[2]);
+            }
             save();
         }
         result[@"status"] = @"PASS";
@@ -606,7 +663,12 @@ static void trial(NSString *kit) {
 }
 int main(int argc, const char **argv) {
     @autoreleasepool {
-        if (argc != 3)
+        if (argc != 3 && argc != 4)
+            return 2;
+        crashMode = argc == 4 && !strcmp(argv[3], "--crash-host");
+        BOOL supervisor = argc == 4 && !strcmp(argv[3], "--verify-crash");
+        BOOL scopeOnly = argc == 4 && !strcmp(argv[3], "--scope-only");
+        if (argc == 4 && !crashMode && !supervisor && !scopeOnly)
             return 2;
         BOOL hosted = [NSUserName() isEqual:@"runner"] &&
                       [NSProcessInfo.processInfo.environment[@"GITHUB_ACTIONS"] isEqual:@"true"] &&
@@ -614,11 +676,12 @@ int main(int argc, const char **argv) {
         BOOL isolated =
             [NSUserName() hasPrefix:@"nearpane-fixture-"] &&
             [NSProcessInfo.processInfo.environment[@"NP_DISPOSABLE_CORNER_LOGIN"] isEqual:NSUserName()];
-        if (!hosted && !isolated)
+        if (!hosted && !isolated && !scopeOnly)
             return 3;
         NSString *kit = @(argv[1]);
         output = @(argv[2]);
-        NSString *file = [output stringByAppendingPathComponent:@"events.jsonl"];
+        NSString *file =
+            [output stringByAppendingPathComponent:crashMode ? @"host-events.jsonl" : @"events.jsonl"];
         logFile = fopen(file.fileSystemRepresentation, "wx");
         if (!logFile)
             return 4;
@@ -634,11 +697,19 @@ int main(int argc, const char **argv) {
             @"menuBarDockWallpaperNotificationInteractions" : @"NOT_RUN",
             @"processCrashAndRelaunch" : @"NOT_RUN",
             @"physicalMultiDisplay" : @"NOT_RUN",
+            @"cornerPatch" : @{@"status" : @"NOT_RUN"},
             @"qualification" : @"UNQUALIFIED"
         } mutableCopy];
         save();
         @try {
-            trial(kit);
+            if (scopeOnly) {
+                result[@"nativeScope"] = scope();
+                result[@"status"] = @"PASS";
+                result[@"scope"] = @"readOnlyNativeDesktopIdentity";
+            } else if (supervisor)
+                witnessCrash(kit);
+            else
+                trial(kit);
         } @catch (NSException *error) {
             result[@"status"] =
                 [@[ @"FAIL", @"UNKNOWN", @"BLOCKED" ] containsObject:error.name] ? error.name : @"UNKNOWN";
@@ -646,10 +717,11 @@ int main(int argc, const char **argv) {
                                     ? error.reason
                                     : @"unexpectedNativeException";
         } @finally {
-            [@"" writeToFile:[output stringByAppendingPathComponent:@"stop"]
-                  atomically:YES
-                    encoding:NSUTF8StringEncoding
-                       error:NULL];
+            if (!scopeOnly)
+                [@"" writeToFile:[output stringByAppendingPathComponent:@"stop"]
+                      atomically:YES
+                        encoding:NSUTF8StringEncoding
+                           error:NULL];
             NSDate *until = [NSDate dateWithTimeIntervalSinceNow:4];
             for (NSTask *t in children) {
                 while (t.running && until.timeIntervalSinceNow > 0)
@@ -658,6 +730,19 @@ int main(int argc, const char **argv) {
             BOOL gone = YES;
             for (NSTask *t in children)
                 gone &= !t.running;
+            if (supervisor) {
+                NSDictionary *state = readJSON(@"crash-host.json");
+                NSArray *prior = state[@"baseline"];
+                for (NSDictionary *owner in prior) {
+                    pid_t pid = [owner[@"pid"] intValue];
+                    uint64_t birth = [owner[@"birth"] unsignedLongLongValue];
+                    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:3];
+                    while (birth && ncg_birth(pid, NULL) == birth && deadline.timeIntervalSinceNow > 0)
+                        pauseFor(.025);
+                    if (!birth || ncg_birth(pid, NULL) == birth)
+                        gone = NO;
+                }
+            }
             result[@"fixtureOwnersExited"] = @(gone);
             if (!gone)
                 result[@"status"] = @"UNKNOWN";

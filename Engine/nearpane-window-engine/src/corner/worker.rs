@@ -343,11 +343,11 @@ impl Corner {
         )
     }
     fn restore(&mut self, r: &Request, control: &Control) -> Outcome {
-        let input = native::inputs();
         let id = Member::from(r);
         let Some(o) = self.owned.get(&r.window) else {
             return self.result(c::UNKNOWN, OWNERSHIP_UNKNOWN, None, false);
         };
+        let input = native::inputs();
         if o.key != Key::from(r) || o.id != id || !o.reference.matches(&id) {
             return self.result(c::FAIL, IDENTITY, None, true);
         }
@@ -509,6 +509,34 @@ mod tests {
             a.id,
             c
         ));
+    }
+    #[test]
+    fn cold_engine_cannot_adopt_a_parked_window_from_numeric_and_journal_ids() {
+        const EPOCH: u64 = 18;
+        let c = Control {
+            epoch: std::sync::Arc::new(EPOCH.into()),
+            expected: EPOCH,
+            cancelled: std::sync::Arc::new(false.into()),
+            deadline: Instant::now() + Duration::from_secs(2),
+            write: true,
+        };
+        let r = Request {
+            pid: 9,
+            window: 11,
+            birth: 3434,
+            epoch: EPOCH,
+            native_id: 1,
+            group: [4; 16],
+            member: [2; 16],
+            generation: [7; 16],
+            lifetime: [8; 16],
+            ..Default::default()
+        };
+        let result = Corner::default().restore(&r, &c);
+        assert_eq!(
+            (result.status, result.detail, result.owned, result.flags),
+            (c::UNKNOWN, OWNERSHIP_UNKNOWN, 0, 0)
+        );
     }
     #[test]
     fn member_group_lifetime_and_generation_are_matched_separately_from_pid_and_window() {

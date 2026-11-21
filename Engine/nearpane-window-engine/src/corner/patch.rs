@@ -229,3 +229,74 @@ mod tests {
         assert!(!would_be_right(&[row(99), row(88)], 77, 99, patch, &parked));
     }
 }
+
+// This fixture-only ABI consumes the same Rust geometry and Z-order decision as the backend.
+// It cannot create, move, order, or sample a window.
+#[cfg(all(target_os = "macos", feature = "isolated-fixtures"))]
+mod fixture {
+    use super::*;
+    #[repr(C)]
+    pub struct Row {
+        id: u32,
+        pid: i32,
+        frame: Rect,
+        alpha: f64,
+        layer: i64,
+    }
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn np_fixture_patch_bounds(
+        first: Rect,
+        second: Rect,
+        display: Rect,
+        out: *mut Rect,
+    ) -> bool {
+        if out.is_null() || [first, second, display].iter().any(Rect::is_degenerate) {
+            return false;
+        }
+        let Some(r) = patch_rect(&[first, second], display, DEFAULT_REACH) else {
+            return false;
+        };
+        if r.w > 200. || r.h > 320. {
+            return false;
+        }
+        unsafe { out.write(r) };
+        true
+    }
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn np_fixture_patch_order(
+        rows: *const Row,
+        length: u32,
+        first: u32,
+        second: u32,
+        patch: u32,
+        above: u32,
+        frame: Rect,
+        preflight: bool,
+    ) -> bool {
+        if rows.is_null()
+            || !(1..=8192).contains(&length)
+            || first == second
+            || first == 0
+            || second == 0
+            || patch == 0
+        {
+            return false;
+        }
+        let raw = unsafe { std::slice::from_raw_parts(rows, length as usize) };
+        let listed: Vec<_> = raw
+            .iter()
+            .map(|r| Listed {
+                id: r.id,
+                layer: r.layer,
+                bounds: r.frame,
+                drawn: r.alpha > 0.,
+            })
+            .collect();
+        let parked = [first, second].into_iter().collect();
+        if preflight {
+            would_be_right(&listed, patch, above, frame, &parked)
+        } else {
+            ordered_right(&listed, patch, frame, &parked)
+        }
+    }
+}

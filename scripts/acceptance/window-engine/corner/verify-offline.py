@@ -33,10 +33,18 @@ def run(origin, upstream):
     passed = re.search(r"test result: ok\. (\d+) passed; 0 failed", tests.stdout)
     if not passed:
         raise ValueError("no complete Corner test result")
+    hosted=ROOT/"engineering/verification/window-engine/runs/44881106930/corner"
+    previous=json.loads((hosted/"result.json").read_bytes()) if (hosted/"result.json").is_file() else {}
+    evidence=(hosted/"events.jsonl")
+    archived=dict(status=previous.get("status","NOT_RUN"),reason=previous.get("reason"),completeCircles=previous.get("single"),
+                  specificMissingField="UNKNOWN",archivedEventBytes=evidence.stat().st_size if evidence.is_file() else None)
     return dict(upstreamCommit=PIN, checkedBlobs=len(origin), sourceTree=tree["sha"], offlineTests=int(passed[1]),
                 historicalComparison=dict(file=str(history.relative_to(ROOT)),sha256=hashlib.sha256(history.read_bytes()).hexdigest(),
                                           status=prior["status"],reason=prior["reason"],realClickWindowIDs=prior["realClickWindowIDs"]),
-                macos27PhysicalRun="NOT_RUN", receiverMarkers="NOT_RUN", qualification="UNQUALIFIED")
+                completedNativeAssertions=["threeGroupOrderedStages", "guardianAuthorizationAndJournalCorrelation", "singleMainActualDisplayScope"],
+                hostedRun44881106930=archived,
+                macos27PhysicalRun="NOT_RUN", receiverMarkers="NOT_RUN", guardianCrash="NOT_RUN",
+                optionalWallpaperPatch="NOT_RUN", qualification="UNQUALIFIED")
 
 
 if __name__=="__main__":
