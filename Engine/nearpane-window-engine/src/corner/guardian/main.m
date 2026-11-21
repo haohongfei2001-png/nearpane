@@ -24,6 +24,7 @@ typedef struct {
     uint32_t takeoverInput[13];
 #endif
     NCRecoveryFacts facts;
+    BOOL takeoverChecked;
     __unsafe_unretained NSData *hash;
     __unsafe_unretained NSString *kit;
 } Session;
@@ -88,6 +89,8 @@ static BOOL stable(Session *s, NCFrame frame) {
 }
 static uint32_t authorize(void *ptr) {
     Session *s = ptr;
+    s->takeoverChecked = YES;
+    s->facts.guardian_own_ax = AXIsProcessTrusted();
     uint32_t hid[13];
     np_corner_inputs(hid);
     s->facts.parent_generation_gone = ncg_birth(s->pre.host, NULL) != s->pre.host_birth;
@@ -179,6 +182,8 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     uint32_t n = 0;
     need(!np_corner_displays(&s->display, 1, &n) && n == 1 && !memcmp(s->display.uuid, r.display, 16),
          @"originalDisplayUnconfirmed");
+    receipt[@"guardianOwnAccessibilityAtPrepare"] = @(AXIsProcessTrusted());
+    need([receipt[@"guardianOwnAccessibilityAtPrepare"] isEqual:@YES], @"guardianIndependentAccessibilityUnavailable");
     s->held = np_corner_retain_window(&s->member);
     need(s->held && stable(s, convert(r.frame)), @"originalAXReferenceOrFrameNotConfirmed");
     s->facts.retained_before_park = true;
@@ -311,7 +316,9 @@ int main(int argc, const char **argv) {
         } @catch (NSException *e) {
             r[@"reason"] = [e.name isEqual:@"guard"] ? e.reason : @"unexpectedException";
         }
+        r[@"normalWindowWriter"] = @"originalHostOnly";
         r[@"guardianPID"] = @(getpid());
+        r[@"guardianOwnAccessibilityBeforeWrite"] = s.takeoverChecked ? @(s.facts.guardian_own_ax) : NSNull.null;
         r[@"retainedBeforePark"] = @(s.facts.retained_before_park);
         r[@"committedPostimage"] = @(s.facts.parked_confirmed);
         r[@"originalPipeEOF"] = @(s.facts.eof);

@@ -41,8 +41,23 @@ enum StageEnginePackageProbe {
                 "source": bundle.object(forInfoDictionaryKey: "NearpaneStageEngineSourceRevision") as? String ?? "",
                 "sourceState": bundle.object(forInfoDictionaryKey: "NearpaneStageEngineSourceState") as? String ?? ""
             ]
-            let report: [String: Any] = ["schema": 1, "abi": np_engine_version(), "challenge": challenge.uuidString,
+            var report: [String: Any] = ["schema": 1, "abi": np_engine_version(), "challenge": challenge.uuidString,
                                          "subject": subject, "permissions": permissions, "spaceScope": scope]
+            if let fixture {
+                let summary = scope["scope"] as? [String: Any]
+                var ordinary: StageGroupScope?
+                var native: UInt64?
+                if summary?["status"] as? String == "PASS",
+                   let display = (summary?["displayUUID"] as? String).flatMap(UUID.init(uuidString:)),
+                   let space = (summary?["spaceUUID"] as? String).flatMap(UUID.init(uuidString:)),
+                   let id = summary?["nativeID"] as? UInt64 {
+                    ordinary = .init(display: display, nativeSpace: space)
+                    native = id
+                }
+                let guardian = CornerGuardianFixtureReport.sample(pid: fixture.pid, birth: fixture.birth, number: fixture.number,
+                    executable: fixture.executable, cdhash: fixture.cdhash, scope: ordinary, nativeID: native)
+                report["guardianFixture"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(guardian))
+            }
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             if let channel {
                 try channel.finish(data + Data([10]))

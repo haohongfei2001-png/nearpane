@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "nearpane_host_scope.h"
+#include "nearpane_guardian_observation.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

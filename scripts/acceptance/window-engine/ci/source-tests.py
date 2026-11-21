@@ -217,7 +217,8 @@ def main():
             ):
                 run("c-abi", [exe], abi_result)
             suites = sorted(
-                {"EngineABITests"} | {p.stem for p in (ROOT / "Tests").glob("*/Stage*Tests.swift")}
+                {p.stem for p in (ROOT / "Tests/NearpaneWindowEngineTests").glob("*Tests.swift")}
+                | {p.stem for p in (ROOT / "Tests").glob("*/Stage*Tests.swift")}
             )
             xml = out / "swift.xml"
             run(

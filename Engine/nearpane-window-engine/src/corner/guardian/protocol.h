@@ -29,10 +29,11 @@ static inline bool ncg_correlates(const NCGuardianEntry *prepared, const NCGuard
 typedef struct {
     bool retained_before_park, parked_confirmed, eof, kernel_parent_exit, parent_generation_gone;
     bool journal_exact, lifetime_exact, frame_exact, original_display, inputs_unchanged;
-    bool current_signature, no_secure_input, unspent;
+    bool current_signature, no_secure_input, unspent, guardian_own_ax;
 } NCRecoveryFacts;
 static inline bool ncg_may_restore(NCRecoveryFacts f) {
     return f.retained_before_park && f.parked_confirmed && f.eof && f.kernel_parent_exit &&
            f.parent_generation_gone && f.journal_exact && f.lifetime_exact && f.frame_exact &&
-           f.original_display && f.inputs_unchanged && f.current_signature && f.no_secure_input && f.unspent;
+           f.original_display && f.inputs_unchanged && f.current_signature && f.no_secure_input && f.unspent &&
+           f.guardian_own_ax;
 }

@@ -620,3 +620,4 @@ int np_corner_same_window(const NCMember *m, void *retained) {
 }
 
 #include "host_scope.inc"
+#include "guardian/observe.inc"

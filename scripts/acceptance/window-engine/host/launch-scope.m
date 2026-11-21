@@ -22,9 +22,12 @@ int main(int argc, const char **argv) {
         [NSWorkspace.sharedWorkspace openApplicationAtURL:url configuration:config completionHandler:
             ^(NSRunningApplication *app, NSError *error) {
                 BOOL exact = app && [app.bundleURL.URLByResolvingSymlinksInPath.path isEqual:url.path];
-                result = @{@"exactLaunchPath":@(exact), @"pid":@(app ? app.processIdentifier : 0),
+                NSDictionary *reply = @{@"exactLaunchPath":@(exact), @"pid":@(app ? app.processIdentifier : 0),
                            @"errorDomain":error.domain ?: @"", @"errorCode":@(error.code)};
-                complete = YES;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    result = reply;
+                    complete = YES;
+                });
             }];
         NSDate *end = [NSDate dateWithTimeIntervalSinceNow:12];
         while (!complete && end.timeIntervalSinceNow > 0)

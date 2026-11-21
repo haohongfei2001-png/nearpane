@@ -1,7 +1,11 @@
 #include "guardian/protocol.h"
 #include <assert.h>
 int main(void) {
-    NCRecoveryFacts f = {true, true, true, true, true, true, true, true, true, true, true, true, true};
+    NCRecoveryFacts f = {.retained_before_park = true, .parked_confirmed = true, .eof = true,
+                         .kernel_parent_exit = true, .parent_generation_gone = true, .journal_exact = true,
+                         .lifetime_exact = true, .frame_exact = true, .original_display = true,
+                         .inputs_unchanged = true, .current_signature = true, .no_secure_input = true,
+                         .unspent = true, .guardian_own_ax = true};
     assert(ncg_may_restore(f));
 #define MISSING(x)                                                                                                \
     do {                                                                                                          \
@@ -22,6 +26,7 @@ int main(void) {
     MISSING(current_signature);
     MISSING(no_secure_input);
     MISSING(unspent);
+    MISSING(guardian_own_ax);
     NCGuardianEntry p = {.version = 1, .phase = NCG_PREPARE, .host = 45, .host_birth = 543}, s = p;
     p.lease.intent[0] = 1;
     p.lease.epoch = 5;

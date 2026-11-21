@@ -96,6 +96,8 @@ def observe(app, challenge, directory, output, registration=None):
         result.update(status="PASS", reason="correlatedReadOnlyObservation", subject=subject, permissions=observation["permissions"],
                       launch="background Launch Services", rawSHA256=hashlib.sha256(raw).hexdigest(), abi=observation["abi"],
                       spaceScope=public_scope(scope), redaction="Display/Space UUIDs consistently tokenized in the public copy.")
+        if registration:
+            result["guardianFixture"] = public_scope(observation["guardianFixture"])
     finally:
         result["dailyAfter"] = identity(DAILY)
         if result["dailyAfter"] != before:

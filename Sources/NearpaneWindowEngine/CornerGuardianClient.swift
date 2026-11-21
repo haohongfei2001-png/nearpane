@@ -14,6 +14,9 @@ import Security
         let writer, reader: FileHandle
         var result: NativeStageEngineReceipt?
         var sealed = false
+        var preparedAt: UInt64?
+        var confirmedAt: UInt64?
+        var guardianBirth: UInt64?
         init(_ original: NativeStageEngineRequest, epoch: UInt64, process: Process, writer: FileHandle, reader: FileHandle) {
             self.original = original
             self.epoch = epoch
@@ -24,7 +27,11 @@ import Security
     }
     private let profile: URL
     private var leases: [NativeSpaceWindow: Lease] = [:]
-    init(profile: URL) { self.profile = profile }
+    private static let clients = NSHashTable<CornerGuardianClient>.weakObjects()
+    init(profile: URL) {
+        self.profile = profile
+        Self.clients.add(self)
+    }
 
     private static let helper = URL(fileURLWithPath: "/Applications/Nearpane.app/Contents/Helpers/NearpaneCornerGuardian")
     private static let identifier = "com.holdsnow.nearpane.alpha.corner-guardian"
@@ -101,8 +108,13 @@ import Security
         _ = fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
         try process.run()
         let lease = Lease(r, epoch: epoch, process: process, writer: input.fileHandleForWriting, reader: output.fileHandleForReading)
+        let launchedBirth = Self.childGeneration(process.processIdentifier)
         leases[w] = lease
-        do { try await exchange(data, ack: 82, lease: lease) }
+        do {
+            try await exchange(data, ack: 82, lease: lease)
+            if Self.childGeneration(process.processIdentifier) == launchedBirth { lease.guardianBirth = launchedBirth }
+            lease.preparedAt = DispatchTime.now().uptimeNanoseconds
+        }
         catch {
             // prepare has not returned to the Host. No engine write can have been submitted for this intent.
             try? lease.writer.close()
@@ -128,6 +140,7 @@ import Security
             "native": raw.nativeID, "status": raw.status, "flags": raw.flags, "owned": raw.owned,
             "frame": Self.frame(raw.frame), "verified": Self.frame(verifiedFrame)])
         try await exchange(data, ack: 80, lease: l)
+        l.confirmedAt = DispatchTime.now().uptimeNanoseconds
         l.sealed = true
     }
 
@@ -139,6 +152,46 @@ import Security
         try l.writer.close()
         try l.reader.close()
         leases.removeValue(forKey: w)
+    }
+
+    private static func childGeneration(_ pid: Int32) -> UInt64? {
+        guard pid > 1 else { return nil }
+        var b = proc_bsdinfo()
+        let size = Int32(MemoryLayout.size(ofValue: b))
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &b, size) == size, b.pbi_pid == UInt32(pid),
+              b.pbi_ppid == UInt32(getpid()), b.pbi_uid == getuid() else { return nil }
+        return b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec
+    }
+
+    /// Private live client state only. An R/P acknowledgement attests what the actual Guardian checked then.
+    /// A process-generation check alone never attests today's AX reference, target geometry or recovery grant.
+    static func observedHandoff(for target: NativeSpaceWindow, scope: StageGroupScope?, nativeID: UInt64?)
+        -> CornerGuardianFixtureReport.Handoff {
+        let matches = clients.allObjects.compactMap { $0.leases[target] }
+        guard matches.count == 1, let l = matches.first else {
+            return .init(state: matches.isEmpty ? "NO_LIVE_HANDOFF_IN_THIS_HOST" : "AMBIGUOUS_LIVE_HANDOFF")
+        }
+        guard let scope, let nativeID, scope == l.original.scope, nativeID == l.original.nativeID else {
+            return .init(state: "LEASE_SCOPE_MISMATCH")
+        }
+        let child = l.process.processIdentifier
+        let generation = l.guardianBirth
+        let same = generation != nil && l.process.isRunning && childGeneration(child) == generation
+        var result = CornerGuardianFixtureReport.Handoff(state: l.sealed ? "SEALED_ACKNOWLEDGED" :
+            l.preparedAt != nil ? "PREPARED_ACKNOWLEDGED" : "AWAITING_PREPARE_ACK")
+        result.guardianPID = child
+        result.guardianBirth = generation
+        result.sameChildGenerationNow = same
+        result.originalIntent = l.original.intent
+        result.member = l.original.member
+        result.lifetime = l.original.lifetime
+        result.generation = l.original.generation
+        result.epoch = l.epoch
+        result.preparedAckUptimeNS = l.preparedAt
+        result.confirmedAckUptimeNS = l.confirmedAt
+        result.original = l.original.frame
+        result.parked = l.sealed ? l.result?.frame : nil
+        return result
     }
 
     func finish() async throws {

@@ -86,21 +86,21 @@
       "upstream": "src/platform/corner/sliver_tap.rs",
       "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
       "upstreamCommit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
-      "localSHA256": "415e487f592c0f59fb5d934896ef63264f6e9f5f96f2f1b2e8f60bf5ded40d3e"
+      "localSHA256": "932791e28373668b1d177a2b1962569316e4384ff510a7e72d94384652307bee"
     },
     {
       "local": "src/corner/macos.m",
       "upstream": "src/platform/windows.rs",
       "blob": "c993e2811b9e66e547f13ce69c6a3e7012d79f23",
       "upstreamCommit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
-      "localSHA256": "415e487f592c0f59fb5d934896ef63264f6e9f5f96f2f1b2e8f60bf5ded40d3e"
+      "localSHA256": "932791e28373668b1d177a2b1962569316e4384ff510a7e72d94384652307bee"
     },
     {
       "local": "src/corner/macos.m",
       "upstream": "src/platform/ax.rs",
       "blob": "da387aa406dd1c204007e55866f77fd258645f54",
       "upstreamCommit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
-      "localSHA256": "415e487f592c0f59fb5d934896ef63264f6e9f5f96f2f1b2e8f60bf5ded40d3e"
+      "localSHA256": "932791e28373668b1d177a2b1962569316e4384ff510a7e72d94384652307bee"
     },
     {
       "local": "src/corner/worker.rs",
@@ -128,7 +128,7 @@
       "upstream": "src/platform/guardian.rs",
       "blob": "f7445e5b134aef7a3f06d81cdabdfac8e793eba9",
       "upstreamCommit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
-      "localSHA256": "f82a6911e544ffac5d9bbfb457a05a6e8c7c202b5634e40cece2afc97e5d950d"
+      "localSHA256": "1e152e50c7172ea923481eb03a5fc5c018ca7afe539a0b2025da48218894ece2"
     },
     {
       "local": "src/spaces/mod.rs",
