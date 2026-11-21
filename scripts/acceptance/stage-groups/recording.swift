@@ -51,7 +51,14 @@ private final class RecordingState: NSObject, SCRecordingOutputDelegate {
     let deadline = ContinuousClock.now + .seconds(120)
     while !FileManager.default.fileExists(atPath: root.appendingPathComponent("film-stop").path),
           witness.result == nil, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(80)) }
-    try await stream.stopCapture()
+    if witness.result == nil {
+        do { try await stream.stopCapture() }
+        catch {
+            // ScreenCaptureKit can finish while stopCapture is queued. The recording delegate
+            // and the independent duration check still have to confirm the complete movie.
+            if witness.result != true { throw error }
+        }
+    }
     let finish = ContinuousClock.now + .seconds(6)
     while witness.result == nil, ContinuousClock.now < finish { try await Task.sleep(for: .milliseconds(50)) }
     guard witness.result == true else { throw CaptureUnavailable.completion }

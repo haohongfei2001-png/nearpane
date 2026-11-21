@@ -25,13 +25,19 @@ struct DesktopItemsSettingTests {
             #expect(result == .confirmed(.onWallpaperClick))
         }
         #expect(presses == 0)
+        let managed = Read(item: 1, mode: .always, canPress: false)
+        #expect(await DesktopItemsSetting.apply(nil, first: managed, read: { managed },
+            press: { _ in presses += 1 }, wait: {}) == .confirmed(.always))
+        #expect(await DesktopItemsSetting.apply(.onWallpaperClick, first: managed, read: { managed },
+            press: { _ in presses += 1 }, wait: {}) == .manual(.disabled))
+        #expect(presses == 0)
     }
 
     @Test func staleSelectionNavigationOrAnAmbiguousPressNeverTogglesAgain() async {
         var presses = 0
         let stale = await DesktopItemsSetting.apply(.onWallpaperClick, first: shown, read: { hidden },
             press: { _ in presses += 1 }, wait: {})
-        #expect(stale == .manual && presses == 0)
+        #expect(stale == .manual(.changed) && presses == 0)
         var reads: [Read?] = [shown, hidden, .init(item: 2, mode: .onWallpaperClick)]
         let navigated = await DesktopItemsSetting.apply(.onWallpaperClick, first: shown,
             read: { reads.removeFirst() }, press: { _ in presses += 1 }, wait: {})
@@ -39,6 +45,18 @@ struct DesktopItemsSettingTests {
         let unchanged = await DesktopItemsSetting.apply(.onWallpaperClick, first: shown, read: { shown },
             press: { _ in presses += 1 }, wait: {})
         #expect(unchanged == .unconfirmed && presses == 2)
+    }
+
+    @Test func aCheckboxMustHaveAnUnambiguousBinaryValue() {
+        for one: CFTypeRef in [kCFBooleanTrue!, NSNumber(value: 1), "1" as CFString] {
+            #expect(DesktopItemsSetting.boolean(one) == true)
+        }
+        for zero: CFTypeRef in [kCFBooleanFalse!, NSNumber(value: 0), "0" as CFString] {
+            #expect(DesktopItemsSetting.boolean(zero) == false)
+        }
+        #expect(DesktopItemsSetting.boolean(NSNumber(value: 2)) == nil)
+        #expect(DesktopItemsSetting.boolean("mixed" as CFString) == nil)
+        #expect(DesktopItemsSetting.boolean(nil) == nil)
     }
 
     @Test @MainActor func onlyTheSystemDesktopBackgroundQualifies() {

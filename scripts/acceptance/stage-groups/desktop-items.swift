@@ -14,8 +14,16 @@ import ScreenCaptureKit
         if let id = ax(el, kAXIdentifierAttribute) as? String, id.lowercased().contains("desktop") || id.contains("stage-manager") {
             var owner: pid_t = 0
             AXUIElementGetPid(el, &owner)
-            controls.append(["id": id, "role": role ?? "unknown",
-                             "owner": NSRunningApplication(processIdentifier: owner)?.bundleIdentifier ?? "unknown"])
+            var control = ["id": id, "role": role ?? "unknown",
+                           "owner": NSRunningApplication(processIdentifier: owner)?.bundleIdentifier ?? "unknown"]
+            if ["desktop-items", "show-items-on-desktop"].contains(id) {
+                control["enabled"] = DesktopItemsSetting.boolean(ax(el, kAXEnabledAttribute)).map(String.init) ?? "unreadable"
+                control["checked"] = DesktopItemsSetting.boolean(ax(el, kAXValueAttribute)).map(String.init) ?? "unreadable"
+                var actions: CFArray?
+                AXUIElementCopyActionNames(el, &actions)
+                control["pressable"] = String((actions as? [String])?.contains(kAXPressAction) == true)
+            }
+            controls.append(control)
             if ["stage-manager-on", "click-wallpaper-to-reveal-desktop", "show-desktop-widgets", "show-stage-manager-widgets"].contains(id),
                let value = ax(el, kAXValueAttribute) {
                 otherOptions[id] = (value as? NSNumber)?.stringValue ?? value as? String
@@ -133,7 +141,9 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
             guard number(p) == Int(win.id) else { throw DesktopTrialStop("BLOCKED", "fixtureObscured") }
             return p
         }
-        guard case let .confirmed(initial) = await DesktopItemsSetting.shared.choose(nil) else {
+        let read = await DesktopItemsSetting.shared.choose(nil)
+        guard case let .confirmed(initial) = read else {
+            receipt["adapterRead"] = String(describing: read)
             receipt["pane"] = settingsControlSample()
             throw DesktopTrialStop("BLOCKED", "nativeDesktopItemsCheckboxUnreadable")
         }
@@ -141,7 +151,10 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
         let before = settingsControlSample()["otherOptions"] as? [String: String]
         receipt["otherOptionsBefore"] = before
         mayHaveChanged = initial != .always
-        guard await DesktopItemsSetting.shared.choose(.always) == .confirmed(.always) else {
+        let baselineMode = await DesktopItemsSetting.shared.choose(.always)
+        receipt["alwaysSelection"] = String(describing: baselineMode)
+        guard baselineMode == .confirmed(.always) else {
+            receipt["pane"] = settingsControlSample()
             throw DesktopTrialStop("UNKNOWN", "baselineModeUnconfirmed")
         }
         _ = try await workingWindow()
@@ -150,7 +163,10 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
         try makeMarker(at: url); created = url
         guard let marker = try await expectMarker(true, "baselineVisible") else { throw DesktopTrialStop("BLOCKED", "markerLocation") }
         mayHaveChanged = true
-        guard await DesktopItemsSetting.shared.choose(.onWallpaperClick) == .confirmed(.onWallpaperClick) else {
+        let hiddenMode = await DesktopItemsSetting.shared.choose(.onWallpaperClick)
+        receipt["onClickSelection"] = String(describing: hiddenMode)
+        guard hiddenMode == .confirmed(.onWallpaperClick) else {
+            receipt["pane"] = settingsControlSample()
             throw DesktopTrialStop("UNKNOWN", "hideModeUnconfirmed")
         }
         let after = settingsControlSample()["otherOptions"] as? [String: String]
@@ -196,7 +212,9 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
         catch { receipt["fixtureRemoved"] = false; receipt["status"] = "UNKNOWN" }
     }
     if let original, mayHaveChanged {
-        let restored = await DesktopItemsSetting.shared.choose(original) == .confirmed(original)
+        let cleanup = await DesktopItemsSetting.shared.choose(original)
+        let restored = cleanup == .confirmed(original)
+        receipt["restoreSelection"] = String(describing: cleanup)
         receipt["originalModeRestored"] = restored
         if !restored { receipt["status"] = "UNKNOWN" }
     }
