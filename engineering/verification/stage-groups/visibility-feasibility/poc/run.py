@@ -121,6 +121,23 @@ class Trial:
                 data["owner"] = record
         return self.event(phase, obs)
 
+    def seed_focus(self, tag, index):
+        label = "A" + str(index)
+        self.command("A","seed",index)
+        time.sleep(.22)
+        s = self.inspected("snapshot")
+        row = s["windows"][label]
+        if not row["axFrame"]:
+            raise RuntimeError("fixture AX frame unavailable during setup")
+        point = center(row["axFrame"])
+        hit = self.inspected("hit", *point)
+        if hit["cgFrontWindow"] != row["number"] or hit["axPID"] != row["pid"]:
+            raise RuntimeError("fixture-only calibration point unavailable")
+        # A normal click establishes user intent in a Launch Services -g login. It occurs
+        # before the baseline, never in the measurement interval between out and in.
+        self.event(tag+".setup-click",self.inspected("click", *point))
+        time.sleep(.35)
+
     def prepare(self, phase):
         # One explicit focus/stack setup before the trial. All following snapshots are passive.
         self.command("B","front")
@@ -198,7 +215,7 @@ class Trial:
         for name,s in (("early",hidden),("settled",stable)):
             target = s["windows"][label]
             checks[name+".notOnScreen"] = target["cgScreen"] is None if s["cgListsAvailable"] else None
-            checks[name+".axAvailable"] = target["axKnown"]
+            checks[name+".axAvailable"] = bool(target["axKnown"])
             checks[name+".axMini"] = equal_known(target["axMini"],method == "A")
             checks[name+".ownerVisibility"] = not target["owner"]["visible"]
             checks[name+".dock"] = equal_known(s["dock"].get("minimizedTiles"),before["dock"].get("minimizedTiles"))
