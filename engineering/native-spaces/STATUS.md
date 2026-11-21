@@ -1,5 +1,11 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 内嵌截图与语音
+
+5.22（90）开发分支已接入 Riftlet 1.0.7（53）开发版和 Saytile 0.20（533）内测版。设置页从开发包的来源收据读取实际版本。macOS 27 本地全量回归共 669 项，666 项通过，3 项条件跳过。macOS 26 的 GitHub 工具专项和离线开发包构建通过。 [版本与更新流程](../../Dependencies/README.md) · [CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44872015547)
+
+Chrome、Edge 各完成 9 个无界面草稿场景，两边均记录到原文件的实际写入，错误目标写入和消息提交均为零。登录网站的 Apple Events 附加尚未实测。语音的 6 个冷启动样本通过首段 PCM、整段字节和独立进程重开核对。测试进程缺少默认中文识别模型，最终转写准确率为 **BLOCKED**。 [分项收据及失败记录](../verification/embedded-tools/5.22-90/verification.json)
+
 ## 2026-11-21 · 第三方窗口可见性复核
 
 整组隐藏与恢复仍为 **BLOCKED**。在使用“最小化至应用程序图标”的 macOS 26.7.2 和 27.0.1 隔离会话，AX 路线保持 Dock 图块为 0，但恢复 A0 后实际按键从 A1 移到 A0。五种外部 SkyLight 排序均未实现逐窗隐藏与恢复。虚拟显示器改变了原生 Space，停放窗收到真实点击，并出现在 Apple Mission Control 中。精确构建 26A428、SIP 开启的日常 Mac 已完成只读预检。正式窗口提供器保持关闭。 [可行性裁决与计划](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-FEASIBILITY.md) · [原始证据与截图](../verification/stage-groups/visibility-feasibility/README.md)

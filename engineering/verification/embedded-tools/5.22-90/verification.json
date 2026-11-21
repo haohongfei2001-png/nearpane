@@ -1,0 +1,184 @@
+{
+  "date": "2026-11-21",
+  "nearpaneProduct": "5.22 (90)",
+  "componentSourceCommit": "71be530298d2a5e8df845a2b575308eed92431a6",
+  "pr": 15,
+  "environment": {
+    "macOS": "27.0",
+    "build": "26A428",
+    "architecture": "arm64",
+    "artifact": "isolated debug Host, com.holdsnow.nearpane.host, ad hoc",
+    "dailyInstallModified": false,
+    "notarizationRequested": false
+  },
+  "components": {
+    "saytile": {
+      "repository": "haohongfei2001-png/saytile",
+      "version": "0.20",
+      "build": 533,
+      "channel": "internal",
+      "pullRequest": 49,
+      "productCommit": "7c0df4728b113c17297a0cded20472de4ffc3337",
+      "reviewHead": "9ab5ae9bb0a02b122189cc46ba44ab824bbd42eb",
+      "selectedFiles": 130,
+      "treeSHA256": "f7879d82fc743c40f87d50992b99e03a5e5215f0947f3935530d56c1eda50c71",
+      "latestPublicTagAtReview": "v0.18-beta.492",
+      "defaultNearpaneRecognizer": "Apple on-device",
+      "standaloneCapabilitiesOutsideHost": [
+        "private CloudKit/iPhone archive sync",
+        "remembered microphone standby",
+        "standalone updater and separately packaged local model executables"
+      ]
+    },
+    "riftlet": {
+      "repository": "haohongfei2001-png/Riftlet",
+      "version": "1.0.7",
+      "build": 53,
+      "channel": "development",
+      "pullRequest": 122,
+      "productCommit": "b20cefbf94e78ed89643cc27fa95af91bd140960",
+      "reviewHead": "e935dab06ec0596ec9e580ae83b27780dafef6b5",
+      "selectedFiles": 104,
+      "treeSHA256": "103ef03de45dceb3a55c19c3bb652964d6ef85ec1a5dc94f5d151a3bf3162714",
+      "latestPublicTagAtReview": "v1.0.5",
+      "expandedProviderAdmission": "read-only entry detection; no file-transfer recipe"
+    }
+  },
+  "acceptance": {
+    "swift": {
+      "status": "PASS",
+      "registered": 669,
+      "suites": 106,
+      "passed": 666,
+      "skipped": [
+        "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled",
+        "coldFileJournalAndIndependentReopen",
+        "offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord"
+      ],
+      "failed": 0
+    },
+    "dependencyBoundaries": {
+      "status": "PASS",
+      "tests": 9,
+      "command": "python3 -B scripts/test-dependencies.py"
+    },
+    "offlineBundle": {
+      "status": "PASS",
+      "resources": 32,
+      "resourceDigest": "05bd1e728303e4efd08442144091a5d5a5ea293abed55df0b46900a77c8e5076",
+      "executableSHA256": "3e614ab00af73f61cd1ba8dd761e0bd2069d296c10b36ee8ba35e31685f36d9e",
+      "readRestrictions": "Both upstream checkouts, SwiftPM cache, daily tool profiles and outbound network denied during packaged resource self-check."
+    },
+    "browserDraftFixture": {
+      "status": "PASS",
+      "runs": [
+        {
+          "status": "PASS",
+          "file": "chrome.json",
+          "sha256": "9e89bc411a71f6f2d090ebb5e535e3dcee0e68c08d53dd49317ad4ba6ba0e13d",
+          "engine": "Chrome/157.0.8103.79",
+          "scenarios": 9,
+          "foreignFileWrites": 0,
+          "sendClicks": 0,
+          "submits": 0
+        },
+        {
+          "status": "PASS",
+          "file": "edge.json",
+          "sha256": "c75c4d9fe6abfb47e9e77d658cbfc72a4c68f8b621986cebd5c627da2601d9b5",
+          "engine": "Edg/157.0.4341.60",
+          "scenarios": 9,
+          "foreignFileWrites": 0,
+          "sendClicks": 0,
+          "submits": 0
+        }
+      ],
+      "reproduction": "python3 -B scripts/acceptance/run-local-adapter.py --product --browser {chrome,edge}",
+      "boundary": "Headless installed browser binaries and product queue/program. Local intercepted pages, CDP transport. A witnessed input or START is not a remote completion."
+    },
+    "candidateProviders": {
+      "status": "PASS",
+      "scope": "Bundled registry and route lookup. Nine distinct site profiles produced matching program digests, each refused the modified query and carried no write recipe. Real signed-in site DOM not exercised.",
+      "file": "catalog.json",
+      "sha256": "c9aa51617e9fe327bd2682d1edfec3f62fdd7ef5f25cb44574398052c2c256dc"
+    },
+    "voicePCM": {
+      "status": "PASS",
+      "phrases": 3,
+      "cases": 6,
+      "coldAndReopenProcesses": 12,
+      "wholePCMByteIdentical": 6,
+      "physicalMicrophoneUsed": false,
+      "command": "python3 -B scripts/acceptance/native-spaces/p4-file-corpus.py <new-result.json>",
+      "file": "voice-corpus.json",
+      "sha256": "3a26939ad37ba44dff273b4dddfec8a328825b227173b76be0f3b6e7f36da690"
+    },
+    "mandarinTranscription": {
+      "status": "BLOCKED",
+      "scored": 0,
+      "reason": "The default Saytile path reported no installed Mandarin model for the test process. No model installation or paid request was made."
+    },
+    "voiceRecovery": {
+      "status": "PASS",
+      "test": "VoiceDurabilityTests.openingTheEmbeddedArchiveRecoversUncheckpointedPCMWithoutStartingInput",
+      "recoveredFrames": 3200,
+      "deviceCreated": false
+    },
+    "profileCompatibility": {
+      "status": "PASS",
+      "hostTest": "IntegratedHostTests.profileProjectionReadsBothEmbeddedWritersAndPreservesRetiredMedia",
+      "schemaCases": 7,
+      "file": "schema-compatibility.json",
+      "sha256": "d4e8f9bbc94f4d3a27a40b9f8c79e75f4304b8807c2130dc5aa05b5f39ad07ea"
+    },
+    "liveSignedInDraft": {
+      "status": "NOT_RUN",
+      "reason": "No isolated preauthorized logged-in fixture was used. Personal browsers and drafts were not accessed."
+    },
+    "physicalMicrophone": {
+      "status": "NOT_RUN",
+      "reason": "The corpus used generated WAV files."
+    },
+    "hostedCI": {
+      "status": "PASS",
+      "codeCommit": "530110823aa7aaf29fde8cf16bf4e51d814819e9",
+      "runnerLabel": "macos-26",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44872015547",
+      "registeredSwiftTests": 92,
+      "skippedSwiftTests": [
+        "coldFileJournalAndIndependentReopen",
+        "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled"
+      ],
+      "passedSwiftTests": 90,
+      "offlineDevelopmentBundle": "PASS",
+      "sourceDownloadAndHashVerification": "PASS"
+    }
+  },
+  "priorFailures": [
+    {
+      "scope": "composed draft guard",
+      "status": "FAIL",
+      "finding": "The previous asset guard fingerprint and pre-input anchor did not match the newly pinned script. A legacy fixture omitted the native click pin and stopped after validate. Fixed and rerun with actual pinTarget and matching captureTarget in both headless browsers."
+    },
+    {
+      "scope": "Swift on the restricted execution sandbox",
+      "status": "FAIL",
+      "finding": "CoreVideo allocation and ImageIO decoding were unavailable. Rechecked in the macOS test session using isolated fixture files."
+    },
+    {
+      "scope": "profile and voice fixture regression",
+      "status": "FAIL",
+      "finding": "The initial discovery regression saw an empty claim directory after a read. Startup recovery found a text-only test fixture had no audio. Reads now create no claim directory. The integration fixture writes real PCM and the full suite passed."
+    },
+    {
+      "scope": "hosted full-package CI",
+      "status": "FAIL",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44871669207",
+      "finding": "System Bash with nounset rejected empty testing_flags on the hosted SDK. The test runner now keeps the shared Swift Testing options in that array."
+    }
+  ],
+  "rollback": {
+    "previousNearpaneSource": "fe38f48ad0f65613a11f40bb63713d6f1b701667",
+    "instruction": "Revert the tool integration as a unit and use the corresponding pre-upgrade profile for rollback. Preserve newer profile generations intact."
+  }
+}

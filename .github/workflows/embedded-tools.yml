@@ -5,7 +5,8 @@ on:
     branches: [codex/r4-native-candidate-20261120]
     paths:
       - '.github/workflows/embedded-tools.yml'
-      - 'Dependencies/**'
+      - 'Dependencies/*.json'
+      - 'Dependencies/*.patch'
       - 'Package.swift'
       - 'Resources/AcceptanceTargetGuard.js'
       - 'Sources/NearpaneTray/**'
@@ -45,4 +46,6 @@ jobs:
       - name: Build the development Host and verify its bundled resources offline
         env:
           NEARPANE_OFFLINE: '1'
-        run: bash scripts/build-app.sh debug
+        run: |
+          bash scripts/build-app.sh debug
+          python3 -B scripts/verify-packages.py build/debug/Nearpane.app
