@@ -97,6 +97,11 @@ func birth(_ pid: Int32) throws -> UInt64 {
     }
 }
 
+private struct FixtureGeometry: Codable {
+    let work: SurfaceRect
+    let frames: [String: SurfaceRect]
+}
+
 @MainActor private func check(_ phase: String, root: URL) throws {
     let owners = try ["a", "b"].map { try JSONDecoder().decode(Owner.self, from: Data(contentsOf: root.appendingPathComponent($0 + ".json"))) }
     guard let screen = NSScreen.main, let first = owners.first else { throw FixtureError.display }
@@ -111,7 +116,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
     else { throw FixtureError.display }
     let nativeReadable = NPProbeReadOnlyCatalog() == 1
     var spaces = [[UInt64]]()
-    var windows = [StageGroupWindow]()
+    var windows = [StageGroupWindow](), frames = [String: SurfaceRect]()
     for owner in owners {
         guard try birth(owner.pid) == owner.birth,
               NSRunningApplication(processIdentifier: owner.pid)?.bundleIdentifier == owner.identifier else { throw FixtureError.owner }
@@ -123,6 +128,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
             if nativeReadable, let list = NPReadWindowSpaces(n) as? [NSNumber] { spaces.append(list.map(\.uint64Value)) }
             let local = SurfaceRect(x: frame.minX - screenBounds.minX, y: frame.minY - screenBounds.minY,
                                     width: frame.width, height: frame.height)
+            frames[String(n)] = local
             guard let layout = StageGroupWindow.relativeFrame(local, in: work) else { throw FixtureError.display }
             windows.append(.init(display: id, identity: .init(pid: owner.pid, birth: owner.birth, number: n),
                                  lifetime: UUID(), layout: layout))
@@ -133,6 +139,15 @@ func birth(_ pid: Int32) throws -> UInt64 {
     let store = StageGroupStore(profile: profile)
     let stateFile = root.appendingPathComponent("expected-directory.json")
     let reopening = phase == "reopen"
+    let geometryFile = root.appendingPathComponent("expected-geometry.json")
+    let geometry: FixtureGeometry
+    if reopening {
+        geometry = try JSONDecoder().decode(FixtureGeometry.self, from: Data(contentsOf: geometryFile))
+        guard geometry.frames == frames else { throw FixtureError.layoutChanged }
+    } else {
+        geometry = .init(work: work, frames: frames)
+        try JSONEncoder().encode(geometry).write(to: geometryFile, options: .withoutOverwriting)
+    }
     if reopening {
         let original = try JSONDecoder().decode(StageGroupDirectory.self, from: Data(contentsOf: stateFile))
         guard store.directory == original else { throw FixtureError.persistedDirectoryMismatch }
@@ -149,7 +164,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
           projected[1].members.map(\.windowHint) == [windows[1].identity], store.directory.displays.first?.activeGroup == nil
     else { throw FixtureError.groupMembershipMismatch }
     for m in projected.flatMap(\.members) {
-        let observed = windows.first { $0.identity == m.windowHint }?.layout
+        let observed = frames[String(m.windowHint.number)].flatMap { StageGroupWindow.relativeFrame($0, in: geometry.work) }
         guard observed == m.layout else {
             fputs("Fixture layout changed for \(m.windowHint.number): previous=\(String(describing: m.layout)), current=\(String(describing: observed)), workArea=\(work)\n", stderr)
             throw FixtureError.layoutChanged
@@ -160,7 +175,9 @@ func birth(_ pid: Int32) throws -> UInt64 {
     let result: [String: Any] = ["status": "PASS", "inspectorPID": getpid(), "physicalDisplayUUID": id.uuidString,
         "separateOwners": owners.count, "onScreenWindows": windows.count, "checkedNativeMembership": nativeStatus,
         "nativeMembership": spaces, "groupSizes": projected.map { $0.members.count }, "groupIDs": projected.map { $0.id.uuidString },
-        "noActiveGroupInferred": true, "layoutCheckedAgainstWindowServer": true, "oldBindingsIneligible": reopening,
+        "noActiveGroupInferred": true, "layoutCheckedAgainstWindowServer": true, "workAreaChanged": geometry.work != work,
+        "originalWorkArea": [geometry.work.x,geometry.work.y,geometry.work.width,geometry.work.height],
+        "observedWorkArea": [work.x,work.y,work.width,work.height], "oldBindingsIneligible": reopening,
         "axTrusted": AXIsProcessTrusted(), "systemStageManagerOwnsDispatch": StageManagerPreference.ownsWindowDispatch]
     try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]).write(to: root.appendingPathComponent(phase + ".json"), options: .withoutOverwriting)
     if nativeStatus == "FAIL" { throw FixtureError.conflictingNativeMembership }
