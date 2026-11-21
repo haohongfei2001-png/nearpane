@@ -1,10 +1,11 @@
 // One of two ordinary, independently signed fixture owners on a disposable login only.
 #import <AppKit/AppKit.h>
 #import <libproc.h>
+#import "gesture_witness.h"
 
 static NSString *root, *label;
 static NSMutableArray<NSWindow *> *wins;
-static NSMutableDictionary *counts;
+static NSMutableDictionary *counts, *recentMarkers;
 static uint64_t version;
 
 static void writeState(NSString *nonce) {
@@ -17,7 +18,8 @@ static void writeState(NSString *nonce) {
             @"frame" : @[ @(f.origin.x), @(height - NSMaxY(f)), @(NSWidth(f)), @(NSHeight(f)) ],
             @"minimized" : @(w.isMiniaturized),
             @"current" : @(w.isOnActiveSpace),
-            @"counts" : counts[@(w.windowNumber)]
+            @"counts" : counts[@(w.windowNumber)],
+            @"markers" : recentMarkers[@(w.windowNumber)]
         }];
     }
     struct proc_bsdinfo p = {0};
@@ -65,6 +67,7 @@ int main(int argc, const char **argv) {
         CGFloat w = MAX(124, MIN(264, NSWidth(v) / 3.5)), h = MAX(92, MIN(180, NSHeight(v) / 3.7));
         wins = [NSMutableArray array];
         counts = [NSMutableDictionary dictionary];
+        recentMarkers = [NSMutableDictionary dictionary];
         BOOL first = [label isEqual:@"a"];
         for (unsigned i = 0; i < (first ? 2 : 3); i++) {
             unsigned slot = first ? i : i + 2;
@@ -82,6 +85,7 @@ int main(int argc, const char **argv) {
             window.backgroundColor = first ? NSColor.systemBlueColor : NSColor.systemOrangeColor;
             [wins addObject:window];
             [window orderFront:nil];
+            recentMarkers[@(window.windowNumber)] = [NSMutableArray array];
             counts[@(window.windowNumber)] =
                 [NSMutableArray arrayWithArray:@[ @0, @0, @0, @0, @0, @0, @0, @0, @0 ]];
         }
@@ -102,6 +106,14 @@ int main(int argc, const char **argv) {
                                                         NSEventTypeOtherMouseUp};
                                                     NSMutableArray *a = counts[@(event.windowNumber)];
                                                     if (a) {
+                                                        CGEventRef cg = event.CGEvent;
+                                                        uint64_t tag = cg ? (uint64_t)CGEventGetIntegerValueField(cg, kCGEventSourceUserData) : 0;
+                                                        if ((tag & NC_FIXTURE_GESTURE_MASK) == NC_FIXTURE_GESTURE_PREFIX) {
+                                                            NSMutableArray *seen = recentMarkers[@(event.windowNumber)];
+                                                            if (seen.count == 3) [seen removeObjectAtIndex:0];
+                                                            [seen addObject:@{@"tag" : @(tag), @"type" : @(CGEventGetType(cg)),
+                                                                @"sourcePID" : @(CGEventGetIntegerValueField(cg, kCGEventSourceUnixProcessID))}];
+                                                        }
                                                         for (unsigned i = 0; i < 9; i++)
                                                             if (types[i] == event.type) {
                                                                 a[i] = @([a[i] unsignedIntValue] + 1);

@@ -80,6 +80,29 @@ unsafe extern "C" {
     ) -> u32;
 }
 pub(super) type Inputs = [u32; 13];
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(super) struct PatchMember {
+    pub member: Member,
+    pub frame: Rect,
+}
+unsafe extern "C" {
+    fn np_corner_patch_session() -> *mut c_void;
+    fn np_corner_patch_publish(session: *mut c_void, members: *const PatchMember, count: u32);
+    fn np_corner_patch_end(session: *mut c_void);
+}
+pub(super) struct PatchSession(std::ptr::NonNull<c_void>);
+impl PatchSession {
+    pub fn new() -> Option<Self> {
+        std::ptr::NonNull::new(unsafe { np_corner_patch_session() }).map(Self)
+    }
+    pub fn publish(&self, members: &[PatchMember]) {
+        unsafe { np_corner_patch_publish(self.0.as_ptr(), members.as_ptr(), members.len() as u32) }
+    }
+}
+impl Drop for PatchSession {
+    fn drop(&mut self) { unsafe { np_corner_patch_end(self.0.as_ptr()) } }
+}
 pub(super) fn inputs() -> Inputs {
     let mut state = [0; 13];
     unsafe { np_corner_inputs(state.as_mut_ptr()) };

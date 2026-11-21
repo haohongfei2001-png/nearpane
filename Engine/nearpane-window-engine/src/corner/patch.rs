@@ -230,10 +230,10 @@ mod tests {
     }
 }
 
-// This fixture-only ABI consumes the same Rust geometry and Z-order decision as the backend.
-// It cannot create, move, order, or sample a window.
-#[cfg(all(target_os = "macos", feature = "isolated-fixtures"))]
-mod fixture {
+// Private, read-only interface used by the AppKit patch and the independently
+// sampled image verifier. It never orders a window or grants a window lease.
+#[cfg(target_os = "macos")]
+mod native_plan {
     use super::*;
     #[repr(C)]
     pub struct Row {
@@ -244,16 +244,24 @@ mod fixture {
         layer: i64,
     }
     #[unsafe(no_mangle)]
-    pub unsafe extern "C" fn np_fixture_patch_bounds(
-        first: Rect,
-        second: Rect,
+    pub unsafe extern "C" fn np_corner_patch_bounds(
+        frames: *const Rect,
+        count: u32,
         display: Rect,
         out: *mut Rect,
     ) -> bool {
-        if out.is_null() || [first, second, display].iter().any(Rect::is_degenerate) {
+        if frames.is_null() || out.is_null() || !(1..=64).contains(&count) || display.is_degenerate() {
             return false;
         }
-        let Some(r) = patch_rect(&[first, second], display, DEFAULT_REACH) else {
+        let frames = unsafe { std::slice::from_raw_parts(frames, count as usize) };
+        if frames.iter().any(|r| {
+            r.is_degenerate()
+                || r.intersect(&display)
+                    .is_none_or(|sliver| sliver.w > super::super::park::PARK_SLIVER)
+        }) {
+            return false;
+        }
+        let Some(r) = patch_rect(frames, display, DEFAULT_REACH) else {
             return false;
         };
         if r.w > 200. || r.h > 320. {
@@ -263,26 +271,35 @@ mod fixture {
         true
     }
     #[unsafe(no_mangle)]
-    pub unsafe extern "C" fn np_fixture_patch_order(
+    pub unsafe extern "C" fn np_corner_patch_order(
         rows: *const Row,
         length: u32,
-        first: u32,
-        second: u32,
+        ids: *const u32,
+        count: u32,
         patch: u32,
         above: u32,
         frame: Rect,
         preflight: bool,
     ) -> bool {
         if rows.is_null()
+            || ids.is_null()
             || !(1..=8192).contains(&length)
-            || first == second
-            || first == 0
-            || second == 0
+            || !(1..=64).contains(&count)
             || patch == 0
+            || frame.is_degenerate()
         {
             return false;
         }
         let raw = unsafe { std::slice::from_raw_parts(rows, length as usize) };
+        let ids = unsafe { std::slice::from_raw_parts(ids, count as usize) };
+        let parked: HashSet<_> = ids.iter().copied().collect();
+        if parked.len() != ids.len()
+            || parked.contains(&0)
+            || parked.contains(&patch)
+            || !parked.contains(&above)
+        {
+            return false;
+        }
         let listed: Vec<_> = raw
             .iter()
             .map(|r| Listed {
@@ -292,11 +309,58 @@ mod fixture {
                 drawn: r.alpha > 0.,
             })
             .collect();
-        let parked = [first, second].into_iter().collect();
+        let witnesses: Vec<_> = listed.iter().filter(|w| parked.contains(&w.id)).collect();
+        if witnesses.len() != parked.len()
+            || witnesses.first().map(|w| w.id) != Some(above)
+            || witnesses.iter().map(|w| w.id).collect::<HashSet<_>>() != parked
+            || !witnesses.iter().all(|w| w.counts(frame))
+        {
+            return false;
+        }
         if preflight {
             would_be_right(&listed, patch, above, frame, &parked)
         } else {
-            ordered_right(&listed, patch, frame, &parked)
+            listed.iter().filter(|w| w.id == patch).count() == 1
+                && ordered_right(&listed, patch, frame, &parked)
+        }
+    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        #[test]
+        fn single_and_joint_plans_require_unique_present_slivers_and_a_real_order_anchor() {
+            let screen = Rect::new(0., 0., 1000., 800.);
+            let parked = Rect::new(999., 770., 440., 320.);
+            let mut frame = Rect::default();
+            assert!(unsafe { np_corner_patch_bounds(&parked, 1, screen, &mut frame) });
+            let r = |id| Row {
+                id,
+                pid: 11,
+                frame,
+                alpha: 1.,
+                layer: 0,
+            };
+            let rows = [r(91), r(42), r(7), r(8)];
+            let proof = |ids: &[u32], anchor, pre| unsafe {
+                np_corner_patch_order(
+                    rows.as_ptr(),
+                    rows.len() as u32,
+                    ids.as_ptr(),
+                    ids.len() as u32,
+                    42,
+                    anchor,
+                    frame,
+                    pre,
+                )
+            };
+            assert!(proof(&[7, 8], 7, false));
+            assert!(proof(&[7, 8], 7, true));
+            assert!(!proof(&[7], 7, false)); // Unmanaged window 8 would be covered.
+            assert!(!proof(&[7, 7], 7, true));
+            assert!(!proof(&[7, 99], 7, true));
+            assert!(!proof(&[7, 8], 8, true));
+            assert!(unsafe { np_corner_patch_order(rows.as_ptr(), 3, [7].as_ptr(), 1, 42, 7, frame, false) });
+            assert!(!unsafe { np_corner_patch_bounds(&screen, 1, screen, &mut frame) });
         }
     }
 }

@@ -6,7 +6,7 @@ umask 077
 cd "$(dirname "$0")/../../../.."
 out=${1:?new receipt directory required}
 mode=${2:-run}
-case "$mode" in run|--build-only|--scope-only) ;; *) exit 2;; esac
+case "$mode" in run|--build-only|--scope-only|--single-window) ;; *) exit 2;; esac
 mkdir -m 700 "$out"
 out=$(cd "$out" && pwd -P)
 export NP_CORNER_RECEIPTS="$out"
@@ -20,7 +20,7 @@ if not p.exists():
 PY
 }
 trap 'write_result UNKNOWN fixtureBuildOrTransportError' ERR
-if [[ "$mode" = run ]]; then
+if [[ "$mode" = run || "$mode" = --single-window ]]; then
     if [[ ! ( "$(id -un)" == runner && "${GITHUB_ACTIONS:-}" == true && "${RUNNER_ENVIRONMENT:-}" == github-hosted ) &&
           ! ( "$(id -un)" == nearpane-fixture-* && "${NP_DISPOSABLE_CORNER_LOGIN:-}" == "$(id -un)" ) ]]; then
         write_result BLOCKED disposableWindowServerLoginRequired
@@ -34,8 +34,8 @@ trap 'rm -rf "$kit"' EXIT
 src=scripts/acceptance/window-engine/corner
 manifest=Engine/nearpane-window-engine/Cargo.toml
 cargo build --locked --offline --manifest-path "$manifest" --target-dir "$kit/target" --release --features corner,isolated-fixtures > "$out/build.log" 2>&1
-xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror "$src/owner.m" -framework AppKit -framework Foundation -o "$kit/owner"
 corner=Engine/nearpane-window-engine/src/corner
+xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror -I "$corner" "$src/owner.m" -framework AppKit -framework Foundation -framework CoreGraphics -o "$kit/owner"
 xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror -DNP_CORNER_FIXTURE=1 -I Engine/nearpane-window-engine/include -I "$corner" "$corner/guardian/main.m" "$corner/macos.m" \
  -framework AppKit -framework Foundation -framework CoreFoundation -framework CoreGraphics -framework ApplicationServices -framework Security -framework Carbon -o "$kit/guardian"
 codesign --force --options runtime --timestamp=none --identifier com.holdsnow.nearpane.engine-guardian.fixture --sign - "$kit/guardian" >> "$out/build.log" 2>&1
@@ -67,8 +67,8 @@ codesign --verify --strict "$kit/controller"
 } > "$out/signatures.txt"
 if [[ "$mode" == --build-only ]]; then
     write_result NOT_RUN signedFixtureBuiltWithoutOpeningSession
-elif [[ "$mode" == --scope-only ]]; then
-    "$kit/controller" "$kit" "$out" --scope-only
+elif [[ "$mode" == --scope-only || "$mode" == --single-window ]]; then
+    "$kit/controller" "$kit" "$out" "$mode"
 else
     "$kit/controller" "$kit" "$out"
     test -s "$out/result.json"

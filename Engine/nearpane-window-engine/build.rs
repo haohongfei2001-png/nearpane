@@ -26,6 +26,7 @@ fn main() {
     let mut objects = Vec::new();
     for (feature, file) in [
         ("CORNER", "src/corner/macos.m"),
+        ("CORNER", "src/corner/patch_sheet.m"),
         ("SPACES", "src/spaces/platform.m"),
         ("ISOLATED_FIXTURES", "src/fixture.m"),
     ] {
@@ -33,7 +34,7 @@ fn main() {
         if env::var_os(format!("CARGO_FEATURE_{feature}")).is_none() {
             continue;
         }
-        let obj = out.join(format!("{feature}.o"));
+        let obj = out.join(Path::new(file).with_extension("o").file_name().unwrap());
         run(Command::new("xcrun")
             .args([
                 "--sdk",
@@ -72,6 +73,7 @@ fn main() {
         "Foundation",
         "ApplicationServices",
         "Carbon",
+        "ImageIO",
         "Security",
     ] {
         println!("cargo:rustc-link-lib=framework={name}");

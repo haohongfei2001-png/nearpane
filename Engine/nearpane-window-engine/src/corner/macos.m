@@ -10,6 +10,8 @@
 #import <unistd.h>
 #import "macos.h"
 #import "mouse_event.h"
+#define NP_CORNER_WITNESS_IMPL 1
+#import "gesture_witness.h"
 #import "scope_binding.h"
 
 enum {
@@ -541,7 +543,9 @@ static CGEventRef tapCallback(CGEventTapProxy proxy, CGEventType type, CGEventRe
     }
     if (!event)
         return event;
-    return nc_mouse_decision(type, event, tap->context, tap->decide) ? NULL : event;
+    BOOL dropped = nc_mouse_decision(type, event, tap->context, tap->decide) != 0;
+    recordGesture(type, event, dropped);
+    return dropped ? NULL : event;
 }
 void np_corner_tap_run(void *context, NCDecide decide, NCTapControl control, NCTapHealth health) {
     @autoreleasepool {

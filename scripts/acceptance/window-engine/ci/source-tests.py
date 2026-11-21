@@ -24,6 +24,7 @@ FRAMEWORKS = (
     "CoreFoundation",
     "Security",
     "Carbon",
+    "ImageIO",
 )
 
 
@@ -111,6 +112,8 @@ def main():
         "release",
         "c-abi-link",
         "c-abi",
+        "corner-witness-build",
+        "corner-witness",
         "swift",
         "hosted-reader-build",
         "spaces-tests",
@@ -180,6 +183,12 @@ def main():
             "--no-default-features",
         ]
         run("rust", ["cargo", "test", *cargo, "--features", "corner,spaces,isolated-fixtures"], rust_count)
+        witness = work / "corner-witness"
+        if run("corner-witness-build", ["xcrun", "clang", "-fobjc-arc", "-Wall", "-Wextra", "-Werror",
+                "-I", CRATE / "src/corner", ACCEPTANCE / "corner/patch-input-test.m",
+                "-framework", "AppKit", "-framework", "CoreGraphics", "-framework", "CoreFoundation",
+                "-framework", "ImageIO", "-o", witness]):
+            run("corner-witness", [witness, work / "fixture.png"], lambda log: {"readback": json.loads(log)})
         archive = None
 
         def archive_result(log):

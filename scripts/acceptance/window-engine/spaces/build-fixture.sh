@@ -22,7 +22,7 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 PLIST
 xcrun clang -fobjc-arc -Wall -Wextra -Werror -I "$engine/include" -I "$engine/src/spaces" \
   "$src/fixture.m" "$archive" -framework AppKit -framework Foundation -framework CoreGraphics -framework ApplicationServices \
-  -framework Security -framework QuartzCore -framework CoreFoundation -framework Carbon -lc++ -o "$app/Contents/MacOS/SpacesGate"
+  -framework Security -framework QuartzCore -framework CoreFoundation -framework Carbon -framework ImageIO -lc++ -o "$app/Contents/MacOS/SpacesGate"
 codesign --force --sign "${NP_ENGINE_FIXTURE_SIGN_IDENTITY:--}" --identifier com.holdsnow.nearpane.engine-fixture "$app"
 codesign --verify --strict --deep "$app"
 printf '%s\n' "$app"

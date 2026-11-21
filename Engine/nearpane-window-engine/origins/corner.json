@@ -39,7 +39,19 @@
     "local": "src/corner/patch.rs",
     "upstream": "src/engine/corner/corner_patch.rs",
     "blob": "3da8c0d53a8809c99a153ecd00bbc50c221ce111",
-    "modifications": "Extract clipped shadow bounds, rectangle stability and relative ordering. Omit presentation, wallpaper access and every image path."
+    "modifications": "Extract clipped shadow bounds, rectangle stability and relative ordering. Share checked single and multiple member plans with the AppKit sheet and its independent observer."
+  },
+  {
+    "local": "src/corner/patch_sheet.m",
+    "upstream": "src/ui/corner_patch.rs",
+    "blob": "ca8cfc370677549227fa57d3dc8c96675a581edb",
+    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering relative to the uppermost held window to AppKit. Decode sealed static assets off the main queue. Withdraw on an unverifiable source, topology, order or expired publication."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/platform/controller/corner/patch.rs",
+    "blob": "bfc1164d02f31e89fcfe25b69ab7038daeec7177",
+    "modifications": "Publish confirmed parked member footprints after the input shield is healthy. Tie the lifetime of optional per-display patches to the existing worker and its retained window ownership."
   },
   {
     "local": "src/corner/tap.rs",

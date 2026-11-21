@@ -9,17 +9,18 @@ static void persistPacket(int fd, NSFileHandle *pipe, const NCGuardianEntry *ent
 static void waitAck(NSFileHandle *receiver, char expected, NSTask *task) {
     double deadline = NSProcessInfo.processInfo.systemUptime + 6;
     struct pollfd p = {.fd = receiver.fileDescriptor, .events = POLLIN};
-    while (NSProcessInfo.processInfo.systemUptime < deadline && task.running) {
+    while (NSProcessInfo.processInfo.systemUptime < deadline) {
         if (poll(&p, 1, 0) > 0) {
             char ack = 0;
             require(read(p.fd, &ack, 1) == 1 && ack == expected, @"guardianDeclinedActualPreOrPostimage");
             return;
         }
+        if (!task.running) break;
         pauseFor(.015);
     }
     stop(@"BLOCKED", @"guardianReplyOrSeparateAccessibilityPermissionUnavailable");
 }
-static void crashHost(NSString *kit, NPRequest r) {
+static void guardedFixtureWindow(NSString *kit, NPRequest r, void (^whileParked)(void)) {
     r.operation = NP_HIDE;
     r.timeout_ms = 4000;
     r.epoch = epoch;
@@ -37,11 +38,12 @@ static void crashHost(NSString *kit, NPRequest r) {
     guardian.arguments = @[ kit, output ];
     guardian.standardInput = input;
     guardian.standardOutput = reply;
-    BOOL owed = NO;
+    BOOL owed = NO, sealedByGuardian = NO;
     @try {
         require([guardian launchAndReturnError:NULL], @"separatelySignedGuardianLaunchFailed");
         persistPacket(journal, input.fileHandleForWriting, &pre);
         waitAck(reply.fileHandleForReading, 'R', guardian);
+        result[@"guardianPreparedBeforePark"] = @YES;
         NPReceipt parked = requestID(r, NP_HIDE, r.intent);
         owed = (parked.flags & NP_OWNED) != 0;
         NCGuardianEntry sealed = pre;
@@ -55,7 +57,8 @@ static void crashHost(NSString *kit, NPRequest r) {
                 @"independentOwnerDidNotSeeParkedPostimage");
         persistPacket(journal, input.fileHandleForWriting, &sealed);
         waitAck(reply.fileHandleForReading, 'P', guardian);
-        result[@"crashIntent"] = @{
+        sealedByGuardian = YES;
+        result[whileParked ? @"singleWindowIntent" : @"crashIntent"] = @{
             @"intent" : [[NSUUID alloc] initWithUUIDBytes:r.intent].UUIDString,
             @"hostPID" : @(getpid()),
             @"hostBirth" : @(pre.host_birth),
@@ -67,17 +70,34 @@ static void crashHost(NSString *kit, NPRequest r) {
             @"postimage" : unpack(parked.frame)
         };
         save();
+        if (whileParked) {
+            whileParked();
+            return;
+        }
         // Only this explicitly created sacrificial controller terminates. The external fixture owners,
         // the recovery worker and the observing supervisor all remain alive.
         kill(getpid(), SIGKILL);
         stop(@"UNKNOWN", @"selfTerminationNotDelivered");
     } @finally {
-        [input.fileHandleForWriting closeFile];
-        if (owed) {
-            NPReceipt clean = request(r, NP_RESTORE);
-            result[@"hostCompensation"] = @(clean.status);
+        @try {
+            if (owed) {
+                NPReceipt clean = request(r, NP_RESTORE);
+                result[@"hostCompensation"] = @(clean.status);
+                BOOL exact = clean.status == NP_PASS && !(clean.flags & NP_OWNED) && clean.owned == 0 &&
+                    (clean.flags & NP_VISIBLE) && closeFrame(window(owners(),r)[@"frame"],unpack(r.frame)) &&
+                    closeFrame(cgFrame(@(r.window),@(r.pid)),unpack(r.frame));
+                result[@"hostReadOriginalAfterRestore"] = @(exact);
+                if (whileParked && sealedByGuardian && exact) {
+                    const unsigned char disarm = 'D';
+                    require(write(input.fileHandleForWriting.fileDescriptor,&disarm,1)==1, @"guardianDisarmNotDelivered");
+                    waitAck(reply.fileHandleForReading,'D',guardian);
+                    result[@"guardianVerifiedRelease"] = @YES;
+                }
+            }
+        } @finally {
+            [input.fileHandleForWriting closeFile];
+            close(journal);
         }
-        close(journal);
     }
 }
 static NSDictionary *readJSON(NSString *name) {

@@ -8,9 +8,7 @@
 #include <fcntl.h>
 #include <sys/mount.h>
 
-extern bool np_fixture_patch_bounds(NCFrame, NCFrame, NCFrame, NCFrame *);
-extern bool np_fixture_patch_order(const NCListed *, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, NCFrame,
-                                   bool);
+#import "patch_sheet.h"
 static CGRect cg(NCFrame r) { return CGRectMake(r.x, r.y, r.w, r.h); }
 static void requirePatch(BOOL ok, NSString *reason) {
     if (!ok)
@@ -130,16 +128,6 @@ static BOOL pictureAgrees(CGImageRef a, CGImageRef b, unsigned *maxDifference) {
     }
     return ok && *maxDifference <= 3;
 }
-@interface NCWallpaperPanel : NSPanel
-@end
-@implementation NCWallpaperPanel
-- (BOOL)canBecomeKeyWindow {
-    return NO;
-}
-- (BOOL)canBecomeMainWindow {
-    return NO;
-}
-@end
 static uint32_t realOrder(const NPRequest *a, const NPRequest *b, uint32_t patch, NCFrame frame, BOOL planned) {
     size_t cap = 8192;
     NSMutableData *storage = [NSMutableData dataWithLength:cap * sizeof(NCListed)];
@@ -150,7 +138,7 @@ static uint32_t realOrder(const NPRequest *a, const NPRequest *b, uint32_t patch
         return 0;
     for (uint32_t i = 0; i < n; i++) {
         NCListed w = list[i];
-        if (w.window == a->window || w.window == b->window) {
+        if (w.window == a->window || (b && w.window == b->window)) {
             const NPRequest *r = w.window == a->window ? a : b;
             if (w.pid != r->pid || w.layer != 0 || w.alpha <= 0 || !CGRectIntersectsRect(cg(w.frame), cg(frame)))
                 return 0;
@@ -166,7 +154,8 @@ static uint32_t realOrder(const NPRequest *a, const NPRequest *b, uint32_t patch
                     return 0;
         }
     }
-    return found == 2 && np_fixture_patch_order(list, n, a->window, b->window, patch, above, frame, planned)
+    uint32_t ids[2] = {a->window, b ? b->window : 0}, expected = b ? 2 : 1;
+    return found == expected && np_corner_patch_order(list, n, ids, expected, patch, above, frame, planned)
                ? above
                : 0;
 }
@@ -179,7 +168,6 @@ NSDictionary *nc_fixture_picture(const NPRequest *a, const NPRequest *b) {
     } mutableCopy];
     CGImageRef wallpaper = NULL, crop = NULL, captured = NULL;
     CGImageSourceRef source = NULL;
-    NCWallpaperPanel *panel = nil;
     @try {
         requirePatch(ncg_disposable() && NSThread.isMainThread, @"isolatedMainThreadRequired");
         uint32_t hid[13], latest[13];
@@ -187,8 +175,8 @@ NSDictionary *nc_fixture_picture(const NPRequest *a, const NPRequest *b) {
         NCDisplay d = {0};
         uint32_t count = 0;
         requirePatch(!np_corner_displays(&d, 1, &count) && count == 1 && !memcmp(a->display, d.uuid, 16) &&
-                         !memcmp(b->display, d.uuid, 16) && a->native_id == b->native_id &&
-                         !memcmp(a->native_space, b->native_space, 16),
+                         (!b || (a->window != b->window && !memcmp(b->display, d.uuid, 16) && a->native_id == b->native_id &&
+                         !memcmp(a->native_space, b->native_space, 16))),
                      @"singleBoundDisplayRequired");
         NSScreen *screen = NSScreen.screens.firstObject;
         struct stat initial = {0}, latestFile = {0};
@@ -204,8 +192,9 @@ NSDictionary *nc_fixture_picture(const NPRequest *a, const NPRequest *b) {
         requirePatch(stretch || fill, @"exactWallpaperPlacementNotExposed");
         NCSample sa = {}, sb = {};
         NCFrame frame = {};
-        requirePatch(readWindow(a, &sa) && readWindow(b, &sb) &&
-                         np_fixture_patch_bounds(sa.cg, sb.cg, d.frame, &frame),
+        requirePatch(readWindow(a, &sa) && (!b || readWindow(b, &sb)), @"enrolledWindowReadbackUnavailable");
+        NCFrame frames[] = {sa.cg,sb.cg};
+        requirePatch(np_corner_patch_bounds(frames, b ? 2 : 1, d.frame, &frame),
                      @"confirmedSliverRectangleUnavailable");
         source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, NULL);
         requirePatch(source && CGImageSourceGetCount(source) == 1, @"dynamicOrUnreadableSystemAsset");
@@ -225,43 +214,24 @@ NSDictionary *nc_fixture_picture(const NPRequest *a, const NPRequest *b) {
         requirePatch(CGRectContainsRect(CGRectMake(0, 0, iw, ih), sourceRect), @"wallpaperCropOutOfBounds");
         crop = CGImageCreateWithImageInRect(wallpaper, CGRectIntegral(sourceRect));
         requirePatch(crop != NULL, @"couldNotCropAppleAsset");
-        [NSApplication sharedApplication];
-        [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
-        NSRect f = NSMakeRect(NSMinX(screen.frame) + frame.x - d.frame.x,
-                              NSMaxY(screen.frame) - (frame.y - d.frame.y) - frame.h, frame.w, frame.h);
-        panel = [[NCWallpaperPanel alloc]
-            initWithContentRect:f
-                      styleMask:NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel
-                        backing:NSBackingStoreBuffered
-                          defer:NO];
-        panel.ignoresMouseEvents = YES;
-        panel.hasShadow = NO;
-        panel.animationBehavior = NSWindowAnimationBehaviorNone;
-        panel.opaque = YES;
-        panel.hidesOnDeactivate = NO;
-        panel.floatingPanel = NO;
-        panel.level = NSNormalWindowLevel;
-        panel.releasedWhenClosed = NO;
-        NSImageView *view = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, frame.w, frame.h)];
-        view.imageScaling = NSImageScaleAxesIndependently;
-        view.image = [[NSImage alloc] initWithCGImage:crop size:NSMakeSize(frame.w, frame.h)];
-        panel.contentView = view;
-        uint32_t number = (uint32_t)panel.windowNumber;
-        uint32_t above = realOrder(a, b, number, frame, YES);
-        np_corner_inputs(latest);
-        requirePatch(above && !memcmp(hid, latest, sizeof(hid)) && !np_corner_secure_input(),
-                     @"preorderOrHumanInputChanged");
-        [panel orderWindow:NSWindowAbove relativeTo:above];
-        [panel displayIfNeeded];
-        [NSApp updateWindows];
+        uint32_t ids[2] = {a->window,b ? b->window : 0}, number = 0;
+        const uint32_t memberCount = b ? 2 : 1;
+        NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:1];
+        do {
+            [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.025]];
+            number = np_corner_patch_visible(ids,memberCount,d.uuid,frame);
+        } while (!number && deadline.timeIntervalSinceNow > 0);
+        requirePatch(number, @"engineDidNotPresentThisOwnedCornerPatch");
+        receipt[@"renderer"] = @"linkedCornerEngine";
+        receipt[@"panelsCreatedByObserver"] = @0;
         for (unsigned i = 0; i < 2; i++) {
             [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.06]];
-            requirePatch(realOrder(a, b, number, frame, NO) && readWindow(a, &sa) && readWindow(b, &sb) &&
-                             panel.ignoresMouseEvents && !panel.isKeyWindow,
+            requirePatch(realOrder(a, b, number, frame, NO) && readWindow(a, &sa) && (!b || readWindow(b, &sb)) &&
+                             np_corner_patch_visible(ids,memberCount,d.uuid,frame)==number,
                          @"independentZOrderDidNotConfirmExactClickThroughPanel");
         }
         receipt[@"actualLayer"] = @YES;
-        receipt[@"verifiedParkedCount"] = @2;
+        receipt[@"verifiedParkedCount"] = @(b ? 2 : 1);
         receipt[@"zOrderReadbacks"] = @2;
         receipt[@"patchFrame"] = @[ @(frame.x), @(frame.y), @(frame.w), @(frame.h) ];
         receipt[@"window"] = @(number);
@@ -282,8 +252,6 @@ NSDictionary *nc_fixture_picture(const NPRequest *a, const NPRequest *b) {
     } @catch (NSException *e) {
         receipt[@"reason"] = [e.name isEqual:@"patch"] ? e.reason : @"unexpectedPatchException";
     } @finally {
-        [panel orderOut:nil];
-        [panel close];
         if (captured)
             CGImageRelease(captured);
         if (crop)

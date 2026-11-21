@@ -51,6 +51,7 @@ struct Owned {
 pub struct Corner {
     owned: HashMap<u32, Owned>,
     tap: Option<Tap>,
+    patch: Option<native::PatchSession>,
     last_refresh: Option<Instant>,
 }
 fn same(a: Rect, b: Rect) -> bool {
@@ -204,20 +205,34 @@ impl Corner {
     }
     fn refresh(&mut self, changing: bool) -> Result<(), u32> {
         if self.owned.is_empty() {
+            self.patch.take();
             self.tap.take();
             self.last_refresh = None;
             return Ok(());
         }
+        if changing {
+            self.patch.take();
+        }
         let current = self.publication(changing).inspect_err(|why| {
+            self.patch.take();
             if let Some(t) = &self.tap {
                 t.revoke(*why)
             }
         })?;
         match &self.tap {
-            Some(t) => t.publish(current)?,
+            Some(t) => t.publish(current).inspect_err(|_| { self.patch.take(); })?,
             None => self.tap = Some(Tap::start(current)?),
         }
         self.last_refresh = Some(Instant::now());
+        if !changing {
+            // Only a proven parked footprint with a healthy, published input shield
+            // may supply a visual. The sheet has no write authority over the member.
+            let mut members: Vec<_> = self.owned.values().filter_map(|owned| owned.parked.map(|frame|
+                native::PatchMember { member: owned.id, frame })).collect();
+            members.sort_by_key(|m| m.member.window);
+            if self.patch.is_none() { self.patch = native::PatchSession::new(); }
+            if let Some(patch) = &self.patch { patch.publish(&members); }
+        }
         Ok(())
     }
     /// Startup checks an empty-recipient real tap. A per-command check additionally binds the
@@ -462,6 +477,7 @@ impl Corner {
             if !o.parked.is_some_and(|p| same(p, s.cg)) || !hidden(s.cg, &layout, id.display, o.corner) {
                 return self.result(c::UNKNOWN, USER_CHANGED, Some(s), true);
             }
+            self.patch.take();
             // Mark the moving receiver uncertain before dispatch; keep other parked ownership until readback.
             if let Ok(p) = self.publication(false) {
                 if let Some(t) = &self.tap {

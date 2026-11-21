@@ -9,6 +9,7 @@
 #import "nearpane_window_engine.h"
 #import "cycles.h"
 #import "picture.h"
+#import "gesture_witness.h"
 #import "scope_binding.h"
 #import "guardian/protocol.h"
 #import "guardian/identity.h"
@@ -17,7 +18,7 @@
 #include <signal.h>
 
 static NSString *output;
-static BOOL crashMode;
+static BOOL crashMode, singleWindow;
 static NSMutableDictionary *result;
 static NSMutableArray<NSTask *> *children;
 static FILE *logFile;
@@ -266,26 +267,50 @@ static BOOL exactAX(CGPoint at, NPRequest *r) {
     CFRelease(hit);
     return p == r->pid && n == r->window;
 }
-static void gesture(CGPoint point, int index) {
+static NSDictionary *gesture(CGPoint point, CGPoint dragged, int index) {
     CGEventType phases[3][3] = {{kCGEventLeftMouseDown, kCGEventLeftMouseDragged, kCGEventLeftMouseUp},
                                 {kCGEventRightMouseDown, kCGEventRightMouseDragged, kCGEventRightMouseUp},
                                 {kCGEventOtherMouseDown, kCGEventOtherMouseDragged, kCGEventOtherMouseUp}};
     CGEventRef events[3] = {0};
+    uint64_t tag = 0;
+    arc4random_buf(&tag, sizeof(tag));
+    tag = NC_FIXTURE_GESTURE_PREFIX | (tag & ~NC_FIXTURE_GESTURE_MASK);
     for (int i = 0; i < 3; i++) {
-        events[i] = CGEventCreateMouseEvent(NULL, phases[index][i], point, (CGMouseButton)index);
+        events[i] = CGEventCreateMouseEvent(NULL, phases[index][i], i ? dragged : point, (CGMouseButton)index);
         if (!events[i]) {
             for (int j = 0; j < i; j++)
                 CFRelease(events[j]);
             stop(@"BLOCKED", @"entireMouseSequenceUnavailable");
         }
     }
+    if (!np_corner_witness_begin(tag)) {
+        for (int j=0;j<3;j++) CFRelease(events[j]);
+        stop(@"BLOCKED", @"anotherInputWitnessIsActive");
+    }
     // Complete a released gesture even if focus changes after down.
     for (int i = 0; i < 3; i++) {
-        CGEventSetIntegerValueField(events[i], kCGEventSourceUserData, 0x4e50434f);
+        CGEventSetIntegerValueField(events[i], kCGEventSourceUserData, (int64_t)tag);
         CGEventPost(kCGHIDEventTap, events[i]);
         CFRelease(events[i]);
         pauseFor(.014);
     }
+    pauseFor(.075);
+    NCGestureRead proof={};
+    BOOL complete=np_corner_witness_end(tag,&proof) && proof.count==3;
+    NSMutableArray *samples=[NSMutableArray array];
+    unsigned dropped=0;
+    for (unsigned i=0;i<MIN(proof.count,3u);i++) {
+        NCGesturePhase p=proof.phases[i];
+        CGPoint expected=i ? dragged : point;
+        complete &= p.type==phases[index][i] && p.button==index && fabs(p.point.x-expected.x)<=.5 && fabs(p.point.y-expected.y)<=.5;
+        dropped+=p.dropped;
+        [samples addObject:@{@"type":@(p.type),@"dropped":@(p.dropped!=0),@"button":@(p.button),
+                             @"reportedTargetWindow":@(p.targetWindow),@"reportedTargetPID":@(p.targetPID),
+                             @"point":@[@(p.point.x),@(p.point.y)]}];
+    }
+    return @{@"observed":@(proof.count),@"complete":@(complete),@"dropped":@(dropped),@"tapPhases":samples,
+             @"tag":@(tag), @"sourcePID":@(getpid()),
+             @"types":@[@(phases[index][0]), @(phases[index][1]), @(phases[index][2])]};
 }
 static NSDictionary *window(NSArray *owners, NPRequest r) {
     for (NSDictionary *o in owners)
@@ -320,19 +345,25 @@ static BOOL noChange(NSArray *before, NSArray *after, uint32_t except, BOOL prot
     }
     return YES;
 }
-static BOOL positive(NPRequest reference, int cycle) {
+static BOOL receiverGesture(NPRequest reference, int cycle, BOOL expectTap) {
     NSArray *before = owners();
     NSDictionary *w = window(before, reference);
     NPRect r = rect(w[@"frame"]);
     CGPoint at = {r.x + r.width / 2, r.y + r.height / 2};
-    if (!exactAX(at, &reference))
+    CGPoint dragged = CGPointMake(at.x + 3, at.y + 3);
+    if (!exactAX(at, &reference) || !exactAX(dragged, &reference))
         return NO;
     int button = cycle % 3;
-    gesture(at, button);
-    pauseFor(.12);
+    NSDictionary *tap=gesture(at, dragged, button);
     NSArray *after = owners();
-    NSArray *prev = w[@"counts"], *now = window(after, reference)[@"counts"];
-    BOOL ok = noChange(before, after, reference.window, NO);
+    NSDictionary *receiver = window(after, reference);
+    NSArray *prev = w[@"counts"], *now = receiver[@"counts"], *seen = receiver[@"markers"];
+    BOOL marked = seen.count == 3;
+    for (NSUInteger i = 0; marked && i < 3; i++)
+        marked = [seen[i][@"tag"] isEqual:tap[@"tag"]] && [seen[i][@"sourcePID"] isEqual:tap[@"sourcePID"]] &&
+                 [seen[i][@"type"] isEqual:tap[@"types"][i]];
+    BOOL ok = marked && noChange(before, after, reference.window, NO) &&
+              (!expectTap || ([tap[@"complete"] isEqual:@YES] && [tap[@"dropped"] isEqual:@0]));
     for (int i = 0; i < 9; i++)
         ok &= ([now[i] integerValue] - [prev[i] integerValue] == (i / 3 == button ? 1 : 0));
     event(
@@ -341,10 +372,13 @@ static BOOL positive(NPRequest reference, int cycle) {
             @"button" : @(button),
             @"prior" : prev,
             @"after" : now,
+            @"tap" : tap,
+            @"recipientMarkers" : seen ?: @[],
             @"pass" : @(ok)
         });
     return ok;
 }
+static BOOL positive(NPRequest reference, int cycle) { return receiverGesture(reference,cycle,NO); }
 // The sliver point requires exact AX/PID/window readback. For its resize band AX can return
 // the desktop. Allow that one point only when this is the unique layer-zero donor near it,
 // in the same isolated login; any other non-desktop surface at that point blocks the input.
@@ -504,13 +538,14 @@ static void exerciseShield(unsigned stage, unsigned lap, unsigned active, NPRequ
     require(target >= 0, @"frontmostParkedSliverNotBoundToEitherEnrolledMember");
     for (int point = 0; point < 2; point++) {
         CGPoint at = point ? border : inside;
+        CGPoint dragged = CGPointMake(at.x, at.y + 3);
         for (int b = 0; b < 3; b++) {
             NPReceipt health = request(rs[target], NP_HEALTH);
             require(health.status == NP_PASS && (health.flags & NP_INPUT_SAFE) && [scope() isEqual:native] &&
-                        (point ? resizeAdmission(at, rs, parked) : exactAX(at, &rs[target])),
+                        (point ? resizeAdmission(at, rs, parked) && resizeAdmission(dragged, rs, parked)
+                               : exactAX(at, &rs[target]) && exactAX(dragged, &rs[target])),
                     @"shieldOrExpectedReceiverChanged");
-            gesture(at, b);
-            pauseFor(.075);
+            NSDictionary *tap=gesture(at, dragged, b);
             NSArray *after = owners();
             BOOL unchanged = noChange(prior, after, 0, YES);
             event(
@@ -522,18 +557,85 @@ static void exerciseShield(unsigned stage, unsigned lap, unsigned active, NPRequ
                     @"window" : @(rs[target].window),
                     @"button" : @(b),
                     @"point" : @[ @(at.x), @(at.y) ],
+                    @"dragEnd" : @[ @(dragged.x), @(dragged.y) ],
                     @"owners" : after,
+                    @"tap" : tap,
                     @"noReceiverMarkers" : @(unchanged)
                 });
             if (!unchanged)
                 stop(@"FAIL", @"fixtureReceivedParkedMouseOrBystanderChanged");
+            if (![tap[@"complete"] isEqual:@YES])
+                stop(@"UNKNOWN", @"inputTapDidNotWitnessAllThreeMarkedPhases");
+            if (![tap[@"dropped"] isEqual:@3])
+                stop(@"FAIL", @"cornerDidNotInterceptEntireParkedGesture");
         }
     }
-    require(positive(rs[active], (int)(stage + lap + active)), @"visibleGroupWholeGestureUnconfirmed");
+    require(receiverGesture(rs[active], (int)(stage + lap + active), YES), @"visibleGroupWholeGestureUnconfirmed");
 }
 #include "crash-drill.inc"
+static BOOL fixtureFocus(NPRequest r) {
+    if (NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != r.pid || ncg_birth(r.pid,NULL) != r.birth)
+        return NO;
+    AXUIElementRef app = AXUIElementCreateApplication(r.pid);
+    CFTypeRef focused = NULL;
+    typedef AXError (*ReadNumber)(AXUIElementRef, CGWindowID *);
+    ReadNumber read = (ReadNumber)dlsym(RTLD_DEFAULT, "_AXUIElementGetWindow");
+    CGWindowID number = 0;
+    pid_t owner = 0;
+    BOOL ok = app && read && AXUIElementSetMessagingTimeout(app, .15f) == kAXErrorSuccess &&
+              AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, &focused) == kAXErrorSuccess && focused &&
+              CFGetTypeID(focused) == AXUIElementGetTypeID() && AXUIElementGetPid((AXUIElementRef)focused,&owner)==kAXErrorSuccess &&
+              owner==r.pid && read((AXUIElementRef)focused,&number)==kAXErrorSuccess && number==r.window &&
+              NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier == r.pid && ncg_birth(r.pid,NULL)==r.birth;
+    if (focused) CFRelease(focused);
+    if (app) CFRelease(app);
+    return ok;
+}
+static void oneWindow(NSString *kit, NPRequest rs[4], NSDictionary *native, int dock) {
+    require(positive(rs[0],0) && fixtureFocus(rs[0]), @"sameAppSiblingFocusNotEstablished");
+    NSArray *base=owners();
+    @try {
+        guardedFixtureWindow(kit,rs[1],^{
+            require(noChange(base,owners(),rs[1].window,NO) && fixtureFocus(rs[0]) &&
+                    [scope() isEqual:native] && dockTiles()==dock, @"siblingFocusDockOrNativeScopeChangedAtPark");
+            result[@"cornerPatch"]=nc_fixture_picture(&rs[1],NULL);
+            BOOL parked[3]={NO,YES,NO};
+            exerciseShield(0, 0, 0, rs, parked, native);
+            require(fixtureFocus(rs[0]), @"controlledSiblingLostFocusDuringInput");
+            result[@"fullSliverAndResizeGestures"]=@"PASS";
+        });
+        NSDate *until=[NSDate dateWithTimeIntervalSinceNow:2];
+        NSDictionary *guardian=nil;
+        while (!(guardian=readJSON(@"guardian-receipt.json")) && until.timeIntervalSinceNow>0) pauseFor(.025);
+        NSDictionary *intent=result[@"singleWindowIntent"];
+        require([guardian[@"status"] isEqual:@"PASS"] && [guardian[@"intent"] isEqual:intent[@"intent"]] &&
+                [guardian[@"guardianPID"] isEqual:intent[@"guardianPID"]] && [guardian[@"trustedHostPID"] isEqual:intent[@"hostPID"]] &&
+                [guardian[@"trustedHostBirth"] isEqual:intent[@"hostBirth"]] && [guardian[@"pid"] isEqual:@(rs[1].pid)] &&
+                [guardian[@"birth"] isEqual:@(rs[1].birth)] && [guardian[@"window"] isEqual:@(rs[1].window)] &&
+                [guardian[@"retainedBeforePark"] isEqual:@YES] && [guardian[@"committedPostimage"] isEqual:@YES] &&
+                [guardian[@"liveReleaseOriginalFrameReadbacks"] isEqual:@2] && [guardian[@"issued"] isEqual:@0],
+                @"guardianReleaseNotIndependentlyBound");
+        for (unsigned i=0;i<2;i++) {
+            // Only the positive control received input. All other windows and the target returned unchanged.
+            NSArray *returned=owners();
+            require(noChange(base,returned,rs[0].window,NO) &&
+                    closeFrame(window(returned,rs[0])[@"frame"],unpack(rs[0].frame)) && fixtureFocus(rs[0]) &&
+                    [scope() isEqual:native] && dockTiles()==dock, @"endFocusLayoutDockOrScopeChanged");
+        }
+        result[@"restoredSiblingFocusAndDock"]=@YES;
+        result[@"status"] = result[@"cornerPatch"][@"status"];
+        result[@"reason"] = [result[@"status"] isEqual:@"PASS"] ? @"oneSignedFixtureHideAndRestore" : @"optionalPatchUnconfirmed";
+    } @finally {
+        uint32_t closed=np_engine_destroy(handle);
+        result[@"engineClose"]=@(closed);
+        if (closed!=NP_OK) { result[@"status"]=@"UNKNOWN"; result[@"reason"]=@"engineStillRetainsWindow"; }
+        save();
+    }
+}
 static void trial(NSString *kit) {
     require(AXIsProcessTrusted() && CGPreflightPostEventAccess(), @"fixtureAccessibilityOrPostEventUnavailable");
+    [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
     NSDictionary *native = scope();
     for (NSString *key in @[ @"a", @"b" ]) {
         NSTask *task = [NSTask new];
@@ -593,8 +695,9 @@ static void trial(NSString *kit) {
     require(idle.status == NP_PASS && !idle.owned &&
                 (idle.flags & (NP_HEALTHY | NP_INPUT_SAFE)) == (NP_HEALTHY | NP_INPUT_SAFE),
             @"idleSessionCouldNotAttestRealNoninterceptingPort");
-    if (crashMode) {
-        crashHost(kit, rs[0]);
+    if (singleWindow || crashMode) {
+        if (singleWindow) oneWindow(kit,rs,native,dock);
+        else guardedFixtureWindow(kit,rs[0],nil);
         return;
     }
     BOOL owned[3] = {NO, NO, NO};
@@ -677,7 +780,8 @@ int main(int argc, const char **argv) {
         crashMode = argc == 4 && !strcmp(argv[3], "--crash-host");
         BOOL supervisor = argc == 4 && !strcmp(argv[3], "--verify-crash");
         BOOL scopeOnly = argc == 4 && !strcmp(argv[3], "--scope-only");
-        if (argc == 4 && !crashMode && !supervisor && !scopeOnly)
+        singleWindow = argc == 4 && !strcmp(argv[3], "--single-window");
+        if (argc == 4 && !crashMode && !supervisor && !scopeOnly && !singleWindow)
             return 2;
         BOOL hosted = [NSUserName() isEqual:@"runner"] &&
                       [NSProcessInfo.processInfo.environment[@"GITHUB_ACTIONS"] isEqual:@"true"] &&
@@ -709,6 +813,7 @@ int main(int argc, const char **argv) {
             @"cornerPatch" : @{@"status" : @"NOT_RUN"},
             @"qualification" : @"UNQUALIFIED"
         } mutableCopy];
+        if (singleWindow) result[@"scope"]=@"isolatedSignedFixtureSingleWindow";
         save();
         @try {
             if (scopeOnly) {

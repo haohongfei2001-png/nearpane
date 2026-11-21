@@ -9,8 +9,9 @@ if ! command -v "$compiler" >/dev/null && [ -x build/window-engine/toolchain/por
 fi
 src=Engine/nearpane-window-engine/src/corner
 xcrun clang -fobjc-arc -Wall -Wextra -Werror -c "$src/macos.m" -o "$scratch/reader.o"
+xcrun clang -fobjc-arc -Wall -Wextra -Werror -c "$src/patch_sheet.m" -o "$scratch/patch.o"
 "$compiler" --edition=2024 --test -A dead_code scripts/acceptance/window-engine/corner/offline.rs -o "$scratch/tests" \
-  -C "link-arg=$scratch/reader.o" -l objc -l framework=AppKit -l framework=ApplicationServices \
+  -C "link-arg=$scratch/reader.o" -C "link-arg=$scratch/patch.o" -l objc -l framework=ImageIO -l framework=AppKit -l framework=ApplicationServices \
   -l framework=CoreGraphics -l framework=CoreFoundation -l framework=Carbon -l framework=Security
 "$scratch/tests" --test-threads=1
 xcrun clang -std=c11 -Wall -Wextra -Werror scripts/acceptance/window-engine/corner/cycles-test.c -o "$scratch/cycles"

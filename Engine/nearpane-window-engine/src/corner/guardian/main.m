@@ -88,7 +88,13 @@ static BOOL stable(Session *s, NCFrame frame) {
     return np_corner_same_window(&s->member, s->held) && !np_corner_sample(&s->member, &sample) &&
            !sample.minimized && sample.onscreen && closeFrame(sample.ax, frame) && closeFrame(sample.cg, frame);
 }
-#ifndef NP_CORNER_FIXTURE
+#ifdef NP_CORNER_FIXTURE
+static BOOL originalReleaseWitness(Session *s) {
+    return getppid() == s->pre.host && ncg_birth(getppid(), NULL) == s->pre.host_birth &&
+           [s->hash isEqual:ncg_fixture_hash(s->member.pid,s->kit)] && journal(s,YES) &&
+           displayIs(s) && stable(s,convert(s->pre.lease.frame));
+}
+#else
 static BOOL originalReleaseWitness(Session *s) {
     uint8_t digest[32] = {0};
     return getppid() == s->pre.host && ncg_birth(getppid(), NULL) == s->pre.host_birth &&
@@ -229,13 +235,14 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
     char extra;
 #ifdef NP_CORNER_FIXTURE
-    need(poll(&p, 1, 12000) > 0 && read(STDIN_FILENO, &extra, 1) == 0, @"originalWriterPipeStillOpen");
+    need(poll(&p, 1, 30000) > 0, @"originalWriterPipeStillOpen");
 #else
     int polled;
     do {
         polled = poll(&p, 1, -1);
     } while (polled < 0 && errno == EINTR);
     need(polled > 0, @"signedHostPipeUnavailable");
+#endif
     ssize_t got = read(STDIN_FILENO, &extra, 1);
     if (got == 1 && extra == 'D') {
         need(originalReleaseWitness(s), @"journalAndReleasedOriginalNotConfirmed");
@@ -249,6 +256,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         return;
     }
     need(got == 0, @"unexpectedHostCommand");
+#ifndef NP_CORNER_FIXTURE
     np_corner_inputs(s->takeoverInput);
 #endif
     s->facts.eof = true;
