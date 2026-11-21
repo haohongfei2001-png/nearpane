@@ -12,8 +12,10 @@ import Testing
     var excluded = Set<NativeSpaceWindow>()
     func mayManage(_ state: StageWindowState) -> Bool { !excluded.contains(state.window) }
     var afterWrite: (() throws -> Void)?
+    var beforeRead: (() -> Void)?
     func read(_ scope: StageGroupScope) throws -> StageWindowSample {
         sequence += 1
+        beforeRead?()
         return .init(scope: self.scope, generation: generation, sequence: sequence, workArea: work, windows: windows, focus: focus)
     }
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) throws {
@@ -99,6 +101,26 @@ import Testing
         #expect(restarted.requiresRecovery && store.activeGroup(in: runtime.scope) == nil && runtime.writes.count == 1)
         await #expect(throws: StageSwitchError.recoveryRequired) { try await restarted.recover(runtime) }
         #expect(runtime.writes.count == 1)
+    }
+
+    @Test(arguments: [1, 3]) func userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_ boundary: Int) async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let bystander = try #require(runtime.windows.keys.first { $0.number == 4 })
+        var readsAfterWrite = 0
+        runtime.beforeRead = { [unowned runtime] in
+            guard runtime.writes.count == boundary else { return }
+            readsAfterWrite += 1
+            if readsAfterWrite == 3 { runtime.focus = bystander }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.count == boundary && runtime.focus == bystander && store.activeGroup(in: runtime.scope) == nil)
+        let restarted = try StageGroupCoordinator(store: store, profile: profile)
+        #expect(restarted.requiresRecovery)
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await restarted.recover(runtime) }
+        #expect(runtime.writes.count == boundary && runtime.focus == bystander)
     }
 
     @Test func reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch() async throws {

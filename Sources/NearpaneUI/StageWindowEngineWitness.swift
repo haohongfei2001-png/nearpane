@@ -125,6 +125,36 @@ import NearpaneOrdinaryWindowRuntime
         return keys
     }
 
+    /// A foreground app can be active on a second monitor while this display keeps its work set.
+    /// Both inventories must locate the exact key on the same ordinary desktop. The Host also
+    /// reads its AX role, keyboard focus, physical frame and bidirectional membership.
+    static func foreignFocus(_ key: NativeSpaceWindow, outside scope: StageGroupScope, first: DesktopSnapshot, last: DesktopSnapshot,
+                             measure: (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) throws -> StageGroupScope {
+        guard first.sessionID == last.sessionID, first.revision < last.revision, first.displays == last.displays,
+              first.topologyFingerprint == last.topologyFingerprint else { throw StageSwitchError.interrupted }
+        let now = Date(), uptime = ProcessInfo.processInfo.systemUptime
+        func locate(_ snapshot: DesktopSnapshot) throws -> (NativeSpaceCatalog, UUID, SurfaceRect) {
+            let matches = snapshot.windows.filter { $0.metadata?.number == key.number }
+            guard snapshot.separateSpaces == true, snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
+                  matches.count == 1, let w = matches.first, let k = DesktopWindowKey(w), k.pid == key.pid, k.birth == key.birth,
+                  let m = w.metadata, m.isOnscreen == true, let id = UUID(uuidString: w.displayID), id != scope.display,
+                  let catalog = NativeSpaceCatalog(snapshot, displayID: w.displayID, now: now, uptime: uptime),
+                  let uuid = catalog.current.ordinaryUUID, w.membership == .known(recordIDs: [catalog.current.id])
+            else { throw StageSwitchError.incomplete }
+            return (catalog, uuid, m.globalFrame)
+        }
+        let (opening, uuid, frame) = try locate(first)
+        let (closing, lastUUID, lastFrame) = try locate(last)
+        let home = OrdinaryDesktopIdentity(display: opening.display.id, record: opening.current.id, uuid: uuid)
+        guard opening.display == closing.display, uuid == lastUUID, closing.current == opening.current, frame == lastFrame,
+              let display = UUID(uuidString: home.display), let native = UInt64(home.record),
+              let physical = try measure(key, home), physical.id.pid == key.pid, physical.id.launch == key.birth,
+              physical.id.number == key.number, physical.focus == key, physical.frame == frame,
+              try classify(physical, claim: nil, home: native, display: opening.display, displays: first.displays) == .visible
+        else { throw StageSwitchError.incomplete }
+        return .init(display: display, nativeSpace: uuid)
+    }
+
     func read(_ requested: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
         try await read(requested, owner: owner, candidate: nil)
     }
@@ -177,11 +207,18 @@ import NearpaneOrdinaryWindowRuntime
               first.revision < last.revision, last.displays == first.displays, closing.0.current == opening.current,
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]
-        guard focus.map({ states[$0]?.visibility == .visible }) != false else { throw StageSwitchError.incomplete }
+        var foreign: StageGroupScope?
+        if let focus {
+            if let local = states[focus] {
+                guard local.visibility == .visible else { throw StageSwitchError.incomplete }
+            } else {
+                foreign = try Self.foreignFocus(focus, outside: scope, first: first, last: last) { try access.currentSurface($0, home: $1) }
+            }
+        }
         sequence += 1
         let sample = StageWindowSample(scope:scope,generation:generation,sequence:sequence,
             workArea:.init(x:opening.display.frame.x+usable.x,y:opening.display.frame.y+usable.y,width:usable.width,height:usable.height),
-            windows:states,focus:focus,nativeID:native)
+            windows:states,focus:focus,nativeID:native,foreignFocusScope:foreign)
         if candidate == nil { lastSnapshot = last; lastStates = states; lastSample = sample }
         return sample
     }

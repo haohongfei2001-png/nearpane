@@ -284,6 +284,9 @@ import NearpaneOrdinaryWindowRuntime
                 .first(where: { $0.id == group })?.members.first(where: { $0.windowHint == window.identity })
         else { throw StageSwitchError.recoveryRequired }
         let scope = StageGroupScope(display:window.display,nativeSpace:space)
+        // The live worker owns one certified home. A click on a different monitor must leave
+        // that home intact until a worker can independently verify simultaneous display dispatch.
+        if let witness, witness.scope.display != scope.display { throw StageSwitchError.busy }
         guard let env = StageWindowEngineAttestation.installedEnvironment(snapshot),
               let selected = engine.preferredRecord(admissions, in: env) else {
             if engine.holdsWindowDispatch { await release(); throw StageSwitchError.unavailable }

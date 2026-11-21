@@ -67,4 +67,34 @@ import NearpaneCore
             _ = try StageWindowEngineWitness.ordinaryRoster([a], on: display, current: "4") { _ in throw StageSwitchError.incomplete }
         }
     }
+
+    @Test func focusOnAnotherDisplayNeedsTwoInventoriesAndIndependentVisibleFocus() throws {
+        let home = StageGroupScope(display: try #require(UUID(uuidString: display)), nativeSpace: space)
+        let other = StageGroupScope(display: UUID(), nativeSpace: UUID())
+        let key = NativeSpaceWindow(pid: 614, birth: 3400, number: 9)
+        let remote = other.display.uuidString, frame = SurfaceRect(x: 924, y: 32, width: 320, height: 200)
+        var first = snapshot([window(8)])
+        first.displays.append(.init(id: remote, frame: .init(x: 900, width: 900, height: 700), rotationDegrees: 0, backingScale: 1,
+                                    usable: .init(width: 900, height: 700)))
+        first.scopes.append(.init(id: "right", displayID: remote, records: [.init(id: "16", isCurrent: true, ordinaryUUID: other.nativeSpace)]))
+        first.windows.append(.init(id: "9", displayID: remote, bounds: rect, membership: .known(recordIDs: ["16"]), confidence: .unknown,
+            metadata: .init(number: 9, pid: 614, launchMicroseconds: 3400, element: nil, globalFrame: frame, frontToBack: 1,
+                            minimized: nil, fullScreen: nil, isOnscreen: true, onActiveDesktop: true, overviewSpaceID: "16")))
+        var last = first
+        last.revision += 1
+        try #require(first.isStructurallyValid && last.isStructurallyValid)
+        func read(_ snapshot: DesktopSnapshot, focus: NativeSpaceWindow?, visible: Bool = true) throws -> StageGroupScope {
+            try StageWindowEngineWitness.foreignFocus(key, outside: home, first: first, last: snapshot) { id, place in
+                #expect(id == key && place.display == remote && place.uuid == other.nativeSpace)
+                return .init(id: .init(pid: 614, launch: 3400, number: 9, element: UUID()), frame: frame, membership: 16,
+                             onscreen: visible, minimized: false, focus: focus)
+            }
+        }
+        #expect(try read(last, focus: key) == other)
+        #expect(throws: StageSwitchError.incomplete) { try read(last, focus: nil) }
+        #expect(throws: StageSwitchError.incomplete) { try read(last, focus: key, visible: false) }
+        #expect(throws: StageSwitchError.interrupted) { try read(first, focus: key) }
+        last.windows.removeLast()
+        #expect(throws: StageSwitchError.incomplete) { try read(last, focus: key) }
+    }
 }

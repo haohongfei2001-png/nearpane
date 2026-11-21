@@ -2,6 +2,8 @@
 
 ## 2026-11-21 · StageGroup 窗口所有权
 
+切换中的每个写入前后和末次确认都核对真实焦点。外部输入改变焦点后，后台补偿和重启后的恢复也无权抢回。另一物理屏的可见焦点须通过两次屏幕清单和 Host 的 AX、CG 与原生归属读回；这时本屏工作集合仍可保留。单个执行器尚不能同时写入两块屏，选择另一屏不会拆散已持有的组。焦点与独立显示器证据的隔离回归以及首次夹具失败均已保存。[复测收据](../verification/window-engine/stage-product/focus.xml) · [首次夹具失败](../verification/window-engine/stage-product/focus-first-attempt.xml)
+
 旧版布局、StageGroup 组目录、Swift 切换事务和 Guardian 恢复各自保留原有责任。已知旧布局成员按进程出生代、PID 和窗口号排除，含该成员的整组保留为旁窗。其余完整组可进入资格与授权检查。两条写入路径共用逐窗口文件锁。原位升级仍遵循原有预检。隔离回归 22 项通过，覆盖同应用兄弟窗、整组排除、损坏资料及未确认写入。正式后端资格仍为 0/2。[本地测试原始结果](../verification/window-engine/stage-product/ownership.xml)
 
 首次选组现在会先核对目标窗已获焦，再移开原组。外部焦点在写入中变化时，保留意图并停止。新普通窗口默认独立成组。加入、移出和拖放沿用同一侧栏队列，等待旧执行器归还窗口。旁屏目录可在本屏事务期间记录新窗。7 个套件共 52 项通过，包括组切换、同应用多窗和焦点中途改变的故障注入。物理双屏独立切换及正式安装版整组切换仍待验收。[调度回归](../verification/window-engine/stage-product/groups.xml) · [所有权模块 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44906708535)

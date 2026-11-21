@@ -215,7 +215,18 @@ import Testing
         let session = try #require(engine.session)
         let active = try await session.read(runtime.scope)
         #expect(engine.coordinator.observesActiveGroup(active, owner: session.owner))
+        let other = StageGroupScope(display: UUID(), nativeSpace: UUID())
+        let otherWindow = NativeSpaceWindow(pid: 900, birth: 4000, number: 80)
+        func sample(_ key: NativeSpaceWindow, _ scope: StageGroupScope?, _ states: [NativeSpaceWindow: StageWindowState]) -> StageWindowSample {
+            .init(scope: active.scope, generation: active.generation, sequence: active.sequence, workArea: active.workArea,
+                  windows: states, focus: key, nativeID: active.nativeID, foreignFocusScope: scope)
+        }
+        #expect(engine.coordinator.observesActiveGroup(sample(otherWindow, other, active.windows), owner: session.owner))
+        #expect(!engine.coordinator.observesActiveGroup(sample(otherWindow, nil, active.windows), owner: session.owner))
+        #expect(!engine.coordinator.observesActiveGroup(sample(otherWindow, active.scope, active.windows), owner: session.owner))
+        #expect(!engine.coordinator.observesActiveGroup(sample(otherWindow, other, [:]), owner: session.owner))
         let user = try #require(runtime.windows.keys.first { $0.number == 4 })
+        #expect(!engine.coordinator.observesActiveGroup(sample(user, other, active.windows), owner: session.owner))
         runtime.focus = user
         let external = try await session.read(runtime.scope)
         #expect(!engine.coordinator.observesActiveGroup(external, owner: session.owner))
