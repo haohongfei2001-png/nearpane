@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import time
+from uuid import UUID
 
 from space_scope import private_file, require
 
@@ -20,6 +21,42 @@ def endpoints(topology, owned, enrolled):
     require(all(n in order and rows[order.index(n)]==dict(id=n,type=0,uuid=enrolled[n]) for n in owned)
             and abs(order.index(source)-order.index(target))==1, "existing leased ordinary endpoints are no longer adjacent and UUID-matched")
     return source,target
+
+
+def confirmed_members(proof):
+    counts=proof.get("counts")
+    members=proof.get("members")
+    require(isinstance(counts,dict) and len(counts)==2 and isinstance(members,dict) and members.keys()==counts.keys(),
+            "both booked endpoints require a per-window census")
+    seen=set()
+    for space,rows in members.items():
+        summary=counts[space]
+        require(isinstance(rows,list) and isinstance(summary,dict),"invalid booked census records")
+        fixtures=0
+        stages=[]
+        others=0
+        previous=0
+        for row in rows:
+            keys={"number","pid","birth","kind","layer"}
+            if isinstance(row,dict) and row.get("kind")=="fixture":keys.add("windowGeneration")
+            require(isinstance(row,dict) and set(row)==keys and
+                    all(type(row[k]) is int for k in ("number","pid","birth","layer")) and
+                    row["number"]>previous and row["number"] not in seen and row["pid"]>1 and row["birth"]>0,
+                    "invalid, duplicate or unordered booked window identity")
+            number,kind,layer=row["number"],row["kind"],row["layer"]
+            permitted={"fixture":(0,),"inactiveStage":(0,),"installedHost":(0,3),"appleDock":(-1,),"appleWindowServer":(24,)}
+            require(isinstance(kind,str) and layer in permitted.get(kind,()),"unqualified booked surface class or layer")
+            if kind=="fixture":
+                require(type(row["windowGeneration"]) is str and str(UUID(row["windowGeneration"])).upper()==row["windowGeneration"],
+                        "invalid enrolled window generation")
+                fixtures+=1
+            elif kind=="inactiveStage":stages.append(number)
+            else:others+=1
+            previous=number
+            seen.add(number)
+        require(fixtures<=1 and summary==dict(fixture=fixtures,inactiveStage=stages,systemOrHost=others,unresolved=0),
+                "per-window booked census does not match its counts")
+    return members
 
 
 class BookedPair:
@@ -42,6 +79,7 @@ class BookedPair:
         self.binding=dict(leases=refs,hid=initial["hid"],boot=ws.boot,hostPID=ws.host["pid"],hostBirth=ws.host_birth,
                           hostHash=ws.host["codeHash"],stageSurfaces=loan.stage_surfaces)
         self.documents={}
+        self.generations={}
         self.setup_attempted=False
         self.log("borrowed-adjacent-pair",source=self.source,target=self.target,leases=refs,create=False,remove=False,pixels=0)
 
@@ -64,7 +102,7 @@ class BookedPair:
         return bool(executable and live.get("pid")==pid and live.get("executable")==executable and
                     subprocess.run(["/usr/bin/codesign","--verify","--strict","-R=anchor apple",executable],capture_output=True,timeout=3).returncode==0)
 
-    def read(self,source,phase,mode="leased-census"):
+    def read(self,source,phase,mode="leased-census",expected_members=None):
         ws=self.workspace
         target=self.target if source==self.source else self.source
         require({source,target}=={self.source,self.target}, "unregistered endpoint requested")
@@ -72,7 +110,8 @@ class BookedPair:
         require(current["current"]==source and current["scope"]==self.topology["display"] and current["records"]==self.topology["records"],
                 "independent leased roster or current changed during "+phase)
         request=dict(self.binding,topology=dict(self.topology,current=source),target=target,
-                     documents=[dict(space=n,window=w) for n,w in self.documents.items()])
+                     documents=[dict(space=n,window=w,generation=self.generations.get(n)) for n,w in self.documents.items()])
+        if expected_members is not None:request["expectedMembers"]=expected_members
         proc=subprocess.run([self.tool,mode],input=json.dumps(request),text=True,capture_output=True,timeout=7,env=preview.login_env())
         proof=json.loads(proc.stdout)
         self.log("booked-lease-"+phase,requested=mode,proof=proof)
@@ -89,12 +128,15 @@ class BookedPair:
         time.sleep(.17)
         last=self.read(source,phase)
         require(last["uptime"]>first["uptime"] and first["counts"]==last["counts"], "two stable endpoint censuses unavailable during "+phase)
+        previous,current=confirmed_members(first),confirmed_members(last)
+        require(previous==current,"booked window identities changed between independent reads during "+phase)
+        return current
 
     def setup(self,state):
         require(not self.setup_attempted and set(self.documents)=={self.source}, "one setup input requires only the original owned document")
-        self.confirm(self.source,"before-shortcut")
+        members=self.confirm(self.source,"before-shortcut")
         self.setup_attempted=True
-        self.read(self.source,"system-shortcut","leased-setup-arrow")
+        self.read(self.source,"system-shortcut","leased-setup-arrow",expected_members=members)
         consecutive=0
         deadline=time.monotonic()+6
         while time.monotonic()<deadline:

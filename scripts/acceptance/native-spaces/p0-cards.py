@@ -656,12 +656,13 @@ def attempt(tool,p,folder,journal,log,visual_stage=None,keeper=None,audit=None,a
 
 
 class Documents:
-    def __init__(self, kit, scratch, log): self.kit=kit; self.scratch=scratch; self.log=log; self.processes=[]
+    def __init__(self, kit, scratch, log, *, animate):
+        self.kit=kit; self.scratch=scratch; self.log=log; self.processes=[]; self.animate=animate
     def launch(self, name):
         lifecycle=name=='Lifecycle Window'; group=self.scratch/str(uuid.uuid4());group.mkdir(mode=0o700)
         bundle=self.kit/(name+'.app'); executable=bundle/'Contents/MacOS'/('Lifecycle' if lifecycle else 'FieldNotes')
         subprocess.run(['/usr/bin/codesign','--verify','--strict',bundle],check=True,timeout=10)
-        env=dict(os.environ,NP_FIXTURE_PRESENTATION='contract')
+        env=dict(os.environ,NP_FIXTURE_PRESENTATION='contract',NP_P0_DYNAMIC_MARKER='1' if self.animate else '0')
         process=subprocess.Popen([executable,group,*(() if lifecycle else ('1',))],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         doc={'proc':process,'folder':group,'windows':[]};self.processes.append(doc)
         state=until(lambda:json.loads((group/'windows.json').read_bytes()),lambda d:d.get('pid')==process.pid and len(set(d.get('numbers',[])))==(2 if lifecycle else 1),'owned fixture did not open exact real documents')
@@ -805,12 +806,23 @@ class OwnedKeeper:
 focus_tools=importlib.import_module('p0-focus')
 
 
+class BookedCensusComplete(Exception):
+    """The metadata-only admission reached its declared end without issuing a shortcut or switch."""
+
+
 def run(args):
     out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False);tool=args.kit/'p0-card'
     result={'status':'BLOCKED','stages':{n:{'status':'NOT_RUN','navigationStatus':'NOT_RUN','blankScreen':'UNKNOWN','requested':c,'samples':[]} for n,c in GATES},'blankScreen':'UNKNOWN','privateContentCaptured':False,
             'dynamicFixtureMarkerRequested':os.environ.get('NP_P0_DYNAMIC_MARKER')=='1'}
     result['through']=args.through
     isolated_key=getattr(args,'diagnostic_key',None)
+    census_only=getattr(args,'booked_census_only',False)
+    borrowed=bool(isolated_key and getattr(args,'stage_workspace',None))
+    require(not census_only or (borrowed and not args.preflight_only),'booked census admission requires an isolated candidate and enrolled workspace')
+    animate=result['dynamicFixtureMarkerRequested'] and not borrowed
+    result['dynamicFixtureMarkerEnabled']=animate
+    if census_only:
+        result['bookedCensusAdmission']=dict(status='NOT_RUN',setupShortcutIssued=False,hostSwitchIssued=False,pixels=0)
     issuer=None;stage_loan=None;booked=None
     if isolated_key:
         require(args.through=='diagnostic' and args.route=='ordinary','isolated candidate only supports a single adjacent ordinary diagnostic')
@@ -823,7 +835,7 @@ def run(args):
             f.write(json.dumps({'event':event,'monotonic':time.monotonic(),**data},ensure_ascii=False)+'\n');f.flush();os.fsync(f.fileno())
     report();ws=None;initial=None;rootdoc=None;lease=None;top=None;a=b=None;host=None;focus=None;held={};staging=None;keeper=None;audit=None;observer=None;superseded=False
     with tempfile.TemporaryDirectory(dir='/private/tmp',prefix='nearpane-p0-owned-') as tmp:
-        documents=Documents(args.kit,Path(tmp),log)
+        documents=Documents(args.kit,Path(tmp),log,animate=animate)
         state=lambda:cmd(tool,'state')
         def witnesses(windows): return (keeper.call('windows',windows) if keeper else cmd(tool,'windows',body=windows)).get('windows',[])
         def anchored(windows,places):
@@ -868,7 +880,7 @@ def run(args):
                 require(caps and caps[-1]['ready'] and caps[-1]['canSwitch'],
                         'installed Host switch capability is closed or unavailable; no fixtures or product inputs issued')
             drift_kit=args.drift_kit
-            if drift_kit is None:
+            if drift_kit is None and not census_only:
                 path=subprocess.check_output([Path(__file__).with_name('build-p0-drift.sh')],text=True,timeout=90).strip()
                 drift_kit=Path(path).resolve(strict=True)
             initial=state();require(initial.get('observerAX') and initial.get('topology'),'independent metadata or AX permission unavailable');store(out/'original.json',initial)
@@ -946,7 +958,9 @@ def run(args):
                     def enroll():
                         receipt=keeper.call('enroll',window,space=space)
                         store(evidence,receipt);return receipt
-                    until(enroll,lambda v:v.get('enrolled'),f'{name} foreground generation enrollment failed; see {evidence.name}')
+                    retained=until(enroll,lambda v:v.get('enrolled'),f'{name} foreground generation enrollment failed; see {evidence.name}')
+                    if booked:
+                        booked.generations[space]=str(uuid.UUID(retained['ownerGeneration'])).upper()
                     path=out/f'current-card-{name}.json'
                     confirmed_current_cards(
                         lambda:keeper.call('current-card',window,hostPID=host['pid'],hostBirth=host['birth'],hostHash=host['hash'],hid=initial['hid']),
@@ -965,6 +979,11 @@ def run(args):
                     checkpoint(name+'-document')
                 if booked:booked.documents[a]=first
                 admit(first,a,'first')
+                if census_only:
+                    members=booked.confirm(a,'before-shortcut')
+                    result['bookedCensusAdmission'].update(status='CONFIRMED',source=a,target=b,members=members)
+                    log('booked-census-admission',**result['bookedCensusAdmission'])
+                    raise BookedCensusComplete()
                 if booked:booked.setup(state)
                 else:direct_setup(args.kit,ws,out,initial,top,a,b,log,args.setup_input)
                 second=documents.launch('Route Notes')['windows'][0]
@@ -1038,13 +1057,17 @@ def run(args):
                     stage['latencyDefinition']='AXPress dispatch uptime to first independent target observation, nearest-rank statistics';result['status']='PASS'
                 elif gate==args.through:result['status']='PASS'
                 report()
+        except BookedCensusComplete:
+            pass
         except (OSError,RuntimeError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as e:
             result['reason']=str(e);log('stopped',reason=str(e))
             if initial:
                 try:checkpoint('stopped')
                 except (ValueError,OSError,KeyError,subprocess.SubprocessError) as diagnostic:log('fixture-diagnostics-unavailable',reason=str(diagnostic))
             active='diagnostic' if args.through=='diagnostic' else 'roundTrip'
-            if result['stages'][active]['status']=='NOT_RUN':
+            if census_only:
+                result['bookedCensusAdmission'].update(status='BLOCKED',reason=str(e))
+            elif result['stages'][active]['status']=='NOT_RUN':
                 result['stages'][active].update(status='BLOCKED',reason=str(e))
         finally:
             problems=[];clean={}
@@ -1113,6 +1136,12 @@ def run(args):
                     if focus:
                         end=last.get('topology',{})
                         same_inventory=end.get('display')==initial['topology']['display'] and end.get('records')==initial['topology']['records']
+                        if census_only:
+                            new_front=(last.get('frontPID'),last.get('focusedNumber'))!=(initial.get('frontPID'),initial.get('focusedNumber'))
+                            if (last.get('hid')!=initial['hid'] or
+                                    (new_front and (not booked or not booked.recoverable_front(last,initial,lambda pid:cmd(tool,'process',pid))))):
+                                superseded=True
+                                store(Path(os.environ['NEARPANE_TEST_HOME'])/'p0-preserve-foreground.json',{'reason':'foregroundOrInputChangedDuringCensus'})
                         safe=bool(not superseded and held.get('held') and needs_focus and same_inventory and end.get('current') in (initial['topology']['current'],staging) and last.get('hid')==initial['hid'])
                         clean['originalFocusRestoration']=focus.finish(safe,staging if end.get('current')!=initial['topology']['current'] else None,expected=last);focus=None
                         if safe:
@@ -1132,9 +1161,11 @@ def run(args):
             clean['errors']=problems;clean['status']='UNKNOWN' if problems else 'PASS';result['cleanup']=clean
             if problems and result['status']=='PASS':result['status']='UNKNOWN'
             if isolated_key:
-                result['diagnosticOutcome']='NOT_RUN' if result.get('preflightOnly') else result['status']
+                result['diagnosticOutcome']='NOT_RUN' if census_only or result.get('preflightOnly') else result['status']
                 result['status']='DIAGNOSTIC_ONLY'
             report()
+    if census_only:
+        return 0 if result['bookedCensusAdmission']['status']=='CONFIRMED' and result['cleanup']['status']=='PASS' else 2
     return 0 if result.get('diagnosticOutcome',result['status'])=='PASS' else 2
 
 

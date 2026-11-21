@@ -1,22 +1,62 @@
 import CryptoKit
 
 private struct BookedSpace:Decodable {let space:UInt64,uuid:UUID,receipt:String,digest:String}
-private struct BookedDocument:Decodable {let space:UInt64,window:Window}
+private struct BookedDocument:Decodable {let space:UInt64,window:Window,generation:UUID?}
 private struct BookedStageSurface:Decodable {let space:UInt64,number:UInt32,pid:pid_t,ownerBirth:UInt64,bounds:[Double]}
+private struct BookedMember:Codable,Equatable {
+    let number:UInt32,pid:pid_t,birth:UInt64,kind:String,layer:Int
+    var windowGeneration:UUID? = nil
+    var fields:Map {
+        var row:Map=["number":number,"pid":pid,"birth":birth,"kind":kind,"layer":layer]
+        if let windowGeneration {row["windowGeneration"]=windowGeneration.uuidString}
+        return row
+    }
+}
 private struct BookedPair:Decodable {
     let topology:Topology,target:UInt64,hostPID:pid_t,hostBirth:UInt64,hostHash:String,hid:[UInt32],boot:String
     let leases:[BookedSpace],documents:[BookedDocument],stageSurfaces:[BookedStageSurface]
+    let expectedMembers:[String:[BookedMember]]?
 }
 
 private struct OrdinaryRefusal:Error {
     let category:String,endpoint:UInt64,number:UInt32?,pid:pid_t?
+    var fixtureEvidence:Map? = nil
     var receipt:Map {
         var row:Map=["issued":false,"ready":false,"error":"ordinary census: \(category) on endpoint \(endpoint)",
                      "category":category,"endpoint":endpoint,"pixels":0]
         if let number {row["windowNumber"]=number}
         if let pid {row["ownerPID"]=pid}
+        if let fixtureEvidence {row["fixtureEvidence"]=fixtureEvidence}
         return row
     }
+}
+
+// Only the already authenticated fixture may be asked about another number it owns.
+// These facts explain a refusal. No other process receives an AX request here.
+private func refusedFixtureEvidence(_ w:Window,_ number:UInt32,_ sid:UInt64)->Map {
+    guard fixtureCodeMatches(w),let before=exactWindowOwner(number),before.0==w.pid else {
+        return ["status":"fixtureOrWindowIdentityChanged"]
+    }
+    let app=AXUIElementCreateApplication(w.pid)
+    _=AXUIElementSetMessagingTimeout(app,0.2)
+    let list=prop(app,kAXWindowsAttribute) as? [AXUIElement]
+    let windows=list.flatMap{$0.count <= 128 ? $0 : nil}
+    let matches=windows?.filter{owner($0)==w.pid && NPReadAXWindowNumber($0)==number}
+    var facts:Map=["status":"read","layer":before.1,"axListRead":windows != nil,
+                   "axMatches":matches?.count as Any? ?? NSNull(),
+                   "reverseOnlyEndpoint":(NPReadWindowSpaces(number) as? [UInt64]).map{$0==[sid]} as Any? ?? NSNull(),
+                   "forwardContainsNumber":(NPReadCatalogSpaceWindowNumbers(sid) as? [UInt32])?.contains(number) as Any? ?? NSNull()]
+    if let matches,matches.count==1 {
+        let node=matches[0]
+        facts["axRoleIsWindow"]=(prop(node,kAXRoleAttribute) as? String).map{$0==kAXWindowRole} as Any? ?? NSNull()
+        facts["axStandard"]=(prop(node,kAXSubroleAttribute) as? String).map{$0==kAXStandardWindowSubrole} as Any? ?? NSNull()
+        facts["axMain"]=prop(node,kAXMainAttribute) as? Bool as Any? ?? NSNull()
+        facts["axMinimized"]=prop(node,kAXMinimizedAttribute) as? Bool as Any? ?? NSNull()
+    }
+    guard fixtureCodeMatches(w),let after=exactWindowOwner(number),after==before else {
+        return ["status":"fixtureOrWindowIdentityChanged"]
+    }
+    return facts
 }
 
 private func fixtureCodeMatches(_ w:Window)->Bool {
@@ -26,7 +66,8 @@ private func fixtureCodeMatches(_ w:Window)->Bool {
            signed?.0==w.identifier && signed?.1==w.hash
 }
 
-private func ordinaryMembers(_ rows:[Map],on sid:UInt64,pair:BookedPair,verifyFixture:(Window)->Bool) throws -> Set<UInt32> {
+private func ordinaryMembers(_ rows:[Map],on sid:UInt64,pair:BookedPair,verifyFixture:(Window)->Bool,
+                             describeRefusedFixture:((Window,UInt32,UInt64)->Map)?=nil) throws -> Set<UInt32> {
     let doc=pair.documents.first{$0.space==sid}?.window,stage=pair.stageSurfaces.filter{$0.space==sid}
     func refuse(_ category:String,_ n:UInt32?,_ p:pid_t?)->OrdinaryRefusal {
         OrdinaryRefusal(category:category,endpoint:sid,number:n,pid:p)
@@ -48,7 +89,10 @@ private func ordinaryMembers(_ rows:[Map],on sid:UInt64,pair:BookedPair,verifyFi
             present.insert(n)
         } else if let w=pair.documents.first(where:{$0.window.pid==p})?.window {
             guard verifyFixture(w) else {throw refuse("enrolledFixturePIDIdentityUnconfirmed",n,p)}
-            throw refuse(w.number==n ? "enrolledDocumentOnWrongEndpoint":"unregisteredWindowOfEnrolledFixture",n,p)
+            if w.number==n {throw refuse("enrolledDocumentOnWrongEndpoint",n,p)}
+            var refusal=refuse("unregisteredWindowOfEnrolledFixture",n,p)
+            refusal.fixtureEvidence=describeRefusedFixture?(w,n,sid)
+            throw refusal
         } else if pair.stageSurfaces.contains(where:{$0.pid==p}) {
             throw refuse("unregisteredWindowWithEnrolledStagePID",n,p)
         } else {
@@ -57,6 +101,19 @@ private func ordinaryMembers(_ rows:[Map],on sid:UInt64,pair:BookedPair,verifyFi
     }
     if let w=doc,seen[w.number] != w.pid {throw refuse("enrolledDocumentMissing",w.number,w.pid)}
     return present
+}
+
+// WindowServer can run under a system UID. This lookup is performed only after
+// permittedOther has already authenticated that Apple service or the installed Host.
+private func serviceBirth(_ pid:pid_t)->UInt64? {
+    var info=proc_bsdinfo()
+    let size=Int32(MemoryLayout.size(ofValue:info))
+    guard proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),info.pbi_start_tvsec>0 else {return nil}
+    return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
+}
+
+private func matchingMembers(_ observed:[String:[BookedMember]],_ expected:[String:[BookedMember]]?) throws {
+    try need(expected==observed,"booked endpoint members changed since the two independent reads")
 }
 
 private func permittedOther(_ member:Map,_ sid:UInt64,_ host:pid_t)->Bool {
@@ -133,31 +190,51 @@ private func bookedCensus(_ r:BookedPair) throws -> Map {
           let visible=NPContractOnscreenWindowNumbers() as? [UInt32],let published=NSWindow.windowNumbers(options:.allApplications)
     else {throw Refusal("independent no-pixel window census unavailable")}
     let on=Set(visible),publicIDs=Set(published.map(\.uint32Value))
-    var counts=Map()
+    var counts=Map(),identities=[String:[BookedMember]](),allNumbers=Set<UInt32>()
     for lease in r.leases {
-        let sid=lease.space,doc=r.documents.first{$0.space==sid}?.window
+        let sid=lease.space,registered=r.documents.first{$0.space==sid},doc=registered?.window
         guard let row=scope[String(sid)] as? Map,row["unresolved"] as? Int==0,let ordinary=row["ordinary"] as? [Map],
               let other=row["otherDetails"] as? [Map],other.count==row["otherMembers"] as? Int else {throw Refusal("unknown window membership on booked endpoint")}
-        let present=try ordinaryMembers(ordinary,on:sid,pair:r,verifyFixture:fixtureCodeMatches)
+        let present=try ordinaryMembers(ordinary,on:sid,pair:r,verifyFixture:fixtureCodeMatches,describeRefusedFixture:refusedFixtureEvidence)
+        var members=[BookedMember]()
         if let w=doc {
-            _=try ownGeneration(w)
-            try need(fixtureCodeMatches(w) && exactWindowOwner(w.number)?.0==w.pid &&
+            let generation=try ownGeneration(w),owner=exactWindowOwner(w.number)
+            try need(registered?.generation==generation && fixtureCodeMatches(w) && owner?.0==w.pid && owner?.1==0 &&
                      NPReadWindowSpaces(w.number) as? [UInt64]==[sid] && (NPReadCatalogSpaceWindowNumbers(sid) as? [UInt32])?.contains(w.number)==true,
                      "owned fixture generation or exact membership changed")
+            members.append(BookedMember(number:w.number,pid:w.pid,birth:w.birth,kind:"fixture",layer:0,windowGeneration:generation))
         }
         let surfaces=r.stageSurfaces.filter{$0.space==sid}
         for s in surfaces where present.contains(s.number) {
             try approvedStageSurface(s,screen:CGDisplayBounds(CGMainDisplayID()),visible:on,published:publicIDs)
+            members.append(BookedMember(number:s.number,pid:s.pid,birth:s.ownerBirth,kind:"inactiveStage",layer:0))
         }
         for s in surfaces where !present.contains(s.number) {
             try need(NPReadWindowNumberPresence(s.number)==0 && !on.contains(s.number) && !publicIDs.contains(s.number),"old Stage window disappeared from scoped results only")
         }
-        try need(other.allSatisfy{permittedOther($0,sid,r.hostPID)},"unqualified extra window on booked endpoint")
+        for member in other {
+            guard permittedOther(member,sid,r.hostPID),let n=member["number"] as? UInt32,n>0,
+                  let pid=member["pid"] as? pid_t,let layer=member["layer"] as? Int else {
+                throw OrdinaryRefusal(category:"unqualifiedExtraSurface",endpoint:sid,number:member["number"] as? UInt32,pid:member["pid"] as? pid_t)
+            }
+            guard let generation=serviceBirth(pid),let owner=exactWindowOwner(n),owner==(pid,layer),
+                  pid != r.hostPID || generation==r.hostBirth else {
+                throw OrdinaryRefusal(category:"permittedSurfaceIdentityChanged",endpoint:sid,number:n,pid:pid)
+            }
+            let kind=pid==r.hostPID ? "installedHost" : (layer == -1 ? "appleDock":"appleWindowServer")
+            members.append(BookedMember(number:n,pid:pid,birth:generation,kind:kind,layer:layer))
+        }
+        for member in members where !allNumbers.insert(member.number).inserted {
+            throw OrdinaryRefusal(category:"duplicateExclusiveMember",endpoint:sid,number:member.number,pid:member.pid)
+        }
+        identities[String(sid)]=members.sorted{$0.number<$1.number}
         counts[String(sid)]=["fixture":doc == nil ? 0:1,"inactiveStage":present.sorted(),"systemOrHost":other.count,"unresolved":0] as Map
     }
     try signedHost(r.hostPID,r.hostBirth,r.hostHash)
     try need((try topology())==live && hardware()==r.hid,"Space or HID changed during booked census")
-    return ["status":"READ","counts":counts,"current":live.current,"display":live.display.uuidString,"pixels":0,"uptime":ProcessInfo.processInfo.systemUptime]
+    if r.expectedMembers != nil {try matchingMembers(identities,r.expectedMembers)}
+    return ["status":"READ","counts":counts,"members":identities.mapValues{$0.map(\.fields)},
+            "current":live.current,"display":live.display.uuidString,"pixels":0,"uptime":ProcessInfo.processInfo.systemUptime]
 }
 
 func bookedOperation(_ verb:String) throws {
@@ -177,11 +254,20 @@ private func runBookedOperation(_ verb:String) throws {
         var result:Map=["receiptCount":pair.leases.count,"classifiedOther":rows.map{permittedOther($0,pair.target,pair.hostPID)},"issued":false,"pixels":0]
         if let ordinary=request["ordinary"] as? [Map] {
             let verified=request["fixtureVerified"] as? Bool==true
-            result["stageWindowIDs"]=try ordinaryMembers(ordinary,on:pair.target,pair:pair,verifyFixture:{_ in verified}).sorted()
+            let describe:((Window,UInt32,UInt64)->Map)?=request["testFixtureDescription"] as? Bool==true
+                ? { w,n,sid in ["status":"offlineCallback","ownerPID":w.pid,"windowNumber":n,"endpoint":sid] } : nil
+            result["stageWindowIDs"]=try ordinaryMembers(ordinary,on:pair.target,pair:pair,verifyFixture:{_ in verified},
+                describeRefusedFixture:describe).sorted()
+        }
+        if let encoded=request["observedMembers"] {
+            let observed=try JSONDecoder().decode([String:[BookedMember]].self,from:JSONSerialization.data(withJSONObject:encoded))
+            try matchingMembers(observed,pair.expectedMembers)
+            result["matchedExpectedMembers"]=true
         }
         emit(result)
         return
     }
+    if verb=="leased-setup-arrow" {try need(pair.expectedMembers != nil,"missing confirmed pre-shortcut member identities")}
     let first=try bookedCensus(pair)
     if verb=="leased-census" {emit(first);return}
     guard pair.documents.count==1,let source=pair.documents.first,source.space==pair.topology.current,
