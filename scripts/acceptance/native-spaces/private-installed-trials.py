@@ -362,12 +362,36 @@ class Mac:
             result = out/"p4-wordbook/result.json"
             cmd = [sys.executable, rec["wordbookDriver"], rec["wordbookKit"], out/"p4-wordbook", "--expected-source", source]
         # Descendants cannot outlive a killed supervisor and race a recovery while this child still drives the Host.
-        with open(out/(name.lower()+".log"), "xb") as log:
-            child = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=log, stderr=log, env=context,
-                                     start_new_session=True, pass_fds=leases)
-            # These acceptance programs independently bound each external operation. On SIGTERM let their
-            # current operation and fixture cleanup finish; the supervisor will skip the next trial and restore.
-            code = child.wait(timeout=900 if name == "P0-diagnostic" else 300)
+        def execute():
+            with open(out/(name.lower()+".log"), "xb") as log:
+                child = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=log, stderr=log, env=context,
+                                         start_new_session=True, pass_fds=leases)
+                if rec.get("visitFocusLeaseKit"):
+                    # The enrolled historical fixture normally retires at 360 seconds. Give its
+                    # owned Python child an ordinary interrupt and room for its existing finally.
+                    try:
+                        try: return child.wait(timeout=180)
+                        except subprocess.TimeoutExpired:
+                            child.send_signal(signal.SIGINT)
+                            return child.wait(timeout=50)
+                    except Exception:
+                        if child.poll() is None: raise subprocess.TimeoutExpired(cmd,230)
+                        raise
+                return child.wait(timeout=900 if name == "P0-diagnostic" else 300)
+        visit = None
+        if rec.get("visitFocusLeaseKit"):
+            import lease_visit
+            visit = lease_visit.run(rec,context,chain,out/"lease-visit",execute)
+            if not visit["childStarted"]:
+                return dict(status=visit["status"], scope="SETUP_ONLY",officialGateEligible=False,
+                            reason=visit.get("reason","entryUnavailable"),receipt="lease-visit/receipt.json")
+            code = visit.get("childExit")
+        else:
+            code = execute()
+        def with_visit(trial):
+            if visit is None: return trial
+            return {**trial, "status":trial["status"] if visit["restoration"] == "PASS" else "UNKNOWN",
+                    "childStatus":trial["status"],"setupRestoration":visit["restoration"],"setupReceipt":"lease-visit/receipt.json"}
         if result.is_file() and result.resolve() == result:
             record = read_json(result)
             if name == "P0-diagnostic":
@@ -375,10 +399,10 @@ class Mac:
                         "Single-run diagnostic did not preserve its evidence scope")
                 outcome = record.get("diagnosticOutcome", "UNKNOWN")
                 require(outcome in {"PASS","FAIL","UNKNOWN","BLOCKED","NOT_RUN"}, "Unrecognized diagnostic outcome")
-                return dict(status=outcome, scope="DIAGNOSTIC_ONLY", officialGateEligible=False,
-                            exit=code, receipt=result.relative_to(out).as_posix(), sha256=sha(result))
-            return dict(status=record["status"], exit=code, receipt=result.relative_to(out).as_posix(), sha256=sha(result))
-        return dict(status="UNKNOWN", exit=code, reason="missingTrialReceipt")
+                return with_visit(dict(status=outcome, scope="DIAGNOSTIC_ONLY", officialGateEligible=False,
+                            exit=code, receipt=result.relative_to(out).as_posix(), sha256=sha(result)))
+            return with_visit(dict(status=record["status"], exit=code, receipt=result.relative_to(out).as_posix(), sha256=sha(result)))
+        return with_visit(dict(status="UNKNOWN", exit=code, reason="missingTrialReceipt"))
 
 
 class Transaction:
@@ -394,6 +418,7 @@ class Transaction:
         self.record = mac.root/"active.json"
         self.guards = ExitStack()
         self.daily_reserved = False
+        self.daily_visit_reader = None
         self.daily_lock = mac.daily/LOCK_FILE
         self.test_root = self.home/profile.PROFILE
         self.test_lock = self.test_root/LOCK_FILE
@@ -501,6 +526,9 @@ class Transaction:
         require(stamp == self.rec["initialDailyHost"], "Enrolled daily Host generation changed")
         if cancelled():
             return
+        if self.rec.get("visitFocusLeaseKit"):
+            import lease_visit
+            self.daily_visit_reader, self.rec["visitDailyOriginal"] = lease_visit.daily_reference(self.rec["visitFocusLeaseKit"],stamp[0])
         self.save("quitting-original")
         self.mac.quit(stamp)
         with self.guarded_daily():
@@ -616,6 +644,15 @@ class Transaction:
             require(self.orientation() == "original", "Cannot prove exact original bundle restoration")
             require(self.mac.bound(restored[0],self.mac.daily,self.rec["original"]) == restored,
                     "Restored daily Host or lock generation changed")
+            if self.rec.get("visitFocusLeaseKit"):
+                import lease_visit
+                daily_focus = lease_visit.after_daily(self.daily_visit_reader)
+                self.daily_visit_reader = None
+                self.rec["visitDailyForeground"] = daily_focus
+                if daily_focus["status"] != "PASS":
+                    for row in self.rec["trials"].values():
+                        if row.get("setupReceipt") and row["status"] == "PASS":
+                            row.update(status="UNKNOWN",setupDailyForeground=daily_focus["status"])
             self.save("restored",restoration="PASS",restoredDailyHost=restored,cleanup="PENDING")
             # The daily app is already restored. Only discard data created for this transaction.
             try:
@@ -664,6 +701,15 @@ class Transaction:
                    "p3,p4":("P3","P4"), None:("P3","P4","P4-wordbook")}
         require(only in choices and not (only and args.wordbook_driver), "Invalid protected trial selection")
         inputs = {}
+        if getattr(args, "visit_focus_lease_kit", None):
+            from lease_visit import instruments
+            require(only in ("p0-diagnostic","p2") and args.focus_lease and
+                    (only == "p0-diagnostic" or focus_mode in ("pair-focus","pair-pointer","pair-drag")),
+                    "A protected lease visit requires P0 diagnostic or an enrolled P2 same-app pair")
+            plan = spaces_trials.focus_lease(args.focus_lease.resolve(strict=True))
+            kit = args.visit_focus_lease_kit
+            instruments(kit, Path(plan["stageKit"]))
+            inputs["visitFocusLeaseKit"] = str(kit)
         if getattr(args, "focus_scope_preflight", False):
             require(only == "p2" and focus_mode in ("pair-focus","pair-pointer","pair-drag"),
                     "Focus scope preflight requires a same-application registered pair scenario")
@@ -827,6 +873,8 @@ def main():
     run.add_argument("--focus-scope-preflight", action="store_true",
                      help="require read-only installed Host scope evidence for both registered same-app documents before any pointer action")
     run.add_argument("--pair-kit", type=Path, help="signed --pair-pointer kit, leaving the enrolled lease immutable")
+    run.add_argument("--visit-focus-lease-kit",type=Path,
+                     help="opt in to protected Apple setup and return to the original focused window using this signed read-only kit")
     run.add_argument("--focus-lease",type=Path, help="owned lease and archive chain for a registered two-document test")
     run.add_argument("--issuer-key",type=Path, help="one-run issuer for the separately compiled isolated diagnostic")
     run.add_argument("--drift-kit",type=Path)
