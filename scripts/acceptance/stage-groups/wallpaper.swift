@@ -13,6 +13,10 @@ import NearpaneCore
        let element, AXUIElementGetPid(element, &pid) == .success {
         data["hitOwner"] = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
         data["hitRole"] = ax(element, kAXRoleAttribute) as? String
+        data["subrole"] = ax(element, kAXSubroleAttribute) as? String
+        if let frame = WallpaperRevealMonitor.elementFrame(element) {
+            data["hitFrame"] = [frame.origin.x, frame.origin.y, frame.width, frame.height]
+        }
     }
     return data
 }

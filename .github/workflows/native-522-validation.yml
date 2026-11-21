@@ -160,11 +160,14 @@ jobs:
           python3 - <<'PY'
           import json, os
           from pathlib import Path
-          record = json.loads((Path(os.environ["RUNNER_TEMP"]) / "stage-group-isolation/desktop-items.json").read_bytes())
-          status = record["status"]
-          print(f"Desktop items: {status} ({record.get('reason', 'native marker sequence')})")
-          if status not in ("PASS", "BLOCKED"):
+          failed = False
+          for name in ("wallpaper", "desktop-items"):
+              record = json.loads((Path(os.environ["RUNNER_TEMP"]) / "stage-group-isolation" / (name + ".json")).read_bytes())
+              status = record["status"]
+              print(f"{name}: {status} ({record.get('reason', 'native marker sequence')})")
+              failed |= status not in ("PASS", "BLOCKED")
+              if status == "BLOCKED":
+                  print(f"::warning::{name} could not be qualified in this hosted login.")
+          if failed:
               raise SystemExit(1)
-          if status == "BLOCKED":
-              print("::warning::Desktop item behavior could not be qualified in this hosted login.")
           PY

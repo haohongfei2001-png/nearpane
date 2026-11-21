@@ -44,6 +44,12 @@ struct DesktopItemsSettingTests {
     @Test @MainActor func onlyTheSystemDesktopBackgroundQualifies() {
         let finder = "com.apple.finder"
         #expect(WallpaperRevealMonitor.isDesktopBackground(windowOwner: finder, hitOwner: finder, role: kAXScrollAreaRole))
+        let display = CGRect(x: -1440, y: -160, width: 1440, height: 900)
+        let p = CGPoint(x: -1250, y: 60)
+        #expect(WallpaperRevealMonitor.coversDesktop(display.insetBy(dx: 20, dy: 30), display: display, at: p))
+        #expect(!WallpaperRevealMonitor.coversDesktop(CGRect(origin: p, size: .init(width: 64, height: 64)), display: display, at: p))
+        #expect(WallpaperRevealMonitor.isDesktopBackground(windowOwner: finder, hitOwner: finder, role: kAXGroupRole, fullDesktopGroup: true))
+        #expect(!WallpaperRevealMonitor.isDesktopBackground(windowOwner: finder, hitOwner: finder, role: kAXGroupRole))
         for role in [kAXImageRole, kAXButtonRole, kAXStaticTextRole, kAXMenuItemRole, "AXDockItem", "AXUnknown"] {
             #expect(!WallpaperRevealMonitor.isDesktopBackground(windowOwner: finder, hitOwner: finder, role: role))
         }

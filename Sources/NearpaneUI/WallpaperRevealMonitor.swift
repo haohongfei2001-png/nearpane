@@ -57,16 +57,38 @@ import AppKit
               let hitOwner = NSRunningApplication(processIdentifier: hitPID)?.bundleIdentifier,
               AXUIElementCopyAttributeValue(hit, kAXRoleAttribute as CFString, &role) == .success,
               let role = role as? String else { return false }
-        return isDesktopBackground(windowOwner: bundle, hitOwner: hitOwner, role: role)
+        var fullDesktopGroup = false
+        if hitOwner == "com.apple.finder", role == kAXGroupRole, let frame = elementFrame(hit) {
+            var display: CGDirectDisplayID = 0, count: UInt32 = 0
+            if CGGetDisplaysWithPoint(point, 1, &display, &count) == .success, count == 1 {
+                fullDesktopGroup = coversDesktop(frame, display: CGDisplayBounds(display), at: point)
+            }
+        }
+        return isDesktopBackground(windowOwner: bundle, hitOwner: hitOwner, role: role, fullDesktopGroup: fullDesktopGroup)
     }
 
     private static let desktopOwners: Set<String> = ["com.apple.finder", "com.apple.dock", "com.apple.wallpaper.agent", "com.apple.WindowManager"]
-    static func isDesktopBackground(windowOwner: String, hitOwner: String, role: String) -> Bool {
+    static func coversDesktop(_ frame: CGRect, display: CGRect, at point: CGPoint) -> Bool {
+        // Finder may exclude the menu bar and Dock, or span several physical displays.
+        !display.isEmpty && display.contains(point) && frame.contains(point)
+            && frame.contains(display.insetBy(dx: display.width * 0.12, dy: display.height * 0.12))
+    }
+    static func elementFrame(_ element: AXUIElement) -> CGRect? {
+        var position: CFTypeRef?, size: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &size) == .success,
+              let position, let size, CFGetTypeID(position) == AXValueGetTypeID(), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
+        var p = CGPoint.zero, s = CGSize.zero
+        guard AXValueGetValue(position as! AXValue, .cgPoint, &p), AXValueGetValue(size as! AXValue, .cgSize, &s) else { return nil }
+        return CGRect(origin: p, size: s)
+    }
+    static func isDesktopBackground(windowOwner: String, hitOwner: String, role: String, fullDesktopGroup: Bool = false) -> Bool {
         guard desktopOwners.contains(windowOwner), desktopOwners.contains(hitOwner) else { return false }
         // Desktop items and the Finder background share one CG window. An item, widget or Dock
         // control must never become a background click on the strength of that window number.
         if hitOwner == "com.apple.finder" {
             return [kAXScrollAreaRole, kAXListRole, kAXWindowRole, kAXApplicationRole].contains(role)
+                || (role == kAXGroupRole && fullDesktopGroup)
         }
         return [kAXWindowRole, kAXApplicationRole].contains(role)
     }

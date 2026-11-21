@@ -7,7 +7,7 @@ import ScreenCaptureKit
     guard front?.bundleIdentifier == "com.apple.systempreferences", let pid = front?.processIdentifier,
           let raw = ax(AXUIElementCreateApplication(pid), kAXFocusedWindowAttribute),
           CFGetTypeID(raw) == AXUIElementGetTypeID() else { return result }
-    var queue = [raw as! AXUIElement], seen = Set<AXUIElement>(), controls = [[String: String]]()
+    var queue = [raw as! AXUIElement], seen = Set<AXUIElement>(), controls = [[String: String]](), otherOptions = [String: String]()
     while let el = queue.popLast(), seen.count < 1600 {
         guard seen.insert(el).inserted else { continue }
         let role = ax(el, kAXRoleAttribute) as? String
@@ -16,12 +16,16 @@ import ScreenCaptureKit
             AXUIElementGetPid(el, &owner)
             controls.append(["id": id, "role": role ?? "unknown",
                              "owner": NSRunningApplication(processIdentifier: owner)?.bundleIdentifier ?? "unknown"])
+            if ["stage-manager-on", "click-wallpaper-to-reveal-desktop", "show-desktop-widgets", "show-stage-manager-widgets"].contains(id),
+               let value = ax(el, kAXValueAttribute) {
+                otherOptions[id] = (value as? NSNumber)?.stringValue ?? value as? String
+            }
         }
         if ![kAXTextAreaRole, kAXTextFieldRole, kAXStaticTextRole, kAXImageRole, "AXWebArea"].contains(role ?? "") {
             queue.append(contentsOf: ax(el, kAXChildrenAttribute) as? [AXUIElement] ?? [])
         }
     }
-    result["visited"] = seen.count; result["desktopControls"] = controls
+    result["visited"] = seen.count; result["desktopControls"] = controls; result["otherOptions"] = otherOptions
     return result
 }
 
@@ -43,6 +47,7 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
               space: space, bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue),
           let bytes = bitmap.data?.assumingMemoryBound(to: UInt8.self) else { throw DesktopTrialStop("UNKNOWN", "pixelBuffer") }
     bitmap.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+    defer { withExtendedLifetime(bitmap) {} }
     var n = 0, xSum = 0, ySum = 0
     for y in stride(from: 0, to: h, by: 2) {
         for x in 0..<(w-4) {
@@ -133,6 +138,8 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
             throw DesktopTrialStop("BLOCKED", "nativeDesktopItemsCheckboxUnreadable")
         }
         original = initial; receipt["originalMode"] = initial.rawValue
+        let before = settingsControlSample()["otherOptions"] as? [String: String]
+        receipt["otherOptionsBefore"] = before
         mayHaveChanged = initial != .always
         guard await DesktopItemsSetting.shared.choose(.always) == .confirmed(.always) else {
             throw DesktopTrialStop("UNKNOWN", "baselineModeUnconfirmed")
@@ -146,6 +153,12 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
         guard await DesktopItemsSetting.shared.choose(.onWallpaperClick) == .confirmed(.onWallpaperClick) else {
             throw DesktopTrialStop("UNKNOWN", "hideModeUnconfirmed")
         }
+        let after = settingsControlSample()["otherOptions"] as? [String: String]
+        receipt["otherOptionsAfter"] = after
+        if before?["click-wallpaper-to-reveal-desktop"] != nil, after?["click-wallpaper-to-reveal-desktop"] != nil {
+            guard before == after else { throw DesktopTrialStop("FAIL", "unrelatedSystemOptionChanged") }
+            receipt["otherOptionsReadback"] = "PASS"
+        } else { receipt["otherOptionsReadback"] = "UNKNOWN" }
         let target = try await workingWindow()
         try click(target) { number(target) == Int(win.id) }
         _ = try await expectMarker(false, "ordinaryWindowClickHidden")
@@ -174,7 +187,9 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
     } catch let stop as DesktopTrialStop {
         receipt["status"] = stop.status; receipt["reason"] = stop.reason
     } catch {
-        receipt["status"] = "UNKNOWN"; receipt["reason"] = String(describing: type(of: error))
+        let detail = error as NSError
+        receipt["status"] = detail.domain == NSCocoaErrorDomain && detail.code == CocoaError.fileWriteNoPermission.rawValue ? "BLOCKED" : "UNKNOWN"
+        receipt["reason"] = detail.domain; receipt["code"] = detail.code
     }
     if let created {
         do { try FileManager.default.removeItem(at: created); receipt["fixtureRemoved"] = true }

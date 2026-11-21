@@ -17,7 +17,8 @@ enum DesktopItemDisplay: String, CaseIterable, Sendable {
 actor DesktopItemsSetting {
     static let shared = DesktopItemsSetting()
     static let pane = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension?show-items-on-desktop")!
-    static let checkboxID = "show-items-on-desktop"
+    // macOS 26 uses desktop-items. macOS 27 also ships the more specific identifier.
+    private static let checkboxIDs: Set<String> = ["desktop-items", "show-items-on-desktop"]
     private static let settings = URL(fileURLWithPath: "/System/Applications/System Settings.app", isDirectory: true)
     private static let extensionBundle = "/System/Library/ExtensionKit/Extensions/DesktopSettings.appex"
 
@@ -107,7 +108,8 @@ actor DesktopItemsSetting {
             guard seen.insert(item).inserted else { continue }
             guard seen.count <= 1600, ContinuousClock.now < deadline,
                   let role = attr(item, kAXRoleAttribute) as? String, role != kAXSheetRole else { return nil }
-            if attr(item, kAXIdentifierAttribute) as? String == checkboxID, [kAXCheckBoxRole, "AXSwitch"].contains(role) {
+            if let identifier = attr(item, kAXIdentifierAttribute) as? String, checkboxIDs.contains(identifier),
+               [kAXCheckBoxRole, "AXSwitch"].contains(role) {
                 guard match == nil else { return nil }
                 match = item
             }
