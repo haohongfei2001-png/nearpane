@@ -4,6 +4,10 @@
 
 使用临时资料验证同应用两窗位于不同组、已保留成员所在的整个组保持原状、其余组可以切换。旧布局与引擎的并发写入必须争用同一窗口身份的文件锁。遇到无法解释的所有权时保留日志并拒绝调度。日常资料的原位安装门槛独立于以上开发与 CI。[窗口所有权回归](../verification/window-engine/stage-product/ownership.xml)
 
+整组卡和组内成员分别验收。整组入口必须核对全部成员的可见性、布局、旁窗和唯一键盘接收者，环境未取得资格时应报告不可用。已确认写入之间或最终读回期间发生外部激活时，须保留新焦点。窗口交还后核对两次原始清单。原生 Space、自有资源或 Guardian 有不确定结果时必须保留责任。[整组入口](../verification/window-engine/stage-product/group-action.xml) · [焦点](../verification/window-engine/stage-product/focus.xml) · [中断和交还](../verification/window-engine/stage-product/interrupted-release.xml)
+
+托管 GUI 生命周期测试使用两个签名普通应用。一个带两扇窗口的应用作为旁窗，另一个在退出后重新通过 Launch Services 打开。分别检查旧进程代际与窗口两次缺席、另一应用两窗的几何和组、重开后的新单窗组，以及夹具退出和资料清理。[独立 WindowServer 收据](../verification/window-engine/stage-product/hosted-44908847991/stage-group-lifecycle.json)
+
 ## 首次实体机单窗门槛
 
 同机原位验收使用正式产品的单实例设置与已有授权。先核对标准安装签名并备份 App、资料、偏好与恢复记录。活动资料里尚有普通窗口恢复日志、StageGroup 所有权或 Spaces 写前记录时，保留原进程与日志。只有清单允许退出后才正常退出日常 Host，复核进程出生代已经结束，再原子交换包。依次核对新版 Host 的四项自读权限、同一进程的两次物理桌面与签名窗口读回、Spaces 自有面板及单窗、Corner Guardian 的真实恢复租约与单窗。任一未知结果停止新增写入。仅在候选进程、测试窗和后端所持资源均确认清场后换回原包，复核签名、资料及原版 Host 的权限。[同机入口与回执](../verification/window-engine/in-place-26A428/RESULTS.md)
@@ -18,6 +22,8 @@
 ## Rust Window Engine 的验收入口
 
 两个后端共用同一份正式 Host 合同。按单次 A→B→C→A、10 次、50 次顺序验证整组。三项均通过后，在同一台实体 Mac 上按每方向至少 100 个有效样本与 Apple 台前调度配对，最后才进入 1000 次压力验收。单窗夹具、静态库回归、成功的系统调用和隔离开发 Host 的权限预检各自单列。任何输入安全失败或清理状态未知均阻止晋级。 [门槛与原始收据](../verification/window-engine/RESULTS.md) · [性能合同](../research/NEARPANE-STAGEGROUP-PERFORMANCE-STANDARD.md)
+
+Corner 和 Spaces 按后端、系统 build 和显示器环境各自保存资格。某个后端一旦通过自己的单窗和清理门槛，即可在隔离验收中继续该后端的组级合同。生产启用须有该后端全部必需项目的实体机收据。运行中原执行器先恢复可确认的窗口并证明资源归零，此后其他已获资格的执行器才可接手。
 
 ## 当前单次隔离门槛
 

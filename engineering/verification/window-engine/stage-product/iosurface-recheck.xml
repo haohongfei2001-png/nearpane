@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="5" failures="0" skipped="0" time="0.069758375">
+    <testcase classname="NearpaneUITests.WindowFrameStreamTests" name="requestedColorSpaceSurvivesVideoToolboxAndTheProductionCard()" time="0.064741917" />
+    <testcase classname="NearpaneUITests.WindowFrameStreamTests" name="twoStableWindowFiltersDeliverDistinctLatestFramesAndBlankInvalidatesOnlyItsOwner()" time="0.069486125" />
+    <testcase classname="NearpaneUITests.WindowFrameStreamTests" name="changingOneWindowDoesNotRefreshUnrelatedCardOrLayoutObservers()" time="0.06931725" />
+    <testcase classname="NearpaneUITests.WindowFrameStreamTests" name="fullscreenPicturesHaveNoOrdinaryInputAuthorityAndCannotCrossSpaces()" time="0.069339833" />
+    <testcase classname="NearpaneUITests.WindowFrameStreamTests" name="budgetHandoffsServeNewCardsWithoutRepeatedlyPreemptingTheViewport()" time="0.069327667" />
+  </testsuite>
+</testsuites>

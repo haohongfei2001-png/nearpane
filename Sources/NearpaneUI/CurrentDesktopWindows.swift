@@ -13,7 +13,7 @@ import OSLog
     private let sessionAvailable: @MainActor () -> Bool
     private let fingerprint: @MainActor () -> Int
     private let session = UUID()
-    private var revision: UInt64 = 0
+    private(set) var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
@@ -356,8 +356,9 @@ import OSLog
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
             fixtureWindows: nil, anchors: [], experimentalSpaces: false, sidebarAuditWindows: audit?.targets)
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
+            guard let self, !Task.isCancelled, self.epoch == expected, self.observationRequested, self.sessionAvailable() else { return nil }
             let readback = try? await read(request)
-            guard let self, !Task.isCancelled, expected == self.epoch else { audit?.event("reader-cancelled"); return nil }
+            guard !Task.isCancelled, expected == self.epoch else { audit?.event("reader-cancelled"); return nil }
             guard var result = readback, self.sessionAvailable(),
                   result.sessionID == request.session, result.revision == request.revision, result.isStructurallyValid,
                   result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {

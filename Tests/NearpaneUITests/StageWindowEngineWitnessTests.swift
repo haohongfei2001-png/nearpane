@@ -17,12 +17,13 @@ import Testing
         feed.observeStageOwnership(true)
         feed.observe(false)
         _ = await feed.readNow()
-        let whileOwned = await counter.reads
-        #expect(whileOwned > 0)
+        #expect(await counter.reads > 0)
+        // Snapshot the last issued reader request on the same actor as release. A reader already
+        // submitted to the concurrent executor may enter its counter after ownership changes.
+        let lastAuthorizedRequest = feed.revision
         feed.observeStageOwnership(false)
         _ = await feed.readNow()
-        let afterRelease = await counter.reads
-        #expect(afterRelease == whileOwned)
+        #expect(feed.revision == lastAuthorizedRequest)
     }
     let id = ManagedWindowID(pid:15,launch:23,number:3,element:UUID())
     let display = DisplayObservation(id:"A",frame:.init(width:1200,height:900),rotationDegrees:0,backingScale:1)

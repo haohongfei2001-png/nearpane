@@ -2,6 +2,8 @@
 
 ## 2026-11-21 · StageGroup 窗口所有权
 
+全量测试曾在侧栏交还观察责任时读到 2 次请求，测试预期为 1 次。复查发现计数使用了异步回调，不能辨别交还前已发出的请求。现以同一执行线程上的请求序号验收，并在读任务实际启动前重新核对观察需求、会话和取消状态。修复后完整 Swift 回归 739 项通过、3 项条件跳过。[首次失败](../verification/window-engine/stage-product/full-swift-first-f0c2f11.xml) · [修复后全量结果](../verification/window-engine/stage-product/full-swift.xml)
+
 若用户在两次已确认的组操作之间将焦点移走，原执行器可以还原自己持有的窗口。仅在两次完整读回均确认所有原始窗口、旁窗、几何和新的键盘接收者后，才为这次 StageGroup 事务写入已交还的收据。缺少写入结果、Guardian 确认、期间变更的旁窗或布局均保留恢复责任。24 项隔离测试通过。[交还与故障注入](../verification/window-engine/stage-product/interrupted-release.xml)
 
 组合缩略图的背景和组名都可选择整个组。返回时优先选择该组上次确认获得焦点的成员。若整组调度不可用，会显示原因；组内仍可按窗口精确选择。27 项本地回归通过，含同应用双窗组合往返、未获资格时零次整组写入与 R4 侧栏布局。[整组入口收据](../verification/window-engine/stage-product/group-action.xml)
