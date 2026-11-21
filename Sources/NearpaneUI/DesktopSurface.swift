@@ -49,6 +49,9 @@ struct DesktopSurface: View {
     }
 
     var body: some View {
+        let menu = NativeSpaceMenu.shared
+        let request = menu.active.flatMap { $0.display == displayID ? $0 : nil }
+        let feed = display?.pointer?.windowPreviews?.currentDesktop
         VStack(alignment: .leading, spacing: 0) {
             roster
             if let selectionIssue = navigation.issue ?? selectionIssue {
@@ -68,6 +71,23 @@ struct DesktopSurface: View {
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
+        .popover(isPresented: Binding(get: {
+            guard let request, feed != nil else { return false }
+            return menu.accepts(request, display: displayID, ownership: navigation.ownershipEpoch, allowed: canNavigate)
+        }, set: { visible in
+            if !visible, let request { menu.close(request) }
+        })) {
+            if let request, let feed {
+                NativeSpaceMenuContents(request: request, feed: feed, navigation: navigation, allowed: {
+                    canNavigate && host.registry.preferences.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
+                })
+                .id(request.id)
+            }
+        }
+        .onChange(of: canNavigate) { previous, available in
+            if previous && !available, let request { menu.close(request) }
+        }
+        .onDisappear { if let request { menu.close(request) } }
         #if NEARPANE_P0_DIAGNOSTIC
         .task(id: canNavigate ? displayID : nil) {
             guard canNavigate, let id = displayID, let feed = display?.pointer?.windowPreviews?.currentDesktop,

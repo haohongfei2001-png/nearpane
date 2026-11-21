@@ -162,12 +162,12 @@ struct CrossSpaceFocusContinuity {
     private(set) var canSwitch = false
     private(set) var canMove = false
 
-    func probe(display: String) async {
-        guard dispatchAvailable else { return }
+    @discardableResult func probe(display: String) async -> Bool {
+        guard dispatchAvailable else { return false }
         let epoch = ownershipEpoch
         let request = NativeSpaceCommand(id: UUID(), action: .probe, display: display, source: "", target: "")
         let reply = await NativeSpaceActionClient.shared.run(request)
-        guard dispatchAvailable, ownershipEpoch == epoch, !Task.isCancelled, reply.id == request.id else { return }
+        guard dispatchAvailable, ownershipEpoch == epoch, !Task.isCancelled, reply.id == request.id else { return false }
         canSwitch = reply.state == .ready && reply.canSwitch
         canMove = reply.state == .ready && reply.canMove
         let capability = "ready=\(reply.state == .ready) canSwitch=\(canSwitch) canMove=\(canMove)"
@@ -175,6 +175,7 @@ struct CrossSpaceFocusContinuity {
             Self.log.notice("nativeSpaceCapabilities \(capability, privacy: .public)")
             recordedCapability = capability
         }
+        return canSwitch
     }
 
     func submit(selection: Bool = true, _ work: @escaping Work) {
@@ -205,11 +206,14 @@ struct CrossSpaceFocusContinuity {
     func isCurrent(_ token: UUID) -> Bool { dispatchAvailable && generation == token }
 
     func select(_ destination: NativeSidebarDestination, member: NativeSidebarMember?, feed: CurrentDesktopWindows,
-                operation: UUID = UUID(), allowed: @escaping @MainActor () -> Bool) {
+                operation: UUID = UUID(), menuInventory: SpaceMenuInventory? = nil, finished: (@MainActor () -> Void)? = nil,
+                allowed: @escaping @MainActor () -> Bool) {
         let userInput = NativeSelectionPermit.inputCounters()
-        let originalFront = SelectionForeground.read(NSWorkspace.shared.frontmostApplication?.processIdentifier)
+        let menuSelectionUptime = menuInventory == nil ? nil : ProcessInfo.processInfo.systemUptime
+        let originalFront = member == nil ? nil : SelectionForeground.read(NSWorkspace.shared.frontmostApplication?.processIdentifier)
         let lifetime = member.flatMap { feed.lifetime(of: $0.key) }
         submit { [weak self] token in
+            defer { finished?() }
             var watch: CrossSpaceFocusWatch?
             defer { watch?.stop() }
             @MainActor func valid() -> Bool {
@@ -222,7 +226,9 @@ struct CrossSpaceFocusContinuity {
                 return member.map { lifetime != nil && feed.lifetime(of: $0.key) == lifetime } ?? true
             }
             guard valid(), let before = await feed.readNow(), let map = destination.resolve(before),
+                  menuInventory.map({ member == nil && self?.canSwitch == true && $0.stillOffers(destination, in: before) }) ?? true,
                   member == nil || member?.resolve(before) != nil, valid() else {
+                if menuInventory != nil && !valid() { return }
                 throw OrdinaryWindowFailure("桌面或窗口已变化，请重新选择。")
             }
             let original = map.current.id != destination.space ? member?.originalWindow : nil
@@ -259,7 +265,8 @@ struct CrossSpaceFocusContinuity {
                 let request = NativeSpaceCommand(id: operation, action: .select, display: destination.display,
                     source: map.current.id, target: destination.space, sourceUUID: sourceUUID, targetUUID: destination.uuid,
                     window: member.map { .init(pid: $0.key.pid, birth: $0.key.birth, number: $0.key.number) },
-                    sourceKind: sourceKind, targetKind: destination.kind, originalWindow: original)
+                    sourceKind: sourceKind, targetKind: destination.kind, originalWindow: original,
+                    createdAtUptime: menuSelectionUptime ?? ProcessInfo.processInfo.systemUptime)
                 let reply = await NativeSpaceActionClient.shared.run(request, permit: permit)
                 feed.changed()
                 guard reply.id == request.id, reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
