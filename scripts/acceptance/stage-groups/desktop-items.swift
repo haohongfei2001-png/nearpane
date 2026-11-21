@@ -49,8 +49,8 @@ private struct DesktopTrialStop: Error {
 }
 
 /// Search the actual composited display for the two adjacent colors of our disposable file icon.
-/// Only pixel counts and the marker position leave this function.
-private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: Int, center: CGPoint?) {
+/// Keep the exact compositor frame that supplied each accepted measurement.
+private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: Int, center: CGPoint?, image: CGImage) {
     let cfg = SCStreamConfiguration()
     cfg.width = display.width; cfg.height = display.height; cfg.showsCursor = false
     let image = try await SCScreenshotManager.captureImage(
@@ -72,7 +72,10 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
             }
         }
     }
-    return (n, n > 0 ? CGPoint(x: xSum/n, y: ySum/n) : nil)
+    let bounds = CGDisplayBounds(display.displayID)
+    let center: CGPoint? = n > 0 ? CGPoint(x: bounds.minX + CGFloat(xSum)/CGFloat(n) * bounds.width/CGFloat(w),
+                                          y: bounds.minY + CGFloat(ySum)/CGFloat(n) * bounds.height/CGFloat(h)) : nil
+    return (n, center, image)
 }
 
 @MainActor private func makeMarker(at url: URL) throws {
@@ -132,7 +135,12 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
                 counts[label, default: []].append(sample.count)
                 streak = (visible ? sample.count >= 18 : sample.count == 0) ? streak+1 : 0
                 center = sample.center
-                if streak == 2 { return center }
+                if streak == 2 {
+                    if label != "absentBeforeFixture", let png = NSBitmapImageRep(cgImage: sample.image).representation(using: .png, properties: [:]) {
+                        try png.write(to: root.appendingPathComponent(label + ".png"), options: .atomic)
+                    }
+                    return center
+                }
             }
             throw DesktopTrialStop(label == "baselineVisible" ? "BLOCKED" : "FAIL", label)
         }
@@ -186,15 +194,24 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
         let target = try await workingWindow()
         try click(target) { number(target) == Int(win.id) }
         _ = try await expectMarker(false, "ordinaryWindowClickHidden")
-        receipt["hiddenMarkerHit"] = desktopHitSample(marker, number: number(marker))
-        guard WallpaperRevealMonitor.isBlankDesktop(at: marker, windowNumber: number(marker)) else {
+        let hiddenHit = desktopHitSample(marker, number: number(marker))
+        receipt["hiddenMarkerHit"] = hiddenHit
+        // A concealed file has already been painted over. At its old coordinates prove no ordinary
+        // window occludes it. The separate reveal click below still needs a verified blank point.
+        guard let layer = hiddenHit["layer"] as? Int, layer <= CGWindowLevelForKey(.desktopIconWindow),
+              let owner = hiddenHit["windowOwner"] as? String,
+              ["com.apple.finder", "com.apple.WindowManager", "com.apple.wallpaper.agent", "com.apple.dock"].contains(owner) else {
             throw DesktopTrialStop("UNKNOWN", "hiddenMarkerMayBeOccluded")
         }
-        let blank = [0.19, 0.37, 0.57].flatMap { x in [0.24, 0.72, 0.83].map { y in
-            CGPoint(x: bounds.width*x, y: bounds.height*y) } }.first {
+        let candidates = [0.19, 0.37, 0.57].flatMap { x in [0.24, 0.72, 0.83].map { y in
+            CGPoint(x: bounds.width*x, y: bounds.height*y) } }
+        let blank = candidates.first {
                 hypot($0.x-marker.x, $0.y-marker.y) > 90 && WallpaperRevealMonitor.isBlankDesktop(at: $0, windowNumber: number($0))
             }
-        guard let blank else { throw DesktopTrialStop("BLOCKED", "blankWallpaperNotIdentified") }
+        guard let blank else {
+            receipt["candidateHits"] = candidates.map { desktopHitSample($0, number: number($0)) }
+            throw DesktopTrialStop("BLOCKED", "blankWallpaperNotIdentified")
+        }
         try click(blank) { WallpaperRevealMonitor.isBlankDesktop(at: blank, windowNumber: number(blank)) }
         guard let visible = try await expectMarker(true, "blankWallpaperRevealed") else {
             throw DesktopTrialStop("UNKNOWN", "visibleMarkerLocation")

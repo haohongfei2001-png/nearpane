@@ -72,6 +72,11 @@ def run_comparison(binary, destination):
                         trial["captureDetail"] = film_error.decode(errors="replace")[-350:]
                 if (root / "trial.mp4").exists():
                     shutil.copy2(root / "trial.mp4", movie)
+                if method == "desktop-items":
+                    for phase in ("baselineVisible", "ordinaryWindowClickHidden", "blankWallpaperRevealed", "returnedToApplicationHidden"):
+                        frame = root / (phase + ".png")
+                        if frame.exists():
+                            shutil.copy2(frame, destination / ("desktop-items-" + phase + ".png"))
                 (root / "stop").touch()
                 trial["fixtureOwnersExited"] = all([p.wait(timeout=15) == 0 for p in apps])
                 if not trial["fixtureOwnersExited"]:

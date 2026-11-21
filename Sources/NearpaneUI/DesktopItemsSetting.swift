@@ -21,7 +21,6 @@ actor DesktopItemsSetting {
     private static let extensionBundle = "/System/Library/ExtensionKit/Extensions/DesktopSettings.appex"
     private static let desktopLabels = paneLabels("On Desktop", chinese: ["桌面上", "在桌面上"])
     private static let stageLabels = paneLabels("In Stage Manager", chinese: ["在台前调度中"])
-    private static let itemLabels = paneLabels("Show items", chinese: ["显示项目"])
 
     private static func paneLabels(_ key: String, chinese: [String]) -> Set<String> {
         let bundle = Bundle(path: extensionBundle)
@@ -118,46 +117,11 @@ actor DesktopItemsSetting {
         var pid: pid_t = 0
         return AXUIElementGetPid(item, &pid) == .success ? pid : nil
     }
-    private static func labels(_ node: AXUIElement, staticText: Bool = false) -> Set<String> {
-        var keys = [kAXTitleAttribute, kAXDescriptionAttribute]
-        if staticText { keys.append(kAXValueAttribute) }
-        var values = keys.compactMap { attr(node, $0) as? String }
-        if !staticText, let raw = attr(node, kAXTitleUIElementAttribute), CFGetTypeID(raw) == AXUIElementGetTypeID() {
-            let label = raw as! AXUIElement
-            if attr(label, kAXRoleAttribute) as? String == kAXStaticTextRole, let text = attr(label, kAXValueAttribute) as? String {
-                values.append(text)
-            }
-        }
-        return Set(values.flatMap { $0.components(separatedBy: CharacterSet(charactersIn: ",，、:：\n")) }.map(normalize))
-    }
-    private static func isItemsRow(_ checkbox: AXUIElement) -> Bool {
-        var node = checkbox
-        for _ in 0..<3 {
-            guard let raw = attr(node, kAXParentAttribute), CFGetTypeID(raw) == AXUIElementGetTypeID() else { return false }
-            node = raw as! AXUIElement
-            if !labels(node).isDisjoint(with: itemLabels) { return true }
-            let children = attr(node, kAXChildrenAttribute) as? [AXUIElement] ?? []
-            guard children.count <= 8 else { return false }
-            if children.contains(where: { attr($0, kAXRoleAttribute) as? String == kAXStaticTextRole &&
-                !labels($0, staticText: true).isDisjoint(with: itemLabels) }) { return true }
-            if children.contains(where: {
-                guard let id = attr($0, kAXIdentifierAttribute) as? String,
-                      ["desktop-items", "show-items-in-stage-manager"].contains(id),
-                      attr($0, kAXRoleAttribute) as? String == kAXCheckBoxRole else { return false }
-                return !labels($0).isDisjoint(with: stageLabels)
-            }) { return true }
-        }
-        return false
-    }
-
-    static func identifiesDesktopItems(id: String, names: Set<String>, inItemsRow: () -> Bool) -> Bool {
+    static func identifiesDesktopItems(id: String, names: Set<String>) -> Bool {
         let text = Set(names.map(normalize))
-        guard !id.lowercased().contains("widget"), text.isDisjoint(with: stageLabels) else { return false }
-        if id == "show-items-on-desktop" { return true }
-        // Older Settings panes reuse similar identifiers for the Stage Manager and ordinary
-        // desktop columns. The localized column label must agree with the Show Items row.
-        guard !text.isDisjoint(with: desktopLabels) else { return false }
-        return id == "desktop-items" || id == "standard-items" || inItemsRow()
+        guard text.isDisjoint(with: stageLabels) else { return false }
+        // On macOS 26 "desktop-items" identifies the *Stage Manager* column.
+        return id == "show-items-on-desktop" || (id == "show-items" && !text.isDisjoint(with: desktopLabels))
     }
     static func boolean(_ raw: CFTypeRef?) -> Bool? {
         if let n = raw as? NSNumber, [0.0, 1.0].contains(n.doubleValue) { return n.boolValue }
@@ -179,9 +143,9 @@ actor DesktopItemsSetting {
             guard seen.count <= 1600, ContinuousClock.now < deadline else { throw .scanLimit }
             let role = attr(item, kAXRoleAttribute) as? String ?? ""
             guard role != kAXSheetRole else { throw .modal }
-            if [kAXCheckBoxRole, "AXSwitch"].contains(role),
-               identifiesDesktopItems(id: attr(item, kAXIdentifierAttribute) as? String ?? "", names: labels(item),
-                                      inItemsRow: { isItemsRow(item) }) {
+            if [kAXCheckBoxRole, "AXSwitch"].contains(role), let id = attr(item, kAXIdentifierAttribute) as? String,
+               ["show-items", "show-items-on-desktop"].contains(id),
+               identifiesDesktopItems(id: id, names: Set([kAXTitleAttribute, kAXDescriptionAttribute].compactMap { attr(item, $0) as? String })) {
                 guard match == nil else { throw .ambiguousControl }
                 match = item
             }

@@ -60,12 +60,14 @@ struct DesktopItemsSettingTests {
     }
 
     @Test func theStageManagerColumnAndWidgetRowCannotChangeDesktopFiles() {
-        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "desktop-items", names: ["In Stage Manager"], inItemsRow: { true }))
-        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "desktop-items", names: [], inItemsRow: { true }))
-        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "show-desktop-widgets", names: ["On Desktop"], inItemsRow: { true }))
-        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "", names: ["On Desktop"], inItemsRow: { false }))
-        #expect(DesktopItemsSetting.identifiesDesktopItems(id: "", names: ["On Desktop"], inItemsRow: { true }))
-        #expect(DesktopItemsSetting.identifiesDesktopItems(id: "standard-items", names: ["桌面上"], inItemsRow: { true }))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "desktop-items", names: ["In Stage Manager"]))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "desktop-items", names: ["On Desktop"]))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "show-desktop-widgets", names: ["On Desktop"]))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "", names: ["On Desktop"]))
+        #expect(!DesktopItemsSetting.identifiesDesktopItems(id: "show-items", names: []))
+        #expect(DesktopItemsSetting.identifiesDesktopItems(id: "show-items", names: ["On Desktop"]))
+        #expect(DesktopItemsSetting.identifiesDesktopItems(id: "show-items", names: ["桌面上"]))
+        #expect(DesktopItemsSetting.identifiesDesktopItems(id: "show-items-on-desktop", names: ["桌面上"]))
     }
 
     @Test @MainActor func onlyTheSystemDesktopBackgroundQualifies() {

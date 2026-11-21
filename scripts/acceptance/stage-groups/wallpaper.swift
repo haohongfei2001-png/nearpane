@@ -7,9 +7,14 @@ import NearpaneCore
        let row = rows.first, let pid = row[kCGWindowOwnerPID as String] as? pid_t {
         data["layer"] = row[kCGWindowLayer as String]
         data["windowOwner"] = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
+        if let rect = row[kCGWindowBounds as String] as? NSDictionary, let frame = CGRect(dictionaryRepresentation: rect) {
+            data["windowFrame"] = [frame.minX, frame.minY, frame.width, frame.height]
+        }
     }
     var element: AXUIElement?, pid: pid_t = 0
-    if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &element) == .success,
+    let result = AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &element)
+    data["axHitResult"] = result.rawValue
+    if result == .success,
        let element, AXUIElementGetPid(element, &pid) == .success {
         data["hitOwner"] = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
         data["hitRole"] = ax(element, kAXRoleAttribute) as? String

@@ -48,25 +48,37 @@ import AppKit
     private static func isBlankDesktop(at point: CGPoint, row: [String: Any]) -> Bool {
         guard let layer = row[kCGWindowLayer as String] as? Int,
               layer <= CGWindowLevelForKey(.desktopIconWindow),
-              let pid = row[kCGWindowOwnerPID as String] as? pid_t,
-              let bundle = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
+              let pid = row[kCGWindowOwnerPID as String] as? pid_t, let app = NSRunningApplication(processIdentifier: pid),
+              let bundle = app.bundleIdentifier,
               desktopOwners.contains(bundle), AXIsProcessTrusted() else { return false }
         var hit: AXUIElement?, hitPID: pid_t = 0, role: CFTypeRef?
-        guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
-              let hit, AXUIElementGetPid(hit, &hitPID) == .success,
-              let hitOwner = NSRunningApplication(processIdentifier: hitPID)?.bundleIdentifier,
+        let result = AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit)
+        guard result == .success, let hit else {
+            // With files concealed WindowManager owns a desktop-level click surface which
+            // exposes no AX item. Confirm this physical hit again in WindowServer.
+            guard bundle == "com.apple.WindowManager",
+                  app.bundleURL?.standardizedFileURL.path == "/System/Library/CoreServices/WindowManager.app",
+                  layer == CGWindowLevelForKey(.desktopIconWindow), row[kCGWindowIsOnscreen as String] as? Bool == true,
+                  let n = row[kCGWindowNumber as String] as? Int, NSWindow.windowNumber(at: appKit(point), belowWindowWithWindowNumber: 0) == n,
+                  let raw = row[kCGWindowBounds as String] as? NSDictionary, let bounds = CGRect(dictionaryRepresentation: raw),
+                  let screen = displayBounds(at: point) else { return false }
+            return coversDesktop(bounds, display: screen, at: point)
+        }
+        guard AXUIElementGetPid(hit, &hitPID) == .success, let hitOwner = NSRunningApplication(processIdentifier: hitPID)?.bundleIdentifier,
               AXUIElementCopyAttributeValue(hit, kAXRoleAttribute as CFString, &role) == .success,
               let role = role as? String else { return false }
         var fullDesktopGroup = false
-        if hitOwner == "com.apple.finder", role == kAXGroupRole, let frame = elementFrame(hit) {
-            var display: CGDirectDisplayID = 0, count: UInt32 = 0
-            if CGGetDisplaysWithPoint(point, 1, &display, &count) == .success, count == 1 {
-                fullDesktopGroup = coversDesktop(frame, display: CGDisplayBounds(display), at: point)
-            }
+        if hitOwner == "com.apple.finder", role == kAXGroupRole, let frame = elementFrame(hit), let screen = displayBounds(at: point) {
+            fullDesktopGroup = coversDesktop(frame, display: screen, at: point)
         }
         return isDesktopBackground(windowOwner: bundle, hitOwner: hitOwner, role: role, fullDesktopGroup: fullDesktopGroup)
     }
 
+    private static func displayBounds(at point: CGPoint) -> CGRect? {
+        var id: CGDirectDisplayID = 0, count: UInt32 = 0
+        guard CGGetDisplaysWithPoint(point, 1, &id, &count) == .success, count == 1 else { return nil }
+        return CGDisplayBounds(id)
+    }
     private static let desktopOwners: Set<String> = ["com.apple.finder", "com.apple.dock", "com.apple.wallpaper.agent", "com.apple.WindowManager"]
     static func coversDesktop(_ frame: CGRect, display: CGRect, at point: CGPoint) -> Bool {
         // Finder may exclude the menu bar and Dock, or span several physical displays.
