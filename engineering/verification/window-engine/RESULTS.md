@@ -1,6 +1,8 @@
 # Nearpane 5.22 Window Engine 验收
 
-本轮单窗结果由 `666e26f` 的签名 Host 与实体机收据给出。开发 Host 的双向归属和原始 AX 对象已实测。正式 Host 单窗动作受启动身份阻塞，Corner、Spaces 的生产资格均未取得。[本轮六级门槛、清理与原始记录](first-window-26A428/RESULTS.md)
+本轮在 26A428 实体机上修复并复测了全屏 Space 的重复清单读数，新增正式 Host 的独立自有面板入口。Corner 的按下、拖动、释放及接收者矛盾处理已通过源码测试。两后端的正式 Host 单窗资格均为 **BLOCKED**。 [当前验收及原始收据](single-window-isolation/RESULTS.md)
+
+此前 `666e26f` 的签名开发 Host 实测了双向归属和原始 AX 对象。 [当时的六级门槛、清理与原始记录](first-window-26A428/RESULTS.md)
 
 ## 上一轮集成基线
 
@@ -9,7 +11,7 @@
 | Gate | 已验证 | 尚需实证 |
 | --- | --- | --- |
 | 0 · ABI | arm64 和 x86_64 静态库、同一 C/Swift/Rust 布局、有限队列、取消、超时与 panic 边界通过。固定 MIT 原文、文件来源与 Cargo 锁文件可核对。 | Intel 结果仅覆盖编译和架构检查。 [ABI](gate0.json) · [上游来源](origins.json) |
-| 1 · Corner | 接入角落选择、AX/CG 双读、实际 Z-order、完整按下至释放的 PressGate、真实壁纸裁片和独立 Guardian。离线测试覆盖未确认窗口、失效的事件监听器与恢复前用户输入。 | **BLOCKED**。精确系统上的独立探针没有辅助功能和输入事件授权，两轮当时读到的桌面类型均为 4。未创建测试窗或提交停放。真实点击、调整尺寸边缘、三组切换和崩溃恢复仍待验证。 [实体事件](target-26A428/corner-physical-preflight/) · [恢复测试](gate1-packaged-guardian.json) |
+| 1 · Corner | 接入角落选择、AX/CG 双读、实际 Z-order、完整按下至释放的 PressGate 和独立 Guardian。正式库包含裁片几何与遮挡判断，实际壁纸裁片窗口在隔离夹具中。离线测试覆盖未确认窗口、失效的事件监听器与恢复前用户输入。 | **BLOCKED**。精确系统上的独立探针没有辅助功能和输入事件授权，两轮当时读到的桌面类型均为 4。未创建测试窗或提交停放。真实点击、调整尺寸边缘、三组切换和崩溃恢复仍待验证。 [实体事件](target-26A428/corner-physical-preflight/) · [恢复测试](gate1-packaged-guardian.json) |
 | 2 · Spaces | 经典和 bridged 路线通过类型、对象生命周期和归属往返的离线测试。启动探针仅能操作自己新建的无激活面板。Host 要求原始成员归属、面板关闭和临时 Space 销毁分别成立。 | **BLOCKED**。目标机签名探针的 self/guest 身份校验均通过，自身辅助功能为否，窗口及 Space 写入均为零。 [精确系统预检](target-26A428/exact-spaces-canary-03-preflight/result.json) · [ABI 与测试](../../../scripts/acceptance/window-engine/spaces/launch-verification.json) |
 | 3 · Host 事务 | 单一写入者、窗口身份、写前日志、接收方先恢复、旧组逐窗释放及未确认时冻结均已接入。签名开发 Host 可从 Launch Services 后台独立读取结果。 | **NOT_RUN**。仍缺标准安装 Host 的真实侧栏点击、组合窗口复原、完整键盘输入落点。 [事务回归](gate3-transaction-tests.json) |
 | 4 · 性能 | 验收器复核双向原始时钟、首帧、焦点/输入接收者、逐帧色标、资源和恢复记录。10 项专项测试通过。 | **NOT_RUN**。单次安全门槛未通过，10、50、同机 Apple 每方向 100 个样本和随后 1000 次压力均未启动。P50/P95/P99 无实测值。 [目标机性能收据](gate4-target.json) · [测量合同](../../research/NEARPANE-STAGEGROUP-PERFORMANCE-STANDARD.md) |

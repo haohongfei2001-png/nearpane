@@ -17,6 +17,7 @@
 1. 在 macOS 27.0（26A428）、SIP 开启的物理登录会话内，由同一个真实 Host 连续两次读取物理显示器、当前桌面清单、直接活动 ID、普通桌面类型、UUID 及签名夹具窗口的正反向归属。记录两读间的 AppKit Space 变更通知。全屏类型 4、缺 UUID、会话切换、没有登记窗口或两向归属无法互证都阻止窗口写入。
 2. Corner 使用一扇签名普通窗口，记录初始几何与焦点、停放、真实鼠标按下/拖动/释放的接收者、旁窗与 Dock、还原后两次 AX/WindowServer 读回。分开验证 Host 的在场写入权和原 Guardian 的恢复资格。一次失败即停止。
 3. Spaces 先在同一 Host 用自有透明非激活面板验证创建临时 Space、移入、还原、关闭面板、销毁临时 Space 和清单还原。通过后才进行一扇第三方窗的移入与还原，每步核对独立正反向归属。
+   独立面板入口应在创建第三方夹具前运行。保留全量清单中的每次出现，以及同一显示器上用户可见的桌面顺序。迁回后先核实面板在 AppKit 和 WindowServer 中均已关闭，再销毁已确认空置的临时 Space。为用户可见的 Mission Control、兄弟窗、键盘落点和 Dock 单独出具实机收据。 [运行入口](../../scripts/acceptance/window-engine/spaces/README.md)
 4. GitHub CI 必跑 Rust、Swift 和生产 C ABI；可选托管只读报告独立保存。该环境缺少普通桌面时记录 `BLOCKED`。两后端的正式单窗和后续整组验收均要求指定物理环境。[本次原始收据](../verification/window-engine/first-window-26A428/)
 
 ## Rust Window Engine 的验收入口

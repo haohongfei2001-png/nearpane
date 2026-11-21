@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "scope": "staticSignatureAndPackageOnly",
+  "observedUTC": "2026-11-21T16:45:42.324813+00:00",
+  "image": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "2b0c9de3724f0639ab5d44761df108584886e5c2",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90",
+    "source": "0cc4714c6cde1cf0e70bba8d430ec9de6f36d3be",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "multipleInstancesProhibited": true
+  },
+  "host": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "2b0c9de3724f0639ab5d44761df108584886e5c2",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "guardian": {
+    "Identifier": "com.holdsnow.nearpane.alpha.corner-guardian",
+    "CDHash": "54b4ca0664585f947de61b9d3d19df674450f49c",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "executableSHA256": "ccbbe96f5be82b7773ac2abf28377ae905e45e81813500a9cd0aaa160d91d44b",
+  "guardianSHA256": "4807f000c7d2e420b67213447cb845023538f35586f7185a293f3678edac5353",
+  "guardianHashMatchesInSignedHost": true,
+  "strictDeveloperIDVerified": [
+    "Host",
+    "Guardian"
+  ],
+  "buildPreparation": {
+    "candidateExecutions": 0,
+    "bundledResourcesSelfCheck": "NOT_RUN",
+    "helperRuntimeSelfCheck": "NOT_RUN",
+    "installedHostLaunch": "NOT_RUN"
+  },
+  "packageReceiptSHA256": "884f2e93e3a229a30d40bf443db03d31bf1c611d220763a75d626f2b79899383",
+  "productSigningSubjects": 9,
+  "distributionSignatureGaps": 14,
+  "notarization": "NOT_RUN",
+  "productionQualified": false
+}
