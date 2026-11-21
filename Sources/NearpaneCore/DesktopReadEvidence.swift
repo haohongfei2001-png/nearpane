@@ -16,8 +16,7 @@ public enum StageManagerPreference {
     /// An unset preference is the factory-off state. An unreadable stored type
     /// cannot safely give a second switcher ownership of the display.
     public static var ownsWindowDispatch: Bool {
-        guard let value else { return false }
-        return CFGetTypeID(value) != CFBooleanGetTypeID() || (value as? Bool) != false
+        read() != false
     }
 
     static func configuration(_ value: CFPropertyList?, domainReadable: Bool) -> Bool? {
