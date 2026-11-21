@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import CReadOnlySpaces
 import NearpaneCore
 
@@ -35,11 +36,26 @@ func birth(_ pid: Int32) throws -> UInt64 {
                       NSRunningApplication.current.bundleURL?.standardizedFileURL == Bundle.main.bundleURL.standardizedFileURL,
                       NSApp.activationPolicy() == .regular, let screen = NSScreen.main else { throw FixtureError.registration }
                 let (id, _) = try screenIdentity(screen)
-                for index in 0..<(name == "a" ? 2 : 1) {
-                    let x = screen.visibleFrame.minX + (name == "b" ? 280 : CGFloat(20 + index * 100))
+                let comparison = FileManager.default.fileExists(atPath: root.appendingPathComponent("comparison").path)
+                for index in 0..<(name == "a" ? 2 : (comparison ? 4 : 1)) {
+                    let x = screen.visibleFrame.minX + CGFloat(name == "b" ? 280 + index * 110 : 20 + index * 100)
                     let rect = CGRect(x: x, y: screen.visibleFrame.midY, width: 140, height: 100)
-                    let window = NSWindow(contentRect: rect, styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                    let window: NSWindow
+                    if comparison && name == "b" && index == 3 {
+                        let panel = NSPanel(contentRect: rect, styleMask: [.titled, .utilityWindow, .nonactivatingPanel],
+                                             backing: .buffered, defer: false)
+                        panel.hidesOnDeactivate = false
+                        panel.level = .normal
+                        window = panel
+                    } else {
+                        window = NSWindow(contentRect: rect, styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                           backing: .buffered, defer: false)
+                    }
+                    if comparison {
+                        let input = FixtureKeyReceiver()
+                        window.contentView = input
+                        _ = window.makeFirstResponder(input)
+                    }
                     window.isReleasedWhenClosed = false
                     window.title = "Stage group fixture"
                     window.setAccessibilityIdentifier("nearpane.fixture." + name + "." + String(index))
@@ -53,8 +69,13 @@ func birth(_ pid: Int32) throws -> UInt64 {
                                   onActiveSpace: windows.allSatisfy { $0.isVisible && $0.isOnActiveSpace && $0.screen == screen })
                 try JSONEncoder().encode(owner).write(to: root.appendingPathComponent(name + ".json"), options: .atomic)
                 var lastSample = ""
-                let deadline = ContinuousClock.now + .seconds(70)
+                var seeded = false
+                let deadline = ContinuousClock.now + .seconds(comparison ? 540 : 70)
                 while ContinuousClock.now < deadline && !FileManager.default.fileExists(atPath: root.appendingPathComponent("stop").path) {
+                    if comparison && name == "b" && !seeded && FileManager.default.fileExists(atPath: root.appendingPathComponent("user-minimize").path) {
+                        seeded = true
+                        windows[2].miniaturize(nil)
+                    }
                     if let nonce = try? String(contentsOf: root.appendingPathComponent("sample"), encoding: .utf8),
                        UUID(uuidString: nonce) != nil, nonce != lastSample {
                         let samples = windows.map(OwnedWindowState.init)
@@ -142,9 +163,30 @@ func birth(_ pid: Int32) throws -> UInt64 {
 @main private struct Fixture {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 2, ["a", "b", "record", "reopen", "visibility"].contains(args[0]),
+        guard args.count == 2, ["a", "b", "record", "reopen", "visibility", "minimize", "corner", "movie"].contains(args[0]),
               ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else { exit(64) }
+        if args[0] == "movie" {
+            Task {
+                let asset = AVURLAsset(url: URL(fileURLWithPath: args[1]))
+                guard let d = try? await asset.load(.duration), d.seconds.isFinite, d.seconds > 0,
+                      let tracks = try? await asset.loadTracks(withMediaType: .video), !tracks.isEmpty else { exit(1) }
+                print(d.seconds)
+                exit(0)
+            }
+            RunLoop.main.run()
+            return
+        }
         let root = URL(fileURLWithPath: args[1], isDirectory: true)
+        if ["minimize", "corner"].contains(args[0]) {
+            let app = NSApplication.shared
+            app.setActivationPolicy(.accessory)
+            Task { @MainActor in
+                do { try await compareGroupVisibility(root: root, method: args[0]); exit(0) }
+                catch { fputs("Group comparison failed: \(error)\n", stderr); exit(1) }
+            }
+            app.run()
+            return
+        }
         if args[0] == "visibility" {
             Task { @MainActor in
                 do { try await qualifyVisibility(root: root); exit(0) }

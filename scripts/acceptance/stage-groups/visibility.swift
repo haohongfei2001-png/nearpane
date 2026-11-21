@@ -1,9 +1,15 @@
 import AppKit
 import NearpaneCore
 
+@MainActor final class FixtureKeyReceiver: NSView {
+    private(set) var input = ""
+    override var acceptsFirstResponder: Bool { true }
+    override func keyDown(with event: NSEvent) { input += event.characters ?? "" }
+}
+
 struct OwnedWindowState: Codable, Equatable {
     let number: UInt32, miniature: Bool, visible: Bool, activeSpace: Bool, key: Bool
-    let frame: CGRect
+    let frame: CGRect, input: String, auxiliary: Bool
     @MainActor init(_ window: NSWindow) {
         number = UInt32(window.windowNumber)
         miniature = window.isMiniaturized
@@ -11,19 +17,21 @@ struct OwnedWindowState: Codable, Equatable {
         activeSpace = window.isOnActiveSpace
         key = window.isKeyWindow
         frame = window.frame
+        input = (window.firstResponder as? FixtureKeyReceiver)?.input ?? ""
+        auxiliary = window is NSPanel
     }
 }
 
-private struct Target {
+struct Target {
     let id: UInt32, owner: Owner, element: AXUIElement
 }
 
-private func ax(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
+func ax(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
     var value: CFTypeRef?
     return AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success ? value : nil
 }
 
-private func axFrame(_ element: AXUIElement) -> CGRect? {
+func axFrame(_ element: AXUIElement) -> CGRect? {
     guard let p = ax(element, kAXPositionAttribute), CFGetTypeID(p) == AXValueGetTypeID(),
           let s = ax(element, kAXSizeAttribute), CFGetTypeID(s) == AXValueGetTypeID() else { return nil }
     var point = CGPoint.zero, size = CGSize.zero
@@ -31,7 +39,7 @@ private func axFrame(_ element: AXUIElement) -> CGRect? {
     return CGRect(origin: point, size: size)
 }
 
-private func enroll(_ owner: Owner, name: String) -> [Target]? {
+func enroll(_ owner: Owner, name: String, auxiliary: Set<Int> = []) -> [Target]? {
     guard (try? birth(owner.pid)) == owner.birth,
           NSRunningApplication(processIdentifier: owner.pid)?.bundleIdentifier == owner.identifier,
           let list = ax(AXUIElementCreateApplication(owner.pid), kAXWindowsAttribute) as? [AXUIElement] else { return nil }
@@ -40,14 +48,14 @@ private func enroll(_ owner: Owner, name: String) -> [Target]? {
         let matches = list.filter { (ax($0, kAXIdentifierAttribute) as? String) == "nearpane.fixture." + name + "." + String(index) }
         guard matches.count == 1, let original = matches.first else { return nil }
         var pid: pid_t = 0
-        guard AXUIElementGetPid(original, &pid) == .success, pid == owner.pid, ax(original, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole
+        guard AXUIElementGetPid(original, &pid) == .success, pid == owner.pid, auxiliary.contains(index) || ax(original, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole
         else { return nil }
         targets.append(.init(id: n, owner: owner, element: original))
     }
     return targets
 }
 
-private func cgFrames(_ targets: [Target]) -> [UInt32: CGRect]? {
+func cgFrames(_ targets: [Target]) -> [UInt32: CGRect]? {
     guard let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
     var frames = [UInt32: CGRect]()
     for target in targets {
@@ -61,7 +69,7 @@ private func cgFrames(_ targets: [Target]) -> [UInt32: CGRect]? {
     return frames
 }
 
-private struct Samples {
+struct Samples {
     let owned: [UInt32: OwnedWindowState]
     let cg: [UInt32: CGRect]
     let axMiniature: [UInt32: Bool]
@@ -69,7 +77,7 @@ private struct Samples {
     let frontPID: pid_t?
 }
 
-@MainActor private func sample(_ targets: [Target], root: URL) async throws -> Samples? {
+@MainActor func sample(_ targets: [Target], root: URL) async throws -> Samples? {
     let nonce = UUID().uuidString
     try nonce.write(to: root.appendingPathComponent("sample"), atomically: true, encoding: .utf8)
     let deadline = ContinuousClock.now + .seconds(1)
@@ -82,8 +90,7 @@ private struct Samples {
     guard Set(own.map(\.number)) == Set(targets.map(\.id)), own.count == targets.count, let cg = cgFrames(targets) else { return nil }
     var bits = [UInt32: Bool](), frames = [UInt32: CGRect]()
     for target in targets {
-        guard let flag = ax(target.element, kAXMinimizedAttribute) as? Bool else { return nil }
-        bits[target.id] = flag
+        bits[target.id] = ax(target.element, kAXMinimizedAttribute) as? Bool
         frames[target.id] = axFrame(target.element)
     }
     return .init(owned: Dictionary(uniqueKeysWithValues: own.map { ($0.number, $0) }), cg: cg, axMiniature: bits, axFrames: frames,

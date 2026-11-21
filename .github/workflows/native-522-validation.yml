@@ -113,6 +113,18 @@ jobs:
           receipt="$RUNNER_TEMP/stage-group-windowserver.json"
           python3 -B scripts/acceptance/stage-groups/windowserver.py "$bin" --hosted-receipt "$receipt"
           cat "$receipt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Compare enrolled three-group window isolation on a disposable desktop
+        run: |
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-comparison "$RUNNER_TEMP/stage-group-isolation"
+          cat "$RUNNER_TEMP/stage-group-isolation/summary.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve full window observations and screen recordings
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stage-group-isolation
+          path: ${{ runner.temp }}/stage-group-isolation
+          if-no-files-found: warn
+          retention-days: 14
       - name: Assess the enrolled private archive on this clean hosted Mac
         if: "${{ !cancelled() && contains(github.event.head_commit.message, '[private-macos-26 ') }}"
         env:

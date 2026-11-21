@@ -11,7 +11,7 @@ import tempfile
 import time
 
 
-def run(build, receipt):
+def run(build, receipt, comparison=None):
     with tempfile.TemporaryDirectory(prefix="nearpane-group-fixture.") as tmp:
         root = Path(tmp).resolve()
         objects = (build / "NearpanePackageTests.product/Objects.LinkFileList").read_text().splitlines()
@@ -22,7 +22,12 @@ def run(build, receipt):
         binary = root / "StageFixture"
         subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-target", platform.machine() + "-apple-macos26.0",
                         "-I", build / "Modules", "-Xcc", "-fmodule-map-file=" + str(build / "CReadOnlySpaces.build/module.modulemap"),
-                        Path(__file__).with_suffix(".swift"), Path(__file__).with_name("visibility.swift"), *inputs, "-o", binary], check=True)
+                        Path(__file__).with_suffix(".swift"), Path(__file__).with_name("visibility.swift"),
+                        Path(__file__).with_name("comparison.swift"), *inputs, "-o", binary], check=True)
+        if comparison:
+            from comparison import run_comparison
+            run_comparison(binary, comparison)
+            return
         if receipt is None:
             return
         result = {"status": "UNKNOWN", "profileRemoved": False, "installedHost": "NOT_RUN",
@@ -98,9 +103,11 @@ if __name__ == "__main__":
     mode = cli.add_mutually_exclusive_group(required=True)
     mode.add_argument("--compile-only", action="store_true")
     mode.add_argument("--hosted-receipt", type=Path)
+    mode.add_argument("--hosted-comparison", type=Path)
     args = cli.parse_args()
-    if args.hosted_receipt:
+    destination = args.hosted_receipt or args.hosted_comparison
+    if destination:
         keys = ("GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "RUNNER_OS")
-        if [os.getenv(k) for k in keys] != ["true", "github-hosted", "macOS"] or args.hosted_receipt.exists():
+        if [os.getenv(k) for k in keys] != ["true", "github-hosted", "macOS"] or destination.exists():
             cli.error("Live tests require a disposable hosted Mac and a new receipt")
-    run(args.build.resolve(strict=True), args.hosted_receipt)
+    run(args.build.resolve(strict=True), args.hosted_receipt, args.hosted_comparison)
