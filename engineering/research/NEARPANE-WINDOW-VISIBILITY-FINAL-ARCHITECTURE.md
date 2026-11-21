@@ -1,6 +1,6 @@
 # Nearpane Window Visibility — Final Architecture Decision
 
-Date: 2026-11-21. Baseline: PR #15, `codex/r4-native-candidate-20261120`, HEAD `3304e464efe92d4e4791532c23ebb52eb6658c6d`.
+Date: 2026-11-21. Baseline: PR #15, `codex/r4-native-candidate-20261120`, HEAD `76d9ca80e1a10f57d0916c8555fa5199d376d4ba`.
 Scope: research and architecture only. No production code, notarization, release, or system preference changes.
 
 ## Executive decision: NO-GO on the requested end-state
@@ -209,3 +209,77 @@ Do not shotgun undocumented symbols, alter Dock preferences, disable SIP, or rep
 Continue safe work on StageGroup editing, same-display exact-window selection, custom layout, composite previews, identity, per-display persistence and passive native-system handoff.
 
 Do not claim inactive groups are hidden or that Nearpane replaces Stage Manager until the visibility provider passes. The missing capability is an OS boundary, not a missing UI feature.
+
+
+## 8. Supplementary final research — PoC at 76d9ca8
+
+Research baseline refreshed: PR #15 branch `codex/r4-native-candidate-20261120`, HEAD `76d9ca80e1a10f57d0916c8555fa5199d376d4ba`. The three PoC commits are:
+- `83b09d6`: introduced three-provider visibility trials, independent observers and owner-process control.
+- `225228c`: added a witnessed setup click and corrected AX availability to an explicit Boolean.
+- `76d9ca8`: uses the calibrated physical-input path for both focus baselines.
+
+Workflow run [44865492229](https://github.com/haohongfei2001-png/nearpane/actions/runs/44865492229) produced two artifacts. Both are **SIP Disabled**, and neither is the target environment:
+| Artifact | OS/build | SIP | Result boundary |
+|---|---|---|---|
+| `visibility-macos-26` (14691403579) | macOS 26.7.2 / 25G332 | Disabled | External SLS variants fail; owner-process control demonstrates a local effect; virtual-display input isolation fails |
+| `visibility-xcode-27` (14692125151) | macOS 27.0.1 / 26A434 | Disabled | Same failure pattern |
+| Required target | macOS 27.0 / 26A428 | **Enabled** | **NOT RUN / UNKNOWN** for this PoC |
+
+Do not conflate macOS 27.0.1 build 26A434 with macOS 27.0 build 26A428. Neither hosted artifact qualifies the target.
+
+### 8.1 SLSOrderWindow and owner positive control
+
+The test resolves `SLSOrderWindow` and transaction symbols. Five foreign-window call modes were attempted from a separate inspector connection: cold main, AppKit-loaded connection, app-main connection, independent connection, and transaction. On both hosted OS builds, each foreign-window hide attempt left the target ordered/on-screen, owner-visible and mouse-hit-testable. Direct calls returned `1000`; transaction order/commit returned non-zero values. These are **FAIL**, not successful hides.
+
+The owner-process positive control is materially different. Calling the same order operation from the owning fixture process did remove the target from the independent CG on-screen list and produced `SLSWindowIsOrderedIn = false`; the test's independent click at the covered point went to the other fixture window, and keyboard focus remained on the keeper. This proves the primitive can affect an owner's own window in this test harness. It does **not** prove an external process can control that window.
+
+The owner control still did not pass the complete contract: the owner's AppKit `NSWindow.isVisible` observation remained true while WindowServer ordering reported out; the full restoration click check was false. Restoration readback did recover ordered-in state, original frame, original Space membership, sibling state and the prior focused window. This is not a clean, end-to-end foreign-window provider.
+
+The virtual-display subtest preserved topology and restored geometry/Space membership after cleanup, but moving the target to the virtual display changed native Space membership during the operation and a real click still reached the parked window. Physical multi-display and physical accidental-pointer tests were not run. It is not a valid isolation mechanism.
+
+### 8.2 AXMinimized and the actual Dock preference
+
+The workflow explicitly set `com.apple.dock minimize-to-application = true` for the experiment and restored the original value afterward. Its original value was absent in both ephemeral hosted accounts; the effective in-test setting was true. This matches the user's stated “Minimize windows into application icon” behavior while the experiment runs, but does not make the hosted account identical to the user's complete Dock/session configuration.
+
+Crucially, the AXMinimized single-window test was **BLOCKED before the minimize action** because the enrolled target was not exposed at its calibrated test point. The same-app second-window case was NOT_RUN. Therefore the experiment did not establish the precise AXMinimized behavior requested.
+
+The separate user-Dock-intervention observation did run after owner-side minimization of two fixture windows: Dock reported zero separate minimized-window tiles before, during and after; clicking the app icon restored A1 only; A0 remained minimized; no Nearpane manager write occurred after the user's click. This is a useful observation, not proof of how two logical StageGroups should reconcile. The exact two-group / same-app scenario remains UNKNOWN.
+
+**Decision on AXMinimized: NOT ACCEPTED as the StageGroup visibility provider.** It is a user-visible minimize operation, not a neutral per-window visibility primitive; its exact same-app/two-group behavior under the user's full account configuration remains UNKNOWN. Do not ship it as a fallback or claim that the Dock preference makes it equivalent to hiding.
+
+### 8.3 Non-activating Occlusion Shield — independent assessment
+
+A Nearpane-owned non-activating `NSPanel` can be made not to become key/main (override `canBecomeKeyWindow` and `canBecomeMainWindow`) and `orderFrontRegardless()` is documented to bring a window to the front of its level without changing key/main status. `ignoresMouseEvents = false` allows the panel to receive mouse events; a custom `hitTest` can route events within the panel's own view hierarchy. Conversely, `ignoresMouseEvents = true` makes it transparent to mouse events. These are distinct behaviors; a panel cannot simultaneously ignore mouse events and serve as the hit-test shield.
+
+ScreenCaptureKit's `SCContentFilter(display:excludingWindows:)` can exclude selected windows from a display capture. It is a capture filter, not a WindowServer visibility or hit-testing API. It can provide pixels for a visual cover, subject to Screen Recording authorization, stream startup/update latency, capture cadence, protected-content behavior and stale-frame risk. It does not remove the source windows from WindowServer, Dock, AX, Spaces, or input routing.
+
+The central Z-order problem is not solved by the public API combination:
+- Window levels are globally ordered; a panel at a higher level covers normal-level target windows as well as inactive windows.
+- At the same level, ordering is a mutable global stack. Repeatedly ordering the active windows above the shield is a race with cross-process activation, window creation, sheets, menus, popovers and app-specific transient windows.
+- Raising the shield above normal windows to guarantee coverage also covers the active group's normal windows. Lowering it to let active windows show leaves no invariant that it remains above every inactive cross-app window.
+- A non-activating panel avoids taking key/main status when ordered front, but it does not make arbitrary foreign windows hidden or guarantee that activation/focus ownership never changes.
+- A panel hit-test only receives events when it is actually the frontmost hit-test candidate at that screen point. It cannot change the underlying target's WindowServer state. A missed Z-order update permits click-through to the inactive target.
+- Window shadows, transparent/rounded window regions, attached sheets, modal panels, app menus, system popovers, notifications and transient windows make a rectangle-only shield incomplete. Per-window shadow geometry is not a stable public occlusion contract.
+- Multiple displays require per-display capture, panel lifecycle, scale/color-space handling and topology generation reconciliation. Display changes can invalidate capture and panel geometry between observation and redraw.
+
+Mission Control is a particular problem. AppKit's `.transient` collection behavior says a panel floats in Spaces and hides in Mission Control, which is useful for not obstructing the system overview, but it is not a guaranteed pre-Mission-Control callback to atomically remove all shields and then rebuild them after the system returns. A panel disappearing can reveal the still-live windows in the overview; re-creation is asynchronous. Native Space changes, Stage Manager, full-screen and Split View remain system-owned transitions.
+
+**Occlusion Shield classification: NO-GO as the primary Window Visibility Provider.** It may be explored later as a strictly cosmetic transition/preview layer with no claim of isolation, but it must never be used to mask an inactive window while asserting mouse safety. The combination can potentially deliver a temporarily covered image and, when correctly stacked, intercept mouse input; it cannot guarantee the invariant under arbitrary cross-app Z-order changes, nor does it make the underlying window WindowServer-hidden.
+
+### 8.4 Three distinct visibility claims
+
+1. **Visually occluded:** pixels are covered by a Nearpane panel or a captured image. The original window still exists and may remain exposed to system observers.
+2. **Input isolated:** every pointer hit at the inactive window's former visible region is intercepted before reaching that window, and keyboard focus/input remain on the intended active window. This requires independent real-input witnesses; a screenshot is insufficient.
+3. **WindowServer-hidden:** the original window is removed from the compositor/order list and no longer participates in normal screen hit-testing. This is stronger than the user-visible goal in some cases, but it is not logically the only acceptable user experience. It is only mandatory if no other mechanism can reliably provide visual correctness and input isolation across all lifecycle cases.
+
+The current evidence does **not** prove that WindowServer-internal hidden state is a necessary product definition. It does prove that the two proposed substitutes (AXMinimized and an overlay shield) are not currently qualified to meet the full product contract.
+
+### 8.5 Final decision and implementation boundary
+
+A. AXMinimized under the user's Dock mode: **NO-GO as the production provider; exact same-app/two-group behavior UNKNOWN** because the AX test was blocked and the paired-window test did not run.
+
+B. Non-activating Occlusion Shield: **NO-GO as the primary isolation architecture** for the Z-order, transient-window, Mission Control and input-safety reasons above.
+
+C. Third-party distribution feasibility: the evidence does **not** prove that every possible ordinary third-party application architecture is impossible. It proves that the currently tested public AX/AppKit/SLS approaches have not delivered the contract, and that the only SLS positive control is owner-process-local. The ordinary app model does not grant a documented public API for arbitrary foreign-window AppKit/WindowServer visibility writes. Therefore full native-equivalent per-window isolation is **UNPROVEN and NO-GO**, not a universal mathematical impossibility theorem.
+
+**Codex's next step is finite and explicit:** do not implement AXMinimized, corner/off-screen parking, an Occlusion Shield as a hide substitute, external SLS writes, or virtual-display parking. Keep production visibility writes disabled. Complete only the safe StageGroup architecture boundary and passive UI work already described in this plan; then stop. Do not open another visibility research loop unless a genuinely new, documented capability or Apple entitlement path is identified. No more speculative PoC variants on the same SLS/overlay/minimize hypotheses.
