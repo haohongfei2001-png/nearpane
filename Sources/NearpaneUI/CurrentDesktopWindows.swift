@@ -369,7 +369,9 @@ import OSLog
             }
             self.lifetimes = next
             if self.panelRequested, self.groups.loadIssue == nil {
-                let candidates = result.displays.flatMap { self.stageWindows(in: result, on: $0) }
+                self.stageEngine.updateGroupProjection(result)
+                let stage = self.stageEngine.snapshotForGroups(result)
+                let candidates = stage.displays.flatMap { self.stageWindows(in: stage, on: $0) }
                 do {
                     if !self.stageEngine.holdsDispatch { try self.groups.observe(candidates) }
                     self.groupIssue = nil

@@ -1,7 +1,7 @@
 import Foundation
 import NearpaneCore
 import Testing
-@testable import NearpaneOrdinaryWindowController
+@testable import NearpaneOrdinaryWindowRuntime
 
 struct TargetedCurrentFocusTests {
     let display = UUID().uuidString, a = UUID(), b = UUID(), fingerprint = String(repeating: "a", count: 64)

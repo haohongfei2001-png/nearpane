@@ -29,6 +29,14 @@ let engineArchive = Context.environment["NEARPANE_ENGINE_ARCHIVE"]
 let engineLink: [LinkerSetting] = [.unsafeFlags([engineArchive]), .linkedLibrary("objc"),
     .linkedFramework("Foundation"), .linkedFramework("AppKit"), .linkedFramework("ApplicationServices"),
     .linkedFramework("CoreGraphics"), .linkedFramework("CoreFoundation"), .linkedFramework("Carbon"), .linkedFramework("Security")]
+// The CLI keeps its own process, TCC identity and signed parent checks. StageGroup links the
+// same checked AX primitives into the Host and uses its sealed in-process binding.
+let ordinarySources = "Sources/NearpaneOrdinaryWindowController"
+let ordinaryRuntimeSources = [
+    "BoundaryChangeTracker.swift", "CreatedWindowWatch.swift", "CurrentFocusScope.swift", "FocusCurrentWindow.swift",
+    "OrdinaryDesktopMembership.swift", "OwnerIdentity.swift", "PairPlacement.swift", "StageHostWindow.swift",
+    "StageWindowPhysicalReader.swift", "SystemEvidence.swift", "WindowMonitor.swift"
+]
 var targets: [Target] = [
     .systemLibrary(name: "CNearpaneWindowEngine", path: "Engine/nearpane-window-engine/include"),
     .target(name: "NearpaneWindowEngine", dependencies: ["NearpaneCore", "CNearpaneWindowEngine"], linkerSettings: engineLink),
@@ -39,13 +47,16 @@ var targets: [Target] = [
     .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .testTarget(name: "NearpaneSpaceActionTests", dependencies: ["NearpaneSpaceAction", "NearpaneCore", "CNativeSpaceActions"]),
     .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
-    .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
+    .target(name: "NearpaneOrdinaryWindowRuntime", dependencies: ["NearpaneCore", "CReadOnlySpaces"],
+            path: ordinarySources, exclude: ["main.swift"], sources: ordinaryRuntimeSources),
+    .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "NearpaneOrdinaryWindowRuntime"],
+                      path: ordinarySources, exclude: ordinaryRuntimeSources, sources: ["main.swift"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
-    .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore", "NearpaneWindowEngine"] + domains),
+    .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore", "NearpaneWindowEngine", "NearpaneOrdinaryWindowRuntime"] + domains),
     .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI", "NearpaneWindowEngine", "CNearpaneWindowEngine"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
         linkerSettings: full ? [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])] : []),
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
-    .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController"]),
+    .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController", "NearpaneOrdinaryWindowRuntime"]),
     .testTarget(name: "NearpaneDesktopReaderTests", dependencies: ["NearpaneDesktopReader", "NearpaneCore"]),
     .testTarget(name: "NearpaneHostTests", dependencies: ["NearpaneHost"]),
     .testTarget(name: "NearpaneCoreTests", dependencies: ["NearpaneCore"]),

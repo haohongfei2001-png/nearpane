@@ -1,12 +1,13 @@
 import AppKit
 import NearpaneCore
+import NearpaneOrdinaryWindowRuntime
 
-/// The signed desktop reader supplies the complete current ordinary roster. The separate signed ordinary
-/// controller retains the AX element for each member and bystander and checks CG, focus and both Space maps.
+/// The signed desktop reader supplies CG and Space metadata. The installed Host retains and checks
+/// the original AX object for each member, and rechecks CG, global focus and both membership maps.
 @MainActor final class StageWindowEngineWitness: StageEngineWindowWitness {
     struct Binding {
         let lifetime: UUID
-        let monitor: OrdinaryWindowAX
+        let monitor: StageHostWindow
         let readOnly: Bool
     }
     struct VisibilityClaim {
@@ -21,10 +22,11 @@ import NearpaneCore
     private var releaseInput: [UInt32]?
     private var owner: StageWindowBackend?, home: OrdinaryDesktopIdentity?, sequence: UInt64 = 0
     private var enrolledTopology: [ManagedDisplayScope]?
+    private var hostAccess: StageHostAccess?
     private var lastSnapshot: DesktopSnapshot?, lastStates = [NativeSpaceWindow:StageWindowState]()
     private var lastSample: StageWindowSample?
     private struct ArrivalWatch {
-        let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: OrdinaryWindowAX
+        let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: StageHostWindow
         let directory: StageGroupDirectory
     }
     private var arrivalWatch: ArrivalWatch?, arrivalAttempt: NativeSpaceWindow?, arrivalEpoch: UInt64 = 0
@@ -66,18 +68,32 @@ import NearpaneCore
         return stripped == baseline
     }
 
-    private func roster(_ snapshot: DesktopSnapshot) throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
+    private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess) throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
         guard snapshot.sessionID == session, snapshot.native?.stageManagerEnabled == false,
-              snapshot.native?.accessibility != .denied, snapshot.native?.catalogComplete == true,
+              snapshot.native?.catalogComplete == true,
               let catalog = NativeSpaceCatalog(snapshot,displayID:display,now:.now,uptime:ProcessInfo.processInfo.systemUptime),
-              catalog.current.ordinaryUUID == scope.nativeSpace, let row = catalog.rows.first(where:{ $0.record == catalog.current }),
-              row.regularWindowListComplete else { throw StageSwitchError.incomplete }
-        var keys = Set<NativeSpaceWindow>()
-        for w in row.windows {
-            guard let k = DesktopWindowKey(w), w.membership == .known(recordIDs:[row.id]), w.displayID == display,
-                  keys.insert(.init(pid:k.pid,birth:k.birth,number:k.number)).inserted else { throw StageSwitchError.incomplete }
+              catalog.current.ordinaryUUID == scope.nativeSpace else { throw StageSwitchError.incomplete }
+        let keys = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id) { key in
+            // An already retained standard window can be unlisted after our Corner/Spaces action.
+            // Its original AX object and current physical state are still verified in the binding loop.
+            if bindings[key] != nil { return true }
+            return try access.role(of: key)
         }
         return (catalog,keys)
+    }
+
+    static func ordinaryRoster(_ windows: [WindowObservation], on display: String, current: String,
+                              role: (NativeSpaceWindow) throws -> Bool) throws -> Set<NativeSpaceWindow> {
+        var candidates = Set<NativeSpaceWindow>(), keys = Set<NativeSpaceWindow>()
+        for w in windows where w.displayID == display {
+            guard case .known(let records) = w.membership else { throw StageSwitchError.incomplete }
+            guard records.contains(current) else { continue }
+            guard records == [current], let k = DesktopWindowKey(w) else { throw StageSwitchError.incomplete }
+            let key = NativeSpaceWindow(pid: k.pid, birth: k.birth, number: k.number)
+            guard candidates.insert(key).inserted, candidates.count <= 64 else { throw StageSwitchError.incomplete }
+            if try role(key) { keys.insert(key) }
+        }
+        return keys
     }
 
     func read(_ requested: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
@@ -88,7 +104,9 @@ import NearpaneCore
                       candidate: (NativeSpaceWindow, Binding)?) async throws -> StageWindowSample {
         guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
               let first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
-        let (opening,keys) = try roster(first)
+        let access = try hostAccess ?? StageHostAccess(expectedCDHash: owner.environment.hostCDHash)
+        hostAccess = access
+        let (opening,keys) = try roster(first, access: access)
         let initial = enrolledTopology ?? first.scopes
         let slots = Set(claims.values.filter { $0.backend == .spaces }.map(\.member))
         guard Self.topology(first.scopes,matches:initial,allowing:slots,on:display) else { throw StageSwitchError.interrupted }
@@ -100,8 +118,7 @@ import NearpaneCore
             for key in keys {
                 let k = DesktopWindowKey(pid:key.pid,birth:key.birth,number:key.number)
                 guard let life = feed.lifetime(of:k), permits(owner,restoring:false) else { throw StageSwitchError.interrupted }
-                let monitor = try await DesktopWindowSelection.bind(k)
-                // The object stays bound in the identical signed worker across hide, show, place, and focus.
+                let monitor = try DesktopWindowSelection.bindStage(k, lifetime: life, home: desktop, owner: owner, access: access)
                 guard monitor.id.pid == key.pid, monitor.id.launch == key.birth, monitor.id.number == key.number,
                       feed.lifetime(of:k) == life else { throw StageSwitchError.ownership }
                 enrolling[key] = .init(lifetime:life,monitor:monitor,readOnly:false)
@@ -116,7 +133,9 @@ import NearpaneCore
         guard home == desktop, keys.isSubset(of:Set(observedBindings.keys)) else { throw StageSwitchError.interrupted }
         var states = [NativeSpaceWindow:StageWindowState](), focuses = [NativeSpaceWindow?]()
         for (key,b) in observedBindings {
-            let observed = try await b.monitor.stageObservation(home:desktop)
+            await Task.yield()
+            guard permits(owner, restoring: false) || permits(owner, restoring: true) else { throw StageSwitchError.interrupted }
+            let observed = try b.monitor.observation(home: desktop)
             let state = try Self.classify(observed,claim:claims[key],home:native,display:opening.display,displays:first.displays)
             if state != .parked, keys.contains(key) != (observed.membership == native) { throw StageSwitchError.incomplete }
             // A confirmed parked sliver can be below the presentation reader's ordinary size cutoff.
@@ -125,7 +144,7 @@ import NearpaneCore
                                 hiddenSpaceID:state == .stageSpace ? observed.membership : nil)
             focuses.append(observed.focus)
         }
-        guard let last = await feed.readAfterAction(), let closing = try? roster(last), closing.1 == keys,
+        guard let last = await feed.readAfterAction(), let closing = try? roster(last, access: access), closing.1 == keys,
               first.revision < last.revision, last.displays == first.displays, closing.0.current == opening.current,
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]
@@ -144,7 +163,7 @@ import NearpaneCore
         arrivalAttempt = nil
         if let watch = arrivalWatch {
             arrivalWatch = nil
-            Task { try? await watch.monitor.setCreationWatch(watch.token, enabled: false) }
+            watch.monitor.endCreation(watch.token)
         }
     }
 
@@ -152,7 +171,7 @@ import NearpaneCore
     /// start a read-only creation subscription. Unsupported AX notifications give no admission.
     func armArrivals(in store: StageGroupStore, authorized: [NativeSpaceWindow: UUID],
                      current: @MainActor () -> Bool) async {
-        guard current(), let home, let sample = lastSample, let baseline = store.arrivalBaseline(sample),
+        guard current(), let sample = lastSample, let baseline = store.arrivalBaseline(sample),
               let source = bindings[baseline.source], !source.readOnly, authorized[baseline.source] == source.lifetime else {
             cancelArrivals(); return
         }
@@ -162,10 +181,10 @@ import NearpaneCore
         cancelArrivals()
         let epoch = arrivalEpoch, token = UUID()
         arrivalAttempt = baseline.source
-        do { try await source.monitor.watchStageCreation(token, home: home) }
+        do { try source.monitor.beginCreation(token) }
         catch { return }
         guard current(), epoch == arrivalEpoch, store.directory == baseline.directory else {
-            try? await source.monitor.setCreationWatch(token, enabled: false); return
+            source.monitor.endCreation(token); return
         }
         arrivalWatch = .init(token: token, group: baseline.group, source: baseline.source,
                              monitor: source.monitor, directory: baseline.directory)
@@ -177,9 +196,8 @@ import NearpaneCore
               let baseline = store.arrivalBaseline(before), baseline.group == watch.group,
               baseline.source == watch.source, store.directory == watch.directory else { return false }
         let epoch = arrivalEpoch
-        let event = try await watch.monitor.nextCreatedWindow(watch.token)
-        guard case .window(let object) = event else { return false }
-        guard let monitor = object as? OrdinaryWindowAX, current(), epoch == arrivalEpoch,
+        guard let monitor = try watch.monitor.nextCreation(watch.token) else { return false }
+        guard current(), epoch == arrivalEpoch,
               monitor.id.pid == watch.source.pid, monitor.id.launch == watch.source.birth else { throw StageSwitchError.ownership }
         let key = NativeSpaceWindow(pid: monitor.id.pid, birth: monitor.id.launch, number: monitor.id.number)
         let desktopKey = DesktopWindowKey(pid: key.pid, birth: key.birth, number: key.number)
@@ -239,19 +257,6 @@ import NearpaneCore
               let focusScope = OrdinaryFocusScope(display:display,topology:snapshot.topologyFingerprint,order:order,
                   physicalDisplay:physical,separateSpaces:snapshot.separateSpaces), focusScope.desktop == home, valid()
         else { throw StageSwitchError.interrupted }
-        let permit = NativeSelectionPermit(current:valid)
-        defer { permit.revoke() }
-        let monitor = b.monitor
-        switch c.action {
-        case .focus:
-            try await monitor.focusCurrent(frame:c.before.frame,display:display,deadline:ProcessInfo.processInfo.systemUptime+5,
-                                           space:home.record,permit:permit,scope:focusScope)
-        case .place(let frame):
-            try monitor.bindDesktop(home)
-            let proof = try await monitor.prepare()
-            guard valid(), proof.first.cgFrame == c.before.frame, proof.second.cgFrame == c.before.frame else { throw StageSwitchError.interrupted }
-            try await monitor.stagePlace(from:c.before.frame,to:frame,desktop:home,permit:permit)
-        default: throw StageSwitchError.ownership
-        }
+        try b.monitor.perform(c, scope: focusScope, current: valid)
     }
 }

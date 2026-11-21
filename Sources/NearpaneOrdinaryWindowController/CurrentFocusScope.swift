@@ -3,14 +3,14 @@ import CReadOnlySpaces
 import NearpaneCore
 
 /// Metadata for one selected window. The reverse lookup never opens other owners' AX trees.
-enum CurrentFocusScope {
-    typealias Evidence = OrdinaryFocusScopeEvidence
-    typealias Finding = OrdinaryFocusScopeFinding
+package enum CurrentFocusScope {
+    package typealias Evidence = OrdinaryFocusScopeEvidence
+    package typealias Finding = OrdinaryFocusScopeFinding
 
-    final class Trace {
-        var findings = [Finding]()
+    package final class Trace {
+        package private(set) var findings = [Finding]()
         let includeConfirmed: Bool
-        init(includeConfirmed: Bool = false) { self.includeConfirmed = includeConfirmed }
+        package init(includeConfirmed: Bool = false) { self.includeConfirmed = includeConfirmed }
         func note(_ point: Finding.Point, _ reason: Finding.Reason, _ state: Evidence,
                   _ expected: Int? = nil, _ observed: Int? = nil) -> Evidence {
             if (includeConfirmed || state != .confirmed), findings.count < 48 {
@@ -117,20 +117,20 @@ enum CurrentFocusScope {
         return trace.note(point, .physicalTopology, state)
     }
 
-    private static func readPhysical() -> Physical? {
+    private static func readPhysical(windowlessHelper: Bool) -> Physical? {
         MainActor.assumeIsolated {
             // Match the AppKit state of the windowless desktop reader that published the fingerprint.
             let app = NSApplication.shared
-            if app.activationPolicy() != .prohibited { app.setActivationPolicy(.prohibited) }
+            if windowlessHelper && app.activationPolicy() != .prohibited { app.setActivationPolicy(.prohibited) }
             guard let sample = try? DesktopDisplayTopology() else { return nil }
             return (sample.displays, sample.separateSpaces, sample.fingerprint)
         }
     }
 
-    static func inspect(_ scope: OrdinaryFocusScope, number: UInt32, trace: Trace,
+    package static func inspect(_ scope: OrdinaryFocusScope, number: UInt32, trace: Trace, windowlessHelper: Bool = true,
                         selectedWindow: () throws -> Evidence) rethrows -> Evidence {
         guard let record = UInt64(scope.desktop.record), record > 0 else { return trace.note(.opening, .currentRecord, .changed) }
-        let before = physical(readPhysical(), for: scope, point: .opening, trace: trace)
+        let before = physical(readPhysical(windowlessHelper: windowlessHelper), for: scope, point: .opening, trace: trace)
         if before == .changed { return .changed }
         func stage(_ point: Finding.Point) -> Evidence {
             let value = StageManagerPreference.read()
@@ -150,7 +150,7 @@ enum CurrentFocusScope {
         let closing = inventory(available ? NPReadInventory() as? [[String: Any]] : nil, for: scope, point: .closing, trace: trace)
         return decide(before, firstStage, opening, exact, membership(number: number, record: record, forward: first, reverse: reverse, point: .opening, trace: trace),
                       membership(number: number, record: record, forward: second, reverse: reverse, point: .closing, trace: trace), closing,
-                      physical(readPhysical(), for: scope, point: .closing, trace: trace), stage(.closing))
+                      physical(readPhysical(windowlessHelper: windowlessHelper), for: scope, point: .closing, trace: trace), stage(.closing))
     }
 
     static func retainedIdentity(_ number: UInt32, candidates: [(number: UInt32?, original: Bool)]) -> Evidence {
@@ -177,7 +177,7 @@ enum CurrentFocusScope {
                       trace.note(.surface, .surfaceFrame, mask == 0 ? .confirmed : .changed, 0, mask))
     }
 
-    static func original(_ id: ManagedWindowID, element: AXUIElement, frame: SurfaceRect, display: String, trace: Trace) -> Evidence {
+    package static func original(_ id: ManagedWindowID, element: AXUIElement, frame: SurfaceRect, display: String, trace: Trace) -> Evidence {
         let presented = WindowSurfaceRecord(number: id.number).map {
             surface(owner: $0.pid, pid: id.pid, layer: $0.layer, visible: $0.reportedOnscreen, drawn: $0.reportedAlpha.map { $0 > 0 },
                     frame: $0.frame, expected: frame, trace: trace)

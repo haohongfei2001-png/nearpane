@@ -3,6 +3,7 @@ import Foundation
 import Observation
 import NearpaneCore
 import NearpaneWindowEngine
+import NearpaneOrdinaryWindowRuntime
 
 /// Operations are enabled by reviewed physical qualification in the signed build. Neither package preferences,
 /// old group/visibility ledgers nor an available Rust symbol can enroll an operating environment.
@@ -16,6 +17,7 @@ import NearpaneWindowEngine
     static let shipped: [StageWindowEngineAttestation.Pin] = []
     private let engine: StageWindowEngineController?, profile: URL?
     private var admissions: [StageEngineQualification]
+    @ObservationIgnored private var groupProjection: DesktopSnapshot?
     private(set) var observedCapability: StageWindowBackend?
     private var needsReassessment = true
     private var lastEnvironmentalRead: TimeInterval = 0
@@ -76,6 +78,55 @@ import NearpaneWindowEngine
         if selected?.evidence != session.owner.evidence { freeze() }
     }
 
+    /// Only a physically qualified Stage environment gets this projection. The signed reader's
+    /// original permission receipt remains the source for the ordinary sidebar and other clients.
+    func updateGroupProjection(_ raw: DesktopSnapshot) {
+        groupProjection = nil
+        guard !Self.shipped.isEmpty, !admissions.isEmpty, raw.native?.catalogComplete == true,
+              raw.native?.stageManagerEnabled == false, let environment = StageWindowEngineAttestation.installedEnvironment(raw),
+              StageEngineQualification.choose(admissions, in: environment, retaining: engine?.session?.owner.backend) != nil,
+              let access = try? StageHostAccess(expectedCDHash: environment.hostCDHash) else { return }
+        groupProjection = Self.projectGroups(raw) { try access.currentSurface($0, home: $1) }
+    }
+
+    static func projectGroups(_ raw: DesktopSnapshot,
+        measure: (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) -> DesktopSnapshot? {
+        guard raw.native?.population == .workWindows, raw.native?.catalogComplete == true,
+              raw.native?.stageManagerEnabled == false, raw.native?.windowLimitReached == false else { return nil }
+        let deadline = ProcessInfo.processInfo.systemUptime + 1
+        var copy = raw, confirmed = false
+        for i in raw.windows.indices {
+            let w = raw.windows[i]
+            guard let record = raw.scopes.first(where: { $0.displayID == w.displayID })?.records.first(where: \.isCurrent),
+                  let uuid = record.ordinaryUUID, w.membership == .known(recordIDs: [record.id]),
+                  let key = DesktopWindowKey(w), var m = w.metadata else { continue }
+            m.overviewOrdinaryRole = nil
+            m.minimized = nil
+            if ProcessInfo.processInfo.systemUptime < deadline {
+                do {
+                    let member = NativeSpaceWindow(pid: key.pid, birth: key.birth, number: key.number)
+                    if let s = try measure(member, .init(display: w.displayID, record: record.id, uuid: uuid)) {
+                        if s.id.pid == key.pid, s.id.launch == key.birth, s.id.number == key.number,
+                           s.membership == UInt64(record.id), s.frame == m.globalFrame, s.onscreen == m.isOnscreen {
+                            m.overviewOrdinaryRole = true; m.fullScreen = false; m.minimized = s.minimized
+                            m.overviewIsPresented = s.onscreen && !s.minimized && m.overviewSpaceID == record.id
+                            confirmed = true
+                        }
+                    } else { m.overviewOrdinaryRole = false }
+                } catch { /* This surface stays unconfirmed. */ }
+            }
+            copy.windows[i].metadata = m
+        }
+        copy.native?.accessibility = confirmed ? .partial : .denied
+        return copy
+    }
+
+    func snapshotForGroups(_ raw: DesktopSnapshot) -> DesktopSnapshot {
+        guard let groupProjection, groupProjection.sessionID == raw.sessionID,
+              groupProjection.revision == raw.revision else { return raw }
+        return groupProjection
+    }
+
     private func watchSystem() {
         guard watchers.isEmpty else { return }
         let workspace = NSWorkspace.shared.notificationCenter
@@ -123,6 +174,7 @@ import NearpaneWindowEngine
     }
 
     func freeze() {
+        groupProjection = nil
         witness?.cancelArrivals()
         consentRequest = nil
         granted = nil
@@ -178,8 +230,9 @@ import NearpaneWindowEngine
     }
 
     func groupChoice(_ group: UUID, member: NativeSidebarMember, in feed: CurrentDesktopWindows,
-                     snapshot: DesktopSnapshot, current: @escaping @MainActor () -> Bool) async throws -> Bool {
+                     snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool) async throws -> Bool {
         guard routesGroupChoice else { return false }
+        let snapshot = snapshotForGroups(raw)
         await heldRefresh?.value
         guard !unreadableLedger, !releasing, !terminationOwnsLane, let engine, let window = feed.groupWindow(member,in:snapshot),
               let space = window.nativeSpace, let saved = feed.groups.groups(in:.init(display:window.display,nativeSpace:space))

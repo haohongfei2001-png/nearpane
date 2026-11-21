@@ -2,7 +2,7 @@ import ApplicationServices
 import Foundation
 import NearpaneCore
 import Testing
-@testable import NearpaneOrdinaryWindowController
+@testable import NearpaneOrdinaryWindowRuntime
 
 struct ExplicitPairPlacementTests {
     let a = ManagedWindowID(pid: 71, launch: 100, number: 44, element: UUID())

@@ -1,5 +1,5 @@
 import Testing
-@testable import NearpaneOrdinaryWindowController
+@testable import NearpaneOrdinaryWindowRuntime
 
 struct StageCreationFocusTests {
     @Test func aNewlyFocusedOriginalAxObjectMustMatchTheCreatedObject() {

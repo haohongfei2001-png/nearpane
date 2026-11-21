@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import NearpaneOrdinaryWindowController
+@testable import NearpaneOrdinaryWindowRuntime
 
 struct OrdinaryDesktopMembershipTests {
     @Test func eachWriteRequiresTheSameOrdinarySpaceUUIDCurrentDisplayAndExclusiveMember() {

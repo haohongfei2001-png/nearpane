@@ -44,7 +44,7 @@ struct DesktopSurface: View {
             // standard-window witness is the only usable fallback for actual users.
             snapshot.windows.removeAll { !$0.canWitnessCurrentSpace }
         }
-        return snapshot
+        return display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.snapshotForGroups(snapshot) ?? snapshot
     }
 
     var body: some View {

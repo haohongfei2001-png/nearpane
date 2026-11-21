@@ -41,9 +41,9 @@ struct StageCreationFocus<Element> {
 
 /// One registration on one selected process. A difference between two window lists
 /// is never evidence that the application actually created a window after consent.
-final class CreatedWindowWatch {
-    let grant: UUID
-    let anchor: ManagedWindowID
+package final class CreatedWindowWatch {
+    package let grant: UUID
+    package let anchor: ManagedWindowID
     let stageHome: OrdinaryDesktopIdentity?
     private var focusPath: StageCreationFocus<AXUIElement>?
     private var observer: AXObserver?
@@ -52,7 +52,7 @@ final class CreatedWindowWatch {
     private var pending: [(AXUIElement, UInt32, TimeInterval)] = []
     private var overflow = false
 
-    init(anchor: ManagedWindowID, grant: UUID, focusedOriginal: AXUIElement? = nil, stageHome: OrdinaryDesktopIdentity? = nil) throws {
+    package init(anchor: ManagedWindowID, grant: UUID, focusedOriginal: AXUIElement? = nil, stageHome: OrdinaryDesktopIdentity? = nil) throws {
         self.anchor = anchor
         self.grant = grant
         self.focusPath = focusedOriginal.map { StageCreationFocus(original: $0, same: { CFEqual($0, $1) }) }
@@ -124,7 +124,7 @@ final class CreatedWindowWatch {
         }
     }
 
-    func take() throws -> (AXUIElement, UInt32)? {
+    package func take() throws -> (AXUIElement, UInt32)? {
         try require(!overflow, "新窗口事件过多，本次授权已过期。")
         let now = ProcessInfo.processInfo.systemUptime
         pending.removeAll { now - $0.2 > 5 }

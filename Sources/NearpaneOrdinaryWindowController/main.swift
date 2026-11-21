@@ -1,6 +1,9 @@
 import AppKit
 import Darwin
 import NearpaneCore
+#if !NEARPANE_WINDOW_SELECTION_FIXTURE
+import NearpaneOrdinaryWindowRuntime
+#endif
 import Security
 
 // No command-line targeting: one installed Host owns both pipes and the worker can bind only one
@@ -34,7 +37,6 @@ final class Worker {
     var app: (Int32,UInt64,String)?
     private var creationWatch: CreatedWindowWatch?
     private var creationHandles = Set<ManagedWindowID>()
-    private var stageReadOnlyHandles = Set<ManagedWindowID>()
     var windowsByID = [ManagedWindowID: WindowMonitor]()
     let previewWindow: UInt32?
     let scopeProbeOnly: Bool
@@ -48,6 +50,8 @@ final class Worker {
         var reply = OrdinaryWindowReply(r.nonce)
         do {
             try require(getppid() == parent, "调用方已退出。")
+            guard r.action != .stageRead && r.action != .stagePlace && !(r.action == .watchCreated && r.desktop != nil)
+            else { throw Refusal("调度组操作只可由当前正式 Host 的已登记窗口会话执行。") }
             if let scope = r.focusScope {
                 try require((r.action == .inspectFocusScope || r.action == .focusCurrent) && r.id != nil && r.expected != nil &&
                     r.destination == nil && r.desktop == nil && r.pairPlacement == nil &&
@@ -90,7 +94,7 @@ final class Worker {
                 let numbers = all.map(number)
                 let counts = Dictionary(grouping:numbers.compactMap { $0 }, by:{ $0 })
                 let previous = windowsByID
-                var retained = previous.filter { $0.value.hasObserver || stageReadOnlyHandles.contains($0.key) }
+                var retained = previous.filter { $0.value.hasObserver }
                 reply.choices = all.enumerated().map { index,e -> ManagedWindowID? in
                     guard let n = numbers[index], counts[n]?.count == 1, previewWindow == nil || previewWindow == n else { return nil }
                     if let (id, existing) = previous.first(where: {
@@ -109,34 +113,9 @@ final class Worker {
             } else {
                 guard let app, app == (r.pid,r.launch,r.bundle), let id = r.id,
                       let m = windowsByID[id] else { throw Refusal("窗口未在本次选择中登记。") }
-                if stageReadOnlyHandles.contains(id), r.action != .stageRead, r.action != .release {
-                    throw StageSwitchError.ownership
-                }
                 switch r.action {
-                case .stageRead:
-                    guard let home = r.desktop, r.destination == nil, r.expected == nil, r.pairPlacement == nil,
-                          r.focusScope == nil, m.canListAgain else { throw Refusal("窗口组的系统读回凭据不完整。") }
-                    try checkOwner(owner,pid:id.pid,launch:id.launch,bundle:r.bundle)
-                    reply.stageObservation = try StageWindowPhysicalReader.read(id,original:m.element,home:home)
-                    try checkOwner(owner,pid:id.pid,launch:id.launch,bundle:r.bundle)
-                case .stagePlace:
-                    guard let home = r.desktop, let from = r.expected, let to = r.destination, r.pairPlacement == nil,
-                          r.focusDeadline != nil else { throw StageSwitchError.incomplete }
-                    try m.bindDesktop(home)
-                    let input = WindowSelectionInput.counters()
-                    var step = 0
-                    var completed = [OrdinaryWindowStep]()
-                    defer { reply.steps = completed }
-                    reply.pair = try m.write(from:from,to:to,placement:nil,retainedPeer:nil,stagePermit:{
-                        var challenge = OrdinaryWindowReply(r.nonce)
-                        challenge.focusStep = step
-                        let decision: NativeSpaceStepPermission
-                        do { decision = try SelectionStepHandshake.exchange(challenge,input:.standardInput,output:.standardOutput) }
-                        catch { exit(75) }
-                        guard getppid() == self.parent, AXIsProcessTrusted(), input == WindowSelectionInput.counters(),
-                              decision.permitsFocus(r,after:step,now:ProcessInfo.processInfo.systemUptime) else { throw StageSwitchError.interrupted }
-                        step += 1
-                    },confirmedStep:{ completed.append($0) })
+                case .stageRead, .stagePlace:
+                    throw Refusal("调度组操作只可由当前正式 Host 的已登记窗口会话执行。")
                 case .inspectFocusScope:
                     guard let scope = r.focusScope, let frame = r.expected else { throw Refusal("缺少定向选窗读回凭据。") }
                     try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)
@@ -196,16 +175,8 @@ final class Worker {
                 case .watchCreated:
                     try checkOwner(owner, pid: r.pid, launch: r.launch, bundle: r.bundle)
                     guard let token = r.creationGrant, m.canListAgain else { throw Refusal("原窗口授权已失效。") }
-                    if let home = r.desktop {
-                        let opening = try StageWindowPhysicalReader.read(id, original: m.element, home: home)
-                        let source = NativeSpaceWindow(pid: id.pid, birth: id.launch, number: id.number)
-                        guard opening.onscreen, !opening.minimized, opening.membership == UInt64(home.record),
-                              opening.focus == source else { throw StageSwitchError.ownership }
-                        creationWatch = try CreatedWindowWatch(anchor: id, grant: token, focusedOriginal: m.element, stageHome: home)
-                    } else {
-                        guard m.hasObserver else { throw Refusal("原窗口授权已失效。") }
-                        creationWatch = try CreatedWindowWatch(anchor: id, grant: token)
-                    }
+                    guard r.desktop == nil, m.hasObserver else { throw Refusal("原窗口授权已失效。") }
+                    creationWatch = try CreatedWindowWatch(anchor: id, grant: token)
                 case .endCreated:
                     if creationWatch?.anchor == id, creationWatch?.grant == r.creationGrant { creationWatch = nil }
                 case .takeCreated:
@@ -218,12 +189,7 @@ final class Worker {
                         // Subscribe and verify before exposing a retained handle. A failed candidate
                         // was already consumed and cannot become a later retry.
                         do {
-                            if let home = watch.stageHome {
-                                let created = try StageWindowPhysicalReader.read(newID, original: element, home: home)
-                                guard created.onscreen, !created.minimized, created.membership == UInt64(home.record)
-                                else { throw StageSwitchError.ownership }
-                                stageReadOnlyHandles.insert(newID)
-                            } else { _ = try monitor.prepare() }
+                            _ = try monitor.prepare()
                             windowsByID[newID] = monitor
                             creationHandles.insert(newID)
                             reply.created = newID
@@ -235,7 +201,6 @@ final class Worker {
                 case .release:
                     if creationWatch?.anchor == id { creationWatch = nil }
                     creationHandles.remove(id)
-                    stageReadOnlyHandles.remove(id)
                     m.stop()
                     windowsByID.removeValue(forKey:id)
                 case .list, .refresh, .checkFocusPermission, .requestFocusPermission: break

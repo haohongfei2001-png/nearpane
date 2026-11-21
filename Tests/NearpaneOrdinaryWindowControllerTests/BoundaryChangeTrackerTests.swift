@@ -1,7 +1,7 @@
 import Foundation
 import NearpaneCore
 import Testing
-@testable import NearpaneOrdinaryWindowController
+@testable import NearpaneOrdinaryWindowRuntime
 
 struct BoundaryChangeTrackerTests {
     private let frame = SurfaceRect(x: -824, y: 80, width: 320, height: 240)

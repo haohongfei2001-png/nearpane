@@ -27,7 +27,7 @@ def main():
     if not archive_path:
         archive_path = subprocess.check_output(["bash", root/"scripts/build-window-engine.sh"], cwd=root, text=True).strip()
     archive = Path(archive_path).resolve(strict=True)
-    target_dirs = {"NearpaneUI.build", "NearpaneCore.build", "NearpaneWindowEngine.build", "WindowGeometryCore.build"}
+    target_dirs = {"NearpaneUI.build", "NearpaneCore.build", "NearpaneWindowEngine.build", "NearpaneOrdinaryWindowRuntime.build", "CReadOnlySpaces.build", "WindowGeometryCore.build"}
     link_file = build / "NearpanePackageTests.product/Objects.LinkFileList"
     objects = [Path(p) for p in link_file.read_text().splitlines() if Path(p).parent.name in target_dirs]
     if {p.parent for p in objects} != {build / d for d in target_dirs}:
@@ -43,6 +43,7 @@ def main():
         source = Path(__file__).with_suffix(".swift")
         subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-target", platform.machine() + "-apple-macos14.0",
                         "-I", build / "Modules", "-I", root/"Engine/nearpane-window-engine/include",
+                        "-Xcc", "-fmodule-map-file=" + str(build / "CReadOnlySpaces.build/module.modulemap"),
                         source, *objects, archive, "-lobjc", "-framework", "Carbon", "-framework", "Security",
                         "-framework", "ApplicationServices", "-o", binary], check=True)
         subprocess.run(["codesign", "--force", "--sign", "-", app], check=True, capture_output=True)

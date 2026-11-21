@@ -68,14 +68,14 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let catalogLogicalFrame: SurfaceRect?
     /// Public ordering, owner visibility and (when available) exact AX window classification.
     /// Membership alone also includes minimized, hidden and ordered-out surfaces.
-    public let overviewIsPresented: Bool?
+    public package(set) var overviewIsPresented: Bool?
     /// Exact-number AX role classification for the overview reader. Nil means no role evidence.
-    public let overviewOrdinaryRole: Bool?
+    public package(set) var overviewOrdinaryRole: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
     public let frontToBack: Int
-    public let minimized, fullScreen: Bool?
+    public package(set) var minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
                 axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil, hasCatalogGeometry: Bool? = nil,
@@ -163,7 +163,7 @@ public struct SidebarWindowReaderProof: Equatable, Codable, Sendable {
 public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     public var sidebarWindowAudit: [SidebarWindowReaderProof]? = nil
     public let population: DesktopReadPopulation
-    public let accessibility: AXReadStatus
+    public package(set) var accessibility: AXReadStatus
     public var spaces: SpaceReadStatus
     public var rows: [ObservedSpaceRow]
     /// Read-only system preference, independent of any individual window's presentation.

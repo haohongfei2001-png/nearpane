@@ -29,15 +29,17 @@ func confirmedRemovalTimes(now: () -> TimeInterval, wait: (Double) -> Void,
     return (first, now())
 }
 
-final class WindowMonitor {
-    let id: ManagedWindowID, bundle: String, element: AXUIElement
+package final class WindowMonitor {
+    package let id: ManagedWindowID, bundle: String, element: AXUIElement
     private let owner: OrdinaryOwnerIdentity
     let parent: pid_t
+    private let signalParent: Bool
     private var observer: AXObserver?, failure: String?
+    private var observerLoop: CFRunLoop?
     private var destroyedAt: TimeInterval?
     private var certifiedClosed = false
-    var canListAgain: Bool { destroyedAt == nil && !certifiedClosed }
-    var hasObserver: Bool { observer != nil }
+    package var canListAgain: Bool { destroyedAt == nil && !certifiedClosed }
+    package var hasObserver: Bool { observer != nil }
     private let incarnation = UUID()
     private var baseline: AdmissionSample?
     private var witnessedSizes = OrdinaryWitnessedSizes()
@@ -50,15 +52,23 @@ final class WindowMonitor {
         [CGMouseButton.left, .right, .center].contains { CGEventSource.buttonState(.combinedSessionState, button: $0) }
     }
 
-    init(id: ManagedWindowID, bundle: String, element: AXUIElement, parent: pid_t, owner: OrdinaryOwnerIdentity) {
+    package init(id: ManagedWindowID, bundle: String, element: AXUIElement, parent: pid_t, owner: OrdinaryOwnerIdentity, signalParent: Bool = true) {
+        self.signalParent = signalParent
         self.owner = owner
         self.id = id; self.bundle = bundle; self.element = element; self.parent = parent
     }
 
-    func stop() {
-        if let observer {
-            CFRunLoopRemoveSource(CFRunLoopGetCurrent(),AXObserverGetRunLoopSource(observer),.defaultMode)
+    deinit { removeObserver() }
+
+    private func removeObserver() {
+        if let observer, let observerLoop {
+            CFRunLoopRemoveSource(observerLoop, AXObserverGetRunLoopSource(observer), .defaultMode)
         }
+        observerLoop = nil
+    }
+
+    package func stop() {
+        removeObserver()
         observer = nil
         failure = "窗口观察已结束。"
     }
@@ -79,7 +89,9 @@ final class WindowMonitor {
                         "窗口不支持所需系统通知（" + name + "）。")
         }
         observer = result
-        CFRunLoopAddSource(CFRunLoopGetCurrent(),AXObserverGetRunLoopSource(result),.defaultMode)
+        let loop = CFRunLoopGetCurrent()!
+        observerLoop = loop
+        CFRunLoopAddSource(loop, AXObserverGetRunLoopSource(result), .defaultMode)
     }
 
     private func receive(_ source: AXUIElement, _ event: String) {
@@ -94,7 +106,7 @@ final class WindowMonitor {
         if waitingFor == nil, event == kAXWindowMovedNotification || event == kAXWindowResizedNotification {
             let firstNotice = !changes.pending
             changes.received(at: ProcessInfo.processInfo.systemUptime)
-            if firstNotice {
+            if firstNotice && signalParent {
                 // A nonblocking, coalesced wakeup to the verified parent. No window or
                 // input data is sent; a missed signal falls back to its regular poll.
                 var signal: UInt8 = 0x1E
@@ -142,7 +154,7 @@ final class WindowMonitor {
         return .init(first:a,second:b)
     }
 
-    func prepare() throws -> AdmissionPair {
+    package func prepare() throws -> AdmissionPair {
         try check()
         try start()
         let p = try pair(expected:expectedFrame)
@@ -156,7 +168,7 @@ final class WindowMonitor {
         return p
     }
 
-    func observeBoundary(_ frame: SurfaceRect) throws -> OrdinaryBoundaryObservation {
+    package func observeBoundary(_ frame: SurfaceRect) throws -> OrdinaryBoundaryObservation {
         try require(baseline != nil && expectedFrame == frame && displayWitness != nil, "窗口边界基线已失效。")
         try check()
         drainWindowEvents(0.004)
@@ -179,7 +191,7 @@ final class WindowMonitor {
         return .init(pair: p, previous: frame, revision: ticket, settled: true)
     }
 
-    func acknowledgeBoundary(from previous: SurfaceRect, current: SurfaceRect, revision: UUID) throws -> AdmissionPair {
+    package func acknowledgeBoundary(from previous: SurfaceRect, current: SurfaceRect, revision: UUID) throws -> AdmissionPair {
         try require(baseline != nil && expectedFrame == previous && displayWitness != nil, "边界观测的原窗口已变化。")
         try changes.validate(revision, frame: current, at: ProcessInfo.processInfo.systemUptime, buttonDown: buttonDown)
         let p = try pair(expected: current, boundary: true)
@@ -189,13 +201,13 @@ final class WindowMonitor {
         return p
     }
 
-    func verify(_ frame: SurfaceRect) throws -> AdmissionPair {
+    package func verify(_ frame: SurfaceRect) throws -> AdmissionPair {
         try require(baseline != nil && expectedFrame == frame, "窗口事务与观察器基线不符。")
         do { return try pair(expected:frame) }
         catch { failure = (error as? Refusal)?.message ?? "窗口状态无法核对。"; throw error }
     }
 
-    func closure(expected: SurfaceRect) throws -> OrdinaryWindowClosure {
+    package func closure(expected: SurfaceRect) throws -> OrdinaryWindowClosure {
         guard hasObserver, baseline != nil, expectedFrame == expected, waitingFor == nil,
               getppid() == parent else { throw Refusal("未取得原窗口的连续关闭见证。") }
         let notificationTime = destroyedAt
@@ -227,7 +239,7 @@ final class WindowMonitor {
 
     private(set) var desktop: OrdinaryDesktopIdentity?
 
-    func bindDesktop(_ value: OrdinaryDesktopIdentity) throws {
+    package func bindDesktop(_ value: OrdinaryDesktopIdentity) throws {
         try require(desktop == value || (desktop == nil && !hasObserver), "窗口授权所属桌面已变化。")
         try require(OrdinaryDesktopMembership.contains(id.number, display: value.display, record: value.record, uuid: value.uuid),
                     "未确认窗口唯一属于本屏当前的普通桌面。")
@@ -241,8 +253,8 @@ final class WindowMonitor {
         }
     }
 
-    func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement?, retainedPeer: AXUIElement?,
-               stagePermit: (() throws -> Void)? = nil, confirmedStep: (OrdinaryWindowStep) -> Void) throws -> AdmissionPair {
+    package func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement?, retainedPeer: AXUIElement?,
+               stageDeadline: TimeInterval? = nil, stagePermit: (() throws -> Void)? = nil, confirmedStep: (OrdinaryWindowStep) -> Void) throws -> AdmissionPair {
         let before = try verify(from)
         try checkDesktop(before.second.display)
         guard let floor = before.second.minimum, let display = before.second.display, to.geometry.isValid,
@@ -285,7 +297,7 @@ final class WindowMonitor {
         do {
             for next in route where next != prior {
                 try focus.check()
-                confirmedStep(try step(from: prior, to: next, focus: focus, fence: fence, final: to, stagePermit: stagePermit))
+                confirmedStep(try step(from: prior, to: next, focus: focus, fence: fence, final: to, stageDeadline: stageDeadline, stagePermit: stagePermit))
                 prior = next
             }
             let confirmed = try pair(expected:to)
@@ -320,7 +332,7 @@ final class WindowMonitor {
     }
 
     private func step(from: SurfaceRect, to: SurfaceRect, focus: FrontFocus, fence: PairPlacementFence?,
-                      final: SurfaceRect, stagePermit: (() throws -> Void)?) throws -> OrdinaryWindowStep {
+                      final: SurfaceRect, stageDeadline: TimeInterval?, stagePermit: (() throws -> Void)?) throws -> OrdinaryWindowStep {
         drainWindowEvents(0.006)
         let pre = try read()
         let targetDisplay = try acknowledgedMotion ? displayWitness.map { try boundaryDisplayID(to, witness: $0) } : displayID(to)
@@ -350,6 +362,7 @@ final class WindowMonitor {
         }
         waitingFor = event; notificationCount = 0
         defer { waitingFor = nil }
+        if let stageDeadline { try require(ProcessInfo.processInfo.systemUptime < stageDeadline, "本次调度布局已过期。") }
         let rc = AXUIElementSetAttributeValue(element,key as CFString,value)
         if fence != nil && rc != .success {
             let outcome: String

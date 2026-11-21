@@ -107,7 +107,7 @@ private actor OrdinaryWindowChannel {
                 let message = try JSONDecoder().decode(OrdinaryWindowReply.self, from: result)
                 guard message.nonce == command.nonce else { throw OrdinaryWindowFailure("收到过期的窗口操作回执。") }
                 guard let step = message.focusStep else { reply = message; break }
-                guard command.action == .focusCurrent || command.action == .stagePlace, nextStep == step, step < 8, let permit else {
+                guard command.action == .focusCurrent, nextStep == step, step < 8, let permit else {
                     throw OrdinaryWindowFailure("窗口助手的焦点步骤无效。")
                 }
                 let decision = permit.permission(for: command.nonce, after: step)
@@ -272,12 +272,6 @@ private actor OrdinaryWindowChannel {
                                          bundle: bundle, id: id, creationGrant: token))
     }
 
-    func watchStageCreation(_ token: UUID, home: OrdinaryDesktopIdentity) async throws {
-        guard !closed else { throw OrdinaryRefusal.lost }
-        _ = try await channel.call(.init(.watchCreated, pid: id.pid, launch: id.launch, bundle: bundle,
-                                         id: id, creationGrant: token, desktop: home))
-    }
-
     func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult {
         guard !closed else { throw OrdinaryRefusal.lost }
         let reply = try await channel.call(.init(.takeCreated, pid: id.pid, launch: id.launch, bundle: bundle,
@@ -296,21 +290,6 @@ private actor OrdinaryWindowChannel {
         guard desktopBinding == nil || desktopBinding == value else { throw OrdinaryRefusal.scope }
         desktopBinding = value
     }
-    func stageObservation(home: OrdinaryDesktopIdentity) async throws -> StageWindowPhysicalObservation {
-        guard !closed else { throw OrdinaryRefusal.lost }
-        let r = try await channel.call(.init(.stageRead,pid:id.pid,launch:id.launch,bundle:bundle,id:id,desktop:home))
-        guard !closed, let observed = r.stageObservation, observed.id == id else { throw OrdinaryRefusal.lost }
-        return observed
-    }
-
-    func stagePlace(from: SurfaceRect, to: SurfaceRect, desktop: OrdinaryDesktopIdentity, permit: NativeSelectionPermit) async throws {
-        guard !closed, desktopBinding == desktop else { throw OrdinaryRefusal.scope }
-        let r = try await channel.call(.init(.stagePlace,pid:id.pid,launch:id.launch,bundle:bundle,id:id,expected:from,destination:to,
-            focusDeadline:ProcessInfo.processInfo.systemUptime+5,desktop:desktop),permit:permit)
-        guard !closed, let pair = r.pair, pair.first.id == id, pair.second.id == id,
-              pair.first.cgFrame == to, pair.second.cgFrame == to else { throw OrdinaryRefusal.stale }
-    }
-
     func prepare() async throws -> AdmissionPair { try await sample(.prepare) }
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation {
         guard !closed else { throw OrdinaryRefusal.lost }

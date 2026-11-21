@@ -1,6 +1,6 @@
 import AppKit
 import Testing
-@testable import NearpaneOrdinaryWindowController
+@testable import NearpaneOrdinaryWindowRuntime
 
 struct OwnerIdentityTests {
     private final class App: OrdinaryApplicationReference {

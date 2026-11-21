@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import NearpaneCore
+import NearpaneOrdinaryWindowRuntime
 import OSLog
 
 extension DesktopWindowTarget {
@@ -125,6 +126,13 @@ extension DesktopWindowTarget {
             $0[kCGWindowLayer as String] as? Int == 0 }
         return sameOwner.count == 1 && sameOwner[0][kCGWindowNumber as String] as? UInt32 == key.number &&
             (!requireVisible || sameOwner[0][kCGWindowIsOnscreen as String] as? Bool == true)
+    }
+
+    /// Stage operations use a retained Host AX object. The ordinary sidebar continues to use its signed controller.
+    static func bindStage(_ key: DesktopWindowKey, lifetime: UUID, home: OrdinaryDesktopIdentity,
+                          owner: StageEngineOwner, access: StageHostAccess) throws -> StageHostWindow {
+        try StageHostWindow.bind(.init(pid: key.pid, birth: key.birth, number: key.number), lifetime: lifetime,
+                                 home: home, engine: owner, access: access)
     }
 
     static func bind(_ key: DesktopWindowKey) async throws -> OrdinaryWindowAX {

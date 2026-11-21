@@ -4,9 +4,9 @@ import CReadOnlySpaces
 import NearpaneCore
 
 /// A direct, single user selection. No frame setters, keyboard shortcuts or Space actions.
-func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: OrdinaryOwnerIdentity,
+package func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: OrdinaryOwnerIdentity,
                         bundle: String, frame: SurfaceRect, display: String, deadline: TimeInterval, space: String? = nil,
-                        scope: OrdinaryFocusScope? = nil, timing: WindowFocusTiming? = nil, permit: () throws -> Void) throws {
+                        scope: OrdinaryFocusScope? = nil, timing: WindowFocusTiming? = nil, windowlessHelper: Bool = true, permit: () throws -> Void) throws {
     let app = AXUIElementCreateApplication(id.pid)
     var writes = WindowFocusTiming.Writes(timing, .worker)
     try require(AXUIElementSetMessagingTimeout(app, 0.18) == .success, "无法及时核对应用。")
@@ -33,7 +33,7 @@ func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner: Ordina
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         if let scope {
             let trace = CurrentFocusScope.Trace()
-            let evidence = CurrentFocusScope.inspect(scope, number: id.number, trace: trace) {
+            let evidence = CurrentFocusScope.inspect(scope, number: id.number, trace: trace, windowlessHelper: windowlessHelper) {
                 CurrentFocusScope.original(id, element: element, frame: frame, display: display, trace: trace)
             }
             if evidence != .confirmed { timing?.scopeFindings(trace.findings, from: .worker) }
