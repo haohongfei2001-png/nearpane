@@ -12,9 +12,9 @@ fi
 developer_dir="$(xcode-select -p)"
 toolchain_bin="$(dirname "$(xcrun --find swiftc)")"
 testing_frameworks="$developer_dir/Library/Developer/Frameworks"
-testing_flags=()
+testing_flags=(--disable-xctest --enable-swift-testing)
 if [ -d "$testing_frameworks/Testing.framework" ]; then
-  testing_flags=(-Xswiftc -F -Xswiftc "$testing_frameworks"
+  testing_flags+=(-Xswiftc -F -Xswiftc "$testing_frameworks"
     -Xlinker -F -Xlinker "$testing_frameworks"
     -Xlinker -rpath -Xlinker "$testing_frameworks"
     -Xswiftc -external-plugin-path
@@ -22,6 +22,6 @@ if [ -d "$testing_frameworks/Testing.framework" ]; then
 fi
 scratch="$build_root/native"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then scratch="$build_root/native-foundation"; fi
-swift test --build-system native --disable-xctest --enable-swift-testing --disable-sandbox \
+swift test --build-system native --disable-sandbox \
   --scratch-path "$scratch" --cache-path "$build_root/cache" --config-path "$build_root/config" \
   --security-path "$build_root/security" "${testing_flags[@]}" "$@"

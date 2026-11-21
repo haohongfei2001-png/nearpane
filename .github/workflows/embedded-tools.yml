@@ -23,6 +23,7 @@ on:
       - 'scripts/prepare-domains.py'
       - 'scripts/profile_domains.py'
       - 'scripts/test-dependencies.py'
+      - 'scripts/test.sh'
       - 'scripts/verify-packages.py'
 permissions:
   contents: read
