@@ -2,6 +2,7 @@
 
 Date: 2026-11-21. Applies to every future visibility provider and StageGroup release.
 Reference: Apple Stage Manager on the same physical Mac and same macOS build.
+Evidence baseline for this supplement: PR #15 HEAD `76d9ca80e1a10f57d0916c8555fa5199d376d4ba`; hosted run 44865492229 (macOS 26.7.2 / 25G332 and macOS 27.0.1 / 26A434, both SIP Disabled). Target macOS 27.0 / 26A428 with SIP Enabled was not tested.
 
 ## 1. Definition of success
 
