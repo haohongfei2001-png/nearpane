@@ -258,7 +258,9 @@ class TestTemporaryInstall(unittest.TestCase):
         inputs["expectedSpace"] = 45
         tool.persist(lease, inputs)
         report = tool.supervise(self.mac, self.args, lambda: 0)
-        self.assertEqual(self.mac.actions, ["quit-daily","launch-isolated","P2","quit-isolated","launch-daily"])
+        self.assertEqual(self.mac.actions, ["quit-daily","launch-isolated","installed-permissions","P2","quit-isolated","launch-daily"])
+        self.assertEqual(report["hostPermissions"]["status"], "OBSERVED")
+        self.assertFalse(report["hostPermissions"]["accessibility"])
         self.assertEqual(report["focusLease"], inputs)
         self.assertEqual(report["restoration"], "PASS")
         self.assertEqual(report["cleanup"], "PASS")
