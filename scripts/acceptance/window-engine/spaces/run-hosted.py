@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 
 
@@ -31,6 +32,20 @@ def completed(routes, requested):
         and routes[name]["cleanup"] is True
         for name in requested
     )
+
+
+def build_receipt(result, roots):
+    stderr = result.stderr or ""
+    for path in sorted((str(p) for p in roots if p), key=len, reverse=True):
+        stderr = stderr.replace(path, "<fixture-build-path>")
+    identity = os.getenv("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "")
+    if identity and identity != "-":
+        stderr = stderr.replace(identity, "<fixture-signing-identity>")
+    stderr = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", stderr)
+    lines = ["".join(c for c in row if c.isprintable() or c == "\t") for row in stderr.splitlines()]
+    safe = "\n".join(lines)
+    return {"stage": "buildLinkAndVerifySignedFixture", "exit": result.returncode,
+            "stderr": safe[-8192:], "truncated": len(safe) > 8192}
 
 
 def main():
@@ -61,8 +76,15 @@ def main():
     work = Path(__file__).resolve().parent
     try:
         archive = args.archive.resolve(strict=True)
-        build = subprocess.run([work / "build-fixture.sh", archive, out / "fixture"], check=True,
+        build = subprocess.run([work / "build-fixture.sh", archive, out / "fixture"],
                                capture_output=True, text=True, timeout=90)
+        build_report = build_receipt(build, [out, archive, work.parents[3], os.getenv("RUNNER_TEMP"), Path.home()])
+        (out / "build.json").write_text(json.dumps(build_report, indent=2) + "\n")
+        summary["build"] = {"exit": build.returncode, "evidence": "build.json"}
+        if build.returncode:
+            summary.update(status="BLOCKED", reason="fixtureBuildOrLinkFailedBeforeAppLaunch")
+            save()
+            return 2
         executable = Path(build.stdout.rstrip()) / "Contents/MacOS/SpacesGate"
         summary["fixtureSHA256"] = hashlib.sha256(executable.read_bytes()).hexdigest()
         summary["archiveSHA256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
@@ -100,8 +122,10 @@ def main():
                 break
         if completed(summary["routes"], requested):
             summary.update(status="OWN_FIXTURE_PASS", hostedOwnWindowTrial="PASS")
-    except (OSError, subprocess.SubprocessError) as error:
-        summary.update(status="UNKNOWN", reason=type(error).__name__)
+    except subprocess.TimeoutExpired:
+        summary.update(status="UNKNOWN", reason="fixtureBuildTimedOutBeforeAppLaunch")
+    except OSError as error:
+        summary.update(status="UNKNOWN", reason="fixtureIOOrProcessLaunchFailed", errno=error.errno)
     save()
     return 0 if summary["status"] == "OWN_FIXTURE_PASS" else 2
 

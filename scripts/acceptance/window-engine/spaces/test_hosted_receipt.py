@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from types import SimpleNamespace
 
 spec = importlib.util.spec_from_file_location("hosted_spaces", Path(__file__).with_name("run-hosted.py"))
 hosted = importlib.util.module_from_spec(spec)
@@ -8,6 +9,13 @@ spec.loader.exec_module(hosted)
 
 
 class HostedReceipt(unittest.TestCase):
+    def test_linker_stderr_persists_symbol_exit_and_normalizes_build_path(self):
+        result = SimpleNamespace(returncode=1, stderr="Undefined _IsSecureEventInputEnabled in /Users/test/private/CORNER.o\n")
+        receipt = hosted.build_receipt(result, ["/Users/test/private"])
+        self.assertEqual(receipt["exit"],1)
+        self.assertIn("_IsSecureEventInputEnabled",receipt["stderr"])
+        self.assertNotIn("/Users/test",receipt["stderr"])
+
     def sample(self, **changes):
         end = dict(status="OWN_FIXTURE_PASS", originalMembershipAndCleanup=True, originalSpaceSetRestored=True)
         end.update(changes)
