@@ -105,6 +105,14 @@ struct State {
     closed: bool,
 }
 impl State {
+    fn can_run_probe(&self, r: &Request) -> bool {
+        match r.operation {
+            LAUNCH => self.owner.is_none(),
+            // The backend also proves the no-panel/no-space case following a pre-dispatch denial.
+            CLEAN_LAUNCH => self.owner.is_none() || self.unresolved.contains(&Lease::from(r)),
+            _ => true,
+        }
+    }
     fn record_write(&mut self, request: &Request, result: &Outcome) {
         let lease = Lease::from(request);
         let canary = matches!(request.operation, LAUNCH | CLEAN_LAUNCH);
@@ -353,9 +361,7 @@ fn process(
             && s.owner.is_none_or(|b| b == r.backend)
             && ((s.unresolved.is_empty() && !s.health_lost)
                 || matches!(r.operation, RESTORE | CLEAN_LAUNCH))
-            && (!matches!(r.operation, LAUNCH | CLEAN_LAUNCH)
-                || (r.operation == LAUNCH && s.owner.is_none())
-                || (r.operation == CLEAN_LAUNCH && s.unresolved.contains(&Lease::from(&r))));
+            && s.can_run_probe(&r);
         let Some(ticket) = s.tickets.get_mut(&job.id) else {
             return;
         };
@@ -403,6 +409,25 @@ fn terminal(r: Request, result: Outcome, elapsed: Duration) -> Receipt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cleanup_after_a_denied_startup_cannot_release_a_business_window() {
+        let mut s = State::default();
+        let cleanup = Request {
+            operation: CLEAN_LAUNCH,
+            backend: SPACES,
+            ..Default::default()
+        };
+        assert!(s.can_run_probe(&cleanup));
+        let unrelated = Request {
+            operation: HIDE,
+            backend: SPACES,
+            member: [3; 16],
+            ..Default::default()
+        };
+        s.record_write(&unrelated, &Outcome::new(UNKNOWN));
+        assert!(!s.can_run_probe(&cleanup));
+        assert!(s.owner.is_some() && !s.unresolved.is_empty());
+    }
     #[test]
     fn bounded_queue_and_terminal_timeout_do_not_depend_on_a_stalled_worker() {
         let (tx, _rx) = mpsc::sync_channel(LIMIT);
