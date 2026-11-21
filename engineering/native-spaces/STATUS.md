@@ -6,6 +6,8 @@
 
 Chrome、Edge 各完成 9 个无界面草稿场景，两边均记录到原文件的实际写入，错误目标写入和消息提交均为零。登录网站的 Apple Events 附加尚未实测。语音的 6 个冷启动样本通过首段 PCM、整段字节和独立进程重开核对。测试进程缺少默认中文识别模型，最终转写准确率为 **BLOCKED**。 [分项收据及失败记录](../verification/embedded-tools/5.22-90/verification.json)
 
+云端复测发现资料迁移测试会阻塞主线程上的音频投递。在同一资料子进程等待五秒的对照中，同步等待触发三秒断流保护，异步等待时语音冷启动测试用时 0.376 秒并通过。 [云端失败日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/44872934420)
+
 ## 2026-11-21 · 第三方窗口可见性复核
 
 整组隐藏与恢复仍为 **BLOCKED**。在使用“最小化至应用程序图标”的 macOS 26.7.2 和 27.0.1 隔离会话，AX 路线保持 Dock 图块为 0，但恢复 A0 后实际按键从 A1 移到 A0。五种外部 SkyLight 排序均未实现逐窗隐藏与恢复。虚拟显示器改变了原生 Space，停放窗收到真实点击，并出现在 Apple Mission Control 中。精确构建 26A428、SIP 开启的日常 Mac 已完成只读预检。正式窗口提供器保持关闭。 [可行性裁决与计划](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-FEASIBILITY.md) · [原始证据与截图](../verification/stage-groups/visibility-feasibility/README.md)

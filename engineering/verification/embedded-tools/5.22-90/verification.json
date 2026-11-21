@@ -175,6 +175,19 @@
       "status": "FAIL",
       "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44871669207",
       "finding": "System Bash with nounset rejected empty testing_flags on the hosted SDK. The test runner now keeps the shared Swift Testing options in that array."
+    },
+    {
+      "scope": "concurrent projection and cold-audio fixtures",
+      "status": "FAIL",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44872934420",
+      "finding": "The MainActor profile fixture synchronously waited for Python and starved the paced WAV producer. The worker reported no microphone frames. The fixture now awaits the child's termination without blocking the audio producer.",
+      "controlledComparison": {
+        "system": "macOS 27.0 (26A428)",
+        "filter": "coldCaptureWaitsForActualPCMAndAcceptsSilentInput|profileProjectionReadsBothEmbeddedWritersAndPreservesRetiredMedia",
+        "setup": "Five-second sleep in the isolated Python child for both controls, removed after this comparison. No audio hardware or browser was opened.",
+        "synchronousWait": {"status": "FAIL", "voiceSeconds": 5.279, "profileSeconds": 5.275, "error": "麦克风停止提供音频，请确认设备和权限后恢复"},
+        "asynchronousWait": {"status": "PASS", "voiceSeconds": 0.376, "profileSeconds": 5.368}
+      }
     }
   ],
   "rollback": {

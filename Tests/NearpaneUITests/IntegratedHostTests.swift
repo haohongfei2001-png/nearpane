@@ -112,11 +112,13 @@ struct IntegratedHostTests {
             assert p.tray_contents(copy,dest)['trayAssets']==3
         """
         let check = Process()
-        check.executableURL = URL(fileURLWithPath:"/usr/bin/python3")
-        check.arguments = ["-I","-B","-c",script,root.path]
-        try check.run()
-        check.waitUntilExit()
-        #expect(check.terminationStatus == 0)
+        check.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        check.arguments = ["-I", "-B", "-c", script, root.path]
+        let status: Int32 = try await withCheckedThrowingContinuation { completion in
+            check.terminationHandler = { completion.resume(returning: $0.terminationStatus) }
+            do { try check.run() } catch { completion.resume(throwing: error) }
+        }
+        try #require(status == 0)
         let reopened = try ExistingLibrary.open(root.appendingPathComponent("projection/Riftlet"))
         #expect(try await reopened.store.isRetiredMedia(id))
     }
