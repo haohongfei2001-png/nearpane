@@ -50,7 +50,7 @@
     NSArray *ids = [self.windows valueForKey:@"windowNumber"];
     saveJSON(@{@"pid":@(getpid()),@"generation":@(generation(getpid())),@"bundle":expected,@"windows":ids},
              [self.root stringByAppendingPathComponent:[self.name stringByAppendingString:@".json"]]);
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:.025 repeats:YES block:^(NSTimer *timer) { [self tick]; }];
+    self.timer = [NSTimer scheduledTimerWithTimeInterval:.025 repeats:YES block:^(__unused NSTimer *timer) { [self tick]; }];
 }
 - (void)tick {
     if ([[NSFileManager defaultManager] fileExistsAtPath:[self.root stringByAppendingPathComponent:@"stop"]]) { [NSApp terminate:nil]; return; }
@@ -63,6 +63,8 @@
     NSWindow *target = self.windows[index]; NSDictionary *action = @{};
     if ([op isEqual:@"seed"] && [self.name isEqual:@"A"]) { [NSApp activateIgnoringOtherApps:YES]; [target makeKeyAndOrderFront:nil]; [target makeFirstResponder:target.contentView]; }
     if ([op isEqual:@"front"]) [target orderFront:nil];
+    if ([op isEqual:@"present-for-setup"]) [target orderFrontRegardless];
+    if ([op isEqual:@"owner-out"]) [target orderOut:nil];
     if ([op isEqual:@"reset"]) { if (target.isMiniaturized) [target deminiaturize:nil]; [target orderFront:nil]; }
     if ([op isEqual:@"mini"]) [target miniaturize:nil];
     if ([op isEqual:@"raw-out"] || [op isEqual:@"raw-in"]) {

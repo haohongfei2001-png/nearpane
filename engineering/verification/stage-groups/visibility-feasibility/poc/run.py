@@ -70,6 +70,7 @@ class Trial:
         self.root, self.out = root, out
         self.bin = root / "bin"
         self.hosts = []
+        self.lease_reader = None
         self.entries = {"methods": {}, "scope": "disposable registered fixture owners and separate inspector"}
         self.seq = 0
         self.ledger = (out / "observations.jsonl").open("x")
@@ -109,9 +110,16 @@ class Trial:
                 cmd.extend(["--env", k + "=" + os.environ[k]])
             self.hosts.append(subprocess.Popen([*cmd,"-a",str(bundle),"--args",name,str(self.root)], stdout=self.log,stderr=self.log))
             self.event("registered-"+name, await_file(self.root / (name+".json"), 14))
+        self.lease_reader = subprocess.Popen([self.bin/"Inspect",self.root,"leases"], stdin=subprocess.PIPE,
+                                             stdout=subprocess.PIPE, stderr=self.log, text=True)
+        enrollment = self.event("retained-AX-reader",json.loads(self.lease_reader.stdout.readline()))
+        if set(enrollment["enrolled"]) != {"A0","A1","B0","B1"}:
+            raise RuntimeError("could not enroll every AX lease before the trials")
 
     def snap(self, phase):
         obs = self.inspected("snapshot")
+        self.lease_reader.stdin.write("sample\n"); self.lease_reader.stdin.flush()
+        leases=json.loads(self.lease_reader.stdout.readline())
         for name in ("A","B"):
             records = self.command(name,"sample")["windows"]
             for index, record in enumerate(records):
@@ -119,6 +127,7 @@ class Trial:
                 if data["number"] != record["id"]:
                     raise RuntimeError("observer and owner window IDs disagree")
                 data["owner"] = record
+                data["axLease"] = leases[name + str(index)]
         return self.event(phase, obs)
 
     def seed_focus(self, tag, index):
@@ -144,6 +153,8 @@ class Trial:
         self.command("A","reset",0)
         self.command("A","reset",1)
         self.seed_focus(phase,1)
+        self.command("A","present-for-setup",0)
+        time.sleep(.22)
         s = self.snap(phase + ".baseline")
         if not s["axTrusted"] or not s["postAllowed"] or not s["cgListsAvailable"]:
             raise RuntimeError("WindowServer/AX/input unavailable")
@@ -151,7 +162,7 @@ class Trial:
         if not a["axFrame"] or not a["cgScreen"] or self.focused(s,"A1") is not True:
             raise RuntimeError("initial exact fixture focus or visibility unavailable")
         point = center(a["axFrame"])
-        if self.inspected("hit",*point)["cgFrontWindow"] != a["number"]:
+        if self.event(phase+".baseline-hit",self.inspected("hit",*point))["cgFrontWindow"] != a["number"]:
             raise RuntimeError("enrolled target is not exposed at the test point")
         return s, point
 
@@ -213,8 +224,8 @@ class Trial:
         for name,s in (("early",hidden),("settled",stable)):
             target = s["windows"][label]
             checks[name+".notOnScreen"] = target["cgScreen"] is None if s["cgListsAvailable"] else None
-            checks[name+".axAvailable"] = bool(target["axKnown"])
-            checks[name+".axMini"] = equal_known(target["axMini"],method == "A")
+            checks[name+".axLease"] = equal_known(target["axLease"]["identifier"],label)
+            checks[name+".axMini"] = equal_known(target["axLease"]["mini"],method == "A")
             checks[name+".ownerVisibility"] = not target["owner"]["visible"]
             checks[name+".dock"] = equal_known(s["dock"].get("minimizedTiles"),before["dock"].get("minimizedTiles"))
             checks[name+".focus"] = self.focused(s,anchor)
@@ -250,6 +261,40 @@ class Trial:
         self.event(tag+".verdict",r)
         return r
 
+    def restore_only(self, mode, act):
+        tag="B."+mode+".restore-only"
+        before,pt=self.prepare(tag)
+        self.command("A","owner-out",0)
+        time.sleep(.45)
+        off=self.snap(tag+".owner-seeded")
+        target=off["windows"]["A0"]
+        if target["cgScreen"] is not None or target["ordered"] != 0 or target["owner"]["visible"]:
+            return {"status":"BLOCKED","reason":"owner order-out not witnessed"}
+        self.event(tag+".foreign-in",act(False,0))
+        time.sleep(.6)
+        after=self.snap(tag+".after-in"); w=after["windows"]["A0"]
+        checks={"cgScreen":w["cgScreen"] is not None,"ordered":equal_known(w["ordered"],True),
+                "ownerVisible":bool(w["owner"]["visible"]),"noDockGrowth":equal_known(off["dock"].get("minimizedTiles"),after["dock"].get("minimizedTiles")),
+                "focus":self.focused(after,"A1"),"keyboard":self.keyed(tag,after,"A1"),"mouseReachedRestored":self.clicked(tag,pt,"A0"),
+                "siblings":self.siblings(before,after,"A0"),"nativeSpace":equal_known(w["spaces"],before["windows"]["A0"]["spaces"])}
+        self.command("A","reset",0); time.sleep(.2); self.snap(tag+".owner-cleanup")
+        return {"status":outcome(checks),"checks":checks}
+
+    def active_target(self):
+        tag="A.focusedTarget"
+        before,_=self.prepare(tag)
+        self.seed_focus(tag,0)
+        before=self.snap(tag+".key-target")
+        if self.focused(before,"A0") is not True: return {"status":"BLOCKED","reason":"target not key"}
+        self.event(tag+".minimize",self.inspected("minimize","A0")); time.sleep(.85)
+        hidden=self.snap(tag+".hidden")
+        routed=self.keyed(tag+".hidden",hidden,"A0")
+        self.event(tag+".restore",self.inspected("restore","A0")); time.sleep(.85)
+        after=self.snap(tag+".restored")
+        return {"status":"OBSERVED","before":before["focus"],"whileHidden":hidden["focus"],"afterRestore":after["focus"],
+                "originalWindowRetainedKeyFocus":self.focused(hidden,"A0"),"originalWindowReceivedKey":routed,
+                "targetActuallyMinimized":hidden["windows"]["A0"]["axLease"]["mini"]}
+
     def order_mode(self, mode):
         p = subprocess.Popen([self.bin/"Order",mode,self.root],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=self.log,text=True)
         try:
@@ -258,8 +303,9 @@ class Trial:
                 p.stdin.write(("out" if hide else "in")+str(idx)+"\n"); p.stdin.flush()
                 return json.loads(p.stdout.readline())
             single=self.single("B."+mode,"B",act)
+            restored=self.restore_only(mode,act)
             pair=self.single("B."+mode+".second","B",act,1,"A0") if single["status"] == "PASS" else {"status":"NOT_RUN","reason":"single gate"}
-            return {"single":single,"sameAppSecond":pair}
+            return {"single":single,"foreignRestoreAfterOwnerHide":restored,"sameAppSecond":pair}
         finally:
             if p.poll() is None:
                 p.stdin.write("close\n"); p.stdin.flush()
@@ -412,6 +458,7 @@ def run(out):
                 t.block("A.sameAppSecond",lambda:t.single("A.sameAppSecond","A",ax_action,1,"A0"))
             else: t.entries["methods"]["A.sameAppSecond"]={"status":"NOT_RUN","reason":"single gate"}
             t.block("A.userDock",t.user_dock)
+            t.block("A.focusedTarget",t.active_target)
             t.block("B.ownerControl",lambda:t.single("B.ownerControl","B",lambda hide,idx:t.command("A","raw-out" if hide else "raw-in",idx)["action"]))
             for mode in ("cold-main","appkit-load","app-main","independent","transaction"):
                 t.block("B."+mode,lambda mode=mode:t.order_mode(mode))
@@ -419,6 +466,9 @@ def run(out):
         except (OSError,ValueError,RuntimeError,subprocess.SubprocessError) as e:
             t.entries["setupFailure"]=str(e)
         finally:
+            if t.lease_reader is not None:
+                t.lease_reader.stdin.close()
+                t.lease_reader.wait(timeout=5)
             (t.root/"display-stop").touch(); (t.root/"stop").touch()
             exits=[]
             for p in t.hosts:

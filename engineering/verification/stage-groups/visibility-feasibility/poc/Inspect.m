@@ -120,6 +120,26 @@ int main(int argc, char **argv) { @autoreleasepool {
     NSDictionary *a = fixtureIdentity(root,@"A"), *b = fixtureIdentity(root,@"B");
     if (!a || !b) return 65;
     MainConnection main = sky(@"SLSMainConnectionID"); int cid = main ? main() : 0;
+    if ([op isEqual:@"leases"]) {
+        NSMutableDictionary *leases = [NSMutableDictionary dictionary];
+        for (NSString *label in @[@"A0",@"A1",@"B0",@"B1"]) {
+            id window = axWindow([label hasPrefix:@"A"] ? a : b,label);
+            if (window) leases[label] = window;
+        }
+        emit(@{@"enrolled":leases.allKeys,@"pid":@(getpid())});
+        char line[32];
+        while (fgets(line,sizeof(line),stdin) && !strcmp(line,"sample\n")) { @autoreleasepool {
+            NSMutableDictionary *r = [NSMutableDictionary dictionary];
+            for (NSString *label in leases) {
+                NSString *name=[label hasPrefix:@"A"] ? @"A" : @"B";
+                if (!fixtureIdentity(root,name)) return 65;
+                AXUIElementRef w=element(leases[label]); id identifier=ax(w,@"AXIdentifier");
+                r[label]=@{@"identifier":identifier ?: none(),@"mini":ax(w,@"AXMinimized") ?: none(),@"frame":axRect(leases[label]) ?: none()};
+            }
+            emit(r);
+        }}
+        return 0;
+    }
     if ([op isEqual:@"snapshot"]) {
         int (*ordered)(int,uint32_t,uint8_t*) = sky(@"SLSWindowIsOrderedIn");
         CFArrayRef (*spaces)(int,int,CFArrayRef) = sky(@"SLSCopySpacesForWindows");

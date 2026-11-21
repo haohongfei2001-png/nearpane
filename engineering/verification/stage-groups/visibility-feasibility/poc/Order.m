@@ -29,13 +29,15 @@ int main(int argc, char **argv) { @autoreleasepool {
         BOOL hide = [op hasPrefix:@"out"];
         if (![mode isEqual:@"transaction"]) { emit(directOrder(cid, wid, hide)); continue; }
         CFTypeRef (*create)(int) = sky(@"SLSTransactionCreate");
-        int (*order)(CFTypeRef,uint32_t,int,uint32_t) = sky(@"SLSTransactionOrderWindow");
-        int (*commit)(CFTypeRef,int) = sky(@"SLSTransactionCommit");
+        // Upstream prototypes disagree with the observable return registers across OS builds.
+        // Use only the argument ABI and independent compositor readback for these requests.
+        void (*order)(CFTypeRef,uint32_t,int,uint32_t) = sky(@"SLSTransactionOrderWindow");
+        void (*commit)(CFTypeRef,int) = sky(@"SLSTransactionCommit");
         CFTypeRef tx = create && order && commit ? create(cid) : NULL;
         if (!tx) { emit(@{@"status":@"BLOCKED",@"reason":@"no transaction"}); continue; }
-        int orderCode = order(tx, wid, hide ? 0 : 2, 0);
-        int commitCode = commit(tx, 0); CFRelease(tx);
-        emit(@{@"orderResult":@(orderCode),@"commitResult":@(commitCode),@"mode":@(hide ? 0 : 2)});
+        order(tx, wid, hide ? 0 : 2, 0);
+        commit(tx, 0); CFRelease(tx);
+        emit(@{@"submitted":@YES,@"mode":@(hide ? 0 : 2),@"returnStatus":@"unqualified private ABI"});
     }}
     emit(@{@"released":separate && cid && release ? @(release(cid)) : none()});
     return 0;
