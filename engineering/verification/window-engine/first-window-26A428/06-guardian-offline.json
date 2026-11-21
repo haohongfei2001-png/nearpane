@@ -1,0 +1,55 @@
+{
+  "status": "PASS",
+  "domain": "offline_corner_guardian_ownership_and_fail_closed_recovery",
+  "base": "b7076fdd0ff8250528b741e9590f3090a1a4f92a",
+  "sources": {
+    "Engine/nearpane-window-engine/include/nearpane_guardian_observation.h": "a03c702925575288422ea7d2d83d309abba59902d27daaa3680939dbc0ef33b8",
+    "Engine/nearpane-window-engine/src/corner/guardian/observe.inc": "9cddb90148e8a8b87eec0e7e0f16f1117a845483a2f5c749475fa6b2cb5e07ca",
+    "Engine/nearpane-window-engine/src/corner/guardian/main.m": "1e152e50c7172ea923481eb03a5fc5c018ca7afe539a0b2025da48218894ece2",
+    "Engine/nearpane-window-engine/src/corner/guardian/protocol.h": "e111135c67dfb9e18e255e4ede550aa53e20f10d5e63cc4efe39089494cdcf64",
+    "Engine/nearpane-window-engine/src/corner/guardian/README.md": "32eba1c9b72ae18ba4cadbed106268fb9905acdded677a0ffa789168aecbbdf1",
+    "Sources/NearpaneWindowEngine/CornerGuardianClient.swift": "8e33b3fd648b4553cabdde49646e4c1140afcb0157cb0a2cf37fc9dff8cf106c",
+    "Sources/NearpaneWindowEngine/CornerGuardianFixtureReport.swift": "bd406faee43f464268ca3c9b79e5bcf4ee1b67c67340877a8b57ad986e06d4a9",
+    "Tests/NearpaneWindowEngineTests/CornerGuardianOwnershipTests.swift": "2c5a13b4e1055c66a75fd6d73980dc4c1ab41974b3750e3ddb7dbf3eb085f494",
+    "scripts/acceptance/window-engine/corner/guardian-test.c": "d289a4455ced7b38fd923997718d5000a34fc3499e7bc67d3e339a0a9a06655b"
+  },
+  "currentBinaryGuard": {
+    "guardMode": "fixedSignedFixtureAReadOnly",
+    "publicObservationSymbol": "np_guardian_observe_fixture",
+    "rustArchiveSHA256": "6733a3a43634b4f0f5ec51d92a87a5ee71ee07716a5870ca06afd0f1f731f5f5"
+  },
+  "validation": {
+    "swiftGuardianOwnershipTests": 7,
+    "testCases": [
+      "authenticatedHistoryAndMatchingParkStillRequirePostDeathChecks",
+      "coldOrAmbiguousIdentifiersCannotSubstituteForAcknowledgement",
+      "invalidFixtureRegistrationReturnsBeforeNativeWindowQueries",
+      "matchingGeometryWithNoLiveHandoffCannotClaimRetention",
+      "outOfOrderPostimageCannotSealTheOriginalLease",
+      "pendingWitnessCannotAuthorizePostDeathWrite",
+      "staleGenerationOrChangedFrameBlocksEvenAfterRealAcknowledgements"
+    ],
+    "cornerRustTests": 66,
+    "nativeAssertions": [
+      "cycles-test",
+      "guardian-test (all 14 separate takeover predicates)",
+      "scope-test",
+      "packaged-ledger-test"
+    ],
+    "objectiveCSyntax": [
+      "macos.m",
+      "guardian/main.m"
+    ],
+    "logs": {
+      "corner-tests.log": "edd219a2f5299739b66518ecfdb365f91c373e86a53d31907c4886b11f5efba6",
+      "swift-tests.log": "d3bdd1dd47af69f28f342848a8ee25d2c512cc546eb0b82faa5352d7a2d28b29",
+      "rust-build.log": "cb299f7dbecb71f1df062d369ebd9d690d2ac764c9c122d397489aafa6d3484b"
+    }
+  },
+  "installedHostReadback": "NOT_RUN",
+  "actualGuardianDeathAndRestore": "NOT_RUN",
+  "profileWALRead": "NOT_RUN",
+  "accessibilityPrompts": 0,
+  "globalEventsPosted": 0,
+  "windowWrites": 0
+}

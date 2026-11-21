@@ -1,5 +1,11 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 单窗口与权限主体
+
+正式 Host 的 Corner 与 Spaces 单窗验收均为 **BLOCKED**，两个隐藏与还原动作均为 **NOT_RUN**。日常 5.22（90）仍为 `d2d0bb6`，已有辅助功能、事件投递和录屏授权，输入监听在这个版本上为 UNKNOWN。新版 `666e26f` 在私有目录完成产品签名和 ABI 核验，但后台精确启动请求返回了旧日常进程 PID 59938。[正式 Host 启动收据](../verification/window-engine/first-window-26A428/08-signed-product-scope.json)
+
+同源码开发 Host 在实体 macOS 27.0（26A428）、SIP 开启的会话两读普通桌面 type 0 / ID 6。签名窗口 61357 的双向归属、原始 AX 对象及 AX/CG 几何均已实测，夹具已关闭。真实输入隔离、Guardian 崩溃恢复、Spaces 自有 canary 和第三方迁回仍待正式 Host 验证。生产资格 **0/2**，原语音冷启动首次超时仍为 UNKNOWN。[分项结果与历史失败](../verification/window-engine/first-window-26A428/RESULTS.md) · [机器总表](../verification/window-engine/first-window-26A428/verification.json)
+
 ## 2026-11-21 · StageGroup Window Engine
 
 PR #15 已将 Corner 和 Spaces 编入同一个 Rust 静态库。R4 侧栏继续使用 Swift 的 StageGroupStore 和 StageGroupCoordinator。Swift 写入事务日志、绑定窗口代际并独立读回。每批窗口只有一个底层写入者。当前取得生产资格的后端数为 **0**。 [逐项状态](../verification/window-engine/RESULTS.md) · [实施合同](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)

@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "recordedUTC": "2026-11-21T10:32:30.702058+00:00",
+  "entities": [
+    {
+      "subject": "isolatedSignedProduct",
+      "Identifier": "com.holdsnow.nearpane.alpha",
+      "CDHash": "a82bb2abda2a66d591dd7bd1d822adc2e67c55f5",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "noLiveExecutable": true,
+      "unregisterExit": 0,
+      "ourBundleRemoved": true
+    },
+    {
+      "subject": "signedDevelopmentHost",
+      "Identifier": "com.holdsnow.nearpane.host",
+      "CDHash": "4f6bd4e0c91c3b718948b5cb2f347528556f4d6a",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "noLiveExecutable": true,
+      "unregisterExit": 0,
+      "ourBundleRemoved": true
+    },
+    {
+      "subject": "enrollmentPathFailure",
+      "Identifier": "com.holdsnow.nearpane.engine-fixture.a",
+      "CDHash": "6004d580d189bcba93c7449cab81f650e721607f",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "noLiveExecutable": true,
+      "unregisterExit": 0,
+      "ourBundleRemoved": true
+    },
+    {
+      "subject": "registeredWindow",
+      "Identifier": "com.holdsnow.nearpane.engine-fixture.a",
+      "CDHash": "ef4d40fef8f00b4e3935fa4f593648bb76cf2ff6",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "noLiveExecutable": true,
+      "unregisterExit": 0,
+      "ourBundleRemoved": true
+    }
+  ],
+  "fixtureWindowsClosed": true,
+  "matchingLocalMode0600RawResponses": 2,
+  "temporaryBuildCachePointerRestored": true,
+  "dailyBundleTouched": false
+}

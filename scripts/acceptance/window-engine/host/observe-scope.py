@@ -44,6 +44,11 @@ def public_scope(raw):
     return redact(raw)
 
 
+def public_observation(observation):
+    # One token table for the whole Host response. Both samplers use the same physical identities.
+    return public_scope({key: observation[key] for key in ("spaceScope", "guardianFixture") if key in observation})
+
+
 def observe(app, challenge, directory, output, registration=None):
     image = identity(app)
     before = identity(DAILY)
@@ -95,9 +100,9 @@ def observe(app, challenge, directory, output, registration=None):
             raise ValueError("scope samples came from different or incomplete Host observations")
         result.update(status="PASS", reason="correlatedReadOnlyObservation", subject=subject, permissions=observation["permissions"],
                       launch="background Launch Services", rawSHA256=hashlib.sha256(raw).hexdigest(), abi=observation["abi"],
-                      spaceScope=public_scope(scope), redaction="Display/Space UUIDs consistently tokenized in the public copy.")
-        if registration:
-            result["guardianFixture"] = public_scope(observation["guardianFixture"])
+                      redaction="Display/Space UUIDs consistently tokenized in the public copy.", **public_observation(observation))
+        if registration and "guardianFixture" not in result:
+            raise ValueError("registered observation lacks the ownership readback")
     finally:
         result["dailyAfter"] = identity(DAILY)
         if result["dailyAfter"] != before:

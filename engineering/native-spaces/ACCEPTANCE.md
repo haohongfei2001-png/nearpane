@@ -1,5 +1,14 @@
 # Nearpane 调度组正式验收合同
 
+## 首次实体机单窗门槛
+
+每个后端分别记录 `BUILD_PASS`、`ABI_PASS`、`HOST_PERMISSION_PASS`、`TARGET_SCOPE_PASS`、`SINGLE_WINDOW_HIDE_RESTORE_PASS`、`PRODUCTION_QUALIFIED`。结果同时注明 Host 的签名标识、CDHash、源码 SHA、实际启动路径、PID、进程出生代和系统 build。辅助功能、输入监听与事件投递分别读取。启动探针和离线回归各有自己的收据。
+
+1. 在 macOS 27.0（26A428）、SIP 开启的物理登录会话内，由同一个真实 Host 连续两次读取物理显示器、当前桌面清单、直接活动 ID、普通桌面类型、UUID 及签名夹具窗口的正反向归属。记录两读间的 AppKit Space 变更通知。全屏类型 4、缺 UUID、会话切换、没有登记窗口或两向归属无法互证都阻止窗口写入。
+2. Corner 使用一扇签名普通窗口，记录初始几何与焦点、停放、真实鼠标按下/拖动/释放的接收者、旁窗与 Dock、还原后两次 AX/WindowServer 读回。分开验证 Host 的在场写入权和原 Guardian 的恢复资格。一次失败即停止。
+3. Spaces 先在同一 Host 用自有透明非激活面板验证创建临时 Space、移入、还原、关闭面板、销毁临时 Space 和清单还原。通过后才进行一扇第三方窗的移入与还原，每步核对独立正反向归属。
+4. GitHub CI 必跑 Rust、Swift 和生产 C ABI；可选托管只读报告独立保存。该环境缺少普通桌面时记录 `BLOCKED`。两后端的正式单窗和后续整组验收均要求指定物理环境。[本次原始收据](../verification/window-engine/first-window-26A428/)
+
 ## Rust Window Engine 的验收入口
 
 两个后端共用同一份正式 Host 合同。按单次 A→B→C→A、10 次、50 次顺序验证整组。三项均通过后，在同一台实体 Mac 上按每方向至少 100 个有效样本与 Apple 台前调度配对，最后才进入 1000 次压力验收。单窗夹具、静态库回归、成功的系统调用和隔离开发 Host 的权限预检各自单列。任何输入安全失败或清理状态未知均阻止晋级。 [门槛与原始收据](../verification/window-engine/RESULTS.md) · [性能合同](../research/NEARPANE-STAGEGROUP-PERFORMANCE-STANDARD.md)

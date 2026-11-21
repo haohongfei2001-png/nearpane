@@ -1,5 +1,9 @@
 # Nearpane 5.22 Window Engine 验收
 
+本轮单窗结果由 `666e26f` 的签名 Host 与实体机收据给出。开发 Host 的双向归属和原始 AX 对象已实测。正式 Host 单窗动作受启动身份阻塞，Corner、Spaces 的生产资格均未取得。[本轮六级门槛、清理与原始记录](first-window-26A428/RESULTS.md)
+
+## 上一轮集成基线
+
 生产资格为 **0/2**。正式 Host 的 A→B→C→A 为 **NOT_RUN**。签名开发 Host 与本轮 CI 对应源码 `ddac854`，接续草稿 PR #15 的 `0dd9cb2`，包含 Riftlet 1.0.7（53）和 Saytile 0.20（533）。 [本轮机器可读结果](verification.json) · [集成方案](../../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
 
 | Gate | 已验证 | 尚需实证 |
