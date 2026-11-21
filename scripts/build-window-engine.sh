@@ -16,7 +16,7 @@ arch="${1:-$(uname -m)}"
 case "$arch" in arm64|aarch64) triple=aarch64-apple-darwin;; x86_64) triple=x86_64-apple-darwin;; *) echo "Unsupported macOS architecture $arch" >&2; exit 2;; esac
 # The build selects reviewed compiled backends; experimental fixture authorization
 # is exclusive to the isolated acceptance binary.
-features="corner"
+features="corner,spaces"
 "$compiler" build --manifest-path "$engine_root/Cargo.toml" --release --locked --offline --no-default-features \
   --features "$features" --target "$triple" --target-dir "$target_dir" >&2
 archive="$target_dir/$triple/release/libnearpane_window_engine.a"
