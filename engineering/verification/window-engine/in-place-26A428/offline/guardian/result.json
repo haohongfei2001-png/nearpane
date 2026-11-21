@@ -1,0 +1,51 @@
+{
+  "scope": "offline_only",
+  "base": "22355d11731dc01bafef20ef59283be93f95edd1",
+  "qualified": [
+    "swift6 module and enroll/reply/attribution/retention/coordinator negatives: 12 tests",
+    "Corner Rust policy: 66 tests",
+    "packaged ledger, private input envelope and native takeover predicate assertions",
+    "unsigned development link of packaged Guardian from fresh corner+spaces archive"
+  ],
+  "status": "PASS",
+  "firstIntegrationBuild": {
+    "status": "FAIL",
+    "log": "rust-build.log",
+    "reason": "concurrent Spaces compile missing CGEventCount",
+    "final": "combined source compiled after independent correction"
+  },
+  "physicalGuardianObservation": "NOT_RUN",
+  "physicalTakeoverRestore": "NOT_RUN",
+  "operationalLease": "NOT_ACQUIRED",
+  "park": "NOT_RUN",
+  "profileWALRead": "NOT_RUN",
+  "screenCaptures": 0,
+  "globalEventsSent": 0,
+  "permissionRequests": 0,
+  "windowWrites": 0,
+  "productQualificationTable": {
+    "source": "Engine/nearpane-window-engine/src/lib.rs",
+    "sha256": "a6a85becc42d9755d20bfbb73eefdcf15e78f15f6df2520a1156ace1b0bbe001",
+    "reviewedEntries": 0
+  },
+  "artifacts": {
+    "compiledLocalHelper": "5aa47ca0580845800f1d84657e1700f9bb328a65b9c9f6f5f0dbdeea84142cc7",
+    "rustCornerAndSpacesArchive": "83d5857a4c9edbbc37e4773d16e5bca42624c6bc107825650a608a1e0bc3beb9"
+  },
+  "sources": {
+    "Engine/nearpane-window-engine/src/corner/guardian/inspect.h": "1444da8c50ee0261418c698007c74ec6999239ed629dd482cdb59c19ab329bf1",
+    "Engine/nearpane-window-engine/src/corner/guardian/main.m": "9c43a2f4d80bb27219d079fa2bbbb8b142562f2efbad681369de15319bb4640d",
+    "Engine/nearpane-window-engine/src/corner/guardian/README.md": "c039c713c7dbec99ec3d29e6f0d142323b5257ce8081ff5c6c85864ab5cc22ed",
+    "Sources/NearpaneWindowEngine/CornerGuardianClient.swift": "400b50797d90e330f015d59952531c92e0925153be063a642c57e6418d8f695d",
+    "Sources/NearpaneWindowEngine/CornerGuardianFixtureReport.swift": "a95cdaee36acf4bb0064490247a87c8aa625a090ce78c9421ccabfe18de2376c",
+    "Sources/NearpaneWindowEngine/CornerGuardianIndependentProbe.swift": "fd5dd98248a1eca2224829b3998501409b0f89e9a43bcfc0b131b35631d50df5",
+    "Tests/NearpaneWindowEngineTests/CornerGuardianIndependentProbeTests.swift": "476e2502bb767f83ca55b980ae258dd4d9e4872a08c313cb36d662dbde625e4f",
+    "scripts/acceptance/window-engine/corner/packaged-ledger-test.m": "6b62512965c27ae03484ba246184f9e139f5abd8f70c04ebfa198b06a96bca0c"
+  },
+  "logs": {
+    "swift-tests.log": "af9cd153789a553a3cf9c0835ebab5f8075d943ed128cb0d9f2da371b0b0eb39",
+    "corner-tests.log": "6492d7781ef7d354750bf716f575f57fb47f2541dd95fce89e4da16b5565eea0",
+    "final-rust-build.log": "949a5f280fbb1e635baf152fe9e8251c802da6c67e39d5adcc3c7e5c59646748",
+    "helper-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

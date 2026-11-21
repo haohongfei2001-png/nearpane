@@ -2,6 +2,8 @@
 
 ## 首次实体机单窗门槛
 
+同机原位验收使用正式产品的单实例设置与已有授权。先核对标准安装签名并备份 App、资料、偏好与恢复记录。活动资料里尚有普通窗口恢复日志、StageGroup 所有权或 Spaces 写前记录时，保留原进程与日志。只有清单允许退出后才正常退出日常 Host，复核进程出生代已经结束，再原子交换包。依次核对新版 Host 的四项自读权限、同一进程的两次物理桌面与签名窗口读回、Spaces 自有面板及单窗、Corner Guardian 的真实恢复租约与单窗。任一未知结果停止新增写入。仅在候选进程、测试窗和后端所持资源均确认清场后换回原包，复核签名、资料及原版 Host 的权限。[同机入口与回执](../verification/window-engine/in-place-26A428/RESULTS.md)
+
 每个后端分别记录 `BUILD_PASS`、`ABI_PASS`、`HOST_PERMISSION_PASS`、`TARGET_SCOPE_PASS`、`SINGLE_WINDOW_HIDE_RESTORE_PASS`、`PRODUCTION_QUALIFIED`。结果同时注明 Host 的签名标识、CDHash、源码 SHA、实际启动路径、PID、进程出生代和系统 build。辅助功能、输入监听与事件投递分别读取。启动探针和离线回归各有自己的收据。
 
 1. 在 macOS 27.0（26A428）、SIP 开启的物理登录会话内，由同一个真实 Host 连续两次读取物理显示器、当前桌面清单、直接活动 ID、普通桌面类型、UUID 及签名夹具窗口的正反向归属。记录两读间的 AppKit Space 变更通知。全屏类型 4、缺 UUID、会话切换、没有登记窗口或两向归属无法互证都阻止窗口写入。

@@ -1,0 +1,75 @@
+{
+  "status": "BLOCKED",
+  "reason": "outstandingRecovery",
+  "profileIndexSHA256": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+  "generations": 2,
+  "records": [
+    {
+      "kind": "ordinaryWindowRecovery",
+      "activeGeneration": true,
+      "status": "pending",
+      "journalSHA256": "78669f2afbbb48cc26c6d9465fa489b0105656660297c5a20a370e0f84ebc634",
+      "entries": [
+        {
+          "pid": 49381,
+          "birth": 1794932452405415,
+          "window": 33546,
+          "original": {
+            "height": 923,
+            "y": 33,
+            "x": 12,
+            "width": 1211
+          },
+          "lastConfirmed": {
+            "height": 923,
+            "y": 33,
+            "x": 0,
+            "width": 1230
+          },
+          "actionRefused": true,
+          "outstandingIntent": false,
+          "samples": [
+            {
+              "exactWindowCount": 1,
+              "processBirthMatches": true,
+              "uptime": 334390.38133445836,
+              "windowServerFrame": {
+                "height": 923,
+                "width": 1230,
+                "x": 0,
+                "y": 33
+              }
+            },
+            {
+              "exactWindowCount": 1,
+              "processBirthMatches": true,
+              "uptime": 334390.5938329167,
+              "windowServerFrame": {
+                "height": 923,
+                "width": 1230,
+                "x": 0,
+                "y": 33
+              }
+            }
+          ]
+        }
+      ],
+      "blocksExchange": true
+    },
+    {
+      "kind": "previousInstall",
+      "journalSHA256": "36cdd997435cd28a57743efaee8d1eddbdf4092bc7dad0e442551aeac69a88d9",
+      "restoration": "PASS",
+      "cleanup": "PASS",
+      "blocksExchange": false
+    }
+  ],
+  "openSharedLeaseDescriptors": 0,
+  "quitPermitted": false,
+  "schema": 1,
+  "recordedUTC": "2026-11-21T11:36:39.981407+00:00",
+  "windowWrites": 0,
+  "journalWrites": 0,
+  "quitRequests": 0,
+  "permissionRequests": 0
+}

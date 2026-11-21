@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="8" failures="0" skipped="0" time="0.007159583">
+    <testcase classname="NearpaneHostTests.StageEngineHostScopeTests" name="testIndependentCurrentAndUniqueDisplayBindOrdinaryIdentity()" time="0.00045" />
+    <testcase classname="NearpaneHostTests.StageEngineHostScopeTests" name="testFullscreenAndMissingRequiredFieldsPreserveActualCategoryAndNeverPass()" time="0.000484083" />
+    <testcase classname="NearpaneHostTests.StageEngineHostScopeTests" name="testConflictingNumericAliasesTypesAndDirectReadCannotBecomeOrdinary()" time="0.000583375" />
+    <testcase classname="NearpaneHostTests.StageEngineHostScopeTests" name="testBothReadClocksProcessSessionTopologyAndWorkspaceGenerationMustAgree()" time="0.000512959" />
+    <testcase classname="NearpaneHostTests.StageEngineHostScopeTests" name="directionalReadbacksKeepIndependentFailuresAndDoNotQualifyFullscreen()" time="0.000421958" />
+    <testcase classname="NearpaneHostTests.StageEngineHostScopeTests" name="testSignedWindowNeedsBothRealDirectionsAndNoAppKitContradiction()" time="0.000172459" />
+    <testcase classname="NearpaneHostTests.StageInstalledProbeTests" name="cycleNeedsOneUnchangedPhysicalSessionAndBothRegisteredMembershipDirections()" time="0.000576875" />
+    <testcase classname="NearpaneHostTests.StageInstalledProbeTests" name="nonceRendezvousDoesNotReadLinksAndStopsBeforeFixtureOnAbort()" time="0.006862084" />
+  </testsuite>
+</testsuites>

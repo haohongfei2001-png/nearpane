@@ -1,5 +1,11 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 同机原位安装预检
+
+5.22（90）候选 `b7424a2` 已在私有目录完成 Developer ID 签名和静态验签。实体机 macOS 27.0（26A428）、SIP 开启。原位监督程序在正常退出日常 Host 前返回 **BLOCKED**。活动资料中有一扇普通窗口尚待恢复，进程代际和窗口号两次吻合，当前宽度 1230，记录的原始宽度 1211。原应用、资料和恢复日志均已完整备份，收尾核对原 PID、出生代、签名和资料指纹一致。[本次实机结论](../verification/window-engine/in-place-26A428/RESULTS.md) · [原位安装入口收据](../verification/window-engine/in-place-26A428/05-installation.json)
+
+新版正式 Host 的权限和普通桌面身份仍待首次运行。Spaces 自有面板、第三方单窗往返、Corner 实际停放与 Guardian 恢复交接均为 **NOT_RUN**。生产资格 **0/2**。本轮为启动器加入标准路径、内核镜像、登录会话和单实例清单校验，为试验加入写前账本与回滚检查。[独立资格表](../verification/window-engine/in-place-26A428/verification.json)
+
 ## 2026-11-21 · 单窗口与权限主体
 
 正式 Host 的 Corner 与 Spaces 单窗验收均为 **BLOCKED**，两个隐藏与还原动作均为 **NOT_RUN**。日常 5.22（90）仍为 `d2d0bb6`，已有辅助功能、事件投递和录屏授权，输入监听在这个版本上为 UNKNOWN。新版 `666e26f` 在私有目录完成产品签名和 ABI 核验，但后台精确启动请求返回了旧日常进程 PID 59938。[正式 Host 启动收据](../verification/window-engine/first-window-26A428/08-signed-product-scope.json)
