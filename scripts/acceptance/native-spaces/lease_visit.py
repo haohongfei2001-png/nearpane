@@ -117,11 +117,78 @@ def ordinary_anchor_rows(rows, generation, numbers, space):
 
 
 class VisitWorkspace(PREVIEW.PreviewWorkspace):
-    pinned_hid = None
+    def __init__(self, kit, output, record, *, enrollment, target, note, **resume):
+        # The original.json here describes creation of the two remote leases, which can predate
+        # this visit. Only the independent before/after-Host foreground enrollment selects today's origin.
+        self.visit_topology = enrollment["topology"]
+        self.visit_origin, self.visit_target = self.visit_topology["current"], target
+        self.pinned_hid = enrollment["hid"][:5]
+        self.note = note
+        self.enrolling = True
+        self.read_number = 0
+        self.issued_target = False
+
+        def observed(name, **fields):
+            if name == "system-AX-tile-result" and (fields["source"], fields["target"]) == (self.visit_origin, self.visit_target):
+                self.issued_target = fields["proof"].get("issued") is True
+            record(name, **fields)
+
+        super().__init__(kit, output, observed, **resume)
+        self.enrolling = False
+        require(self.cleanup_current == self.visit_origin and self.visit_origin not in self.ids() and
+                any(r["id"] == self.visit_origin and r["type"] == 0 for r in row(self.original)["records"]),
+                "visitOriginNotAnOriginalProtectedOrdinaryDesktop")
+
+    def read(self):
+        if not self.enrolling:
+            return super().read()
+        self.read_number += 1
+        self.hardware()
+        actual = super().read()
+        self.check_visit_scope(actual)
+        self.hardware()
+        return actual
+
+    def check_visit_scope(self, observation):
+        # Check both the physical display UUID and its independently reported Space inventory UUID.
+        displays, scopes = observation.get("displays") or [], observation.get("scopes") or []
+        physical = [d.get("uuid") for d in displays]
+        inventory = [s.get("scope") for s in scopes]
+        expected = self.visit_topology
+        scope = scopes[0] if len(scopes) == 1 else {}
+        records, current = scope.get("records"), scope.get("current")
+        if len(displays) != 1 or len(scopes) != 1:
+            reason = "visitPhysicalDisplayCountChanged"
+        elif physical != [expected["display"]] or inventory != physical:
+            reason = "visitPhysicalOrInventoryDisplayUUIDChanged"
+        elif records != expected["records"]:
+            reason = "visitOrderedSpaceIdentityChanged"
+        elif current != self.visit_origin and not (self.issued_target and current == self.visit_target):
+            reason = "visitCurrentOutsideEnrolledRoute"
+        else:
+            reason = None
+        if reason or self.enrolling:
+            self.note("visitWorkspaceRead", phase="construct" if self.enrolling else "visit",
+                      read=self.read_number if self.enrolling else None,
+                      creationOrigin=getattr(self, "home", None), enrolledOrigin=self.visit_origin,
+                      observedCurrent=current, target=self.visit_target, observerUptime=observation.get("uptime"),
+                      targetIssued=self.issued_target, physicalDisplays=physical, inventoryDisplays=inventory,
+                      orderedIdentitiesMatch=records == expected["records"], reason=reason)
+        require(reason is None, reason)
+
+    def check(self, observation, *, check_current=True):
+        # Parent still verifies installed Host, physical geometry, signed ledgers and protected order.
+        # The visit has its own stricter current-Space rule even if a generic caller omits that check.
+        if not self.enrolling:
+            self.check_visit_scope(observation)
+        return super().check(observation, check_current=False)
 
     def hardware(self):
         fresh = super().hardware()
-        require(self.pinned_hid is None or fresh == self.pinned_hid, "newHumanInput")
+        if fresh != self.pinned_hid:
+            self.note("visitHardwareChanged", phase="construct" if self.enrolling else "visit",
+                      before=self.pinned_hid, observed=fresh)
+            raise ScopeError("newHumanInput")
         return fresh
 
     def reconcile_removed(self, snapshot):
@@ -133,7 +200,8 @@ class VisitWorkspace(PREVIEW.PreviewWorkspace):
         current = self.check(self.read())
         valid = {r["id"] for r in current["records"] if r["type"] == 0}
         require(current["records"] == self.frozen and current["current"] == self.cleanup_current and
-                n in self.ids() and n != current["current"] and {n,current["current"]} <= valid,
+                not self.issued_target and n == self.visit_target and n in self.ids() and
+                n != current["current"] and {n,current["current"]} <= valid,
                 "semanticOrdinaryEntryUnavailable")
         return super().select(n)
 
@@ -200,22 +268,25 @@ class NativeVisit:
         plan = self.rec["focusLease"]; self.target = plan["expectedSpace"]
         stage = Path(plan["stageKit"]); self.tool = stage/"p0-card"
         self.exe,self.hash,self.digests = instruments(Path(self.rec["visitFocusLeaseKit"]),stage)
-        self.ws = VisitWorkspace(stage,Path(plan["workspace"]),self.event,resume=True,previous_archive=Path(plan["originArchive"]),
-            install_receipt=self.chain,original_ledgers=Path(plan["originalCheckout"])/"build/verification/secondary-route-followup")
-        self.bind_profile()
-        self.ws.pinned_hid = self.ws.hardware()
-        live = self.ws.read(); t = self.ws.check(live); self.ids = verify_chain(self.ws,live,self.target)
-        self.ws.frozen = t["records"]; self.origin = t["current"]
-        require(t["current"] in {r["id"] for r in row(self.ws.original)["records"] if r["type"] == 0} and
-                self.ws.cleanup_current == self.origin and self.origin not in self.ids, "visitRequiresProtectedOrdinaryOrigin")
         self.reader = FocusReader(Path(self.rec["visitFocusLeaseKit"])/"lease-visit-focus")
         self.initial = self.reader.read()
-        require(all(self.initial[k] == daily[k] for k in ("pid","birth","number","topology","hid")) and
-                all(self.initial.get(k) == daily[k] for k in ("boot","signingCDHash") if k in daily),
-                "dailyForegroundOrInputChangedDuringHostExchange")
-        expect = dict(display=t["scope"],current=self.origin,records=t["records"])
-        require(self.initial["topology"] == expect and self.initial["pid"] != self.ws.host["pid"],
-                "durableOriginalUserFocusNotBound")
+        enrolled, now = daily["topology"], self.initial["topology"]
+        self.origin = enrolled["current"]
+        same_focus = (all(self.initial[k] == daily[k] for k in ("pid","birth","number")) and
+                      all(self.initial.get(k) == daily[k] for k in ("boot","signingCDHash") if k in daily))
+        same_hid = len(daily["hid"]) == 13 and daily["hid"] == self.initial["hid"]
+        self.save("visitOriginCompared", enrolledOrigin=self.origin, observedCurrent=now["current"],
+                  enrolledDisplay=enrolled["display"], observedDisplay=now["display"],
+                  orderedIdentitiesMatch=enrolled["records"] == now["records"], sameFocus=same_focus, sameHID=same_hid,
+                  hidChanges=[i for i, (a, b) in enumerate(zip(daily["hid"], self.initial["hid"])) if a != b])
+        require(now == enrolled and same_focus and same_hid, "dailyForegroundOrInputChangedDuringHostExchange")
+        self.ws = VisitWorkspace(stage, Path(plan["workspace"]), self.event, enrollment=self.initial, target=self.target,
+            note=self.save, resume=True, previous_archive=Path(plan["originArchive"]), install_receipt=self.chain,
+            original_ledgers=Path(plan["originalCheckout"])/"build/verification/secondary-route-followup")
+        self.bind_profile()
+        live = self.ws.read(); t = self.ws.check(live); self.ids = verify_chain(self.ws,live,self.target)
+        self.ws.frozen = t["records"]
+        require(self.origin != self.target and self.initial["pid"] != self.ws.host["pid"], "durableOriginalUserFocusNotBound")
         self.original = FOCUS.OriginalFocus(self.tool); held = self.original.reply()
         require(held.get("held") and all(held[k] == self.initial[k] for k in ("pid","birth","number","topology")) and
                 self.paired_sample(self.origin,empty=True)["originExact"], "independentOriginalFocusOrEmptyLeaseUnavailable")
