@@ -540,7 +540,7 @@ class Transaction:
                 return
             home = self.home
             generation = self.start_home(home)
-            if self.rec.get("trialScope") in ("p4-service","p3,p4","p2,p4-service"):
+            if self.rec.get("metrics") and self.rec.get("trialScope") in ("p2","p4-service","p3,p4","p2,p4-service"):
                 stamp=self.mac.bound(self.mac.pid(),home/profile.PROFILE,self.rec["candidate"])
                 perms=dict(status="UNKNOWN",pid=stamp[0],birth=stamp[1]*1_000_000+stamp[2],
                            sourceRevision=self.rec["candidate"]["source"],cdhash=self.rec["candidate"]["cdhash"],
@@ -738,6 +738,9 @@ class Transaction:
         elif only == "p2":
             require(args.focus_lease and (args.kit/"system-workspace").is_file(), "Missing focus kit or enrolled Space lease")
             inputs["focusLease"] = spaces_trials.focus_lease(args.focus_lease.resolve(strict=True))
+            if args.metrics:
+                require(args.metrics.is_file(), "The requested nonprompting Host permission reader is missing")
+                inputs["metrics"] = str(args.metrics.resolve(strict=True))
             if getattr(args, "focus_scenario", "controlled-window") != "controlled-window":
                 from p2_documents import static_part
                 require(args.pair_kit, "The pointer scenario requires its signed registered-documents kit")
