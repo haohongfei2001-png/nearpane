@@ -310,6 +310,34 @@ public struct StageGroupWindow: Sendable {
 
     func isBound(_ member: StageGroupDirectory.Member, to lifetime: UUID) -> Bool { bindings[member.windowHint] == lifetime }
 
+    public func boundWindows(of pid: Int32) -> [NativeSpaceWindow: UUID] { bindings.filter { $0.key.pid == pid } }
+
+    /// A disappearing preview, a missing display or an app PID alone cannot remove a directory member.
+    @discardableResult public func retire(_ departed: [StageWindowDeparture],
+                                          unowned: (NativeSpaceWindow) -> Bool) throws -> Set<NativeSpaceWindow> {
+        let now = ProcessInfo.processInfo.systemUptime
+        let ids = Set(departed.filter {
+            (0...3).contains(now - $0.secondAbsent) && $0.secondAbsent - $0.firstAbsent >= 0.075 &&
+                bindings[$0.window] == $0.lifetime && unowned($0.window)
+        }.map(\.window))
+        guard !ids.isEmpty else { return [] }
+        var next = directory
+        for d in next.displays.indices {
+            for g in next.displays[d].groups.indices {
+                var group = next.displays[d].groups[g]
+                guard group.members.contains(where: { ids.contains($0.windowHint) }) else { continue }
+                group.members.removeAll { ids.contains($0.windowHint) }
+                if !group.members.contains(where: { $0.id == group.selectedMember }) { group.selectedMember = nil }
+                group.verifiedActive = nil
+                next.displays[d].groups[g] = group
+            }
+            next.displays[d].groups.removeAll { $0.members.isEmpty }
+        }
+        try commit(next)
+        for id in ids { bindings.removeValue(forKey: id) }
+        return ids
+    }
+
     /// Partial, stale and other-display groups have no actionable composite card.
     public func projectedGroups(on display: UUID, among windows: [StageGroupWindow]) -> [StageGroupDirectory.Group] {
         let candidates = Dictionary(grouping: windows.filter { $0.display == display }, by: \.identity)

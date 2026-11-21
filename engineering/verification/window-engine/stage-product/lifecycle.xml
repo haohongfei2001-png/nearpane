@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="33" failures="0" skipped="0" time="0.126502833">
+    <testcase classname="NearpaneOrdinaryWindowControllerTests.StageHostWindowAccessTests" name="legacyWorkerRejectsStageOperationsBeforeReadingAnOwnerOrPrompting()" time="0.115404209" />
+    <testcase classname="NearpaneOrdinaryWindowControllerTests.StageHostWindowAccessTests" name="physicalInputRevocationDeadlineAndPrimitiveLimitEachEndTheIntent()" time="0.122530458" />
+    <testcase classname="NearpaneOrdinaryWindowControllerTests.StageHostWindowAccessTests" name="hostNeedsTheCanonicalKernelExecutableAndTheApprovedSigningDigest()" time="0.111683375" />
+    <testcase classname="NearpaneOrdinaryWindowControllerTests.StageHostWindowAccessTests" name="aStageLayoutOrFocusRequiresTheOriginalOwnerWindowLifetimeAndOrdinarySpace()" time="0.122515708" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="selectionUsesCompletePhysicalEvidenceAndNoBackendOrder()" time="0.115301834" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="uncertainStartupOwnsOnlyItsCanaryAndCannotHandOffBeforeItsWorkerCloses()" time="0.123547" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="nextOwnedGroupIsActuallyRevealedBeforeRetiringLastVisibleGroup()" time="0.06069325" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="takeoverDuringOldWorkerShutdownVetoesAlreadyRequestedReplacement()" time="0.1208695" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="guardianConfirmationFailureBlocksReplacementAndNeverRepeatsTheRustHide()" time="0.125478125" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="otherSupportedBuildNeedsItsOwnEvidenceAndSameEngineSIPBaseline()" time="0.111652875" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="changedLifetimeOrExternalGeometryNeverUsedForRestoration()" time="0.122443833" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="unhealthyBackendYieldsOnlyAfterRecoveryAndPositiveClose()" time="0.122986917" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="externalFocusIsReadOnlyAndPermissionLossDoesNotDisqualifyTheBackend()" time="0.120774084" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="fullGroupCycleUsesOnlyOneBackendAndRestoresBystandersUnchanged()" time="0.042461458" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="incompleteWorkerReadAfterConfirmedRestoresKeepsDurableOwnerAcrossRestart()" time="0.122463792" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="oneUnknownRustWriteBlocksReplacementButOtherConfirmedWindowsCanReturn()" time="0.125790292" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="diskWriteFailureNeverPublishesGroupOrBinding()" time="0.109764375" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="v1MigrationKeepsOriginalAndDoesNotGuessSpaceOrFocus()" time="0.109075" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="oneSelectedMemberMovesAndTheOtherScreenKeepsItsGroup()" time="0.12260325" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="scopesSurviveIndependentDesktopSelectionAndNativeMoves()" time="0.111706459" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="unsupportedCorruptOrExternallyChangedDirectoryPreservesOriginalBytes()" time="0.109154834" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="reopenAndReusedNumberNeedExplicitBindingAndKeepLayout()" time="0.10918625" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="explicitReassignmentAfterPhysicalMoveKeepsOnlyOneSlot()" time="0.111786209" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="unknownSystemOwnershipIsDistinctFromReadableFactoryDefault()" time="0.122620625" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="duplicateOrMissingReadbackCannotPublishAGroupOrDeleteASlot()" time="0.122605584" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="confirmedDepartureRemovesOnlyTheBoundUnownedMember()" time="0.122563417" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="relativeFramesUseDisplayLocalUsableOrigin()" time="0.12555325" />
+    <testcase classname="NearpaneUITests.StageWindowEngineWitnessTests" name="geometryPermitIsBoundToItsExactCommandAndNeverGrantsReadbackOrOrdinaryWrite()" time="0.125151" />
+    <testcase classname="NearpaneUITests.StageWindowEngineWitnessTests" name="shutdownReturnsFalseForUnresolvedJournalAndTrueForNewIsolatedProfile()" time="0.088647334" />
+    <testcase classname="NearpaneUITests.StageWindowEngineWitnessTests" name="noPreferenceOrForgedSidecarCanReplacePinnedPhysicalSignerAndEvidenceID()" time="0.122425166" />
+    <testcase classname="NearpaneUITests.StageWindowEngineWitnessTests" name="onlyNewNoncurrentIndependentlyOwnedRecordMayVaryDuringASwitch()" time="0.125322333" />
+    <testcase classname="NearpaneUITests.StageWindowEngineWitnessTests" name="hiddenRequiresSpecificConfirmedWorkerAndIndependentGeometryOrMembership()" time="0.125212334" />
+    <testcase classname="NearpaneUITests.StageWindowEngineWitnessTests" name="windowOwnerKeepsMetadataReaderAliveAfterSidebarHides()" time="0.125783916" />
+  </testsuite>
+</testsuites>

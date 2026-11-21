@@ -144,10 +144,6 @@ import NearpaneOrdinaryWindowRuntime
                 MainActor.assumeIsolated { self?.freeze() }
             }))
         }
-        watchers.append((workspace,workspace.addObserver(forName:NSWorkspace.didTerminateApplicationNotification,object:nil,queue:.main) { [weak self] n in
-            let pid = (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
-            MainActor.assumeIsolated { if let pid, self?.witness?.contains(pid:pid) == true { self?.freeze() } }
-        }))
         for name in [NSWorkspace.didWakeNotification,NSWorkspace.sessionDidBecomeActiveNotification] {
             watchers.append((workspace,workspace.addObserver(forName:name,object:nil,queue:.main) { [weak self] _ in
                 MainActor.assumeIsolated {
@@ -174,6 +170,23 @@ import NearpaneOrdinaryWindowRuntime
     func observeDirectory(_ candidates: [StageGroupWindow], in store: StageGroupStore) throws {
         if !holdsDispatch { try store.observe(candidates) }
         else if let scope = witness?.scope { try store.observe(candidates, preserving: scope.display) }
+    }
+
+    private func retire(_ departures: [StageWindowDeparture], from store: StageGroupStore) throws -> Bool {
+        guard !departures.isEmpty, !unreadableLedger, !releasing, !terminationOwnsLane else { return false }
+        let retired = try store.retire(departures) { key in
+            engine?.coordinator.permitsRetirement(of: key) != false && witness?.hasVisibilityClaim(key) != true
+        }
+        for item in departures where retired.contains(item.window) { witness?.discard(item) }
+        return !retired.isEmpty
+    }
+
+    func processEnded(_ pid: Int32, in feed: CurrentDesktopWindows) async throws {
+        let enrolled = witness?.contains(pid: pid) == true
+        if enrolled { freeze() }
+        let departed = try await StageWindowDeparture.exited(pid: pid, bound: feed.groups.boundWindows(of: pid))
+        if try retire(departed, from: feed.groups) { feed.changed() }
+        if enrolled { ordinaryContextObserved() }
     }
 
     /// Membership edits and ordinary tiling share the sidebar's serialized intent lane.
@@ -351,7 +364,17 @@ import NearpaneOrdinaryWindowRuntime
                     guard engine.coordinator.observesActiveGroup(sample, owner: session.owner) else {
                         throw StageSwitchError.ownership
                     }
-                } catch let failure as StageSwitchError where failure == .interrupted || failure == .incomplete {
+                } catch {
+                    let failure = error
+                    if let closed = try? await witness.closedWindows(), token == revision, !Task.isCancelled,
+                       try retire(closed, from: feed.groups) {
+                        freeze()
+                        ordinaryContextObserved()
+                        return
+                    }
+                    guard let source = failure as? StageSwitchError, source == .interrupted || source == .incomplete else {
+                        throw failure
+                    }
                     // A newly visible window can reach the desktop reader before its independent AX
                     // creation notification. Only an original event and two complete reads may admit it.
                     let recorded = try await witness.consumeArrival(in: feed.groups, owner: session.owner) { [weak self] in

@@ -79,6 +79,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
                 var seeded = false
                 let deadline = ContinuousClock.now + .seconds(comparison ? 540 : 70)
                 while ContinuousClock.now < deadline && !FileManager.default.fileExists(atPath: root.appendingPathComponent("stop").path) {
+                    if FileManager.default.fileExists(atPath: root.appendingPathComponent("stop-owner-\(getpid())").path) { break }
                     if comparison && name == "b" && !seeded && FileManager.default.fileExists(atPath: root.appendingPathComponent("user-minimize").path) {
                         seeded = true
                         windows[2].miniaturize(nil)
@@ -110,7 +111,7 @@ private struct FixtureGeometry: Codable {
     let frames: [String: SurfaceRect]
 }
 
-@MainActor private func check(_ phase: String, root: URL) throws {
+@MainActor @discardableResult private func check(_ phase: String, root: URL) throws -> (StageGroupStore, [StageGroupWindow]) {
     let owners = try ["a", "b"].map { try JSONDecoder().decode(Owner.self, from: Data(contentsOf: root.appendingPathComponent($0 + ".json"))) }
     guard let screen = NSScreen.main, let first = owners.first else { throw FixtureError.display }
     let (id, number) = try screenIdentity(screen)
@@ -146,7 +147,7 @@ private struct FixtureGeometry: Codable {
     let profile = root.appendingPathComponent("profile")
     let store = StageGroupStore(profile: profile)
     let stateFile = root.appendingPathComponent("expected-directory.json")
-    let reopening = phase == "reopen"
+    let reopening = phase != "record"
     let geometryFile = root.appendingPathComponent("expected-geometry.json")
     let geometry: FixtureGeometry
     if reopening {
@@ -189,12 +190,13 @@ private struct FixtureGeometry: Codable {
         "axTrusted": AXIsProcessTrusted(), "systemStageManagerOwnsDispatch": StageManagerPreference.ownsWindowDispatch]
     try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]).write(to: root.appendingPathComponent(phase + ".json"), options: .withoutOverwriting)
     if nativeStatus == "FAIL" { throw FixtureError.conflictingNativeMembership }
+    return (store, windows)
 }
 
 @main private struct Fixture {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 2, ["a", "b", "record", "reopen", "visibility", "minimize", "corner", "wallpaper", "movie", "film"].contains(args[0]),
+        guard args.count == 2, ["a", "b", "record", "reopen", "lifecycle", "visibility", "minimize", "corner", "wallpaper", "movie", "film"].contains(args[0]),
               ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else { exit(64) }
         if args[0] == "movie" {
             Task {
@@ -234,6 +236,17 @@ private struct FixtureGeometry: Codable {
             Task { @MainActor in
                 do { try await qualifyVisibility(root: root); exit(0) }
                 catch { fputs("Visibility receipt failed: \(error)\n", stderr); exit(1) }
+            }
+            RunLoop.main.run()
+            return
+        }
+        if args[0] == "lifecycle" {
+            Task { @MainActor in
+                do {
+                    let (store, windows) = try check("lifecycle-baseline", root: root)
+                    try await verifyStageDeparture(root: root, store: store, windows: windows)
+                    exit(0)
+                } catch { fputs("Lifecycle fixture: \(error)\n", stderr); exit(1) }
             }
             RunLoop.main.run()
             return

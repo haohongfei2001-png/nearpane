@@ -210,6 +210,16 @@ package final class WindowMonitor {
     package func closure(expected: SurfaceRect) throws -> OrdinaryWindowClosure {
         guard hasObserver, baseline != nil, expectedFrame == expected, waitingFor == nil,
               getppid() == parent else { throw Refusal("未取得原窗口的连续关闭见证。") }
+        return try certifyAbsence()
+    }
+
+    /// An in-process Stage monitor retains the original AX object even without an ordinary layout grant.
+    func stageClosure() throws -> OrdinaryWindowClosure {
+        guard !signalParent, waitingFor == nil, getppid() == parent else { throw StageSwitchError.ownership }
+        return try certifyAbsence()
+    }
+
+    private func certifyAbsence() throws -> OrdinaryWindowClosure {
         let notificationTime = destroyedAt
         let evidence: OrdinaryWindowClosure.Evidence = notificationTime == nil ? .invalidAXElement : .notification
         func absent() throws -> Bool {

@@ -156,6 +156,9 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
             ledger.owned.contains { $0.scope == scope && $0.group == group && $0.member == member && $0.hidden == state && $0.owner == owner }
     }
     public var hasWindowAuthority: Bool { busy || !ledger.owned.isEmpty || requiresRecovery || ledger.owner != nil }
+    public func permitsRetirement(of key: NativeSpaceWindow) -> Bool {
+        !busy && !requiresRecovery && !ledger.owned.contains { $0.hidden.window == key }
+    }
     public func invalidate() { epoch = UUID() }
     public func withdrawVerifiedActivity() throws {
         guard ledger.owner != nil else { return }

@@ -128,6 +128,18 @@ jobs:
           receipt="$RUNNER_TEMP/stage-group-windowserver.json"
           python3 -B scripts/acceptance/stage-groups/windowserver.py "$bin" --hosted-receipt "$receipt"
           cat "$receipt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Close and relaunch a registered app beside two independently observed sibling windows
+        run: python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-lifecycle "$RUNNER_TEMP/stage-group-lifecycle.json"
+      - name: Preserve ordinary-window and process lifecycle readbacks
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stage-group-windowserver
+          path: |
+            ${{ runner.temp }}/stage-group-lifecycle.json
+            ${{ runner.temp }}/stage-group-windowserver.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Assess the enrolled private archive on this clean hosted Mac
         if: "${{ !cancelled() && contains(github.event.head_commit.message, '[private-macos-26 ') }}"
         env:

@@ -11,7 +11,34 @@ import tempfile
 import time
 
 
-def run(build, receipt, comparison=None):
+def lifecycle(binary, root, old_owner, launch_owner):
+    inspector = subprocess.Popen([binary, "lifecycle", root], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    deadline = time.monotonic() + 23
+    relaunched = False
+    try:
+        while inspector.poll() is None and time.monotonic() < deadline:
+            if not relaunched and (root / "lifecycle-retired").exists():
+                if old_owner.wait(timeout=3) != 0:
+                    raise RuntimeError("fixtureOwnerExit")
+                launch_owner("b")
+                relaunched = True
+            time.sleep(0.08)
+        _, detail = inspector.communicate(timeout=2)
+        path = root / "lifecycle.json"
+        result = json.loads(path.read_bytes()) if path.exists() else {"status": "UNKNOWN", "reason": "missingLifecycleReceipt"}
+        if inspector.returncode or not relaunched:
+            result.update(status="FAIL" if result.get("status") == "FAIL" else "UNKNOWN", inspectorExit=inspector.returncode,
+                          detail=detail.strip()[-350:])
+        return result
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+        return {"status": "UNKNOWN", "reason": type(error).__name__}
+    finally:
+        if inspector.poll() is None:
+            inspector.terminate()
+            inspector.wait(timeout=3)
+
+
+def run(build, receipt, comparison=None, lifecycle_only=False):
     with tempfile.TemporaryDirectory(prefix="nearpane-group-fixture.") as tmp:
         root = Path(tmp).resolve()
         targets = {"NearpaneCore.build", "WindowGeometryCore.build", "CReadOnlySpaces.build"}
@@ -26,7 +53,8 @@ def run(build, receipt, comparison=None):
                         "-I", build / "Modules", "-Xcc", "-fmodule-map-file=" + str(build / "CReadOnlySpaces.build/module.modulemap"),
                         Path(__file__).with_suffix(".swift"), Path(__file__).with_name("visibility.swift"),
                         Path(__file__).with_name("comparison.swift"), Path(__file__).with_name("recording.swift"),
-                        Path(__file__).with_name("wallpaper.swift"), Path(__file__).resolve().parents[3] / "Sources/NearpaneUI/WallpaperRevealMonitor.swift",
+                        Path(__file__).with_name("wallpaper.swift"), Path(__file__).with_name("lifecycle.swift"),
+                        Path(__file__).resolve().parents[3] / "Sources/NearpaneUI/WallpaperRevealMonitor.swift",
                         *inputs, "-o", binary], check=True)
         if comparison:
             from comparison import run_comparison
@@ -38,6 +66,12 @@ def run(build, receipt, comparison=None):
                   "groupVisibilitySwitch": "NOT_RUN", "physicalMultiDisplay": "NOT_RUN", "nativeWrites": 0,
                   "sourceRevision": os.environ["GITHUB_SHA"], "scope": "two registered ordinary fixture apps and two independent directory readers"}
         apps, processes = {}, []
+        def launch_owner(name):
+            proc = subprocess.Popen(["/usr/bin/open", "-g", "-n", "-W", "--env", "RUNNER_ENVIRONMENT=github-hosted",
+                                     "-a", apps[name], "--args", name, root])
+            processes.append(proc)
+            return proc
+
         try:
             for name in ("a", "b"):
                 app = root / ("Stage Fixture " + name + ".app")
@@ -50,8 +84,7 @@ def run(build, receipt, comparison=None):
                 subprocess.run(["codesign", "-s", "-", "--force", app], check=True)
                 subprocess.run(["codesign", "--verify", "--strict", app], check=True)
                 apps[name] = app
-                processes.append(subprocess.Popen(["/usr/bin/open", "-g", "-n", "-W", "--env", "RUNNER_ENVIRONMENT=github-hosted",
-                                                   "-a", app, "--args", name, root]))
+                launch_owner(name)
             deadline = time.monotonic() + 10
             while not all((root / (n + ".json")).exists() for n in apps) and time.monotonic() < deadline:
                 if any(p.poll() is not None for p in processes):
@@ -77,7 +110,10 @@ def run(build, receipt, comparison=None):
                         result["status"] = "PASS"
                     else:
                         result.update(status="FAIL", reason="independentReaderMismatch")
-            if result["status"] == "PASS":
+            if result["status"] == "PASS" and lifecycle_only:
+                result["processLifecycle"] = lifecycle(binary, root, processes[1], launch_owner)
+                result["status"] = result["processLifecycle"]["status"]
+            elif result["status"] == "PASS":
                 probe = subprocess.run([binary, "visibility", root], capture_output=True, text=True, timeout=24)
                 observed = root / "visibility.json"
                 result["singleWindowVisibility"] = (json.loads(observed.read_bytes()) if observed.exists() else
@@ -97,7 +133,7 @@ def run(build, receipt, comparison=None):
         print("Directory and exact fixture geometry:", result["status"], "| Public single-window AX qualification:", qualification)
         if qualification in ("FAIL", "UNKNOWN"):
             print("::warning::Single-window visibility qualification recorded " + qualification)
-        if result["status"] not in ("PASS", "BLOCKED"):
+        if result["status"] not in ("PASS", "BLOCKED") or result.get("processLifecycle", {}).get("status") in ("FAIL", "UNKNOWN"):
             raise SystemExit(1)
 
 
@@ -107,11 +143,13 @@ if __name__ == "__main__":
     mode = cli.add_mutually_exclusive_group(required=True)
     mode.add_argument("--compile-only", action="store_true")
     mode.add_argument("--hosted-receipt", type=Path)
+    mode.add_argument("--hosted-lifecycle", type=Path)
     mode.add_argument("--hosted-comparison", type=Path)
     args = cli.parse_args()
-    destination = args.hosted_receipt or args.hosted_comparison
+    destination = args.hosted_receipt or args.hosted_lifecycle or args.hosted_comparison
     if destination:
         keys = ("GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "RUNNER_OS")
         if [os.getenv(k) for k in keys] != ["true", "github-hosted", "macOS"] or destination.exists():
             cli.error("Live tests require a disposable hosted Mac and a new receipt")
-    run(args.build.resolve(strict=True), args.hosted_receipt, args.hosted_comparison)
+    run(args.build.resolve(strict=True), args.hosted_receipt or args.hosted_lifecycle, args.hosted_comparison,
+        lifecycle_only=args.hosted_lifecycle is not None)

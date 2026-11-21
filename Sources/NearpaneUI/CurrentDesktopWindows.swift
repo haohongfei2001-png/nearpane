@@ -213,6 +213,16 @@ import OSLog
         self.events = events
         let fingerprint = self.fingerprint
         loop = Task { [weak self] in
+            let workspace = NSWorkspace.shared.notificationCenter
+            let termination = workspace.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+                guard let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier else { return }
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    do { try await stageEngine.processEnded(pid, in: self) }
+                    catch { groupIssue = error.localizedDescription }
+                }
+            }
+            defer { workspace.removeObserver(termination) }
             let detector = Task {
                 var previous: Int?, last = ContinuousClock.now
                 var settleUntil = last

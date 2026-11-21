@@ -173,6 +173,31 @@ import Testing
         #expect(try Data(contentsOf: path) == bytes)
     }
 
+    @Test func confirmedDepartureRemovesOnlyTheBoundUnownedMember() throws {
+        let store = StageGroupStore(profile: nil), scope = StageGroupScope(display: UUID(), nativeSpace: UUID())
+        let first = StageGroupWindow(display: scope.display, identity: .init(pid: 41, birth: 9, number: 1),
+                                     lifetime: UUID(), nativeSpace: scope.nativeSpace)
+        let second = StageGroupWindow(display: scope.display, identity: .init(pid: 41, birth: 9, number: 2),
+                                      lifetime: UUID(), layout: .init(x: 0.5, width: 0.5, height: 1), nativeSpace: scope.nativeSpace)
+        try store.observe([first, second])
+        try store.join(first, to: second)
+        let group = try #require(store.groups(in: scope).first)
+        let id = ManagedWindowID(pid: 41, launch: 9, number: 1, element: UUID())
+        let now = ProcessInfo.processInfo.systemUptime
+        let proof = OrdinaryWindowClosure(id: id, destroyed: now - 0.2, firstAbsent: now - 0.1, secondAbsent: now)
+        let stale = try #require(StageWindowDeparture.confirmed(proof, original: id, lifetime: UUID()))
+        let exact = try #require(StageWindowDeparture.confirmed(proof, original: id, lifetime: first.lifetime))
+        #expect(try store.retire([stale], unowned: { _ in true }).isEmpty)
+        #expect(try store.retire([exact], unowned: { _ in false }).isEmpty)
+        #expect(store.groups(in: scope) == [group])
+        #expect(try store.retire([exact], unowned: { _ in true }) == [first.identity])
+        #expect(store.groups(in: scope).first?.members == group.members.filter { $0.windowHint == second.identity })
+        let reopened = StageGroupWindow(display: scope.display, identity: first.identity, lifetime: UUID(), nativeSpace: scope.nativeSpace)
+        try store.observe([reopened])
+        #expect(store.groups(in: scope).count == 2 && store.groups(in: scope).last?.id != group.id)
+        #expect(try store.retire([exact], unowned: { _ in true }).isEmpty)
+    }
+
     @Test func relativeFramesUseDisplayLocalUsableOrigin() {
         let rect = StageGroupWindow.relativeFrame(.init(x: -10, y: 20, width: 500, height: 380),
                                                   in: .init(x: 10, y: 20, width: 1000, height: 760))

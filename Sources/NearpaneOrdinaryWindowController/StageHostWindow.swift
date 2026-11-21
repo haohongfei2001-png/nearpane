@@ -140,6 +140,12 @@ import NearpaneCore
         return sample
     }
 
+    package func departure() throws -> StageWindowDeparture? {
+        try access.check()
+        guard let lifetime else { return nil }
+        return StageWindowDeparture.confirmed(try monitor.stageClosure(), original: id, lifetime: lifetime)
+    }
+
     package func beginCreation(_ token: UUID) throws {
         let observed = try observation(home: home)
         guard lifetime != nil, observed.onscreen, !observed.minimized, observed.membership == UInt64(home.record),

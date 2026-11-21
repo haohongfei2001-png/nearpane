@@ -18,7 +18,7 @@ import NearpaneOrdinaryWindowRuntime
     let generation = UUID()
     private let available: @MainActor () -> Bool, restoreAvailable: @MainActor () -> Bool
     private let authorizedLifetimes: [NativeSpaceWindow: UUID]
-    private let leases: [NativeSpaceWindow: OrdinaryFileLease]
+    private var leases: [NativeSpaceWindow: OrdinaryFileLease]
     private var bindings = [NativeSpaceWindow:Binding](), claims = [NativeSpaceWindow:VisibilityClaim]()
     private let session: UUID, display: String
     private var releaseInput: [UInt32]?
@@ -50,6 +50,21 @@ import NearpaneOrdinaryWindowRuntime
     func matches(_ scope: StageGroupScope) -> Bool { self.scope == scope }
     func state(of id: NativeSpaceWindow) -> StageWindowState? { lastStates[id] }
     func contains(pid: pid_t) -> Bool { bindings.keys.contains(where:{ $0.pid == pid }) }
+    func hasVisibilityClaim(_ window: NativeSpaceWindow) -> Bool { claims[window] != nil }
+    func discard(_ departure: StageWindowDeparture) {
+        guard claims[departure.window] == nil, bindings[departure.window]?.lifetime == departure.lifetime else { return }
+        bindings.removeValue(forKey: departure.window)
+        leases.removeValue(forKey: departure.window)
+    }
+
+    func closedWindows() async throws -> [StageWindowDeparture] {
+        guard let feed, let snapshot = await feed.readAfterAction(), let access = hostAccess else { return [] }
+        let (_, present) = try roster(snapshot, access: access)
+        let absent = bindings.filter {
+            !present.contains($0.key) && claims[$0.key] == nil && lastStates[$0.key]?.visibility == .visible
+        }
+        return absent.compactMap { try? $0.value.monitor.departure() }
+    }
     func lifetime(of window: NativeSpaceWindow) -> UUID? { bindings[window]?.lifetime }
     func mayManage(_ state: StageWindowState) -> Bool {
         guard let binding = bindings[state.window] else { return false }
