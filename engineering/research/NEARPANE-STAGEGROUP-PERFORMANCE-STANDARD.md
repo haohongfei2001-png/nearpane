@@ -87,3 +87,28 @@ Require:
 7. Signing, notarization, clean install, upgrade and rollback.
 
 Any visibility or input-safety failure keeps full StageGroup switching disabled.
+
+
+## 7. Visibility-provider safety standard — 76d9ca8 supplement
+
+The following is a hard safety gate in addition to the timing and resource targets above.
+
+- Pixel coverage is not input isolation. Every former inactive-window hit region must be exercised with a real pointer event and an owner-side receiver marker.
+- A panel's `ignoresMouseEvents` state must be recorded. `true` means click-through; it cannot count as an input shield. With `false`, independently prove that the panel was frontmost at every test point and that the underlying fixture received zero mouse events.
+- A non-activating panel must preserve both the actual key window and the real keyboard receiver. `canBecomeKeyWindow == false` alone is not focus proof.
+- Record the global level and per-window Z-order before, during and after every transition. Verify the target active windows remain above any shield and every inactive window remains below it. Any unobserved window creation, sheet, menu, popover or activation invalidates the trial.
+- Capture exclusion is not visibility control. ScreenCaptureKit exclusion must be tested for stale frames, startup/reconfiguration latency, display changes, protected content, and Screen Recording permission; it cannot be used as evidence that source windows left WindowServer or hit testing.
+- Mission Control, Space changes, Stage Manager, full-screen and Split View must be tested as system takeovers. A shield that vanishes after the transition begins is not evidence of atomic pre-transition removal.
+- Repeat on each physical display, across scale/refresh/color-space changes and hot-plug, with recovery proving that no source window is left masked or exposed incorrectly.
+- Same-app sibling windows, cross-app windows, modal sheets, app menus, popovers and system notifications are mandatory workload classes, not optional edge cases.
+
+### Current candidate disposition
+
+| Candidate | Visual result | Pointer safety | Focus/Z-order/lifecycle | Decision |
+|---|---|---|---|---|
+| AXMinimized with minimize-to-app-icon enabled | AX trial BLOCKED before action; two-window Dock click observation restored only A1 | Not qualified | Same-app/two-group test NOT_RUN | NO-GO / UNKNOWN details |
+| Non-activating Occlusion Shield | Plausible pixel cover only | Conditional on race-free panel being top hit target; not proven | Global Z-order and system transient lifecycle not guaranteed | NO-GO primary provider |
+| External SLSOrderWindow | No hide effect in five external connection modes on both tested builds | Target remains hit-testable | Owner control is local-only | FAIL |
+| Owner-process SLS positive control | Ordered out in CG readback | Test point isolated while ordered out | AppKit visibility disagrees; restoration click check failed | Diagnostic only |
+
+No performance benchmark can override these safety failures. Do not benchmark a provider until it passes the single-transition safety gate.
