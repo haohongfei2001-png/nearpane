@@ -60,6 +60,7 @@ static BOOL readPacket(int fd, void *raw, size_t length) {
 static BOOL displayIs(Session *s);
 static BOOL stable(Session *s, NCFrame frame);
 #include "packaged.h"
+#include "inspect.h"
 #endif
 static BOOL journal(Session *s, BOOL sealed) {
 #ifndef NP_CORNER_FIXTURE
@@ -87,6 +88,15 @@ static BOOL stable(Session *s, NCFrame frame) {
     return np_corner_same_window(&s->member, s->held) && !np_corner_sample(&s->member, &sample) &&
            !sample.minimized && sample.onscreen && closeFrame(sample.ax, frame) && closeFrame(sample.cg, frame);
 }
+#ifndef NP_CORNER_FIXTURE
+static BOOL originalReleaseWitness(Session *s) {
+    uint8_t digest[32] = {0};
+    return getppid() == s->pre.host && ncg_birth(getppid(), NULL) == s->pre.host_birth &&
+           np_corner_signed_fingerprint(s->member.pid, s->member.birth, digest) &&
+           [s->hash isEqual:[NSData dataWithBytes:digest length:sizeof(digest)]] && displayIs(s) &&
+           productJournal(s, YES, YES) && stable(s, convert(s->pre.lease.frame));
+}
+#endif
 static uint32_t authorize(void *ptr) {
     Session *s = ptr;
     s->takeoverChecked = YES;
@@ -228,9 +238,11 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(polled > 0, @"signedHostPipeUnavailable");
     ssize_t got = read(STDIN_FILENO, &extra, 1);
     if (got == 1 && extra == 'D') {
-        need(ncg_birth(s->pre.host, NULL) == s->pre.host_birth && getppid() == s->pre.host &&
-                 productJournal(s, YES, YES) && stable(s, convert(s->pre.lease.frame)),
-             @"journalAndReleasedOriginalNotConfirmed");
+        need(originalReleaseWitness(s), @"journalAndReleasedOriginalNotConfirmed");
+        receipt[@"liveReleaseOriginalFrameReadbacks"] = @1;
+        usleep(25000);
+        need(originalReleaseWitness(s), @"secondReleasedOriginalNotConfirmed");
+        receipt[@"liveReleaseOriginalFrameReadbacks"] = @2;
         need(write(STDOUT_FILENO, "D", 1) == 1, @"disarmReplyUnavailable");
         receipt[@"status"] = @"PASS";
         receipt[@"reason"] = @"liveHostReleasedRestoredOwnership";
@@ -296,9 +308,13 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
 }
 int main(int argc, const char **argv) {
     @autoreleasepool {
+        (void)fcntl(STDOUT_FILENO, F_SETNOSIGPIPE, 1);
+#ifndef NP_CORNER_FIXTURE
+        if (argc == 2 && !strcmp(argv[1], "--inspect-registered-fixture"))
+            return inspectRegisteredFixture();
+#endif
         if (argc != 3)
             return 2;
-        (void)fcntl(STDOUT_FILENO, F_SETNOSIGPIPE, 1);
 #ifdef NP_CORNER_FIXTURE
         if (!ncg_disposable())
             return 2;

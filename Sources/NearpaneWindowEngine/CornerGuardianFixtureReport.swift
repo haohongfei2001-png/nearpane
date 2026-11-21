@@ -86,13 +86,7 @@ package struct CornerGuardianFixtureReport: Encodable, Sendable {
             (h.epoch ?? 0) > 0 && h.originalIntent != nil && h.member != nil && h.lifetime != nil &&
             h.generation != nil && h.original != nil
         let committed = prepared && sealed && h.parked != nil && (h.confirmedAckUptimeNS ?? 0) >= (h.preparedAckUptimeNS ?? 1)
-        let comparable = observedFrame.flatMap { actual in
-            h.parked.map { parked in
-                let differences = [actual.x - parked.x, actual.y - parked.y,
-                                   actual.width - parked.width, actual.height - parked.height]
-                return differences.allSatisfy { $0.isFinite && abs($0) <= 0.75 }
-            }
-        }
+        let comparable = observedFrame.flatMap { actual in h.parked.map { sameFrame(actual, $0) } }
         let status: String, reason: String
         if absent {
             (status, reason) = ("BLOCKED", "thisHostHasNoPreparedGuardianForThisWindow")
@@ -115,6 +109,10 @@ package struct CornerGuardianFixtureReport: Encodable, Sendable {
             committedWALWitness: committed ? "MATCHED_AT_CONFIRM_ACK" : "NOT_OBSERVED",
             comparableParkedFrame: comparable
         )
+    }
+
+    static func sameFrame(_ a: SurfaceRect, _ b: SurfaceRect) -> Bool {
+        [a.x - b.x, a.y - b.y, a.width - b.width, a.height - b.height].allSatisfy { $0.isFinite && abs($0) <= 0.75 }
     }
 
     /// The caller supplies the independently witnessed ordinary scope. This command only reads the registered

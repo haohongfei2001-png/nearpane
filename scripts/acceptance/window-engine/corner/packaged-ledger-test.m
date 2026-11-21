@@ -18,8 +18,36 @@ static NSString *newID(uint8_t bytes[16]) {
     [u getUUIDBytes:bytes];
     return u.UUIDString;
 }
+static void inspectEnvelopeChecks(void) {
+    NSMutableDictionary *request = [@{
+        @"schema" : @1, @"challenge" : NSUUID.UUID.UUIDString, @"issued" : @100, @"hostPID" : @32,
+        @"hostBirth" : @41, @"hostHash" : @"originalHost", @"childPID" : @48, @"childBirth" : @51,
+        @"childHash" : @"originalGuardian", @"window" : @{@"pid" : @61, @"birth" : @71, @"number" : @81},
+        @"fixtureHash" : [@"0" stringByPaddingToLength:40 withString:@"0" startingAtIndex:0], @"executable" : @"/test-fixture"
+    } mutableCopy];
+    assert(diagnosticEnvelope(request, 112));
+    assert(!diagnosticEnvelope(request, 99));
+    assert(!diagnosticEnvelope(request, UINT64_C(6000000101)));
+    request[@"phase"] = @"prepare";
+    assert(!diagnosticEnvelope(request, 112));
+    [request removeObjectForKey:@"phase"];
+    request[@"display"] = NSUUID.UUID.UUIDString;
+    assert(!diagnosticEnvelope(request, 112));
+    request[@"space"] = NSUUID.UUID.UUIDString;
+    request[@"nativeID"] = @1;
+    assert(diagnosticEnvelope(request, 112));
+    NSDictionary *window = request[@"window"];
+    request[@"window"] = @{@"pid" : @61, @"birth" : @71, @"number" : @(UINT64_C(4294967297))};
+    assert(!diagnosticEnvelope(request, 112));
+    request[@"window"] = @{@"pid" : @61, @"birth" : @71, @"number" : @YES};
+    assert(!diagnosticEnvelope(request, 112));
+    request[@"window"] = window;
+    request[@"nativeID"] = @(-1);
+    assert(!diagnosticEnvelope(request, 112));
+}
 int main(void) {
     @autoreleasepool {
+        inspectEnvelopeChecks();
         char scratch[] = "/private/tmp/nearpane-guardian-ledger.XXXXXXXX";
         assert(mkdtemp(scratch));
         NSString *base = [NSFileManager.defaultManager stringWithFileSystemRepresentation:scratch

@@ -33,10 +33,10 @@ import Security
         Self.clients.add(self)
     }
 
-    private static let helper = URL(fileURLWithPath: "/Applications/Nearpane.app/Contents/Helpers/NearpaneCornerGuardian")
+    nonisolated static let helper = URL(fileURLWithPath: "/Applications/Nearpane.app/Contents/Helpers/NearpaneCornerGuardian")
     private static let identifier = "com.holdsnow.nearpane.alpha.corner-guardian"
 
-    private static func signedHelper() -> Bool {
+    static func signedHelper() -> Bool {
         guard Bundle.main.bundleURL.standardizedFileURL.path == "/Applications/Nearpane.app",
               Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha",
               helper.resolvingSymlinksInPath().path == helper.path else { return false }
@@ -154,7 +154,7 @@ import Security
         leases.removeValue(forKey: w)
     }
 
-    private static func childGeneration(_ pid: Int32) -> UInt64? {
+    nonisolated static func childGeneration(_ pid: Int32) -> UInt64? {
         guard pid > 1 else { return nil }
         var b = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue: b))
