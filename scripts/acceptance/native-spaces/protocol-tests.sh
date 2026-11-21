@@ -19,7 +19,7 @@ let package = Package(name: "InstalledProtocolTests", platforms: [.macOS("26.0")
     .target(name: "CReadOnlySpaces"),
     .target(name: "CNativeSpaceActions"),
     .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
-    .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces", "CNativeSpaceActions"]),
+    .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore"]),
     .testTarget(name: "NearpaneSpaceActionTests", dependencies: ["NearpaneSpaceAction", "NearpaneCore", "CNativeSpaceActions"]),
     .testTarget(name: "NearpaneUITests", dependencies: ["NearpaneUI", "NearpaneCore"])

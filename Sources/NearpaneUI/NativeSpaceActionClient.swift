@@ -77,7 +77,8 @@ final class NativeSelectionPermit: @unchecked Sendable {
     }
 
     func run(_ command: NativeSpaceCommand, permit: NativeSelectionPermit? = nil) async -> NativeSpaceReply {
-        await channel.exchange(command, permit: permit)
+        if let refusal = command.nativeWriteRefusal { return refusal }
+        return await channel.exchange(command, permit: permit)
     }
 }
 

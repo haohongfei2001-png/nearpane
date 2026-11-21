@@ -23,7 +23,6 @@ struct DesktopSurface: View {
     var display: SurfaceDisplay?
     var settings: DisplaySettings = .init()
     @ViewState private var appBadges: [DesktopWindowKey: WindowAppBadges.Badge] = [:]
-    @ViewState private var drag = NativeSidebarDrag()
     private let navigation = NativeSidebarNavigation.shared
     private var canNavigate: Bool {
         navigation.dispatchAvailable && enabled && host.isRunning && !host.configuration.surfaceHidden &&
@@ -49,9 +48,6 @@ struct DesktopSurface: View {
     }
 
     var body: some View {
-        let menu = NativeSpaceMenu.shared
-        let request = menu.active.flatMap { $0.display == displayID ? $0 : nil }
-        let feed = display?.pointer?.windowPreviews?.currentDesktop
         VStack(alignment: .leading, spacing: 0) {
             roster
             if let selectionIssue = navigation.issue ?? selectionIssue {
@@ -71,36 +67,10 @@ struct DesktopSurface: View {
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
-        .popover(isPresented: Binding(get: {
-            guard let request, feed != nil else { return false }
-            return menu.accepts(request, display: displayID, ownership: navigation.ownershipEpoch, allowed: canNavigate)
-        }, set: { visible in
-            if !visible, let request { menu.close(request) }
-        })) {
-            if let request, let feed {
-                NativeSpaceMenuContents(request: request, feed: feed, navigation: navigation, allowed: {
-                    canNavigate && host.registry.preferences.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
-                })
-                .id(request.id)
-            }
+        .onChange(of: canNavigate) { _, available in
+            if !available { navigation.windowSwitch.cancel(on: displayID) }
         }
-        .onChange(of: canNavigate) { previous, available in
-            if previous && !available {
-                navigation.windowSwitch.cancel(on: displayID)
-                if let request { menu.close(request) }
-            }
-        }
-        .onDisappear {
-            navigation.windowSwitch.cancel(on: displayID)
-            if let request { menu.close(request) }
-        }
-        #if NEARPANE_P0_DIAGNOSTIC
-        .task(id: canNavigate ? displayID : nil) {
-            guard canNavigate, let id = displayID, let feed = display?.pointer?.windowPreviews?.currentDesktop,
-                  let lease = P0DiagnosticLease.installed() else { return }
-            await P0HostDiagnostic().listen(lease, display:id, feed:feed, navigation:navigation, allowed:{ canNavigate })
-        }
-        #endif
+        .onDisappear { navigation.windowSwitch.cancel(on: displayID) }
     }
 
     @ViewBuilder private var roster: some View {
@@ -146,11 +116,6 @@ struct DesktopSurface: View {
                             .padding(inset)
                         }
                         .frame(width: width, alignment: .leading)
-                        .task(id: ProbeKey(session: snapshot.sessionID, topology: snapshot.topologyFingerprint,
-                                           available: canNavigate, grants: WindowOverviewAccess.shared.grants,
-                                           accessibility: snapshot.native?.accessibility, post: CGPreflightPostEventAccess())) {
-                            if canNavigate, catalog != nil { await navigation.probe(display: screen.id) }
-                        }
                         .task(id: BadgeRefresh(session: snapshot.sessionID, members: windows.compactMap(DesktopWindowKey.init), visible: canNavigate)) {
                             if canNavigate {
                                 let badges = WindowAppBadges.resolve(windows)
@@ -166,11 +131,6 @@ struct DesktopSurface: View {
         }
     }
 
-    private struct ProbeKey: Equatable {
-        let session: UUID, topology: String, available: Bool
-        let grants: Set<WindowOverviewAccess.Permission>, accessibility: AXReadStatus?, post: Bool
-    }
-
     private var picturesAllowed: Bool {
         canNavigate && host.configuration.showsWindowThumbnails && WindowPermissionProbe.screen.allowed()
     }
@@ -180,11 +140,6 @@ struct DesktopSurface: View {
         let bounds = SurfaceRect(width: screen.frame.width, height: screen.frame.height)
         return try? DesktopWorkArea(display: screen.id, screen: bounds, usable: usable,
             primary: display?.secondary != true, settings: settings, fallbackEdge: host.configuration.edge).ordinary
-    }
-
-    private func move(_ member: NativeSidebarMember, to destination: NativeSidebarDestination, lifetime: UUID, feed: CurrentDesktopWindows) {
-        selectionIssue = nil
-        navigation.move(member, into: destination, lifetime: lifetime, feed: feed, allowed: { canNavigate })
     }
 
     private func place(_ pair: SidebarPairDrop, feed: CurrentDesktopWindows) {
@@ -239,21 +194,18 @@ struct DesktopSurface: View {
                 if let member, let group = visibleGroups[member.key], let feed {
                     if members.first(where: { group.members[$0.key] != nil })?.key == member.key {
                         let grouped = windows.filter { w in NativeSidebarMember(w, source: member.source).map { group.members[$0.key] != nil } == true }
-                        NativeWindowGroupCard(destination: member.source, display: screen, isCurrent: true,
-                            drag: drag, feed: feed, badges: Dictionary(uniqueKeysWithValues: grouped.compactMap { w in
+                        NativeWindowGroupCard(destination: member.source, display: screen,
+                            feed: feed, badges: Dictionary(uniqueKeysWithValues: grouped.compactMap { w in
                                 DesktopWindowKey(w).flatMap { appBadges[$0] }.map { (w.id, $0) }
                             }), gallery: gallery,
-                            permitted: permitted, canSwitch: canNavigate && navigation.canSwitch,
-                            canMove: canNavigate && navigation.canMove, workArea: workArea(for: screen),
+                            permitted: permitted, workArea: workArea(for: screen),
                             select: { chosen in
-                                if let chosen, let observed = chosen.resolve(snapshot), let target = DesktopWindowTarget(observed, in: snapshot) {
+                                if let observed = chosen.resolve(snapshot), let target = DesktopWindowTarget(observed, in: snapshot) {
                                     selectWindow(target, snapshot: snapshot, lifetime: feed.lifetime(of: chosen.key), member: chosen)
-                                } else {
-                                    navigation.select(member.source, member: chosen, feed: feed, allowed: { canNavigate })
                                 }
                             },
                             id: group.id, windows: grouped, snapshot: snapshot,
-                            place: { place($0, feed: feed) }, move: { move($0, to: $1, lifetime: $2, feed: feed) }, dissolve: { feed.groups.dissolve(group.id) })
+                            place: { place($0, feed: feed) }, dissolve: { feed.groups.dissolve(group.id) })
                             .id(group.members)
                     }
                 } else {
@@ -264,10 +216,9 @@ struct DesktopSurface: View {
                         select: { if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) } },
                         selectable: target != nil)
                     .modifier(SidebarWindowDragAndDrop(member: canNavigate ? member : nil, lifetime: lifetime,
-                        width: width, drag: drag, feed: feed, canMove: canNavigate && navigation.canMove,
+                        width: width, feed: feed,
                         select: { if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) } },
                         place: { pair in if let feed { place(pair, feed: feed) } },
-                        move: { source, dest, birth in if let feed { move(source, to: dest, lifetime: birth, feed: feed) } },
                         prepare: { if let target { prepareSwitch(target, in: snapshot) } }))
                     .contextMenu {
                         if let member, let feed, member.source.kind == .ordinary {
@@ -284,9 +235,6 @@ struct DesktopSurface: View {
         .frame(width: width, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("本屏窗口，\(windows.count) 扇")
-        .modifier(NativeWindowDropTarget(destination: source, canMove: canNavigate && navigation.canMove, drag: drag) { member, dest, lifetime in
-            if let feed { move(member, to: dest, lifetime: lifetime, feed: feed) }
-        })
         .task(id: host.bus.desktop?.revision) {
             if let previews, previews.binding?.display == screen.id { await previews.validate(host.bus.desktop) }
         }

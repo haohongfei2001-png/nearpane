@@ -863,9 +863,6 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return entry
         }
         _ = action("显示本屏窗口总览", #selector(showWindowOverview))
-        let spaceMenu = action("选择本屏空间…", #selector(showSpaceMenu))
-        spaceMenu.identifier = .init("native-space-menu-open")
-        spaceMenu.setAccessibilityIdentifier("native-space-menu-open")
         _ = action("窗口管理…", #selector(showWindowManagement))
         _ = action("打开 Nearpane", #selector(openMainWindow))
         _ = action("隐藏侧栏", #selector(toggleSurface))
@@ -883,7 +880,6 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             overview.title = managed ? "本屏窗口由台前调度管理" : "显示本屏窗口总览"
             overview.isEnabled = overviewAvailable
         }
-        menu.items.first(where: { $0.action == #selector(showSpaceMenu) })?.isEnabled = overviewAvailable
         guard let entry = menu.items.first(where: { $0.action == #selector(toggleSurface) }) else { return }
         entry.title = host?.configuration.surfaceHidden == true ? "显示侧栏" : "隐藏侧栏"
         entry.isEnabled = host?.isRunning == true
@@ -903,9 +899,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showWindowOverview() { _ = openWindowOverview() }
-    @objc private func showSpaceMenu() { _ = openWindowOverview(showSpaces: true) }
 
-    private func openWindowOverview(showSpaces: Bool = false) -> Bool {
+    private func openWindowOverview() -> Bool {
         guard overviewAvailable, let host, let panels else { return false }
         let point = NSEvent.mouseLocation
         let hits = SystemScreens.geometry().filter { screen in
@@ -920,7 +915,6 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             host.setSurfaceHidden(false)
             panels.request(screen.id)
             updatePanels()
-            if showSpaces { NativeSpaceMenu.request(on: screen.id) }
         }
         return true
     }

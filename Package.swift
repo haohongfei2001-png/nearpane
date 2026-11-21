@@ -21,7 +21,7 @@ var targets: [Target] = [
     .target(name: "WindowGeometryCore"),
     .target(name: "CReadOnlySpaces"),
     .target(name: "CNativeSpaceActions"),
-    .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces", "CNativeSpaceActions"]),
+    .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .testTarget(name: "NearpaneSpaceActionTests", dependencies: ["NearpaneSpaceAction", "NearpaneCore", "CNativeSpaceActions"]),
     .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
     .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),

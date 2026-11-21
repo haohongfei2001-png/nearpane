@@ -185,3 +185,15 @@ public struct NativeSpaceReply: Codable, Sendable {
         self.withheldOriginals = withheldOriginals
     }
 }
+
+extension NativeSpaceCommand {
+    /// Shipping builds only observe native Spaces. This also fences requests from older clients.
+    public var nativeWriteRefusal: NativeSpaceReply? {
+        switch action {
+        case .select, .move:
+            .init(id: id, state: .failed, detail: "原生桌面由 macOS 管理。", canSwitch: false, canMove: false)
+        case .probe, .observeWindows:
+            nil
+        }
+    }
+}

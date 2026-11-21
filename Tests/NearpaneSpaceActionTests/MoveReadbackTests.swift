@@ -93,17 +93,16 @@ struct MoveReadbackTests {
     }
 
     @MainActor @Test func productionRequestRefusesBeforeInventoryPreparationOrAuthorization() {
-        let disabled = !NPMoveAvailable()
-        #expect(disabled)
-        guard disabled else { return }
         let frozen = move()
-        let request = NativeSpaceCommand(id: frozen.id, action: .move, display: frozen.display, source: frozen.source,
-            target: frozen.target, sourceUUID: frozen.sourceUUID, targetUUID: frozen.targetUUID, window: frozen.window)
-        let reply = run(request, available: true, witnesses: SidebarWindowWitnesses(), authorize: { _ in
-            Issue.record("A disabled move requested delivery.")
-            throw ActionFailure("unexpected")
-        })
-        #expect(reply.state == .failed && !reply.canMove && reply.submittedSteps == 0)
-        #expect(reply.currentBefore == nil && reply.membershipBefore == nil && reply.issuedAtUptime == nil)
+        for action: NativeSpaceCommand.Action in [.move, .select] {
+            let request = NativeSpaceCommand(id: frozen.id, action: action, display: frozen.display, source: frozen.source,
+                target: frozen.target, sourceUUID: frozen.sourceUUID, targetUUID: frozen.targetUUID, window: frozen.window)
+            for available in [true, false] {
+                let reply = run(request, available: available, witnesses: SidebarWindowWitnesses())
+                #expect(reply.id == request.id && reply.state == .failed && !reply.canSwitch && !reply.canMove)
+                #expect(reply.submittedSteps == 0 && reply.issuedAtUptime == nil)
+                #expect(reply.currentBefore == nil && reply.membershipBefore == nil && reply.switchTrace == nil)
+            }
+        }
     }
 }

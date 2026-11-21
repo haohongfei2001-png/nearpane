@@ -100,27 +100,12 @@ import Testing
         #expect(!menu.beginSelection(newer))
     }
 
-    @Test func closingThePickerDuringAnOwnershipCheckCancelsTheQueuedProductionSelection() async throws {
-        let inventory = try #require(SpaceMenuInventory(snapshot(), display: display))
-        let menu = NativeSpaceMenu(), lane = NativeSidebarNavigation()
-        menu.open(on: display, ownership: lane.ownershipEpoch)
-        let request = try #require(menu.active)
-        menu.appeared(request)
-        var release: CheckedContinuation<Bool, Never>?
-        lane.confirmDispatch = { await withCheckedContinuation { release = $0 } }
-        let feed = CurrentDesktopWindows(read: { _ in
-            Issue.record("A cancelled choice reached the desktop reader")
-            throw CancellationError()
-        }, sessionAvailable: { true }, fingerprint: { 0 })
-        var finished = false
-        lane.select(inventory.rows[1].destination, member: nil, feed: feed, menuInventory: inventory,
-                    finished: { finished = true }, allowed: {
-            menu.accepts(request, display: self.display, ownership: lane.ownershipEpoch, allowed: true)
-        })
-        while release == nil { await Task.yield() }
-        menu.close(request)
-        release?.resume(returning: true)
-        while !finished { await Task.yield() }
-        #expect(lane.issue == nil)
+    @Test func retiredMenuCommandCannotReachAHelperOrAnOwnershipPrompt() async {
+        for action: NativeSpaceCommand.Action in [.select, .move] {
+            let command = NativeSpaceCommand(id: UUID(), action: action, display: display, source: "1", target: "2")
+            let reply = await NativeSpaceActionClient.shared.run(command)
+            #expect(reply.id == command.id && reply.state == .failed)
+            #expect(reply.submittedSteps == 0 && reply.issuedAtUptime == nil && reply.currentBefore == nil)
+        }
     }
 }
