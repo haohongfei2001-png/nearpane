@@ -72,7 +72,7 @@ public final class EmbeddedModules {
     public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
         notebook = SidebarNotebook(directory: support)
         windowPreviews = WindowContentPreview(readOverview: testSession == nil ? NativeDesktopProvider.packagedReader(overview: true) : nil,
-            permitsGalleryWindow: { _ in testSession == nil })
+            stageGroupProfile: support, permitsGalleryWindow: { _ in testSession == nil })
         self.candidate = candidate
         workRect = candidate ? CandidateWorkRect(support: support.deletingLastPathComponent()) : nil
         #if canImport(NearpaneVoice)

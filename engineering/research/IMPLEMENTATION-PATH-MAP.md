@@ -4,7 +4,7 @@
 
 | 阶段 | 实施所有者与读写边界 |
 | --- | --- |
-| P0 | NearpaneCore 的调度组目录、活动资料代文件；NearpaneUI 的 CurrentDesktopWindows、ExplicitWindowGroups、EmbeddedModules 绑定显示器和活窗。 |
+| P0 | NearpaneCore/StageGroupStore.swift 持有目录与活动资料代文件。NearpaneUI/CurrentDesktopWindows.swift、WindowContentPreview.swift、EmbeddedModules.swift 连接真实窗口清单与显示器。ExplicitWindowGroups.swift 保留旧模型的回归证据。 |
 | P1 | 同屏 AX 适配、写前日志、恢复与系统读回；Host/helper 的原生 Space 入口只读。 |
 | P2 | DesktopSurface、NativeSpaceNavigator 的同屏拖放、DesktopAutomaticTiling、DesktopWindowSelection、HostCurrentWindowFocus。 |
 | P3 | WindowContentPreview、DesktopWindowGallery、NativeWindowGroupCard、WindowSwitchTransition；按组、按实际成员身份取像。 |

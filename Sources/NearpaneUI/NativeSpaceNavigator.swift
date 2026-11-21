@@ -62,6 +62,7 @@ struct NativeWindowGroupCard: View {
     let windows: [WindowObservation]
     let snapshot: DesktopSnapshot
     let place: (SidebarPairDrop) -> Void
+    let remove: (NativeSidebarMember) -> Void
     let dissolve: () -> Void
     @Environment(\.colorScheme) private var scheme
 
@@ -170,6 +171,7 @@ struct NativeWindowGroupCard: View {
             .frame(width: width, height: height).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu { Button("从组合中移出") { remove(member) } }
         .modifier(GalleryCardExposure(gallery: gallery, target: target))
         .help(name)
         .accessibilityLabel(name)

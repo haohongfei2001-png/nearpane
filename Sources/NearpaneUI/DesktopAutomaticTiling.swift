@@ -208,7 +208,7 @@ struct DesktopTilingRoster: Equatable {
         func current() -> Bool { epoch == dispatchEpoch && allowed() && !ending && nativeModeAvailable() && cardsMatch() }
         func membersPresent(_ snapshot: DesktopSnapshot?) -> Bool {
             guard let snapshot, source.resolve(snapshot)?.current.ordinaryUUID == source.uuid,
-                  snapshot.native?.stageManagerEnabled != true else { return false }
+                  snapshot.native?.stageManagerEnabled == false else { return false }
             return [a, b].allSatisfy { member in
                 guard let w = member.resolve(snapshot), w.membership == .known(recordIDs: [source.space]),
                       snapshot.isCurrentDesktopWindow(w), let m = w.metadata else { return false }
@@ -254,12 +254,17 @@ struct DesktopTilingRoster: Equatable {
             Self.pairLog.info("phase=pairPlacing")
             try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
                                                context: ctx, current: placementCurrent)
-            guard placementCurrent(), membersPresent(await feed.readNow()), placementCurrent() else {
+            guard placementCurrent(), let final = await feed.readNow(), membersPresent(final), placementCurrent() else {
                 Self.pairLog.info("phase=pairFinalInventoryUnconfirmed")
                 throw OrdinaryRefusal.stale
             }
             Self.pairLog.info("phase=pairVerified")
             feed.changed()
+            do {
+                try feed.join(a, b, in: final, verifiedPair: usedBoundWindows ? bound : nil)
+            } catch {
+                throw OrdinaryWindowFailure("两扇窗口的分屏位置已核对，调度组未保存。" + error.localizedDescription)
+            }
         }
     }
 

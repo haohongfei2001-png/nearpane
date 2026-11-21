@@ -23,7 +23,8 @@ import OSLog
     private let readSidebarWindows: NativeSidebarWindowHistory.Read?
     @ObservationIgnored let windowAudit = NativeSidebarWindowAudit()
     @ObservationIgnored private var pendingAudit: NativeSidebarWindowAudit.Sample?
-    let groups = ExplicitWindowGroups()
+    let groups: StageGroupStore
+    private(set) var groupIssue: String?
     @ObservationIgnored var splitPresentationChanged: (() -> Void)?
     private(set) var pairedDisplays = Set<String>()
     @ObservationIgnored private var splitObservationAllowed = false
@@ -71,14 +72,57 @@ import OSLog
         panelRequested && sidebarWindows.tracks(token, at: location)
     }
 
-    func join(_ a: NativeSidebarMember, _ b: NativeSidebarMember) {
-        guard a.source == b.source, a.source.kind == .ordinary, let snapshot,
-              let live = a.source.resolve(snapshot), live.current.id == a.source.space,
-              a.resolve(snapshot)?.membership == .known(recordIDs: [a.source.space]),
-              b.resolve(snapshot)?.membership == .known(recordIDs: [a.source.space]),
-              snapshot.windows.contains(where: { DesktopWindowTarget($0, in: snapshot)?.key == a.key }),
-              snapshot.windows.contains(where: { DesktopWindowTarget($0, in: snapshot)?.key == b.key }) else { return }
-        groups.join(a.key, b.key, space: a.source.uuid, lifetimes: lifetimes)
+    /// A member must still be on this physical display and its current ordinary desktop.
+    private func groupWindow(_ window: WindowObservation, on screen: DisplayObservation,
+                             current: SpaceRecord) -> StageGroupWindow? {
+        guard current.ordinaryUUID != nil, window.displayID == screen.id, let display = UUID(uuidString: screen.id),
+              window.membership == .known(recordIDs: [current.id]), let m = window.metadata, m.isOnscreen == true,
+              m.minimized != true, m.fullScreen != true, m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace,
+              let key = DesktopWindowKey(window), let lifetime = lifetimes[key] else { return nil }
+        let layout = screen.usable.flatMap { area in
+            m.hasCatalogGeometry == true || m.presentation == .confirmed
+                ? StageGroupWindow.relativeFrame(window.bounds, in: area) : nil
+        }
+        return .init(display: display, identity: .init(pid: key.pid, birth: key.birth, number: key.number),
+                     lifetime: lifetime, layout: layout)
+    }
+
+    private func stageWindows(in snapshot: DesktopSnapshot, on screen: DisplayObservation) -> [StageGroupWindow] {
+        guard snapshot.native?.stageManagerEnabled == false, snapshot.native?.windowLimitReached == false,
+              let catalog = NativeSpaceCatalog(snapshot, displayID: screen.id, now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+              let row = catalog.rows.first(where: { $0.record.isCurrent && $0.record.ordinaryUUID != nil }) else { return [] }
+        let observations = Dictionary(grouping: snapshot.windows.compactMap(DesktopWindowKey.init), by: { $0 })
+        return ordered(row.windows).filter { w in
+            guard let key = DesktopWindowKey(w), observations[key]?.count == 1 else { return false }
+            return snapshot.isCurrentDesktopWindow(w)
+        }.compactMap { groupWindow($0, on: screen, current: row.record) }
+    }
+
+    func groupWindow(_ member: NativeSidebarMember, in snapshot: DesktopSnapshot) -> StageGroupWindow? {
+        guard snapshot.native?.stageManagerEnabled == false, let catalog = member.source.resolve(snapshot),
+              catalog.current.id == member.source.space, let window = member.resolve(snapshot),
+              snapshot.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1,
+              DesktopWindowTarget(window, in: snapshot) != nil else { return nil }
+        return groupWindow(window, on: catalog.display, current: catalog.current)
+    }
+
+    func join(_ moving: NativeSidebarMember, _ target: NativeSidebarMember, in snapshot: DesktopSnapshot,
+              verifiedPair: BoundSidebarPair? = nil) throws {
+        guard moving.source == target.source, let first = groupWindow(moving, in: snapshot),
+              let second = groupWindow(target, in: snapshot) else { throw StageGroupError.staleBinding }
+        try groups.observe([first, second])
+        // The ordinary worker retained both original AX elements through a temporary reader outage.
+        if let verifiedPair, verifiedPair === boundSidebarPair, verifiedPair.loss == nil,
+           verifiedPair.pair.dragged == moving, verifiedPair.pair.target == target {
+            for window in [first, second] where groups.needsRebinding(window) { try groups.rebind(window) }
+        }
+        try groups.join(first, to: second)
+    }
+
+    func visibleGroups(in snapshot: DesktopSnapshot, on screen: DisplayObservation) -> [NativeSpaceWindow: StageGroupDirectory.Group] {
+        guard let id = UUID(uuidString: screen.id) else { return [:] }
+        let composites = groups.projectedGroups(on: id, among: stageWindows(in: snapshot, on: screen)).filter { $0.members.count > 1 }
+        return Dictionary(uniqueKeysWithValues: composites.flatMap { group in group.members.map { ($0.windowHint, group) } })
     }
 
     func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
@@ -94,7 +138,8 @@ import OSLog
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
          fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint,
-         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil) {
+         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil) {
+        groups = StageGroupStore(profile: stageGroupProfile)
         self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
     }
@@ -223,12 +268,21 @@ import OSLog
     private var firstObserved = [DesktopWindowKey: UInt64]()
     private var nextOrdinal: UInt64 = 0
 
-    func ordered(_ windows: [WindowObservation]) -> [WindowObservation] {
+    func ordered(_ windows: [WindowObservation], on display: String? = nil) -> [WindowObservation] {
+        let ranks = display.flatMap(UUID.init(uuidString:)).map { id in
+            Dictionary(uniqueKeysWithValues: groups.groups(on: id).enumerated().flatMap { index, group in
+                group.members.map { ($0.windowHint, index) }
+            })
+        } ?? [:]
+        func groupRank(_ w: WindowObservation) -> Int {
+            guard let k = DesktopWindowKey(w) else { return .max }
+            return ranks[.init(pid: k.pid, birth: k.birth, number: k.number)] ?? .max
+        }
         func ordinal(_ window: WindowObservation) -> UInt64 {
             guard let m = window.metadata, let birth = m.launchMicroseconds else { return .max }
             return firstObserved[.init(pid: m.pid, birth: birth, number: m.number)] ?? .max
         }
-        return windows.sorted { (ordinal($0), $0.id) < (ordinal($1), $1.id) }
+        return windows.sorted { (groupRank($0), ordinal($0), $0.id) < (groupRank($1), ordinal($1), $1.id) }
     }
 
     func readNow() async -> DesktopSnapshot? {
@@ -292,18 +346,14 @@ import OSLog
                 self.nextOrdinal += 1
                 self.firstObserved[key] = self.nextOrdinal
             }
-            if !self.groups.records.isEmpty {
-                let spaces = Dictionary(grouping: result.scopes.flatMap(\.records), by: \.id)
-                var known = [DesktopWindowKey: Set<UUID>]()
-                for window in result.windows {
-                    guard let m = window.metadata, let birth = m.launchMicroseconds,
-                          case .known(let ids) = window.membership else { continue }
-                    let uuids = ids.compactMap { spaces[$0].flatMap { $0.count == 1 ? $0[0].nativeUUID : nil } }
-                    if uuids.count == ids.count { known[.init(pid: m.pid, birth: birth, number: m.number)] = Set(uuids) }
-                }
-                self.groups.reconcile(lifetimes: next) { key, space in known[key].map { $0 != [space] } ?? false }
-            }
             self.lifetimes = next
+            if self.panelRequested, self.groups.loadIssue == nil {
+                let candidates = result.displays.flatMap { self.stageWindows(in: result, on: $0) }
+                do {
+                    try self.groups.observe(candidates)
+                    self.groupIssue = nil
+                } catch { self.groupIssue = error.localizedDescription }
+            }
             if let audit, audit.focusRequest != nil {
                 let snapshot = result
                 Task { @MainActor [weak self] in

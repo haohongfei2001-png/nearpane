@@ -20,10 +20,21 @@ public enum StageManagerPreference {
         return CFGetTypeID(value) != CFBooleanGetTypeID() || (value as? Bool) != false
     }
 
+    static func configuration(_ value: CFPropertyList?, domainReadable: Bool) -> Bool? {
+        guard let value else { return domainReadable ? false : nil }
+        return CFGetTypeID(value) == CFBooleanGetTypeID() ? value as? Bool : nil
+    }
+
     public static func read() -> Bool? {
-        guard let value,
-              CFGetTypeID(value) == CFBooleanGetTypeID() else { return nil }
-        return value as? Bool
+        let stored = value
+        if let stored { return configuration(stored, domainReadable: true) }
+        // A clean login has no explicit GloballyEnabled value. Prove that the preference domains
+        // can be read before treating absence as the system's default-off configuration.
+        let domain = "com.apple.WindowManager" as CFString
+        let readable = [kCFPreferencesCurrentHost, kCFPreferencesAnyHost].allSatisfy {
+            CFPreferencesCopyMultiple(nil, domain, kCFPreferencesCurrentUser, $0) != nil
+        }
+        return configuration(nil, domainReadable: readable)
     }
 }
 

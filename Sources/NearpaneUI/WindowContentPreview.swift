@@ -100,8 +100,8 @@ struct PreviewWindowBinding: Equatable {
 @MainActor @Observable final class WindowContentPreview {
     let gallery: DesktopWindowGallery
     let currentDesktop: CurrentDesktopWindows?
-    init(readOverview: NativeDesktopProvider.Read? = nil, permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
-        let feed = readOverview.map { CurrentDesktopWindows(read: $0) }
+    init(readOverview: NativeDesktopProvider.Read? = nil, stageGroupProfile: URL? = nil, permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
+        let feed = readOverview.map { CurrentDesktopWindows(read: $0, stageGroupProfile: stageGroupProfile) }
         currentDesktop = feed
         gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, audit: feed?.windowAudit?.previewTrace, lifetime: { key in feed?.lifetime(of: key) })
     }
