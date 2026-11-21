@@ -2,6 +2,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/build-paths.sh
+engine_inputs=(Package.swift Engine/nearpane-window-engine Sources Resources Dependencies scripts/build-app.sh scripts/build-window-engine.sh scripts/acceptance/window-engine/corner/build-guardian.sh)
+engine_revision="$(git rev-parse HEAD 2>/dev/null || echo unversioned)"
+engine_source_state=modified
+if [[ "$engine_revision" != unversioned && -z "$(git status --porcelain --untracked-files=all -- "${engine_inputs[@]}")" ]]; then
+  engine_source_state=clean
+fi
 NEARPANE_ENGINE_ARCHIVE="$(bash scripts/build-window-engine.sh)"
 export NEARPANE_ENGINE_ARCHIVE
 python3 scripts/prepare-domains.py
@@ -111,6 +117,12 @@ else
   mv "$staging_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 fi
 /usr/bin/plutil -lint "$stage/Contents/Info.plist"
+if [[ "$(git rev-parse HEAD 2>/dev/null || echo unversioned)" != "$engine_revision" ||
+      -n "$(git status --porcelain --untracked-files=all -- "${engine_inputs[@]}" 2>/dev/null)" ]]; then
+  engine_source_state=modified
+fi
+/usr/bin/plutil -insert NearpaneStageEngineSourceRevision -string "$engine_revision" "$stage/Contents/Info.plist"
+/usr/bin/plutil -insert NearpaneStageEngineSourceState -string "$engine_source_state" "$stage/Contents/Info.plist"
 "$stage/Contents/MacOS/NearpaneHost" --verify-bundled-resources
 # After an exchange the stage holds the former bundle. Only the publisher may dispose of it.
 trap - EXIT

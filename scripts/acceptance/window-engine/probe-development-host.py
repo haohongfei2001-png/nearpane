@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import uuid
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT/"scripts"))
@@ -66,12 +67,21 @@ def main():
         checked("/usr/bin/codesign", "--verify", "--strict", "--deep", app)
         checked(sys.executable, "-B", ROOT/"scripts/verify-packages.py", app)
         host = app/"Contents/MacOS/NearpaneHost"
+        challenge = str(uuid.uuid4())
+        stdout, stderr = private/"probe.json", private/"probe.stderr"
+        checked("/usr/bin/open", "-n", "-g", "-W", "-a", app, "--stdin", "/dev/null", "--stdout", stdout,
+                "--stderr", stderr, "--args", "--probe-stage-window-engine", challenge)
+        observed = json.loads(stdout.read_bytes())
+        if (observed.get("challenge") != challenge or observed.get("closed") is not True
+                or {row["backend"] for row in observed["engines"] if row.get("unqualifiedWriteRefused") is True} != {"corner","spaces"}):
+            raise ValueError("Launch Services did not return the correlated packaged Host observation")
         evidence.update(system={"version": checked("sw_vers", "-productVersion").strip(),
                                 "build": checked("sw_vers", "-buildVersion").strip(),
                                 "sip": checked("csrutil", "status").strip()},
                         signedHost=metadata(app), hostSHA256=signing.sha(host),
-                        engineBoundary=json.loads(checked(host, "--probe-stage-window-engine")),
-                        sourceHead=checked("git", "-C", ROOT, "rev-parse", "HEAD").strip(),
+                        engineBoundary=observed, launch="Launch Services background, challenge correlated",
+                        sourceHead=plist.get("NearpaneStageEngineSourceRevision"),
+                        sourceState=plist.get("NearpaneStageEngineSourceState", "unrecorded"),
                         signedBundleVerified=True, status="PASS")
         (out/"local-app-path.txt").write_text(str(app)+"\n")
     finally:

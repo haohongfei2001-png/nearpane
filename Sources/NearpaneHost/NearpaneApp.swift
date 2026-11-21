@@ -14,9 +14,11 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        if args == ["--verify-stage-window-engine"] || args == ["--probe-stage-window-engine"] {
-            let observe = args == ["--probe-stage-window-engine"]
-            Task { exit(await StageEnginePackageProbe.run(observeSystem: observe)) }
+        if args.first == "--verify-stage-window-engine" || args.first == "--probe-stage-window-engine" {
+            let observe = args.first == "--probe-stage-window-engine"
+            let challenge = args.count == 2 ? UUID(uuidString: args[1]) : nil
+            guard args.count == 1 || (observe && challenge != nil) else { exit(2) }
+            Task { exit(await StageEnginePackageProbe.run(observeSystem: observe, challenge: challenge)) }
             RunLoop.main.run()
             return
         }

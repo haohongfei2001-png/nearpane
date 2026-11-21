@@ -93,12 +93,20 @@ public struct StageEngineComparison: Codable, Equatable, Sendable {
             settled.p95 <= 250 && longestSettling <= 500 && frameGapP99 <= 50 && droppedFramePercent <= 1 &&
             idleCPU <= 1 && burstCPU <= 20 && memoryMB <= 100
     }
-    func dominates(_ peer: Self) -> Bool {
+    func matchesBenchmark(_ peer: Self) -> Bool {
         guard let a = reference, let b = peer.reference, comparable, peer.comparable, protocolDigest == peer.protocolDigest,
               a.nominalInterval == b.nominalInterval, a.appleInteractiveP95 == b.appleInteractiveP95,
               a.appleFirstFrameP95 == b.appleFirstFrameP95 else { return false }
+        return true
+    }
+    func dominates(_ peer: Self) -> Bool {
+        guard matchesBenchmark(peer), let a = reference, let b = peer.reference else { return false }
         let pairs = zip(values + [a.frameGapP95,a.longestGap,a.recoverySeconds],peer.values + [b.frameGapP95,b.longestGap,b.recoverySeconds])
         return pairs.allSatisfy { $0 <= $1 } && pairs.contains { $0 < $1 }
+    }
+    var startupOrder: [Double] {
+        let recovery = reference.map { [$0.frameGapP95, $0.longestGap, $0.recoverySeconds] } ?? []
+        return [interactive.p99, firstFrame.p95, settled.p95, frameGapP99, droppedFramePercent] + values + recovery
     }
 }
 
@@ -132,11 +140,15 @@ public struct StageEngineQualification: Codable, Equatable, Sendable {
         if eligible.count == 1 { return eligible[0] }
         guard eligible.count == 2 else { return nil }
         let a = eligible[0], b = eligible[1]
-        if let lhs = a.comparison, let rhs = b.comparison {
-            if lhs.dominates(rhs) { return a }
-            if rhs.dominates(lhs) { return b }
-        }
-        return eligible.first { $0.backend == owner }
+        let current = eligible.first { $0.backend == owner }
+        guard let lhs = a.comparison, let rhs = b.comparison, lhs.matchesBenchmark(rhs), a.evidence != b.evidence else { return current }
+        if lhs.dominates(rhs) { return a }
+        if rhs.dominates(lhs) { return b }
+        if let current { return current }
+        if lhs.startupOrder.lexicographicallyPrecedes(rhs.startupOrder) { return a }
+        if rhs.startupOrder.lexicographicallyPrecedes(lhs.startupOrder) { return b }
+        // Identical measured product quality. Keep startup deterministic across catalog ordering.
+        return a.evidence.uuidString < b.evidence.uuidString ? a : b
     }
 }
 

@@ -7,7 +7,7 @@ import NearpaneWindowEngine
 
 /// Runs before profile selection, AppKit activation or TCC requests. No real window is supplied to a write.
 enum StageEnginePackageProbe {
-    @MainActor static func run(observeSystem: Bool) async -> Int32 {
+    @MainActor static func run(observeSystem: Bool, challenge: UUID?) async -> Int32 {
         guard let engine = NativeStageWindowEngine() else { return 3 }
         do {
             var results = [[String: Any]]()
@@ -30,6 +30,7 @@ enum StageEnginePackageProbe {
             }
             let closed = await engine.close()
             var report: [String: Any] = ["abi": np_engine_version(), "engines": results, "closed": closed]
+            if let challenge { report["challenge"] = challenge.uuidString.lowercased() }
             if observeSystem {
                 report["permissions"] = ["accessibility": AXIsProcessTrusted(), "listenEvents": CGPreflightListenEventAccess()]
                 report["displays"] = NSScreen.screens.count
