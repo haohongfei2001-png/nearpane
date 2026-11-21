@@ -863,7 +863,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return entry
         }
         _ = action("显示本屏窗口总览", #selector(showWindowOverview))
-        action("选择本屏空间…", #selector(showSpaceMenu)).identifier = .init("native-space-menu-open")
+        let spaceMenu = action("选择本屏空间…", #selector(showSpaceMenu))
+        spaceMenu.identifier = .init("native-space-menu-open")
+        spaceMenu.setAccessibilityIdentifier("native-space-menu-open")
         _ = action("窗口管理…", #selector(showWindowManagement))
         _ = action("打开 Nearpane", #selector(openMainWindow))
         _ = action("隐藏侧栏", #selector(toggleSurface))
