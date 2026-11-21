@@ -1,0 +1,92 @@
+[
+  {
+    "local": "src/corner/LICENSE-MIT",
+    "upstream": "LICENSE",
+    "blob": "afcd9230ee12e85e3ffd84bfefd79261e08db939",
+    "modifications": "Unmodified complete MIT notice."
+  },
+  {
+    "local": "src/corner/geometry.rs",
+    "upstream": "src/engine/geometry.rs",
+    "blob": "b57315e9fdb150608f24fd75f5243615c91fc6f7",
+    "modifications": "Use SDK-compatible rectangle layout and remove product serialization. Keep the pinned coordinate arithmetic and tests."
+  },
+  {
+    "local": "src/corner/park.rs",
+    "upstream": "src/engine/corner/park.rs",
+    "blob": "20c842738c7657738287918a67859562a9eceb98",
+    "modifications": "Port four-corner choice, requests, clamp, visible frame checks, and regression cases to local geometry without serde."
+  },
+  {
+    "local": "src/corner/park.rs",
+    "upstream": "src/engine/displays.rs",
+    "blob": "488de66f6aef1402e3ed0938df5df68c2db562f4",
+    "modifications": "Use projected display-area comparison in the placement tests."
+  },
+  {
+    "local": "src/corner/sliver.rs",
+    "upstream": "src/engine/corner/sliver.rs",
+    "blob": "ac7f4ab1ac1982a0ebd5c4b125c2915fa015cd2e",
+    "modifications": "Port zone filtering, front-to-back hit testing, resize margins, Dock geometry and per-button PressGate. Use the local geometry module."
+  },
+  {
+    "local": "src/corner/sliver.rs",
+    "upstream": "src/engine/overview.rs",
+    "blob": "e5cc63b6f92c627f5f35001192b3f67e091b73f6",
+    "modifications": "Use the pinned Dock layer constant."
+  },
+  {
+    "local": "src/corner/patch.rs",
+    "upstream": "src/engine/corner/corner_patch.rs",
+    "blob": "3da8c0d53a8809c99a153ecd00bbc50c221ce111",
+    "modifications": "Extract clipped shadow bounds, rectangle stability and relative ordering. Omit presentation, wallpaper access and every image path."
+  },
+  {
+    "local": "src/corner/tap.rs",
+    "upstream": "src/platform/corner/sliver_tap.rs",
+    "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
+    "modifications": "Move filtering to a session-owned thread and immutable published geometry. Revoke on timeout, secure input, contention or stale membership."
+  },
+  {
+    "local": "src/corner/tap.rs",
+    "upstream": "src/platform/tap_switch.rs",
+    "blob": "f78f57fd77470c678a5806f22ae9126320c91bfa",
+    "modifications": "Retain a swallowed gesture through its release when the shield stands down."
+  },
+  {
+    "local": "src/corner/macos.m",
+    "upstream": "src/platform/corner/sliver_tap.rs",
+    "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
+    "modifications": "Translate session-head event tap creation and its bounded CFRunLoop to the Apple SDK types."
+  },
+  {
+    "local": "src/corner/macos.m",
+    "upstream": "src/platform/windows.rs",
+    "blob": "c993e2811b9e66e547f13ce69c6a3e7012d79f23",
+    "modifications": "Read front-to-back numeric CoreGraphics bounds, layers, alpha, IDs and owner PIDs only."
+  },
+  {
+    "local": "src/corner/macos.m",
+    "upstream": "src/platform/ax.rs",
+    "blob": "da387aa406dd1c204007e55866f77fd258645f54",
+    "modifications": "Reacquire exact AX objects, read normal-window dimensions and bound a single AX position write. Add live birth, retained-object and bilateral Space checks."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/platform/corner/engine.rs",
+    "blob": "4e7f06383d10c160597cd87d918beca9833bcef2",
+    "modifications": "Use position-only parking with independent AX, owner and WindowServer readback. Refuse speculative writes, reserve live ownership before a side effect."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/engine/corner/park_reconcile.rs",
+    "blob": "c928a1e3ee205c78abb364bd9fa5506c756b2cad",
+    "modifications": "Confirm the same landed position in successive independent samples. No unattended corrective reposition."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/engine/recovery.rs",
+    "blob": "66603f3931ba0a43f5ba30e0b8e5e943aabf8eb2",
+    "modifications": "Allow exact journal-authorized visible frame restoration only with the still-held AX object and the owned parked witness."
+  }
+]
