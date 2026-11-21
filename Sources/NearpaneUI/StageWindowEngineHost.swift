@@ -67,7 +67,7 @@ import NearpaneWindowEngine
         needsReassessment = false
         lastEnvironmentalRead = now
         let records = Self.shipped.compactMap { StageWindowEngineAttestation.read($0,profile:profile) }
-        if admissions != records { admissions = records; granted = nil; consentRequest = nil }
+        if admissions != records { witness?.cancelArrivals(); admissions = records; granted = nil; consentRequest = nil }
         let selected = StageWindowEngineAttestation.installedEnvironment(snapshot).flatMap {
             StageEngineQualification.choose(records,in:$0,retaining:engine?.session?.owner.backend)
         }
@@ -79,6 +79,11 @@ import NearpaneWindowEngine
     private func watchSystem() {
         guard watchers.isEmpty else { return }
         let workspace = NSWorkspace.shared.notificationCenter
+        watchers.append((workspace, workspace.addObserver(forName: NSWorkspace.didActivateApplicationNotification,
+                object: nil, queue: .main) { [weak self] notification in
+            let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            MainActor.assumeIsolated { self?.witness?.cancelArrivals(unlessFocusedPID: pid) }
+        }))
         for name in [NSWorkspace.willSleepNotification,NSWorkspace.sessionDidResignActiveNotification,
                      NSWorkspace.activeSpaceDidChangeNotification] {
             watchers.append((workspace,workspace.addObserver(forName:name,object:nil,queue:.main) { [weak self] _ in
@@ -118,6 +123,7 @@ import NearpaneWindowEngine
     }
 
     func freeze() {
+        witness?.cancelArrivals()
         consentRequest = nil
         granted = nil
         heldGroups = []
@@ -139,6 +145,7 @@ import NearpaneWindowEngine
     private func beginRelease() -> Task<Void,Never>? {
         if let releaseTask { return releaseTask }
         guard let engine, engine.holdsWindowDispatch else { return nil }
+        witness?.cancelArrivals()
         releaseInput = NativeSelectionPermit.inputCounters()
         let pending = Task { [weak self] in
             defer {
@@ -224,6 +231,7 @@ import NearpaneWindowEngine
         do {
             try await engine.activate(group,member:saved.id,in:scope,consent:true,current:permitted)
             projectHeld(feed.groups,in:scope)
+            await armArrivals(in: feed, revision: token)
             return true
         } catch {
             if engine.coordinator.requiresRecovery || engine.session?.qualifiedHiddenState == nil {
@@ -250,22 +258,46 @@ import NearpaneWindowEngine
     }
 
     func refreshHeld(feed: CurrentDesktopWindows) {
-        guard let scope = witness?.scope, heldRefresh == nil, engine?.canObserve == true, let session = engine?.session,
+        guard let witness, heldRefresh == nil, engine?.canObserve == true, let session = engine?.session,
               ProcessInfo.processInfo.systemUptime - lastVerifiedAt > 0.75 else { return }
-        let token = revision
+        let token = revision, scope = witness.scope
         heldRefresh = Task { [weak self,weak feed] in
             guard let self, let feed else { return }
             defer { heldRefresh = nil }
             do {
                 try await session.checkHealth()
-                _ = try await session.read(scope)
+                do {
+                    _ = try await session.read(scope)
+                } catch let failure as StageSwitchError where failure == .interrupted || failure == .incomplete {
+                    // A newly visible window can reach the desktop reader before its independent AX
+                    // creation notification. Only an original event and two complete reads may admit it.
+                    let recorded = try await witness.consumeArrival(in: feed.groups, owner: session.owner) { [weak self] in
+                        self?.canObserveArrivals(session, revision: token) == true
+                    }
+                    guard recorded else { throw failure }
+                    _ = try await session.read(scope)
+                }
                 guard !Task.isCancelled, token == revision, self.engine?.session === session else { return }
                 projectHeld(feed.groups,in:scope)
+                await armArrivals(in: feed, revision: token)
             } catch {
                 guard !Task.isCancelled, token == revision else { return }
                 freeze()
                 ordinaryContextObserved()
             }
+        }
+    }
+
+    private func canObserveArrivals(_ session: StageEngineSession, revision token: UInt64) -> Bool {
+        !Task.isCancelled && !releasing && !terminationOwnsLane && revision == token &&
+            engine?.session === session && engine?.canObserve == true &&
+            granted?.scope == witness?.scope && granted?.evidence == session.owner.evidence
+    }
+
+    private func armArrivals(in feed: CurrentDesktopWindows, revision token: UInt64) async {
+        guard let session = engine?.session, let granted, let witness else { return }
+        await witness.armArrivals(in: feed.groups, authorized: granted.lifetimes) { [weak self] in
+            self?.canObserveArrivals(session, revision: token) == true
         }
     }
 
@@ -276,6 +308,11 @@ import NearpaneWindowEngine
         guard !releasing, !terminationOwnsLane, let engine, let session = engine.session, session.owner == held.owner,
               heldGroups.contains(held), let granted, granted.scope == held.scope, granted.evidence == held.owner.evidence,
               current(), witness?.matches(held.scope) == true else { throw StageSwitchError.interrupted }
+        let groups = feed.groups.groups(in: held.scope)
+        guard granted.groups == Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0.members.map(\.id)) }) else {
+            throw StageSwitchError.ownership
+        }
+        let token = revision
         let observed = try await session.read(held.scope)
         guard current(), observed.windows[held.state.window] == held.state,
               engine.coordinator.confirmsHidden(group:held.id,member:held.member,state:held.state,scope:held.scope,owner:held.owner) else {
@@ -284,6 +321,7 @@ import NearpaneWindowEngine
         do {
             try await engine.activate(held.id,member:held.member,in:held.scope,consent:true,current:current)
             projectHeld(feed.groups,in:held.scope)
+            await armArrivals(in: feed, revision: token)
         } catch {
             freeze(); ordinaryContextObserved()
             throw error

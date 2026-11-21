@@ -52,6 +52,7 @@ package struct StageEngineReply {
     public var engineOwner: StageEngineOwner? { owner }
     private let witness: any StageEngineWindowWitness, transport: any StageEngineTransport
     private var frozen = false, closed = false, recovering = false
+    private var enrolledLifetimes: [NativeSpaceWindow: UUID]?
     var intentIsCurrent: @MainActor () -> Bool = { false }
     var canAttemptRelease: Bool { !closed && witness.permits(owner, restoring: true) }
     public var qualifiedHiddenState: StageWindowState.Visibility? {
@@ -73,6 +74,10 @@ package struct StageEngineReply {
                       [f.x,f.y,f.width,f.height].allSatisfy(\.isFinite) &&
                       (state.visibility == .stageSpace ? (state.hiddenSpaceID ?? 0) > 0 && state.hiddenSpaceID != sample.nativeID : state.hiddenSpaceID == nil)
               }) else { throw StageSwitchError.incomplete }
+        // Fresh inventory can grow while this owner is observing. Its existing write lease cannot.
+        if enrolledLifetimes == nil, !frozen, witness.permits(owner, restoring: false) {
+            enrolledLifetimes = sample.windows.mapValues(\.lifetime)
+        }
         return sample
     }
 
@@ -101,7 +106,8 @@ package struct StageEngineReply {
 
     public func dispatch(_ c: StageWindowCommand) async throws {
         func eligible() -> Bool {
-            !closed && (c.restoring ? c.action == .show && (recovering || (!frozen && intentIsCurrent())) : !frozen && intentIsCurrent()) && witness.permits(owner,restoring:c.restoring)
+            !closed && enrolledLifetimes?[c.before.window] == c.before.lifetime &&
+            (c.restoring ? c.action == .show && (recovering || (!frozen && intentIsCurrent())) : !frozen && intentIsCurrent()) && witness.permits(owner,restoring:c.restoring)
         }
         guard eligible(), (c.nativeID ?? 0) > 0 else { throw StageSwitchError.interrupted }
         if c.restoring {

@@ -7,6 +7,7 @@ import NearpaneCore
     struct Binding {
         let lifetime: UUID
         let monitor: OrdinaryWindowAX
+        let readOnly: Bool
     }
     struct VisibilityClaim {
         let backend: StageWindowBackend, frame: SurfaceRect, member: UInt64
@@ -21,6 +22,12 @@ import NearpaneCore
     private var owner: StageWindowBackend?, home: OrdinaryDesktopIdentity?, sequence: UInt64 = 0
     private var enrolledTopology: [ManagedDisplayScope]?
     private var lastSnapshot: DesktopSnapshot?, lastStates = [NativeSpaceWindow:StageWindowState]()
+    private var lastSample: StageWindowSample?
+    private struct ArrivalWatch {
+        let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: OrdinaryWindowAX
+        let directory: StageGroupDirectory
+    }
+    private var arrivalWatch: ArrivalWatch?, arrivalAttempt: NativeSpaceWindow?, arrivalEpoch: UInt64 = 0
 
     init?(feed: CurrentDesktopWindows, scope: StageGroupScope, snapshot: DesktopSnapshot,
           available: @escaping @MainActor () -> Bool, restoreAvailable: @escaping @MainActor () -> Bool) {
@@ -74,6 +81,11 @@ import NearpaneCore
     }
 
     func read(_ requested: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
+        try await read(requested, owner: owner, candidate: nil)
+    }
+
+    private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
+                      candidate: (NativeSpaceWindow, Binding)?) async throws -> StageWindowSample {
         guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
               let first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
         let (opening,keys) = try roster(first)
@@ -92,13 +104,18 @@ import NearpaneCore
                 // The object stays bound in the identical signed worker across hide, show, place, and focus.
                 guard monitor.id.pid == key.pid, monitor.id.launch == key.birth, monitor.id.number == key.number,
                       feed.lifetime(of:k) == life else { throw StageSwitchError.ownership }
-                enrolling[key] = .init(lifetime:life,monitor:monitor)
+                enrolling[key] = .init(lifetime:life,monitor:monitor,readOnly:false)
             }
             bindings = enrolling; self.owner = owner.backend; home = desktop; enrolledTopology = initial
         }
-        guard home == desktop, keys.isSubset(of:Set(bindings.keys)) else { throw StageSwitchError.interrupted }
+        var observedBindings = bindings
+        if let (key, binding) = candidate {
+            guard observedBindings[key] == nil, keys.contains(key) else { throw StageSwitchError.ownership }
+            observedBindings[key] = binding
+        }
+        guard home == desktop, keys.isSubset(of:Set(observedBindings.keys)) else { throw StageSwitchError.interrupted }
         var states = [NativeSpaceWindow:StageWindowState](), focuses = [NativeSpaceWindow?]()
-        for (key,b) in bindings {
+        for (key,b) in observedBindings {
             let observed = try await b.monitor.stageObservation(home:desktop)
             let state = try Self.classify(observed,claim:claims[key],home:native,display:opening.display,displays:first.displays)
             if state != .parked, keys.contains(key) != (observed.membership == native) { throw StageSwitchError.incomplete }
@@ -113,10 +130,70 @@ import NearpaneCore
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]
         guard focus.map({ states[$0]?.visibility == .visible }) != false else { throw StageSwitchError.incomplete }
-        lastSnapshot = last; lastStates = states; sequence += 1
-        return .init(scope:scope,generation:generation,sequence:sequence,
+        sequence += 1
+        let sample = StageWindowSample(scope:scope,generation:generation,sequence:sequence,
             workArea:.init(x:opening.display.frame.x+usable.x,y:opening.display.frame.y+usable.y,width:usable.width,height:usable.height),
             windows:states,focus:focus,nativeID:native)
+        if candidate == nil { lastSnapshot = last; lastStates = states; lastSample = sample }
+        return sample
+    }
+
+    func cancelArrivals(unlessFocusedPID pid: Int32? = nil) {
+        if let pid, arrivalAttempt?.pid == pid { return }
+        arrivalEpoch &+= 1
+        arrivalAttempt = nil
+        if let watch = arrivalWatch {
+            arrivalWatch = nil
+            Task { try? await watch.monitor.setCreationWatch(watch.token, enabled: false) }
+        }
+    }
+
+    /// Only the original focused member of the already-active, explicitly enrolled group can
+    /// start a read-only creation subscription. Unsupported AX notifications give no admission.
+    func armArrivals(in store: StageGroupStore, authorized: [NativeSpaceWindow: UUID],
+                     current: @MainActor () -> Bool) async {
+        guard current(), let home, let sample = lastSample, let baseline = store.arrivalBaseline(sample),
+              let source = bindings[baseline.source], !source.readOnly, authorized[baseline.source] == source.lifetime else {
+            cancelArrivals(); return
+        }
+        if let watch = arrivalWatch, watch.source == baseline.source, watch.group == baseline.group,
+           watch.directory == baseline.directory { return }
+        if arrivalWatch == nil, arrivalAttempt == baseline.source { return }
+        cancelArrivals()
+        let epoch = arrivalEpoch, token = UUID()
+        arrivalAttempt = baseline.source
+        do { try await source.monitor.watchStageCreation(token, home: home) }
+        catch { return }
+        guard current(), epoch == arrivalEpoch, store.directory == baseline.directory else {
+            try? await source.monitor.setCreationWatch(token, enabled: false); return
+        }
+        arrivalWatch = .init(token: token, group: baseline.group, source: baseline.source,
+                             monitor: source.monitor, directory: baseline.directory)
+    }
+
+    /// Called only from the idle read lane. Provisional reads cannot authorize or publish a target.
+    func consumeArrival(in store: StageGroupStore, owner: StageEngineOwner, current: @MainActor () -> Bool) async throws -> Bool {
+        guard let watch = arrivalWatch, current(), let feed, let before = lastSample,
+              let baseline = store.arrivalBaseline(before), baseline.group == watch.group,
+              baseline.source == watch.source, store.directory == watch.directory else { return false }
+        let epoch = arrivalEpoch
+        let event = try await watch.monitor.nextCreatedWindow(watch.token)
+        guard case .window(let object) = event else { return false }
+        guard let monitor = object as? OrdinaryWindowAX, current(), epoch == arrivalEpoch,
+              monitor.id.pid == watch.source.pid, monitor.id.launch == watch.source.birth else { throw StageSwitchError.ownership }
+        let key = NativeSpaceWindow(pid: monitor.id.pid, birth: monitor.id.launch, number: monitor.id.number)
+        let desktopKey = DesktopWindowKey(pid: key.pid, birth: key.birth, number: key.number)
+        guard bindings[key] == nil, await feed.readAfterAction() != nil, current(), epoch == arrivalEpoch,
+              let lifetime = feed.lifetime(of: desktopKey) else { throw StageSwitchError.interrupted }
+        let binding = Binding(lifetime: lifetime, monitor: monitor, readOnly: true)
+        let first = try await read(scope, owner: owner, candidate: (key, binding))
+        guard current(), epoch == arrivalEpoch, feed.lifetime(of: desktopKey) == lifetime else { throw StageSwitchError.interrupted }
+        let second = try await read(scope, owner: owner, candidate: (key, binding))
+        guard current(), epoch == arrivalEpoch, feed.lifetime(of: desktopKey) == lifetime else { throw StageSwitchError.interrupted }
+        try store.recordCreatedWindow(key, since: baseline, first: first, second: second)
+        bindings[key] = binding
+        cancelArrivals()
+        return true
     }
 
     static func classify(_ o: StageWindowPhysicalObservation, claim: VisibilityClaim?, home: UInt64,
@@ -155,7 +232,7 @@ import NearpaneCore
     }
 
     func ordinary(_ c: StageWindowCommand, valid: @escaping @MainActor () -> Bool) async throws {
-        guard c.scope == scope, c.generation == generation, let b = bindings[c.before.window], b.lifetime == c.before.lifetime,
+        guard c.scope == scope, c.generation == generation, let b = bindings[c.before.window], !b.readOnly, b.lifetime == c.before.lifetime,
               lastStates[c.before.window] == c.before, c.before.visibility == .visible, let home, let snapshot = lastSnapshot,
               let order = snapshot.scopes.first(where: { $0.displayID == display })?.records,
               let physical = snapshot.displays.first(where: { $0.id == display }),

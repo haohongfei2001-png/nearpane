@@ -241,7 +241,7 @@ import OSLog
                 if let next { stageEngine.observeEnvironment(next) }
                 if next?.native?.stageManagerEnabled == false {
                     stageEngine.ordinaryContextObserved()
-                    if panelRequested { stageEngine.refreshHeld(feed:self) }
+                    stageEngine.refreshHeld(feed:self)
                 }
                 sampleSplitPresentation(next)
                 guard !Task.isCancelled, expected == epoch else { continue }

@@ -272,6 +272,12 @@ private actor OrdinaryWindowChannel {
                                          bundle: bundle, id: id, creationGrant: token))
     }
 
+    func watchStageCreation(_ token: UUID, home: OrdinaryDesktopIdentity) async throws {
+        guard !closed else { throw OrdinaryRefusal.lost }
+        _ = try await channel.call(.init(.watchCreated, pid: id.pid, launch: id.launch, bundle: bundle,
+                                         id: id, creationGrant: token, desktop: home))
+    }
+
     func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult {
         guard !closed else { throw OrdinaryRefusal.lost }
         let reply = try await channel.call(.init(.takeCreated, pid: id.pid, launch: id.launch, bundle: bundle,

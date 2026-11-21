@@ -218,6 +218,51 @@ public struct StageGroupWindow: Sendable {
         groups(in: scope).first { $0.verifiedActive == true }?.id
     }
 
+    /// A baseline belongs to one active group and its genuinely focused, live member. A remembered
+    /// directory entry after restart cannot establish it.
+    public struct ArrivalBaseline {
+        public let group: UUID, source: NativeSpaceWindow, sample: StageWindowSample
+        public let directory: StageGroupDirectory
+    }
+
+    public func arrivalBaseline(_ sample: StageWindowSample) -> ArrivalBaseline? {
+        guard loadIssue == nil, (sample.nativeID ?? 0) > 0, let focus = sample.focus,
+              let focused = sample.windows[focus], focused.visibility == .visible,
+              let group = groups(in: sample.scope).first(where: { $0.verifiedActive == true && $0.needsReorganization != true }),
+              let member = group.members.first(where: { $0.windowHint == focus }), isBound(member, to: focused.lifetime)
+        else { return nil }
+        return .init(group: group.id, source: focus, sample: sample, directory: directory)
+    }
+
+    /// Called only for an original AXWindowCreated event. All earlier windows, the physical partition,
+    /// and the focused origin must survive its two independent samples. This only writes the directory.
+    public func recordCreatedWindow(_ key: NativeSpaceWindow, since baseline: ArrivalBaseline,
+                                    first: StageWindowSample, second: StageWindowSample) throws {
+        let before = baseline.sample, source = baseline.source
+        let scope = before.scope
+        guard directory == baseline.directory, activeGroup(in: scope) == baseline.group,
+              source.pid == key.pid, source.birth == key.birth, key.number != source.number,
+              !directory.displays.flatMap(\.groups).flatMap(\.members).contains(where: { $0.windowHint.number == key.number }),
+              !before.windows.keys.contains(where: { $0.number == key.number }),
+              first.scope == scope, second.scope == scope, first.generation == before.generation, second.generation == before.generation,
+              before.sequence < first.sequence, first.sequence < second.sequence, (before.nativeID ?? 0) > 0,
+              first.nativeID == before.nativeID, second.nativeID == before.nativeID,
+              first.workArea == before.workArea, second.workArea == before.workArea,
+              first.windows.count == before.windows.count + 1, first.windows == second.windows,
+              before.windows.allSatisfy({ first.windows[$0.key] == $0.value }),
+              let new = first.windows[key], new.window == key, new.visibility == .visible,
+              !before.windows.values.contains(where: { $0.lifetime == new.lifetime }),
+              first.focus == second.focus, first.focus == source || first.focus == key,
+              let layout = StageGroupWindow.relativeFrame(new.frame, in: second.workArea),
+              let d = directory.displays.firstIndex(where: { $0.id == scope.display }),
+              let g = directory.displays[d].groups.firstIndex(where: { $0.id == baseline.group })
+        else { throw StageGroupError.staleBinding }
+        var next = directory
+        next.displays[d].groups[g].members.append(.init(id: UUID(), windowHint: key, layout: layout))
+        try commit(next)
+        bindings[key] = new.lifetime
+    }
+
     /// Called only by the coordinator once a whole-transaction independent readback is complete.
     func commitActivity(_ group: UUID, preferred: UUID, in scope: StageGroupScope,
                         expected: StageGroupDirectory) throws {
