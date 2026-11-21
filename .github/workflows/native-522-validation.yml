@@ -4,6 +4,9 @@ on:
     branches: [codex/r4-native-candidate-20261120]
     paths:
       - '.github/workflows/native-522-validation.yml'
+      - 'Package.swift'
+      - 'scripts/acceptance/stage-groups/**'
+      - 'Tests/NearpaneCoreTests/StageGroupStoreTests.swift'
       - 'Sources/CNativeSpaceActions/**'
       - 'Sources/NearpaneSpaceAction/**'
       - 'Sources/NearpaneCore/**'
@@ -90,7 +93,7 @@ jobs:
       - name: Verify window identity, Services source and Host open handling
         run: |
           set -euo pipefail
-          suites=(NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests WindowSwitchTransitionTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests DesktopOverviewShortcutTests SystemWindowDispatchTests WorkspacePanelTests NativeSpaceMenuTests ActionInventoryTests)
+          suites=(StageGroupStoreTests MoveReadbackTests NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests WindowSwitchTransitionTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests DesktopOverviewShortcutTests SystemWindowDispatchTests WorkspacePanelTests NativeSpaceMenuTests ActionInventoryTests)
           filter=$(IFS='|'; echo "${suites[*]}")
           swift test --disable-xctest --enable-swift-testing --filter "$filter" 2>&1 | tee "$RUNNER_TEMP/native-ui-tests.log"
           for suite in "${suites[@]}"; do
@@ -101,6 +104,14 @@ jobs:
           set -euo pipefail
           receipt="$RUNNER_TEMP/window-switch-windowserver.json"
           python3 -B scripts/acceptance/native-spaces/hosted-window-switch.py "$(swift build --show-bin-path)" --hosted-receipt "$receipt"
+          cat "$receipt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify the shipping read-only helper and real cross-app group membership
+        run: |
+          set -euo pipefail
+          bin=$(swift build --show-bin-path)
+          python3 scripts/acceptance/stage-groups/check-boundary.py "$bin/NearpaneSpaceAction"
+          receipt="$RUNNER_TEMP/stage-group-windowserver.json"
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$bin" --hosted-receipt "$receipt"
           cat "$receipt" >> "$GITHUB_STEP_SUMMARY"
       - name: Assess the enrolled private archive on this clean hosted Mac
         if: "${{ !cancelled() && contains(github.event.head_commit.message, '[private-macos-26 ') }}"
