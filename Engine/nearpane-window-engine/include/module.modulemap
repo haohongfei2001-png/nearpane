@@ -1,0 +1,4 @@
+module CNearpaneWindowEngine {
+    header "nearpane_window_engine.h"
+    export *
+}

@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/build-paths.sh
+NEARPANE_ENGINE_ARCHIVE="$(bash scripts/build-window-engine.sh)"
+export NEARPANE_ENGINE_ARCHIVE
 python3 scripts/prepare-domains.py
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]; then
   python3 scripts/prepare-update-runtime.py
@@ -42,6 +44,8 @@ stage="$staging_dir/Nearpane.app"
 mkdir -p "$stage/Contents/MacOS" "$stage/Contents/Resources"
 cp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 cp Resources/Info.plist "$stage/Contents/Info.plist"
+mkdir -p "$stage/Contents/Resources/Upstream/window-engine"
+cp Engine/nearpane-window-engine/LICENSE.upstream "$stage/Contents/Resources/Upstream/window-engine/LICENSE"
 if [[ -n "$candidate_dir" ]]; then
   # The packaging intermediate is a different bundle identifier. Only the signed candidate advertises this Service.
   /usr/bin/plutil -remove NSServices "$stage/Contents/Info.plist"

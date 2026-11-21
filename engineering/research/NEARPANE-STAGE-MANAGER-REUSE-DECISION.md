@@ -6,6 +6,8 @@ Upstream baseline: `eugene-tea/stage-manager@69a73665488243bf78982c6d523ac4e0850
 
 ## Final decision
 
+**Implementation amendment for PR #15.** Both backends are internal implementations of the same engine. Production eligibility requires independently verified physical results for each environment. The reviewed same-machine measurements govern a choice between qualified backends. The former default and user opt-in in §3 and §8 describe the research proposal. The Host grants one writer, restores its verified members before any change in ownership, and keeps writes disabled while ownership is uncertain.
+
 **Choose Option A, with a deliberately narrow extraction: vendor the upstream Rust window-engine mechanisms into an in-process Rust static library and expose a versioned C ABI to the existing Swift Host. Do not embed the upstream application/controller/model wholesale.**
 
 The runtime architecture is:

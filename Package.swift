@@ -18,7 +18,21 @@ struct DomainLock: Decodable {
 }
 let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray", "RiftletFeedback"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
+let manifestRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+#if arch(arm64)
+let engineTriple = "aarch64-apple-darwin"
+#else
+let engineTriple = "x86_64-apple-darwin"
+#endif
+let engineArchive = Context.environment["NEARPANE_ENGINE_ARCHIVE"]
+    ?? manifestRoot.appendingPathComponent(".build/window-engine/cargo-target/" + engineTriple + "/release/libnearpane_window_engine.a").path
+let engineLink: [LinkerSetting] = [.unsafeFlags([engineArchive]), .linkedLibrary("objc"),
+    .linkedFramework("Foundation"), .linkedFramework("AppKit"), .linkedFramework("ApplicationServices"),
+    .linkedFramework("CoreGraphics"), .linkedFramework("CoreFoundation"), .linkedFramework("Carbon"), .linkedFramework("Security")]
 var targets: [Target] = [
+    .systemLibrary(name: "CNearpaneWindowEngine", path: "Engine/nearpane-window-engine/include"),
+    .target(name: "NearpaneWindowEngine", dependencies: ["NearpaneCore", "CNearpaneWindowEngine"], linkerSettings: engineLink),
+    .testTarget(name: "NearpaneWindowEngineTests", dependencies: ["NearpaneWindowEngine", "NearpaneCore", "CNearpaneWindowEngine"]),
     .target(name: "WindowGeometryCore"),
     .target(name: "CReadOnlySpaces"),
     .target(name: "CNativeSpaceActions"),
@@ -27,8 +41,8 @@ var targets: [Target] = [
     .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
     .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
-    .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
+    .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore", "NearpaneWindowEngine"] + domains),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI", "NearpaneWindowEngine"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
         linkerSettings: full ? [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])] : []),
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
     .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController"]),

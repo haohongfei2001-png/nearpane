@@ -3,7 +3,13 @@
 Date: 2026-11-21  
 Implementation baseline: Nearpane PR #15 at `cae7220be5fa3f68b7b71ee04b031c153ff77903`  
 Upstream baseline: `eugene-tea/stage-manager@69a73665488243bf78982c6d523ac4e0850c1ddb`  
-Status: planned; not implemented by the research commit.
+The research commit contains the original plan. Implementation started from Draft PR #15 at `0dd9cb2`, which includes the embedded screenshot and voice updates.
+
+## Current execution contract
+
+The product exposes one StageGroup action. Each backend requires its own complete physical qualification for the current OS build, SIP state and Host. The signed-in user has no backend selector. Startup may inspect both engines. A reviewed comparison on equivalent hardware governs selection when more than one qualifies. Recovery of the existing owner's confirmed windows precedes any handoff. A missing or ambiguous receipt keeps writes closed. These rules supersede the historical default and opt-in language below. This round's Gate 5 covers product lifecycle integration. Distribution and notarization are deferred.
+
+Gate 0 produced a Rust static library for arm64 and x86_64, a Swift-callable C ABI, a bounded worker, and a pinned origin and Cargo license inventory. [Build and ABI receipt](../verification/window-engine/gate0.json) · [license and origins](../verification/window-engine/gate0-origins.json)
 
 ## 1. Codex mission
 

@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/build-paths.sh
+NEARPANE_ENGINE_ARCHIVE="$(bash scripts/build-window-engine.sh)"
+export NEARPANE_ENGINE_ARCHIVE
 python3 scripts/prepare-domains.py
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]; then
   python3 scripts/prepare-update-runtime.py
