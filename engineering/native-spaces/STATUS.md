@@ -6,6 +6,8 @@
 
 已提交只读原生桌面分区、v1 保留迁移、组切换写前日志和分屏后新几何读回。当前日常 Mac 的 Dock 设置与托管机不同，已单独保留只读预检。生产侧栏维持已验证的选窗与同屏拖放，未启用失败的整组写入。 [完整阶段记录、录屏和候选](../verification/stage-groups/5.22-90/isolation/RESULTS.md)
 
+签名候选 `565d311` 在干净的托管 Mac 完成标准路径安装，安装路径验签通过。因缺少 Apple 公证票据，Gatekeeper 拒绝首次启动；安装 Host 交互为 NOT_RUN。665 项本地测试通过。日常安装与配置保留。 [签名候选](../verification/stage-groups/5.22-90/isolation/signed-candidate.json) · [干净安装、清理和策略结果](../verification/native-spaces/5.22-p6/integrated-565d311/hosted-macos-26.json)
+
 ## 当前产品路线 · Stage Manager 替代
 
 PR #15 的重定向基线为 `a1a3fc3`，版本 5.22（90）。逻辑组按真实显示器维护；原生 Space、手势、全屏和 Split View 归 Apple。新发布门槛以 SG0–SG6 为准。 [产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [差异审查与架构](../research/NEARPANE-STAGE-GROUP-ARCHITECTURE.md) · [实施顺序](../research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md) · [验收合同](ACCEPTANCE.md)
@@ -19,7 +21,7 @@ PR #15 的重定向基线为 `a1a3fc3`，版本 5.22（90）。逻辑组按真�
 | 旧 P5 生命周期与性能 | 旧任务 ARCHIVED，本屏工作区、新 P4 被动系统兼容与新 P6 性能继续验证。 |
 | 旧 P6 分发 | 旧任务 ARCHIVED，同包验签和回退证据复用，公证与干净首启进入新 P6。 |
 
-### 5.22（90）· 本屏 StageGroup 实施与验收
+### 前一轮 5.22（90）· 本屏 StageGroup 实施与验收
 
 Host 和签名 helper 已双端拒绝历史原生写命令。生产侧栏从活动资料代读取每屏组目录，支持单窗入组、移出、解散和已确认分屏布局保存。签名候选 `267bd9f` 与测试修订 `a948bef` 的产品源码相同。 [本轮收据与失败项](../verification/stage-groups/5.22-90/RESULTS.md) · [机器结果](../verification/stage-groups/5.22-90/results.json)
 

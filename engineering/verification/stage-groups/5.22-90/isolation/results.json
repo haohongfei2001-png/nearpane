@@ -208,5 +208,29 @@
       "bytes": 97088,
       "sha256": "2545e9ed8878ca70a4e5bee2f7186abccf4efb7e660b363ada962555f276df2a"
     }
+  },
+  "signedInstalledCandidate": {
+    "canonicalPath": "/Applications/Nearpane.app",
+    "source": "565d311076ca20d23f63567172ea244571cf1276",
+    "sha256": "7e9703bcbfcda7eacba29ef82c4e0dbeb98c864f3a10d5d8b3a85add505141aa",
+    "installation": "PASS",
+    "launch": "BLOCKED",
+    "installedSystemPolicy": "NOT_ADMITTED",
+    "installedHostInteraction": "NOT_RUN",
+    "fixtureInstallationRemoved": true,
+    "run": 44861706918,
+    "verifiedBinaries": 13,
+    "architectures": 18
+  },
+  "notarization": "NOT_RUN",
+  "installedDistributionPolicy": "FAIL",
+  "privatePackageRollback": "PASS",
+  "dailyPreflightUnchangedAfterTesting": true,
+  "signedCandidateCI": {
+    "head": "4a8898b4d4b8a28a84b75a84bc17336a5dedb255",
+    "workflowRun": 44861706918,
+    "nativeCI": "PASS",
+    "fixtureArtifactID": 14689749985,
+    "summary": "earlier/installed-ci-summary.json"
   }
 }

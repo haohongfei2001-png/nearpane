@@ -26,4 +26,8 @@
 
 ## 签名安装与放行状态
 
-候选产品源码为 `565d311076ca20d23f63567172ea244571cf1276`，夹具收据来自 `13c7ada938fa0e46f9249eea42954acee00620b5`。此后产品增加了分屏几何的新读数检查。正式 HOST 的整组鼠标点击、组内焦点、旁窗和布局恢复必须在具备合格隐藏方式后验证。 [候选源码](https://github.com/haohongfei2001-png/nearpane/tree/565d311076ca20d23f63567172ea244571cf1276) · [回归与未运行项](results.json)
+候选产品源码为 `565d311076ca20d23f63567172ea244571cf1276`，夹具收据来自 `13c7ada938fa0e46f9249eea42954acee00620b5`。此后产品增加了分屏几何的新读数检查。正式 Host 的整组鼠标点击、组内焦点、旁窗和布局恢复必须在具备合格隐藏方式后验证。 [候选源码](https://github.com/haohongfei2001-png/nearpane/tree/565d311076ca20d23f63567172ea244571cf1276) · [回归与未运行项](results.json)
+
+已用原生 Developer ID 签署 13 个代码对象、18 个架构切片，并从未公开的草稿中重新下载核对归档。两份非运行包的替换与原位回滚通过签名身份及摘要校验。 [签名与草稿下载收据](signed-candidate.json) · [私有包回滚](private-rollback.json)
+
+同一 SHA-256 的 ZIP 在干净的 macOS 26.7.2 登录环境实际装入 `/Applications/Nearpane.app`，从安装路径再次核对 13 个签名对象。Gatekeeper 给出 `Unnotarized Developer ID`，分发检查给出 `Notary Ticket Missing`，因此首次启动记为 BLOCKED、安装 Host 交互记为 NOT_RUN。已清理这份安装和临时下载凭据。该 CI 在另一轮新登录环境再次观察到两项机制失败以及墙纸让渡成功。物理 Mac 的前后只读预检相同。 [安装路径与 Gatekeeper 原始回执](../../../native-spaces/5.22-p6/integrated-565d311/hosted-macos-26.json) · [复测清单](earlier/installed-ci-summary.json) · [原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44861706918)
