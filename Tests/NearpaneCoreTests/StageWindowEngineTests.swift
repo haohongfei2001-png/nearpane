@@ -10,12 +10,14 @@ import Testing
     var visible = [NativeSpaceWindow:StageWindowState](), writeIntents = Set<UUID>()
     var health = true, recovery = true, zeroLeases = true, canStart = true, unknownHide: UInt32?, badReadback: UInt32?
     var workerHealthy = true
+    var beforeRead: (() -> Void)?
     var beforeCloseRead: (() -> Void)?
     var prepared = Set<UUID>(), confirmed = Set<UUID>(), confirmationFailure: UInt32?
     var visibleAfterMutation = [Int]()
     var effects: [(UInt32,NativeSpaceWindow)] = [], ordinaryEffects: [StageWindowAction] = [], revokes = 0, closes = 0
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool { restoring ? recovery : health }
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
+        beforeRead?()
         sequence += 1
         return .init(scope:self.scope,generation:epoch,sequence:sequence,workArea:displayArea,windows:windows,focus:focus,nativeID:22)
     }
@@ -254,6 +256,36 @@ import Testing
         #expect(f.effects.count==oldCount)
         let fromDisk=try StageGroupCoordinator(store:store,profile:p)
         #expect(fromDisk.hasWindowAuthority && fromDisk.requiresRecovery && fromDisk.retainedOwner==engine.session?.owner)
+    }
+
+    @Test(arguments: [true, false]) func confirmedTakeoverReleasesOnlyAfterTheOriginalRosterReturns(_ stable: Bool) async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        let before = f.windows, user = try #require(f.windows.keys.first { $0.number == 4 })
+        f.beforeRead = { [unowned f] in
+            if f.confirmed.count == 2 {
+                f.focus = user
+                f.beforeRead = nil
+            }
+        }
+        await #expect(throws: StageSwitchError.interrupted) { try await activate(groups[0], engine, f) }
+        #expect(engine.coordinator.requiresRecovery && f.focus == user)
+        if !stable { f.windows[user]?.frame.x += 10 }
+        if stable { try await engine.release() }
+        else { await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.release() } }
+        #expect(f.effects.filter { $0.0 == 5 }.count == 2 && f.focus == user && f.ordinaryEffects.isEmpty)
+        #expect(store.activeGroup(in: f.scope) == nil)
+        let reopened = try StageGroupCoordinator(store: store, profile: profile)
+        #expect(reopened.requiresRecovery == !stable && reopened.hasWindowAuthority == !stable)
+        let bytes = try Data(contentsOf: profile.appendingPathComponent("stage-visibility-v1.json"))
+        let ledger = try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: bytes)
+        if stable {
+            let proof = try #require(ledger.lastInterruptedRelease)
+            #expect(proof.focus == user && proof.firstSequence < proof.secondSequence && f.windows == before)
+        } else {
+            #expect(ledger.lastInterruptedRelease == nil && ledger.pending?.yieldedFocus == user && f.closes == 0)
+        }
     }
 
     @Test func changedLifetimeOrExternalGeometryNeverUsedForRestoration() async throws {

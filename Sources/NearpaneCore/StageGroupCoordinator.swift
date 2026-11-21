@@ -105,10 +105,16 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var owner: StageEngineOwner? = nil
         var intent: UUID? = nil
         var nativeID: UInt64? = nil
+        var workArea: SurfaceRect? = nil
+        var yieldedFocus: NativeSpaceWindow? = nil
     }
     struct Release: Codable {
         let intent: UUID, owned: Ownership
         var restored: Bool? = nil
+    }
+    struct InterruptedRelease: Codable {
+        let transaction: UUID, owner: StageEngineOwner, scope: StageGroupScope, focus: NativeSpaceWindow
+        let firstSequence, secondSequence: UInt64
     }
     struct Ledger: Codable {
         var version = 1
@@ -117,6 +123,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var owner: StageEngineOwner?
         var releases: [Release]?
         var activeScopes: [StageGroupScope]?
+        var lastInterruptedRelease: InterruptedRelease?
     }
 
     private let store: StageGroupStore, file: URL
@@ -265,12 +272,13 @@ public enum StageSwitchError: LocalizedError, Equatable {
         try update {
             $0.pending = .init(scope: scope, generation: first.generation, target: group, preferred: preferred.windowHint,
                 originalFocus: first.focus, before: Array(first.windows.values), ownedBefore: originalHeld,
-                owner: owner, intent: intent, nativeID: first.nativeID)
+                owner: owner, intent: intent, nativeID: first.nativeID, workArea: first.workArea)
         }
         var last = first
         func requireFocus(_ sample: StageWindowSample, _ expected: NativeSpaceWindow?) throws {
             guard sample.focus == expected else {
                 invalidate()
+                if let focus = sample.focus { try update { $0.pending?.yieldedFocus = focus } }
                 throw StageSwitchError.interrupted
             }
         }
@@ -521,10 +529,46 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 continue
             }
         }
+        if let pending = ledger.pending, ledger.owned.isEmpty, (ledger.releases ?? []).isEmpty {
+            try await confirmInterruptedRelease(pending, owner: owner, session: session, token: token)
+        }
         guard token == epoch, ledger.owned.isEmpty, ledger.pending == nil, (ledger.releases ?? []).isEmpty else {
             throw StageSwitchError.recoveryRequired
         }
         // Retain the durable owner until the prior worker has also positively confirmed zero leases and closed.
+    }
+
+    /// Closing a yielded Stage transaction is read-only. An uncertain primitive, layout change
+    /// or incomplete Guardian exchange remains the former worker's responsibility.
+    private func confirmInterruptedRelease(_ pending: Transaction, owner: StageEngineOwner,
+                                           session: StageWindowSession, token: UUID) async throws {
+        guard pending.owner == owner, pending.generation == owner.generation, let transaction = pending.intent,
+              let focus = pending.yieldedFocus, let area = pending.workArea, !pending.verifiedDirectoryCommit,
+              !pending.entries.isEmpty, pending.entries.allSatisfy({ entry in
+                  guard entry.intent != nil, entry.after != nil, entry.undoIntent == nil, entry.guardianPending != true else { return false }
+                  switch entry.action { case .hide, .show, .focus: return true; case .place: return false }
+              }) else { throw StageSwitchError.recoveryRequired }
+        var expected = Dictionary(uniqueKeysWithValues: pending.before.map { ($0.window, $0) })
+        for held in pending.ownedBefore {
+            guard held.owner == owner, held.scope == pending.scope, expected[held.hidden.window] == held.hidden else {
+                throw StageSwitchError.recoveryRequired
+            }
+            expected[held.hidden.window] = held.original
+        }
+        func read() async throws -> UInt64 {
+            let sample = try await session.read(pending.scope)
+            guard epoch == token, session.engineOwner == owner, sample.generation == owner.generation, sample.scope == pending.scope,
+                  sample.nativeID == pending.nativeID, sample.workArea == area, sample.focus == focus,
+                  sample.windows == expected else { throw StageSwitchError.recoveryRequired }
+            return sample.sequence
+        }
+        let first = try await read(), second = try await read()
+        guard first < second else { throw StageSwitchError.recoveryRequired }
+        try update {
+            $0.lastInterruptedRelease = .init(transaction: transaction, owner: owner, scope: pending.scope, focus: focus,
+                                              firstSequence: first, secondSequence: second)
+            $0.pending = nil
+        }
     }
 
     func confirmReleased(_ owner: StageEngineOwner) throws {
