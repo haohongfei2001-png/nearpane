@@ -6,7 +6,7 @@
 
 已提交只读原生桌面分区、v1 保留迁移、组切换写前日志和分屏后新几何读回。当前日常 Mac 的 Dock 设置与托管机不同，已单独保留只读预检。生产侧栏维持已验证的选窗与同屏拖放，未启用失败的整组写入。 [完整阶段记录、录屏和候选](../verification/stage-groups/5.22-90/isolation/RESULTS.md)
 
-签名候选 `565d311` 在干净的托管 Mac 完成标准路径安装，安装路径验签通过。因缺少 Apple 公证票据，Gatekeeper 拒绝首次启动；安装 Host 交互为 NOT_RUN。665 项本地测试通过。日常安装与配置保留。 [签名候选](../verification/stage-groups/5.22-90/isolation/signed-candidate.json) · [干净安装、清理和策略结果](../verification/native-spaces/5.22-p6/integrated-565d311/hosted-macos-26.json)
+签名候选 `565d311` 在干净的托管 Mac 完成标准路径安装，安装路径验签通过。因缺少 Apple 公证票据，安装路径的 Gatekeeper 评估未准入。首次启动为 BLOCKED，安装 Host 交互为 NOT_RUN。665 项本地测试通过。日常安装与配置保留。 [签名候选](../verification/stage-groups/5.22-90/isolation/signed-candidate.json) · [干净安装、清理和策略结果](../verification/native-spaces/5.22-p6/integrated-565d311/hosted-macos-26.json)
 
 ## 当前产品路线 · Stage Manager 替代
 
