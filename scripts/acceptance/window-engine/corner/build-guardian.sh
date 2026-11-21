@@ -7,6 +7,6 @@ out=${1:?destination executable}
 archive=${2:?compiled product Rust static archive}
 shift 2
 src=Engine/nearpane-window-engine/src/corner
-xcrun clang -fobjc-arc -O2 -Wall -Wextra -Werror "$@" -I Engine/nearpane-window-engine/include \
+xcrun clang -mmacosx-version-min=14.0 -fobjc-arc -O2 -Wall -Wextra -Werror "$@" -I Engine/nearpane-window-engine/include \
     "$src/guardian/main.m" "$src/macos.m" "$archive" -framework Security -framework AppKit \
     -framework ApplicationServices -framework Carbon -framework CoreGraphics -framework CoreFoundation -framework Foundation -o "$out"

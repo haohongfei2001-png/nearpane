@@ -160,6 +160,14 @@ def disposition(raw):
         for r in rows
     ):
         return "BLOCKED", "independentOrdinarySpaceUUIDMissingTwice"
+    unusable = {r.get(key) for r in rows for key in ("currentUUIDField", "matchedUUIDField")}
+    if len(unusable) == 1 and unusable <= {"emptyString", "zeroUUID", "malformed"} and all(
+        r.get("reason") == "currentOrdinaryUUIDUnavailableOrContradictory"
+        and r.get("ordinaryWithUUIDCount") == 0 and r.get("ordinaryCount", 0) > 0
+        and "currentUUID" in r and "matchedUUID" in r
+        and r["currentUUID"] is None and r["matchedUUID"] is None for r in rows
+    ):
+        return "BLOCKED", "ordinaryUUIDFieldsPresentButUnusableTwice"
     first, second = (confirmed_space(row, *keys[0]) for row in rows)
     if first and first == second:
         return "OBSERVED", "sameOrdinaryDisplaySpaceUUIDInBothReads"

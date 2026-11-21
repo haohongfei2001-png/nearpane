@@ -83,11 +83,18 @@ def verify_ordinary_window_actions(writer, imports):
             label = line[:-1].removeprefix("_")
         elif "symbol stub for: _AXUIElementPerformAction" in line:
             sites.append(label)
-    if len(sites) != 1 or not sites[0]:
+    if not sites or not all(sites):
         raise ValueError("Unexpected AX action call sites")
-    function = subprocess.check_output(["/usr/bin/xcrun", "swift-demangle", "--compact", sites[0]], text=True)
-    if not function.strip().startswith("NearpaneOrdinaryWindowController.focusCurrentWindow("):
-        raise ValueError("AX action outside the verified window focus path")
+    # Release Swift may specialize the same function for the Host's transaction permit.
+    # Check every machine-code site, including historical controller-only packages.
+    functions = subprocess.check_output(["/usr/bin/xcrun", "swift-demangle", "--compact", *sites], text=True).splitlines()
+    if len(functions) != len(sites):
+        raise ValueError("Unresolved AX action call sites")
+    for function in functions:
+        exact = re.sub(r"^function signature specialization <.*> of ", "", function)
+        if not exact.startswith(("NearpaneOrdinaryWindowRuntime.focusCurrentWindow(",
+                                 "NearpaneOrdinaryWindowController.focusCurrentWindow(")):
+            raise ValueError("AX action outside the verified window focus path")
     calls = [line.strip() for path in (ROOT / "Sources/NearpaneOrdinaryWindowController").rglob("*.swift")
              for line in path.read_text().splitlines() if "AXUIElementPerformAction" in line]
     if len(calls) != 1 or "AXUIElementPerformAction(element, kAXRaiseAction as CFString)" not in calls[0]:

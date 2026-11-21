@@ -51,6 +51,15 @@ class WindowEngineCITests(unittest.TestCase):
     def test_archived_double_null_is_an_environment_block(self):
         self.assertEqual(scope.disposition(self.raw), ("BLOCKED", "independentOrdinarySpaceUUIDMissingTwice"))
 
+    def test_stable_present_but_unusable_uuid_on_real_hosted_runner(self):
+        for form in ("malformed", "emptyString", "zeroUUID"):
+            raw = deepcopy(self.raw)
+            for row in raw["reads"]:
+                row.update(currentUUIDField=form, matchedUUIDField=form)
+            self.assertEqual(scope.disposition(raw), ("BLOCKED", "ordinaryUUIDFieldsPresentButUnusableTwice"))
+            raw["reads"][0]["matchedUUIDField"] = "valid"
+            self.assertEqual(scope.disposition(raw)[0], "UNKNOWN")
+
     def test_explicit_final_commit_line_or_checked_manual_input_required(self):
         marker = "[window-engine-hosted-scope]"
         self.assertTrue(scope.requested("workflow_dispatch", "1", ""))

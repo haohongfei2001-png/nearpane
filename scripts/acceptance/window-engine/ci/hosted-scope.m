@@ -14,6 +14,8 @@ static BOOL activeConsole(void) {
 static NSString *uuidField(NSDictionary *row) {
     id value = row[@"uuid"];
     if (!value || value == NSNull.null) return @"missing";
+    if ([value isEqual:@""]) return @"emptyString";
+    if ([value isKindOfClass:NSString.class] && [[value uppercaseString] isEqual:@"00000000-0000-0000-0000-000000000000"]) return @"zeroUUID";
     return nc_uuid(value) ? @"valid" : @"malformed";
 }
 
