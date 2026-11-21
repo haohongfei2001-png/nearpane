@@ -1,6 +1,21 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+prepare_only=0
+if (( $# )); then
+    [[ $# == 2 && "$1" == --prepare-in-place ]] || { echo "Usage: $0 [--prepare-in-place PRIVATE_WORK]" >&2; exit 2; }
+    python3 -I -B - "$2" <<'PY'
+from pathlib import Path
+import os, sys
+p = Path(sys.argv[1])
+if (p.parent != Path("/private/tmp") or not p.name.startswith("nearpane-host-inplace.") or
+        p != p.resolve(strict=True) or p.stat().st_uid != os.getuid() or p.stat().st_mode & 0o077):
+    raise SystemExit("Expected a private in-place acceptance directory")
+(p / "candidate").mkdir(mode=0o700)
+PY
+    prepare_only=1
+    export NEARPANE_FROZEN_SOURCE=1 NEARPANE_CANDIDATE_OUTPUT="$2/candidate"
+fi
 # A receipt for an installed acceptance candidate must identify the compiled sources.
 # Local development packages from an export or dirty tree stay buildable.
 release_inputs=(Package.swift Engine/nearpane-window-engine Sources Resources Dependencies scripts engineering/window-lab docs/ALPHA-HELP.md ':(exclude)scripts/acceptance/native-spaces/**')
@@ -40,7 +55,11 @@ clean_stages() {
     if [[ -n "$stage" && ! -e "$stage/keep-for-recovery" ]]; then rm -rf -- "$stage"; fi
 }
 trap clean_stages EXIT
-scripts/build-app.sh release --candidate-base "$base"
+if (( prepare_only )); then
+    scripts/build-app.sh release --prepare-candidate-base "$base"
+else
+    scripts/build-app.sh release --candidate-base "$base"
+fi
 app="$base/Nearpane.app"
 scripts/acceptance/build-window-lab.sh "$app"
 lab="$(cat build/window-lab/apps-path.txt)"
@@ -95,7 +114,20 @@ check_candidate_source
 codesign --force --sign - --entitlements Resources/NearpaneHost.entitlements --identifier com.holdsnow.nearpane.alpha "$candidate"
 python3 -I -B scripts/candidate_signing.py "$candidate" "${signing_arguments[@]}"
 codesign --verify --strict --deep "$candidate"
-"$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
-"$candidate/Contents/MacOS/NearpaneHost" --check-helper-runtime
-python3 scripts/check-alpha-distribution.py "$candidate" > "$stage/package.json"
+if (( prepare_only )); then
+    python3 scripts/check-alpha-distribution.py "$candidate" --require-install-identity > "$stage/package.json"
+    python3 -I -B - "$stage/package.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+report = json.loads(p.read_bytes())
+report["inPlacePreparation"] = {"candidateExecutions": 0, "bundledResourcesSelfCheck": "NOT_RUN",
+    "helperRuntimeSelfCheck": "NOT_RUN", "installedHostLaunch": "NOT_RUN"}
+p.write_text(json.dumps(report, indent=2) + "\n")
+PY
+else
+    "$candidate/Contents/MacOS/NearpaneHost" --verify-bundled-resources
+    "$candidate/Contents/MacOS/NearpaneHost" --check-helper-runtime
+    python3 scripts/check-alpha-distribution.py "$candidate" > "$stage/package.json"
+fi
 python3 -I -B scripts/publish-candidate.py "$candidate" "$delivery/$name" "$receipt"

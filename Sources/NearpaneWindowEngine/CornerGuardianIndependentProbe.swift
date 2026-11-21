@@ -51,7 +51,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
         }
     }
 
-    let status: String
+    package let status: String
     let reason: String
     let childExit: Int32?
     let evidence: Evidence?

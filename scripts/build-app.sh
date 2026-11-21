@@ -17,10 +17,16 @@ fi
 configuration="${1:-debug}"
 case "$configuration" in debug|release) ;; *) echo "Usage: $0 [debug|release]" >&2; exit 2 ;; esac
 candidate_dir=""
+prepare_only=0
 if (( $# > 1 )); then
-  [[ $# == 3 && "$configuration" == release && "$2" == --candidate-base && -d "$3" && ! -L "$3" && ! -e "$3/Nearpane.app" ]] ||
+  [[ $# == 3 && "$configuration" == release && ( "$2" == --candidate-base || "$2" == --prepare-candidate-base ) && -d "$3" && ! -L "$3" && ! -e "$3/Nearpane.app" ]] ||
     { echo "Usage: $0 release --candidate-base EMPTY_DIRECTORY" >&2; exit 2; }
   candidate_dir="$(cd "$3" && pwd -P)"
+  if [[ "$2" == --prepare-candidate-base ]]; then
+    [[ "${candidate_dir%/*}" == /private/tmp && "${candidate_dir##*/}" == nearpane-candidate-base.* &&
+       "${NEARPANE_FROZEN_SOURCE:-0}" == 1 ]] || { echo "Expected private frozen candidate staging" >&2; exit 2; }
+    prepare_only=1
+  fi
 fi
 scratch="$build_root/app-native"
 if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then scratch="$build_root/foundation-app-native"; fi
@@ -123,7 +129,9 @@ if [[ "$(git rev-parse HEAD 2>/dev/null || echo unversioned)" != "$engine_revisi
 fi
 /usr/bin/plutil -insert NearpaneStageEngineSourceRevision -string "$engine_revision" "$stage/Contents/Info.plist"
 /usr/bin/plutil -insert NearpaneStageEngineSourceState -string "$engine_source_state" "$stage/Contents/Info.plist"
-"$stage/Contents/MacOS/NearpaneHost" --verify-bundled-resources
+if (( ! prepare_only )); then
+  "$stage/Contents/MacOS/NearpaneHost" --verify-bundled-resources
+fi
 # After an exchange the stage holds the former bundle. Only the publisher may dispose of it.
 trap - EXIT
 python3 - "$stage" "$bundle" <<'PY'
