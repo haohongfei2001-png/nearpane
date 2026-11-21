@@ -1,5 +1,21 @@
 # 调度组架构裁决与源码差异
 
+## 窗口调度引擎实施复核
+
+本次重新核对 Draft PR 实际起点 `74f1d0a`。产品原有入口位于 `DesktopSurface.windowList` 与 `NativeSpaceNavigator.NativeWindowGroupCard`。单窗和组合成员调用精确选窗，组合背景没有整组显示权限。原目录从当前窗口集合投影，窗口从该集合消失后，身份线索和历史图像都不足以授权一次恢复。
+
+| 层 | 已落地的边界 |
+| --- | --- |
+| 身份和作用域 | `StageGroupStore` 为现有成员增加普通桌面 UUID。目录按物理显示器和只读的普通桌面 UUID 查询；表内持久组 UUID 与系统 UUID 各自独立。v2 单独写文件，首次读取 v1 保留成员槽位、组 ID 和布局。只有完整重新绑定的成员集才能补齐旧组的桌面归属。 |
+| 原生移动 | 已保存成员被观察到跨显示器或跨桌面时保留成员，标记待整理，撤销该组的活动标记。用户可将被移动的成员重新归入实际屏幕和桌面。共享 Spaces、多显示器拓扑不明确、全屏、系统台前调度状态未知时继承只读或暂停策略。 |
+| 事务 | `StageGroupCoordinator` 要求完整当前作用域、存活代际、当前实际键盘焦点、已验证旁窗、明确同意及合格驱动。首次从实际焦点组开始。按序退场、恢复、核实布局，再定位成员。动作前原子落盘，保留可能已派发区间；动作后要求两个新读数，整个作用域通过后才持久化活动组和首选成员。全局键盘焦点共享，因此写事务串行；各屏各桌面的目录独立。 |
+| 回滚 | 保存原始与已确认后值，校验整个清单、代际、用户输入世代和作用域；可证明仍归本次操作的效果按逆序补偿。未确认派发、用户后来改变窗口或失去原对象见证时保留待恢复日志，避免自动重放。目录的上次已验证活动组不是当前可见性的证明。 |
+| 拖放 | 复用 `DesktopAutomaticTiling.place` 与原窗口管理器。拒绝复用在本次操作之前启动的枚举。两份窗口 AX/CG 读回及之后新目录中的两个绝对矩形都吻合才合并成员。 |
+| 点击墙纸 | `WallpaperRevealMonitor` 观察系统桌面点击，在系统移动窗口时暂停 Nearpane 的窗口派发和自动布局。恢复以 WindowServer 窗号、真实屏幕命中、AX 所有者及重复读取为条件；不存储标题或桌面内容。 |
+| 生产写入资格 | 受控实验复用公开 AX 最小化或修改位置，没有注册任何已通过正式合同的全局隐藏适配器。事务协议可用，正式 Host 的整组显示、停放窗口的可执行卡片和真实崩溃后恢复仍待验。 |
+
+StageKeeper 固定版本将窗移到最右侧显示器角落，以非激活、鼠标穿透的面板盖住残条。Nearpane 的实验仅在一台单屏托管 Mac 临时采样空角背景，按实际残条宽度、完整覆盖、鼠标命中和焦点检验。移窗 setter 成功与遮罩可见分别记录。该工程的跨屏停放及全桌面面板没有进入产品。 [参考实现的坐标与恢复](https://github.com/ninthspace/stagekeeper/blob/23abfdd45998cbe1edcb3f050fd34516d0be4800/Sources/StageKeeper/Engine.swift#L578) · [参考遮罩](https://github.com/ninthspace/stagekeeper/blob/23abfdd45998cbe1edcb3f050fd34516d0be4800/Sources/StageKeeper/Cover.swift#L44) · [本次实验记录](../verification/stage-groups/5.22-90/isolation/RESULTS.md)
+
 审查基线是 GitHub Draft PR #15 的 `a1a3fc35e1465d8c52bc00da2d916cabd8a82bc7`。该 HEAD 的最后一笔变更为验收文档；此前带源码的原生 CI `7ec2423` 成功。Vercel 网站检查独立于原生合同。以下“现有”指该基线，“裁决”指以后实现与验收的约束。 [审查提交](https://github.com/haohongfei2001-png/nearpane/tree/a1a3fc35e1465d8c52bc00da2d916cabd8a82bc7) · [已核实的原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44852061796)
 
 ## 实现差异

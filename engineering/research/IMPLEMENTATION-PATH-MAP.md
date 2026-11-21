@@ -37,3 +37,5 @@ PR #15 的起点为 `6f85f73bc6b64290308ac610e342702f989a9f66`，接管时的安
 在上述 PR 起点，`swipeEvent` 已调用 `iss_augment_dock_swipe_event`，`NPSendAdjacentSwipe` 已生成伴随事件并检查指针显示器。故不能把失败归因于完全缺失 IOHID。实际差异是普通动画使用六个增大行程的采样，结束速度为 2，并允许一次请求包含多步。最小修订是保留并测试现有序列化器，按版本统一轻行程、相位与结束速度，限制首轮为单一相邻动作，由安装版往返和重复验收决定可用范围。原有空白侧栏只通过真实窗口或显式组合触发导航，不添加测试专用生产行。
 
 各阶段所需的可运行验收及门槛见[实施验收入口](../verification/native-spaces/ACCEPTANCE.md)。
+
+本轮窗口级事务位于 `Sources/NearpaneCore/StageGroupCoordinator.swift`；系统桌面点击观察位于 `Sources/NearpaneUI/WallpaperRevealMonitor.swift`。独立的真实窗口与输入读回在 `scripts/acceptance/stage-groups/`。[机制和验收主体](../verification/stage-groups/5.22-90/isolation/RESULTS.md)

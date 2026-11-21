@@ -1,0 +1,212 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "candidateSource": "565d311076ca20d23f63567172ea244571cf1276",
+  "fixtureSource": "13c7ada938fa0e46f9249eea42954acee00620b5",
+  "actionsRun": 44860356509,
+  "coreProductGate": "BLOCKED",
+  "installedHostGroupIsolation": "BLOCKED",
+  "tenCycles": "NOT_RUN",
+  "fiftyCycles": "NOT_RUN",
+  "fixtureTrials": {
+    "minimize": {
+      "status": "FAIL",
+      "reason": "dockWindowTiles",
+      "recording": {
+        "status": "PASS",
+        "seconds": 12.163333333333334,
+        "inspectorSeconds": 11.95312800000002,
+        "bytes": 591660
+      },
+      "fixtureOwnersExited": true
+    },
+    "corner": {
+      "status": "FAIL",
+      "reason": "parkedWindowReceivedRealMouseDown",
+      "recording": {
+        "status": "PASS",
+        "seconds": 6.16,
+        "inspectorSeconds": 5.884733707999999,
+        "bytes": 165223
+      },
+      "fixtureOwnersExited": true
+    },
+    "wallpaper": {
+      "status": "PASS",
+      "reason": "nativeRevealAndRestoreObserved",
+      "recording": {
+        "status": "PASS",
+        "seconds": 2.08,
+        "inspectorSeconds": 1.8127650409999774,
+        "bytes": 72879
+      },
+      "fixtureOwnersExited": true
+    }
+  },
+  "axes": {
+    "minimize": {
+      "groupSteps": [
+        0,
+        1,
+        2,
+        0
+      ],
+      "facts": [
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        },
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        },
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        },
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        }
+      ],
+      "dockBaseline": 1,
+      "dockPeak": 3,
+      "dockAfterCleanup": 1,
+      "restoredOriginals": true,
+      "realClickWindowIDs": [],
+      "realClickChangedKey": null,
+      "ownerProcessesExited": true
+    },
+    "corner": {
+      "groupSteps": [
+        0,
+        1,
+        2,
+        0
+      ],
+      "facts": [
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        },
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        },
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        },
+        {
+          "allInactiveIsolated": true,
+          "bystandersUnchanged": true,
+          "exactFocusAndCGKey": true,
+          "onlyIntendedKeyReceiver": true,
+          "selectedVisibleAtOriginalLayout": true
+        }
+      ],
+      "dockBaseline": 1,
+      "dockPeak": 1,
+      "dockAfterCleanup": 1,
+      "restoredOriginals": true,
+      "realClickWindowIDs": [
+        54
+      ],
+      "realClickChangedKey": true,
+      "ownerProcessesExited": true
+    }
+  },
+  "fixtureRole": "Two registered signed ordinary owners, independent observer, no installed Host input",
+  "directoryAndCoordinator": "PASS_UNIT",
+  "productionDragCommit": "PASS_UNIT",
+  "privateUserDataCaptured": false,
+  "nativeSpaceWrites": 0,
+  "dailyMacEndToEnd": "NOT_RUN",
+  "physicalMultipleDisplays": "BLOCKED",
+  "hostedNativeSpaceID": "UNKNOWN",
+  "restoreWithChangedGeneration": "BLOCKED",
+  "fullSuite": {
+    "final": {
+      "tests": 665,
+      "suites": 106,
+      "status": "PASS"
+    },
+    "initial": {
+      "tests": 664,
+      "suites": 106,
+      "status": "FAIL",
+      "issues": 5,
+      "failedTests": [
+        "coldCaptureWaitsForActualPCMAndAcceptsSilentInput",
+        "localDropPlacesOnlyItsTwoCardsAndReleasesTemporaryGrants"
+      ]
+    },
+    "afterBarrierTargeted": {
+      "status": "PASS",
+      "tests": 2
+    }
+  },
+  "artifacts": {
+    "corner.json": {
+      "bytes": 18971,
+      "sha256": "f953bdf028cf792146c71204d663c31e8afec5682c24effdf833d6324dcb989f"
+    },
+    "corner.mp4": {
+      "bytes": 165223,
+      "sha256": "9e12f535762510b40afde402fa48170641212aa99645f96915ee84506cb58008"
+    },
+    "corner.png": {
+      "bytes": 99113,
+      "sha256": "d217d5300b82adc735ff78f1ac41234a61283b21987d612d6b79841d9c5373cb"
+    },
+    "minimize.json": {
+      "bytes": 18084,
+      "sha256": "d0102da9ef88b1a3c780f96d448af4b89075338a4bfb9b1cc270de25eb4ccc69"
+    },
+    "minimize.mp4": {
+      "bytes": 591660,
+      "sha256": "0ad6a760368799706e47fd02a609d67d2f92cc55a3afef0c46137a78b35d9b4f"
+    },
+    "minimize.png": {
+      "bytes": 89268,
+      "sha256": "0fd57291c7625f595a503e33eda997d867ab4f58930ff9b5c4d367093271e3be"
+    },
+    "summary.json": {
+      "bytes": 1048,
+      "sha256": "41ac207a3b0451447a1275de8f84d4b27ba908598cd1c5a653d1845189388159"
+    },
+    "wallpaper.json": {
+      "bytes": 447,
+      "sha256": "e24ee90f28ae40a618f103e5b33418ba7b3eb30edc7849cd1aef890ee9b3cdaa"
+    },
+    "wallpaper.mp4": {
+      "bytes": 72879,
+      "sha256": "cff571fccc8bcb14cf679f767c136acfa683a7fbf82131be207aa7f62e0ff240"
+    },
+    "wallpaper.png": {
+      "bytes": 97088,
+      "sha256": "2545e9ed8878ca70a4e5bee2f7186abccf4efb7e660b363ada962555f276df2a"
+    }
+  }
+}

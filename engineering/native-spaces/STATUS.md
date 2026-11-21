@@ -1,5 +1,11 @@
 # 当前安装与专项状态
 
+## 2026-11-21 · 三组真实窗口隔离
+
+5.22（90）整组切换 **BLOCKED**。在原生台前调度关闭的托管 macOS 26.7.2 上，两种机制均完成 A→B→C→A。逐窗 AX 最小化通过四次准确键盘输入、几何恢复及旁窗检查，但 Dock 窗口图块从 1 增至 3。角落遮罩保持 Dock 数量，已停放窗仍收到真实鼠标按下并取得焦点。原组窗口与用户原最小化状态最终恢复。原生墙纸移开和恢复及生产监视器让渡在此夹具中通过。正式 Host 单次、10 次、50 次和两块物理屏维持未验。
+
+已提交只读原生桌面分区、v1 保留迁移、组切换写前日志和分屏后新几何读回。当前日常 Mac 的 Dock 设置与托管机不同，已单独保留只读预检。生产侧栏维持已验证的选窗与同屏拖放，未启用失败的整组写入。 [完整阶段记录、录屏和候选](../verification/stage-groups/5.22-90/isolation/RESULTS.md)
+
 ## 当前产品路线 · Stage Manager 替代
 
 PR #15 的重定向基线为 `a1a3fc3`，版本 5.22（90）。逻辑组按真实显示器维护；原生 Space、手势、全屏和 Split View 归 Apple。新发布门槛以 SG0–SG6 为准。 [产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [差异审查与架构](../research/NEARPANE-STAGE-GROUP-ARCHITECTURE.md) · [实施顺序](../research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md) · [验收合同](ACCEPTANCE.md)
