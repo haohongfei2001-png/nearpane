@@ -373,7 +373,7 @@ import OSLog
                 let stage = self.stageEngine.snapshotForGroups(result)
                 let candidates = stage.displays.flatMap { self.stageWindows(in: stage, on: $0) }
                 do {
-                    if !self.stageEngine.holdsDispatch { try self.groups.observe(candidates) }
+                    try self.stageEngine.observeDirectory(candidates, in: self.groups)
                     self.groupIssue = nil
                 } catch { self.groupIssue = error.localizedDescription }
             }

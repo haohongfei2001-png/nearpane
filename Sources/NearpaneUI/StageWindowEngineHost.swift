@@ -168,6 +168,21 @@ import NearpaneOrdinaryWindowRuntime
     var holdsDispatch: Bool { terminationOwnsLane || unreadableLedger || releasing || engine?.holdsWindowDispatch == true }
     var routesGroupChoice: Bool { !admissions.isEmpty || holdsDispatch }
 
+    func observeDirectory(_ candidates: [StageGroupWindow], in store: StageGroupStore) throws {
+        if !holdsDispatch { try store.observe(candidates) }
+        else if let scope = witness?.scope { try store.observe(candidates, preserving: scope.display) }
+    }
+
+    /// Membership edits and ordinary tiling share the sidebar's serialized intent lane.
+    func prepareForGroupEdit(current: @MainActor () -> Bool) async throws {
+        guard current(), !unreadableLedger, !terminationOwnsLane, !releasing else { throw StageSwitchError.interrupted }
+        granted = nil
+        consentRequest = nil
+        if holdsDispatch { await release() }
+        guard !holdsDispatch else { throw StageSwitchError.recoveryRequired }
+        guard current() else { throw StageSwitchError.interrupted }
+    }
+
     func answerConsent(allow: Bool) {
         if allow { granted = consentRequest }
         consentRequest = nil
@@ -334,7 +349,11 @@ import NearpaneOrdinaryWindowRuntime
                         self?.canObserveArrivals(session, revision: token) == true
                     }
                     guard recorded else { throw failure }
-                    _ = try await session.read(scope)
+                    // A new singleton has no part in the current grant. Preserve the user's focus and
+                    // return the confirmed hides to their owners before accepting a different roster.
+                    freeze()
+                    ordinaryContextObserved()
+                    return
                 }
                 guard !Task.isCancelled, token == revision, self.engine?.session === session else { return }
                 projectHeld(feed.groups,in:scope)

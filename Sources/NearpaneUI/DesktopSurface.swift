@@ -195,9 +195,14 @@ struct DesktopSurface: View {
         let lifetimes = members.compactMap { feed.lifetime(of: $0.key) }
         let input = NativeSelectionPermit.inputCounters()
         guard lifetimes.count == members.count else { selectionIssue = StageGroupError.staleBinding.localizedDescription; return }
-        navigation.submit(selection: false) { token in
-            guard let fresh = await feed.readNow(), canNavigate, navigation.isCurrent(token), input == NativeSelectionPermit.inputCounters(),
-                  zip(members, lifetimes).allSatisfy({ feed.lifetime(of: $0.0.key) == $0.1 })
+        navigation.submit(selection: false, stage: true) { token in
+            let current: @MainActor () -> Bool = {
+                canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters() &&
+                    zip(members, lifetimes).allSatisfy { feed.lifetime(of: $0.0.key) == $0.1 }
+            }
+            try await feed.stageEngine.prepareForGroupEdit(current: current)
+            guard let fresh = await feed.readNow(), current(),
+                  members.allSatisfy({ feed.groupWindow($0, in: fresh) != nil })
             else { throw StageGroupError.staleBinding }
             try change(fresh)
         }
@@ -207,10 +212,12 @@ struct DesktopSurface: View {
         guard let tiling = feed.automaticTiling, canNavigate else { return }
         selectionIssue = nil
         let input = NativeSelectionPermit.inputCounters()
-        navigation.submit(selection: false) { token in
-            try await tiling.place(pair, allowed: {
+        navigation.submit(selection: false, stage: true) { token in
+            let current: @MainActor () -> Bool = {
                 canNavigate && navigation.isCurrent(token) && NativeSelectionPermit.inputCounters() == input
-            })
+            }
+            try await feed.stageEngine.prepareForGroupEdit(current: current)
+            try await tiling.place(pair, allowed: current)
         }
     }
 

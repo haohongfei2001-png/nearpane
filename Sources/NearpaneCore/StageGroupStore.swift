@@ -35,6 +35,10 @@ public struct StageGroupDirectory: Codable, Equatable, Sendable {
     public let version: Int
     public var displays: [Display]
 
+    public func groups(in scope: StageGroupScope) -> [Group] {
+        displays.first { $0.id == scope.display }?.groups.filter { $0.nativeSpace == scope.nativeSpace } ?? []
+    }
+
     fileprivate func validate() throws {
         var ids = Set<UUID>(), windows = Set<NativeSpaceWindow>()
         guard version == 1 || version == 2 else { throw StageGroupError.invalidDirectory }
@@ -166,12 +170,12 @@ public struct StageGroupWindow: Sendable {
     }
 
     /// Discover previously unseen ordinary windows. Disappearance and a matching numeric hint never remove or rebind a slot.
-    public func observe(_ windows: [StageGroupWindow]) throws {
+    public func observe(_ windows: [StageGroupWindow], preserving ownedDisplay: UUID? = nil) throws {
         var next = directory
         var known = Set(next.displays.flatMap { $0.groups.flatMap { $0.members.map(\.windowHint) } })
         var additions = [NativeSpaceWindow: UUID]()
         let occurrences = Dictionary(grouping: windows, by: \.identity)
-        for window in windows where occurrences[window.identity]?.count == 1 && known.insert(window.identity).inserted {
+        for window in windows where window.display != ownedDisplay && occurrences[window.identity]?.count == 1 && known.insert(window.identity).inserted {
             let member = StageGroupDirectory.Member(id: UUID(), windowHint: window.identity, layout: window.layout)
             let group = StageGroupDirectory.Group(id: UUID(), members: [member], nativeSpace: window.nativeSpace)
             if let index = next.displays.firstIndex(where: { $0.id == window.display }) {
@@ -181,7 +185,7 @@ public struct StageGroupWindow: Sendable {
             }
             additions[window.identity] = window.lifetime
         }
-        for d in next.displays.indices {
+        for d in next.displays.indices where next.displays[d].id != ownedDisplay {
             for g in next.displays[d].groups.indices {
                 var group = next.displays[d].groups[g]
                 let live = group.members.compactMap { member -> StageGroupWindow? in
@@ -211,7 +215,7 @@ public struct StageGroupWindow: Sendable {
     }
 
     public func groups(in scope: StageGroupScope) -> [StageGroupDirectory.Group] {
-        groups(on: scope.display).filter { $0.nativeSpace == scope.nativeSpace }
+        directory.groups(in: scope)
     }
 
     public func activeGroup(in scope: StageGroupScope) -> UUID? {
@@ -250,7 +254,7 @@ public struct StageGroupWindow: Sendable {
                                     first: StageWindowSample, second: StageWindowSample) throws {
         let before = baseline.sample, source = baseline.source
         let scope = before.scope
-        guard directory == baseline.directory, activeGroup(in: scope) == baseline.group,
+        guard groups(in: scope) == baseline.directory.groups(in: scope), activeGroup(in: scope) == baseline.group,
               source.pid == key.pid, source.birth == key.birth, key.number != source.number,
               !directory.displays.flatMap(\.groups).flatMap(\.members).contains(where: { $0.windowHint.number == key.number }),
               !before.windows.keys.contains(where: { $0.number == key.number }),
@@ -268,7 +272,9 @@ public struct StageGroupWindow: Sendable {
               let g = directory.displays[d].groups.firstIndex(where: { $0.id == baseline.group })
         else { throw StageGroupError.staleBinding }
         var next = directory
-        next.displays[d].groups[g].members.append(.init(id: UUID(), windowHint: key, layout: layout))
+        let member = StageGroupDirectory.Member(id: UUID(), windowHint: key, layout: layout)
+        next.displays[d].groups.append(.init(id: UUID(), members: [member], nativeSpace: scope.nativeSpace))
+        if second.focus == key { next.displays[d].groups[g].verifiedActive = nil }
         try commit(next)
         bindings[key] = new.lifetime
     }
@@ -276,7 +282,7 @@ public struct StageGroupWindow: Sendable {
     /// Called only by the coordinator once a whole-transaction independent readback is complete.
     func commitActivity(_ group: UUID, preferred: UUID, in scope: StageGroupScope,
                         expected: StageGroupDirectory) throws {
-        guard directory == expected else { throw StageGroupError.changedFile }
+        guard groups(in: scope) == expected.groups(in: scope) else { throw StageGroupError.changedFile }
         var next = directory
         guard let d = next.displays.firstIndex(where: { $0.id == scope.display }),
               let g = next.displays[d].groups.firstIndex(where: { $0.id == group && $0.nativeSpace == scope.nativeSpace }),

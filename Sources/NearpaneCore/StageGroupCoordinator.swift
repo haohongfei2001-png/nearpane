@@ -180,7 +180,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
     }
 
     /// The caller obtains consent from an explicit first-use confirmation before entering. On
-    /// first enrollment the initial group must contain the actual focused window.
+    /// first enrollment the actual focused window must belong to a participating group.
     public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope,
                          consent: Bool, session: StageWindowSession) async throws {
         guard !busy else { throw StageSwitchError.busy }
@@ -206,7 +206,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
               ids.count == members.count, ids.isSubset(of: Set(first.windows.keys)),
               first.windows.allSatisfy({ $0.key == $0.value.window }),
               members.allSatisfy({ m in first.windows[m.windowHint].map { state in store.isBound(m, to: state.lifetime) } == true }),
-              groups.contains(where: { $0.verifiedActive == true }) || first.focus.map(targets.contains) == true
+              groups.contains(where: { $0.verifiedActive == true }) || first.focus.map(ids.contains) == true
         else { throw StageSwitchError.incomplete }
         let originalHeld = ledger.owned.filter { $0.scope == scope }
         let held = Dictionary(uniqueKeysWithValues: originalHeld.map { ($0.hidden.window,$0) })
@@ -238,7 +238,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
         var last = first
         func read() async throws -> StageWindowSample {
             let next = try await session.read(scope)
-            guard epoch == token, directory == store.directory, session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
+            guard epoch == token, directory.groups(in: scope) == store.groups(in: scope), session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
                   next.nativeID == first.nativeID,
                   next.scope == scope, next.generation == first.generation, next.workArea == first.workArea,
                   next.sequence > last.sequence, next.windows.keys == first.windows.keys,
@@ -249,7 +249,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
         func perform(_ action: StageWindowAction, id: NativeSpaceWindow,
                      check: (StageWindowState, StageWindowSample) -> Bool) async throws {
             let pre = try await read()
-            guard pre.windows == last.windows, let before = pre.windows[id] else { throw StageSwitchError.interrupted }
+            guard pre.windows == last.windows, pre.focus == last.focus, let before = pre.windows[id] else { throw StageSwitchError.interrupted }
             last = pre
             let primitive = UUID()
             try update { $0.pending?.entries.append(.init(action: action, before: before, intent: primitive)) }
@@ -261,6 +261,11 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
             try await session.dispatch(command)
             for _ in 0..<2 {
                 let post = try await read()
+                if post.focus != (action == .focus ? id : pre.focus) {
+                    // External activation or an unexpected backend focus transfer. Preserve the issued intent.
+                    invalidate()
+                    throw StageSwitchError.interrupted
+                }
                 guard let value = post.windows[id], check(value, post),
                       pre.windows.keys.filter({ $0 != id }).allSatisfy({ post.windows[$0] == pre.windows[$0] }) else {
                     throw StageSwitchError.incomplete
@@ -291,6 +296,11 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
                     }
                 }
             }
+            if last.focus != preferred.windowHint {
+                try await perform(.focus, id: preferred.windowHint) { state, sample in
+                    state.visibility == .visible && sample.focus == preferred.windowHint
+                }
+            }
             for m in members where !targets.contains(m.windowHint) && held[m.windowHint] == nil {
                 try await perform(.hide, id: m.windowHint) { value, _ in value.visibility == mechanism &&
                     (mechanism != .stageSpace || (value.hiddenSpaceID ?? 0) > 0 && value.hiddenSpaceID != first.nativeID) }
@@ -314,10 +324,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
                     }
             }
             last = try await read()
-            guard complete(last) else { throw StageSwitchError.incomplete }
-            if last.focus != preferred.windowHint {
-                try await perform(.focus, id: preferred.windowHint) { state, sample in state.visibility == .visible && sample.focus == preferred.windowHint }
-            }
+            guard complete(last), last.focus == preferred.windowHint else { throw StageSwitchError.incomplete }
             for _ in 0..<2 {
                 last = try await read()
                 guard complete(last), last.focus == preferred.windowHint else { throw StageSwitchError.incomplete }

@@ -4,6 +4,8 @@
 
 旧版布局、StageGroup 组目录、Swift 切换事务和 Guardian 恢复各自保留原有责任。已知旧布局成员按进程出生代、PID 和窗口号排除，含该成员的整组保留为旁窗。其余完整组可进入资格与授权检查。两条写入路径共用逐窗口文件锁。原位升级仍遵循原有预检。隔离回归 22 项通过，覆盖同应用兄弟窗、整组排除、损坏资料及未确认写入。正式后端资格仍为 0/2。[本地测试原始结果](../verification/window-engine/stage-product/ownership.xml)
 
+首次选组现在会先核对目标窗已获焦，再移开原组。外部焦点在写入中变化时，保留意图并停止。新普通窗口默认独立成组。加入、移出和拖放沿用同一侧栏队列，等待旧执行器归还窗口。旁屏目录可在本屏事务期间记录新窗。7 个套件共 52 项通过，包括组切换、同应用多窗和焦点中途改变的故障注入。物理双屏独立切换及正式安装版整组切换仍待验收。[调度回归](../verification/window-engine/stage-product/groups.xml) · [所有权模块 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44906708535)
+
 ## 2026-11-21 · 同机原位安装预检
 
 5.22（90）候选 `b7424a2` 已在私有目录完成 Developer ID 签名和静态验签。实体机 macOS 27.0（26A428）、SIP 开启。原位监督程序在正常退出日常 Host 前返回 **BLOCKED**。活动资料中有一扇普通窗口尚待恢复，进程代际和窗口号两次吻合，当前宽度 1230，记录的原始宽度 1211。原应用、资料和恢复日志均已完整备份，收尾核对原 PID、出生代、签名和资料指纹一致。[本次实机结论](../verification/window-engine/in-place-26A428/RESULTS.md) · [原位安装入口收据](../verification/window-engine/in-place-26A428/05-installation.json)

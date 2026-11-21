@@ -50,8 +50,10 @@ import Testing
         defer { try? FileManager.default.removeItem(at: p) }
         let untouched = runtime.windows.filter { $0.key.number >= 4 }
         await #expect(throws: StageSwitchError.unavailable) { try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: false, session: runtime) }
+        runtime.focus = untouched.keys.first { $0.number == 4 }
         await #expect(throws: StageSwitchError.incomplete) { try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime) }
         #expect(runtime.writes.isEmpty)
+        runtime.focus = groups[0].members[0].windowHint
         for i in [0,1,2,0] {
             try await engine.activate(groups[i].id, member: nil, in: runtime.scope, consent: true, session: runtime)
             let id = groups[i].members[0].windowHint
@@ -61,6 +63,31 @@ import Testing
             #expect(store.activeGroup(in: runtime.scope) == groups[i].id)
         }
         #expect(!engine.requiresRecovery)
+    }
+
+    @Test func firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let other = StageGroupWindow(display: UUID(), identity: .init(pid: 14, birth: 101, number: 13),
+                                     lifetime: UUID(), nativeSpace: UUID())
+        runtime.afterWrite = { try store.observe([other], preserving: runtime.scope.display) }
+        try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.writes.first?.0 == .focus && runtime.writes.first?.1 == groups[1].members[0].windowHint)
+        #expect(store.activeGroup(in: runtime.scope) == groups[1].id)
+        #expect(store.groups(on: other.display).first?.members.first?.windowHint == other.identity)
+        #expect(!engine.requiresRecovery)
+    }
+
+    @Test func focusTakeoverAfterHideNeverRefocusesOrCommitsTheSwitch() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let user = try #require(runtime.windows.keys.first { $0.number == 4 })
+        runtime.afterWrite = { runtime.focus = user }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.focus == user && runtime.writes.count == 1 && engine.requiresRecovery)
+        #expect(store.activeGroup(in: runtime.scope) == nil)
     }
 
     @Test func unknownAfterIssuedIsDurableAndNeverReplayed() async throws {

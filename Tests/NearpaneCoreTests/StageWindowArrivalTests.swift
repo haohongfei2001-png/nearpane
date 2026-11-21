@@ -52,7 +52,7 @@ import Testing
         return try #require(store.arrivalBaseline(sample(1, existing, source)))
     }
 
-    @Test func confirmedEventPreservesSelectionAndPersistsWithoutRestoringAuthority() throws {
+    @Test func confirmedNewWindowGetsItsOwnGroupAndNoInheritedAuthority() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         let store = StageGroupStore(profile: dir)
@@ -62,10 +62,11 @@ import Testing
         let after = old + [target]
         try store.recordCreatedWindow(created, since: baseline, first: sample(2, after, created), second: sample(3, after, created))
         let active = try #require(store.groups(in: scope).first { $0.id == baseline.group })
-        #expect(active.verifiedActive == true && active.selectedMember == selected)
-        #expect(active.members.map(\.windowHint) == [source, created])
-        #expect(active.members.last?.layout == StageGroupWindow.relativeFrame(target.frame, in: work))
-        #expect(store.groups(in: scope).last?.members.map(\.windowHint) == [sibling])
+        #expect(active.verifiedActive != true && active.selectedMember == selected)
+        #expect(active.members.map(\.windowHint) == [source])
+        let groups = store.groups(in: scope)
+        #expect(groups.map { $0.members.map(\.windowHint) } == [[source], [sibling], [created]])
+        #expect(groups.last?.members.first?.layout == StageGroupWindow.relativeFrame(target.frame, in: work))
         let reopened = StageGroupStore(profile: dir)
         #expect(reopened.directory == store.directory)
         #expect(reopened.arrivalBaseline(sample(4, after, created)) == nil)
