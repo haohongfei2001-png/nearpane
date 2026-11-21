@@ -1,26 +1,24 @@
 # 当前安装与专项状态
 
-## 2026-11-21 · StageGroup 窗口所有权
+## 2026-11-21 · StageGroup 产品工程与验收
 
-全量测试曾在侧栏交还观察责任时读到 2 次请求，测试预期为 1 次。复查发现计数使用了异步回调，不能辨别交还前已发出的请求。现以同一执行线程上的请求序号验收，并在读任务实际启动前重新核对观察需求、会话和取消状态。修复后完整 Swift 回归 739 项通过、3 项条件跳过。[首次失败](../verification/window-engine/stage-product/full-swift-first-f0c2f11.xml) · [修复后全量结果](../verification/window-engine/stage-product/full-swift.xml)
+本轮从 `e6d4bac` 推进到源码 `5e708a4`。macOS 27.0（26A428）、SIP 开启的主机完成开发包构建、解包验签及完整离屏回归，739 项通过、3 项条件跳过。正式安装 Host 的生产后端资格为 **0/2**。 [机器总表](../verification/window-engine/stage-product/verification.json) · [完整 Swift 回归](../verification/window-engine/stage-product/full-swift.xml) · [开发包签名与哈希](../verification/window-engine/stage-product/development-build.json)
 
-若用户在两次已确认的组操作之间将焦点移走，原执行器可以还原自己持有的窗口。仅在两次完整读回均确认所有原始窗口、旁窗、几何和新的键盘接收者后，才为这次 StageGroup 事务写入已交还的收据。缺少写入结果、Guardian 确认、期间变更的旁窗或布局均保留恢复责任。24 项隔离测试通过。[交还与故障注入](../verification/window-engine/stage-product/interrupted-release.xml)
+九笔工程提交的 18 项原生 CI 均通过。最终引擎 CI 在 26A434 上通过 93 项 Rust、85 项 Swift 专项测试与生产 C ABI。构建脚本输出的开发 App 起初缺少外层资源封签，本次只对隔离副本做 ad-hoc 封签，解包后严格深度验签、辅助程序哈希与内嵌资源自检均通过。开发包沿用 `com.holdsnow.nearpane.host` 的 0.2.0（1）元数据。 [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44912221403) · [原生协议和签名窗口夹具](https://github.com/haohongfei2001-png/nearpane/actions/runs/44912221364)
 
-组合缩略图的背景和组名都可选择整个组。返回时优先选择该组上次确认获得焦点的成员。若整组调度不可用，会显示原因；组内仍可按窗口精确选择。27 项本地回归通过，含同应用双窗组合往返、未获资格时零次整组写入与 R4 侧栏布局。[整组入口收据](../verification/window-engine/stage-product/group-action.xml)
+| 模块 | 已验证的行为 | 正式产品尚需验证 |
+| --- | --- | --- |
+| 窗口所有权 | 旧布局按窗口身份保留成员，含冲突成员的整个组作为旁窗。普通窗口写入者与引擎争用同一把逐窗锁，组目录与 Guardian 租约各自持久化。 [22 项隔离测试](../verification/window-engine/stage-product/ownership.xml) | 正式 Host 单窗资格。历史布局日志只约束日常安装的原位验收。 |
+| 切换和组内布局 | 新窗默认单独成组。组合卡背景和组名可选择整组，保留上次精确选中的成员。先显示并验证目标焦点，再移开原组。编辑和分屏在原执行器归还窗口后进入同一队列。 [组切换与编辑](../verification/window-engine/stage-product/groups.xml) · [组合卡入口](../verification/window-engine/stage-product/group-action.xml) | 从正式侧栏执行 A→B→C→A 并独立确认各个工作集合和键盘接收者。 |
+| 焦点与多屏 | 用户在写入之间或最后确认时选择了其他窗，事务停止。另一屏的前台窗须经两次清单和 Host 的 AX、CG、原生归属读回。另一显示器发现新窗时能独立更新目录。 [焦点与双屏隔离](../verification/window-engine/stage-product/focus.xml) | 当前执行器限一个已认证的显示器和桌面，同时持有两屏工作集合的写入路径尚待实现。 |
+| 健康与交还 | 运行中失效的资格记录退出本次 Host 会话。侧栏收起后仍观察持有的窗。交还发生在旧执行器内，全部原始窗口和旁窗两次读回无差异后才确认完成。存在未确认写入或 Guardian 责任时保留原所有者。 [健康与备用后端](../verification/window-engine/stage-product/health.xml) · [焦点改变后的交还](../verification/window-engine/stage-product/interrupted-release.xml) | 真实 Guardian 接手、完整鼠标事件隔离、睡眠唤醒及拔插。 |
+| 窗口生命周期 | 应用退出后核对进程代际和两次 WindowServer 缺席。托管 GUI 中，两个签名应用的目录重开后保留了双窗组和单窗组。退出并重新启动其中一个应用后出现新单窗组，另一个应用的两扇窗和原组保留。原 AX 对象确认恢复的窗口可沿用组成员身份，旧输入和像素标记自然失效。 [真实夹具](../verification/window-engine/stage-product/hosted-44912221364/stage-group-lifecycle.json) · [生命周期](../verification/window-engine/stage-product/lifecycle.xml) · [窗口重现](../verification/window-engine/stage-product/reappearing-window.xml) | 托管桌面的原生 Space 归属为 UNKNOWN，正式产品窗口调度仍需指定实体环境。 |
 
-停放窗口重现时，Host 用保留的原始 AX 对象、两次窗口状态和同一个新出现标记确认其组成员身份。读回过期、窗口代际变化及旁窗均不能继承旧组。鼠标操作和画面缓存继续使用新出现标记。24 项隔离测试通过。[原始收据](../verification/window-engine/stage-product/reappearing-window.xml)
+旧最小化对照在托管 macOS 26（25G332）增加了 Dock 窗口图块，旧角落停放原型收到了真实鼠标按下，两者均为 **FAIL**。显示桌面及恢复为 **PASS**。两项失败的鼠标和 Dock 读回、录屏及夹具清理结果均已保留。[最终源码的对照与录屏](../verification/window-engine/stage-product/hosted-44912221364/comparison/)
 
-切换中的每个写入前后和末次确认都核对真实焦点。外部输入改变焦点后，后台补偿和重启后的恢复也无权抢回。另一物理屏的可见焦点须通过两次屏幕清单和 Host 的 AX、CG 与原生归属读回；这时本屏工作集合仍可保留。单个执行器尚不能同时写入两块屏，选择另一屏不会拆散已持有的组。焦点与独立显示器证据的隔离回归以及首次夹具失败均已保存。[复测收据](../verification/window-engine/stage-product/focus.xml) · [首次夹具失败](../verification/window-engine/stage-product/focus-first-attempt.xml)
+非活动组合目前仅有已核对的成员记录，完整组合画面仍待接入。实体机正式 Host 单窗闭环、整组切换、原生交互兼容及与 Apple 台前调度的性能对照分别保留待验状态。
 
-旧版布局、StageGroup 组目录、Swift 切换事务和 Guardian 恢复各自保留原有责任。已知旧布局成员按进程出生代、PID 和窗口号排除，含该成员的整组保留为旁窗。其余完整组可进入资格与授权检查。两条写入路径共用逐窗口文件锁。原位升级仍遵循原有预检。隔离回归 22 项通过，覆盖同应用兄弟窗、整组排除、损坏资料及未确认写入。正式后端资格仍为 0/2。[本地测试原始结果](../verification/window-engine/stage-product/ownership.xml)
-
-首次选组现在会先核对目标窗已获焦，再移开原组。外部焦点在写入中变化时，保留意图并停止。新普通窗口默认独立成组。加入、移出和拖放沿用同一侧栏队列，等待旧执行器归还窗口。旁屏目录可在本屏事务期间记录新窗。7 个套件共 52 项通过，包括组切换、同应用多窗和焦点中途改变的故障注入。物理双屏独立切换及正式安装版整组切换仍待验收。[调度回归](../verification/window-engine/stage-product/groups.xml) · [所有权模块 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44906708535)
-
-同一 Host 会话内，运行时健康检查失败的资格记录会退出选择。原写入者有未确认资源时，备用后端无法接管。权限暂时失效单独处理。侧栏收起后，持有窗口的执行器继续观察实际焦点与可见性。27 项隔离测试通过。[健康与恢复回归](../verification/window-engine/stage-product/health.xml)
-
-窗口关闭时使用原 AX 对象及两次 AX/CG 缺席读回。应用退出时核对内核进程代际和两次 WindowServer 读回。只有当前绑定仍吻合且引擎无待处理所有权的成员才能从目录移出。其余成员保留原组、布局和绑定。33 项离线回归通过。独立托管夹具会正常退出并重启一款已注册应用，核对另一款应用的两扇旁窗以及重启后的新单窗组。[生命周期回归](../verification/window-engine/stage-product/lifecycle.xml)
-
-托管 macOS 26（25G332）的两个普通签名应用在旧路径对照中复现了最小化增加 Dock 图块、普通角落停放遭到鼠标命中。桌面显示与恢复通过，两组失败夹具均已正常退出。Rust Corner 的输入门和 Spaces 的实体机单窗资格仍待各自验证。[原始对照、失败记录和录屏](../verification/window-engine/stage-product/hosted-44906708529/)
+首次双屏夹具重复了窗口层级且缺少屏幕可用区域，修正夹具后通过。全量测试另发现异步回调计数无法区分交还前已发出的读取，现以同一执行线程发出的请求序号验收，并在实际启动读取前复查观察需求、会话及取消状态。受限沙箱的 IOSurface 分配失败和离屏实测复核也独立留档。[首次双屏夹具](../verification/window-engine/stage-product/focus-first-attempt.xml) · [全量测试首次失败](../verification/window-engine/stage-product/full-swift-first-f0c2f11.xml) · [沙箱失败](../verification/window-engine/stage-product/sandbox-pixel-allocation.log) · [IOSurface 复测](../verification/window-engine/stage-product/iosurface-recheck.xml)
 
 ## 2026-11-21 · 同机原位安装预检
 
