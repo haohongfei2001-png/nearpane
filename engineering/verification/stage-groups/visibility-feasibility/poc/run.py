@@ -332,7 +332,7 @@ class Trial:
                 "tilesAfter":after["dock"].get("minimizedTiles"),"managerWritesAfterUserClick":0,
                 "focusedWindowAfter":after["focus"],"otherWindowReconciliation":"NOT_RUN in production"}
 
-    def mc(self, phase):
+    def mc(self, phase, capture=False):
         _, state = self._mc_state()
         if state is not False:
             return {"status":"BLOCKED","reason":"ordinary Dock state unreadable"}
@@ -343,6 +343,12 @@ class Trial:
             active=self.snap(phase+".overview")
             if active["dock"].get("missionControl") is not True:
                 return {"status":"UNKNOWN","openExit":r.returncode,"overviewWitness":False}
+            if capture and active["screenAllowed"]:
+                for ordinal in range(1,len(active["displays"])+1):
+                    path=self.out/f"{phase}-display-{ordinal}.png"
+                    shot=execute("screencapture","-x","-t","png","-D",str(ordinal),path,check=False)
+                    self.event(phase+".capture-"+str(ordinal),{"exit":shot.returncode,"file":path.name,
+                               "bytes":path.stat().st_size if path.exists() else 0})
             self.event(phase+".escape",self.inspected("escape-mc"))
             time.sleep(.8)
             closed=self.snap(phase+".closed")
@@ -434,14 +440,14 @@ class Trial:
         self.event(label+".result",rec); write(self.out/"summary.json",self.entries)
 
 
-def run(out):
+def run(out, suite):
     if [os.getenv(k) for k in ("RUNNER_ENVIRONMENT","GITHUB_ACTIONS","RUNNER_OS","USER")] != ["github-hosted","true","macOS","runner"]:
         raise SystemExit("Live trials require an empty GitHub-hosted macOS login")
     out.mkdir(exist_ok=False,parents=True)
     with tempfile.TemporaryDirectory(prefix="nearpane-visibility-",dir=os.environ["RUNNER_TEMP"]) as temp:
         t=Trial(Path(temp).resolve(),out)
         old=dock_pref()
-        t.entries.update(os=execute("sw_vers").stdout.strip(),sip=execute("csrutil","status").stdout.strip(),
+        t.entries.update(suite=suite,os=execute("sw_vers").stdout.strip(),sip=execute("csrutil","status").stdout.strip(),
                          revision=os.environ["GITHUB_SHA"],image=os.getenv("ImageVersion"),dockOriginal=old,
                          stageManagerPreference=execute("defaults","read","com.apple.WindowManager","GloballyEnabled",check=False).stdout.strip() or "absent")
         modified=old is not True
@@ -452,17 +458,22 @@ def run(out):
             if dock_pref() is not True: raise RuntimeError("Dock preference did not take effect")
             if t.entries["stageManagerPreference"]=="1": raise RuntimeError("system Stage Manager enabled")
             t.launch()
-            def ax_action(hide,idx): return t.inspected("minimize" if hide else "restore","A"+str(idx))
-            t.block("A.single",lambda:t.single("A.single","A",ax_action))
-            if t.entries["methods"]["A.single"]["status"]=="PASS":
-                t.block("A.sameAppSecond",lambda:t.single("A.sameAppSecond","A",ax_action,1,"A0"))
-            else: t.entries["methods"]["A.sameAppSecond"]={"status":"NOT_RUN","reason":"single gate"}
-            t.block("A.userDock",t.user_dock)
-            t.block("A.focusedTarget",t.active_target)
-            t.block("B.ownerControl",lambda:t.single("B.ownerControl","B",lambda hide,idx:t.command("A","raw-out" if hide else "raw-in",idx)["action"]))
-            for mode in ("cold-main","appkit-load","app-main","independent","transaction"):
-                t.block("B."+mode,lambda mode=mode:t.order_mode(mode))
-            t.block("C.virtual",t.virtual)
+            if suite == "lifecycle":
+                from lifecycle import ax_crash, display_crash
+                t.block("A.crash",lambda:ax_crash(t))
+                t.block("C.crash",lambda:display_crash(t))
+            else:
+                def ax_action(hide,idx): return t.inspected("minimize" if hide else "restore","A"+str(idx))
+                t.block("A.single",lambda:t.single("A.single","A",ax_action))
+                if t.entries["methods"]["A.single"]["status"]=="PASS":
+                    t.block("A.sameAppSecond",lambda:t.single("A.sameAppSecond","A",ax_action,1,"A0"))
+                else: t.entries["methods"]["A.sameAppSecond"]={"status":"NOT_RUN","reason":"single gate"}
+                t.block("A.userDock",t.user_dock)
+                t.block("A.focusedTarget",t.active_target)
+                t.block("B.ownerControl",lambda:t.single("B.ownerControl","B",lambda hide,idx:t.command("A","raw-out" if hide else "raw-in",idx)["action"]))
+                for mode in ("cold-main","appkit-load","app-main","independent","transaction"):
+                    t.block("B."+mode,lambda mode=mode:t.order_mode(mode))
+                t.block("C.virtual",t.virtual)
         except (OSError,ValueError,RuntimeError,subprocess.SubprocessError) as e:
             t.entries["setupFailure"]=str(e)
         finally:
@@ -490,4 +501,8 @@ def run(out):
 
 
 if __name__=="__main__":
-    cli=argparse.ArgumentParser(description=__doc__); cli.add_argument("output",type=Path); run(cli.parse_args().output)
+    cli=argparse.ArgumentParser(description=__doc__)
+    cli.add_argument("output",type=Path)
+    cli.add_argument("--suite",choices=("core","lifecycle"),default="core")
+    args=cli.parse_args()
+    run(args.output,args.suite)

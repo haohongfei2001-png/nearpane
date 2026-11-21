@@ -20,7 +20,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Probe enrolled window owners in the disposable GUI
-        run: python3 -B engineering/verification/stage-groups/visibility-feasibility/poc/run.py "$RUNNER_TEMP/window-visibility"
+        env:
+          LAB_SUITE: ${{ contains(github.event.head_commit.message, '[visibility-lifecycle]') && 'lifecycle' || 'core' }}
+        run: python3 -B engineering/verification/stage-groups/visibility-feasibility/poc/run.py "$RUNNER_TEMP/window-visibility" --suite "$LAB_SUITE"
       - name: Preserve all observations including failed cases
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

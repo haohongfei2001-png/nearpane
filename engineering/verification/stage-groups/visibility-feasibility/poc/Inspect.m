@@ -162,6 +162,13 @@ int main(int argc, char **argv) { @autoreleasepool {
                @"cgListsAvailable":@(all != nil && on != nil),@"focus":focus(a,b),@"dock":dock(root),@"windows":rows,@"displays":displays(cid) ?: none(),
                @"pointer":@[@(p.x),@(p.y)]}); return 0;
     }
+    if ([op isEqual:@"hold-minimized"]) {
+        id window = axWindow(a,@"A0");
+        AXError result = window ? AXUIElementSetAttributeValue(element(window),CFSTR("AXMinimized"),kCFBooleanTrue) : kAXErrorInvalidUIElement;
+        emit(@{@"axError":@(result),@"actorPID":@(getpid())});
+        if (result == kAXErrorSuccess) pause();
+        return 0;
+    }
     if ([op isEqual:@"key"]) {
         NSDictionary *f = focus(a,b);
         if ([f[@"frontPID"] isEqual:a[@"pid"]] && [f[@"axPID"] isEqual:a[@"pid"]] && [a[@"windows"] containsObject:f[@"actualID"]]) {
