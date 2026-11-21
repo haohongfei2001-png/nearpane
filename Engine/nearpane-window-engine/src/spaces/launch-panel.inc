@@ -58,7 +58,7 @@ static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window) {
     } else {
         if(!AXIsProcessTrusted())return NO;
         AXUIElementRef system=AXUIElementCreateSystemWide();CFTypeRef app=NULL,focused=NULL;
-        pid_t axOwner=0;BOOL valid=system &&
+        pid_t axOwner=0;BOOL valid=system && AXUIElementSetMessagingTimeout(system,.08f)==kAXErrorSuccess &&
             AXUIElementCopyAttributeValue(system,kAXFocusedApplicationAttribute,&app)==kAXErrorSuccess && app &&
             CFGetTypeID(app)==AXUIElementGetTypeID() && AXUIElementGetPid((AXUIElementRef)app,&axOwner)==kAXErrorSuccess && axOwner==owner &&
             AXUIElementSetMessagingTimeout((AXUIElementRef)app,.08f)==kAXErrorSuccess;

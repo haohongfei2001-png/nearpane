@@ -34,5 +34,17 @@
     "upstream": "src/platform/spaces/ffi.rs",
     "blob": "07fd308828d042ca29d6f2f45d12655765739708",
     "modifications": "Typed Rust worker-side wrappers, explicit incomplete reads, ephemeral generation-bound AX witness and retained reference cleanup."
+  },
+  {
+    "local": "src/spaces/launch.rs",
+    "upstream": "src/platform/spaces/probe.rs",
+    "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
+    "modifications": "Adapt the own-window launch lifecycle to a previously reviewed route; one-use self-owned canary, exact before/after membership, separate readback-only reconciliation, and no transfer of authority before cleanup."
+  },
+  {
+    "local": "src/spaces/launch-panel.inc",
+    "upstream": "src/platform/spaces/probe.rs",
+    "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
+    "modifications": "Adapt the nonactivating transparent probe panel. Require the installed Developer ID identity, a retained private instance, unchanged external focus, bounded main-thread calls and positive AppKit/CG disappearance."
   }
 ]

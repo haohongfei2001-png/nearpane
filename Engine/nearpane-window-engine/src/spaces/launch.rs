@@ -235,7 +235,7 @@ impl<P: Platform> State<P> {
         let before_close = self.sys.canary(PanelOp::Read, a)?;
         // A serialized main-thread read can prove an earlier queued callback expired
         // before it called close. An issued close is only observed, never resent.
-        if before_close.absent != 1 && (!pending.close_sent || before_close.close_issued==0) {
+        if before_close.absent != 1 && (!pending.close_sent || before_close.close_issued == 0) {
             a.active()?;
             self.launch.as_mut().unwrap().close_sent = true;
             self.sys.canary(PanelOp::Close, a)?;
@@ -254,7 +254,10 @@ impl<P: Platform> State<P> {
                 && p.registered == 0
                 && p.absent == 1
                 && absent
-                && {let current=self.sys.all(c)?; current==run.initial && run.parking.is_none_or(|id|!current.contains(&id))}
+                && {
+                    let current = self.sys.all(c)?;
+                    current == run.initial && run.parking.is_none_or(|id| !current.contains(&id))
+                }
                 && fixed(&run.topology, &top)
                 && self.slots.is_empty()
                 && self.owned.is_empty()

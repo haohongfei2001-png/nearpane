@@ -138,7 +138,7 @@ impl Platform for Fake {
             registered: exists as u32,
             absent: (!exists) as u32,
             focus_same: (!self.focus_changed) as u32,
-            close_issued: (self.probe_closes>0) as u32,
+            close_issued: (self.probe_closes > 0) as u32,
         })
     }
     fn absent(&self, n: u32) -> Check<bool> {
@@ -170,7 +170,9 @@ impl Platform for Fake {
     }
     fn move_window(&mut self, _: i32, route: Route, w: Window, s: u64, mask: u32) -> Delivery {
         self.moved.push((route, w.number, s, mask));
-        if self.lose_focus_on_hide && mask==7 && w.number==77 {self.focus_changed=true;}
+        if self.lose_focus_on_hide && mask == 7 && w.number == 77 {
+            self.focus_changed = true;
+        }
         if !self.no_effect {
             self.windows.get_mut(&w.number).unwrap().1 = s;
         }
@@ -444,4 +446,27 @@ fn launch_never_accepts_a_caller_window_or_acquires_a_different_evidence_route()
     assert!(!s.sys.opened_probe && s.sys.moved.is_empty() && s.sys.destroyed.is_empty());
     guard.approved = Some(Route::Bridge);
     assert_ne!(s.run(&launch_request(CLEAN_LAUNCH), &guard).status, PASS);
+}
+
+#[test]
+fn changing_external_focus_stops_launch_and_only_original_owner_can_clean_the_canary() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    s.sys.lose_focus_on_hide = true;
+    let failed = s.run(&launch_request(LAUNCH), &guard);
+    assert_ne!(failed.status, PASS);
+    assert!(failed.owned > 0 && s.route.is_none());
+    let writes = s.sys.moved.len();
+    guard.approved = Some(Route::Classic);
+    assert_ne!(s.run(&launch_request(CLEAN_LAUNCH), &guard).status, PASS);
+    assert_eq!(s.sys.moved.len(), writes);
+    // Independently observed return to the original focus, with no input or activation by the backend.
+    s.sys.focus_changed = false;
+    s.sys.lose_focus_on_hide = false;
+    guard.approved = Some(Route::Bridge);
+    let cleaned = s.run(&launch_request(CLEAN_LAUNCH), &guard);
+    assert_eq!((cleaned.status, cleaned.owned), (PASS, 0));
+    assert_eq!(cleaned.flags & PROBE_CLEAN_FLAGS, PROBE_CLEAN_FLAGS);
+    assert!(s.sys.moved.iter().all(|row| row.1 == 77));
+    assert!(!s.sys.windows.contains_key(&77) && s.route.is_none());
 }
