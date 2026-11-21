@@ -3,6 +3,7 @@ import Testing
 @testable import NearpaneCore
 
 @MainActor private final class EngineFixture: StageEngineWindowWitness, StageEngineTransport {
+    func mayManage(_ state: StageWindowState) -> Bool { true }
     let scope = StageGroupScope(display:UUID(),nativeSpace:UUID()), epoch = UUID()
     let displayArea = SurfaceRect(width:1200,height:950)
     var sequence: UInt64 = 0, windows = [NativeSpaceWindow:StageWindowState](), focus: NativeSpaceWindow?

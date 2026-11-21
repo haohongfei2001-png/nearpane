@@ -10,7 +10,7 @@ import SwiftUI
     private var enrolledDesktopFeed: CurrentDesktopWindows?
     weak var stageEngine: StageWindowEngineHost?
     func permitsStageEngine(on display: String) -> Bool {
-        !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && !ordinary.blocksUpdateRelaunch &&
+        !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && ordinary.stageWindowExclusions != nil &&
             desktopTiling.scope == nil && !desktopTiling.starting && context(for:display) != nil
     }
     public func enrollDesktopTrial(_ owners: [AdmissionFixtureOwner], display: String) -> Bool {

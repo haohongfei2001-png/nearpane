@@ -25,6 +25,8 @@ on:
       - 'Sources/NearpaneHost/NearpaneApp.swift'
       - 'Sources/NearpaneHost/InstalledSpacesFixtureCycle.swift'
       - 'Sources/NearpaneUI/DesktopWindowSelection.swift'
+      - 'Sources/NearpaneUI/CandidateWorkRect.swift'
+      - 'Sources/NearpaneUI/OrdinaryWindowManager*.swift'
       - 'Sources/NearpaneUI/DisplayPanels.swift'
       - 'Tests/NearpaneWindowEngineTests/**'
       - 'Tests/**/Stage*Tests.swift'

@@ -20,13 +20,18 @@ final class OrdinaryFileLease {
     deinit { close(descriptor) }
 
     static func forWindow(_ id: ManagedWindowID) throws -> OrdinaryFileLease {
+        try forWindow(NativeSpaceWindow(pid: id.pid, birth: id.launch, number: id.number))
+    }
+
+    static func forWindow(_ id: NativeSpaceWindow) throws -> OrdinaryFileLease {
+        guard id.pid > 1, id.birth > 0, id.number > 0 else { throw WorkspaceFailure.conflict }
         // Shared across profiles and Alpha installations, private to this login user.
         let folder = URL(fileURLWithPath: "/private/tmp/com.holdsnow.nearpane.window-leases.\(getuid())", isDirectory: true)
         if mkdir(folder.path, 0o700) != 0 && errno != EEXIST { throw WorkspaceFailure.conflict }
         var st = stat()
         guard lstat(folder.path, &st) == 0, st.st_mode & S_IFMT == S_IFDIR, st.st_mode & 0o077 == 0,
               st.st_uid == getuid() else { throw WorkspaceFailure.conflict }
-        return try OrdinaryFileLease(folder.appendingPathComponent("\(id.pid).\(id.launch).\(id.number).lock"))
+        return try OrdinaryFileLease(folder.appendingPathComponent("\(id.pid).\(id.birth).\(id.number).lock"))
     }
 }
 
@@ -60,6 +65,32 @@ struct OrdinaryJournal {
     var exists: Bool {
         var st = stat()
         return lstat(file.path, &st) == 0 || errno != ENOENT
+    }
+
+    /// Identity exclusions only. Reading a prior session never creates a capability to restore it.
+    func reservedWindows() throws -> Set<NativeSpaceWindow> {
+        try ProfileLease.checkPath(file)
+        let fd = open(file.path, O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC)
+        guard fd >= 0 else {
+            if errno == ENOENT { return [] }
+            throw OrdinaryRefusal.storage
+        }
+        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        defer { try? handle.close() }
+        var info = stat()
+        let limit = 1024 * 1024
+        guard fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG,
+              info.st_uid == getuid(), info.st_nlink == 1, info.st_size > 0, info.st_size <= limit,
+              let data = try handle.read(upToCount: limit + 1), data.count == info.st_size else {
+            throw OrdinaryRefusal.storage
+        }
+        let record = try JSONDecoder().decode(Record.self, from: data)
+        guard record.version == 1, record.status == "pending", !record.display.isEmpty else { throw OrdinaryRefusal.storage }
+        let ids = record.entries.map { NativeSpaceWindow(pid: $0.id.pid, birth: $0.id.launch, number: $0.id.number) }
+        guard ids.allSatisfy({ $0.pid > 1 && $0.birth > 0 && $0.number > 0 }), Set(ids).count == ids.count else {
+            throw OrdinaryRefusal.storage
+        }
+        return Set(ids)
     }
 
     func lock() throws -> OrdinaryFileLease {

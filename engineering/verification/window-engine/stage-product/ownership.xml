@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="22" failures="0" skipped="0" time="0.254000875">
+    <testcase classname="NearpaneUITests.StageWindowOwnershipTests" name="pendingLayoutExcludesItsExactWindowsAndStillProtectsUpdate()" time="0.198747583" />
+    <testcase classname="NearpaneUITests.StageWindowOwnershipTests" name="bothWritersContendForSameFileLeaseButSiblingIsIndependent()" time="0.19567375" />
+    <testcase classname="NearpaneUITests.StageWindowOwnershipTests" name="unreadableOwnershipCannotAuthorizeAWindow()" time="0.195925791" />
+    <testcase classname="NearpaneCoreTests.StageWindowArrivalTests" name="initialWindowsAndExplicitlyDetachedMembersAreNeverReclaimed()" time="0.220240209" />
+    <testcase classname="NearpaneCoreTests.StageWindowArrivalTests" name="withdrawnActivityOrConcurrentDirectoryEditCannotCommitAnEarlierEvent()" time="0.220195875" />
+    <testcase classname="NearpaneCoreTests.StageWindowArrivalTests" name="anyChangeInScopeFocusOriginOrTheRestOfTheRosterWithholdsTheMetadataWrite()" time="0.220259834" />
+    <testcase classname="NearpaneCoreTests.StageWindowArrivalTests" name="confirmedEventPreservesSelectionAndPersistsWithoutRestoringAuthority()" time="0.220508541" />
+    <testcase classname="NearpaneCoreTests.StageWindowArrivalTests" name="freshReadbackCannotExtendAnExistingOwnerToAnyNewOrReopenedWindow()" time="0.253303041" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="incompleteWorkerReadAfterConfirmedRestoresKeepsDurableOwnerAcrossRestart()" time="0.252447208" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="otherSupportedBuildNeedsItsOwnEvidenceAndSameEngineSIPBaseline()" time="0.252240541" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="takeoverDuringOldWorkerShutdownVetoesAlreadyRequestedReplacement()" time="0.19586725" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="oneUnknownRustWriteBlocksReplacementButOtherConfirmedWindowsCanReturn()" time="0.253204041" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="nextOwnedGroupIsActuallyRevealedBeforeRetiringLastVisibleGroup()" time="0.159131458" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="fullGroupCycleUsesOnlyOneBackendAndRestoresBystandersUnchanged()" time="0.125438709" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="changedLifetimeOrExternalGeometryNeverUsedForRestoration()" time="0.220419125" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="selectionUsesCompletePhysicalEvidenceAndNoBackendOrder()" time="0.2204615" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="guardianConfirmationFailureBlocksReplacementAndNeverRepeatsTheRustHide()" time="0.220662125" />
+    <testcase classname="NearpaneCoreTests.StageWindowEngineTests" name="uncertainStartupOwnsOnlyItsCanaryAndCannotHandOffBeforeItsWorkerCloses()" time="0.221894042" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="unknownAfterIssuedIsDurableAndNeverReplayed()" time="0.222110041" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch()" time="0.21944975" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="latePhysicalChangeProtectsBystandersAndTheLastVerifiedGroup()" time="0.22089575" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="threeGroupsRequireConsentFocusOwnershipAndFullReadback()" time="0.252083625" />
+  </testsuite>
+</testsuites>

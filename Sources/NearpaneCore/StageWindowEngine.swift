@@ -6,6 +6,7 @@ import Foundation
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample
     func ordinary(_ command: StageWindowCommand, valid: @escaping @MainActor () -> Bool) async throws
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool
+    func mayManage(_ state: StageWindowState) -> Bool
     func beginRelease()
     func expectVisibility(_ command: StageWindowCommand, nativeID: UInt64, frame: SurfaceRect?)
 }
@@ -81,6 +82,10 @@ package struct StageEngineReply {
         return sample
     }
 
+    public func mayManage(_ state: StageWindowState) -> Bool {
+        enrolledLifetimes?[state.window] == state.lifetime && witness.mayManage(state)
+    }
+
     public func prepareBackend(_ sample: StageWindowSample) async throws {
         guard let native = sample.nativeID, native > 0, qualifiedHiddenState != nil, intentIsCurrent() else { throw StageSwitchError.interrupted }
         do {
@@ -106,7 +111,7 @@ package struct StageEngineReply {
 
     public func dispatch(_ c: StageWindowCommand) async throws {
         func eligible() -> Bool {
-            !closed && enrolledLifetimes?[c.before.window] == c.before.lifetime &&
+            !closed && mayManage(c.before) &&
             (c.restoring ? c.action == .show && (recovering || (!frozen && intentIsCurrent())) : !frozen && intentIsCurrent()) && witness.permits(owner,restoring:c.restoring)
         }
         guard eligible(), (c.nativeID ?? 0) > 0 else { throw StageSwitchError.interrupted }
@@ -133,7 +138,7 @@ package struct StageEngineReply {
         case .place, .focus:
             try await witness.ordinary(c,valid:{ [weak self] in
                 guard let self else { return false }
-                return !self.frozen && !self.closed && self.intentIsCurrent() && self.witness.permits(self.owner,restoring:false)
+                return !self.frozen && !self.closed && self.mayManage(c.before) && self.intentIsCurrent() && self.witness.permits(self.owner,restoring:false)
             })
         case .hide, .show:
             let hiding = c.action == .hide

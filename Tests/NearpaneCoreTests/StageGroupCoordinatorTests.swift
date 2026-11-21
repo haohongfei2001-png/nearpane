@@ -9,6 +9,8 @@ import Testing
     let work = SurfaceRect(width: 900, height: 700)
     var windows = [NativeSpaceWindow: StageWindowState](), focus: NativeSpaceWindow?
     var writes = [(StageWindowAction, NativeSpaceWindow)]()
+    var excluded = Set<NativeSpaceWindow>()
+    func mayManage(_ state: StageWindowState) -> Bool { !excluded.contains(state.window) }
     var afterWrite: (() throws -> Void)?
     func read(_ scope: StageGroupScope) throws -> StageWindowSample {
         sequence += 1
@@ -70,6 +72,31 @@ import Testing
         #expect(restarted.requiresRecovery && store.activeGroup(in: runtime.scope) == nil && runtime.writes.count == 1)
         await #expect(throws: StageSwitchError.recoveryRequired) { try await restarted.recover(runtime) }
         #expect(runtime.writes.count == 1)
+    }
+
+    @Test func reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let protected = groups[2].members[0].windowHint
+        let sibling = try #require(runtime.windows.values.first { $0.window.number == 4 })
+        func live(_ state: StageWindowState) -> StageGroupWindow {
+            .init(display: runtime.scope.display, identity: state.window, lifetime: state.lifetime, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.observe([live(sibling)])
+        try store.join(live(sibling), to: live(try #require(runtime.windows[protected])))
+        runtime.excluded = [protected]
+        let composite = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        let before = runtime.windows
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(composite.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.isEmpty)
+        for index in [0, 1, 0] {
+            try await engine.activate(groups[index].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+            #expect(store.activeGroup(in: runtime.scope) == groups[index].id)
+            #expect(runtime.windows[protected] == before[protected] && runtime.windows[sibling.window] == sibling)
+        }
+        #expect(runtime.writes.allSatisfy { ![protected, sibling.window].contains($0.1) })
     }
 
     @Test func latePhysicalChangeProtectsBystandersAndTheLastVerifiedGroup() async throws {

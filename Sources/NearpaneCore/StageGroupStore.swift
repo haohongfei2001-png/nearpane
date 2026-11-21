@@ -218,6 +218,16 @@ public struct StageGroupWindow: Sendable {
         groups(in: scope).first { $0.verifiedActive == true }?.id
     }
 
+    /// A group enters a switch as a whole. Excluded, absent and unbound members remain in the directory.
+    public func participatingGroups(in scope: StageGroupScope, lifetime: (NativeSpaceWindow) -> UUID?) -> [StageGroupDirectory.Group] {
+        groups(in: scope).filter { group in
+            group.needsReorganization != true && group.members.allSatisfy { member in
+                guard let life = lifetime(member.windowHint) else { return false }
+                return isBound(member, to: life)
+            }
+        }
+    }
+
     /// A baseline belongs to one active group and its genuinely focused, live member. A remembered
     /// directory entry after restart cannot establish it.
     public struct ArrivalBaseline {

@@ -229,6 +229,19 @@ import NearpaneOrdinaryWindowRuntime
         return await drain.value
     }
 
+    private func consent(for scope: StageGroupScope, evidence: UUID, feed: CurrentDesktopWindows) throws -> Consent {
+        guard let excluded = management?.ordinary.stageWindowExclusions else { throw StageSwitchError.busy }
+        func lifetime(_ key: NativeSpaceWindow) -> UUID? {
+            guard !excluded.contains(key) else { return nil }
+            return witness?.lifetime(of: key) ?? feed.lifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number))
+        }
+        let participants = feed.groups.participatingGroups(in: scope, lifetime: lifetime)
+        var lifetimes = [NativeSpaceWindow: UUID]()
+        for member in participants.flatMap(\.members) { lifetimes[member.windowHint] = lifetime(member.windowHint) }
+        return Consent(scope: scope, evidence: evidence, groups: Dictionary(uniqueKeysWithValues:
+            participants.map { ($0.id, $0.members.map(\.id)) }), lifetimes: lifetimes)
+    }
+
     func groupChoice(_ group: UUID, member: NativeSidebarMember, in feed: CurrentDesktopWindows,
                      snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool) async throws -> Bool {
         guard routesGroupChoice else { return false }
@@ -253,15 +266,8 @@ import NearpaneOrdinaryWindowRuntime
             self != nil && feed?.lifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
         }
         guard permitted() else { throw StageSwitchError.busy }
-        let directory = feed.groups.groups(in:scope)
-        var lifetimes = [NativeSpaceWindow:UUID]()
-        for m in directory.flatMap(\.members) {
-            let k = DesktopWindowKey(pid:m.windowHint.pid,birth:m.windowHint.birth,number:m.windowHint.number)
-            guard let life = witness?.lifetime(of:m.windowHint) ?? feed.lifetime(of:k) else { throw StageSwitchError.incomplete }
-            lifetimes[m.windowHint] = life
-        }
-        let approval = Consent(scope:scope,evidence:selected.evidence,groups:
-            Dictionary(uniqueKeysWithValues:directory.map { ($0.id,$0.members.map(\.id)) }),lifetimes:lifetimes)
+        let approval = try consent(for: scope, evidence: selected.evidence, feed: feed)
+        guard approval.groups[group]?.contains(saved.id) == true else { throw StageSwitchError.ownership }
         if granted != approval {
             guard !engine.holdsWindowDispatch else { await release(); throw StageSwitchError.recoveryRequired }
             consentRequest = approval
@@ -273,7 +279,7 @@ import NearpaneOrdinaryWindowRuntime
                 guard let self, self.management?.permitsStageEngine(on:member.source.display) == true else { return false }
                 return self.releaseInput.map { $0 == NativeSelectionPermit.inputCounters() } != false
             }
-            guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,
+            guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,authorized:approval.lifetimes,
                 available:environmentCurrent,restoreAvailable:restore) else { return nil }
             self.witness = witness
             watchSystem()
@@ -361,8 +367,7 @@ import NearpaneOrdinaryWindowRuntime
         guard !releasing, !terminationOwnsLane, let engine, let session = engine.session, session.owner == held.owner,
               heldGroups.contains(held), let granted, granted.scope == held.scope, granted.evidence == held.owner.evidence,
               current(), witness?.matches(held.scope) == true else { throw StageSwitchError.interrupted }
-        let groups = feed.groups.groups(in: held.scope)
-        guard granted.groups == Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0.members.map(\.id)) }) else {
+        guard try granted == consent(for: held.scope, evidence: held.owner.evidence, feed: feed) else {
             throw StageSwitchError.ownership
         }
         let token = revision

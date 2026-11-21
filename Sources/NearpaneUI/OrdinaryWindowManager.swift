@@ -115,6 +115,12 @@ enum OrdinaryRefusal: String, LocalizedError {
     @ObservationIgnored private var afterRead: CheckedContinuation<Void, Never>?
     var unavailableForUserAction: Bool { closing || userActionReserved || (busy && !passiveRead) }
     var blocksUpdateRelaunch: Bool { !activeIDs.isEmpty || blocked || busy || userActionReserved || closing }
+    // Loaded only on entry to qualified StageGroup management. Never used to issue a layout action.
+    @ObservationIgnored private lazy var previousReservations = try? journal.reservedWindows()
+    var stageWindowExclusions: Set<NativeSpaceWindow>? {
+        guard !busy, !closing, !userActionReserved, activeIDs.isEmpty, journalLease == nil else { return nil }
+        return blocked ? previousReservations : []
+    }
     private var appliedArea: SurfaceRect?
     private var lastCorrection = [ManagedWindowID: TimeInterval]()
     @ObservationIgnored var correctionUptime: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }

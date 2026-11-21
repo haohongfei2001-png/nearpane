@@ -3,6 +3,7 @@ import Testing
 @testable import NearpaneCore
 
 @MainActor private final class ArrivalWindowProbe: StageEngineWindowWitness, StageEngineTransport {
+    func mayManage(_ state: StageWindowState) -> Bool { true }
     var sample: StageWindowSample
     private(set) var calls = 0
     init(_ sample: StageWindowSample) { self.sample = sample }

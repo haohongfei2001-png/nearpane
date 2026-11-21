@@ -17,6 +17,8 @@ import NearpaneOrdinaryWindowRuntime
     let scope: StageGroupScope
     let generation = UUID()
     private let available: @MainActor () -> Bool, restoreAvailable: @MainActor () -> Bool
+    private let authorizedLifetimes: [NativeSpaceWindow: UUID]
+    private let leases: [NativeSpaceWindow: OrdinaryFileLease]
     private var bindings = [NativeSpaceWindow:Binding](), claims = [NativeSpaceWindow:VisibilityClaim]()
     private let session: UUID, display: String
     private var releaseInput: [UInt32]?
@@ -31,9 +33,16 @@ import NearpaneOrdinaryWindowRuntime
     }
     private var arrivalWatch: ArrivalWatch?, arrivalAttempt: NativeSpaceWindow?, arrivalEpoch: UInt64 = 0
 
-    init?(feed: CurrentDesktopWindows, scope: StageGroupScope, snapshot: DesktopSnapshot,
+    init?(feed: CurrentDesktopWindows, scope: StageGroupScope, snapshot: DesktopSnapshot, authorized: [NativeSpaceWindow: UUID],
           available: @escaping @MainActor () -> Bool, restoreAvailable: @escaping @MainActor () -> Bool) {
-        guard let physical = snapshot.displays.first(where: { UUID(uuidString:$0.id) == scope.display }) else { return nil }
+        guard let physical = snapshot.displays.first(where: { UUID(uuidString:$0.id) == scope.display }),
+              !authorized.isEmpty, authorized.count <= 64 else { return nil }
+        var acquired = [NativeSpaceWindow: OrdinaryFileLease]()
+        do {
+            for id in authorized.keys { acquired[id] = try OrdinaryFileLease.forWindow(id) }
+        } catch { return nil }
+        leases = acquired
+        authorizedLifetimes = authorized
         self.feed = feed; self.scope = scope; self.session = snapshot.sessionID; display = physical.id
         self.available = available; self.restoreAvailable = restoreAvailable
     }
@@ -42,6 +51,11 @@ import NearpaneOrdinaryWindowRuntime
     func state(of id: NativeSpaceWindow) -> StageWindowState? { lastStates[id] }
     func contains(pid: pid_t) -> Bool { bindings.keys.contains(where:{ $0.pid == pid }) }
     func lifetime(of window: NativeSpaceWindow) -> UUID? { bindings[window]?.lifetime }
+    func mayManage(_ state: StageWindowState) -> Bool {
+        guard let binding = bindings[state.window] else { return false }
+        return !binding.readOnly && binding.lifetime == state.lifetime &&
+            authorizedLifetimes[state.window] == state.lifetime && leases[state.window] != nil
+    }
 
     func beginRelease() { releaseInput = NativeSelectionPermit.inputCounters() }
 
@@ -121,7 +135,7 @@ import NearpaneOrdinaryWindowRuntime
                 let monitor = try DesktopWindowSelection.bindStage(k, lifetime: life, home: desktop, owner: owner, access: access)
                 guard monitor.id.pid == key.pid, monitor.id.launch == key.birth, monitor.id.number == key.number,
                       feed.lifetime(of:k) == life else { throw StageSwitchError.ownership }
-                enrolling[key] = .init(lifetime:life,monitor:monitor,readOnly:false)
+                enrolling[key] = .init(lifetime:life,monitor:monitor,readOnly:authorizedLifetimes[key] != life)
             }
             bindings = enrolling; self.owner = owner.backend; home = desktop; enrolledTopology = initial
         }

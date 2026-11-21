@@ -38,6 +38,7 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
 @MainActor public protocol StageWindowSession: AnyObject {
     var qualifiedHiddenState: StageWindowState.Visibility? { get }
     var engineOwner: StageEngineOwner? { get }
+    func mayManage(_ state: StageWindowState) -> Bool
     func dispatch(_ command: StageWindowCommand) async throws
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws
     func prepareBackend(_ sample: StageWindowSample) async throws
@@ -52,6 +53,7 @@ public struct StageWindowCommand: Sendable {
 }
 
 public extension StageWindowSession {
+    func mayManage(_ state: StageWindowState) -> Bool { true }
     func prepareBackend(_ sample: StageWindowSample) async throws {}
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {}
     var engineOwner: StageEngineOwner? { nil }
@@ -190,17 +192,21 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
         }
         busy = true
         defer { busy = false }
-        let token = epoch, directory = store.directory, groups = store.groups(in: scope)
-        guard let target = groups.first(where: { $0.id == group }), !groups.contains(where: { $0.needsReorganization == true }),
+        let token = epoch, directory = store.directory
+        var first = try await session.read(scope)
+        let groups = store.participatingGroups(in: scope) { key in
+            guard let state = first.windows[key], session.mayManage(state) else { return nil }
+            return state.lifetime
+        }
+        guard let target = groups.first(where: { $0.id == group }),
               let preferred = target.members.first(where: { $0.id == (member ?? target.selectedMember ?? target.members.first?.id) })
         else { throw StageSwitchError.incomplete }
-        var first = try await session.read(scope)
         let members = groups.flatMap(\.members), ids = Set(members.map(\.windowHint)), targets = Set(target.members.map(\.windowHint))
         guard epoch == token, first.scope == scope, first.workArea.width > 0, first.workArea.height > 0,
               ids.count == members.count, ids.isSubset(of: Set(first.windows.keys)),
               first.windows.allSatisfy({ $0.key == $0.value.window }),
               members.allSatisfy({ m in first.windows[m.windowHint].map { state in store.isBound(m, to: state.lifetime) } == true }),
-              store.activeGroup(in: scope) != nil || first.focus.map(targets.contains) == true
+              groups.contains(where: { $0.verifiedActive == true }) || first.focus.map(targets.contains) == true
         else { throw StageSwitchError.incomplete }
         let originalHeld = ledger.owned.filter { $0.scope == scope }
         let held = Dictionary(uniqueKeysWithValues: originalHeld.map { ($0.hidden.window,$0) })
