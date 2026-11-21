@@ -23,7 +23,8 @@ static BOOL stopped(int dir) {
 }
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
-        if (argc != 3 || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())
+        BOOL cycle = argc == 4 && !strcmp(argv[3], "--enrolled-spaces-cycle");
+        if ((!cycle && argc != 3) || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())
             return 2;
         NSUUID *id = [[NSUUID alloc] initWithUUIDString:@(argv[2])];
         if (!id)
@@ -84,10 +85,13 @@ int main(int argc, const char *argv[]) {
         w.animationBehavior = NSWindowAnimationBehaviorNone;
         [w orderBack:nil];
         NSInteger window = w.windowNumber;
+        double started = NSProcessInfo.processInfo.systemUptime, deadline = started + (cycle ? 75 : 20);
         NSDictionary * (^read)(void) = ^NSDictionary * {
           return @{
               @"pid" : @(getpid()),
               @"birth" : @(birth),
+              @"startedUptime" : @(started),
+              @"deadlineUptime" : @(deadline),
               @"window" : @(window),
               @"regularApplication" : @(NSApp.activationPolicy == NSApplicationActivationPolicyRegular),
               @"ordinaryWindow" : @([w isMemberOfClass:NSWindow.class]),
@@ -102,7 +106,6 @@ int main(int argc, const char *argv[]) {
           };
         };
         BOOL ready = window > 0 && window <= UINT32_MAX && emit(dir, "owner-start.json", read());
-        double deadline = NSProcessInfo.processInfo.systemUptime + 20;
         while (ready && !stopped(dir) && NSProcessInfo.processInfo.systemUptime < deadline &&
                !NSApp.isActive && !w.isKeyWindow && !w.isMainWindow &&
                front == NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier)

@@ -15,17 +15,26 @@ struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
         if args.first == "--read-stage-engine-scope" {
-            guard (2...4).contains(args.count), let challenge = UUID(uuidString: args[1]) else { exit(2) }
+            guard (2...5).contains(args.count), let challenge = UUID(uuidString: args[1]) else { exit(2) }
             let options = Set(args.dropFirst(2))
-            guard options.count == args.count-2, options.isSubset(of: ["--registered-window","--private-receipt"]) else { exit(2) }
+            let deferred = options.contains("--await-registered-window")
+            let spacesCycle = options.contains("--enrolled-spaces-cycle")
+            guard options.count == args.count-2,
+                  options.isSubset(of: ["--registered-window","--private-receipt","--await-registered-window","--enrolled-spaces-cycle"]),
+                  !deferred || (options.contains("--private-receipt") && !options.contains("--registered-window")),
+                  !spacesCycle || (deferred && Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app" &&
+                      Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha") else { exit(2) }
             let channel: StageScopeReply?
             let fixture: StageEngineHostScope.Fixture?
             do {
                 channel = options.contains("--private-receipt") ? try StageScopeReply(challenge) : nil
                 fixture = options.contains("--registered-window") ? try StageEnginePackageProbe.enrolledFixture(channel) : nil
             } catch { exit(2) }
-            _ = NSApplication.shared.setActivationPolicy(.prohibited)
-            Task { exit(await StageEnginePackageProbe.readScope(challenge: challenge, fixture: fixture, channel: channel)) }
+            let application = NSApplication.shared
+            if application.activationPolicy() != .prohibited { _ = application.setActivationPolicy(.prohibited) }
+            guard application.activationPolicy() == .prohibited else { exit(3) }
+            Task { exit(await StageEnginePackageProbe.readScope(challenge: challenge, fixture: fixture, channel: channel,
+                                                                awaitRegistration: deferred, enrolledSpacesCycle: spacesCycle)) }
             RunLoop.main.run()
             return
         }
