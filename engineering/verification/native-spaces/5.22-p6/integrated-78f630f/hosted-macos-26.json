@@ -1,0 +1,35 @@
+{
+  "architectures": 18,
+  "assetID": 773987707,
+  "checks": {
+    "distribution": {
+      "exit": 70,
+      "messages": [
+        "Notary Ticket Missing"
+      ]
+    },
+    "gatekeeper": {
+      "exit": 3,
+      "messages": [
+        "Unnotarized Developer ID"
+      ]
+    },
+    "staple": {
+      "exit": 65,
+      "messages": [
+        "does not have a ticket"
+      ]
+    }
+  },
+  "installation": "NOT_RUN",
+  "launch": "NOT_RUN",
+  "osBuild": "25G332",
+  "publicRelease": false,
+  "sha256": "8e5de3880c121e45b66cabf985943946bb7e707fb6ec617422ec9b33c6b4bfba",
+  "source": "78f630fab5277763871cffe1807b817bc9dc394d",
+  "systemPolicy": "NOT_ADMITTED",
+  "verifiedBinaries": 13,
+  "run": 44850975236,
+  "hostedAssetRead": "PASS",
+  "temporarySecretRemoved": true
+}
